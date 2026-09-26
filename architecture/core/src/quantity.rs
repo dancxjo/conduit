@@ -1,5 +1,6 @@
 //! Typed finite quantities with exact-only conversions.
 
+use core::cmp::Ordering;
 use serde::{Deserialize, Serialize};
 
 use crate::semantic_digest;
@@ -480,6 +481,29 @@ impl Quantity {
         convert_exact_rational(i128::from(self.value), 1, self.unit, target)
     }
 
+    /// Compares compatible quantities in their shared canonical reference
+    /// scale without requiring either operand to be representable in the
+    /// other's unit.
+    pub fn compare(self, other: Self) -> Result<Ordering, QuantityConversionRefusal> {
+        if self.dimension() != other.dimension() {
+            return Err(QuantityConversionRefusal::IncompatibleDimensions);
+        }
+        if self.dimension() == QuantityDimension::Angle
+            && is_radian(self.unit) != is_radian(other.unit)
+        {
+            return Err(QuantityConversionRefusal::Inexact);
+        }
+        let (left_numerator, left_denominator) = canonical_fraction(self)?;
+        let (right_numerator, right_denominator) = canonical_fraction(other)?;
+        let left = left_numerator
+            .checked_mul(right_denominator)
+            .ok_or(QuantityConversionRefusal::Overflow)?;
+        let right = right_numerator
+            .checked_mul(left_denominator)
+            .ok_or(QuantityConversionRefusal::Overflow)?;
+        Ok(left.cmp(&right))
+    }
+
     pub const fn encode(self) -> [u8; QUANTITY_ENCODED_LEN] {
         let value = self.value.to_le_bytes();
         [
@@ -514,6 +538,15 @@ impl Quantity {
     pub fn semantic_digest(self) -> [u8; 32] {
         semantic_digest(QUANTITY_INFO_ID, &self.encode())
     }
+}
+
+fn canonical_fraction(value: Quantity) -> Result<(i128, i128), QuantityConversionRefusal> {
+    let (scale, offset, denominator) = value.unit.canonical_transform();
+    let numerator = i128::from(value.value)
+        .checked_mul(scale)
+        .and_then(|value| value.checked_add(offset))
+        .ok_or(QuantityConversionRefusal::Overflow)?;
+    Ok((numerator, denominator))
 }
 
 fn parse_exact_decimal(

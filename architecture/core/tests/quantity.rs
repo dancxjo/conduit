@@ -1,6 +1,7 @@
 use conduit_core::{
     Quantity, QuantityConversionRefusal, QuantityDimension, QuantityLiteralRefusal, QuantityUnit,
 };
+use core::cmp::Ordering;
 
 #[test]
 fn reviewed_families_have_exact_distinct_dimensions() {
@@ -191,6 +192,23 @@ fn scientific_form_literals_preserve_reviewed_units_and_exact_decimals() {
     assert_eq!(
         Quantity::parse_form_literal("69.8°F"),
         Ok(Quantity::new(69_800, QuantityUnit::MilliFahrenheit))
+    );
+}
+
+#[test]
+fn compatible_units_compare_through_the_shared_exact_dimension_law() {
+    assert_eq!(
+        Quantity::new(30, QuantityUnit::Celsius)
+            .compare(Quantity::new(86, QuantityUnit::Fahrenheit)),
+        Ok(Ordering::Equal)
+    );
+    assert_eq!(
+        Quantity::new(21, QuantityUnit::Celsius).compare(Quantity::new(300, QuantityUnit::Kelvin)),
+        Ok(Ordering::Less)
+    );
+    assert_eq!(
+        Quantity::new(640, QuantityUnit::Pixel).compare(Quantity::new(1, QuantityUnit::Meter)),
+        Err(QuantityConversionRefusal::IncompatibleDimensions)
     );
 }
 
