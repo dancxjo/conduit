@@ -27,6 +27,7 @@ mod front;
 mod implementation;
 mod info;
 mod interop;
+mod kind_effects;
 mod plan_realization;
 mod port;
 mod preparation;
@@ -61,8 +62,10 @@ pub use characteristic::*;
 pub use completion::*;
 pub use conduit_assigned_plan::*;
 pub use configuration::{
-    ConfigurationEntry, ConfigurationValue, KindConfigurationField, KindConfigurationRule,
-    KindSemanticLaw, KindTerminalBehavior, StructuredConfigurationValue,
+    ConfigurationEntry, ConfigurationValue, ExternalEffectBehavior, KindConfigurationField,
+    KindConfigurationRule, KindSemanticLaw, KindTerminalBehavior, ReplayBehavior,
+    SemanticDependence, StructuredConfigurationValue, SuspensionBehavior, TemporalStateBehavior,
+    VariabilityBehavior,
 };
 pub use consequential_effect::*;
 pub use control_loop::*;
@@ -78,6 +81,7 @@ pub use implementation::{
 };
 pub use info::*;
 pub use interop::*;
+pub use kind_effects::*;
 pub use plan_realization::FormBack;
 pub use port::{PortDescriptor, PortDirection, PortTemporal};
 pub use preparation::*;
