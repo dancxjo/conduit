@@ -497,6 +497,32 @@ fn fixed_width_integer_defaults_are_checked_before_identity() {
 }
 
 #[test]
+fn pure_expression_identity_is_structural_and_ignores_parentheses_and_trivia() {
+    let compact = check_syntax_document(
+        &parse_syntax_document(
+            "form transform (\n input: U8 >> output: U8\n) {\n input >> (. + 1 * 2) >> output\n}\n",
+        ),
+        &StartupCatalog::new(),
+    )
+    .unwrap();
+    let spaced = check_syntax_document(
+        &parse_syntax_document(
+            "form transform (\n input: U8 >> output: U8\n) {\n input >> (((.) + (1 * 2))) >> output\n}\n",
+        ),
+        &StartupCatalog::new(),
+    )
+    .unwrap();
+    assert_eq!(
+        compact.forms[0].checked_form_id,
+        spaced.forms[0].checked_form_id
+    );
+    assert!(matches!(
+        compact.forms[0].cords[0].stages[1],
+        crate::CheckedCordStage::PureExpression { .. }
+    ));
+}
+
+#[test]
 fn checked_front_equality_binds_startup_ports_and_shorthand() {
     let baseline = check("form a (\n count: Count = 1\n input: Tick >> output: Tick\n) {\n}\n");
     let required = check("form a (\n count: Count\n input: Tick >> output: Tick\n) {\n}\n");

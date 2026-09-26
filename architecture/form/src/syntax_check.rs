@@ -309,10 +309,10 @@ fn check_cord_stages(
                 });
             }
             CordStage::PureExpression(expression) => {
-                return Err(
-                    SyntaxCheckError::UnsupportedExpression(expression.text.clone())
-                        .diagnostic(expression.span),
-                );
+                stages.push(CheckedCordStage::PureExpression {
+                    expression: expression.syntax.clone(),
+                    source_span: expression.span,
+                });
             }
             CordStage::StructuredSelector(selector) => {
                 stages.push(CheckedCordStage::StructuredSelector {

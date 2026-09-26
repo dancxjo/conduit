@@ -188,6 +188,10 @@ pub enum CheckedCordStage {
         expression: crate::ExpressionSyntax,
         source_span: Span,
     },
+    PureExpression {
+        expression: crate::ExpressionSyntax,
+        source_span: Span,
+    },
     InlineGear(CheckedCanonicalGear),
     Literal {
         value: CanonicalStartupValue,

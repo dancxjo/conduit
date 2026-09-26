@@ -187,6 +187,10 @@ pub(crate) fn canonical_cord(cord: &CheckedCanonicalCord) -> String {
                 push_field(&mut value, "when");
                 push_field(&mut value, &canonical_expression(expression));
             }
+            CheckedCordStage::PureExpression { expression, .. } => {
+                push_field(&mut value, "pure-expression");
+                push_field(&mut value, &canonical_expression(expression));
+            }
             CheckedCordStage::InlineGear(gear) => {
                 push_field(&mut value, "inline-gear");
                 push_field(&mut value, &canonical_gear(gear));
