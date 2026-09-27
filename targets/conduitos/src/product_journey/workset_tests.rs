@@ -196,6 +196,38 @@ fn resident_patchbay_replans_its_own_graphical_and_speech_presenters() {
     assert_eq!(mask.planning_disposition, "not-required");
     assert!(mask.show_id.is_some() && mask.manifestation_id.is_some());
     assert!(mask.presentation_id.is_some() && mask.presentation_revision.is_some());
+    assert_eq!(mask.mask_actions.len(), 10);
+    assert_eq!(
+        mask.mask_actions
+            .iter()
+            .map(|outcome| outcome.action_id)
+            .collect::<Vec<_>>(),
+        conduit_presentation::MASK_JOURNEY_ACTIONS.map(conduit_presentation::MaskJourneyAction::id)
+    );
+    assert!(
+        mask.mask_actions
+            .iter()
+            .all(|outcome| outcome.presentation_id == mask.presentation_id.as_deref().unwrap())
+    );
+    let initial_show = &mask.mask_actions[0];
+    let preferred = &mask.mask_actions[2];
+    assert_eq!(preferred.plan_id, initial_show.plan_id);
+    assert_eq!(preferred.show_id, initial_show.show_id);
+    for unavailable in &mask.mask_actions[3..6] {
+        assert_eq!(unavailable.plan_id, initial_show.plan_id);
+        assert!(unavailable.show_id.is_none());
+    }
+    let replacement = &mask.mask_actions[6];
+    assert_ne!(replacement.plan_id, initial_show.plan_id);
+    assert!(replacement.show_id.is_some());
+    assert_eq!(mask.mask_actions[7].plan_id, replacement.plan_id);
+    let restored = &mask.mask_actions[9];
+    assert!(restored.show_id.is_some());
+    assert_ne!(restored.plan_id, replacement.plan_id);
+    assert_eq!(
+        restored.selected_mask_form_id,
+        initial_show.selected_mask_form_id
+    );
     assert!(mask.kernel_signs > 0 && mask.fore_endpoints >= 3);
     assert_eq!(mask.shows.len(), 1);
     assert_eq!(mask.shows[0].mask_show_id, mask.show_id.as_deref().unwrap());

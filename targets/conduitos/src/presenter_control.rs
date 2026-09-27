@@ -38,6 +38,7 @@ pub struct NativeMaskEvidence {
     pub body_id: String,
     pub wake_id: String,
     pub actions: Vec<&'static str>,
+    pub mask_actions: Vec<crate::native_mask_journey::NativeMaskJourneyObservation>,
     pub wardrobe_revision: u64,
     pub worn_mask_forms: Vec<conduit_core::FormIdentity>,
     pub preference: Vec<conduit_core::FormIdentity>,
@@ -78,9 +79,9 @@ pub(super) struct PresenterControl {
 }
 
 #[derive(Clone)]
-struct PresenterStage {
-    planned_mask: PlannedMaskForm,
-    target: String,
+pub(super) struct PresenterStage {
+    pub(super) planned_mask: PlannedMaskForm,
+    pub(super) target: String,
 }
 
 impl PresenterControl {
@@ -351,6 +352,16 @@ impl PresenterControl {
             body_id: body_plan.body_id.as_str().into(),
             wake_id: body_plan.wake_id.as_str().into(),
             actions,
+            mask_actions: crate::native_mask_journey::actualize(
+                &body_plan.body_id,
+                &self.host_id,
+                &self.boot_id,
+                &presentation,
+                self.graphical.as_ref().or(self.speech.as_ref()).ok_or(())?,
+                self.sequence,
+                self.shows.first().ok_or(())?,
+                execution_receipts.first().ok_or(())?,
+            )?,
             wardrobe_revision: scoped.wardrobe.revision,
             preference: scoped.wardrobe.preference.clone(),
             worn_mask_forms: scoped.wardrobe.worn.clone(),
@@ -423,12 +434,12 @@ pub(super) fn patchbay_selector(plan: &BodyPlan) -> Result<BodyPresentationSelec
 }
 
 #[derive(Clone, Copy)]
-enum Adapter {
+pub(super) enum Adapter {
     Native,
     Speech,
 }
 
-fn prepare_stage(
+pub(super) fn prepare_stage(
     adapter: Adapter,
     host_id: &HostId,
     boot_id: &conduit_core::BootId,

@@ -11,7 +11,7 @@ pub(super) fn write(target: &Path, proof: &JourneyProof) -> Result<(), Conduitos
         serde_json::json!({"body_id": proof.body_id, "born_sign_id": proof.born_sign_id, "part_id": proof.part_id}),
         serde_json::json!({"wake_id": proof.wake_id, "wake_sign_id": proof.wake_sign_id, "plan_id": proof.plan_id}),
         serde_json::json!({"input_sign_id": proof.input_sign_id, "result_sign_id": proof.result_sign_id, "result": proof.result}),
-        serde_json::json!({"presentation_id": proof.inspector_presentation_id, "manifestation_id": proof.inspector_manifestation_id, "mask": proof.native_mask}),
+        serde_json::json!({"presentation_id": proof.inspector_presentation_id, "manifestation_id": proof.inspector_manifestation_id, "mask": proof.native_mask, "mask_actions": proof.native_mask["mask_actions"]}),
         serde_json::json!({"workset": proof.workset, "workload_sign_id": proof.workload_sign_id, "plan_id": proof.plan_id}),
         serde_json::json!({"host_id": proof.usb_line_peer_host_id, "boot_id": proof.usb_line_peer_boot_id, "membership": proof.usb_line_membership, "line_id": proof.usb_line_id, "plan_id": proof.usb_line_plan_id}),
         serde_json::json!({"loss_sign_id": proof.loss_sign_id, "invalidated_manifestation_id": proof.resize_invalidated_manifestation_id, "input_refused": proof.resize_input_refused_while_invalidated, "final_membership": proof.usb_line_final_membership}),
