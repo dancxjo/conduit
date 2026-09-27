@@ -106,6 +106,7 @@ pub mod hosted_reminder;
 pub mod hosted_resource;
 pub mod hosted_speech;
 pub mod hosted_speech_recognition;
+pub mod spoken_mask_runtime;
 mod voice_host;
 pub use voice_host::VoiceHostProviders;
 mod hosted_spoken_output_host;
