@@ -230,9 +230,6 @@ impl MaskSpecification {
             .flat_map(|fragment| &fragment.placements)
             .map(|placement| (placement.placement_id.clone(), placement))
             .collect::<BTreeMap<_, _>>();
-        if placements.len() != self.stages.len() {
-            return Err(MaskSpecificationError::UnexpectedPlannedStage);
-        }
         let bindings = stage_placements
             .iter()
             .map(|binding| (binding.stage_id.clone(), binding))
@@ -282,15 +279,6 @@ impl MaskSpecification {
                 item_capacity: planned.item_capacity,
                 byte_capacity: planned.byte_capacity,
             });
-        }
-        if plan
-            .fragments
-            .iter()
-            .map(|fragment| fragment.connections.len())
-            .sum::<usize>()
-            != self.cords.len()
-        {
-            return Err(MaskSpecificationError::UnexpectedPlannedCord);
         }
         let admitted_stages = self
             .stages

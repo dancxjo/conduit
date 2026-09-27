@@ -197,6 +197,11 @@ fn one_mask_chain_preserves_heterogeneous_language_text_and_pcm_stages() {
     );
     let speech = stage_kind("speech/synthesize", "text/text@1", "audio/pcm@1");
     let playback = stage_kind("audio/play", "audio/pcm@1", "presentation/manifestation@1");
+    let audit = stage_kind(
+        "presentation/audit-renderer",
+        "presentation/presentation@1",
+        "presentation/manifestation@1",
+    );
     let stage_id = |value| MaskStageId::new(value).unwrap();
     let specification = MaskSpecification::new(
         "generative-spoken",
@@ -255,10 +260,10 @@ fn one_mask_chain_preserves_heterogeneous_language_text_and_pcm_stages() {
     )
     .unwrap();
     let mut catalog = ProfileCatalog::new();
-    for kind in [&language, &speech, &playback] {
+    for kind in [&language, &speech, &playback, &audit] {
         catalog.insert(KindProjection::from(kind)).unwrap();
     }
-    let source = "form spoken-mask {\n language: presentation/generative-language\n voice: speech/synthesize\n output: audio/play\n language.output >> voice.input\n voice.output >> output.input\n}\n";
+    let source = "form spoken-mask {\n language: presentation/generative-language\n voice: speech/synthesize\n output: audio/play\n audit: presentation/audit-renderer\n language.output >> voice.input\n voice.output >> output.input\n}\n";
     let form = parse(source, &catalog).unwrap();
     let mut host = common::host(
         "speech-host",
@@ -273,6 +278,7 @@ fn one_mask_chain_preserves_heterogeneous_language_text_and_pcm_stages() {
         stage_offer(language, "language"),
         stage_offer(speech, "voice"),
         stage_offer(playback, "output"),
+        stage_offer(audit, "audit"),
     ]);
     host.capabilities
         .sort_by(|left, right| left.capability_id.cmp(&right.capability_id));
@@ -299,6 +305,13 @@ fn one_mask_chain_preserves_heterogeneous_language_text_and_pcm_stages() {
                     capability_id: CapabilityId::from("output"),
                 },
             ),
+            (
+                GearId::from("spoken-mask/audit"),
+                PlacementChoice {
+                    host_id: host.host_id.clone(),
+                    capability_id: CapabilityId::from("audit"),
+                },
+            ),
         ]),
     };
     let sealed = plan(
@@ -310,10 +323,14 @@ fn one_mask_chain_preserves_heterogeneous_language_text_and_pcm_stages() {
     .unwrap();
 
     let topology = MaskTopologyAdmission::from_plan(&sealed).unwrap();
-    assert_eq!(topology.paths.len(), 1);
-    assert_eq!(topology.paths[0].stages.len(), 3);
+    assert_eq!(topology.paths.len(), 2);
+    let mask_path = topology
+        .paths
+        .iter()
+        .find(|path| path.stages.len() == 3)
+        .unwrap();
     assert_eq!(
-        topology.paths[0]
+        mask_path
             .stages
             .iter()
             .map(|stage| (stage.input_kind.as_str(), stage.output_kind.as_str()))
@@ -365,6 +382,7 @@ fn one_mask_chain_preserves_heterogeneous_language_text_and_pcm_stages() {
     assert_eq!(admitted.stages.len(), 3);
     assert_eq!(admitted.cords.len(), 2);
     assert_eq!(admitted.stages[2].implementation_id.as_str(), "output@1");
+    assert_eq!(sealed.fragments[0].placements.len(), 4);
 
     let terminal = admitted
         .stages
