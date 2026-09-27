@@ -156,6 +156,8 @@ fn living_patchbay_projection_preserves_lifecycle_plan_play_and_sign() {
         "implementation-id",
         "artifact-id",
         "admitted-capacity",
+        "pressure-policy",
+        "pressure-effect",
         "active-play-id",
         "play-state",
         "pressure",
@@ -165,6 +167,18 @@ fn living_patchbay_projection_preserves_lifecycle_plan_play_and_sign() {
             .iter()
             .any(|property| property.name == required));
     }
+    assert!(portable.properties.iter().any(|property| {
+        property.name == "pressure-policy"
+            && property.value == PresentationPropertyValue::Text("preserve-order".into())
+    }));
+    assert!(portable.properties.iter().any(|property| {
+        property.name == "pressure-effect"
+            && property.value
+                == PresentationPropertyValue::Text(
+                    "pressure retains the pending value; a fan-out commits only when every branch admits it"
+                        .into(),
+                )
+    }));
     assert!(portable.properties.iter().any(|property| {
         property.name == "plan-status"
             && property.value == PresentationPropertyValue::Text("active".into())
