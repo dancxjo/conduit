@@ -56,8 +56,19 @@ pub struct GraphCord {
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum GraphCordStage {
     Reference(String),
-    InlineGear { kind: String },
+    InlineGear {
+        kind: String,
+    },
     Literal,
+    TerminalProjection {
+        endpoint: String,
+        terminal: conduit_form::TerminalProjection,
+    },
+    Cancellation {
+        gear: String,
+    },
+    When,
+    PureExpression,
     StructuredSelector,
 }
 
@@ -474,24 +485,7 @@ fn graph_revision(
                                 .expect("cord item was admitted")
                                 .identity
                                 .clone(),
-                            stages: checked_cord
-                                .stages
-                                .iter()
-                                .map(|stage| match stage {
-                                    CheckedCordStage::Reference(name) => {
-                                        GraphCordStage::Reference(name.clone())
-                                    }
-                                    CheckedCordStage::InlineGear(gear) => {
-                                        GraphCordStage::InlineGear {
-                                            kind: gear.kind.clone(),
-                                        }
-                                    }
-                                    CheckedCordStage::Literal { .. } => GraphCordStage::Literal,
-                                    CheckedCordStage::StructuredSelector { .. } => {
-                                        GraphCordStage::StructuredSelector
-                                    }
-                                })
-                                .collect(),
+                            stages: checked_cord.stages.iter().map(graph_cord_stage).collect(),
                         });
                     }
                     cord_index += 1;
@@ -521,24 +515,7 @@ fn graph_revision(
                                     .expect("route track item was admitted")
                                     .identity
                                     .clone(),
-                                stages: checked_cord
-                                    .stages
-                                    .iter()
-                                    .map(|stage| match stage {
-                                        CheckedCordStage::Reference(name) => {
-                                            GraphCordStage::Reference(name.clone())
-                                        }
-                                        CheckedCordStage::InlineGear(gear) => {
-                                            GraphCordStage::InlineGear {
-                                                kind: gear.kind.clone(),
-                                            }
-                                        }
-                                        CheckedCordStage::Literal { .. } => GraphCordStage::Literal,
-                                        CheckedCordStage::StructuredSelector { .. } => {
-                                            GraphCordStage::StructuredSelector
-                                        }
-                                    })
-                                    .collect(),
+                                stages: checked_cord.stages.iter().map(graph_cord_stage).collect(),
                             });
                         }
                         cord_index += 1;
@@ -569,12 +546,46 @@ fn cord_label(cord: &conduit_form::CheckedCanonicalCord) -> String {
         .iter()
         .map(|stage| match stage {
             CheckedCordStage::Reference(name) => name.clone(),
+            CheckedCordStage::TerminalProjection {
+                endpoint, terminal, ..
+            } => format!(
+                "{endpoint}{}",
+                match terminal {
+                    conduit_form::TerminalProjection::NormalClose => "|",
+                    conduit_form::TerminalProjection::Abnormal => "!",
+                }
+            ),
+            CheckedCordStage::Cancellation { gear, .. } => format!("{gear}~"),
+            CheckedCordStage::When { .. } => "when(...)".into(),
+            CheckedCordStage::PureExpression { .. } => "(expression)".into(),
             CheckedCordStage::InlineGear(gear) => gear.kind.clone(),
             CheckedCordStage::Literal { value, .. } => format!("{value:?}"),
             CheckedCordStage::StructuredSelector { .. } => "structured selector".into(),
         })
         .collect::<Vec<_>>()
         .join(" >> ")
+}
+
+fn graph_cord_stage(stage: &CheckedCordStage) -> GraphCordStage {
+    match stage {
+        CheckedCordStage::Reference(name) => GraphCordStage::Reference(name.clone()),
+        CheckedCordStage::TerminalProjection {
+            endpoint, terminal, ..
+        } => GraphCordStage::TerminalProjection {
+            endpoint: endpoint.clone(),
+            terminal: *terminal,
+        },
+        CheckedCordStage::Cancellation { gear, .. } => {
+            GraphCordStage::Cancellation { gear: gear.clone() }
+        }
+        CheckedCordStage::When { .. } => GraphCordStage::When,
+        CheckedCordStage::PureExpression { .. } => GraphCordStage::PureExpression,
+        CheckedCordStage::InlineGear(gear) => GraphCordStage::InlineGear {
+            kind: gear.kind.clone(),
+        },
+        CheckedCordStage::Literal { .. } => GraphCordStage::Literal,
+        CheckedCordStage::StructuredSelector { .. } => GraphCordStage::StructuredSelector,
+    }
 }
 
 fn push_item(
