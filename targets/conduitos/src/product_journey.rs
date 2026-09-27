@@ -162,6 +162,7 @@ pub struct JourneyProjection {
     pub input_count: u32,
     pub kernel_sign_gap: Option<conduit_kernel::SignRetentionGap>,
     pub last_request_id: Option<String>,
+    pub mask: Option<crate::presenter_control::NativeMaskEvidence>,
 }
 
 pub struct ProductJourney {
@@ -501,6 +502,10 @@ impl ProductJourney {
                 .and_then(|kernel| kernel.sign_retention_gap())
                 .or(self.retained_kernel_sign_gap),
             last_request_id: self.last_request_id.clone(),
+            mask: self
+                .presenter_control
+                .as_ref()
+                .and_then(|control| control.mask_evidence().cloned()),
         }
     }
 

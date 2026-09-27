@@ -17,15 +17,34 @@ use conduit_form::{
 };
 use conduit_planner::{default_expanded_placements, plan_expanded_canonical};
 use conduit_presentation::{
-    InteractionRealizationOffer, MAX_RENDERER_VALUE_BYTES, ManifestationLifecycle, MaskForm,
-    MaskShow, PlannedMaskForm, Presentation, PresentationBasis, PresentationRole,
-    PresentationSubject, RendererRealizationOffer, install_mask_form_value_aliases,
-    interaction_kind_projection, interaction_offer, presentation_tee_kind_projection,
-    presentation_tee_offer, renderer_kind_projection, renderer_offer,
+    BodyMaskWardrobe, InteractionRealizationOffer, MAX_RENDERER_VALUE_BYTES, Manifestation,
+    ManifestationLifecycle, MaskForm, MaskWardrobe, MaskWardrobeLifetime, PlannedMaskForm,
+    Presentation, PresentationBasis, PresentationRole, PresentationSubject,
+    RendererRealizationOffer, install_mask_form_value_aliases, interaction_kind_projection,
+    interaction_offer, presentation_tee_kind_projection, presentation_tee_offer,
+    renderer_kind_projection, renderer_offer,
 };
 use patchbay_application::{
     PatchbayPresenterMode, PatchbayPresenterStage, PatchbayPresenterTopology,
 };
+use serde::Serialize;
+
+#[derive(Clone, Debug, Eq, PartialEq, Serialize)]
+pub struct NativeMaskEvidence {
+    pub schema: &'static str,
+    pub body_id: String,
+    pub wake_id: String,
+    pub actions: Vec<&'static str>,
+    pub wardrobe_revision: u64,
+    pub worn_mask_forms: Vec<conduit_core::FormIdentity>,
+    pub preference: Vec<conduit_core::FormIdentity>,
+    pub application_plan_id: conduit_core::PlanId,
+    pub mask_plan_ids: Vec<conduit_core::PlanId>,
+    pub route_disposition: &'static str,
+    pub planning_disposition: &'static str,
+    pub show_id: Option<String>,
+    pub manifestation_id: Option<String>,
+}
 
 #[derive(Clone)]
 pub(super) struct PresenterControl {
@@ -35,7 +54,11 @@ pub(super) struct PresenterControl {
     speech: Option<PresenterStage>,
     sequence: u64,
     presentation: Option<Presentation>,
-    shows: Vec<MaskShow>,
+    /// Legacy presenter projection only. These manifestations are deliberately
+    /// not `MaskShow`s: the ordinary Mask Plan has not crossed the generic Fore
+    /// execution seam yet.
+    legacy_manifestations: Vec<Manifestation>,
+    evidence: Option<NativeMaskEvidence>,
 }
 
 #[derive(Clone)]
@@ -60,7 +83,8 @@ impl PresenterControl {
             speech: None,
             sequence: 2,
             presentation: None,
-            shows: Vec::new(),
+            legacy_manifestations: Vec::new(),
+            evidence: None,
         })
     }
 
@@ -99,7 +123,8 @@ impl PresenterControl {
             self.graphical = None;
         }
         self.presentation = None;
-        self.shows.clear();
+        self.legacy_manifestations.clear();
+        self.evidence = None;
         Ok(())
     }
 
@@ -167,7 +192,7 @@ impl PresenterControl {
             Vec::new(),
         )
         .map_err(|_| ())?;
-        let mut shows = Vec::new();
+        let mut manifestations = Vec::new();
         for (index, stage) in self.graphical.iter().chain(self.speech.iter()).enumerate() {
             let fragment = stage.planned_mask.plan.fragments.first().ok_or(())?;
             let active = conduit_core::bind_active_play(
@@ -176,16 +201,17 @@ impl PresenterControl {
                 &fragment.boot_id,
                 play.play_sequence,
             );
-            let prepared = MaskShow::prepared(
-                &stage.planned_mask,
+            let prepared = Manifestation::prepared(
                 &presentation,
+                &stage.planned_mask.plan,
                 active,
+                stage.planned_mask.show_placement().placement_id.clone(),
                 "conduitos/patchbay/self".into(),
                 stage.target.clone(),
                 SignId::from(format!("conduitos/presenter/{index}/prepared")),
             )
             .map_err(|_| ())?;
-            shows.push(
+            manifestations.push(
                 prepared
                     .transition(
                         ManifestationLifecycle::Available,
@@ -200,9 +226,8 @@ impl PresenterControl {
             (false, true) => PatchbayPresenterMode::Speech,
             (false, false) => return Err(()),
         };
-        let mut stages = Vec::with_capacity(shows.len());
-        for show in &shows {
-            let manifestation = &show.show;
+        let mut stages = Vec::with_capacity(manifestations.len());
+        for manifestation in &manifestations {
             let planned = self
                 .graphical
                 .iter()
@@ -244,8 +269,76 @@ impl PresenterControl {
         };
         self.sequence = self.sequence.checked_add(1).ok_or(())?;
         self.presentation = Some(presentation);
-        self.shows = shows;
+        self.legacy_manifestations = manifestations;
+        let available_masks = self
+            .graphical
+            .iter()
+            .chain(self.speech.iter())
+            .map(|stage| stage.planned_mask.mask.form_identity.clone())
+            .collect::<Vec<_>>();
+        let mask_plan_ids = self
+            .graphical
+            .iter()
+            .chain(self.speech.iter())
+            .map(|stage| stage.planned_mask.plan.plan_id.clone())
+            .collect::<Vec<_>>();
+        let mut wardrobe = MaskWardrobe::new(MaskWardrobeLifetime::Body, Vec::new(), Vec::new())
+            .map_err(|_| ())?;
+        let mut actions = Vec::new();
+        for mask in &available_masks {
+            wardrobe = wardrobe
+                .wear(wardrobe.revision, mask.clone())
+                .map_err(|_| ())?;
+            actions.push("wear");
+        }
+        // Speech-only is reached by an actual doff of the previously eligible
+        // native graphical Form, not by rewriting Body meaning.
+        if mode == PatchbayPresenterMode::Speech {
+            let native = prepare_stage(
+                Adapter::Native,
+                &self.host_id,
+                &self.boot_id,
+                self.sequence,
+                "conduitos/native-patchbay-unselected",
+            )?
+            .planned_mask
+            .mask
+            .form_identity;
+            wardrobe = wardrobe
+                .wear(wardrobe.revision, native.clone())
+                .and_then(|next| next.doff(next.revision, &native))
+                .map_err(|_| ())?;
+            actions.extend(["wear", "doff"]);
+        }
+        wardrobe = wardrobe
+            .prefer(wardrobe.revision, wardrobe.worn.clone())
+            .map_err(|_| ())?;
+        actions.push("prefer");
+        let scoped =
+            BodyMaskWardrobe::new(body_plan.body_id.clone(), None, wardrobe).map_err(|_| ())?;
+        self.evidence = Some(NativeMaskEvidence {
+            schema: "conduit.conduitos/native-mask-control@1",
+            body_id: body_plan.body_id.as_str().into(),
+            wake_id: body_plan.wake_id.as_str().into(),
+            actions,
+            wardrobe_revision: scoped.wardrobe.revision,
+            preference: scoped.wardrobe.preference.clone(),
+            worn_mask_forms: scoped.wardrobe.worn.clone(),
+            application_plan_id: body_plan.plan_id.clone(),
+            mask_plan_ids,
+            // The current native execution path has not yet lowered and driven
+            // the ordinary Mask Plan. Retain that gap instead of presenting the
+            // legacy Manifestation as an executed Mask Show.
+            route_disposition: "no-current-show",
+            planning_disposition: "replacement-required",
+            show_id: None,
+            manifestation_id: None,
+        });
         Ok(view)
+    }
+
+    pub(super) fn mask_evidence(&self) -> Option<&NativeMaskEvidence> {
+        self.evidence.as_ref()
     }
 }
 
@@ -519,5 +612,7 @@ mod tests {
             stage.planned_mask.show_placement().placement_id
         );
         assert_eq!(topology.chains[0].plan, stage.planned_mask.plan);
+        assert!(control.evidence.is_none());
+        assert!(control.legacy_manifestations.is_empty());
     }
 }

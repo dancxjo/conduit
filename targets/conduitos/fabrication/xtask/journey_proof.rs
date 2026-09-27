@@ -105,6 +105,7 @@ struct JourneyProof {
     body_fulfilled: bool,
     remained_alive: bool,
     stopped_by_harness: bool,
+    native_mask: Value,
 }
 
 pub(super) struct JourneyIdentity {
@@ -597,6 +598,7 @@ fn execute_image(
         let transient_records = super::journey_records::transient(&serial)?;
         let resize_records = super::journey_records::resize(&serial)?;
         let usb_line_records = super::journey_records::usb_line(&serial)?;
+        let mask_records = super::journey_records::mask(&serial)?;
         let by_status = records
             .iter()
             .filter_map(|record| Some((record.get("status")?.as_str()?.to_owned(), record)))
@@ -722,6 +724,41 @@ fn execute_image(
         let lulled = by_status["lulled"];
         let fulfilled = by_status["fulfilled"];
         let plan_id = text(planned, "plan_id")?;
+        let native_mask = mask_records.last().ok_or_else(|| {
+            ConduitosError::refusal(
+                "product-journey-mask-sign-missing",
+                "native runtime did not retain its Body-scoped Mask disposition",
+            )
+        })?;
+        if text(native_mask, "schema")? != "conduit.conduitos/native-mask-control@1"
+            || text(native_mask, "body_id")? != text(born, "body_id")?
+            || text(native_mask, "application_plan_id")? != plan_id
+            || text(native_mask, "route_disposition")? != "no-current-show"
+            || text(native_mask, "planning_disposition")? != "replacement-required"
+            || native_mask.get("show_id") != Some(&Value::Null)
+            || native_mask.get("manifestation_id") != Some(&Value::Null)
+            || native_mask
+                .get("actions")
+                .and_then(Value::as_array)
+                .is_none_or(|actions| {
+                    !actions.iter().any(|action| action == "wear")
+                        || !actions.iter().any(|action| action == "prefer")
+                })
+            || native_mask
+                .get("mask_plan_ids")
+                .and_then(Value::as_array)
+                .is_none_or(|plans| {
+                    plans.is_empty()
+                        || plans
+                            .iter()
+                            .any(|mask_plan| mask_plan.as_str() == Some(&plan_id))
+                })
+        {
+            return Err(ConduitosError::refusal(
+                "product-journey-mask-sign-invalid",
+                "native Mask receipt conflates application/Mask Plans or invents an unexecuted Show",
+            ));
+        }
         super::journey_workset::validate_causality(
             &serial, &records, opened, born, planned, quiescent, lulled,
         )?;
@@ -818,6 +855,7 @@ fn execute_image(
             body_fulfilled: true,
             remained_alive: true,
             stopped_by_harness: true,
+            native_mask: native_mask.clone(),
         };
         fs::write(
             &proof_path,
