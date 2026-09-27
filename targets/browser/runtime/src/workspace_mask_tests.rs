@@ -162,4 +162,25 @@ fn show_becomes_available_only_after_exact_browser_acknowledgement() {
     ] {
         assert!(kinds.contains(&required), "missing {required}: {kinds:?}");
     }
+
+    let journey = runtime.actualize_journey().unwrap();
+    assert_eq!(journey.len(), 10);
+    assert_eq!(
+        journey
+            .iter()
+            .map(|outcome| outcome.action_id)
+            .collect::<Vec<_>>(),
+        conduit_presentation::MASK_JOURNEY_ACTIONS.map(conduit_presentation::MaskJourneyAction::id)
+    );
+    let initial_plan = &journey[0].plan_id;
+    assert_eq!(&journey[2].plan_id, initial_plan);
+    assert_eq!(journey[2].show_id, journey[0].show_id);
+    for unavailable in &journey[3..=5] {
+        assert_eq!(&unavailable.plan_id, initial_plan);
+        assert!(unavailable.show_id.is_none());
+    }
+    assert_ne!(journey[6].plan_id, *initial_plan);
+    assert_eq!(journey[7].plan_id, journey[6].plan_id);
+    assert!(journey[7].show_id.is_some());
+    assert!(journey[9].show_id.is_some());
 }

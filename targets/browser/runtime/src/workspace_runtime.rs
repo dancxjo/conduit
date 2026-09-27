@@ -130,6 +130,7 @@ enum Request {
         interaction: crate::workspace_mask::BrowserMaskInteraction,
     },
     TutorialMaskObservation,
+    TutorialMaskJourney,
     InvitationView {
         invitation_id: String,
         body_id: String,
@@ -615,6 +616,15 @@ fn dispatch(request: Request) -> Result<Vec<u8>, Refusal> {
                     let slot = slot.borrow();
                     let runtime = slot.as_ref().ok_or("Browser Mask has not been prepared")?;
                     encode(&runtime.observation())
+                });
+            }
+            Request::TutorialMaskJourney => {
+                return BROWSER_MASK.with(|slot| {
+                    let slot = slot.borrow();
+                    let runtime = slot.as_ref().ok_or("Browser Mask has not been prepared")?;
+                    let outcomes = runtime.actualize_journey()
+                        .map_err(|error| Refusal::new("TutorialMaskJourney", error))?;
+                    encode(&outcomes)
                 });
             }
             Request::InvitationView { invitation_id, body_id, body_name, expires_at_millis,

@@ -36,6 +36,10 @@ export async function writeBrowserBodyJourneyTrack(source, screenshotPath, outpu
   const repaired = required(repairedWake.sign_ids.at(-1), "repair sign");
   const lull = required(events.findLast(event => event.LullRetained)?.LullRetained?.sign_id, "Lull sign");
   const inspectedMask = captures["body.inspected"]?.mask;
+  const maskActions = captures["body.inspected"]?.maskActions;
+  if (!Array.isArray(maskActions) || maskActions.length !== 10) {
+    throw new Error("browser track lacks the producer-owned ten-action Mask journey");
+  }
   if (inspectedMask?.schema !== "conduit.browser/mask-observation@1") {
     throw new Error("browser track lacks the Rust-owned Mask observation for body.inspected");
   }
@@ -135,6 +139,6 @@ export async function writeBrowserBodyJourneyTrack(source, screenshotPath, outpu
     track_id: "browser-graphical", embodiment: "browser-wasm-body", body_id: ids.body,
     presenter_id: ids.maskForm, hosts: [
       { host_id: ids.host, boot_id: ids.boot }, { host_id: ids.peerHost, boot_id: ids.peerBoot },
-    ], line_ids: [], distributed_plan_ids: [], steps,
+    ], line_ids: [], distributed_plan_ids: [], mask_actions: maskActions, steps,
   }, null, 2)}\n`, { flag: "wx" });
 }

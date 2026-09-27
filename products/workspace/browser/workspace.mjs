@@ -416,7 +416,8 @@ export async function startApplication(application) {
       onClose() { library.hide(); render(); root.querySelector('[data-open-library]')?.focus(); },
     });
     globalThis.__conduitWorkspace = Object.freeze({ host, presentationFor: application.presentationFor, current: session.current, evidence: session.evidence,
-      maskObservation: session.tutorialMaskObservation, state: () => structuredClone(playback), settled: () => saving.then(session.settled) });
+      maskObservation: session.tutorialMaskObservation, maskJourney: session.tutorialMaskJourney,
+      state: () => structuredClone(playback), settled: () => saving.then(session.settled) });
     membership = openWorkspaceMembership({ root, session, host, hostCalls, invitation, presentationFor: application.presentationFor,
       invitationLabel: () => catalog.forms.find(form => form.checked_form_id === selected)?.name === 'firefly-choir'
         ? 'Invite another phone' : 'Invite another host',

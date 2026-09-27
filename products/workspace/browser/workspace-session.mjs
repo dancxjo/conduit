@@ -87,6 +87,7 @@ export function openWorkspaceSession({ host, storage }) {
       return request('InteractWithTutorialMask', { interaction });
     },
     tutorialMaskObservation() { return request('TutorialMaskObservation'); },
+    tutorialMaskJourney() { return request('TutorialMaskJourney'); },
     invitationView(fields) { return request('InvitationView', fields, true); },
     invitationQr(transfer_uri) { return request('InvitationQr', { transfer_uri }); },
     async changeWorkset(edit, form, source, expected_revision) {

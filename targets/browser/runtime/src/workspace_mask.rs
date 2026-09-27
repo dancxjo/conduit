@@ -40,9 +40,12 @@ const MASK_BYTES: u32 = 512 * 1024;
 mod execution;
 #[path = "workspace_mask_interaction.rs"]
 mod interaction;
+#[path = "workspace_mask_journey.rs"]
+mod journey;
 #[path = "workspace_mask_plan.rs"]
 mod plan;
 pub use interaction::{BrowserMaskInteraction, BrowserMaskInteractionReceipt};
+pub use journey::BrowserMaskJourneyOutcome;
 
 #[derive(Debug, Clone, Serialize)]
 pub struct BrowserMaskEffect {
@@ -417,6 +420,10 @@ impl BrowserMaskRuntime {
             },
             interaction: self.interaction_receipt.clone(),
         }
+    }
+
+    pub fn actualize_journey(&self) -> Result<Vec<BrowserMaskJourneyOutcome>, String> {
+        journey::actualize(self)
     }
 }
 
