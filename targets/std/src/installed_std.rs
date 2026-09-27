@@ -246,6 +246,7 @@ pub(super) fn run_fragment_retaining<W: Write, T: TimerAdapter>(
         wav_artifact,
         mut vision,
         mut external_fore,
+        spoken_mask,
     } = lifecycle;
     let InstalledRunHost {
         advertisement,
@@ -334,6 +335,10 @@ pub(super) fn run_fragment_retaining<W: Write, T: TimerAdapter>(
         &advertisement.boot_id,
         play_sequence,
     );
+    let mut spoken_mask_session = spoken_mask
+        .as_ref()
+        .map(|preparation| preparation.prepare_session(active_play.clone()))
+        .transpose()?;
     let drivers =
         preparation::prepare_operations(fragment, &lowered, &mut values, &active_play, retained)?;
     let driver_capacity_before = drivers
@@ -679,6 +684,8 @@ pub(super) fn run_fragment_retaining<W: Write, T: TimerAdapter>(
             }
         })
         .collect::<Result<Vec<_>, String>>()?;
+    let mut spoken_artifact_hosts =
+        spoken_mask_backs::prepare_artifact_hosts(fragment, &active_play, wav_artifact)?;
     let mut midi_input_sessions = fragment
         .placements
         .iter()
@@ -1966,6 +1973,129 @@ pub(super) fn run_fragment_retaining<W: Write, T: TimerAdapter>(
                 scheduler
                     .complete_host_call(request.node, request.request, outcome)
                     .map_err(|error| format!("complete WAV artifact host-call: {error:?}"))?;
+                continue;
+            } else if matches!(
+                contract.as_str(),
+                conduit_std_offers::PRESENTATION_REQUEST_OPERATION
+                    | conduit_std_offers::GENERATED_SPEECH_OPERATION
+                    | conduit_std_offers::REGISTER_MANIFESTATION_OPERATION
+                    | conduit_std_offers::ARTIFACT_SHOW_OPERATION
+            ) {
+                let session = spoken_mask_session.as_mut().ok_or_else(|| {
+                    "spoken Mask semantic Host Call has no exact prepared session".to_string()
+                })?;
+                let result = match contract.as_str() {
+                    conduit_std_offers::PRESENTATION_REQUEST_OPERATION => {
+                        session.adapt_presentation(input).map(Some)
+                    }
+                    conduit_std_offers::GENERATED_SPEECH_OPERATION => {
+                        session.validate_and_extract_speech(input).map(Some)
+                    }
+                    conduit_std_offers::REGISTER_MANIFESTATION_OPERATION => session
+                        .register_generated_manifestation(input)
+                        .map(|()| None),
+                    conduit_std_offers::ARTIFACT_SHOW_OPERATION => {
+                        session.acknowledge_artifact_and_build_show(input).map(Some)
+                    }
+                    _ => unreachable!(),
+                };
+                let (output_value, failure) = match result {
+                    Ok(Some(bytes)) => {
+                        let value = scheduler.store_host_value(&bytes).map_err(|error| {
+                            format!("store spoken Mask semantic output: {error:?}")
+                        })?;
+                        (
+                            Some(
+                                BoundedValueRef::new(
+                                    value,
+                                    lowered_operation.binding.maximum_output_bytes,
+                                )
+                                .map_err(|error| format!("bound spoken Mask output: {error:?}"))?,
+                            ),
+                            None,
+                        )
+                    }
+                    Ok(None) => (None, None),
+                    Err(_) => (
+                        None,
+                        Some(conduit_kernel::Failure {
+                            code: conduit_kernel::FailureCode::InvalidInput,
+                            detail: 4115,
+                        }),
+                    ),
+                };
+                record_request(&mut requests, request);
+                scheduler
+                    .complete_host_call(
+                        request.node,
+                        request.request,
+                        HostCallOutcome {
+                            disposition: if failure.is_some() {
+                                HostCallDisposition::Failed
+                            } else {
+                                HostCallDisposition::Completed
+                            },
+                            output: output_value,
+                            failure,
+                        },
+                    )
+                    .map_err(|error| format!("complete spoken Mask semantic call: {error:?}"))?;
+                continue;
+            } else if contract.as_str() == conduit_std_offers::SPOKEN_ARTIFACT_OPERATION {
+                let host = spoken_artifact_hosts
+                    .get_mut(usize::from(request.node.0))
+                    .and_then(Option::as_mut)
+                    .ok_or_else(|| "spoken artifact call has no exact host".to_string())?;
+                let sign = bind_sign(
+                    &advertisement.host_id,
+                    &advertisement.boot_id,
+                    Some(&active_play.active_play_id),
+                    *next_sign_sequence,
+                );
+                *next_sign_sequence = next_sign_sequence
+                    .checked_add(1)
+                    .ok_or_else(|| "spoken artifact sign sequence exhausted".to_string())?;
+                let result = spoken_mask_backs::execute_artifact(host, input, sign.sign_id.clone());
+                let (output_value, failure) = match result {
+                    Ok(Some(bytes)) => {
+                        execution_identity
+                            .bind_sign(&sign, None, None, None)
+                            .map_err(|error| format!("bind spoken artifact Sign: {error:?}"))?;
+                        let value = scheduler
+                            .store_host_value(&bytes)
+                            .map_err(|error| format!("store spoken artifact receipt: {error:?}"))?;
+                        (
+                            Some(BoundedValueRef::new(value, 4_096).map_err(|error| {
+                                format!("bound spoken artifact receipt: {error:?}")
+                            })?),
+                            None,
+                        )
+                    }
+                    Ok(None) => (None, None),
+                    Err(_) => (
+                        None,
+                        Some(conduit_kernel::Failure {
+                            code: conduit_kernel::FailureCode::HostCallFailed,
+                            detail: 4115,
+                        }),
+                    ),
+                };
+                record_request(&mut requests, request);
+                scheduler
+                    .complete_host_call(
+                        request.node,
+                        request.request,
+                        HostCallOutcome {
+                            disposition: if failure.is_some() {
+                                HostCallDisposition::Failed
+                            } else {
+                                HostCallDisposition::Completed
+                            },
+                            output: output_value,
+                            failure,
+                        },
+                    )
+                    .map_err(|error| format!("complete spoken artifact call: {error:?}"))?;
                 continue;
             } else if contract.as_str() == pcm_profile_conversion_back::HOST_CALL {
                 let host = pcm_conversion_hosts

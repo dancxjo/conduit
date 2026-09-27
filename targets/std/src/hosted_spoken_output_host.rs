@@ -39,6 +39,9 @@ impl crate::StdHost {
             conduit_std_offers::audio_convert_pcm_profile_offer(),
             conduit_std_offers::audio_write_wav_artifact_offer(),
         ]);
+        advertisement
+            .capabilities
+            .extend(conduit_std_offers::spoken_mask_offers());
         advertisement.resources.sort();
         advertisement.capabilities.sort_by(|left, right| {
             left.capability_id

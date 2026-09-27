@@ -20,6 +20,7 @@ pub(crate) struct RunLifecycle<'a, 'indicator, 'external> {
     pub wav_artifact: Option<&'a crate::hosted_wav_artifact::WavArtifactSelection>,
     pub vision: Option<&'a mut crate::hosted_vision::FiniteHostedVisionBase>,
     pub external_fore: Option<crate::host_execution::ExternalForeRun<'external>>,
+    pub spoken_mask: Option<crate::spoken_mask_runtime::SpokenMaskPreparation>,
 }
 
 pub(crate) struct InstalledRunHost<'a, 'keyboard, 'model> {
@@ -64,6 +65,7 @@ pub(crate) fn run_fragment<W: Write, T: TimerAdapter>(
             wav_artifact: None,
             vision: None,
             external_fore: None,
+            spoken_mask: None,
         },
     )
     .map(|run| run.report)
