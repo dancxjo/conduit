@@ -310,8 +310,13 @@ export function acquireBrowserBodyHost({ api, hostId, bootId, proposal: supplied
     if (effect.effect_kind === "manifestation") {
       const output = slots.get(effect.placement_id);
       if (!output) throw new Error("browser presentation slot not acquired");
+      output.dataset.hostId = effect.host_id;
+      output.dataset.bootId = effect.boot_id;
       output.dataset.planId = effect.plan_id;
       output.dataset.activePlayId = effect.active_play_id;
+      output.dataset.placementId = effect.placement_id;
+      output.dataset.presentationId = effect.presentation_id;
+      output.dataset.observationSequence = effect.observation_sequence;
       output.dataset.presentationKind = effect.presentation_kind;
       if (effect.presentation_kind === "presentation/application-view" && Array.isArray(effect.application_view)) {
         const channel = applicationChannel(effect.checked_form_id);

@@ -13,7 +13,10 @@ function fixture({ timer = false, timerEffects = timer ? 1 : 0, timerDuration = 
   };
   new Uint8Array(memory.buffer, 448 * 1024, ABI_IDENTITY.length).set(ABI_IDENTITY);
   const effect = index => ({ host_id: "host", boot_id: "boot", active_play_id: "play", placement_id: `placement-${index}`, plan_id: "partition", request_sequence: index,
-    ...(timerEffects ? { effect_kind: "timer", duration_millis: timerDuration } : { effect_kind: "manifestation", presentation_kind: "presentation/text", text }) });
+    ...(timerEffects ? { effect_kind: "timer", duration_millis: timerDuration } : {
+      effect_kind: "manifestation", presentation_id: "presentation", observation_sequence: index,
+      presentation_kind: "presentation/text", text,
+    }) });
   const api = {
     memory,
     conduit_browser_runtime_abi_revision: () => 1,
@@ -100,7 +103,16 @@ test("acquisition reports owned slots without starting a play or copying offer c
   const receipt = await owner.run();
   assert.equal(receipt.disposition, "completed");
   assert.equal(f.outputRoot.children[0].textContent, "hello");
-  assert.equal(f.outputRoot.children[0].dataset.activePlayId, "play");
+  assert.deepEqual(f.outputRoot.children[0].dataset, {
+    hostId: "host",
+    bootId: "boot",
+    planId: "partition",
+    activePlayId: "play",
+    placementId: "placement-0",
+    presentationId: "presentation",
+    observationSequence: 0,
+    presentationKind: "presentation/text",
+  });
   assert.throws(() => owner.run(), /exactly once/);
   const closed = owner.close();
   assert.equal(closed.status, null);
