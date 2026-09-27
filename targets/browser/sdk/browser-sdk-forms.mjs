@@ -6,8 +6,10 @@ const FORM_SCHEMA = "conduit.browser/checked-form@1";
 const BODY_SCHEMA = "conduit.browser/body@1";
 const BODY_KEY = Symbol("Conduit BrowserBody");
 let sdkErrors;
+let acquireBodyHost;
 
 export function setBrowserSdkErrors(errors) { sdkErrors = errors; }
+export function setBrowserBodyHostAcquisition(acquire) { acquireBodyHost = acquire; }
 
 export class BrowserForm {
   #source;
@@ -118,7 +120,7 @@ export class BrowserBody {
     let adapter;
     let playStarted = false;
     try {
-      adapter = acquireBrowserBodyHost({
+      adapter = acquireBodyHost({
         api: this.#api, hostId: this.#host, bootId: this.#boot, proposal,
         inputTarget: this.#root, outputRoot: this.#root,
         foregroundForm: () => proposal.plan.forms[0]?.form?.checked_form_id ?? proposal.plan.forms[0]?.plan.checked_form_id,
