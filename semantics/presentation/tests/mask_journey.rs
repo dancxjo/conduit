@@ -3,23 +3,16 @@ use conduit_presentation::{
     MaskJourneyOrderError, MASK_JOURNEY_ACTIONS,
 };
 
-struct Embodiment {
-    name: &'static str,
-}
+#[derive(Default)]
+struct RecordingEmbodiment(Vec<MaskJourneyAction>);
 
-impl MaskJourneyEmbodiment for Embodiment {
-    type Outcome = String;
+impl MaskJourneyEmbodiment for RecordingEmbodiment {
+    type Outcome = MaskJourneyAction;
     type Error = ();
 
     fn perform(&mut self, action: MaskJourneyAction) -> Result<Self::Outcome, Self::Error> {
-        let material_result = match (self.name, action) {
-            ("hugo", MaskJourneyAction::WearAlternateMask) => "refused-no-graphical-host",
-            ("hugo", MaskJourneyAction::InspectReplannedShow) => "spoken-plus-graphical-show",
-            ("tiago", _) => "browser-dom-show",
-            ("orifina", _) => "native-framebuffer-show",
-            _ => "spoken-show",
-        };
-        Ok(material_result.into())
+        self.0.push(action);
+        Ok(action)
     }
 }
 
@@ -67,24 +60,14 @@ fn an_embodiment_cannot_replace_the_shared_journey_with_its_own_stage_play() {
 }
 
 #[test]
-fn one_loop_retains_honestly_different_outcomes_in_the_same_action_order() {
-    let mut tracks = Vec::new();
-    for name in ["orifina", "tiago", "hugo"] {
-        let mut embodiment = Embodiment { name };
-        let mut track = Vec::new();
-        actualize_mask_journey(&mut embodiment, |action, outcome| {
-            track.push((action, outcome.clone()));
-        })
-        .unwrap();
-        tracks.push(track);
-    }
-    assert!(tracks.iter().all(|track| {
-        track
-            .iter()
-            .map(|(action, _)| *action)
-            .eq(MASK_JOURNEY_ACTIONS)
-    }));
-    assert_eq!(tracks[2][1].1, "refused-no-graphical-host");
-    assert_ne!(tracks[0][0].1, tracks[1][0].1);
-    assert_ne!(tracks[1][0].1, tracks[2][0].1);
+fn the_shared_loop_proves_order_only_and_never_fabricates_embodiment_evidence() {
+    let mut embodiment = RecordingEmbodiment::default();
+    let mut retained = Vec::new();
+    actualize_mask_journey(&mut embodiment, |action, outcome| {
+        assert_eq!(action, *outcome);
+        retained.push(action);
+    })
+    .unwrap();
+    assert_eq!(embodiment.0, MASK_JOURNEY_ACTIONS);
+    assert_eq!(retained, MASK_JOURNEY_ACTIONS);
 }
