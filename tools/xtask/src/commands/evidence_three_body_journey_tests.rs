@@ -391,17 +391,12 @@ fn media_is_foreground_and_machine_provenance_stays_collapsed() {
 }
 
 #[test]
-fn receipts_alone_cannot_pass_the_documentary_publication_gate() {
+fn documentary_media_is_optional_and_never_forced_into_symmetric_slots() {
     let mut native = track(0, 1);
     native.track_id = "native-graphical".into();
-    assert!(artifacts::require_documentary(&[native], None)
-        .unwrap_err()
-        .contains("screenshot"));
     let mut generated = track(2, 2);
     generated.track_id = "hosted-generative".into();
-    assert!(artifacts::require_documentary(&[generated], None)
-        .unwrap_err()
-        .contains("live conversational media"));
+    artifacts::require_documentary(&[native, generated], None).unwrap();
 }
 
 #[test]

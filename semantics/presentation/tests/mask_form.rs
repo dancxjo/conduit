@@ -3,7 +3,7 @@
 use conduit_core::{
     bind_active_play, kind_id, port_id, ArtifactId, Back, BackOfferBuilder, BootId, CapabilityId,
     CapabilityLimits, ExecutionProfileId, HostAdvertisement, HostId, HostProfileId,
-    ImplementationId, Kind, KindIdentity, OfferGeneration, PortDescriptor, PortDirection,
+    ImplementationId, Kind, KindIdentity, OfferGeneration, PlanId, PortDescriptor, PortDirection,
     PortTemporal, SignId, PROTOCOL_VERSION,
 };
 use conduit_form::{
@@ -376,7 +376,7 @@ fn the_ordinary_planner_seals_the_mask_form_without_a_mask_planner() {
             source_document_id: Some(mask.form_identity.source_document_id.clone()),
             checked_form_id: Some(mask.form_identity.checked_form_id.clone()),
             expanded_form_id: Some(mask.form_identity.expanded_form_id.clone()),
-            plan_id: Some(plan.plan_id.clone()),
+            plan_id: Some(PlanId::from("plan/application-face-source")),
             active_play_id: None,
             sign_ids: vec![SignId::from("sign/presentation")],
         },
@@ -413,4 +413,13 @@ fn the_ordinary_planner_seals_the_mask_form_without_a_mask_planner() {
     show.validate(&presentation).unwrap();
     assert_eq!(show.mask_form, mask.form_identity);
     assert_eq!(show.planned_mask.plan.plan_id, plan.plan_id);
+    assert_eq!(
+        presentation.basis.plan_id.as_ref().unwrap().as_str(),
+        "plan/application-face-source"
+    );
+    assert_ne!(
+        presentation.basis.plan_id.as_ref(),
+        Some(&show.planned_mask.plan.plan_id),
+        "the application Plan that produced Face truth remains distinct from the Mask Plan that realized its Show"
+    );
 }

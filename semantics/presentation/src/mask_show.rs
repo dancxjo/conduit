@@ -145,15 +145,12 @@ impl MaskShow {
 }
 
 fn validate_basis(
-    planned_mask: &PlannedMaskForm,
+    _planned_mask: &PlannedMaskForm,
     presentation: &Presentation,
 ) -> Result<(), MaskShowError> {
     presentation
         .validate()
         .map_err(|_| MaskShowError::StalePresentation)?;
-    if presentation.basis.plan_id.as_ref() != Some(&planned_mask.plan.plan_id) {
-        return Err(MaskShowError::StalePlan);
-    }
     Ok(())
 }
 
