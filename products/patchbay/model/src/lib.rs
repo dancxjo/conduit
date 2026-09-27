@@ -67,6 +67,8 @@ mod llm_presentation;
 mod llm_replan_explanation;
 mod maker_environment;
 mod mask_inspection;
+#[cfg(test)]
+mod mask_product_tests;
 mod mask_wardrobe_control;
 mod palette;
 #[cfg(test)]
