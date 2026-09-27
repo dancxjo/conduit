@@ -9,7 +9,7 @@ use super::{
 use crate::{WireError, MAX_ID_BYTES};
 
 const CHECKPOINT_MAGIC: [u8; 4] = *b"CNDC";
-const CHECKPOINT_WIRE_VERSION: u8 = 2;
+const CHECKPOINT_WIRE_VERSION: u8 = 3;
 
 pub fn encode_session_checkpoint_into(
     offer: SessionCheckpointOffer<'_>,
@@ -44,6 +44,9 @@ pub fn encode_session_checkpoint_into(
     }
     writer.u8(u8::from(offer.checkpoint.input_closed))?;
     writer.u8(u8::from(offer.checkpoint.input_abnormal))?;
+    if let Some(digest) = offer.checkpoint.abnormal_terminal_digest {
+        writer.bytes(&digest)?;
+    }
     Ok(writer.len())
 }
 
@@ -105,6 +108,13 @@ pub fn decode_session_checkpoint(
         1 if input_closed => true,
         _ => return Err(WireError::InvalidState),
     };
+    let abnormal_terminal_digest = if input_abnormal {
+        let mut digest = [0; 32];
+        digest.copy_from_slice(cursor.take(32)?);
+        Some(digest)
+    } else {
+        None
+    };
     if !cursor.is_empty() {
         return Err(WireError::TrailingGarbage);
     }
@@ -115,6 +125,7 @@ pub fn decode_session_checkpoint(
             transfer,
             input_closed,
             input_abnormal,
+            abnormal_terminal_digest,
         },
     })
 }
@@ -277,6 +288,7 @@ mod tests {
                 transfer: SessionTransferCheckpoint::Accepted(7),
                 input_closed: false,
                 input_abnormal: false,
+                abnormal_terminal_digest: None,
             },
         }
     }
@@ -288,6 +300,22 @@ mod tests {
         assert_eq!(
             decode_session_checkpoint(&bytes[..length], 512).unwrap(),
             offer()
+        );
+    }
+
+    #[test]
+    fn typed_abnormal_terminal_identity_round_trips() {
+        let mut offer = offer();
+        offer.identity.abnormal_kind = Some("value/bool");
+        offer.checkpoint.input_closed = true;
+        offer.checkpoint.input_abnormal = true;
+        offer.checkpoint.abnormal_terminal_digest =
+            Some(conduit_core::semantic_digest("value/bool", &[1]));
+        let mut bytes = [0_u8; 512];
+        let length = encode_session_checkpoint_into(offer, &mut bytes, 512).unwrap();
+        assert_eq!(
+            decode_session_checkpoint(&bytes[..length], 512).unwrap(),
+            offer
         );
     }
 

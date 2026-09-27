@@ -301,6 +301,13 @@ fn typed_abnormal_terminal_is_distinct_bounded_session_truth() {
     source.admit_outbound(abnormal).unwrap();
     assert!(source.checkpoint().input_closed);
     assert!(source.checkpoint().input_abnormal);
+    assert_eq!(
+        source.checkpoint().abnormal_terminal_digest,
+        Some(conduit_core::semantic_digest(
+            "test/terminal-fault",
+            b"fault-7"
+        ))
+    );
 
     let mut encoded = [0_u8; MAXIMUM_FRAME_BYTES as usize];
     let length = encode_session_frame_into(

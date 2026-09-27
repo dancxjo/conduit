@@ -184,6 +184,7 @@ fn clean_and_finite_in_flight_checkpoints_reconcile_on_a_new_attachment() {
                         transfer: SessionTransferCheckpoint::None,
                         input_closed: false,
                         input_abnormal: false,
+                        abnormal_terminal_digest: None,
                     },
                 },
             )
@@ -205,6 +206,7 @@ fn clean_and_finite_in_flight_checkpoints_reconcile_on_a_new_attachment() {
                         transfer: SessionTransferCheckpoint::Offered(0),
                         input_closed: false,
                         input_abnormal: false,
+                        abnormal_terminal_digest: None,
                     },
                 },
             )
@@ -235,6 +237,7 @@ fn clean_and_finite_in_flight_checkpoints_reconcile_on_a_new_attachment() {
                         transfer: SessionTransferCheckpoint::None,
                         input_closed: false,
                         input_abnormal: false,
+                        abnormal_terminal_digest: None,
                     },
                 },
             )
@@ -278,6 +281,7 @@ fn contradictory_stale_or_different_logical_checkpoints_fail_closed() {
                     transfer: SessionTransferCheckpoint::Accepted(7),
                     input_closed: false,
                     input_abnormal: false,
+                    abnormal_terminal_digest: None,
                 },
             },
         ),
@@ -296,4 +300,109 @@ fn contradictory_stale_or_different_logical_checkpoints_fail_closed() {
         ),
         Err(WireError::InvalidSession)
     );
+}
+
+#[test]
+fn resume_rejects_a_different_abnormal_terminal_value() {
+    let mut original = binding();
+    original.abnormal_kind = Some(KindId::from(conduit_core::BOOL_INFO_ID));
+    let mut replacement = replacement_binding();
+    replacement.abnormal_kind = Some(KindId::from(conduit_core::BOOL_INFO_ID));
+    let mut machine = SessionMachine::new(original.clone(), SessionRole::Source).unwrap();
+    trigger(&mut machine);
+    machine
+        .admit_outbound(original.frame(SessionMessage::InputAbnormal {
+            final_sequence: 0,
+            terminal: &[1],
+        }))
+        .unwrap();
+    let mut contradictory = machine.checkpoint();
+    contradictory.abnormal_terminal_digest = Some(conduit_core::semantic_digest(
+        conduit_core::BOOL_INFO_ID,
+        &[0],
+    ));
+
+    assert_eq!(
+        machine.resume_with_attachment(
+            replacement,
+            SessionCheckpointOffer {
+                identity: original.identity(),
+                checkpoint: contradictory,
+            },
+        ),
+        Err(WireError::InvalidState)
+    );
+}
+
+#[test]
+fn typed_input_terminal_replays_exactly_after_attachment_replacement() {
+    let mut original = binding();
+    original.abnormal_kind = Some(KindId::from(conduit_core::BOOL_INFO_ID));
+    let mut replacement = replacement_binding();
+    replacement.abnormal_kind = Some(KindId::from(conduit_core::BOOL_INFO_ID));
+
+    let mut source = SessionMachine::new(original.clone(), SessionRole::Source).unwrap();
+    trigger(&mut source);
+    source
+        .admit_outbound(original.frame(SessionMessage::InputAbnormal {
+            final_sequence: 0,
+            terminal: &[1],
+        }))
+        .unwrap();
+    let open_peer = SessionCheckpoint {
+        next_sequence: 0,
+        transfer: SessionTransferCheckpoint::None,
+        input_closed: false,
+        input_abnormal: false,
+        abnormal_terminal_digest: None,
+    };
+    assert_eq!(
+        source
+            .resume_with_attachment(
+                replacement.clone(),
+                SessionCheckpointOffer {
+                    identity: original.identity(),
+                    checkpoint: open_peer,
+                },
+            )
+            .unwrap()
+            .action,
+        SessionResumeAction::ReplayInputTerminal
+    );
+    trigger(&mut source);
+    assert_eq!(
+        source.admit_outbound(replacement.frame(SessionMessage::InputAbnormal {
+            final_sequence: 0,
+            terminal: &[0],
+        })),
+        Err(WireError::ValueContractMismatch)
+    );
+    source
+        .admit_outbound(replacement.frame(SessionMessage::InputAbnormal {
+            final_sequence: 0,
+            terminal: &[1],
+        }))
+        .unwrap();
+
+    let mut sink = SessionMachine::new(original.clone(), SessionRole::Sink).unwrap();
+    trigger(&mut sink);
+    assert_eq!(
+        sink.resume_with_attachment(
+            replacement.clone(),
+            SessionCheckpointOffer {
+                identity: original.identity(),
+                checkpoint: source.checkpoint(),
+            },
+        )
+        .unwrap()
+        .action,
+        SessionResumeAction::AwaitInputTerminal
+    );
+    trigger(&mut sink);
+    sink.admit_inbound(replacement.frame(SessionMessage::InputAbnormal {
+        final_sequence: 0,
+        terminal: &[1],
+    }))
+    .unwrap();
+    assert_eq!(sink.checkpoint(), source.checkpoint());
 }
