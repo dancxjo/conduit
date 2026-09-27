@@ -115,6 +115,7 @@ pub fn exact_vector_search_offer(
         kind_contract_revision: contract.kind_contract_revision.clone(),
         inputs: contract.inputs.clone(),
         outputs: contract.outputs.clone(),
+        semantic_contract: conduit_core::KindSemanticContract::default(),
         implementation: ImplementationOffer {
             execution_profile_id: ExecutionProfileId::from(EXACT_VECTOR_SEARCH_EXECUTION_PROFILE),
             implementation_id: ImplementationId::from(EXACT_VECTOR_SEARCH_IMPLEMENTATION),

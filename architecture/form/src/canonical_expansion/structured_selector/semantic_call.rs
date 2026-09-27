@@ -258,6 +258,10 @@ fn expand_argument_expression(
         shorthand: Some((input.port_id.clone(), output.port_id.clone())),
         inputs: vec![input.clone()],
         outputs: vec![output.clone()],
+        semantic_contract: conduit_core::KindSemanticContract {
+            configuration: definition.configuration.clone(),
+            laws: Vec::new(),
+        },
         terminal_transduction: None,
         resource_ports: Vec::new(),
         configuration: definition
@@ -507,6 +511,7 @@ fn expand_one(
         shorthand: kind.shorthand.clone(),
         inputs: kind.inputs.clone(),
         outputs: kind.outputs.clone(),
+        semantic_contract: kind.semantic_contract(),
         terminal_transduction: kind.terminal_transduction().cloned(),
         resource_ports: kind.resource_ports().to_vec(),
         configuration: kind

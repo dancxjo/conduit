@@ -91,6 +91,22 @@ pub struct KindConfigurationField {
     pub rule: KindConfigurationRule,
 }
 
+/// Exact portable semantic contract shared by every Back for one Kind.
+///
+/// The callable Fore is intentionally separate: equal port shape does not
+/// permit a realization to change configuration or behavioral law.
+#[derive(Debug, Clone, Default, PartialEq, Eq, Serialize, Deserialize)]
+pub struct KindSemanticContract {
+    pub configuration: Vec<KindConfigurationField>,
+    pub laws: Vec<KindSemanticLaw>,
+}
+
+impl KindSemanticContract {
+    pub fn is_empty(&self) -> bool {
+        self.configuration.is_empty() && self.laws.is_empty()
+    }
+}
+
 /// Finite validation law for one Kind configuration field.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub enum KindConfigurationRule {

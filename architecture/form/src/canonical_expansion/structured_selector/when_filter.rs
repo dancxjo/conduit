@@ -95,6 +95,10 @@ pub(super) fn expand_when_filter(
         shorthand: Some((input.port_id.clone(), output.port_id.clone())),
         inputs: vec![input.clone()],
         outputs: vec![output.clone()],
+        semantic_contract: conduit_core::KindSemanticContract {
+            configuration: definition.configuration.clone(),
+            laws: Vec::new(),
+        },
         terminal_transduction: None,
         resource_ports: Vec::new(),
         configuration: definition

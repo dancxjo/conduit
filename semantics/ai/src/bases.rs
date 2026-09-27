@@ -201,6 +201,7 @@ fn base(
     remote: bool,
 ) -> GenerateTextBaseFixture {
     let contract = generate_text_contract();
+    let semantic_contract = conduit_core::KindSemanticContract::default();
     let host_call = HostCallRequirement {
         contract_id: HostCallContractId::from(GENERATE_TEXT_HOST_CALL),
         target_kind: Some(kind_id(GENERATE_TEXT_KIND)),
@@ -277,6 +278,7 @@ fn base(
                 kind_contract_revision: contract.kind_contract_revision,
                 inputs: contract.inputs,
                 outputs: contract.outputs,
+                semantic_contract,
                 implementation: ImplementationOffer {
                     execution_profile_id: ExecutionProfileId::from(
                         "conduit.ai/generate-text-hosted@1",

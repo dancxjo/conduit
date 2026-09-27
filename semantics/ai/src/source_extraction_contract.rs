@@ -117,6 +117,7 @@ pub fn deterministic_source_extraction_offer(
         kind_contract_revision: contract.kind_contract_revision.clone(),
         inputs: contract.inputs.clone(),
         outputs: contract.outputs.clone(),
+        semantic_contract: conduit_core::KindSemanticContract::default(),
         implementation: ImplementationOffer {
             execution_profile_id: ExecutionProfileId::from(
                 DETERMINISTIC_EXTRACTION_EXECUTION_PROFILE,

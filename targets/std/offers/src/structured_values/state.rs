@@ -20,6 +20,7 @@ pub fn state_value_std_offer(
         conduit_semantic_catalog::state_value::state_value_contract(type_name, value_type)?;
     contract.limits.max_queue_bytes = STATE_VALUE_STD_MAXIMUM_BYTES;
     let value_kind = contract.outputs[0].value_kind.as_str();
+    let semantic_contract = conduit_core::KindSemanticContract::default();
     Ok(CapabilityOffer {
         capability_id: CapabilityId::from(format!("std-state-value-{value_kind}")),
         kind_id: contract.kind_id,
@@ -36,6 +37,7 @@ pub fn state_value_std_offer(
         },
         inputs: contract.inputs,
         outputs: contract.outputs,
+        semantic_contract,
         host_calls: Vec::new(),
         resource_requirements: Vec::new(),
         authority_requirements: Vec::new(),

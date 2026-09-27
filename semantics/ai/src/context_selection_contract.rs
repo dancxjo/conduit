@@ -116,6 +116,7 @@ fn offer(
         kind_contract_revision: contract.kind_contract_revision,
         inputs: contract.inputs,
         outputs: contract.outputs,
+        semantic_contract: conduit_core::KindSemanticContract::default(),
         implementation: ImplementationOffer {
             execution_profile_id: ExecutionProfileId::from(R3_EXECUTION_PROFILE),
             implementation_id: ImplementationId::from(implementation),

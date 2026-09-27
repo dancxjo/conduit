@@ -109,6 +109,7 @@ pub fn deterministic_hybrid_retrieval_offer(
         kind_contract_revision: contract.kind_contract_revision,
         inputs: contract.inputs,
         outputs: contract.outputs,
+        semantic_contract: conduit_core::KindSemanticContract::default(),
         implementation: ImplementationOffer {
             execution_profile_id: ExecutionProfileId::from(DETERMINISTIC_HYBRID_EXECUTION_PROFILE),
             implementation_id: ImplementationId::from(DETERMINISTIC_HYBRID_IMPLEMENTATION),

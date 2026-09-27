@@ -136,6 +136,10 @@ pub fn frame_resource_plan(
                 },
                 inputs: definition.inputs.clone(),
                 outputs: definition.outputs.clone(),
+                semantic_contract: conduit_core::KindSemanticContract {
+                    configuration: definition.configuration.clone(),
+                    laws: vec![],
+                },
                 host_calls: if source {
                     vec![]
                 } else {

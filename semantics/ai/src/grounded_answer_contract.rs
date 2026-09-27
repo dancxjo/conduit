@@ -78,6 +78,7 @@ pub fn ordinary_rag_answer_offer(
         kind_contract_revision: contract.kind_contract_revision,
         inputs: contract.inputs,
         outputs: contract.outputs,
+        semantic_contract: conduit_core::KindSemanticContract::default(),
         implementation: ImplementationOffer {
             execution_profile_id: ExecutionProfileId::from(RAG_ANSWER_EXECUTION_PROFILE),
             implementation_id: ImplementationId::from(RAG_ANSWER_IMPLEMENTATION),

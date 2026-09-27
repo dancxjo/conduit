@@ -565,6 +565,7 @@ fn instantiate_gear(
                 shorthand: Some((input.port_id.clone(), output.port_id.clone())),
                 inputs: vec![input.clone()],
                 outputs: vec![output.clone()],
+                semantic_contract: conduit_core::KindSemanticContract::default(),
                 terminal_transduction: None,
                 resource_ports: Vec::new(),
                 configuration,
@@ -663,6 +664,13 @@ fn instantiate_gear(
         },
         inputs: definition.inputs.clone(),
         outputs: definition.outputs.clone(),
+        semantic_contract: catalog
+            .canonical_kind(&kind_id)
+            .map(conduit_core::Kind::semantic_contract)
+            .unwrap_or_else(|| conduit_core::KindSemanticContract {
+                configuration: definition.configuration.clone(),
+                laws: Vec::new(),
+            }),
         terminal_transduction: terminal_transduction.clone(),
         resource_ports: catalog
             .canonical_kind(&kind_id)

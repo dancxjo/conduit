@@ -34,6 +34,13 @@ impl Kind {
             .unwrap_or_default()
     }
 
+    pub fn semantic_contract(&self) -> crate::KindSemanticContract {
+        crate::KindSemanticContract {
+            configuration: self.configuration.clone(),
+            laws: self.semantic_laws.clone(),
+        }
+    }
+
     pub fn terminal_transduction(&self) -> Option<&crate::TerminalTransductionProfile> {
         self.semantic_laws.iter().find_map(|law| match law {
             KindSemanticLaw::TerminalTransduction(profile) => Some(profile),
@@ -319,6 +326,7 @@ impl BackOfferBuilder {
     }
 
     pub fn build(self) -> CapabilityOffer {
+        let semantic_contract = self.contract.semantic_contract();
         CapabilityOffer {
             startup_parameters: self.contract.startup_parameters,
             shorthand: self.contract.shorthand,
@@ -327,6 +335,7 @@ impl BackOfferBuilder {
             kind_contract_revision: self.contract.kind_contract_revision,
             inputs: self.contract.inputs,
             outputs: self.contract.outputs,
+            semantic_contract,
             implementation: ImplementationOffer {
                 execution_profile_id: self.realization.execution_profile_id,
                 implementation_id: self.realization.implementation_id,
