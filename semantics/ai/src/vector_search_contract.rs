@@ -131,7 +131,7 @@ pub fn exact_vector_search_offer(
     })
 }
 
-fn vector_search_semantic_contract() -> Kind {
+pub fn vector_search_semantic_contract() -> Kind {
     let contract = vector_search_contract();
     Kind {
         startup_parameters: vector_search_startup_parameters(),

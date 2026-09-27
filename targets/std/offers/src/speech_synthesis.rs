@@ -79,12 +79,12 @@ fn speech_offer(
     streaming: bool,
 ) -> CapabilityOffer {
     let contract = if streaming {
-        conduit_tongues::streaming_synthesize_contract()
+        conduit_tongues::streaming_synthesize_semantic_contract()
     } else {
-        conduit_tongues::synthesize_contract()
+        conduit_tongues::synthesize_semantic_contract()
     };
     BackOfferBuilder::new(
-        contract.into_semantic_capability_contract(),
+        contract,
         Back {
             capability_id: CapabilityId::from(capability),
             execution_profile_id: ExecutionProfileId::from(profile),

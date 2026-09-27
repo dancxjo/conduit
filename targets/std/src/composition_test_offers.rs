@@ -4,6 +4,7 @@ use crate::installed_std;
 use conduit_core::CapabilityOffer;
 
 pub(super) fn extend(capabilities: &mut Vec<CapabilityOffer>) {
+    let first = capabilities.len();
     capabilities.extend([
         installed_std::test_observer_offer(),
         installed_std::test_text_source_offer(),
@@ -34,4 +35,15 @@ pub(super) fn extend(capabilities: &mut Vec<CapabilityOffer>) {
         conduit_std_offers::deterministic_streaming_speech_offer(),
         installed_std::test_speech_sink_offer(),
     ]);
+    let catalog = installed_std::test_catalog();
+    for offer in &mut capabilities[first..] {
+        if let Some(kind) = catalog.canonical_kind(&offer.kind_id) {
+            offer.semantic_contract = kind.semantic_contract();
+        } else if let Some(definition) = catalog.get(&offer.kind_id) {
+            offer.semantic_contract = conduit_core::KindSemanticContract {
+                configuration: definition.configuration.clone(),
+                laws: Vec::new(),
+            };
+        }
+    }
 }

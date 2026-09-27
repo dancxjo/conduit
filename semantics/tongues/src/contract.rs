@@ -89,6 +89,27 @@ pub fn streaming_synthesize_contract() -> SpeechContract {
     }
 }
 
+pub fn synthesize_semantic_contract() -> Kind {
+    synthesis_semantic_contract(synthesize_contract())
+}
+
+pub fn streaming_synthesize_semantic_contract() -> Kind {
+    synthesis_semantic_contract(streaming_synthesize_contract())
+}
+
+fn synthesis_semantic_contract(contract: SpeechContract) -> Kind {
+    let mut kind = contract.into_semantic_capability_contract();
+    kind.configuration = vec![KindConfigurationField {
+        key: "maximum-output-bytes".into(),
+        default_value: conduit_core::ConfigurationValue::U64(u64::from(MAXIMUM_PCM_BYTES)),
+        rule: KindConfigurationRule::U64Range {
+            minimum: 1,
+            maximum: u64::from(MAXIMUM_PCM_BYTES),
+        },
+    }];
+    kind
+}
+
 pub fn audio_play_contract() -> SpeechContract {
     SpeechContract {
         startup_parameters: Vec::new(),
@@ -169,28 +190,11 @@ fn install_contract(
             vec![]
         },
     })?;
-    profile
-        .insert(KindProjection {
-            kind_id: contract.kind_id,
-            kind_contract_revision: contract.kind_contract_revision,
-            inputs: contract.inputs,
-            outputs: contract.outputs,
-            configuration: if is_synthesis {
-                vec![KindConfigurationField {
-                    key: "maximum-output-bytes".into(),
-                    default_value: conduit_core::ConfigurationValue::U64(u64::from(
-                        MAXIMUM_PCM_BYTES,
-                    )),
-                    rule: KindConfigurationRule::U64Range {
-                        minimum: 1,
-                        maximum: u64::from(MAXIMUM_PCM_BYTES),
-                    },
-                }]
-            } else {
-                vec![]
-            },
-        })
-        .map_err(|error| error.to_string())
+    let mut kind = contract.into_semantic_capability_contract();
+    if is_synthesis {
+        kind.configuration = synthesis_semantic_contract(synthesize_contract()).configuration;
+    }
+    profile.insert_kind(kind).map_err(|error| error.to_string())
 }
 
 fn port(name: &str, value_kind: &str, direction: PortDirection) -> PortDescriptor {
