@@ -4,6 +4,7 @@
 //! semantics, selection, effects, or a provider-specific object model.
 
 use alloc::string::String;
+use alloc::vec;
 use alloc::vec::Vec;
 
 use crate::{validate_primitive_info, KindId, PrimitiveInfoRefusal};
@@ -305,6 +306,115 @@ impl StructuredInfoType {
             return Err(StructuredInfoRefusal::TooManyNodes);
         }
         self.canonical_bytes().map(|_| ())
+    }
+}
+
+/// Canonical finite meaning of Conduitese `T?`: exactly `none | some(T)`.
+/// The selected case is carried by the ordinary structured-variant encoding;
+/// absence is never an empty byte string or an ambient null sentinel.
+pub fn optional_info_type(
+    value_type: StructuredInfoType,
+) -> Result<StructuredInfoType, StructuredInfoRefusal> {
+    StructuredInfoType::variant(
+        crate::kind_id("conduit.conduitese.optional.v1"),
+        vec![
+            StructuredVariantCase::new(
+                "none",
+                StructuredInfoType::leaf(crate::kind_id(crate::UNIT_INFO_ID))?,
+            )?,
+            StructuredVariantCase::new("some", value_type)?,
+        ],
+    )
+}
+
+/// Prepared, allocation-stable encoder for the canonical optional variant.
+/// Hosted profiles prepare its full finite buffer before Play.
+pub struct PreparedOptionalInfoEncoder {
+    value_type: StructuredInfoType,
+    value_type_prefix: Vec<u8>,
+    none: Vec<u8>,
+    some_prefix: Vec<u8>,
+    output: Vec<u8>,
+}
+
+impl PreparedOptionalInfoEncoder {
+    pub fn new(value_type: StructuredInfoType) -> Result<Self, StructuredInfoRefusal> {
+        let optional = optional_info_type(value_type.clone())?;
+        let none = StructuredInfoValue::variant(
+            optional.clone(),
+            "none",
+            StructuredInfoValue::leaf(
+                StructuredInfoType::leaf(crate::kind_id(crate::UNIT_INFO_ID))?,
+                Vec::new(),
+            )?,
+        )?
+        .canonical_bytes()?;
+        let mut some_prefix = optional.canonical_bytes()?;
+        some_prefix.push(3);
+        some_prefix.extend_from_slice(&4_u32.to_le_bytes());
+        some_prefix.extend_from_slice(b"some");
+        if some_prefix.len() > MAXIMUM_STRUCTURED_CANONICAL_BYTES {
+            return Err(StructuredInfoRefusal::CanonicalEncodingTooLarge);
+        }
+        Ok(Self {
+            value_type_prefix: value_type.canonical_bytes()?,
+            value_type,
+            none,
+            some_prefix,
+            output: Vec::with_capacity(MAXIMUM_STRUCTURED_CANONICAL_BYTES),
+        })
+    }
+
+    pub fn encode(&mut self, payload: Option<&[u8]>) -> Result<&[u8], StructuredInfoRefusal> {
+        self.output.clear();
+        let Some(payload) = payload else {
+            self.output.extend_from_slice(&self.none);
+            return Ok(&self.output);
+        };
+        self.output.extend_from_slice(&self.some_prefix);
+        match self.value_type.shape() {
+            StructuredInfoTypeShape::Leaf(kind) => {
+                validate_primitive_info(kind.as_str(), payload)
+                    .map_err(StructuredInfoRefusal::InvalidPrimitiveLeaf)?;
+                let encoded_len = self
+                    .some_prefix
+                    .len()
+                    .checked_add(1 + core::mem::size_of::<u32>())
+                    .and_then(|len| len.checked_add(payload.len()))
+                    .ok_or(StructuredInfoRefusal::CanonicalEncodingTooLarge)?;
+                if encoded_len > MAXIMUM_STRUCTURED_CANONICAL_BYTES {
+                    return Err(StructuredInfoRefusal::CanonicalEncodingTooLarge);
+                }
+                self.output.push(0);
+                self.output
+                    .extend_from_slice(&(payload.len() as u32).to_le_bytes());
+                self.output.extend_from_slice(payload);
+            }
+            _ => {
+                let node = payload
+                    .strip_prefix(self.value_type_prefix.as_slice())
+                    .ok_or(StructuredInfoRefusal::WrongType)?;
+                let validated = validate_canonical_structured_value(payload)
+                    .map_err(|_| StructuredInfoRefusal::WrongType)?;
+                if validated.type_bytes() != self.value_type_prefix.as_slice() {
+                    return Err(StructuredInfoRefusal::WrongType);
+                }
+                let encoded_len = self
+                    .some_prefix
+                    .len()
+                    .checked_add(node.len())
+                    .ok_or(StructuredInfoRefusal::CanonicalEncodingTooLarge)?;
+                if encoded_len > MAXIMUM_STRUCTURED_CANONICAL_BYTES {
+                    return Err(StructuredInfoRefusal::CanonicalEncodingTooLarge);
+                }
+                self.output.extend_from_slice(node);
+            }
+        }
+        Ok(&self.output)
+    }
+
+    pub fn capacity(&self) -> usize {
+        self.output.capacity()
     }
 }
 

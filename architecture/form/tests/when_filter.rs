@@ -67,10 +67,46 @@ fn when_lowers_to_one_exact_flow_preserving_filter_gear() {
 }
 
 #[test]
-fn one_value_when_exposes_the_missing_optional_representation() {
-    let (startup, profile) = catalogs(PortTemporal::Value);
+fn one_value_when_outputs_the_canonical_finite_optional_profile() {
+    let (startup, mut profile) = catalogs(PortTemporal::Value);
+    let optional = conduit_core::optional_info_type(
+        conduit_core::StructuredInfoType::leaf(kind_id(SCALAR_INFO_ID)).unwrap(),
+    )
+    .unwrap()
+    .profile()
+    .unwrap()
+    .value_kind()
+    .clone();
+    profile
+        .insert(KindProjection {
+            kind_id: kind_id("test/optional-sink"),
+            kind_contract_revision: KindIdentity::from("test/optional-sink@1"),
+            inputs: vec![PortDescriptor {
+                port_id: port_id("in"),
+                value_kind: optional.clone(),
+                direction: PortDirection::Input,
+                temporal: PortTemporal::Value,
+            }],
+            outputs: vec![],
+            configuration: vec![],
+        })
+        .unwrap();
+    let mut startup = startup;
+    startup
+        .insert(KindSignature {
+            kind: "test/optional-sink".into(),
+            startup_parameters: vec![],
+        })
+        .unwrap();
     let source = "form filter {\n source: test/source\n sink: test/sink\n source >> when(. > 1) >> sink\n}\n";
-    let checked = check_syntax_document(&parse_syntax_document(source), &startup).unwrap();
-    let error = expand_canonical_form(&checked, "filter", &profile).unwrap_err();
-    assert!(error.message.contains("finite optional representation"));
+    let source = source.replace("sink: test/sink", "sink: test/optional-sink");
+    let checked = check_syntax_document(&parse_syntax_document(&source), &startup).unwrap();
+    let expanded = expand_canonical_form(&checked, "filter", &profile).unwrap();
+    let filter = expanded
+        .gears
+        .iter()
+        .find(|gear| gear.kind_contract_revision.as_str() == PURE_FILTER_REVISION)
+        .unwrap();
+    assert_eq!(filter.outputs[0].value_kind, optional);
+    expanded.validate_expansion().unwrap();
 }

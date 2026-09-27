@@ -23,12 +23,63 @@ fn scientific_quantity_comparison_plans_and_plays_through_the_std_host() {
     );
 }
 
+#[test]
+fn one_value_when_plans_and_plays_as_exact_some_or_none_through_the_std_host() {
+    let scalar_type =
+        conduit_core::StructuredInfoType::leaf(conduit_core::kind_id(conduit_core::SCALAR_INFO_ID))
+            .unwrap();
+    let optional_kind = conduit_core::optional_info_type(scalar_type.clone())
+        .unwrap()
+        .profile()
+        .unwrap()
+        .value_kind()
+        .clone();
+    for (input, selected) in [
+        (conduit_core::Scalar::from_raw_microunits(2_000_000), true),
+        (conduit_core::Scalar::from_raw_microunits(500_000), false),
+    ] {
+        let input = input.encode();
+        let mut encoder =
+            conduit_core::PreparedOptionalInfoEncoder::new(scalar_type.clone()).unwrap();
+        let expected = encoder
+            .encode(selected.then_some(input.as_slice()))
+            .unwrap()
+            .to_vec();
+        assert_pipeline_plans_and_plays(
+            &input,
+            &expected,
+            conduit_core::SCALAR_INFO_ID,
+            optional_kind.as_str(),
+            "when(. > 1)",
+            true,
+        );
+    }
+}
+
 fn assert_expression_plans_and_plays(
     input: &[u8],
     expected: &[u8],
     input_kind: &str,
     output_kind: &str,
     expression_source: &str,
+) {
+    assert_pipeline_plans_and_plays(
+        input,
+        expected,
+        input_kind,
+        output_kind,
+        &format!("({expression_source})"),
+        false,
+    );
+}
+
+fn assert_pipeline_plans_and_plays(
+    input: &[u8],
+    expected: &[u8],
+    input_kind: &str,
+    output_kind: &str,
+    stage_source: &str,
+    filter: bool,
 ) {
     let mut startup = StartupCatalog::new();
     for (kind, value) in [
@@ -54,7 +105,7 @@ fn assert_expression_plans_and_plays(
             .unwrap();
     }
     let source = format!(
-        "form pipeline {{\n source: {}\n sink: {}\n source >> ({expression_source}) >> sink\n}}\n",
+        "form pipeline {{\n source: {}\n sink: {}\n source >> {stage_source} >> sink\n}}\n",
         installed_std::test_structured_selector::SOURCE_KIND,
         installed_std::test_structured_selector::SINK_KIND,
     );
@@ -62,14 +113,18 @@ fn assert_expression_plans_and_plays(
     assert!(syntax.diagnostics.is_empty(), "{:?}", syntax.diagnostics);
     let checked = check_syntax_document(&syntax, &startup).expect("expression pipeline checks");
 
-    let source_offer = installed_std::test_structured_selector::raw_source_offer(
+    let mut source_offer = installed_std::test_structured_selector::raw_source_offer(
         installed_std::test_structured_selector::SOURCE_KIND,
         input_kind,
     );
-    let sink_offer = installed_std::test_structured_selector::raw_sink_offer(
+    let mut sink_offer = installed_std::test_structured_selector::raw_sink_offer(
         installed_std::test_structured_selector::SINK_KIND,
         output_kind,
     );
+    if filter {
+        source_offer.outputs[0].temporal = conduit_core::PortTemporal::Value;
+        sink_offer.inputs[0].temporal = conduit_core::PortTemporal::Value;
+    }
     let mut profile = ProfileCatalog::new();
     profile
         .insert(fixture_definition(&source_offer, input))
@@ -82,15 +137,25 @@ fn assert_expression_plans_and_plays(
     let expression = expanded
         .gears
         .iter()
-        .find(|gear| gear.kind_contract_revision.as_str() == conduit_form::PURE_EXPRESSION_REVISION)
+        .find(|gear| {
+            gear.kind_contract_revision.as_str()
+                == if filter {
+                    conduit_form::PURE_FILTER_REVISION
+                } else {
+                    conduit_form::PURE_EXPRESSION_REVISION
+                }
+        })
         .expect("expanded expression gear exists");
     let conduit_core::ConfigurationValue::Text(program) = &expression.configuration[0].value else {
         panic!("expression has exact portable program configuration")
     };
     let program = conduit_form::PortableExpressionProgram::from_canonical_hex(program).unwrap();
-    let expression_offer =
+    let expression_offer = if filter {
+        conduit_std_offers::pure_filter_std_offer(&program, expression.inputs[0].temporal).unwrap()
+    } else {
         conduit_std_offers::pure_expression_std_offer(&program, expression.inputs[0].temporal)
-            .unwrap();
+            .unwrap()
+    };
 
     let mut advertisement = host("pure-expression-host").advertisement().clone();
     advertisement
@@ -120,7 +185,11 @@ fn assert_expression_plans_and_plays(
     .expect("expression pipeline plans locally");
     assert!(plan.fragments[0].placements.iter().any(|placement| {
         placement.implementation_id.as_str()
-            == conduit_std_offers::PURE_EXPRESSION_STD_IMPLEMENTATION
+            == if filter {
+                conduit_std_offers::PURE_FILTER_STD_IMPLEMENTATION
+            } else {
+                conduit_std_offers::PURE_EXPRESSION_STD_IMPLEMENTATION
+            }
     }));
 
     let mut output = Vec::with_capacity(2_048);

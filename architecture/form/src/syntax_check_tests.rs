@@ -97,6 +97,21 @@ fn keep_lifetime_optional_and_bound_are_exact_checked_meaning() {
 }
 
 #[test]
+fn optional_ports_resolve_to_the_canonical_finite_variant_profile() {
+    let checked = check("form maybe (\n input: Scalar? >> output: $Scalar?\n) {\n}\n");
+    let expected = conduit_core::optional_info_type(
+        conduit_core::StructuredInfoType::leaf(conduit_core::kind_id(conduit_core::SCALAR_INFO_ID))
+            .unwrap(),
+    )
+    .unwrap();
+    let expected_kind = expected.profile().unwrap().value_kind().clone();
+    let front = checked.forms[0].checked_front();
+    assert_eq!(front.inputs()[0].value_kind, expected_kind);
+    assert_eq!(front.outputs()[0].value_kind, expected_kind);
+    assert_eq!(checked.structured_type(&expected_kind), Some(&expected));
+}
+
+#[test]
 fn comment_only_edits_change_source_identity_but_not_checked_meaning() {
     let plain = check("form a {\n clock: time/every(1s)\n clock >> sink\n}\n");
     let commented = check(

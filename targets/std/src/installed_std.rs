@@ -1360,9 +1360,8 @@ pub(super) fn run_fragment_retaining<W: Write, T: TimerAdapter>(
                     .ok_or_else(|| "pure filter request has no admitted host".to_string())?
                     .execute_filter(input);
                 let (disposition, output, failure) = match completion {
-                    Ok(true) => {
-                        let encoded = input.to_vec();
-                        let value = scheduler.store_host_value(&encoded).map_err(|error| {
+                    Ok(Some(encoded)) => {
+                        let value = scheduler.store_host_value(encoded).map_err(|error| {
                             format!("store bounded pure filter output: {error:?}")
                         })?;
                         (
@@ -1377,7 +1376,7 @@ pub(super) fn run_fragment_retaining<W: Write, T: TimerAdapter>(
                             None,
                         )
                     }
-                    Ok(false) => (HostCallDisposition::Completed, None, None),
+                    Ok(None) => (HostCallDisposition::Completed, None, None),
                     Err(refusal) => (
                         HostCallDisposition::Failed,
                         None,

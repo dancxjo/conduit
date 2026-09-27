@@ -18,6 +18,12 @@ pub(super) use conduit_semantic_catalog::PureExpressionBack;
 
 pub(super) struct PureExpressionHost {
     evaluator: conduit_form::PreparedPortableExpressionEvaluator,
+    filter_output: Option<PreparedFilterOutput>,
+}
+
+enum PreparedFilterOutput {
+    Flow(Vec<u8>),
+    Value(conduit_core::PreparedOptionalInfoEncoder),
 }
 
 pub(super) fn prepare_hosts(
@@ -44,9 +50,28 @@ impl PureExpressionHost {
     fn from_placement(placement: &PlannedGear) -> Result<Self, String> {
         let program = program_from_placement(placement)?;
         validate_placement(placement, &program)?;
+        let filter_output = if placement.kind_contract_revision.as_str()
+            == conduit_form::PURE_FILTER_REVISION
+        {
+            Some(match placement.inputs[0].temporal {
+                conduit_core::PortTemporal::Value => PreparedFilterOutput::Value(
+                    conduit_core::PreparedOptionalInfoEncoder::new(program.input_type.clone())
+                        .map_err(|error| format!("prepare optional filter output: {error:?}"))?,
+                ),
+                conduit_core::PortTemporal::Flow { .. } => PreparedFilterOutput::Flow(
+                    Vec::with_capacity(MAXIMUM_STRUCTURED_CANONICAL_BYTES),
+                ),
+                conduit_core::PortTemporal::Current => {
+                    return Err("when filter does not admit current-value temporal input".into())
+                }
+            })
+        } else {
+            None
+        };
         Ok(Self {
             evaluator: conduit_form::PreparedPortableExpressionEvaluator::new(&program)
                 .map_err(|error| format!("prepare pure expression evaluator: {error:?}"))?,
+            filter_output,
         })
     }
 
@@ -60,11 +85,29 @@ impl PureExpressionHost {
     pub(super) fn execute_filter(
         &mut self,
         input: &[u8],
-    ) -> Result<bool, conduit_form::PortableExpressionEvaluationRefusal> {
+    ) -> Result<Option<&[u8]>, conduit_form::PortableExpressionEvaluationRefusal> {
         let predicate = self.evaluator.evaluate(input)?;
-        Ok(conduit_core::InfoBool::decode(predicate)
+        let selected = conduit_core::InfoBool::decode(predicate)
             .map_err(|_| conduit_form::PortableExpressionEvaluationRefusal::InvalidProgram)?
-            .get())
+            .get();
+        match self
+            .filter_output
+            .as_mut()
+            .ok_or(conduit_form::PortableExpressionEvaluationRefusal::InvalidProgram)?
+        {
+            PreparedFilterOutput::Flow(output) => {
+                if !selected {
+                    return Ok(None);
+                }
+                output.clear();
+                output.extend_from_slice(input);
+                Ok(Some(output))
+            }
+            PreparedFilterOutput::Value(output) => output
+                .encode(selected.then_some(input))
+                .map(Some)
+                .map_err(|_| conduit_form::PortableExpressionEvaluationRefusal::InvalidInput),
+        }
     }
 }
 

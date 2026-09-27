@@ -427,7 +427,13 @@ pub(super) fn connect(
             {
                 return Err(CanonicalExpansionDiagnostic::new(
                     "CND-FRM-045",
-                    "cord connects incompatible runtime value or temporal contracts".into(),
+                    format!(
+                        "cord connects incompatible runtime contracts: source {} {} -> sink {} {}",
+                        source.port.value_kind.as_str(),
+                        source.port.temporal.as_str(),
+                        sink.port.value_kind.as_str(),
+                        sink.port.temporal.as_str()
+                    ),
                 ));
             }
             connections.push(CheckedConnection {
