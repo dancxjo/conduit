@@ -87,7 +87,7 @@ pub fn install_tick_catalog(
         ],
     })?;
     profile
-        .insert(tick_kind_projection())
+        .insert_kind(crate::tick_semantic_contract())
         .map_err(|error| error.to_string())
 }
 

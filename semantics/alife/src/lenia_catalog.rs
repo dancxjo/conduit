@@ -2,7 +2,8 @@
 
 use alloc::{format, string::ToString, vec, vec::Vec};
 use conduit_core::{
-    kind_id, port_id, ConfigurationValue, KindIdentity, PortDescriptor, PortDirection, PortTemporal,
+    kind_id, port_id, ConfigurationValue, KindIdentity, KindSemanticLaw, KindTerminalBehavior,
+    PortDescriptor, PortDirection, PortTemporal,
 };
 use conduit_form::{
     KindConfigurationField, KindConfigurationRule, KindProjection, KindSignature, ProfileCatalog,
@@ -76,6 +77,34 @@ fn canonical_lenia_kind(definition: KindProjection) -> conduit_core::Kind {
         ([input], [output]) => Some((input.port_id.clone(), output.port_id.clone())),
         _ => None,
     };
+    let (terminal, limits) = match definition.kind_id.as_str() {
+        ORBIUM_SEED_KIND => (
+            KindTerminalBehavior::EmitsOneField,
+            conduit_core::CapabilityLimits {
+                max_active_instances: 4,
+                max_queue_items: 4,
+                max_queue_bytes: crate::LENIA_MAXIMUM_FIELD_BYTES * 4,
+            },
+        ),
+        LENIA_STEP_KIND => (
+            KindTerminalBehavior::EvolvesAfterTicksAndCompletesWhenTickCloses,
+            conduit_core::CapabilityLimits {
+                max_active_instances: 1,
+                max_queue_items: MAXIMUM_PRESENTED_FIELDS + 1,
+                max_queue_bytes: crate::LENIA_MAXIMUM_FIELD_BYTES + 64,
+            },
+        ),
+        SCALAR_FIELD_PRESENTATION_KIND => (
+            KindTerminalBehavior::PresentsEachFieldAndCompletesWhenInputCloses,
+            conduit_core::CapabilityLimits {
+                max_active_instances: 1,
+                max_queue_items: MAXIMUM_PRESENTED_FIELDS,
+                max_queue_bytes: crate::LENIA_MAXIMUM_FIELD_BYTES
+                    * u32::from(MAXIMUM_PRESENTED_FIELDS),
+            },
+        ),
+        _ => unreachable!("the canonical Lenia catalog is closed"),
+    };
     conduit_core::Kind {
         startup_parameters,
         shorthand,
@@ -84,12 +113,8 @@ fn canonical_lenia_kind(definition: KindProjection) -> conduit_core::Kind {
         inputs: definition.inputs,
         outputs: definition.outputs,
         configuration: definition.configuration,
-        semantic_laws: Vec::new(),
-        limits: conduit_core::CapabilityLimits {
-            max_active_instances: 1,
-            max_queue_items: MAXIMUM_PRESENTED_FIELDS,
-            max_queue_bytes: crate::LENIA_MAXIMUM_FIELD_BYTES,
-        },
+        semantic_laws: vec![KindSemanticLaw::Terminal(terminal)],
+        limits,
     }
 }
 

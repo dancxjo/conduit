@@ -30,7 +30,8 @@ pub use morse_values_into::*;
 use alloc::{string::String, vec, vec::Vec};
 use conduit_core::{
     kind_id, port_id, CapabilityLimits, ConfigurationValue, FrontStartupParameter, Kind,
-    KindIdentity, PortDescriptor, PortDirection, PortTemporal,
+    KindConfigurationField, KindConfigurationRule, KindIdentity, PortDescriptor, PortDirection,
+    PortTemporal,
 };
 
 pub const TEXT_VALUE_KIND: &str = "value/text";
@@ -73,22 +74,34 @@ impl TextKindContract {
             )),
             _ => None,
         };
+        let startup_parameters = self
+            .configuration
+            .iter()
+            .map(|field| FrontStartupParameter {
+                name: field.key.into(),
+                value_type: kind_id(TEXT_VALUE_KIND),
+                has_default: false,
+            })
+            .collect();
+        let configuration = self
+            .configuration
+            .into_iter()
+            .map(|field| KindConfigurationField {
+                key: field.key.into(),
+                default_value: field.default_value,
+                rule: KindConfigurationRule::TextBytes {
+                    maximum: field.maximum_text_bytes,
+                },
+            })
+            .collect();
         Kind {
-            startup_parameters: self
-                .configuration
-                .iter()
-                .map(|field| FrontStartupParameter {
-                    name: field.key.into(),
-                    value_type: kind_id(TEXT_VALUE_KIND),
-                    has_default: false,
-                })
-                .collect(),
+            startup_parameters,
             shorthand,
             kind_id: self.kind_id,
             kind_contract_revision: self.kind_contract_revision,
             inputs: self.inputs,
             outputs: self.outputs,
-            configuration: Default::default(),
+            configuration,
             semantic_laws: Default::default(),
             limits: self.limits,
         }

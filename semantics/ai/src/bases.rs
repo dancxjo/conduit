@@ -200,8 +200,9 @@ fn base(
     benchmark_sign: &str,
     remote: bool,
 ) -> GenerateTextBaseFixture {
+    let kind = crate::generate_text_semantic_contract();
+    let semantic_contract = kind.semantic_contract();
     let contract = generate_text_contract();
-    let semantic_contract = conduit_core::KindSemanticContract::default();
     let host_call = HostCallRequirement {
         contract_id: HostCallContractId::from(GENERATE_TEXT_HOST_CALL),
         target_kind: Some(kind_id(GENERATE_TEXT_KIND)),

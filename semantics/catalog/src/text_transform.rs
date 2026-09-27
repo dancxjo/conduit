@@ -42,10 +42,7 @@ pub fn install_text_pipeline_catalogs(
     startup: &mut conduit_form::StartupCatalog,
     profile: &mut conduit_form::ProfileCatalog,
 ) -> Result<(), alloc::string::String> {
-    use conduit_form::{
-        KindConfigurationField, KindConfigurationRule, KindProjection, KindSignature,
-        StartupParameterSignature,
-    };
+    use conduit_form::{KindSignature, StartupParameterSignature};
     conduit_text::install_text_catalogs(startup, profile)?;
     startup.insert(KindSignature {
         kind: super::TEXT_PRESENTATION_KIND.to_string(),
@@ -55,24 +52,11 @@ pub fn install_text_pipeline_catalogs(
             default: Some(super::MAX_TEXT_VALUES.to_string()),
         }],
     })?;
-    let presentation = super::text_presentation_contract();
     profile
-        .insert(KindProjection {
-            kind_id: presentation.kind_id,
-            kind_contract_revision: conduit_core::KindIdentity::from(
-                super::TEXT_PRESENTATION_CONTRACT_REVISION,
-            ),
-            inputs: presentation.inputs,
-            outputs: presentation.outputs,
-            configuration: vec![KindConfigurationField {
-                key: "maximum-values".to_string(),
-                default_value: conduit_core::ConfigurationValue::U64(super::MAX_TEXT_VALUES),
-                rule: KindConfigurationRule::U64Range {
-                    minimum: 1,
-                    maximum: super::MAX_TEXT_VALUES,
-                },
-            }],
-        })
+        .insert_kind(
+            super::text_presentation_contract()
+                .into_semantic_contract(super::TEXT_PRESENTATION_CONTRACT_REVISION),
+        )
         .map_err(|error| error.to_string())?;
     Ok(())
 }
