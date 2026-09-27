@@ -2,6 +2,7 @@
 
 use crate::{
     Back, ExternalEffectBehavior, Kind, KindId, KindIdentity, KindSemanticLaw, ReplayBehavior,
+    RetainedRetryEvidence, RetainedRetryProof, RetryEvidenceRefusal, RetryOperationIdentity,
     SemanticDependence, SuspensionBehavior, TemporalStateBehavior, VariabilityBehavior,
 };
 
@@ -38,6 +39,20 @@ pub struct TransformationEligibility {
     back_has_authority: bool,
 }
 
+/// A checked authorization for one explicitly requested retry. Consumers must
+/// retain this value until dispatch so the exact evidence cannot be silently
+/// discarded after a Boolean policy check.
+#[derive(Debug, PartialEq, Eq)]
+pub enum RetryAuthorization<'a> {
+    EffectFree {
+        eligibility: &'a TransformationEligibility,
+    },
+    RetainedEffect {
+        eligibility: &'a TransformationEligibility,
+        evidence: &'a RetainedRetryEvidence,
+    },
+}
+
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum TransformationRefusal {
     SemanticFacts(PureExpressionRefusal),
@@ -51,6 +66,7 @@ pub enum TransformationRefusal {
     ReplayIneligible,
     MissingEffectRetryLaw,
     RetainedRetryEvidenceRequired(ReplayBehavior),
+    RetryEvidence(RetryEvidenceRefusal),
     BackHostCall,
     BackResource,
     BackAuthority,
@@ -264,6 +280,66 @@ impl TransformationEligibility {
         }
     }
 
+    /// Admits an effectful retry only from exact provider-owned evidence
+    /// retained beyond the prior Play. This does not schedule or perform a
+    /// retry; it only seals the checked permission for an explicit consumer.
+    pub fn require_retry_with_evidence<'a>(
+        &'a self,
+        operation: &RetryOperationIdentity,
+        evidence: &'a RetainedRetryEvidence,
+    ) -> Result<RetryAuthorization<'a>, TransformationRefusal> {
+        if self.facts.external_effects == ExternalEffectBehavior::None {
+            self.require_recomputable()?;
+            return Ok(RetryAuthorization::EffectFree { eligibility: self });
+        }
+        let law = self.require_effect_retry_semantics()?;
+        crate::retry_evidence::validate_retained_retry_evidence(evidence)
+            .map_err(TransformationRefusal::RetryEvidence)?;
+        if operation.kind_id != self.kind_id {
+            return Err(TransformationRefusal::RetryEvidence(
+                RetryEvidenceRefusal::KindMismatch,
+            ));
+        }
+        if operation.kind_contract_revision != self.kind_contract_revision {
+            return Err(TransformationRefusal::RetryEvidence(
+                RetryEvidenceRefusal::KindRevisionMismatch,
+            ));
+        }
+        if operation.implementation_id != self.implementation_id {
+            return Err(TransformationRefusal::RetryEvidence(
+                RetryEvidenceRefusal::ImplementationMismatch,
+            ));
+        }
+        if evidence.operation != *operation {
+            return Err(TransformationRefusal::RetryEvidence(
+                RetryEvidenceRefusal::OperationMismatch,
+            ));
+        }
+        if evidence.replay_law != *law {
+            return Err(TransformationRefusal::RetryEvidence(
+                RetryEvidenceRefusal::ReplayLawMismatch,
+            ));
+        }
+        if matches!(
+            law,
+            ReplayBehavior::Idempotent { operation_key_kind }
+                if operation_key_kind != &operation.operation_key_kind
+        ) {
+            return Err(TransformationRefusal::RetryEvidence(
+                RetryEvidenceRefusal::ReplayLawMismatch,
+            ));
+        }
+        if !proof_authorizes(law, operation, &evidence.proof) {
+            return Err(TransformationRefusal::RetryEvidence(
+                RetryEvidenceRefusal::DispositionDoesNotAuthorizeRetry,
+            ));
+        }
+        Ok(RetryAuthorization::RetainedEffect {
+            eligibility: self,
+            evidence,
+        })
+    }
+
     fn require_recomputable(&self) -> Result<(), TransformationRefusal> {
         map_recomputable_refusal(require_recomputable_semantics(&self.facts))?;
         if self.back_has_host_calls {
@@ -282,6 +358,13 @@ impl TransformationEligibility {
         if self.facts.external_effects == ExternalEffectBehavior::None {
             return self.require_recomputable();
         }
+        let law = self.require_effect_retry_semantics()?;
+        Err(TransformationRefusal::RetainedRetryEvidenceRequired(
+            law.clone(),
+        ))
+    }
+
+    fn require_effect_retry_semantics(&self) -> Result<&ReplayBehavior, TransformationRefusal> {
         // A stronger effect law constrains duplicate effects; it does not erase
         // state, ambient inputs, suspension, or admitted variability.
         if self.facts.temporal_state != TemporalStateBehavior::None {
@@ -305,13 +388,64 @@ impl TransformationEligibility {
         match &self.facts.replay {
             law @ (ReplayBehavior::Idempotent { .. }
             | ReplayBehavior::Transactional { .. }
-            | ReplayBehavior::Compensatable { .. }) => Err(
-                TransformationRefusal::RetainedRetryEvidenceRequired(law.clone()),
-            ),
+            | ReplayBehavior::Compensatable { .. }) => Ok(law),
             ReplayBehavior::Ineligible | ReplayBehavior::Exact => {
                 Err(TransformationRefusal::MissingEffectRetryLaw)
             }
         }
+    }
+}
+
+impl RetryAuthorization<'_> {
+    pub fn eligibility(&self) -> &TransformationEligibility {
+        match self {
+            Self::EffectFree { eligibility } | Self::RetainedEffect { eligibility, .. } => {
+                eligibility
+            }
+        }
+    }
+
+    pub fn retained_evidence(&self) -> Option<&RetainedRetryEvidence> {
+        match self {
+            Self::EffectFree { .. } => None,
+            Self::RetainedEffect { evidence, .. } => Some(evidence),
+        }
+    }
+}
+
+fn proof_authorizes(
+    law: &ReplayBehavior,
+    operation: &RetryOperationIdentity,
+    proof: &RetainedRetryProof,
+) -> bool {
+    if matches!(proof, RetainedRetryProof::EffectNotCommitted { .. }) {
+        return true;
+    }
+    match (law, proof) {
+        (
+            ReplayBehavior::Idempotent { operation_key_kind },
+            RetainedRetryProof::IdempotencyKeyRetained { .. },
+        ) => operation_key_kind == &operation.operation_key_kind,
+        (
+            ReplayBehavior::Transactional {
+                transaction_contract,
+            },
+            RetainedRetryProof::TransactionRetained {
+                transaction_contract: retained_contract,
+                disposition: crate::RetainedTransactionDisposition::NotCommitted,
+                ..
+            },
+        ) => transaction_contract == retained_contract,
+        (
+            ReplayBehavior::Compensatable {
+                compensation_contract,
+            },
+            RetainedRetryProof::CompensationCommitted {
+                compensation_contract: retained_contract,
+                ..
+            },
+        ) => compensation_contract == retained_contract,
+        _ => false,
     }
 }
 

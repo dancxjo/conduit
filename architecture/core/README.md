@@ -46,6 +46,7 @@ depends on semantic, application, target, or proof packages.
 | `primitive_info.rs` | generic value mechanism | Closed canonical primitive identity registry plus allocation-free validation and count encoding. |
 | `fixed_integer.rs` | generic value mechanism | Exact fixed-width signed and unsigned integer values, encoding, and checked arithmetic. |
 | `kind_effects.rs` | universal architecture | Reviewed semantic effect facts used to admit pure Kind calls without inferring behavior from names. |
+| `retry_evidence.rs` | universal architecture | Finite provider-owned retained evidence for one exact semantic operation, prior realization, and retry law; proves eligibility without inventing a retry loop or treating Step failure as semantic terminal truth. |
 | `quantity.rs` | generic value mechanism | Exact finite dimensioned quantity and exact-only conversion used across unrelated domains. |
 | `structured_info.rs` and children | generic value mechanism | Finite canonical structured type/value, selection, inspection, transport, and profile machinery. |
 | `temporal.rs` | generic value mechanism | Exact finite temporal identity, instant, relation, and offset-only civil primitives without clocks or timezone databases. |
