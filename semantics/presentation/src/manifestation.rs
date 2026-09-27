@@ -112,10 +112,51 @@ impl Manifestation {
         target_subject: String,
         sign_id: SignId,
     ) -> Result<Self, ManifestationError> {
+        let placement = renderer_placement(plan, &placement_id)?;
+        Self::prepared_at_placement(
+            presentation,
+            plan,
+            active_play,
+            placement,
+            front_subject,
+            target_subject,
+            sign_id,
+        )
+    }
+
+    pub(crate) fn prepared_at_mask_terminal(
+        presentation: &Presentation,
+        plan: &Plan,
+        active_play: ActivePlayIdentity,
+        placement_id: &PlacementId,
+        front_subject: String,
+        target_subject: String,
+        sign_id: SignId,
+    ) -> Result<Self, ManifestationError> {
+        let placement = planned_placement(plan, placement_id)?;
+        Self::prepared_at_placement(
+            presentation,
+            plan,
+            active_play,
+            placement,
+            front_subject,
+            target_subject,
+            sign_id,
+        )
+    }
+
+    fn prepared_at_placement(
+        presentation: &Presentation,
+        plan: &Plan,
+        active_play: ActivePlayIdentity,
+        placement: &PlannedGear,
+        front_subject: String,
+        target_subject: String,
+        sign_id: SignId,
+    ) -> Result<Self, ManifestationError> {
         presentation
             .validate()
             .map_err(|_| ManifestationError::InvalidPresentation)?;
-        let placement = renderer_placement(plan, &placement_id)?;
         if active_play.plan_id != plan.plan_id
             || active_play.host_id != placement.host_id
             || active_play.boot_id != placement.boot_id
@@ -222,10 +263,28 @@ impl Manifestation {
         presentation: &Presentation,
         plan: &'a Plan,
     ) -> Result<&'a PlannedGear, ManifestationError> {
+        let placement = renderer_placement(plan, &self.placement_id)?;
+        self.validate_at_placement(presentation, plan, placement)
+    }
+
+    pub(crate) fn validate_against_mask_terminal<'a>(
+        &self,
+        presentation: &Presentation,
+        plan: &'a Plan,
+    ) -> Result<&'a PlannedGear, ManifestationError> {
+        let placement = planned_placement(plan, &self.placement_id)?;
+        self.validate_at_placement(presentation, plan, placement)
+    }
+
+    fn validate_at_placement<'a>(
+        &self,
+        presentation: &Presentation,
+        plan: &'a Plan,
+        placement: &'a PlannedGear,
+    ) -> Result<&'a PlannedGear, ManifestationError> {
         presentation
             .validate()
             .map_err(|_| ManifestationError::InvalidPresentation)?;
-        let placement = renderer_placement(plan, &self.placement_id)?;
         if self.body_id != presentation.basis.body_id
             || self.wake_id != presentation.basis.wake_id
             || self.presentation_id != presentation.identity
@@ -344,6 +403,20 @@ pub(crate) fn renderer_placement<'a>(
     plan: &'a Plan,
     placement_id: &PlacementId,
 ) -> Result<&'a PlannedGear, ManifestationError> {
+    let placement = planned_placement(plan, placement_id)?;
+    if placement.kind_id.as_str() != RENDERER_KIND
+        || placement.inputs != crate::renderer_inputs()
+        || placement.outputs != crate::renderer_outputs()
+    {
+        return Err(ManifestationError::WrongRendererContract);
+    }
+    Ok(placement)
+}
+
+fn planned_placement<'a>(
+    plan: &'a Plan,
+    placement_id: &PlacementId,
+) -> Result<&'a PlannedGear, ManifestationError> {
     if !verify_plan(plan) {
         return Err(ManifestationError::InvalidPlan);
     }
@@ -353,12 +426,6 @@ pub(crate) fn renderer_placement<'a>(
         .flat_map(|fragment| &fragment.placements)
         .find(|placement| &placement.placement_id == placement_id)
         .ok_or(ManifestationError::MissingRendererPlacement)?;
-    if placement.kind_id.as_str() != RENDERER_KIND
-        || placement.inputs != crate::renderer_inputs()
-        || placement.outputs != crate::renderer_outputs()
-    {
-        return Err(ManifestationError::WrongRendererContract);
-    }
     Ok(placement)
 }
 

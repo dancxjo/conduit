@@ -6,8 +6,9 @@
 
 use alloc::{collections::BTreeMap, string::String, vec::Vec};
 use conduit_core::{
-    verify_plan, KindId, KindIdentity, PlacementId, Plan, PlanId, PortDescriptor, PortDirection,
-    PortId,
+    verify_plan, AdmittedLine, ArtifactId, BootId, CapabilityId, ConnectionId, HostId,
+    ImplementationId, KindId, KindIdentity, PlacementId, Plan, PlanId, PortDescriptor,
+    PortDirection, PortId, ResourceBinding,
 };
 use serde::{Deserialize, Serialize};
 
@@ -103,6 +104,31 @@ pub struct PlannedMask {
     pub specification_revision: u64,
     pub plan_id: PlanId,
     pub stage_placements: Vec<MaskStagePlacement>,
+    pub stages: Vec<PlannedMaskStage>,
+    pub cords: Vec<PlannedMaskCord>,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct PlannedMaskStage {
+    pub stage_id: MaskStageId,
+    pub placement_id: PlacementId,
+    pub capability_id: CapabilityId,
+    pub implementation_id: ImplementationId,
+    pub artifact_id: ArtifactId,
+    pub host_id: HostId,
+    pub boot_id: BootId,
+    pub resources: Vec<ResourceBinding>,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct PlannedMaskCord {
+    pub source_stage_id: MaskStageId,
+    pub sink_stage_id: MaskStageId,
+    pub connection_id: ConnectionId,
+    pub selected_line: Option<AdmittedLine>,
+    pub admitted_lines: Vec<AdmittedLine>,
+    pub item_capacity: u16,
+    pub byte_capacity: u32,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -216,23 +242,34 @@ impl MaskSpecification {
                 return Err(MaskSpecificationError::WrongStageContract);
             }
         }
+        let planned_connections = plan
+            .fragments
+            .iter()
+            .flat_map(|fragment| &fragment.connections)
+            .collect::<Vec<_>>();
+        let mut admitted_cords = Vec::with_capacity(self.cords.len());
         for cord in &self.cords {
             let source = &bindings[&cord.source_stage_id].placement_id;
             let sink = &bindings[&cord.sink_stage_id].placement_id;
-            let found = plan
-                .fragments
+            let planned = planned_connections
                 .iter()
-                .flat_map(|fragment| &fragment.connections)
-                .any(|planned| {
+                .find(|planned| {
                     &planned.source_placement_id == source
                         && planned.source_port_id == cord.source_port_id
                         && &planned.sink_placement_id == sink
                         && planned.sink_port_id == cord.sink_port_id
                         && planned.value_kind == cord.value_kind
-                });
-            if !found {
-                return Err(MaskSpecificationError::MissingPlannedCord);
-            }
+                })
+                .ok_or(MaskSpecificationError::MissingPlannedCord)?;
+            admitted_cords.push(PlannedMaskCord {
+                source_stage_id: cord.source_stage_id.clone(),
+                sink_stage_id: cord.sink_stage_id.clone(),
+                connection_id: planned.connection_id.clone(),
+                selected_line: planned.selected_line.clone(),
+                admitted_lines: planned.admitted_lines.clone(),
+                item_capacity: planned.item_capacity,
+                byte_capacity: planned.byte_capacity,
+            });
         }
         if plan
             .fragments
@@ -243,11 +280,30 @@ impl MaskSpecification {
         {
             return Err(MaskSpecificationError::UnexpectedPlannedCord);
         }
+        let admitted_stages = self
+            .stages
+            .iter()
+            .map(|stage| {
+                let placement = placements[&bindings[&stage.stage_id].placement_id];
+                PlannedMaskStage {
+                    stage_id: stage.stage_id.clone(),
+                    placement_id: placement.placement_id.clone(),
+                    capability_id: placement.capability_id.clone(),
+                    implementation_id: placement.implementation_id.clone(),
+                    artifact_id: placement.artifact_id.clone(),
+                    host_id: placement.host_id.clone(),
+                    boot_id: placement.boot_id.clone(),
+                    resources: placement.resources.clone(),
+                }
+            })
+            .collect();
         Ok(PlannedMask {
             specification_id: self.specification_id.clone(),
             specification_revision: self.revision,
             plan_id: plan.plan_id.clone(),
             stage_placements,
+            stages: admitted_stages,
+            cords: admitted_cords,
         })
     }
 }

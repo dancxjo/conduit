@@ -3,17 +3,17 @@
 mod common;
 
 use conduit_core::{
-    kind_id, port_id, ArtifactId, Back, BackOfferBuilder, BaseImplementationId, CapabilityId,
-    CapabilityLimits, ExecutionProfileId, GearId, ImplementationId, ImplementationOffer, Kind,
-    KindIdentity, PortDescriptor, PortDirection, PortTemporal,
+    bind_active_play, kind_id, port_id, ArtifactId, Back, BackOfferBuilder, BaseImplementationId,
+    CapabilityId, CapabilityLimits, ExecutionProfileId, GearId, ImplementationId,
+    ImplementationOffer, Kind, KindIdentity, PortDescriptor, PortDirection, PortTemporal, SignId,
 };
 use conduit_form::{parse, KindProjection, ProfileCatalog};
 use conduit_planner::{plan, PlacementChoice, PlacementChoices};
 use conduit_presentation::{
     presenter_stage_kind_projection, presenter_stage_offer, renderer_kind_projection,
-    MaskBoundaryPort, MaskBoundaryRole, MaskCordSpecification, MaskSpecification, MaskStageId,
-    MaskStagePlacement, MaskStageSpecification, PresenterTopologyAdmission,
-    MAX_RENDERER_VALUE_BYTES,
+    ManifestationLifecycle, MaskBoundaryPort, MaskBoundaryRole, MaskCordSpecification, MaskShow,
+    MaskSpecification, MaskStageId, MaskStagePlacement, MaskStageSpecification,
+    PresenterTopologyAdmission, MAX_RENDERER_VALUE_BYTES,
 };
 use std::collections::BTreeMap;
 
@@ -360,4 +360,37 @@ fn one_mask_chain_preserves_heterogeneous_language_text_and_pcm_stages() {
         admitted.specification_id.as_str(),
         admitted.plan_id.as_str()
     );
+    assert_eq!(admitted.stages.len(), 3);
+    assert_eq!(admitted.cords.len(), 2);
+    assert_eq!(admitted.stages[2].implementation_id.as_str(), "output@1");
+
+    let presentation = common::presentation(&form, &sealed);
+    let terminal = admitted
+        .stages
+        .iter()
+        .find(|stage| stage.stage_id.as_str() == "output")
+        .unwrap();
+    let active_play = bind_active_play(&sealed.plan_id, &terminal.host_id, &terminal.boot_id, 1);
+    let show = MaskShow::prepared(
+        &specification,
+        &admitted,
+        &presentation,
+        &sealed,
+        active_play,
+        "patchbay/form".into(),
+        "speaker/default".into(),
+        SignId::from("mask/show/prepared"),
+    )
+    .unwrap();
+    let available = show
+        .transition(
+            ManifestationLifecycle::Available,
+            SignId::from("mask/show/available"),
+        )
+        .unwrap();
+    available
+        .validate(&specification, &presentation, &sealed)
+        .unwrap();
+    assert_eq!(available.show_id, show.show_id);
+    assert_eq!(available.presentation_id, presentation.identity);
 }
