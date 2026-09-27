@@ -8,7 +8,7 @@ use conduit_core::{
 mod semantic_call;
 mod substitution;
 mod temporal;
-use semantic_call::expand_direct_semantic_call;
+use semantic_call::{expand_semantic_call_chain, semantic_call_chain};
 use substitution::substitute_immutable_values;
 use temporal::{input_temporal, output_temporal};
 
@@ -113,6 +113,7 @@ pub(super) fn resolve_selectors(
                     environment,
                     path,
                     gears,
+                    connections,
                     provenance,
                     gear_ids,
                     anonymous_counts,
@@ -211,6 +212,7 @@ fn expand_expression(
     environment: &BTreeMap<String, CanonicalStartupValue>,
     path: &[String],
     gears: &mut Vec<CheckedGear>,
+    connections: &mut Vec<CheckedConnection>,
     provenance: &mut Vec<ExpandedGearProvenance>,
     gear_ids: &mut BTreeSet<GearId>,
     anonymous_counts: &mut BTreeMap<String, usize>,
@@ -276,18 +278,16 @@ fn expand_expression(
         )
     })?;
     if temporal == PortTemporal::Value {
-        if let crate::ExpressionSyntax::SemanticCall {
-            kind, arguments, ..
-        } = &expression
-        {
-            if matches!(arguments.as_slice(), [crate::ExpressionSyntax::Input(_)]) {
-                return expand_direct_semantic_call(
-                    kind,
+        if let Some(calls) = semantic_call_chain(&expression) {
+            if !calls.is_empty() {
+                return expand_semantic_call_chain(
+                    &calls,
                     source_span,
                     source_form,
                     catalog,
                     path,
                     gears,
+                    connections,
                     provenance,
                     gear_ids,
                     anonymous_counts,

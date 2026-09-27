@@ -1,7 +1,84 @@
 use super::*;
 
+pub(super) fn semantic_call_chain(
+    expression: &crate::ExpressionSyntax,
+) -> Option<Vec<crate::SpannedText>> {
+    match expression {
+        crate::ExpressionSyntax::Input(_) => Some(Vec::new()),
+        crate::ExpressionSyntax::SemanticCall {
+            kind, arguments, ..
+        } if arguments.len() == 1 => {
+            let mut calls = semantic_call_chain(&arguments[0])?;
+            calls.push(kind.clone());
+            Some(calls)
+        }
+        _ => None,
+    }
+}
+
 #[allow(clippy::too_many_arguments)]
-pub(super) fn expand_direct_semantic_call(
+pub(super) fn expand_semantic_call_chain(
+    calls: &[crate::SpannedText],
+    source_span: crate::Span,
+    source_form: &CheckedCanonicalForm,
+    catalog: &ProfileCatalog,
+    path: &[String],
+    gears: &mut Vec<CheckedGear>,
+    connections: &mut Vec<CheckedConnection>,
+    provenance: &mut Vec<ExpandedGearProvenance>,
+    gear_ids: &mut BTreeSet<GearId>,
+    anonymous_counts: &mut BTreeMap<String, usize>,
+) -> Result<Stage, CanonicalExpansionDiagnostic> {
+    let mut stages = calls
+        .iter()
+        .map(|kind| {
+            expand_one(
+                kind,
+                source_span,
+                source_form,
+                catalog,
+                path,
+                gears,
+                provenance,
+                gear_ids,
+                anonymous_counts,
+            )
+        })
+        .collect::<Result<Vec<_>, _>>()?;
+    for pair in stages.windows(2) {
+        let (StageSource::Internal(source), StageSink::Internal(sink)) = (
+            pair[0]
+                .output
+                .clone()
+                .expect("semantic call stage has one output"),
+            pair[1]
+                .input
+                .as_ref()
+                .and_then(|inputs| inputs.first())
+                .cloned()
+                .expect("semantic call stage has one input"),
+        ) else {
+            unreachable!("semantic call chain uses internal ports")
+        };
+        connections.push(CheckedConnection {
+            source_gear_id: source.gear_id,
+            source_port_id: source.port.port_id,
+            sink_gear_id: sink.gear_id,
+            sink_port_id: sink.port.port_id,
+            value_kind: source.port.value_kind,
+            temporal: source.port.temporal,
+        });
+    }
+    let first = stages.remove(0);
+    let last = stages.pop().unwrap_or_else(|| first.clone());
+    Ok(Stage {
+        input: first.input,
+        output: last.output,
+    })
+}
+
+#[allow(clippy::too_many_arguments)]
+fn expand_one(
     kind_name: &crate::SpannedText,
     source_span: crate::Span,
     source_form: &CheckedCanonicalForm,
