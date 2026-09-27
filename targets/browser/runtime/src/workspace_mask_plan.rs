@@ -1,5 +1,8 @@
 use super::*;
 
+pub(super) const MASK_SOURCE: &str = "form browser-graphical (\n >> presentation: Presentation\n interaction: FaceInteraction...| >>\n show: Show >>\n) {\n mask: presentation/browser-dom-mask\n presentation >> mask.presentation\n mask.interaction >> interaction\n mask.show >> show\n}\n";
+pub(super) const ALTERNATE_MASK_SOURCE: &str = "form browser-graphical-alternate (\n >> presentation: Presentation\n interaction: FaceInteraction...| >>\n show: Show >>\n) {\n mask: presentation/browser-dom-mask\n presentation >> mask.presentation\n mask.interaction >> interaction\n mask.show >> show\n}\n";
+
 fn port(
     name: &str,
     value_kind: &str,

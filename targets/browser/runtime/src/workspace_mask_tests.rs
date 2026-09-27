@@ -96,7 +96,7 @@ fn body_plan_basis() -> (BodyId, conduit_body::Wake, conduit_body::BodyPlan) {
     let planned = plan::planned_mask(
         HostId::from("host/browser"),
         BootId::from("boot/browser"),
-        MASK_SOURCE,
+        plan::MASK_SOURCE,
         "browser-graphical",
     )
     .unwrap();

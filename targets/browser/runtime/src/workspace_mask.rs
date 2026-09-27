@@ -35,8 +35,6 @@ use conduit_presentation::{
 use serde::{Deserialize, Serialize};
 use std::collections::BTreeMap;
 
-const MASK_SOURCE: &str = "form browser-graphical (\n >> presentation: Presentation\n interaction: FaceInteraction...| >>\n show: Show >>\n) {\n mask: presentation/browser-dom-mask\n presentation >> mask.presentation\n mask.interaction >> interaction\n mask.show >> show\n}\n";
-const ALTERNATE_MASK_SOURCE: &str = "form browser-graphical-alternate (\n >> presentation: Presentation\n interaction: FaceInteraction...| >>\n show: Show >>\n) {\n mask: presentation/browser-dom-mask\n presentation >> mask.presentation\n mask.interaction >> interaction\n mask.show >> show\n}\n";
 const MASK_OPERATION: &str = "browser.host/dom-mask@1";
 const MASK_BYTES: u32 = 512 * 1024;
 #[path = "workspace_mask_execution.rs"]
@@ -151,13 +149,13 @@ impl BrowserMaskRuntime {
         let planned = plan::planned_mask(
             host_id.clone(),
             boot_id.clone(),
-            MASK_SOURCE,
+            plan::MASK_SOURCE,
             "browser-graphical",
         )?;
         let alternate = plan::planned_mask(
             host_id,
             boot_id,
-            ALTERNATE_MASK_SOURCE,
+            plan::ALTERNATE_MASK_SOURCE,
             "browser-graphical-alternate",
         )?;
         let source_placement_id = base_plan
