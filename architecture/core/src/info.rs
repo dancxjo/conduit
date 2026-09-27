@@ -7,6 +7,7 @@ use core::convert::TryFrom;
 use sha2::{Digest, Sha256};
 
 use crate::QuantityConversionRefusal;
+use crate::{kind_id, KindId};
 
 pub const BOOL_INFO_ID: &str = "value/bool";
 pub const BOOL_ENCODED_LEN: usize = 1;
@@ -14,6 +15,17 @@ pub const SCALAR_INFO_ID: &str = "value/scalar";
 pub const SCALAR_ENCODED_LEN: usize = 8;
 
 const SEMANTIC_DIGEST_DOMAIN: &[u8] = b"conduit.info.semantic.v1";
+
+/// The ordinary Info kind carried by a canonical `&T` data reference.
+///
+/// This constructs type identity only. Publication, residence, access, and
+/// loading remain semantic and realization concerns outside core.
+pub fn data_reference_kind(content_kind: &KindId) -> KindId {
+    kind_id(&alloc::format!(
+        "data/generation-reference<{}>",
+        content_kind.as_str()
+    ))
+}
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
 pub enum InfoDecodeError {
