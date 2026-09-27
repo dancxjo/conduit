@@ -11,8 +11,9 @@ use conduit_form::{
     KindSignature, ProfileCatalog, StartupCatalog,
 };
 use conduit_presentation::{
-    ManifestationLifecycle, MaskForm, MaskShow, PlannedMaskForm, Presentation, PresentationBasis,
-    PresentationRole, PresentationSubject, PresentationText, MANIFESTATION_VALUE_KIND,
+    AdmittedMaskFormRoutes, ManifestationLifecycle, MaskForm, MaskRouteAdmissionError, MaskShow,
+    PlannedMaskForm, Presentation, PresentationBasis, PresentationRole, PresentationSubject,
+    PresentationText, SealedMaskFormRoute, MANIFESTATION_VALUE_KIND,
     PRESENTATION_INTERACTION_VALUE_KIND, PRESENTATION_VALUE_KIND,
 };
 
@@ -328,6 +329,33 @@ fn the_ordinary_planner_seals_the_mask_form_without_a_mask_planner() {
         conduit_planner::plan_expanded_canonical(&authoring.expanded, &[host], &placements, &[])
             .unwrap();
     let planned = PlannedMaskForm::admit(&mask, &plan).unwrap();
+    let route = SealedMaskFormRoute {
+        route_id: "route/browser".into(),
+        mask_form: mask.form_identity.clone(),
+        plan_id: plan.plan_id.clone(),
+        placement_ids: plan
+            .fragments
+            .iter()
+            .flat_map(|fragment| &fragment.placements)
+            .map(|placement| placement.placement_id.clone())
+            .collect(),
+        currently_available: true,
+    };
+    assert!(
+        AdmittedMaskFormRoutes::new(&plan, core::slice::from_ref(&mask), vec![route.clone()])
+            .is_ok()
+    );
+    assert_eq!(
+        AdmittedMaskFormRoutes::new(
+            &plan,
+            core::slice::from_ref(&mask),
+            vec![SealedMaskFormRoute {
+                placement_ids: vec![conduit_core::PlacementId::from("placement/invented")],
+                ..route
+            }],
+        ),
+        Err(MaskRouteAdmissionError::MissingPlacement)
+    );
 
     assert_eq!(
         planned.plan.checked_form_id,
