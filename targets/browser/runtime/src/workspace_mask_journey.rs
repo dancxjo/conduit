@@ -111,7 +111,7 @@ impl MaskJourneyEmbodiment for BrowserJourney<'_> {
                 self.control = MaskWardrobeControl::new(
                     &e.body_id,
                     self.control.scoped_wardrobe.clone(),
-                    self.control.active_plan_id.clone(),
+                    &self.initial.body_plan,
                     &self.initial_routes,
                     None,
                 )
@@ -134,7 +134,7 @@ impl MaskJourneyEmbodiment for BrowserJourney<'_> {
                 self.control = MaskWardrobeControl::new(
                     &self.initial.wardrobe_action.body_id,
                     self.control.scoped_wardrobe.clone(),
-                    self.control.active_plan_id.clone(),
+                    &self.initial.body_plan,
                     &self.unavailable_routes,
                     self.control.selected.clone(),
                 )
@@ -183,7 +183,11 @@ impl MaskJourneyEmbodiment for BrowserJourney<'_> {
             MaskJourneyAction::AdmitReplacementPlan => {
                 let old = self.control.active_plan_id.clone();
                 self.control
-                    .admit_replacement_plan(&old, &self.replacement_routes)
+                    .admit_replacement_plan(
+                        &old,
+                        &self.replacement.body_plan,
+                        &self.replacement_routes,
+                    )
                     .map_err(|e| format!("admit replacement: {e:?}"))?;
                 if self.control.active_plan_id == old {
                     return Err("replacement reused Plan".into());
@@ -240,35 +244,29 @@ pub(super) fn actualize(
     {
         return Err("replacement changed Presentation truth".into());
     }
-    if initial.planned_mask.plan.plan_id == replacement.planned.plan.plan_id {
+    if initial.body_plan.plan_id == replacement.body_plan.plan_id {
         return Err("replacement reused Plan".into());
     }
     let initial_mask = initial.planned_mask.mask.clone();
-    let mut alternate = plan::alternate_mask()?;
-    // Both ordinary Forms use the same admitted DOM Mask gear contract. The
-    // active Plan seals that shared placement once, while retaining each
-    // Form's distinct source/checked/expanded identity as wardrobe truth.
-    alternate.presentation_input = initial_mask.presentation_input.clone();
-    alternate.interaction_output = initial_mask.interaction_output.clone();
-    alternate.show_output = initial_mask.show_output.clone();
+    let alternate = replacement.alternate.mask.clone();
     let initial_routes = plan::admitted_routes(
-        &initial.planned_mask.plan,
-        &initial_mask,
-        &alternate,
+        &initial.body_plan,
+        &initial.planned_mask,
+        &initial.alternate,
         true,
         true,
     )?;
     let unavailable_routes = plan::admitted_routes(
-        &initial.planned_mask.plan,
-        &initial_mask,
-        &alternate,
+        &initial.body_plan,
+        &initial.planned_mask,
+        &initial.alternate,
         false,
         false,
     )?;
     let replacement_routes = plan::admitted_routes(
-        &replacement.planned.plan,
-        &initial_mask,
-        &alternate,
+        &replacement.body_plan,
+        &replacement.planned,
+        &replacement.alternate,
         true,
         true,
     )?;
@@ -283,12 +281,12 @@ pub(super) fn actualize(
     let selected = SelectedMaskFormRoute {
         route_id: "route/browser-graphical".into(),
         mask_form: initial_mask.form_identity.clone(),
-        plan_id: initial.planned_mask.plan.plan_id.clone(),
+        plan_id: initial.body_plan.plan_id.clone(),
     };
     let control = MaskWardrobeControl::new(
         &initial.wardrobe_action.body_id,
         scoped,
-        initial.planned_mask.plan.plan_id.clone(),
+        &initial.body_plan,
         &initial_routes,
         Some(selected),
     )
