@@ -282,6 +282,70 @@ fn planning_binds_exact_contract_profile_and_every_port() {
 }
 
 #[test]
+fn planning_seals_canonical_terminal_transduction_into_the_exact_placement() {
+    let profile = conduit_core::TerminalTransductionProfile {
+        normal_close: conduit_core::NormalCloseTransduction::PropagateAfterDrain,
+        abnormal: conduit_core::AbnormalTerminalTransduction::Recover,
+        cancellation: conduit_core::CancellationTransduction::NotCancellable,
+    };
+    let mut pulse = conduit_signal::pulse_semantic_contract();
+    pulse.configuration = vec![
+        conduit_core::KindConfigurationField {
+            key: "count".into(),
+            default_value: conduit_core::ConfigurationValue::U64(16),
+            rule: conduit_core::KindConfigurationRule::U64Range {
+                minimum: 0,
+                maximum: conduit_signal::MAX_SIGNAL_COUNT,
+            },
+        },
+        conduit_core::KindConfigurationField {
+            key: "period-ms".into(),
+            default_value: conduit_core::ConfigurationValue::U64(250),
+            rule: conduit_core::KindConfigurationRule::U64Range {
+                minimum: 0,
+                maximum: u64::MAX,
+            },
+        },
+        conduit_core::KindConfigurationField {
+            key: "initial".into(),
+            default_value: conduit_core::ConfigurationValue::Bool(false),
+            rule: conduit_core::KindConfigurationRule::Any,
+        },
+    ];
+    pulse
+        .semantic_laws
+        .push(conduit_core::KindSemanticLaw::TerminalTransduction(
+            profile.clone(),
+        ));
+    let mut catalog = conduit_form::ProfileCatalog::new();
+    catalog.insert_kind(pulse).unwrap();
+    catalog
+        .insert_kind(conduit_signal::show_semantic_contract())
+        .unwrap();
+    let form = conduit_form::parse(
+        "form signal-demo {\n pulse: flow/pulse\n show: presentation/show\n pulse >> show\n}\n",
+        &catalog,
+    )
+    .unwrap();
+    let host = host();
+    let placements = default_placements(&form, std::slice::from_ref(&host)).unwrap();
+    let planned = plan(
+        &form,
+        std::slice::from_ref(&host),
+        &placements,
+        &[BaseImplementationId::from("conduit.base/local@1")],
+    )
+    .unwrap();
+    let pulse = planned.fragments[0]
+        .placements
+        .iter()
+        .find(|placement| placement.kind_id.as_str() == PULSE_KIND)
+        .unwrap();
+    assert_eq!(pulse.terminal_transduction, Some(profile));
+    assert!(verify_plan(&planned));
+}
+
+#[test]
 fn line_mechanism_policy_neither_selects_nor_authorizes_capability_base_providers() {
     let form = form();
     let mut host = host();
