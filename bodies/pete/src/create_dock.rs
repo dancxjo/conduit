@@ -122,7 +122,10 @@ pub fn live_create_dock_advertisement(
         subject_kind: kind_id(BOOL_INFO_ID),
     };
     let dock = conduit_core::capability_offer_from_parts! {
-        semantic_contract: Default::default(),
+        semantic_contract: contract
+            .clone()
+            .into_semantic_contract(conduit_semantic_catalog::ROBOTICS_DOCK_REVISION)
+            .semantic_contract(),
         startup_parameters: vec![FrontStartupParameter {
             name: "timeout-ms".into(),
             value_type: conduit_core::kind_id("value/count"),

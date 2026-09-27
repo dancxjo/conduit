@@ -197,7 +197,9 @@ pub fn live_speaker_advertisement(
         bases: vec![],
         resources,
         capabilities: vec![conduit_core::capability_offer_from_parts! {
-            semantic_contract: Default::default(),
+            semantic_contract: conduit_semantic_catalog::music_play_contract()
+                .into_semantic_contract(conduit_semantic_catalog::MUSIC_PLAY_REVISION)
+                .semantic_contract(),
             startup_parameters: Vec::new(),
             shorthand: None,
             capability_id: CapabilityId::from(SPEAKER_CAPABILITY),

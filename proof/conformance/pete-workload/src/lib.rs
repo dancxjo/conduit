@@ -644,7 +644,7 @@ mod tests {
             .enumerate()
             .map(|(index, gear)| {
                 conduit_core::capability_offer_from_parts! {
-                    semantic_contract: Default::default(),
+                    semantic_contract: gear.semantic_contract.clone(),
                     startup_parameters: gear.startup_parameters.clone(),
                     shorthand: gear.shorthand.clone(),
                     capability_id: CapabilityId::from(format!("proof/{host_id}/{index}")),

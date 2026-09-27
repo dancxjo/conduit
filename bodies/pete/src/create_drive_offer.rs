@@ -106,7 +106,11 @@ pub fn live_create_drive_advertisement(
         bases: vec![],
         resources,
         capabilities: vec![conduit_core::capability_offer_from_parts! {
-            semantic_contract: Default::default(),
+            semantic_contract: conduit_semantic_catalog::robotics_semantic_contract(
+                conduit_semantic_catalog::ROBOTICS_DRIVE_DIFFERENTIAL_KIND,
+            )
+            .expect("differential drive is a registered robotics contract")
+            .semantic_contract(),
             startup_parameters: vec![FrontStartupParameter {
                 name: "ttl-ms".into(),
                 value_type: conduit_core::kind_id("value/count"),

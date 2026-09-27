@@ -54,7 +54,7 @@ pub fn r1_signal_source_advertisement() -> HostAdvertisement {
             .collect(),
         planner_capabilities: vec![],
         capabilities: vec![conduit_core::capability_offer_from_parts! {
-            semantic_contract: Default::default(),
+            semantic_contract: conduit_signal::pulse_semantic_contract().semantic_contract(),
             startup_parameters: conduit_signal::pulse_front_startup_parameters(),
             shorthand: None,
             capability_id: CapabilityId::from(R1_PULSE_CAPABILITY_ID),
@@ -95,7 +95,7 @@ pub fn r1_signal_pico_advertisement(boot_id: BootId) -> HostAdvertisement {
             .collect(),
         planner_capabilities: vec![],
         capabilities: vec![conduit_core::capability_offer_from_parts! {
-            semantic_contract: Default::default(),
+            semantic_contract: conduit_signal::show_semantic_contract().semantic_contract(),
             startup_parameters: vec![],
             shorthand: None,
             capability_id: CapabilityId::from(R1_LED_CAPABILITY_ID),

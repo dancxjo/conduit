@@ -4,8 +4,8 @@ use super::{
 };
 use alloc::format;
 use alloc::string::{String, ToString};
-use conduit_core::{ConfigurationValue, KindIdentity};
-use conduit_form::{KindProjection, KindSignature, StartupParameterSignature};
+use conduit_core::ConfigurationValue;
+use conduit_form::{KindSignature, StartupParameterSignature};
 
 pub fn install_robotics_catalogs(
     startup: &mut conduit_form::StartupCatalog,
@@ -28,51 +28,8 @@ pub fn install_robotics_catalogs(
                 })
                 .collect(),
         })?;
-        let configuration = contract
-            .configuration
-            .iter()
-            .map(|field| KindConfigurationField {
-                key: field.key.clone(),
-                default_value: field.default_value.clone(),
-                rule: match &field.rule {
-                    KindConfigurationRule::U64Range { minimum, maximum } => {
-                        KindConfigurationRule::U64Range {
-                            minimum: *minimum,
-                            maximum: *maximum,
-                        }
-                    }
-                    KindConfigurationRule::I64Range { minimum, maximum } => {
-                        KindConfigurationRule::I64Range {
-                            minimum: *minimum,
-                            maximum: *maximum,
-                        }
-                    }
-                    KindConfigurationRule::TextOneOf { values } => {
-                        KindConfigurationRule::TextOneOf {
-                            values: values.clone(),
-                        }
-                    }
-                    KindConfigurationRule::QuantityRange {
-                        minimum,
-                        maximum,
-                        canonical_unit,
-                    } => KindConfigurationRule::QuantityRange {
-                        minimum: *minimum,
-                        maximum: *maximum,
-                        canonical_unit: *canonical_unit,
-                    },
-                    _ => unreachable!("robotics uses only finite numeric/text rules"),
-                },
-            })
-            .collect();
         profile
-            .insert(KindProjection {
-                kind_id: contract.kind_id,
-                kind_contract_revision: KindIdentity::from(revision),
-                inputs: contract.inputs,
-                outputs: contract.outputs,
-                configuration,
-            })
+            .insert_kind(contract.into_semantic_contract(revision))
             .map_err(|error| error.to_string())?;
     }
     Ok(())
