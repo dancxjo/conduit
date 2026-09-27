@@ -5,7 +5,11 @@ use conduit_core::{
     StructuredSelector, MAXIMUM_STRUCTURED_CANONICAL_BYTES,
 };
 
+mod semantic_call;
+mod substitution;
 mod temporal;
+use semantic_call::expand_direct_semantic_call;
+use substitution::substitute_immutable_values;
 use temporal::{input_temporal, output_temporal};
 
 pub fn structured_selector_definition(
@@ -195,172 +199,6 @@ pub(super) fn resolve_selectors(
     Ok(stages)
 }
 
-fn substitute_immutable_values(
-    expression: &crate::ExpressionSyntax,
-    source_form: &CheckedCanonicalForm,
-    environment: &BTreeMap<String, CanonicalStartupValue>,
-) -> Result<crate::ExpressionSyntax, CanonicalExpansionDiagnostic> {
-    use crate::ExpressionSyntax;
-
-    let substitute = |value: &crate::SpannedText| {
-        let Some((_, local)) = source_form
-            .local_values
-            .iter()
-            .find(|(name, _)| name == &value.text)
-        else {
-            return Ok(None);
-        };
-        let local = match local {
-            CanonicalStartupValue::FormParameter(name) => {
-                environment.get(name).ok_or_else(|| {
-                    CanonicalExpansionDiagnostic::new(
-                        "CND-FRM-046",
-                        format!("immutable local '{}' has no bound value", value.text),
-                    )
-                })?
-            }
-            local => local,
-        };
-        let text = match local {
-            CanonicalStartupValue::Literal(text) => text.clone(),
-            CanonicalStartupValue::Quantity(quantity) => {
-                format!("{}{}", quantity.value(), quantity.unit().form_suffix())
-            }
-            _ => {
-                return Err(CanonicalExpansionDiagnostic::new(
-                    "CND-FRM-046",
-                    format!(
-                        "immutable local '{}' has no canonical pure-expression value",
-                        value.text
-                    ),
-                ));
-            }
-        };
-        Ok(Some(ExpressionSyntax::Atomic(crate::SpannedText {
-            text,
-            span: value.span,
-        })))
-    };
-
-    Ok(match expression {
-        ExpressionSyntax::Atomic(value) => substitute(value)?.unwrap_or_else(|| expression.clone()),
-        ExpressionSyntax::Input(_) => expression.clone(),
-        ExpressionSyntax::Projection {
-            value,
-            member,
-            span,
-        } => ExpressionSyntax::Projection {
-            value: Box::new(substitute_immutable_values(
-                value,
-                source_form,
-                environment,
-            )?),
-            member: member.clone(),
-            span: *span,
-        },
-        ExpressionSyntax::Unary {
-            operator,
-            operand,
-            span,
-        } => ExpressionSyntax::Unary {
-            operator: *operator,
-            operand: Box::new(substitute_immutable_values(
-                operand,
-                source_form,
-                environment,
-            )?),
-            span: *span,
-        },
-        ExpressionSyntax::Binary {
-            operator,
-            left,
-            right,
-            span,
-        } => ExpressionSyntax::Binary {
-            operator: *operator,
-            left: Box::new(substitute_immutable_values(left, source_form, environment)?),
-            right: Box::new(substitute_immutable_values(
-                right,
-                source_form,
-                environment,
-            )?),
-            span: *span,
-        },
-        ExpressionSyntax::Conditional {
-            condition,
-            when_true,
-            when_false,
-            span,
-        } => ExpressionSyntax::Conditional {
-            condition: Box::new(substitute_immutable_values(
-                condition,
-                source_form,
-                environment,
-            )?),
-            when_true: Box::new(substitute_immutable_values(
-                when_true,
-                source_form,
-                environment,
-            )?),
-            when_false: Box::new(substitute_immutable_values(
-                when_false,
-                source_form,
-                environment,
-            )?),
-            span: *span,
-        },
-        ExpressionSyntax::Tuple { values, span } => ExpressionSyntax::Tuple {
-            values: values
-                .iter()
-                .map(|value| substitute_immutable_values(value, source_form, environment))
-                .collect::<Result<_, _>>()?,
-            span: *span,
-        },
-        ExpressionSyntax::Collection { values, span } => ExpressionSyntax::Collection {
-            values: values
-                .iter()
-                .map(|value| substitute_immutable_values(value, source_form, environment))
-                .collect::<Result<_, _>>()?,
-            span: *span,
-        },
-        ExpressionSyntax::Record { fields, span } => ExpressionSyntax::Record {
-            fields: fields
-                .iter()
-                .map(|field| {
-                    Ok(crate::StructuredExpressionField {
-                        name: field.name.clone(),
-                        value: substitute_immutable_values(&field.value, source_form, environment)?,
-                        punned: field.punned,
-                        span: field.span,
-                    })
-                })
-                .collect::<Result<_, CanonicalExpansionDiagnostic>>()?,
-            span: *span,
-        },
-        ExpressionSyntax::Variant { tag, payload, span } => ExpressionSyntax::Variant {
-            tag: tag.clone(),
-            payload: Box::new(substitute_immutable_values(
-                payload,
-                source_form,
-                environment,
-            )?),
-            span: *span,
-        },
-        ExpressionSyntax::SemanticCall {
-            kind,
-            arguments,
-            span,
-        } => ExpressionSyntax::SemanticCall {
-            kind: kind.clone(),
-            arguments: arguments
-                .iter()
-                .map(|value| substitute_immutable_values(value, source_form, environment))
-                .collect::<Result<_, _>>()?,
-            span: *span,
-        },
-    })
-}
-
 #[allow(clippy::too_many_arguments)]
 fn expand_expression(
     expression: &crate::ExpressionSyntax,
@@ -437,6 +275,26 @@ fn expand_expression(
             ),
         )
     })?;
+    if temporal == PortTemporal::Value {
+        if let crate::ExpressionSyntax::SemanticCall {
+            kind, arguments, ..
+        } = &expression
+        {
+            if matches!(arguments.as_slice(), [crate::ExpressionSyntax::Input(_)]) {
+                return expand_direct_semantic_call(
+                    kind,
+                    source_span,
+                    source_form,
+                    catalog,
+                    path,
+                    gears,
+                    provenance,
+                    gear_ids,
+                    anonymous_counts,
+                );
+            }
+        }
+    }
     let definition = crate::pure_expression_definition(&checked, temporal).map_err(|_| {
         CanonicalExpansionDiagnostic::new(
             "CND-FRM-046",
