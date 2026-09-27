@@ -555,7 +555,7 @@ fn instantiate_gear(
                 temporal: conduit_core::PortTemporal::Current,
                 abnormal_kind: None,
             };
-            gears.push(CheckedGear {
+            gears.push(crate::checked_gear_from_parts! {
                 gear_id: gear_id.clone(),
                 kind_id: KindId::from("state/latest"),
                 kind_contract_revision: conduit_core::KindIdentity::from(
@@ -653,7 +653,7 @@ fn instantiate_gear(
     }
     let configuration = configuration(gear, environment, definition)?;
     let pool_references = pool_references(gear, environment)?;
-    gears.push(CheckedGear {
+    gears.push(crate::checked_gear_from_parts! {
         gear_id: gear_id.clone(),
         kind_id: definition.kind_id.clone(),
         kind_contract_revision: definition.kind_contract_revision.clone(),

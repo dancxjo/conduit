@@ -368,7 +368,7 @@ fn expand_expression(
             value: field.default_value.clone(),
         })
         .collect();
-    gears.push(CheckedGear {
+    gears.push(crate::checked_gear_from_parts! {
         gear_id: gear_id.clone(),
         kind_id: definition.kind_id,
         kind_contract_revision: definition.kind_contract_revision,

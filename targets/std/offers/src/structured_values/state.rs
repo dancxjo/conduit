@@ -21,7 +21,7 @@ pub fn state_value_std_offer(
     contract.limits.max_queue_bytes = STATE_VALUE_STD_MAXIMUM_BYTES;
     let value_kind = contract.outputs[0].value_kind.as_str();
     let semantic_contract = conduit_core::KindSemanticContract::default();
-    Ok(CapabilityOffer {
+    Ok(conduit_core::capability_offer_from_parts! {
         capability_id: CapabilityId::from(format!("std-state-value-{value_kind}")),
         kind_id: contract.kind_id,
         kind_contract_revision: contract.kind_contract_revision,

@@ -68,7 +68,7 @@ pub(crate) fn offer() -> CapabilityOffer {
         .unwrap()
         .value_kind()
         .clone();
-    CapabilityOffer {
+    conduit_core::capability_offer_from_parts! {
         semantic_contract: Default::default(),
         startup_parameters: vec![conduit_core::FrontStartupParameter {
             name: "expected".into(),

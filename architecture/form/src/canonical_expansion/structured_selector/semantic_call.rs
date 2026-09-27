@@ -246,7 +246,7 @@ fn expand_argument_expression(
     }
     let input = definition.inputs[0].clone();
     let output = definition.outputs[0].clone();
-    gears.push(CheckedGear {
+    gears.push(crate::checked_gear_from_parts! {
         gear_id: gear_id.clone(),
         kind_id: definition.kind_id,
         kind_contract_revision: definition.kind_contract_revision,
@@ -503,7 +503,7 @@ fn expand_one(
         ));
     }
     let output = kind.outputs[0].clone();
-    gears.push(CheckedGear {
+    gears.push(crate::checked_gear_from_parts! {
         gear_id: gear_id.clone(),
         kind_id: kind.kind_id.clone(),
         kind_contract_revision: kind.kind_contract_revision.clone(),

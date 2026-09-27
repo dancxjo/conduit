@@ -105,7 +105,7 @@ pub fn exact_vector_search_offer(
 ) -> Result<CapabilityOffer, VectorSearchOfferInvalidity> {
     validate_process_identity(process_identity)?;
     let contract = vector_search_contract();
-    Ok(CapabilityOffer {
+    Ok(conduit_core::capability_offer_from_parts! {
         startup_parameters: vector_search_startup_parameters(),
         shorthand: None,
         capability_id: CapabilityId::from(alloc::format!(

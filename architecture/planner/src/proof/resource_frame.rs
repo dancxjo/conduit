@@ -119,7 +119,7 @@ pub fn frame_resource_plan(
                 contract.publication_slots = 0;
             }
             requirement.content = Some(contract);
-            CapabilityOffer {
+            conduit_core::capability_offer_from_parts! {
                 startup_parameters: vec![],
                 shorthand: None,
                 capability_id: CapabilityId::from(definition.kind_id.as_str()),

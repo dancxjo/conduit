@@ -106,7 +106,7 @@ fn offer(
     if process_identity.len() > MAXIMUM_R3_PROCESS_IDENTITY_BYTES {
         return Err(R3OfferInvalidity::ProcessIdentityTooLarge);
     }
-    Ok(CapabilityOffer {
+    Ok(conduit_core::capability_offer_from_parts! {
         startup_parameters,
         shorthand: None,
         capability_id: CapabilityId::from(alloc::format!(

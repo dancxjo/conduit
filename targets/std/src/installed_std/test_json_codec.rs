@@ -159,7 +159,7 @@ fn offer(
         temporal: PortTemporal::Value,
         abnormal_kind: None,
     };
-    CapabilityOffer {
+    conduit_core::capability_offer_from_parts! {
         semantic_contract: Default::default(),
         startup_parameters: Vec::new(),
         shorthand: None,

@@ -53,7 +53,7 @@ impl<const PORTS: usize> StepBack<PORTS> for TestSpeechSinkBack {
 impl TestSpeechSinkBack {}
 
 pub(crate) fn offer() -> CapabilityOffer {
-    CapabilityOffer {
+    conduit_core::capability_offer_from_parts! {
         semantic_contract: Default::default(),
         startup_parameters: Vec::new(),
         shorthand: None,

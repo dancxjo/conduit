@@ -3,9 +3,9 @@
 use alloc::{format, vec, vec::Vec};
 use conduit_audio::NOTE_EVENT_ENCODED_LEN;
 use conduit_core::{
-    ArtifactId, CapabilityId, CapabilityLimits, CapabilityOffer, ExecutionProfileId,
-    HostAdvertisement, HostCallContractId, HostCallRequirement, ImplementationId,
-    ImplementationOffer, KindIdentity, resource_offer,
+    ArtifactId, CapabilityId, CapabilityLimits, ExecutionProfileId, HostAdvertisement,
+    HostCallContractId, HostCallRequirement, ImplementationId, ImplementationOffer, KindIdentity,
+    resource_offer,
 };
 
 pub const OPL2_IMPLEMENTATION: &str = "conduitos/opl2-fixed-fm-music@1";
@@ -157,7 +157,7 @@ pub fn append_to_advertisement(
         ),
     ];
     requirements.sort();
-    advertisement.capabilities.push(CapabilityOffer {
+    advertisement.capabilities.push(conduit_core::capability_offer_from_parts! {
         semantic_contract: Default::default(),
         startup_parameters: Vec::new(),
         shorthand: None,

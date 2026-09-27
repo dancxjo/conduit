@@ -153,7 +153,7 @@ fn advertisement() -> HostAdvertisement {
 }
 
 fn source_offer() -> CapabilityOffer {
-    CapabilityOffer {
+    conduit_core::capability_offer_from_parts! {
         semantic_contract: Default::default(),
         capability_id: CapabilityId::from("repository-proof-obligation"),
         kind_id: kind_id(SOURCE_KIND),
@@ -178,7 +178,7 @@ fn source_offer() -> CapabilityOffer {
 }
 
 fn execute_offer() -> CapabilityOffer {
-    CapabilityOffer {
+    conduit_core::capability_offer_from_parts! {
         semantic_contract: Default::default(),
         capability_id: CapabilityId::from("repository-execute-proof-catalog"),
         kind_id: kind_id(EXECUTE_KIND),

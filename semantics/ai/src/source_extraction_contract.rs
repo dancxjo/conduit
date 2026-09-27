@@ -107,7 +107,7 @@ pub fn deterministic_source_extraction_offer(
 ) -> Result<CapabilityOffer, SourceExtractionOfferInvalidity> {
     validate_process_identity(process_identity)?;
     let contract = source_extraction_contract();
-    Ok(CapabilityOffer {
+    Ok(conduit_core::capability_offer_from_parts! {
         startup_parameters: source_extraction_startup_parameters(),
         shorthand: None,
         capability_id: CapabilityId::from(alloc::format!(

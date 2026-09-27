@@ -138,7 +138,7 @@ pub(super) fn initialized_structured_state(
         temporal: conduit_core::PortTemporal::Current,
         abnormal_kind: None,
     };
-    let gear = CheckedGear {
+    let gear = crate::checked_gear_from_parts! {
         gear_id,
         kind_id: KindId::from(conduit_core::STATE_VALUE_KIND),
         kind_contract_revision: conduit_core::KindIdentity::from(

@@ -83,7 +83,7 @@ pub(super) fn expand_when_filter(
     }
     let input = definition.inputs[0].clone();
     let output = definition.outputs[0].clone();
-    gears.push(CheckedGear {
+    gears.push(crate::checked_gear_from_parts! {
         gear_id: gear_id.clone(),
         kind_id: definition.kind_id,
         kind_contract_revision: definition.kind_contract_revision,

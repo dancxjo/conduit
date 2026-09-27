@@ -532,7 +532,7 @@ fn offer(kind: &str, capability: &str, resource_units: u32) -> CapabilityOffer {
             has_default: true,
         })
         .collect();
-    CapabilityOffer {
+    conduit_core::capability_offer_from_parts! {
         semantic_contract: Default::default(),
         startup_parameters,
         shorthand: None,

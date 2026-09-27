@@ -4,8 +4,8 @@ use conduit_core::{
     ConfigurationValue, ConnectionId, ExecutionProfileId, ExpandedFormId, ExpectedSign,
     ExpectedTerminal, FormIdentity, FragmentId, GearId, HostId, ImplementationId, KindId,
     KindIdentity, OfferGeneration, PlacementId, PlanFragment, PlanId, PlannedConnection,
-    PlannedGear, PortDescriptor, PortDirection, PortId, SignStorageBudget, SourceDocumentId,
-    StartupDependency, TerminalPolicy,
+    PortDescriptor, PortDirection, PortId, SignStorageBudget, SourceDocumentId, StartupDependency,
+    TerminalPolicy,
 };
 use conduit_plan_lowering::lowering::{lower_plan_fragment, FIXED_KERNEL_STORAGE_PORTS_PER_NODE};
 use conduit_signal::{signal_profile_catalog, SIGNAL_ENCODED_LEN};
@@ -354,7 +354,7 @@ fn sealed_current_fragment() -> PlanFragment {
         boot_id: boot_id.clone(),
         offer_generation: OfferGeneration(1),
         placements: vec![
-            PlannedGear {
+            conduit_core::planned_gear_from_parts! {
                 semantic_contract: Default::default(),
                 placement_id: source.clone(),
                 gear_id: GearId::from("source"),
@@ -386,7 +386,7 @@ fn sealed_current_fragment() -> PlanFragment {
                 authority: Vec::new(),
                 pool_references: Vec::new(),
             },
-            PlannedGear {
+            conduit_core::planned_gear_from_parts! {
                 semantic_contract: Default::default(),
                 placement_id: sink.clone(),
                 gear_id: GearId::from("sink"),

@@ -349,6 +349,48 @@ impl BackOfferBuilder {
     }
 }
 
+impl CapabilityOffer {
+    /// Revalidates the semantic half of an already assembled offer.
+    ///
+    /// Canonical production offers should use [`BackOfferBuilder`]. This is
+    /// the checked boundary used by finite fixtures and composition code that
+    /// must spell all wire fields explicitly: it prevents those callers from
+    /// bypassing the same Kind validation merely because they do not own a
+    /// reusable catalog value.
+    #[doc(hidden)]
+    pub fn validate_constructed_semantic_contract(&self) -> Result<(), KindValidationError> {
+        Kind {
+            startup_parameters: self.startup_parameters.clone(),
+            shorthand: self.shorthand.clone(),
+            kind_id: self.kind_id.clone(),
+            kind_contract_revision: self.kind_contract_revision.clone(),
+            inputs: self.inputs.clone(),
+            outputs: self.outputs.clone(),
+            configuration: self.semantic_contract.configuration.clone(),
+            semantic_laws: self.semantic_contract.laws.clone(),
+            limits: self.limits.clone(),
+        }
+        .validate()
+    }
+}
+
+/// Checked named-field construction for finite fixtures and composition code.
+///
+/// Production Host catalogs should prefer [`BackOfferBuilder`], which derives
+/// every semantic field directly from one canonical [`Kind`]. This macro is a
+/// migration-safe boundary for callers that must spell the complete portable
+/// record: unlike a raw literal, it always applies Kind validation.
+#[macro_export]
+macro_rules! capability_offer_from_parts {
+    ($($fields:tt)*) => {{
+        let offer = $crate::CapabilityOffer { $($fields)* };
+        if let Err(error) = offer.validate_constructed_semantic_contract() {
+            panic!("CapabilityOffer requires a valid semantic contract: {:?}", error);
+        }
+        offer
+    }};
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;

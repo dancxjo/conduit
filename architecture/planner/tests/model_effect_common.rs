@@ -21,7 +21,7 @@ fn placement(
     inputs: Vec<PortDescriptor>,
     outputs: Vec<PortDescriptor>,
 ) -> PlannedGear {
-    PlannedGear {
+    conduit_core::planned_gear_from_parts! {
         semantic_contract: Default::default(),
         placement_id: PlacementId::from(id),
         gear_id: GearId::from(id),

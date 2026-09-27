@@ -54,7 +54,7 @@ pub struct ExactTripleSignalPlan {
 }
 
 fn capability(capability_id: &str, implementation_id: &str, is_pulse: bool) -> CapabilityOffer {
-    CapabilityOffer {
+    conduit_core::capability_offer_from_parts! {
         startup_parameters: if is_pulse {
             crate::pulse_front_startup_parameters()
         } else {

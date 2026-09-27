@@ -171,7 +171,7 @@ pub(crate) fn append_to_advertisement(
         requirements.push(conduit_core::resource_requirement(class, 1));
     }
     requirements.sort();
-    let capability = conduit_core::CapabilityOffer {
+    let capability = conduit_core::capability_offer_from_parts! {
         semantic_contract: Default::default(),
         startup_parameters: Vec::new(),
         shorthand: None,

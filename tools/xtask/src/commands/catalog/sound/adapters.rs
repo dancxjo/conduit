@@ -220,7 +220,7 @@ fn capability(catalog: &ProfileCatalog, kind: &str) -> Result<CapabilityOffer, C
     let definition = catalog
         .get(&kind_id(kind))
         .ok_or_else(|| CatalogError::new("sound-adapter-kind-missing", kind))?;
-    Ok(CapabilityOffer {
+    Ok(conduit_core::capability_offer_from_parts! {
         semantic_contract: Default::default(),
         startup_parameters: definition
             .configuration

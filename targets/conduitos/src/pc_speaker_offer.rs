@@ -3,9 +3,9 @@
 use alloc::{format, vec, vec::Vec};
 use conduit_audio::TONE_INTENT_ENCODED_LEN;
 use conduit_core::{
-    ArtifactId, CapabilityId, CapabilityLimits, CapabilityOffer, ExecutionProfileId,
-    HostAdvertisement, HostCallContractId, HostCallRequirement, ImplementationId,
-    ImplementationOffer, KindIdentity, resource_offer,
+    ArtifactId, CapabilityId, CapabilityLimits, ExecutionProfileId, HostAdvertisement,
+    HostCallContractId, HostCallRequirement, ImplementationId, ImplementationOffer, KindIdentity,
+    resource_offer,
 };
 
 pub const PC_SPEAKER_IMPLEMENTATION: &str = "conduitos/pc-speaker-tone@1";
@@ -136,7 +136,7 @@ pub(crate) fn append_to_advertisement(
         .resources
         .sort_by(|left, right| left.pool_id.cmp(&right.pool_id));
     let contract = conduit_semantic_catalog::sound_tone_play_contract();
-    advertisement.capabilities.push(CapabilityOffer {
+    advertisement.capabilities.push(conduit_core::capability_offer_from_parts! {
         semantic_contract: Default::default(),
         startup_parameters: Vec::new(),
         shorthand: None,

@@ -4,9 +4,9 @@ use alloc::vec;
 use alloc::vec::Vec;
 use conduit_core::{
     resource_offer, ArtifactId, BaseImplementationId, BaseInstanceId, BootId, CapabilityId,
-    CapabilityLimits, CapabilityOffer, HostAdvertisement, HostId, HostProfileId, ImplementationId,
-    LineAvailability, LineAvailabilitySign, LineContinuation, LineContract, LineDuplex, LineId,
-    LineOffer, LineOrdering, LineReliability, LineScope, LineSecurity, LineTrafficShape,
+    CapabilityLimits, HostAdvertisement, HostId, HostProfileId, ImplementationId, LineAvailability,
+    LineAvailabilitySign, LineContinuation, LineContract, LineDuplex, LineId, LineOffer,
+    LineOrdering, LineReliability, LineScope, LineSecurity, LineTrafficShape,
     LinkAuthorityReference, LinkBinding, LinkBindingId, LinkCredentialReference, LinkEndpoint,
     LinkEndpointId, LinkLimits, OfferGeneration, SignId, PRESENTATION_RESOURCE_CLASS,
     PROTOCOL_VERSION, TIMER_RESOURCE_CLASS,
@@ -40,7 +40,7 @@ pub fn pico_local_advertisement() -> HostAdvertisement {
         resources: signal_resource_offers(PICO_TIMER_POOL_ID, PICO_PRESENTATION_POOL_ID, 1),
         planner_capabilities: vec![],
         capabilities: vec![
-            CapabilityOffer {
+            conduit_core::capability_offer_from_parts! {
                 startup_parameters: pulse_front_startup_parameters(),
                 shorthand: None,
                 capability_id: CapabilityId::from("pico-pulse-1"),
@@ -63,7 +63,7 @@ pub fn pico_local_advertisement() -> HostAdvertisement {
                     max_queue_bytes: DISTRIBUTED_MAXIMUM_BUFFERED_BYTES,
                 },
             },
-            CapabilityOffer {
+            conduit_core::capability_offer_from_parts! {
                 startup_parameters: vec![],
                 shorthand: None,
                 capability_id: CapabilityId::from("pico-led-show-1"),
@@ -100,7 +100,7 @@ pub fn distributed_std_source_advertisement() -> HostAdvertisement {
         bases: vec![],
         resources: vec![resource_offer("s4/std-timer", TIMER_RESOURCE_CLASS, 1)],
         planner_capabilities: vec![],
-        capabilities: vec![CapabilityOffer {
+        capabilities: vec![conduit_core::capability_offer_from_parts! {
             startup_parameters: pulse_front_startup_parameters(),
             shorthand: None,
             capability_id: CapabilityId::from("pulse-1"),
@@ -141,7 +141,7 @@ pub fn distributed_browser_sink_advertisement() -> HostAdvertisement {
         )],
         planner_capabilities: vec![],
         capabilities: vec![
-            CapabilityOffer {
+            conduit_core::capability_offer_from_parts! {
                 startup_parameters: vec![],
                 shorthand: None,
                 capability_id: CapabilityId::from("dom-show-1"),

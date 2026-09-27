@@ -185,7 +185,7 @@ pub(crate) fn append_to_advertisement(
     requirements.sort();
     advertisement
         .capabilities
-        .push(conduit_core::CapabilityOffer {
+        .push(conduit_core::capability_offer_from_parts! {
             semantic_contract: Default::default(),
             startup_parameters: Vec::new(),
             shorthand: None,

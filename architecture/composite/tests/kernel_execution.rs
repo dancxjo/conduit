@@ -4,9 +4,9 @@ use conduit_composite::{
 };
 use conduit_core::{
     kind_id, process_owned_line_offer, ArtifactId, BaseImplementationId, BootId, CapabilityId,
-    CapabilityLimits, CapabilityOffer, FailureReason, GearId, HostAdvertisement, HostId,
-    HostProfileId, ImplementationId, KindIdentity, OfferGeneration, PlannedGear, PortDescriptor,
-    PortDirection, ValuePayload, PROTOCOL_VERSION,
+    CapabilityLimits, FailureReason, GearId, HostAdvertisement, HostId, HostProfileId,
+    ImplementationId, KindIdentity, OfferGeneration, PlannedGear, PortDescriptor, PortDirection,
+    ValuePayload, PROTOCOL_VERSION,
 };
 use conduit_form::{parse, KindProjection, ProfileCatalog};
 use conduit_kernel::scheduler::{StepBack, StepInputBytes, StepIo, StepOutcome};
@@ -53,7 +53,7 @@ fn advertisement(host: &str, boot: &str) -> HostAdvertisement {
         bases: vec![],
         resources: vec![],
         planner_capabilities: vec![],
-        capabilities: vec![CapabilityOffer {
+        capabilities: vec![conduit_core::capability_offer_from_parts! {
             semantic_contract: Default::default(),
             startup_parameters: vec![],
             shorthand: None,

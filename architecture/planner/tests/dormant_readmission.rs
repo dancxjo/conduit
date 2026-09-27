@@ -75,7 +75,7 @@ fn form() -> conduit_form::CheckedForm {
 fn offer(kind: &str, host: &str) -> CapabilityOffer {
     let definition = definition(kind);
     let sink = kind == SINK;
-    CapabilityOffer {
+    conduit_core::capability_offer_from_parts! {
         semantic_contract: Default::default(),
         startup_parameters: vec![],
         shorthand: None,

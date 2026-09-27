@@ -9,10 +9,10 @@ mod tests {
         KernelCompositeHost, KernelOperationRegistry,
     };
     use conduit_core::{
-        ArtifactId, BootId, CapabilityId, CapabilityLimits, CapabilityOffer, ExecutionProfileId,
-        FailureReason, HostAdvertisement, HostCallContractId, HostCallRequirement, HostId,
-        HostProfileId, ImplementationId, ImplementationOffer, OfferGeneration, Plan, SignId,
-        TemporalInstant, TemporalScale, ValuePayload,
+        ArtifactId, BootId, CapabilityId, CapabilityLimits, ExecutionProfileId, FailureReason,
+        HostAdvertisement, HostCallContractId, HostCallRequirement, HostId, HostProfileId,
+        ImplementationId, ImplementationOffer, OfferGeneration, Plan, SignId, TemporalInstant,
+        TemporalScale, ValuePayload,
     };
     use conduit_form::{CompositeFrontTerminal, ExpandedAuthoringForm};
     use conduit_human::{
@@ -496,7 +496,7 @@ mod tests {
             boot_id: BootId::from("proof/homeostasis-composite-boot"),
             offer_generation: OfferGeneration(1),
             profile: HostProfileId::from("proof/pete-homeostasis@1"),
-            external_capability: CapabilityOffer {
+            external_capability: conduit_core::capability_offer_from_parts! {
                 semantic_contract: Default::default(),
                 startup_parameters: vec![],
                 shorthand: None,
@@ -642,44 +642,46 @@ mod tests {
             .filter(|item| workload.initial.contains(&item.form) && roles.contains(&item.role))
             .flat_map(|item| &item.expanded.gears)
             .enumerate()
-            .map(|(index, gear)| CapabilityOffer {
-                semantic_contract: Default::default(),
-                startup_parameters: gear.startup_parameters.clone(),
-                shorthand: gear.shorthand.clone(),
-                capability_id: CapabilityId::from(format!("proof/{host_id}/{index}")),
-                kind_id: gear.kind_id.clone(),
-                kind_contract_revision: gear.kind_contract_revision.clone(),
-                inputs: gear.inputs.clone(),
-                outputs: gear.outputs.clone(),
-                implementation: ImplementationOffer {
-                    execution_profile_id: ExecutionProfileId::from("proof/pete-workload@1"),
-                    implementation_id: if gear.kind_id.as_str() == "pete/reduce-homeostasis" {
-                        ImplementationId::from(HOMEOSTASIS_IMPLEMENTATION)
-                    } else {
-                        ImplementationId::from(format!("proof/{host_id}/{index}@1"))
+            .map(|(index, gear)| {
+                conduit_core::capability_offer_from_parts! {
+                    semantic_contract: Default::default(),
+                    startup_parameters: gear.startup_parameters.clone(),
+                    shorthand: gear.shorthand.clone(),
+                    capability_id: CapabilityId::from(format!("proof/{host_id}/{index}")),
+                    kind_id: gear.kind_id.clone(),
+                    kind_contract_revision: gear.kind_contract_revision.clone(),
+                    inputs: gear.inputs.clone(),
+                    outputs: gear.outputs.clone(),
+                    implementation: ImplementationOffer {
+                        execution_profile_id: ExecutionProfileId::from("proof/pete-workload@1"),
+                        implementation_id: if gear.kind_id.as_str() == "pete/reduce-homeostasis" {
+                            ImplementationId::from(HOMEOSTASIS_IMPLEMENTATION)
+                        } else {
+                            ImplementationId::from(format!("proof/{host_id}/{index}@1"))
+                        },
+                        artifact_id: ArtifactId::from("proof/pete-workload-fixture@1"),
                     },
-                    artifact_id: ArtifactId::from("proof/pete-workload-fixture@1"),
-                },
-                host_calls: if gear.kind_id.as_str() == "pete/reduce-homeostasis" {
-                    vec![HostCallRequirement {
-                        contract_id: HostCallContractId::from(
-                            "conduit.pete/homeostasis-reduce-host@1",
-                        ),
-                        target_kind: None,
-                        maximum_in_flight: 1,
-                        maximum_input_bytes: 8_192,
-                        maximum_output_bytes: 8_192,
-                    }]
-                } else {
-                    Vec::new()
-                },
-                resource_requirements: Vec::new(),
-                authority_requirements: Vec::new(),
-                limits: CapabilityLimits {
-                    max_active_instances: 8,
-                    max_queue_items: 64,
-                    max_queue_bytes: 1_048_576,
-                },
+                    host_calls: if gear.kind_id.as_str() == "pete/reduce-homeostasis" {
+                        vec![HostCallRequirement {
+                            contract_id: HostCallContractId::from(
+                                "conduit.pete/homeostasis-reduce-host@1",
+                            ),
+                            target_kind: None,
+                            maximum_in_flight: 1,
+                            maximum_input_bytes: 8_192,
+                            maximum_output_bytes: 8_192,
+                        }]
+                    } else {
+                        Vec::new()
+                    },
+                    resource_requirements: Vec::new(),
+                    authority_requirements: Vec::new(),
+                    limits: CapabilityLimits {
+                        max_active_instances: 8,
+                        max_queue_items: 64,
+                        max_queue_bytes: 1_048_576,
+                    },
+                }
             })
             .collect();
         host.capabilities

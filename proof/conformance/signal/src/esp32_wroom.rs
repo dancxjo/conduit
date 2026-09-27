@@ -8,8 +8,8 @@
 use alloc::vec;
 
 use conduit_core::{
-    ArtifactId, BootId, CapabilityId, CapabilityLimits, CapabilityOffer, HostAdvertisement, HostId,
-    HostProfileId, ImplementationId, OfferGeneration, PROTOCOL_VERSION,
+    ArtifactId, BootId, CapabilityId, CapabilityLimits, HostAdvertisement, HostId, HostProfileId,
+    ImplementationId, OfferGeneration, PROTOCOL_VERSION,
 };
 
 use crate::{
@@ -45,7 +45,7 @@ pub fn esp32_wroom_build_fixture_advertisement() -> HostAdvertisement {
         ),
         planner_capabilities: vec![],
         capabilities: vec![
-            CapabilityOffer {
+            conduit_core::capability_offer_from_parts! {
                 startup_parameters: pulse_front_startup_parameters(),
                 shorthand: None,
                 capability_id: CapabilityId::from("esp32-wroom-pulse-1"),
@@ -70,7 +70,7 @@ pub fn esp32_wroom_build_fixture_advertisement() -> HostAdvertisement {
                     max_queue_bytes: DISTRIBUTED_MAXIMUM_BUFFERED_BYTES,
                 },
             },
-            CapabilityOffer {
+            conduit_core::capability_offer_from_parts! {
                 startup_parameters: vec![],
                 shorthand: None,
                 capability_id: CapabilityId::from("esp32-wroom-uart-show-1"),

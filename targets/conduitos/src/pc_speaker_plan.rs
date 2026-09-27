@@ -207,7 +207,7 @@ fn checked_expanded(
 }
 
 fn tone_source_offer(build_id: &str) -> CapabilityOffer {
-    CapabilityOffer {
+    conduit_core::capability_offer_from_parts! {
         semantic_contract: Default::default(),
         startup_parameters: Vec::new(),
         shorthand: None,

@@ -330,7 +330,7 @@ mod tests {
 
     fn placement() -> PlannedGear {
         let offered = offer();
-        PlannedGear {
+        conduit_core::planned_gear_from_parts! {
             semantic_contract: Default::default(),
             placement_id: "window-placement".into(),
             gear_id: "window".into(),

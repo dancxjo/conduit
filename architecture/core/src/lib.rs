@@ -39,6 +39,7 @@ mod resource_content;
 mod resource_port;
 use resource_canonical::push_resource_binding;
 mod plan_fingerprint;
+mod planned_gear;
 mod resource_acquisition;
 mod resource_admission;
 mod resource_collection;

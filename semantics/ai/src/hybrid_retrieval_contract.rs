@@ -99,7 +99,7 @@ pub fn deterministic_hybrid_retrieval_offer(
         return Err(HybridRetrievalOfferInvalidity::ProcessIdentityTooLarge);
     }
     let contract = hybrid_retrieval_contract();
-    Ok(CapabilityOffer {
+    Ok(conduit_core::capability_offer_from_parts! {
         startup_parameters: hybrid_retrieval_startup_parameters(),
         shorthand: None,
         capability_id: CapabilityId::from(alloc::format!(

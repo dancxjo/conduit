@@ -83,7 +83,7 @@ pub fn plan_speech_text(text: &str, condition: OutputCondition) -> Result<Planne
         .map_err(|error| error.to_string())?;
     let mut fixture = speech_host_fixture(condition);
     let literal_contract = conduit_text::text_literal_semantics();
-    let mut literal_offer = conduit_core::CapabilityOffer {
+    let mut literal_offer = conduit_core::capability_offer_from_parts! {
         semantic_contract: Default::default(),
         startup_parameters: vec![conduit_core::FrontStartupParameter {
             name: "value".into(),

@@ -56,7 +56,7 @@ fn fixture() -> (PlannedGear, crate::hosted_midi::HostedMidiSelection) {
         })
         .collect();
     (
-        PlannedGear {
+        conduit_core::planned_gear_from_parts! {
             semantic_contract: Default::default(),
             placement_id: PlacementId::from("midi-placement"),
             gear_id: GearId::from("midi-output"),

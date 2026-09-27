@@ -5,11 +5,11 @@ use conduit_core::{
     compute_resource_offer, compute_resource_requirement, kind_id, resource_offer,
     resource_requirement, stable_realization_boolean, stable_realization_quantity,
     ArchitectureBaseId, ArchitectureBaseKind, ArtifactId, AuthorityContractId,
-    AuthorityRequirement, BootId, CapabilityId, CapabilityLimits, CapabilityOffer,
-    CharacteristicUnit, ComputePoolContract, ComputeServiceGuarantee, ExecutionProfileId,
-    FrontStartupParameter, HostAdvertisement, HostCallContractId, HostCallRequirement, HostId,
-    HostProfileId, ImplementationId, ImplementationOffer, OfferGeneration,
-    RealizationAdvertisement, RealizationCharacteristic,
+    AuthorityRequirement, BootId, CapabilityId, CapabilityLimits, CharacteristicUnit,
+    ComputePoolContract, ComputeServiceGuarantee, ExecutionProfileId, FrontStartupParameter,
+    HostAdvertisement, HostCallContractId, HostCallRequirement, HostId, HostProfileId,
+    ImplementationId, ImplementationOffer, OfferGeneration, RealizationAdvertisement,
+    RealizationCharacteristic,
 };
 use serde::{Deserialize, Serialize};
 
@@ -270,7 +270,7 @@ fn base(
             profile: HostProfileId::from("conduit.host/fixture@1"),
             bases: vec![],
             resources: resource_offers,
-            capabilities: vec![CapabilityOffer {
+            capabilities: vec![conduit_core::capability_offer_from_parts! {
                 startup_parameters: startup_parameters(),
                 shorthand: None,
                 capability_id,

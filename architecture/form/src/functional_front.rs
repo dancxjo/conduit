@@ -26,6 +26,40 @@ impl CheckedGear {
                 || self.kind_contract_revision.as_str()
                     == conduit_core::STRUCTURAL_POLYMORPHIC_CONTRACT)
     }
+
+    #[doc(hidden)]
+    pub fn validate_constructed_semantic_contract(
+        &self,
+    ) -> Result<(), conduit_core::KindValidationError> {
+        conduit_core::Kind {
+            startup_parameters: self.startup_parameters.clone(),
+            shorthand: self.shorthand.clone(),
+            kind_id: self.kind_id.clone(),
+            kind_contract_revision: self.kind_contract_revision.clone(),
+            inputs: self.inputs.clone(),
+            outputs: self.outputs.clone(),
+            configuration: self.semantic_contract.configuration.clone(),
+            semantic_laws: self.semantic_contract.laws.clone(),
+            limits: conduit_core::CapabilityLimits {
+                max_active_instances: 1,
+                max_queue_items: 1,
+                max_queue_bytes: 1,
+            },
+        }
+        .validate()
+    }
+}
+
+/// Reviewed named-field construction for checked Form Gears.
+#[macro_export]
+macro_rules! checked_gear_from_parts {
+    ($($fields:tt)*) => {{
+        let gear = $crate::CheckedGear { $($fields)* };
+        if let Err(error) = gear.validate_constructed_semantic_contract() {
+            panic!("CheckedGear requires a valid semantic contract: {:?}", error);
+        }
+        gear
+    }};
 }
 
 impl CheckedCanonicalForm {
@@ -79,7 +113,7 @@ mod tests {
     }
 
     fn checked_gear(kind: &Kind) -> CheckedGear {
-        CheckedGear {
+        crate::checked_gear_from_parts! {
             gear_id: conduit_core::GearId::from("gear"),
             kind_id: kind.kind_id.clone(),
             kind_contract_revision: kind.kind_contract_revision.clone(),

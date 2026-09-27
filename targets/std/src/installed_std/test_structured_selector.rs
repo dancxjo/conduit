@@ -158,7 +158,7 @@ pub(crate) fn offer_named(
         temporal: PortTemporal::Flow { closes: true },
         abnormal_kind: None,
     };
-    CapabilityOffer {
+    conduit_core::capability_offer_from_parts! {
         semantic_contract: Default::default(),
         startup_parameters: vec![conduit_core::FrontStartupParameter {
             name: "value".into(),

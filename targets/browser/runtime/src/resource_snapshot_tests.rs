@@ -43,7 +43,7 @@ pub(crate) fn placement(
         capability_id: capability.clone(),
     };
     (
-        PlannedGear {
+        conduit_core::planned_gear_from_parts! {
             semantic_contract: Default::default(),
             placement_id: "snapshot-placement".into(),
             gear_id: "snapshot".into(),

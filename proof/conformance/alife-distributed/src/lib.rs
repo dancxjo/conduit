@@ -219,7 +219,7 @@ fn host(host_id: &str, boot_id: &str) -> HostAdvertisement {
 }
 
 fn capability(gear: &conduit_form::CheckedGear, host_index: usize) -> CapabilityOffer {
-    CapabilityOffer {
+    conduit_core::capability_offer_from_parts! {
         semantic_contract: Default::default(),
         startup_parameters: gear.startup_parameters.clone(),
         shorthand: gear.shorthand.clone(),

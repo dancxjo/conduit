@@ -7,7 +7,7 @@ use conduit_core::{
     mandatory_sign_storage_requirement, seal_plan, ArtifactId, BootId, CancellationPolicy,
     CapabilityId, CapabilityLimits, CheckedFormId, ExecutionProfileId, ExpandedFormId,
     ExpectedSign, ExpectedTerminal, FormIdentity, FragmentId, GearId, HostId, ImplementationId,
-    KindId, KindIdentity, OfferGeneration, PlacementId, Plan, PlanFragment, PlanId, PlannedGear,
+    KindId, KindIdentity, OfferGeneration, PlacementId, Plan, PlanFragment, PlanId,
     ResourceBinding, ResourceClassId, ResourcePoolId, SignId, SignStorageBudget, SourceDocumentId,
     TerminalPolicy,
 };
@@ -38,7 +38,7 @@ fn exact_plan(label: &str, host: &str) -> Plan {
         host_id: HostId::from(host),
         boot_id: BootId::from(format!("{host}-boot")),
         offer_generation: OfferGeneration(7),
-        placements: vec![PlannedGear {
+        placements: vec![conduit_core::planned_gear_from_parts! {
             semantic_contract: Default::default(),
             placement_id: PlacementId::from(format!("{label}-placement")),
             gear_id: GearId::from("gear-a"),

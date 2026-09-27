@@ -540,7 +540,7 @@ pub(crate) fn plan_validated_form_with_connection_limits(
             capability.capability_id.as_str()
         )));
         placement_lookup.insert(gear.gear_id.clone(), placement_id.clone());
-        planned_gears.push(PlannedGear {
+        planned_gears.push(conduit_core::planned_gear_from_parts! {
             placement_id,
             gear_id: gear.gear_id.clone(),
             kind_id: capability.kind_id.clone(),

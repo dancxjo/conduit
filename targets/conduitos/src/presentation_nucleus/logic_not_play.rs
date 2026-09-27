@@ -214,7 +214,7 @@ fn advertisement(host: &str, boot: &str, input: InfoBool) -> HostAdvertisement {
 }
 
 fn source_offer(input: InfoBool) -> CapabilityOffer {
-    CapabilityOffer {
+    conduit_core::capability_offer_from_parts! {
         semantic_contract: Default::default(),
         startup_parameters: Vec::new(),
         shorthand: None,
@@ -252,7 +252,7 @@ fn source_offer(input: InfoBool) -> CapabilityOffer {
 }
 
 fn sink_offer() -> CapabilityOffer {
-    CapabilityOffer {
+    conduit_core::capability_offer_from_parts! {
         semantic_contract: Default::default(),
         startup_parameters: Vec::new(),
         shorthand: None,

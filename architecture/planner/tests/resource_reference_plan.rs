@@ -74,7 +74,7 @@ fn offer(definition: &KindProjection) -> CapabilityOffer {
         })
         .into_iter()
         .collect();
-    CapabilityOffer {
+    conduit_core::capability_offer_from_parts! {
         semantic_contract: Default::default(),
         startup_parameters: vec![],
         shorthand: None,

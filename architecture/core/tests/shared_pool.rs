@@ -3,16 +3,15 @@ use conduit_core::{
     CancellationPolicy, CapabilityId, CapabilityLimits, CapabilityOffer, CheckedFormId,
     ExecutionProfileId, ExpandedFormId, ExpectedSign, ExpectedTerminal, FormIdentity, FragmentId,
     FrontStartupParameter, GearId, HostId, ImplementationId, KindIdentity, PlacementId,
-    PlanFragment, PlanId, PlannedGear, PlannedSharedPool, PlanningRequestAuthority,
-    PlayUnsatisfiedReason, PoolDeclarationId, PoolMemberLimits, PoolOperationId,
-    PoolRealizationEnvelope, PoolRealizationHealth, PoolRealizationObservation,
-    PoolSelectionDisposition, PoolSelectionEvidence, PoolSelectionEvidenceError, PortDescriptor,
-    PortDirection, PortTemporal, SharedPoolId, SignId, SignStorageBudget, SourceDocumentId,
-    TerminalPolicy,
+    PlanFragment, PlanId, PlannedSharedPool, PlanningRequestAuthority, PlayUnsatisfiedReason,
+    PoolDeclarationId, PoolMemberLimits, PoolOperationId, PoolRealizationEnvelope,
+    PoolRealizationHealth, PoolRealizationObservation, PoolSelectionDisposition,
+    PoolSelectionEvidence, PoolSelectionEvidenceError, PortDescriptor, PortDirection, PortTemporal,
+    SharedPoolId, SignId, SignStorageBudget, SourceDocumentId, TerminalPolicy,
 };
 
 fn member_offer(kind: &str, revision: &str) -> CapabilityOffer {
-    CapabilityOffer {
+    conduit_core::capability_offer_from_parts! {
         semantic_contract: Default::default(),
         startup_parameters: vec![FrontStartupParameter {
             name: "peer".into(),
@@ -103,34 +102,36 @@ fn fragment(pool: PlannedSharedPool) -> PlanFragment {
         placements: pool
             .consumers
             .iter()
-            .map(|placement_id| PlannedGear {
-                semantic_contract: Default::default(),
-                placement_id: placement_id.clone(),
-                gear_id: GearId::from(placement_id.as_str()),
-                kind_id: kind_id("test/pool-consumer"),
-                kind_contract_revision: KindIdentity::from("test/pool-consumer@1"),
-                execution_profile_id: ExecutionProfileId::from("test/pool-consumer-hosted@1"),
-                configuration: Default::default(),
-                host_id: HostId::from("browser-host"),
-                boot_id: BootId::from("browser-boot"),
-                offer_generation: conduit_core::OfferGeneration(1),
-                capability_id: CapabilityId::from("browser/pool-consumer"),
-                implementation_id: ImplementationId::from("browser/pool-consumer"),
-                artifact_id: ArtifactId::from("browser/pool-consumer"),
-                base: None,
-                realization_characteristics: Vec::new(),
-                limits: CapabilityLimits {
-                    max_active_instances: 1,
-                    max_queue_items: 1,
-                    max_queue_bytes: 1,
-                },
-                inputs: Vec::new(),
-                outputs: Vec::new(),
-                terminal_transduction: None,
-                host_calls: Vec::new(),
-                resources: Vec::new(),
-                authority: Vec::new(),
-                pool_references: vec![pool.pool_id.clone()],
+            .map(|placement_id| {
+                conduit_core::planned_gear_from_parts! {
+                    semantic_contract: Default::default(),
+                    placement_id: placement_id.clone(),
+                    gear_id: GearId::from(placement_id.as_str()),
+                    kind_id: kind_id("test/pool-consumer"),
+                    kind_contract_revision: KindIdentity::from("test/pool-consumer@1"),
+                    execution_profile_id: ExecutionProfileId::from("test/pool-consumer-hosted@1"),
+                    configuration: Default::default(),
+                    host_id: HostId::from("browser-host"),
+                    boot_id: BootId::from("browser-boot"),
+                    offer_generation: conduit_core::OfferGeneration(1),
+                    capability_id: CapabilityId::from("browser/pool-consumer"),
+                    implementation_id: ImplementationId::from("browser/pool-consumer"),
+                    artifact_id: ArtifactId::from("browser/pool-consumer"),
+                    base: None,
+                    realization_characteristics: Vec::new(),
+                    limits: CapabilityLimits {
+                        max_active_instances: 1,
+                        max_queue_items: 1,
+                        max_queue_bytes: 1,
+                    },
+                    inputs: Vec::new(),
+                    outputs: Vec::new(),
+                    terminal_transduction: None,
+                    host_calls: Vec::new(),
+                    resources: Vec::new(),
+                    authority: Vec::new(),
+                    pool_references: vec![pool.pool_id.clone()],
+                }
             })
             .collect(),
         execution_regions: vec![],

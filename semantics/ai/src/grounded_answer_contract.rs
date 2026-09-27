@@ -70,7 +70,7 @@ pub fn ordinary_rag_answer_offer(
         return Err(RagAnswerOfferInvalidity::ProcessIdentityTooLarge);
     }
     let contract = rag_answer_contract();
-    Ok(CapabilityOffer {
+    Ok(conduit_core::capability_offer_from_parts! {
         startup_parameters: startup_parameters(),
         shorthand: None,
         capability_id: CapabilityId::from(alloc::format!("rag/answer/process/{process_identity}")),

@@ -102,7 +102,7 @@ fn close_step(operation: &mut ReplayControlBack, closed: [bool; 3]) -> (StepOutc
 
 fn placement() -> PlannedGear {
     let offer = offer();
-    PlannedGear {
+    conduit_core::planned_gear_from_parts! {
         semantic_contract: Default::default(),
         placement_id: "replay-placement".into(),
         gear_id: "replay".into(),

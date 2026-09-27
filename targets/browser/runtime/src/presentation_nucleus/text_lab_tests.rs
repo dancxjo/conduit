@@ -64,7 +64,7 @@ fn hosts() -> (
 
 fn keyboard_fixture_offer() -> conduit_core::CapabilityOffer {
     let contract = conduit_semantic_catalog::keyboard_contract();
-    conduit_core::CapabilityOffer {
+    conduit_core::capability_offer_from_parts! {
         semantic_contract: Default::default(),
         startup_parameters: Vec::new(),
         shorthand: None,

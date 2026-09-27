@@ -38,7 +38,7 @@ pub fn distributed_toggle_std_source_advertisement() -> HostAdvertisement {
         )],
         planner_capabilities: vec![],
         capabilities: vec![
-            CapabilityOffer {
+            conduit_core::capability_offer_from_parts! {
                 startup_parameters: trigger_front_startup_parameters(),
                 shorthand: None,
                 capability_id: CapabilityId::from("trigger-1"),
@@ -61,7 +61,7 @@ pub fn distributed_toggle_std_source_advertisement() -> HostAdvertisement {
                     max_queue_bytes: DISTRIBUTED_MAXIMUM_BUFFERED_BYTES,
                 },
             },
-            CapabilityOffer {
+            conduit_core::capability_offer_from_parts! {
                 startup_parameters: toggle_front_startup_parameters(),
                 shorthand: None,
                 capability_id: CapabilityId::from("toggle-1"),

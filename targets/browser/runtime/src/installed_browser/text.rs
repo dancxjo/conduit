@@ -108,7 +108,7 @@ fn join_offer() -> CapabilityOffer {
 
 fn presentation_offer() -> CapabilityOffer {
     let contract = conduit_semantic_catalog::text_presentation_contract();
-    let mut offer = CapabilityOffer {
+    let mut offer = conduit_core::capability_offer_from_parts! {
         semantic_contract: Default::default(),
         startup_parameters: vec![FrontStartupParameter {
             name: "maximum-values".into(),
@@ -153,7 +153,7 @@ fn offer(
     startup_parameters: Vec<FrontStartupParameter>,
     shorthand: Option<(conduit_core::PortId, conduit_core::PortId)>,
 ) -> CapabilityOffer {
-    let mut offer = CapabilityOffer {
+    let mut offer = conduit_core::capability_offer_from_parts! {
         semantic_contract: Default::default(),
         startup_parameters,
         shorthand,

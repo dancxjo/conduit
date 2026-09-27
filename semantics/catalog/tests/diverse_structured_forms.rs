@@ -150,7 +150,7 @@ fn structured_literal_proof_offer(
     value_type: &StructuredInfoType,
 ) -> CapabilityOffer {
     let contract = conduit_semantic_catalog::structured_literal_contract(type_name, value_type);
-    CapabilityOffer {
+    conduit_core::capability_offer_from_parts! {
         semantic_contract: Default::default(),
         startup_parameters: contract.startup_parameters,
         shorthand: None,
@@ -176,7 +176,7 @@ fn structured_selector_proof_offer(
     temporal: PortTemporal,
 ) -> CapabilityOffer {
     let contract = conduit_semantic_catalog::structured_selector_contract(selector, temporal);
-    CapabilityOffer {
+    conduit_core::capability_offer_from_parts! {
         semantic_contract: Default::default(),
         startup_parameters: contract.startup_parameters,
         shorthand: contract.shorthand,

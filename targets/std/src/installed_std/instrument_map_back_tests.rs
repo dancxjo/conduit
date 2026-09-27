@@ -29,7 +29,7 @@ fn value(bytes: &[u8]) -> ValueRef {
 
 fn placement() -> PlannedGear {
     let offer = conduit_std_offers::instrument_map_std_offer();
-    PlannedGear {
+    conduit_core::planned_gear_from_parts! {
         semantic_contract: Default::default(),
         placement_id: PlacementId::from("instrument-map-placement"),
         gear_id: GearId::from("mapper"),

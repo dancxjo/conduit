@@ -303,6 +303,77 @@ pub fn supported_nucleus_offers() -> Vec<CapabilityOffer> {
 mod tests {
     use super::*;
 
+    #[cfg(feature = "speech")]
+    #[test]
+    fn production_realization_families_retain_one_exact_semantic_contract() {
+        use conduit_core::{
+            resource_requirement, ArtifactId, CapabilityId, CapabilityLimits, ExecutionProfileId,
+            HostCallRequirement, ImplementationId, PRESENTATION_RESOURCE_CLASS,
+        };
+        use conduit_presentation::{renderer_offer, RendererRealizationOffer};
+
+        let renderer = |name: &str| {
+            renderer_offer(RendererRealizationOffer {
+                capability_id: CapabilityId::from(format!("mask-renderer-{name}")),
+                execution_profile_id: ExecutionProfileId::from(format!("{name}-profile")),
+                implementation_id: ImplementationId::from(format!("{name}-implementation")),
+                artifact_id: ArtifactId::from(format!("{name}-artifact")),
+                host_call: HostCallRequirement {
+                    contract_id: conduit_core::HostCallContractId::from(
+                        conduit_core::PRESENT_HOST_CALL_CONTRACT,
+                    ),
+                    target_kind: None,
+                    maximum_in_flight: 1,
+                    maximum_input_bytes: conduit_presentation::MAX_RENDERER_VALUE_BYTES,
+                    maximum_output_bytes: conduit_core::MAX_PRESENTATION_COMPLETION_BYTES,
+                },
+                resource_requirement: resource_requirement(PRESENTATION_RESOURCE_CLASS, 1),
+                limits: CapabilityLimits {
+                    max_active_instances: 1,
+                    max_queue_items: 1,
+                    max_queue_bytes: conduit_presentation::MAX_RENDERER_VALUE_BYTES,
+                },
+            })
+        };
+        let families = [
+            ("model", vec![model_result_to_text_std_offer()]),
+            ("audio", vec![audio_convert_pcm_profile_offer()]),
+            (
+                "speech",
+                vec![piper_speech_offer(), deterministic_speech_offer()],
+            ),
+            (
+                "Mask native/reference",
+                vec![renderer("native"), renderer("reference")],
+            ),
+        ];
+
+        for (family, offers) in families {
+            for offer in &offers {
+                offer
+                    .validate_constructed_semantic_contract()
+                    .unwrap_or_else(|error| panic!("{family} has invalid Kind truth: {error:?}"));
+            }
+            if let [first, alternate] = offers.as_slice() {
+                assert_eq!(first.kind_id, alternate.kind_id, "{family}");
+                assert_eq!(
+                    first.kind_contract_revision, alternate.kind_contract_revision,
+                    "{family}"
+                );
+                assert_eq!(first.checked_front(), alternate.checked_front(), "{family}");
+                assert_eq!(
+                    first.semantic_contract, alternate.semantic_contract,
+                    "{family}"
+                );
+                assert_ne!(
+                    first.implementation.implementation_id,
+                    alternate.implementation.implementation_id,
+                    "{family} alternatives must remain distinct Backs"
+                );
+            }
+        }
+    }
+
     #[test]
     fn functional_offers_preserve_exact_portable_contracts() {
         for (offer, contract, revision) in [

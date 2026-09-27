@@ -12,7 +12,7 @@ use conduit_planner::{default_placements, plan_with_connection_limits};
 mod common;
 
 fn tick_current_sink_offer() -> CapabilityOffer {
-    CapabilityOffer {
+    conduit_core::capability_offer_from_parts! {
         semantic_contract: Default::default(),
         startup_parameters: vec![],
         shorthand: None,

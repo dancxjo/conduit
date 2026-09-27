@@ -419,7 +419,7 @@ fn source_offer(
     implementation: &str,
     fields: &[&str],
 ) -> CapabilityOffer {
-    CapabilityOffer {
+    conduit_core::capability_offer_from_parts! {
         semantic_contract: Default::default(),
         startup_parameters: fields
             .iter()
@@ -448,7 +448,7 @@ fn source_offer(
 }
 
 fn apply_offer() -> CapabilityOffer {
-    CapabilityOffer {
+    conduit_core::capability_offer_from_parts! {
         semantic_contract: Default::default(),
         startup_parameters: vec![],
         shorthand: None,

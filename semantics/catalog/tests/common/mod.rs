@@ -89,7 +89,7 @@ pub fn proof_domain_offer(
     revision: &str,
     operation: &str,
 ) -> CapabilityOffer {
-    CapabilityOffer {
+    conduit_core::capability_offer_from_parts! {
         semantic_contract: Default::default(),
         startup_parameters: vec![],
         shorthand: None,
@@ -123,7 +123,7 @@ pub fn proof_domain_offer(
 pub fn recurrence_proof_offer() -> CapabilityOffer {
     let contract = conduit_semantic_catalog::recurrence_semantic_contract();
     let result = conduit_semantic_catalog::recurrence_result_type();
-    CapabilityOffer {
+    conduit_core::capability_offer_from_parts! {
         semantic_contract: Default::default(),
         startup_parameters: contract.startup_parameters,
         shorthand: None,
@@ -232,7 +232,7 @@ fn workflow_proof_offer(
         maximum_input_bytes: conduit_core::MAXIMUM_STRUCTURED_CANONICAL_BYTES as u32,
         maximum_output_bytes: conduit_core::MAXIMUM_STRUCTURED_CANONICAL_BYTES as u32,
     };
-    CapabilityOffer {
+    conduit_core::capability_offer_from_parts! {
         semantic_contract: Default::default(),
         startup_parameters: vec![],
         shorthand: None,
