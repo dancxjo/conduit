@@ -193,8 +193,16 @@ pub fn check_expression(
     syntax: &ExpressionSyntax,
     context: &ExpressionTypeContext<'_>,
 ) -> Result<CheckedExpression, ExpressionTypeDiagnostic> {
+    check_expression_as(syntax, None, context)
+}
+
+pub(crate) fn check_expression_as(
+    syntax: &ExpressionSyntax,
+    expected: Option<&CheckedExpressionType>,
+    context: &ExpressionTypeContext<'_>,
+) -> Result<CheckedExpression, ExpressionTypeDiagnostic> {
     let mut node_types = Vec::new();
-    let value_type = infer(syntax, None, context, &mut node_types)?;
+    let value_type = infer(syntax, expected, context, &mut node_types)?;
     node_types.sort_by_key(|node| (node.span.start, node.span.end));
     node_types.dedup_by(|right, left| {
         if right.span.start == left.span.start && right.span.end == left.span.end {

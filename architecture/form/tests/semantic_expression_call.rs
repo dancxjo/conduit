@@ -145,3 +145,29 @@ fn repeated_input_arguments_lower_to_one_multi_input_semantic_gear() {
     assert_eq!(expanded.connections.len(), 3);
     expanded.validate_expansion().unwrap();
 }
+
+#[test]
+fn literal_call_argument_lowers_to_an_admitted_expression_gear() {
+    let (startup, profile) = catalogs(pure_binary_kind());
+    let source = "form calculate {\n one = 1\n source: test/scalar-source\n sink: test/scalar-sink\n source >> (math/add(., one)) >> sink\n}\n";
+    let checked = check_syntax_document(&parse_syntax_document(source), &startup).unwrap();
+    let expanded = expand_canonical_form(&checked, "calculate", &profile).unwrap();
+    assert_eq!(
+        expanded
+            .gears
+            .iter()
+            .filter(|gear| gear.kind_id.as_str() == "math/add")
+            .count(),
+        1
+    );
+    assert_eq!(
+        expanded
+            .gears
+            .iter()
+            .filter(|gear| gear.kind_contract_revision.as_str() == PURE_EXPRESSION_REVISION)
+            .count(),
+        1
+    );
+    assert_eq!(expanded.connections.len(), 4);
+    expanded.validate_expansion().unwrap();
+}
