@@ -259,6 +259,20 @@ pub(crate) fn check_structured_expression(
                 },
             })
         }
+        ExpressionSyntax::Unary {
+            operator: crate::UnaryOperator::Negate,
+            operand,
+            span,
+        } if matches!(operand.as_ref(), ExpressionSyntax::Atomic(_)) => {
+            let ExpressionSyntax::Atomic(atomic) = operand.as_ref() else {
+                unreachable!("the guarded expression is atomic")
+            };
+            let negated = ExpressionSyntax::Atomic(SpannedText {
+                text: format!("-{}", atomic.text),
+                span: *span,
+            });
+            check_structured_expression(&negated, expected, resolve_atomic)
+        }
         ExpressionSyntax::Input(_)
         | ExpressionSyntax::Projection { .. }
         | ExpressionSyntax::Unary { .. }

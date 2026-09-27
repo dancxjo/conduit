@@ -358,7 +358,7 @@ fn leaf_and_total_canonical_byte_bounds_fail_before_checked_identity() {
 
 #[test]
 fn quantity_literals_become_exact_canonical_leaf_bytes_during_form_checking() {
-    let source = "form measured {\n sink: test/consume-quantity-sample({ elapsed: 17ms, frequency: 440Hz })\n}\n";
+    let source = "form measured {\n sink: test/consume-quantity-sample({ elapsed: -17ms, frequency: 440Hz })\n}\n";
     let parsed = parse_syntax_document(source);
     let checked = check_syntax_document(&parsed, &quantity_catalog()).unwrap();
     assert_eq!(parsed.round_trip(), source);
@@ -379,7 +379,7 @@ fn quantity_literals_become_exact_canonical_leaf_bytes_during_form_checking() {
     };
     assert_eq!(
         Quantity::decode(elapsed),
-        Ok(Quantity::new(17, QuantityUnit::Millisecond))
+        Ok(Quantity::new(-17, QuantityUnit::Millisecond))
     );
     assert_eq!(
         Quantity::decode(frequency),
