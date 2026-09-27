@@ -755,6 +755,7 @@ fn run_signal_profile<
             midi_input: Vec::new(),
             midi_output: Vec::new(),
             identity: execution_identity,
+            fore_endpoints: Vec::new(),
             #[cfg(test)]
             post_play_start_allocations,
         }),

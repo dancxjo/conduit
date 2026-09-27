@@ -667,7 +667,7 @@ pub struct PlannedResourceConnection {
 /// This is plan truth, not ambient host wiring: planning seals the exact
 /// internal placement and Port which an admitted caller may feed or observe.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
-pub struct PlannedFrontPort {
+pub struct PlannedForePort {
     pub front_port_id: PortId,
     pub direction: PortDirection,
     pub placement_id: PlacementId,
@@ -736,7 +736,7 @@ pub struct PlanFragment {
     pub connections: Vec<PlannedConnection>,
     /// Plan-sealed external Fore bindings for this Host fragment.
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
-    pub front_ports: Vec<PlannedFrontPort>,
+    pub fore_ports: Vec<PlannedForePort>,
     #[serde(default)]
     pub shared_pools: Vec<PlannedSharedPool>,
     pub startup_dependencies: Vec<StartupDependency>,
@@ -1106,7 +1106,7 @@ pub fn verify_plan_fragment(fragment: &PlanFragment) -> bool {
         .filter(|item| item.host_id == fragment.host_id && item.fragment_id == fragment.fragment_id)
         .count();
     own_matches == 1
-        && verify_fragment_front_ports(fragment)
+        && verify_fragment_fore_ports(fragment)
         && fragment.placements.iter().all(|placement| {
             placement
                 .terminal_transduction
@@ -1134,15 +1134,15 @@ pub fn verify_plan_fragment(fragment: &PlanFragment) -> bool {
         ) == fragment.plan_id
 }
 
-fn verify_fragment_front_ports(fragment: &PlanFragment) -> bool {
+fn verify_fragment_fore_ports(fragment: &PlanFragment) -> bool {
     fragment
-        .front_ports
+        .fore_ports
         .iter()
         .enumerate()
         .all(|(index, boundary)| {
             boundary.item_capacity > 0
                 && boundary.byte_capacity > 0
-                && !fragment.front_ports[..index].iter().any(|prior| {
+                && !fragment.fore_ports[..index].iter().any(|prior| {
                     prior.front_port_id == boundary.front_port_id
                         && prior.direction == boundary.direction
                         && prior.track == boundary.track
