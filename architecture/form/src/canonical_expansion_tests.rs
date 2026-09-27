@@ -180,6 +180,47 @@ fn canonical_keep_uses_the_existing_retained_current_gear_and_direction_sugar() 
 }
 
 #[test]
+fn initialized_boolean_keep_lowers_to_exact_typed_state() {
+    let source = "form retained {\n cell: keep Boolean(true) for this wake\n}\n";
+    let mut startup = StartupCatalog::new();
+    startup
+        .insert(KindSignature {
+            kind: "state/latest".into(),
+            startup_parameters: vec![],
+        })
+        .unwrap();
+    let checked = check_syntax_document(&parse_syntax_document(source), &startup).unwrap();
+    let expanded = expand_canonical_form(&checked, "retained", &ProfileCatalog::new()).unwrap();
+    let [state] = expanded.gears.as_slice() else {
+        panic!("initialized KEEP must lower to exactly one State Gear")
+    };
+    assert_eq!(state.kind_id.as_str(), conduit_core::STATE_VALUE_KIND);
+    assert_eq!(
+        state.kind_contract_revision.as_str(),
+        conduit_core::STATE_VALUE_REVISION
+    );
+    assert_eq!(state.inputs[0].port_id, port_id("next"));
+    assert_eq!(state.outputs[0].port_id, port_id("current"));
+    assert_eq!(state.inputs[0].value_kind, state.outputs[0].value_kind);
+    assert_eq!(
+        state
+            .configuration
+            .iter()
+            .find(|entry| entry.key == "retained-duration")
+            .map(|entry| &entry.value),
+        Some(&ConfigurationValue::Text("wake".into()))
+    );
+    assert!(matches!(
+        state
+            .configuration
+            .iter()
+            .find(|entry| entry.key == "initial")
+            .map(|entry| &entry.value),
+        Some(ConfigurationValue::Structured(_))
+    ));
+}
+
+#[test]
 fn pure_expression_lowers_to_one_exact_ordinary_gear() {
     let mut startup = StartupCatalog::new();
     for kind in ["test/u8-source", "test/u8-sink"] {

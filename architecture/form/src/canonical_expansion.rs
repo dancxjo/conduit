@@ -13,6 +13,7 @@ mod entry;
 mod graph;
 mod identity;
 mod literal;
+mod retained;
 mod shared_pool;
 mod structured_selector;
 pub use entry::{
@@ -410,7 +411,44 @@ fn instantiate_gear(
     }
 
     if let Some(retained) = gear.retained.as_deref() {
-        let value_kind = crate::value_type::canonical_value_kind(&retained.value_type.text);
+        let gear_id = GearId::from(child_path.join("/"));
+        if let Some((state, input, output)) =
+            retained::initialized_structured_state(retained, gear_id.clone())?
+        {
+            if !gear_ids.insert(gear_id.clone()) {
+                return Err(CanonicalExpansionDiagnostic::new(
+                    "CND-FRM-038",
+                    format!("expanded gear path '{}' is not unique", gear_id.as_str()),
+                ));
+            }
+            gears.push(state);
+            provenance.push(ExpandedGearProvenance {
+                gear_id: gear_id.as_str().to_string(),
+                form_path: path.to_vec(),
+                source_form: source_form.name.clone(),
+                source_gear: instance_name.to_string(),
+                source_span: gear.source_span,
+            });
+            return Ok(Instance {
+                inputs: BTreeMap::from([(
+                    "next".to_string(),
+                    vec![TrackedEndpoint::payload(Endpoint {
+                        gear_id: gear_id.clone(),
+                        port: input,
+                    })],
+                )]),
+                outputs: BTreeMap::from([(
+                    "current".to_string(),
+                    TrackedEndpoint::payload(Endpoint {
+                        gear_id,
+                        port: output,
+                    }),
+                )]),
+                bare_ports: Some((Some("next".into()), Some("current".into()))),
+                terminal_transduction: None,
+            });
+        }
+        let value_kind = retained.value_kind.clone();
         if matches!(
             value_kind.as_str(),
             conduit_core::DISTANCE_INFO_ID | conduit_core::FREQUENCY_INFO_ID
@@ -465,34 +503,33 @@ fn instantiate_gear(
                     "CND-FRM-041",
                     format!(
                         "KEEP '{}' bound is smaller than its {}-byte canonical quantity encoding",
-                        retained.value_type.text,
+                        value_kind.as_str(),
                         conduit_core::QUANTITY_ENCODED_LEN
                     ),
                 ));
             }
             if let Some(initial) = retained.initial.as_ref() {
-                let quantity =
-                    conduit_core::Quantity::parse_form_literal(&initial.text).map_err(|_| {
-                        CanonicalExpansionDiagnostic::new(
-                            "CND-FRM-041",
-                            format!(
-                                "KEEP '{}' initializer '{}' is not an exact quantity literal",
-                                retained.value_type.text, initial.text
-                            ),
-                        )
-                    })?;
+                let CanonicalStartupValue::Quantity(quantity) = initial else {
+                    return Err(CanonicalExpansionDiagnostic::new(
+                        "CND-FRM-041",
+                        format!(
+                            "KEEP '{}' initializer is not an exact quantity literal",
+                            value_kind.as_str()
+                        ),
+                    ));
+                };
                 if quantity.dimension() != expected_dimension {
                     return Err(CanonicalExpansionDiagnostic::new(
                         "CND-FRM-040",
                         format!(
-                            "KEEP '{}' initializer '{}' has the wrong quantity dimension",
-                            retained.value_type.text, initial.text
+                            "KEEP '{}' initializer has the wrong quantity dimension",
+                            value_kind.as_str()
                         ),
                     ));
                 }
                 configuration.push(conduit_core::ConfigurationEntry {
                     key: "initial".into(),
-                    value: conduit_core::ConfigurationValue::Quantity(quantity),
+                    value: conduit_core::ConfigurationValue::Quantity(*quantity),
                 });
             }
             let input = PortDescriptor {

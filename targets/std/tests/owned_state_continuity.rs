@@ -46,7 +46,7 @@ fn planned() -> (Plan, Vec<u8>) {
     // installed_std's conformance test; this test owns the consuming handoff.
     (
         seal_plan(form.identity(), fragments),
-        value.canonical_bytes().unwrap(),
+        InfoBool::new(true).encode().to_vec(),
     )
 }
 

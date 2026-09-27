@@ -137,7 +137,7 @@ pub(crate) fn canonical_gear(gear: &CheckedCanonicalGear) -> String {
     }
     if let Some(retained) = &gear.retained {
         push_field(&mut value, "keep");
-        push_field(&mut value, &retained.value_type.text);
+        push_field(&mut value, retained.value_kind.as_str());
         push_field(
             &mut value,
             if retained.optional {
@@ -155,10 +155,10 @@ pub(crate) fn canonical_gear(gear: &CheckedCanonicalGear) -> String {
         push_field(&mut value, &format!("{:?}", retained.duration));
         push_field(
             &mut value,
-            retained
+            &retained
                 .initial
                 .as_ref()
-                .map_or("none", |initial| initial.text.as_str()),
+                .map_or_else(|| "none".into(), canonical_value),
         );
     }
     value

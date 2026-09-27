@@ -100,6 +100,30 @@ pub(crate) fn check_document(
             }
         }
     }
+    for retained in forms
+        .iter()
+        .flat_map(|form| &form.gears)
+        .filter_map(|gear| gear.retained.as_deref())
+    {
+        let value_kind = retained
+            .value_type
+            .profile()
+            .map_err(|_| SyntaxCheckDiagnostic {
+                code: "CND-FRM-053",
+                span: crate::Span {
+                    start: 0,
+                    end: 0,
+                    line: 1,
+                    column: 1,
+                    end_line: 1,
+                    end_column: 1,
+                },
+                message: "retained value profile exceeds canonical finite bounds".into(),
+            })?
+            .value_kind()
+            .clone();
+        structured_types.insert(value_kind, retained.value_type.clone());
+    }
     Ok(CheckedSyntaxDocument {
         source_document_id: SourceDocumentId::from(hash_string(&format!(
             "canonical-source:{}",
@@ -230,7 +254,58 @@ fn check_form(
                     form_signatures,
                     &mut resolver,
                 )?;
-                checked.retained = gear.retained.clone();
+                checked.retained = gear
+                    .retained
+                    .as_deref()
+                    .map(|retained| {
+                        let value_type = if retained.optional {
+                            crate::value_type::checked_optional_type(
+                                &retained.value_type.text,
+                                catalog,
+                            )
+                        } else {
+                            crate::value_type::checked_value_type(
+                                &retained.value_type.text,
+                                catalog,
+                            )
+                        }
+                        .map_err(|_| SyntaxCheckDiagnostic {
+                            code: "CND-FRM-053",
+                            span: retained.value_type.span,
+                            message: "retained value type exceeds canonical finite bounds".into(),
+                        })?;
+                        let value_kind = match value_type.shape() {
+                            conduit_core::StructuredInfoTypeShape::Leaf(kind) => kind.clone(),
+                            _ => value_type
+                                .profile()
+                                .map_err(|_| SyntaxCheckDiagnostic {
+                                    code: "CND-FRM-053",
+                                    span: retained.value_type.span,
+                                    message: "retained value type has no exact checked identity"
+                                        .into(),
+                                })?
+                                .value_kind()
+                                .clone(),
+                        };
+                        let initial = retained
+                            .initial
+                            .as_ref()
+                            .map(|initial| {
+                                resolver
+                                    .resolve_expression(initial, Some(&value_type))
+                                    .map_err(|error| error.diagnostic(initial.span))
+                            })
+                            .transpose()?;
+                        Ok(Box::new(crate::CheckedRetainedValue {
+                            value_type,
+                            value_kind,
+                            optional: retained.optional,
+                            maximum_bytes: retained.maximum_bytes,
+                            initial,
+                            duration: retained.duration,
+                        }))
+                    })
+                    .transpose()?;
                 gears.push(checked);
             }
             BackStatement::Cord(cord) => {

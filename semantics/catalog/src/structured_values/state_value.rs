@@ -11,20 +11,23 @@ use conduit_core::{
     MAXIMUM_STRUCTURED_CANONICAL_BYTES,
 };
 
-pub const STATE_VALUE_KIND: &str = "state/value";
-pub const STATE_VALUE_REVISION: &str = "conduit.state/value@1";
+pub use conduit_core::{STATE_VALUE_KIND, STATE_VALUE_REVISION};
 
 /// One typed current/next cell. It emits authored initialization, accepts one
-/// next value at a time, and completes only when the next input closes. Waiting
-/// for input has no predetermined semantic transition count.
+/// next value per activation, and retains the resulting current value. Waiting
+/// for another activation has no predetermined semantic transition count.
 pub fn state_value_contract(
     _type_name: &str,
     value_type: &StructuredInfoType,
 ) -> Result<StructuredValueContract, StructuredInfoRefusal> {
     let profile = value_type.profile()?;
+    let value_kind = match value_type.shape() {
+        conduit_core::StructuredInfoTypeShape::Leaf(kind) => kind.clone(),
+        _ => profile.value_kind().clone(),
+    };
     let port = |name, direction, temporal| PortDescriptor {
         port_id: port_id(name),
-        value_kind: profile.value_kind().clone(),
+        value_kind: value_kind.clone(),
         direction,
         temporal,
         abnormal_kind: None,
@@ -37,11 +40,7 @@ pub fn state_value_contract(
         }],
         kind_id: kind_id(STATE_VALUE_KIND),
         kind_contract_revision: KindIdentity::from(STATE_VALUE_REVISION),
-        inputs: vec![port(
-            "next",
-            PortDirection::Input,
-            PortTemporal::Flow { closes: true },
-        )],
+        inputs: vec![port("next", PortDirection::Input, PortTemporal::Value)],
         outputs: vec![port(
             "current",
             PortDirection::Output,

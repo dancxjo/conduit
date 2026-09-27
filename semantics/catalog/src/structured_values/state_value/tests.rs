@@ -34,16 +34,8 @@ fn authored_initialization_has_an_exact_type_and_no_semantic_step_count() {
     )
     .unwrap();
     let state = derive_state_boundary(&form, &GearId::from("retained/cell"), 64).unwrap();
-    assert_eq!(state.value_kind, *ty.profile().unwrap().value_kind());
-    assert_eq!(
-        state.initial_value,
-        Some(
-            StructuredInfoValue::leaf(ty, InfoBool::TRUE.encode().to_vec())
-                .unwrap()
-                .canonical_bytes()
-                .unwrap()
-        )
-    );
+    assert_eq!(state.value_kind.as_str(), BOOL_INFO_ID);
+    assert_eq!(state.initial_value, Some(InfoBool::TRUE.encode().to_vec()));
     assert_ne!(
         state.initial_value,
         Some(initial.canonical_bytes().unwrap())
