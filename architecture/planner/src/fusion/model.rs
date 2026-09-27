@@ -3,8 +3,9 @@ use crate::{
     CandidatePlacementDisposition, LocalityCandidate, LocalityPlanningBasis, ObservationProvenance,
 };
 use conduit_core::{
-    verify_plan, ArtifactId, BootId, ExecutionProfileId, GearId, HostId, ImplementationId,
-    LineOffer, OfferGeneration, Plan,
+    verify_plan, ArtifactId, AuthorityRequirement, BootId, ExecutionProfileId, GearId,
+    HostCallRequirement, HostId, ImplementationId, Kind, LineOffer, OfferGeneration, Plan,
+    ResourceRequirement,
 };
 
 pub const MAXIMUM_FUSION_CANDIDATES: usize = 32;
@@ -26,6 +27,9 @@ pub struct FusionRealizationOffer {
     pub execution_profile_id: ExecutionProfileId,
     pub implementation_id: ImplementationId,
     pub artifact_id: ArtifactId,
+    pub host_calls: Vec<HostCallRequirement>,
+    pub resource_requirements: Vec<ResourceRequirement>,
+    pub authority_requirements: Vec<AuthorityRequirement>,
     pub gear_ids: Vec<GearId>,
     pub internal_cords: Vec<(GearId, GearId)>,
     pub preserves_typed_ports: bool,
@@ -58,6 +62,9 @@ pub struct FusionCandidate {
 
 #[derive(Debug, Clone, Copy)]
 pub struct FusionPlanningInputs<'a> {
+    /// Canonical semantic contracts from which fusion eligibility is derived.
+    /// Missing contracts fail closed; offer flags cannot substitute for them.
+    pub semantic_kinds: &'a [Kind],
     pub offers: &'a [FusionRealizationOffer],
     pub observations: &'a [FusionPlanningObservation],
     pub boundaries: &'a [FusionBoundary],
