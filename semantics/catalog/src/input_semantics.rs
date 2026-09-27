@@ -9,7 +9,6 @@ use alloc::string::String;
 use alloc::string::ToString;
 use alloc::vec;
 #[cfg(feature = "form-catalog")]
-use conduit_core::KindIdentity;
 use conduit_core::{
     kind_id, port_id, CapabilityLimits, ConfigurationValue, Kind, PortDescriptor, PortDirection,
     PortTemporal,
@@ -193,10 +192,7 @@ pub fn install_input_semantic_catalogs(
     startup: &mut conduit_form::StartupCatalog,
     profile: &mut conduit_form::ProfileCatalog,
 ) -> Result<(), String> {
-    use conduit_form::{
-        KindConfigurationField, KindConfigurationRule, KindProjection, KindSignature,
-        StartupParameterSignature,
-    };
+    use conduit_form::{KindSignature, StartupParameterSignature};
     for (contract, revision) in [
         (key_event_tee_contract(), KEY_EVENT_TEE_REVISION),
         (keymap_contract(), KEYMAP_REVISION),
@@ -218,30 +214,8 @@ pub fn install_input_semantic_catalogs(
             kind: contract.kind_id.as_str().to_string(),
             startup_parameters,
         })?;
-        let configuration = contract
-            .configuration
-            .iter()
-            .map(|field| KindConfigurationField {
-                key: field.key.clone(),
-                default_value: field.default_value.clone(),
-                rule: match &field.rule {
-                    KindConfigurationRule::TextOneOf { values } => {
-                        KindConfigurationRule::TextOneOf {
-                            values: values.clone(),
-                        }
-                    }
-                    _ => unreachable!("input semantic configuration uses exact choices"),
-                },
-            })
-            .collect();
         profile
-            .insert(KindProjection {
-                kind_id: contract.kind_id,
-                kind_contract_revision: KindIdentity::from(revision),
-                inputs: contract.inputs,
-                outputs: contract.outputs,
-                configuration,
-            })
+            .insert_kind(semantic_contract(contract, revision))
             .map_err(|error| error.to_string())?;
     }
     Ok(())

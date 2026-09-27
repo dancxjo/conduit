@@ -253,7 +253,10 @@ fn chat_state_contract() -> Kind {
             PortDirection::Output,
             PortTemporal::Value,
         )],
-        configuration: Default::default(),
+        configuration: CHAT_CONFIGURATION_FIELDS
+            .iter()
+            .map(|(name, value_type)| configuration(name, value_type))
+            .collect(),
         semantic_laws: Default::default(),
         limits: limits(
             MAXIMUM_CHAT_HISTORY_ITEMS as u16,
@@ -311,7 +314,10 @@ fn chat_submit_contract() -> Kind {
             PortDirection::Output,
             PortTemporal::Flow { closes: true },
         )],
-        configuration: Default::default(),
+        configuration: vec![
+            configuration("action", "Text"),
+            configuration("maximum-message-bytes", "Count"),
+        ],
         semantic_laws: Default::default(),
         limits: limits(8, MAX_PRESENTATION_INTERACTION_BYTES as u32 * 8),
     }
@@ -372,7 +378,7 @@ pub fn install_browser_chat_catalogs(
     startup: &mut conduit_form::StartupCatalog,
     profile: &mut conduit_form::ProfileCatalog,
 ) -> Result<(), alloc::string::String> {
-    use conduit_form::{KindProjection, KindSignature, StartupParameterSignature};
+    use conduit_form::{KindSignature, StartupParameterSignature};
 
     for kind in [INTERACTION_KIND, PRESENTATION_TEE_KIND, RENDERER_KIND] {
         startup.insert(KindSignature {
@@ -401,19 +407,9 @@ pub fn install_browser_chat_catalogs(
             })
             .collect(),
     })?;
-    let state_contract = chat_state_contract();
     profile
-        .insert(KindProjection {
-            kind_id: state_contract.kind_id,
-            kind_contract_revision: state_contract.kind_contract_revision,
-            inputs: state_contract.inputs,
-            outputs: state_contract.outputs,
-            configuration: CHAT_CONFIGURATION_FIELDS
-                .iter()
-                .map(|(name, value_type)| configuration(name, value_type))
-                .collect(),
-        })
-        .map_err(|error| error.to_string())?;
+        .insert_kind(chat_state_contract())
+        .map_err(|error| alloc::format!("install {CHAT_STATE_KIND}: {error}"))?;
 
     startup.insert(KindSignature {
         kind: CHAT_SUBMIT_KIND.into(),
@@ -430,19 +426,9 @@ pub fn install_browser_chat_catalogs(
             },
         ],
     })?;
-    let submit_contract = chat_submit_contract();
     profile
-        .insert(KindProjection {
-            kind_id: submit_contract.kind_id,
-            kind_contract_revision: submit_contract.kind_contract_revision,
-            inputs: submit_contract.inputs,
-            outputs: submit_contract.outputs,
-            configuration: vec![
-                configuration("action", "Text"),
-                configuration("maximum-message-bytes", "Count"),
-            ],
-        })
-        .map_err(|error| error.to_string())?;
+        .insert_kind(chat_submit_contract())
+        .map_err(|error| alloc::format!("install {CHAT_SUBMIT_KIND}: {error}"))?;
     for (kind, input, output, input_temporal, output_temporal) in [
         (
             CHAT_FROM_WEBSOCKET_KIND,
@@ -480,22 +466,15 @@ pub fn install_browser_chat_catalogs(
         let contract =
             chat_transport_adapter_contract(kind, input, output, input_temporal, output_temporal);
         profile
-            .insert(KindProjection {
-                kind_id: contract.kind_id,
-                kind_contract_revision: contract.kind_contract_revision,
-                inputs: contract.inputs,
-                outputs: contract.outputs,
-                configuration: Default::default(),
-            })
+            .insert_kind(contract)
             .map_err(|error| error.to_string())?;
     }
     Ok(())
 }
 
-#[cfg(feature = "form-catalog")]
-fn configuration(name: &str, value_type: &str) -> conduit_form::KindConfigurationField {
+fn configuration(name: &str, value_type: &str) -> conduit_core::KindConfigurationField {
     use conduit_core::ConfigurationValue;
-    use conduit_form::{KindConfigurationField, KindConfigurationRule};
+    use conduit_core::{KindConfigurationField, KindConfigurationRule};
     if value_type == "Count" {
         let maximum = if name == "maximum-history-items" {
             MAXIMUM_CHAT_HISTORY_ITEMS as u64
@@ -533,7 +512,6 @@ fn default_source(name: &str) -> String {
     }
 }
 
-#[cfg(feature = "form-catalog")]
 fn default_text(name: &str) -> &'static str {
     match name {
         "title" => "Conduit Webchat",

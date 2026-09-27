@@ -71,21 +71,14 @@ pub fn install_keyboard_catalogs(
     startup: &mut conduit_form::StartupCatalog,
     profile: &mut conduit_form::ProfileCatalog,
 ) -> Result<(), alloc::string::String> {
-    use conduit_form::{KindProjection, KindSignature};
+    use conduit_form::KindSignature;
 
-    let contract = keyboard_contract();
     startup.insert(KindSignature {
         kind: KEYBOARD_KIND.to_string(),
         startup_parameters: Vec::new(),
     })?;
     profile
-        .insert(KindProjection {
-            kind_id: contract.kind_id,
-            kind_contract_revision: keyboard_contract_revision(),
-            inputs: contract.inputs,
-            outputs: contract.outputs,
-            configuration: Default::default(),
-        })
+        .insert_kind(keyboard_semantic_contract())
         .map_err(|error| error.to_string())
 }
 

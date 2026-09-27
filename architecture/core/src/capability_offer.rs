@@ -87,10 +87,15 @@ impl Kind {
             // Configuration owns the canonical value and rule. The callable
             // Front independently owns whether authors may omit it.
             let semantic_kind = match (&field.rule, &field.default_value) {
+                (crate::KindConfigurationRule::Any, _) => front.value_type.clone(),
                 (
                     crate::KindConfigurationRule::QuantityRange { canonical_unit, .. },
                     crate::ConfigurationValue::Quantity(_),
                 ) => crate::kind_id(canonical_unit.dimension().info_id()),
+                (
+                    crate::KindConfigurationRule::DurationMillis { .. },
+                    crate::ConfigurationValue::U64(_),
+                ) => crate::kind_id(crate::DURATION_INFO_ID),
                 _ => field.default_value.semantic_kind(),
             };
             if front.value_type != semantic_kind {
@@ -667,6 +672,18 @@ mod tests {
 
         kind.startup_parameters[0].has_default = false;
         assert_eq!(kind.validate(), Ok(()));
+
+        kind.startup_parameters[0].value_type = kind_id(crate::DURATION_INFO_ID);
+        kind.configuration[0].rule = crate::KindConfigurationRule::DurationMillis {
+            minimum: 1,
+            maximum: 8,
+        };
+        assert_eq!(kind.validate(), Ok(()));
+        kind.startup_parameters[0].value_type = kind_id(crate::COUNT_INFO_ID);
+        kind.configuration[0].rule = crate::KindConfigurationRule::U64Range {
+            minimum: 1,
+            maximum: 8,
+        };
 
         kind.configuration.push(kind.configuration[0].clone());
         assert_eq!(

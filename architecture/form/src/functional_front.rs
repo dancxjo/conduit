@@ -56,7 +56,12 @@ macro_rules! checked_gear_from_parts {
     ($($fields:tt)*) => {{
         let gear = $crate::CheckedGear { $($fields)* };
         if let Err(error) = gear.validate_constructed_semantic_contract() {
-            panic!("CheckedGear requires a valid semantic contract: {:?}", error);
+            panic!(
+                "CheckedGear '{}' ({}) requires a valid semantic contract: {:?}",
+                gear.kind_id.as_str(),
+                gear.kind_contract_revision.as_str(),
+                error
+            );
         }
         gear
     }};
