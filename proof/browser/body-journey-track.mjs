@@ -11,6 +11,12 @@ const STEPS = [
   ["body.long-running", "body-long-running", "runtime-receipt"], ["body.lulled", "body-lulled", "lifecycle-action"],
   ["body.fulfilled", "body-fulfilled", "fulfilled-transition"],
 ];
+const MASK_ACTION_IDS = [
+  "mask.inspect-initial-show", "mask.wear-alternate", "mask.prefer-alternate",
+  "mask.withdraw-selected-route", "mask.inspect-unavailable-show", "mask.add-presentation-host",
+  "mask.admit-replacement-plan", "mask.inspect-replanned-show", "mask.doff-alternate",
+  "mask.inspect-restored-show",
+];
 const digest = bytes => `sha256:${createHash("sha256").update(bytes).digest("hex")}`;
 const required = (value, label) => {
   if (typeof value !== "string" || value.length === 0) throw new Error(`browser track lacks ${label}`);
@@ -121,6 +127,31 @@ export async function writeBrowserBodyJourneyTrack(source, screenshotPath, outpu
         path: observationRelative, sha256: digest(observationBytes) });
     }
   }
+  const maskActions = structuredClone(captures["body.inspected"]?.maskActions);
+  if (!Array.isArray(maskActions)
+      || maskActions.length !== MASK_ACTION_IDS.length
+      || maskActions.some((action, index) => action.action_id !== MASK_ACTION_IDS[index])) {
+    throw new Error("browser track lacks the exact producer-owned Mask journey");
+  }
+  for (let index = 0; index < maskActions.length; index += 1) {
+    const action = maskActions[index];
+    const stepId = `mask.action-${index}`;
+    const assertion = `mask-${action.action_id}`;
+    const relative = `artifacts/${String(STEPS.length + index + 1).padStart(2, "0")}-${stepId}.json`;
+    const bytes = Buffer.from(`${JSON.stringify({ schema: "conduit.evidence/semantic-step-receipt@2",
+      git_commit: commit, track: "browser-graphical", step_id: stepId, assertion,
+      source_facts: action }, null, 2)}\n`);
+    await writeFile(join(output, relative), bytes, { flag: "wx" });
+    receipts.push({ step_id: stepId, assertion, disposition: "established", provenance: {
+      body_id: ids.body, host_id: null, boot_id: null, plan_id: action.plan_id, play_id: null,
+      presentation_id: action.presentation_id, manifestation_id: action.show_id,
+      line_id: null, sign_id: null,
+    }, evidence: [{ artifact_id: `browser-graphical/mask-action-${index}`,
+      evidence_class: "semantic-receipt", assertion_rung: "semantic-presentation",
+      documentary_description: `browser-wasm-body producer outcome for ${action.action_id}.`,
+      path: relative, sha256: digest(bytes) }] });
+    action.receipt_ids = [stepId];
+  }
   if (videoPath) {
     const bytes = await readFile(videoPath);
     const relative = "artifacts/browser-body-session.webm";
@@ -141,6 +172,6 @@ export async function writeBrowserBodyJourneyTrack(source, screenshotPath, outpu
       { action_id: "journey.useful-work", concrete_event: "A browser interaction exercised the standing Form through its retained Plan and Play.", receipt_ids: ["form.used"] },
       { action_id: "journey.break-recover", concrete_event: "A refused browser wake remained a fault until a later admitted wake established repair.", receipt_ids: ["fault.observed", "body.repaired"] },
       { action_id: "journey.rest-finish", concrete_event: "Explicit browser actions lulled the Body and then fulfilled its biography.", receipt_ids: ["body.lulled", "body.fulfilled"] },
-    ], mask_actions: captures["body.inspected"]?.maskActions,
+    ], mask_actions: maskActions,
   }, null, 2)}\n`, { flag: "wx" });
 }

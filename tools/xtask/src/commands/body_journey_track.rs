@@ -59,7 +59,7 @@ struct Artifact<'a> {
     source_facts: &'a Value,
 }
 
-pub(crate) fn write(source: TrackSource, output: &Path) -> Result<(), String> {
+pub(crate) fn write(mut source: TrackSource, output: &Path) -> Result<(), String> {
     if source.commit.len() != 40 || !source.commit.bytes().all(|byte| byte.is_ascii_hexdigit()) {
         return Err("Body track requires an exact commit".into());
     }
@@ -136,6 +136,61 @@ pub(crate) fn write(source: TrackSource, output: &Path) -> Result<(), String> {
                 "sha256": format!("sha256:{:x}", Sha256::digest(&bytes)),
             }],
         }));
+    }
+    let mask_actions = source
+        .mask_actions
+        .as_array_mut()
+        .expect("Mask action length was checked above");
+    for (index, (expected, outcome)) in conduit_presentation::MASK_JOURNEY_ACTIONS
+        .iter()
+        .zip(mask_actions.iter_mut())
+        .enumerate()
+    {
+        if outcome["action_id"].as_str() != Some(expected.id()) {
+            return Err(format!(
+                "Body track Mask action {} is absent or reordered",
+                expected.id()
+            ));
+        }
+        let step_id = format!("mask.action-{index}");
+        let assertion = format!("mask-{}", expected.id());
+        let file = format!("{:02}-{step_id}.json", STEPS.len() + index + 1);
+        let relative = format!("artifacts/{file}");
+        let bytes = serde_json::to_vec_pretty(&Artifact {
+            schema: "conduit.evidence/semantic-step-receipt@2",
+            git_commit: &source.commit,
+            track: source.track_id,
+            step_id: &step_id,
+            assertion: &assertion,
+            source_facts: outcome,
+        })
+        .map_err(|error| format!("encode {step_id} receipt: {error}"))?;
+        write_new(&artifacts.join(file), &bytes)?;
+        receipts.push(serde_json::json!({
+            "step_id": step_id,
+            "assertion": assertion,
+            "disposition": "established",
+            "provenance": {
+                "body_id": &source.identities.body,
+                "host_id": null,
+                "boot_id": null,
+                "plan_id": outcome["plan_id"],
+                "play_id": null,
+                "presentation_id": outcome["presentation_id"],
+                "manifestation_id": outcome["show_id"],
+                "line_id": null,
+                "sign_id": null,
+            },
+            "evidence": [{
+                "artifact_id": format!("{}/mask-action-{index}", source.track_id),
+                "evidence_class": "semantic-receipt",
+                "assertion_rung": "semantic-presentation",
+                "documentary_description": format!("{} producer outcome for {}.", source.embodiment, expected.id()),
+                "path": relative,
+                "sha256": format!("sha256:{:x}", Sha256::digest(&bytes)),
+            }],
+        }));
+        outcome["receipt_ids"] = serde_json::json!([format!("mask.action-{index}")]);
     }
     let action_receipts = [
         (
