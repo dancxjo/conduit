@@ -42,6 +42,15 @@ export async function writeBrowserBodyJourneyTrack(source, screenshotPath, outpu
   if (inspectedMask.mask_show?.show?.lifecycle !== "Available") {
     throw new Error("browser track refuses a Show that was not made Available by exact DOM acknowledgement");
   }
+  if (inspectedMask.execution?.schema !== "conduit.browser/mask-kernel-execution@1"
+      || inspectedMask.execution.fore?.length !== 3) {
+    throw new Error("browser track lacks the Mask kernel Fore execution receipt");
+  }
+  const kernelSigns = new Set(inspectedMask.execution.remote_signs?.map(sign => sign.kind));
+  for (const requiredSign of ["RemoteInputAdmitted", "RemoteInputClosed", "RemoteValueOffered",
+    "RemoteValueAccepted", "RemoteValueDelivered", "RemoteOutputClosed"]) {
+    if (!kernelSigns.has(requiredSign)) throw new Error(`browser track lacks Mask kernel Sign ${requiredSign}`);
+  }
   const ids = { body: required(current.body_id, "Body identity"), host: required(current.host_id, "Host identity"),
     boot: required(current.boot_id, "Boot identity"), peerHost: required(peer?.host_id, "peer Host identity"),
     peerBoot: required(peer?.boot_id, "peer Boot identity"), plan: required(plan.plan_id, "Plan identity"),
