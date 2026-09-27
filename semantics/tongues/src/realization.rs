@@ -1,5 +1,5 @@
 use crate::{
-    audio_play_contract, synthesize_contract, AUDIO_PLAY_KIND, MAXIMUM_PCM_BYTES,
+    synthesize_semantic_contract, AUDIO_PLAY_KIND, AUDIO_PLAY_REVISION, MAXIMUM_PCM_BYTES,
     MAXIMUM_TEXT_BYTES,
 };
 use conduit_core::{
@@ -73,14 +73,15 @@ pub fn speech_host_fixture(condition: OutputCondition) -> SpeechHostFixture {
             "bounded-wav-artifact-produced-not-played",
         ),
     };
-    let synth = synthesize_contract();
-    let present = audio_play_contract();
+    let synth = synthesize_semantic_contract();
+    let present =
+        conduit_semantic_catalog::audio_play_contract().into_semantic_contract(AUDIO_PLAY_REVISION);
     let synthesis_operation =
         host_call(SYNTHESIZE_OPERATION, MAXIMUM_TEXT_BYTES, MAXIMUM_PCM_BYTES);
     let mut output_operation_requirement = host_call(output_operation, MAXIMUM_PCM_BYTES, 256);
     output_operation_requirement.target_kind = Some(kind_id(AUDIO_PLAY_KIND));
     let synthesis = BackOfferBuilder::new(
-        synth.into_semantic_capability_contract(),
+        synth,
         Back {
             capability_id: CapabilityId::from(format!("{host}/synthesize")),
             execution_profile_id: ExecutionProfileId::from("conduit.speech/deterministic-hosted@1"),
@@ -100,7 +101,7 @@ pub fn speech_host_fixture(condition: OutputCondition) -> SpeechHostFixture {
     )
     .build();
     let output = BackOfferBuilder::new(
-        present.into_semantic_capability_contract(),
+        present,
         Back {
             capability_id: CapabilityId::from(format!("{host}/output")),
             execution_profile_id: ExecutionProfileId::from("conduit.audio/bounded-output@1"),
