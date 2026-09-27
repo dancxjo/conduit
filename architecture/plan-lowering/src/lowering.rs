@@ -4,10 +4,11 @@
 use alloc::collections::{BTreeMap, BTreeSet};
 use alloc::vec::Vec;
 use conduit_core::{
-    ActivePlayId, ActivePlayIdentity, AdmittedLine, BootId, ConnectionId, ExpectedSign, FragmentId,
-    HostCallContractId, HostId, KindId, LinkEndpoint, PlacementId, PlanFragment, PlanId,
-    PortDirection, PortId as PlanPortId, PresentationId, PresentationIdentity,
-    ResourceBinding as PlanResourceBinding, SharedPoolId, SignId, SignIdentity,
+    ActivePlayId, ActivePlayIdentity, AdmittedLine, BootId, ConnectionId, ConnectionTrack,
+    ExpectedSign, FragmentId, HostCallContractId, HostId, KindId, LinkEndpoint, PlacementId,
+    PlanFragment, PlanId, PortDirection, PortId as PlanPortId, PortTemporal, PresentationId,
+    PresentationIdentity, ResourceBinding as PlanResourceBinding, SharedPoolId, SignId,
+    SignIdentity,
 };
 use conduit_kernel::{
     scheduler::{AssignedPressurePolicy, CordCapacity, CordSpec, NodeSpec},
@@ -65,6 +66,22 @@ fn lower_connection_track(
     }
 }
 
+fn source_contract_matches(
+    descriptor: &LoweredPort,
+    track: ConnectionTrack,
+    value_kind: &KindId,
+    temporal: PortTemporal,
+) -> bool {
+    match track {
+        ConnectionTrack::AbnormalTerminal => {
+            temporal == PortTemporal::Value && descriptor.abnormal_kind.as_ref() == Some(value_kind)
+        }
+        ConnectionTrack::Payload | ConnectionTrack::NormalClose => {
+            descriptor.value_kind == *value_kind && descriptor.temporal == temporal
+        }
+    }
+}
+
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum LoweringError {
     InvalidFragment,
@@ -113,6 +130,7 @@ pub struct LoweredPort {
     pub value_kind: KindId,
     pub direction: PortDirection,
     pub temporal: conduit_core::PortTemporal,
+    pub abnormal_kind: Option<KindId>,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -702,8 +720,12 @@ pub fn lower_plan_fragment_for_profile(
             .transpose()?;
         if source_node.zip(source_port).is_some_and(|(node, port)| {
             let descriptor = &nodes[usize::from(node.0)].outputs[usize::from(port.0)];
-            descriptor.value_kind != connection.value_kind
-                || descriptor.temporal != connection.temporal
+            !source_contract_matches(
+                descriptor,
+                connection.track,
+                &connection.value_kind,
+                connection.temporal,
+            )
         }) || sink_node.zip(sink_port).is_some_and(|(node, port)| {
             let descriptor = &nodes[usize::from(node.0)].inputs[usize::from(port.0)];
             descriptor.value_kind != connection.value_kind
@@ -991,4 +1013,68 @@ fn lower_routes(cords: &[LoweredCord]) -> Result<Vec<LoweredRoute>, LoweringErro
 
 fn as_u16(value: usize) -> Result<u16, LoweringError> {
     u16::try_from(value).map_err(|_| LoweringError::CapacityOverflow)
+}
+
+#[cfg(test)]
+mod terminal_track_tests {
+    use super::*;
+    use conduit_core::{kind_id, port_id};
+
+    fn source(abnormal: Option<&str>) -> LoweredPort {
+        LoweredPort {
+            node: NodeId(0),
+            port: PortId(0),
+            port_id: port_id("out"),
+            value_kind: kind_id("value/count"),
+            direction: PortDirection::Output,
+            temporal: PortTemporal::Flow { closes: true },
+            abnormal_kind: abnormal.map(kind_id),
+        }
+    }
+
+    #[test]
+    fn abnormal_lowering_uses_the_exact_declared_terminal_kind() {
+        let descriptor = source(Some("test/fault"));
+        assert!(source_contract_matches(
+            &descriptor,
+            ConnectionTrack::AbnormalTerminal,
+            &kind_id("test/fault"),
+            PortTemporal::Value
+        ));
+        assert!(!source_contract_matches(
+            &descriptor,
+            ConnectionTrack::AbnormalTerminal,
+            &kind_id("test/other-fault"),
+            PortTemporal::Value
+        ));
+        assert!(!source_contract_matches(
+            &source(None),
+            ConnectionTrack::AbnormalTerminal,
+            &kind_id("test/fault"),
+            PortTemporal::Value
+        ));
+        assert!(!source_contract_matches(
+            &descriptor,
+            ConnectionTrack::AbnormalTerminal,
+            &kind_id("test/fault"),
+            PortTemporal::Flow { closes: true }
+        ));
+    }
+
+    #[test]
+    fn payload_lowering_retains_the_ordinary_value_contract() {
+        let descriptor = source(Some("test/fault"));
+        assert!(source_contract_matches(
+            &descriptor,
+            ConnectionTrack::Payload,
+            &kind_id("value/count"),
+            PortTemporal::Flow { closes: true }
+        ));
+        assert!(!source_contract_matches(
+            &descriptor,
+            ConnectionTrack::Payload,
+            &kind_id("test/fault"),
+            PortTemporal::Value
+        ));
+    }
 }
