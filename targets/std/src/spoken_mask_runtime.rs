@@ -37,6 +37,35 @@ pub struct SpokenMaskSemanticSession {
     generated: Option<GeneratedManifestation>,
 }
 
+#[derive(Clone)]
+pub struct SpokenMaskPreparation {
+    pub request: GenerativePresenterRequest,
+    pub presentation: Presentation,
+    pub planned_mask: PlannedMaskForm,
+    pub front_subject: String,
+    pub target_subject: String,
+    pub prepared_sign: conduit_core::SignId,
+    pub available_sign: conduit_core::SignId,
+}
+
+impl SpokenMaskPreparation {
+    pub fn prepare_session(
+        &self,
+        active_play: conduit_core::ActivePlayIdentity,
+    ) -> Result<SpokenMaskSemanticSession, String> {
+        SpokenMaskSemanticSession::prepare(
+            self.request.clone(),
+            self.presentation.clone(),
+            self.planned_mask.clone(),
+            active_play,
+            self.front_subject.clone(),
+            self.target_subject.clone(),
+            self.prepared_sign.clone(),
+            self.available_sign.clone(),
+        )
+    }
+}
+
 impl SpokenMaskSemanticSession {
     #[allow(clippy::too_many_arguments)]
     pub fn prepare(
