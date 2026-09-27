@@ -8,7 +8,6 @@
 use conduit_kernel::{
     scheduler::{StepBack, StepInputBytes, StepIo, StepOutcome},
     BoundedValueRef, Failure, FailureCode, HostCallDisposition, HostCallId, PortId, RequestId,
-    ValueRef,
 };
 use conduit_presentation::{
     ArtifactAcknowledgedSpokenShow, GeneratedManifestation, GenerativePresenterRequest,
@@ -198,7 +197,6 @@ impl SpokenMaskSemanticSession {
 }
 
 pub struct PresentationToGenerativeRequestBack {
-    pending_input: Option<ValueRef>,
     pending: bool,
     complete: bool,
     maximum_presentation_bytes: u32,
@@ -213,7 +211,6 @@ impl PresentationToGenerativeRequestBack {
             return Err("invalid Presentation adapter bound");
         }
         Ok(Self {
-            pending_input: None,
             pending: false,
             complete: false,
             maximum_presentation_bytes,
@@ -239,10 +236,6 @@ impl<const PORTS: usize> StepBack<PORTS> for PresentationToGenerativeRequestBack
                         .expect("observed request adapter");
                     io.send(PortId(0), output.value)
                         .expect("ready request adapter output");
-                    if let Some(input) = self.pending_input.take() {
-                        io.discard(input)
-                            .expect("release Presentation adapter input");
-                    }
                     self.pending = false;
                     self.complete = true;
                     StepOutcome::Complete
@@ -257,7 +250,7 @@ impl<const PORTS: usize> StepBack<PORTS> for PresentationToGenerativeRequestBack
             let Ok(input) = BoundedValueRef::new(value, self.maximum_presentation_bytes) else {
                 return fail(4);
             };
-            self.pending_input = Some(io.take_input(PortId(0)).expect("present Presentation"));
+            io.consume(PortId(0)).expect("present Presentation");
             io.request_host_call(RequestId(0), PRESENTATION_TO_REQUEST_CALL, input)
                 .expect("Presentation adapter Host Call");
             self.pending = true;
@@ -265,10 +258,6 @@ impl<const PORTS: usize> StepBack<PORTS> for PresentationToGenerativeRequestBack
         } else {
             StepOutcome::Await
         }
-    }
-
-    fn retains_host_call_input(&self, request: RequestId, value: ValueRef) -> bool {
-        request == RequestId(0) && self.pending_input == Some(value)
     }
 
     fn cancel(&mut self) {
@@ -300,14 +289,6 @@ impl<const PORTS: usize> StepBack<PORTS> for GeneratedManifestationToSpeechBack 
         self.inner.step(io, inputs)
     }
 
-    fn retains_host_call_input(&self, request: RequestId, value: ValueRef) -> bool {
-        <PresentationToGenerativeRequestBack as StepBack<PORTS>>::retains_host_call_input(
-            &self.inner,
-            request,
-            value,
-        )
-    }
-
     fn cancel(&mut self) {
         <PresentationToGenerativeRequestBack as StepBack<PORTS>>::cancel(&mut self.inner);
     }
@@ -321,7 +302,6 @@ enum ShowPhase {
 
 pub struct ArtifactAcknowledgedShowBack {
     phase: ShowPhase,
-    pending_input: Option<ValueRef>,
     pending_request: Option<RequestId>,
     maximum_manifestation_bytes: u32,
     maximum_receipt_bytes: u32,
@@ -342,7 +322,6 @@ impl ArtifactAcknowledgedShowBack {
         }
         Ok(Self {
             phase: ShowPhase::Manifestation,
-            pending_input: None,
             pending_request: None,
             maximum_manifestation_bytes,
             maximum_receipt_bytes,
@@ -363,7 +342,7 @@ impl ArtifactAcknowledgedShowBack {
         let Ok(input) = BoundedValueRef::new(value, maximum_bytes) else {
             return fail(10);
         };
-        self.pending_input = Some(io.take_input(port).expect("present spoken Mask input"));
+        io.consume(port).expect("present spoken Mask input");
         io.request_host_call(request, call, input)
             .expect("spoken Mask semantic Host Call");
         self.pending_request = Some(request);
@@ -387,9 +366,6 @@ impl<const PORTS: usize> StepBack<PORTS> for ArtifactAcknowledgedShowBack {
                 (ShowPhase::Manifestation, HostCallDisposition::Completed, None) => {
                     io.consume_host_completion()
                         .expect("registered manifestation");
-                    if let Some(input) = self.pending_input.take() {
-                        io.discard(input).expect("release registered manifestation");
-                    }
                     self.pending_request = None;
                     self.phase = ShowPhase::Artifact;
                     StepOutcome::Progress
@@ -402,9 +378,6 @@ impl<const PORTS: usize> StepBack<PORTS> for ArtifactAcknowledgedShowBack {
                         .expect("acknowledged artifact Show");
                     io.send(PortId(0), output.value)
                         .expect("ready artifact-acknowledged Show");
-                    if let Some(input) = self.pending_input.take() {
-                        io.discard(input).expect("release artifact receipt");
-                    }
                     self.pending_request = None;
                     self.phase = ShowPhase::Complete;
                     StepOutcome::Complete
@@ -430,10 +403,6 @@ impl<const PORTS: usize> StepBack<PORTS> for ArtifactAcknowledgedShowBack {
                 ShowPhase::Complete => StepOutcome::Complete,
             }
         }
-    }
-
-    fn retains_host_call_input(&self, request: RequestId, value: ValueRef) -> bool {
-        self.pending_request == Some(request) && self.pending_input == Some(value)
     }
 
     fn cancel(&mut self) {
