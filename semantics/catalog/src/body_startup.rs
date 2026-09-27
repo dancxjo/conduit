@@ -95,13 +95,7 @@ pub fn install_body_startup_catalogs(
             startup_parameters: vec![],
         })?;
         profile
-            .insert(conduit_form::KindProjection {
-                kind_id: contract.kind_id,
-                kind_contract_revision: revision.into(),
-                inputs: contract.inputs,
-                outputs: contract.outputs,
-                configuration: vec![],
-            })
+            .insert_kind(contract.into_semantic_contract(revision))
             .map_err(|error| error.to_string())?;
     }
     Ok(())
