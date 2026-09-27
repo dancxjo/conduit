@@ -126,6 +126,9 @@ enum Request {
     AcknowledgeTutorialMask {
         acknowledgement: crate::workspace_mask::BrowserMaskAcknowledgement,
     },
+    InteractWithTutorialMask {
+        interaction: crate::workspace_mask::BrowserMaskInteraction,
+    },
     TutorialMaskObservation,
     InvitationView {
         invitation_id: String,
@@ -596,6 +599,15 @@ fn dispatch(request: Request) -> Result<Vec<u8>, Refusal> {
                     runtime.acknowledge(&acknowledgement)
                         .map_err(|error| Refusal::new("TutorialMaskAcknowledge", error))?;
                     encode(&runtime.observation())
+                });
+            }
+            Request::InteractWithTutorialMask { interaction } => {
+                return BROWSER_MASK.with(|slot| {
+                    let mut slot = slot.borrow_mut();
+                    let runtime = slot.as_mut().ok_or("Browser Mask has not been prepared")?;
+                    let receipt = runtime.interact(&interaction)
+                        .map_err(|error| Refusal::new("TutorialMaskInteraction", error))?;
+                    encode(&receipt)
                 });
             }
             Request::TutorialMaskObservation => {

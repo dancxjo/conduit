@@ -14,7 +14,7 @@
       "role": "application-module",
       "kind": "module",
       "path": "workspace.mjs",
-      "maximum_bytes": 28672,
+      "maximum_bytes": 32768,
       "dependencies": [
         {
           "role": "browser-host-bootstrap",

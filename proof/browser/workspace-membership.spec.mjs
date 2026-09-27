@@ -36,9 +36,19 @@ test("the ordinary face binds and admits one compiler-free reviewed browser Host
   await page.getByRole("button", { name: "wake body", exact: true }).click();
   await expect(page.locator("[data-play-state]")).toHaveText("Playing");
   await capture("body.awake", "The body is awake and its selected form is playing.");
+  await page.getByRole("button", { name: "Use the current form", exact: true }).click();
   await page.locator('[data-inspect="lifecycle"]').click();
   await expect(page.getByText("Exact lifecycle evidence", { exact: true })).toBeVisible();
   await capture("body.inspected", "The body's own inspection panel reveals its lifecycle.");
+  const inspectedInteraction = captures["body.inspected"].mask?.interaction;
+  expect(inspectedInteraction?.schema).toBe("conduit.browser/mask-interaction@1");
+  expect(inspectedInteraction?.correlation?.interaction).toMatchObject({
+    presentation_id: captures["body.inspected"].mask.presentation.identity,
+    presentation_revision: captures["body.inspected"].mask.presentation.revision,
+    manifestation_id: captures["body.inspected"].mask.mask_show.show.manifestation_id,
+    action_id: "body.use-current",
+  });
+  expect(inspectedInteraction?.semantic_action?.intent).toBe("conduit.intent/tutorial-next@1");
   await page.locator("[data-close-inspection]").click();
   await page.getByRole("button", { name: "+ Forms", exact: true }).click();
   await page.getByRole("textbox", { name: "Find a form", exact: true }).fill("desk");

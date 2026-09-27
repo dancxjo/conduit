@@ -6,7 +6,6 @@ pub(super) type MaskScheduler =
 
 pub(super) struct MaskBack {
     pending: bool,
-    complete: bool,
 }
 
 impl StepBack<MASK_PORTS> for MaskBack {
@@ -15,11 +14,8 @@ impl StepBack<MASK_PORTS> for MaskBack {
         io: &mut StepIo<MASK_PORTS>,
         _inputs: &StepInputBytes<'_, MASK_PORTS>,
     ) -> StepOutcome {
-        if self.complete {
-            return StepOutcome::Complete;
-        }
         if self.pending {
-            let Some((RequestId(0), outcome)) = io.host_completion() else {
+            let Some((request, outcome)) = io.host_completion() else {
                 return StepOutcome::Await;
             };
             if outcome.disposition != HostCallDisposition::Completed || outcome.failure.is_some() {
@@ -28,17 +24,31 @@ impl StepBack<MASK_PORTS> for MaskBack {
             let Some(output) = outcome.output else {
                 return failure(2);
             };
-            if !io.output_ready(KernelPortId(1)) {
+            let output_port = if request == RequestId(0) { 1 } else { 0 };
+            if !io.output_ready(KernelPortId(output_port)) {
                 return StepOutcome::Await;
             }
             if io.consume_host_completion().is_err()
-                || io.send(KernelPortId(1), output.value).is_err()
+                || io.send(KernelPortId(output_port), output.value).is_err()
             {
                 return failure(3);
             }
-            self.pending = false;
-            self.complete = true;
-            return StepOutcome::Complete;
+            if request == RequestId(1) {
+                self.pending = false;
+                return StepOutcome::Complete;
+            }
+            let input = match BoundedValueRef::new(output.value, MASK_BYTES) {
+                Ok(input) => input,
+                Err(_) => return failure(6),
+            };
+            if io
+                .request_host_call(RequestId(1), HostCallId(0), input)
+                .is_err()
+            {
+                return failure(7);
+            }
+            self.pending = true;
+            return StepOutcome::Progress;
         }
         if let Some(value) = io.input(KernelPortId(0)) {
             let input = match BoundedValueRef::new(value, MASK_BYTES) {
@@ -156,10 +166,7 @@ pub(super) fn mask_scheduler(
         cords,
         routes,
         bindings,
-        [MaskBack {
-            pending: false,
-            complete: false,
-        }],
+        [MaskBack { pending: false }],
         values,
         signs,
     )
