@@ -3,7 +3,7 @@
 use super::SchedulerError;
 use crate::{PortId, StorageError, ValueRef, ValueStorage};
 
-pub const MAXIMUM_DERIVED_VALUE_BYTES: usize = 64;
+pub const MAXIMUM_DERIVED_VALUE_BYTES: usize = 100;
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub struct CanonicalValue {

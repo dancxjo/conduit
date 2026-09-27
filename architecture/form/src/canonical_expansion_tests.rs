@@ -232,6 +232,73 @@ fn initialized_boolean_keep_lowers_to_exact_typed_state() {
 }
 
 #[test]
+fn optional_keep_lowers_omitted_and_present_initializers_to_none_and_some() {
+    let mut startup = StartupCatalog::new();
+    startup
+        .insert(KindSignature {
+            kind: "state/latest".into(),
+            startup_parameters: vec![],
+        })
+        .unwrap();
+    let mut maximums = Vec::new();
+    for (initializer, expected_tag) in [("", "none"), ("(true)", "some")] {
+        let source =
+            format!("form retained {{\n cell: keep Boolean?{initializer} for this play\n}}\n");
+        let checked = check_syntax_document(&parse_syntax_document(&source), &startup).unwrap();
+        let expanded = expand_canonical_form(&checked, "retained", &ProfileCatalog::new()).unwrap();
+        let [state] = expanded.gears.as_slice() else {
+            panic!("optional KEEP must lower to exactly one State Gear")
+        };
+        assert_eq!(state.kind_id.as_str(), conduit_core::STATE_VALUE_KIND);
+        let ConfigurationValue::Structured(initial) = &state
+            .configuration
+            .iter()
+            .find(|entry| entry.key == "initial")
+            .unwrap()
+            .value
+        else {
+            panic!("optional KEEP initializer must remain exact structured meaning")
+        };
+        let value =
+            conduit_core::StructuredInfoValue::from_canonical_bytes(initial.canonical_value())
+                .unwrap();
+        let conduit_core::StructuredInfoValueShape::Variant { tag, .. } = value.shape() else {
+            panic!("optional KEEP must use the canonical finite variant")
+        };
+        assert_eq!(tag, expected_tag);
+        assert_eq!(state.inputs[0].value_kind, state.outputs[0].value_kind);
+        maximums.push(
+            state
+                .configuration
+                .iter()
+                .find(|entry| entry.key == "maximum-bytes")
+                .and_then(|entry| match entry.value {
+                    ConfigurationValue::U64(value) => Some(value),
+                    _ => None,
+                })
+                .unwrap(),
+        );
+    }
+    assert_eq!(maximums, vec![100, 100]);
+}
+
+#[test]
+fn optional_keep_refuses_an_explicit_bound_smaller_than_some_payload() {
+    let mut startup = StartupCatalog::new();
+    startup
+        .insert(KindSignature {
+            kind: "state/latest".into(),
+            startup_parameters: vec![],
+        })
+        .unwrap();
+    let source = "form retained {\n cell: keep Boolean? <= 99B for this play\n}\n";
+    let checked = check_syntax_document(&parse_syntax_document(source), &startup).unwrap();
+    let refusal = expand_canonical_form(&checked, "retained", &ProfileCatalog::new()).unwrap_err();
+    assert_eq!(refusal.code, "CND-FRM-041");
+    assert!(refusal.message.contains("admitted value envelope"));
+}
+
+#[test]
 fn pure_expression_lowers_to_one_exact_ordinary_gear() {
     let mut startup = StartupCatalog::new();
     for kind in ["test/u8-source", "test/u8-sink"] {

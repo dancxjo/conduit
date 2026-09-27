@@ -29,14 +29,14 @@ impl<const PORTS: usize> StepBack<PORTS> for TypedStateBack {
         let port = self.back.next_port();
         if io.input(port).is_some() {
             let Some(canonical) = input_bytes.input(port) else {
-                <StateBack<64> as StepBack<PORTS>>::cancel(&mut self.back);
+                <StateBack<100> as StepBack<PORTS>>::cancel(&mut self.back);
                 return StepOutcome::Fail(Failure {
                     code: FailureCode::InvalidInput,
                     detail: 9,
                 });
             };
             if let Err(error) = self.validator.validate(canonical) {
-                <StateBack<64> as StepBack<PORTS>>::cancel(&mut self.back);
+                <StateBack<100> as StepBack<PORTS>>::cancel(&mut self.back);
                 let capacity = matches!(
                     error,
                     conduit_core::StructuredInfoRefusal::CanonicalEncodingTooLarge
@@ -51,21 +51,21 @@ impl<const PORTS: usize> StepBack<PORTS> for TypedStateBack {
                 });
             }
         }
-        <StateBack<64> as StepBack<PORTS>>::step(&mut self.back, io, input_bytes)
+        <StateBack<100> as StepBack<PORTS>>::step(&mut self.back, io, input_bytes)
     }
 
     fn step_committed(&mut self) {
-        <StateBack<64> as StepBack<PORTS>>::step_committed(&mut self.back);
+        <StateBack<100> as StepBack<PORTS>>::step_committed(&mut self.back);
     }
 
     fn cancel(&mut self) {
-        <StateBack<64> as StepBack<PORTS>>::cancel(&mut self.back);
+        <StateBack<100> as StepBack<PORTS>>::cancel(&mut self.back);
     }
 }
 
 pub struct TypedStateBack {
     binding: Option<continuity::StateExecutionBinding>,
-    back: StateBack<64>,
+    back: StateBack<100>,
     validator: StateValueValidator,
 }
 

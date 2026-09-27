@@ -8,18 +8,77 @@ pub(super) fn initialized_structured_state(
     retained: &CheckedRetainedValue,
     gear_id: GearId,
 ) -> Result<Option<(CheckedGear, PortDescriptor, PortDescriptor)>, CanonicalExpansionDiagnostic> {
-    if retained.optional {
-        return Ok(None);
-    }
-    let Some(CanonicalStartupValue::Structured(initial)) = retained.initial.as_ref() else {
-        return Ok(None);
+    let concrete = if retained.optional {
+        let payload_type = match retained.value_type.shape() {
+            conduit_core::StructuredInfoTypeShape::Variant { cases, .. } => cases
+                .iter()
+                .find(|case| case.tag() == "some")
+                .map(conduit_core::StructuredVariantCase::payload_type),
+            _ => None,
+        }
+        .ok_or_else(|| {
+            CanonicalExpansionDiagnostic::new(
+                "CND-FRM-041",
+                "retained optional type is not canonical none|some(T)".into(),
+            )
+        })?;
+        let (tag, payload) = match retained.initial.as_ref() {
+            Some(CanonicalStartupValue::Structured(initial)) => (
+                "some",
+                initial.try_concrete().ok_or_else(|| {
+                    CanonicalExpansionDiagnostic::new(
+                        "CND-FRM-039",
+                        "retained optional initializer remains unresolved".into(),
+                    )
+                })?,
+            ),
+            None => (
+                "none",
+                conduit_core::StructuredInfoValue::leaf(
+                    conduit_core::StructuredInfoType::leaf(conduit_core::kind_id(
+                        conduit_core::UNIT_INFO_ID,
+                    ))
+                    .map_err(|_| {
+                        CanonicalExpansionDiagnostic::new(
+                            "CND-FRM-041",
+                            "canonical optional Unit payload is invalid".into(),
+                        )
+                    })?,
+                    Vec::new(),
+                )
+                .map_err(|_| {
+                    CanonicalExpansionDiagnostic::new(
+                        "CND-FRM-041",
+                        "canonical optional none payload is invalid".into(),
+                    )
+                })?,
+            ),
+            Some(_) => return Ok(None),
+        };
+        if tag == "some" && payload.value_type() != payload_type {
+            return Err(CanonicalExpansionDiagnostic::new(
+                "CND-FRM-041",
+                "retained optional initializer has the wrong payload type".into(),
+            ));
+        }
+        conduit_core::StructuredInfoValue::variant(retained.value_type.clone(), tag, payload)
+            .map_err(|_| {
+                CanonicalExpansionDiagnostic::new(
+                    "CND-FRM-041",
+                    "retained optional initializer is not canonical none|some(T)".into(),
+                )
+            })?
+    } else {
+        let Some(CanonicalStartupValue::Structured(initial)) = retained.initial.as_ref() else {
+            return Ok(None);
+        };
+        initial.try_concrete().ok_or_else(|| {
+            CanonicalExpansionDiagnostic::new(
+                "CND-FRM-039",
+                "retained structured initializer remains unresolved".into(),
+            )
+        })?
     };
-    let concrete = initial.try_concrete().ok_or_else(|| {
-        CanonicalExpansionDiagnostic::new(
-            "CND-FRM-039",
-            "retained structured initializer remains unresolved".into(),
-        )
-    })?;
     let canonical = concrete.canonical_bytes().map_err(|_| {
         CanonicalExpansionDiagnostic::new(
             "CND-FRM-041",
@@ -32,12 +91,21 @@ pub(super) fn initialized_structured_state(
             "retained structured storage bound exceeds Plan capacity".into(),
         )
     })?;
-    let maximum_bytes = retained.maximum_bytes.unwrap_or(encoded_bytes);
-    if maximum_bytes < encoded_bytes {
+    let optional_value_bytes = if retained.optional {
+        Some(
+            canonical_optional_boolean_some_bytes(&retained.value_type)?
+                .unwrap_or(conduit_core::MAXIMUM_STRUCTURED_CANONICAL_BYTES as u64),
+        )
+    } else {
+        None
+    };
+    let required_bytes = optional_value_bytes.unwrap_or(encoded_bytes);
+    let maximum_bytes = retained.maximum_bytes.unwrap_or(required_bytes);
+    if maximum_bytes < required_bytes {
         return Err(CanonicalExpansionDiagnostic::new(
             "CND-FRM-041",
             format!(
-                "KEEP structured bound is smaller than its {encoded_bytes}-byte canonical encoding"
+                "KEEP structured bound is smaller than its {required_bytes}-byte admitted value envelope"
             ),
         ));
     }
@@ -85,6 +153,7 @@ pub(super) fn initialized_structured_state(
         inputs: vec![input.clone()],
         outputs: vec![output.clone()],
         terminal_transduction: None,
+        resource_ports: Vec::new(),
         configuration: vec![
             conduit_core::ConfigurationEntry {
                 key: "initial".into(),
@@ -111,4 +180,54 @@ pub(super) fn initialized_structured_state(
         pool_references: Vec::new(),
     };
     Ok(Some((gear, input, output)))
+}
+
+fn canonical_optional_boolean_some_bytes(
+    optional: &conduit_core::StructuredInfoType,
+) -> Result<Option<u64>, CanonicalExpansionDiagnostic> {
+    let conduit_core::StructuredInfoTypeShape::Variant { cases, .. } = optional.shape() else {
+        return Ok(None);
+    };
+    let Some(payload_type) = cases
+        .iter()
+        .find(|case| case.tag() == "some")
+        .map(conduit_core::StructuredVariantCase::payload_type)
+    else {
+        return Ok(None);
+    };
+    let conduit_core::StructuredInfoTypeShape::Leaf(kind) = payload_type.shape() else {
+        return Ok(None);
+    };
+    if kind.as_str() != conduit_core::BOOL_INFO_ID {
+        return Ok(None);
+    }
+    let payload = conduit_core::StructuredInfoValue::leaf(
+        payload_type.clone(),
+        conduit_core::InfoBool::FALSE.encode().to_vec(),
+    )
+    .map_err(|_| {
+        CanonicalExpansionDiagnostic::new(
+            "CND-FRM-041",
+            "canonical optional Boolean payload is invalid".into(),
+        )
+    })?;
+    let some = conduit_core::StructuredInfoValue::variant(optional.clone(), "some", payload)
+        .map_err(|_| {
+            CanonicalExpansionDiagnostic::new(
+                "CND-FRM-041",
+                "canonical optional Boolean some value is invalid".into(),
+            )
+        })?;
+    let bytes = some.canonical_bytes().map_err(|_| {
+        CanonicalExpansionDiagnostic::new(
+            "CND-FRM-041",
+            "canonical optional Boolean exceeds finite bounds".into(),
+        )
+    })?;
+    u64::try_from(bytes.len()).map(Some).map_err(|_| {
+        CanonicalExpansionDiagnostic::new(
+            "CND-FRM-041",
+            "canonical optional Boolean bound exceeds Plan capacity".into(),
+        )
+    })
 }

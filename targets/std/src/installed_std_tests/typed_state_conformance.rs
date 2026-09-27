@@ -6,23 +6,35 @@ use conduit_form::{
 };
 use conduit_semantic_catalog::state_value::*;
 
-fn leaf_bytes(value: &StructuredInfoValue) -> Vec<u8> {
-    let StructuredInfoValueShape::Leaf(bytes) = value.shape() else {
-        panic!("typed State fixture must remain a primitive leaf")
-    };
-    bytes.to_vec()
+fn state_bytes(value: &StructuredInfoValue) -> Vec<u8> {
+    match value.shape() {
+        StructuredInfoValueShape::Leaf(bytes) => bytes.to_vec(),
+        _ => value.canonical_bytes().unwrap(),
+    }
 }
 
 fn fixture(
     allow_retained_current: bool,
     canonical_keep: bool,
+    optional_keep: bool,
 ) -> (
     conduit_form::CheckedForm,
     HostAdvertisement,
     StructuredInfoValue,
 ) {
-    let ty = StructuredInfoType::leaf(kind_id(BOOL_INFO_ID)).unwrap();
-    let next = StructuredInfoValue::leaf(ty.clone(), InfoBool::FALSE.encode().to_vec()).unwrap();
+    let payload_ty = StructuredInfoType::leaf(kind_id(BOOL_INFO_ID)).unwrap();
+    let ty = if optional_keep {
+        optional_info_type(payload_ty.clone()).unwrap()
+    } else {
+        payload_ty.clone()
+    };
+    let next_payload =
+        StructuredInfoValue::leaf(payload_ty.clone(), InfoBool::FALSE.encode().to_vec()).unwrap();
+    let next = if optional_keep {
+        StructuredInfoValue::variant(ty.clone(), "some", next_payload).unwrap()
+    } else {
+        next_payload
+    };
     let mut startup = conduit_form::StartupCatalog::new();
     let mut profile = conduit_form::ProfileCatalog::new();
     startup.insert_structured_type("Cell", ty.clone()).unwrap();
@@ -35,22 +47,28 @@ fn fixture(
         .unwrap();
     // This fixture supplies two external values and closes. The State Kind and
     // installed adapter are production paths; this is not physical input proof.
+    let fixture_kind = match ty.shape() {
+        StructuredInfoTypeShape::Leaf(kind) => kind.clone(),
+        _ => ty.profile().unwrap().value_kind().clone(),
+    };
     let mut source = installed_std::test_structured_selector::raw_source_offer(
         installed_std::test_structured_selector::SOURCE_KIND,
-        BOOL_INFO_ID,
+        fixture_kind.as_str(),
     );
     source.startup_parameters[0].name = "values".into();
     source.host_calls = vec![wait_host_call_requirement()];
     source.resource_requirements = vec![resource_requirement(TIMER_RESOURCE_CLASS, 1)];
-    let conduit_core::StructuredInfoValueShape::Leaf(next_bytes) = next.shape() else {
-        unreachable!("fixture Boolean is one primitive leaf")
-    };
-    let mut entry = installed_std::test_structured_selector::raw_configuration(next_bytes)
+    let next_bytes = state_bytes(&next);
+    let mut entry = installed_std::test_structured_selector::raw_configuration(&next_bytes)
         .pop()
         .unwrap();
     entry.key = "values".into();
     if let ConfigurationValue::Text(encoded) = &mut entry.value {
-        *encoded = format!("{encoded},{encoded}");
+        if optional_keep {
+            encoded.clear();
+        } else {
+            *encoded = format!("{encoded},{encoded}");
+        }
     }
     let ConfigurationValue::Text(default) = &entry.value else {
         panic!("fixture uses text configuration")
@@ -78,12 +96,16 @@ fn fixture(
             }],
         })
         .unwrap();
-    let initial = StructuredInfoValue::leaf(ty.clone(), InfoBool::TRUE.encode().to_vec()).unwrap();
+    let initial_payload =
+        StructuredInfoValue::leaf(payload_ty, InfoBool::TRUE.encode().to_vec()).unwrap();
+    let initial = if optional_keep {
+        StructuredInfoValue::variant(ty.clone(), "some", initial_payload).unwrap()
+    } else {
+        initial_payload
+    };
     let encode = |value: &StructuredInfoValue| {
-        let conduit_core::StructuredInfoValueShape::Leaf(bytes) = value.shape() else {
-            unreachable!("fixture Boolean is one primitive leaf")
-        };
-        let entry = installed_std::test_structured_selector::raw_configuration(bytes)
+        let bytes = state_bytes(value);
+        let entry = installed_std::test_structured_selector::raw_configuration(&bytes)
             .pop()
             .unwrap();
         let ConfigurationValue::Text(text) = entry.value else {
@@ -91,7 +113,11 @@ fn fixture(
         };
         text
     };
-    let mut expected = format!("{},{},{}", encode(&initial), encode(&next), encode(&next));
+    let mut expected = if optional_keep {
+        encode(&initial)
+    } else {
+        format!("{},{},{}", encode(&initial), encode(&next), encode(&next))
+    };
     let expectation_key = if allow_retained_current {
         "choices"
     } else {
@@ -108,7 +134,7 @@ fn fixture(
     }
     let mut sink = installed_std::test_structured_selector::raw_sink_offer(
         installed_std::test_structured_selector::SINK_KIND,
-        BOOL_INFO_ID,
+        fixture_kind.as_str(),
     );
     sink.inputs[0].temporal = PortTemporal::Current;
     sink.startup_parameters[0].name = expectation_key.into();
@@ -135,7 +161,9 @@ fn fixture(
             }],
         })
         .unwrap();
-    let cell = if canonical_keep {
+    let cell = if optional_keep {
+        "cell: keep Boolean?(true) for this play"
+    } else if canonical_keep {
         "cell: keep Boolean(true) for this play"
     } else {
         "cell: state/value(initial = true)"
@@ -149,6 +177,14 @@ fn fixture(
     )
     .unwrap();
     let mut advertisement = host("typed-state-host").advertisement().clone();
+    if optional_keep {
+        advertisement
+            .capabilities
+            .retain(|offer| offer.kind_id.as_str() != STATE_VALUE_KIND);
+        advertisement
+            .capabilities
+            .push(conduit_std_offers::state_value_std_offer("Cell", &ty).unwrap());
+    }
     advertisement.capabilities.extend([source, sink]);
     (form, advertisement, next)
 }
@@ -221,7 +257,7 @@ fn run(
 
 #[test]
 fn typed_state_runs_in_the_installed_kernel_and_unsealed_state_refuses() {
-    let (form, advertisement, next) = fixture(false, false);
+    let (form, advertisement, next) = fixture(false, false, false);
     let (ordinary, sealed) = plans(&form, &advertisement, 60);
 
     assert!(run(&advertisement, &ordinary.fragments[0], None)
@@ -232,7 +268,7 @@ fn typed_state_runs_in_the_installed_kernel_and_unsealed_state_refuses() {
         .expect("typed State executes through the installed kernel");
     assert_eq!(report.states.len(), 1);
     let retained = report.states[0].provenance();
-    assert_eq!(retained.current_value, leaf_bytes(&next));
+    assert_eq!(retained.current_value, state_bytes(&next));
     assert_eq!(retained.generation, 2);
     assert_eq!(retained.source_play.plan_id, sealed.plan_id);
     assert_eq!(retained.source_form, form.identity());
@@ -243,7 +279,7 @@ fn typed_state_runs_in_the_installed_kernel_and_unsealed_state_refuses() {
 
 #[test]
 fn initialized_keep_plans_and_runs_as_installed_typed_state() {
-    let (form, advertisement, next) = fixture(false, true);
+    let (form, advertisement, next) = fixture(false, true, false);
     let state_gear = form
         .gears
         .iter()
@@ -285,7 +321,7 @@ fn initialized_keep_plans_and_runs_as_installed_typed_state() {
         .expect("canonical KEEP executes through the production typed State Back");
     assert_eq!(
         report.states[0].provenance().current_value,
-        leaf_bytes(&next)
+        state_bytes(&next)
     );
     assert_eq!(
         report.states[0].provenance().source_play.plan_id,
@@ -294,11 +330,110 @@ fn initialized_keep_plans_and_runs_as_installed_typed_state() {
 }
 
 #[test]
+fn optional_keep_plans_runs_and_retains_canonical_some_value() {
+    let (form, advertisement, _next) = fixture(false, true, true);
+    let state_gear = form
+        .gears
+        .iter()
+        .find(|gear| gear.kind_id.as_str() == STATE_VALUE_KIND)
+        .unwrap();
+    let optional_kind =
+        optional_info_type(StructuredInfoType::leaf(kind_id(BOOL_INFO_ID)).unwrap())
+            .unwrap()
+            .profile()
+            .unwrap()
+            .value_kind()
+            .clone();
+    assert_eq!(state_gear.inputs[0].value_kind, optional_kind);
+    assert_eq!(state_gear.outputs[0].value_kind, optional_kind);
+
+    let hosts = [advertisement.clone()];
+    let placements = conduit_planner::default_placements(&form, &hosts).unwrap();
+    let plan = conduit_planner::plan_with_connection_limits(
+        &form,
+        &hosts,
+        &placements,
+        &[BaseImplementationId::from(LOCAL_BASE_IMPLEMENTATION_ID)],
+        1,
+        100,
+    )
+    .unwrap();
+    let [state] = plan.fragments[0].states.as_slice() else {
+        panic!("optional KEEP must seal exactly one State boundary")
+    };
+    assert_eq!(state.value_kind, optional_kind);
+    assert_eq!(state.lifetime, StateLifetime::Play);
+
+    let report = run(&advertisement, &plan.fragments[0], None)
+        .expect("optional KEEP executes through the production typed State Back");
+    assert_eq!(
+        report.states[0].provenance().current_value.as_slice(),
+        state.initial_value.as_deref().unwrap()
+    );
+    assert_eq!(report.states[0].provenance().generation, 0);
+}
+
+#[test]
+fn optional_keep_continuity_preserves_exact_variant_and_generation() {
+    use conduit_planner::state_delay::continuity::{
+        seal_state_continuity, StateContinuityApproval,
+    };
+    let (form, source_host, _next) = fixture(false, true, true);
+    let plan_for = |advertisement: &HostAdvertisement| {
+        let hosts = [advertisement.clone()];
+        let placements = conduit_planner::default_placements(&form, &hosts).unwrap();
+        conduit_planner::plan_with_connection_limits(
+            &form,
+            &hosts,
+            &placements,
+            &[BaseImplementationId::from(LOCAL_BASE_IMPLEMENTATION_ID)],
+            1,
+            100,
+        )
+        .unwrap()
+    };
+    let source = plan_for(&source_host);
+    let first = run(&source_host, &source.fragments[0], None).unwrap();
+    let mut states = first.states;
+    assert_eq!(states[0].provenance().generation, 0);
+    let preserved = states[0].provenance().current_value.clone();
+
+    let mut destination_host = source_host.clone();
+    destination_host.boot_id = "optional-replacement-boot".into();
+    let candidate = plan_for(&destination_host);
+    let replacement = seal_state_continuity(
+        &source,
+        &candidate,
+        states[0].provenance().clone(),
+        &StateContinuityApproval {
+            source_plan: source.plan_id.clone(),
+            destination_plan: candidate.plan_id.clone(),
+            state: states[0].provenance().source_state.clone(),
+            maximum_value_bytes: candidate.fragments[0].states[0].maximum_value_bytes,
+        },
+    )
+    .unwrap();
+    let second = run(
+        &destination_host,
+        &replacement.fragments[0],
+        Some(&mut states),
+    )
+    .unwrap();
+    assert!(states.is_empty());
+    assert_eq!(second.states[0].provenance().generation, 0);
+    assert_eq!(second.states[0].provenance().current_value, preserved);
+    assert_eq!(
+        second.states[0].provenance().source_play.plan_id,
+        replacement.plan_id
+    );
+}
+
+#[test]
 fn public_host_replaces_play_with_owned_state_and_fresh_boot_without_semantic_reset() {
     use conduit_planner::state_delay::continuity::{
         seal_state_continuity, StateContinuityApproval,
     };
-    let (form, source_host, next) = fixture(true, false);
+    let (form, source_host, next) = fixture(true, false, false);
     let (_, source) = plans(&form, &source_host, 60);
     let first = run(&source_host, &source.fragments[0], None).unwrap();
     let old_play = first.report.kernel.as_ref().unwrap().active_play_id.clone();
@@ -338,7 +473,7 @@ fn public_host_replaces_play_with_owned_state_and_fresh_boot_without_semantic_re
         retained.generation, 4,
         "replacement must not renew State generation"
     );
-    assert_eq!(retained.current_value, leaf_bytes(&next));
+    assert_eq!(retained.current_value, state_bytes(&next));
     assert_eq!(retained.source_form, form.identity());
     assert_eq!(retained.source_play.plan_id, replacement.plan_id);
     assert_eq!(retained.source_play.boot_id, destination_host.boot_id);

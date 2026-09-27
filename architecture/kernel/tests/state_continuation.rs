@@ -208,7 +208,8 @@ fn a_larger_transition_allowance_executes_the_same_input_without_hiding_exhausti
 
 #[test]
 fn derived_emission_capacity_is_checked_before_back_start() {
-    let state = StateDelay::<65>::externally_continued(0, 65, &[0]).unwrap();
+    const TOO_LARGE: usize = conduit_kernel::CanonicalValue::MAXIMUM_BYTES + 1;
+    let state = StateDelay::<TOO_LARGE>::externally_continued(0, TOO_LARGE, &[0]).unwrap();
     assert!(matches!(
         StateBack::new(state, PortId(0), PortId(0)),
         Err(conduit_kernel::state_delay::StateError::InvalidBounds)
