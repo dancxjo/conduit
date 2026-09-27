@@ -54,6 +54,7 @@ mod temporal;
 mod temporal_civil_conversion;
 mod temporal_clock;
 mod temporal_quantity;
+mod terminal_info;
 
 pub use base_capability::*;
 pub use base_registry::*;
@@ -104,6 +105,7 @@ pub use temporal::*;
 pub use temporal_civil_conversion::*;
 pub use temporal_clock::*;
 pub use temporal_quantity::*;
+pub use terminal_info::*;
 
 pub const PROTOCOL_VERSION: u16 = 1;
 pub const DEFAULT_CONNECTION_ITEM_CAPACITY: u16 = 4;

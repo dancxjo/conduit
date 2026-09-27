@@ -4,6 +4,7 @@ use conduit_core::*;
 fn primitive_registry_is_exact_and_has_no_boolean_alias() {
     let registered = [
         (UNIT_INFO_ID, PrimitiveInfoKind::Unit),
+        (TERMINAL_INFO_ID, PrimitiveInfoKind::Terminal),
         (BOOL_INFO_ID, PrimitiveInfoKind::Bool),
         (COUNT_INFO_ID, PrimitiveInfoKind::Count),
         (SCALAR_INFO_ID, PrimitiveInfoKind::Scalar),
