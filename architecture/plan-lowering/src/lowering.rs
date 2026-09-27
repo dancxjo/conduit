@@ -154,6 +154,21 @@ pub struct LoweredRemoteEndpoint {
     pub line: AdmittedLine,
 }
 
+/// Numeric kernel binding for one plan-sealed external Fore port.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct LoweredFrontPort {
+    pub front_port_id: PlanPortId,
+    pub direction: PortDirection,
+    pub track: conduit_core::ConnectionTrack,
+    pub endpoint: RemoteEndpointId,
+    pub cord: CordId,
+    pub value_kind: KindId,
+    pub abnormal_kind: Option<KindId>,
+    pub temporal: conduit_core::PortTemporal,
+    pub item_capacity: u16,
+    pub byte_capacity: u32,
+}
+
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct LoweredRoute {
     pub source_node: NodeId,
@@ -568,6 +583,7 @@ pub struct LoweredPlanFragment {
     pub cords: Vec<LoweredCord>,
     pub fusions: Vec<LoweredFusion>,
     pub remote_endpoints: Vec<LoweredRemoteEndpoint>,
+    pub front_ports: Vec<LoweredFrontPort>,
     pub routes: Vec<LoweredRoute>,
     pub host_calls: Vec<LoweredHostCall>,
     pub resources: Vec<LoweredResource>,
@@ -819,6 +835,86 @@ pub fn lower_plan_fragment_for_profile(
         });
     }
 
+    let mut front_ports = Vec::with_capacity(fragment.front_ports.len());
+    for planned in &fragment.front_ports {
+        if planned.item_capacity == 0 || planned.byte_capacity == 0 {
+            return Err(LoweringError::InvalidConnectionBudget(ConnectionId::from(
+                planned.front_port_id.as_str(),
+            )));
+        }
+        let node = placement_nodes
+            .get(&planned.placement_id)
+            .copied()
+            .ok_or_else(|| {
+                LoweringError::UnknownConnectionEndpoint(ConnectionId::from(
+                    planned.front_port_id.as_str(),
+                ))
+            })?;
+        let ports = match planned.direction {
+            PortDirection::Input => &nodes[usize::from(node.0)].inputs,
+            PortDirection::Output => &nodes[usize::from(node.0)].outputs,
+        };
+        let port = find_port(ports, &planned.gear_port_id).ok_or_else(|| {
+            LoweringError::UnknownConnectionPort(ConnectionId::from(planned.front_port_id.as_str()))
+        })?;
+        let descriptor = &ports[usize::from(port.0)];
+        if descriptor.value_kind != planned.value_kind || descriptor.temporal != planned.temporal {
+            return Err(LoweringError::ConnectionContractMismatch(
+                ConnectionId::from(planned.front_port_id.as_str()),
+            ));
+        }
+        let cord = CordId(as_u16(cords.len())?);
+        let endpoint = RemoteEndpointId(as_u16(remote_endpoints.len() + front_ports.len())?);
+        let capacity = CordCapacity {
+            slot_start: value_slots,
+            item_capacity: planned.item_capacity,
+            byte_capacity: planned.byte_capacity,
+            pressure_policy: lower_pressure_policy(planned.pressure_policy),
+        };
+        value_slots = value_slots
+            .checked_add(planned.item_capacity)
+            .ok_or(LoweringError::CapacityOverflow)?;
+        value_bytes = value_bytes
+            .checked_add(planned.byte_capacity)
+            .ok_or(LoweringError::CapacityOverflow)?;
+        let spec = match planned.direction {
+            PortDirection::Input => {
+                let input = &mut node_specs[usize::from(node.0)].input_cords[usize::from(port.0)];
+                if input.replace(cord).is_some() {
+                    return Err(LoweringError::MultipleConnectionsToInput {
+                        placement_id: planned.placement_id.clone(),
+                        port_id: planned.gear_port_id.clone(),
+                    });
+                }
+                CordSpec::remote_ingress(cord, endpoint, (node, port), capacity)
+            }
+            PortDirection::Output => {
+                CordSpec::remote_egress(cord, (node, port), endpoint, capacity)
+            }
+        }
+        .with_track(lower_connection_track(planned.track));
+        cords.push(LoweredCord {
+            connection_id: ConnectionId::from(alloc::format!(
+                "front/{}/{}",
+                planned.direction as u8,
+                planned.front_port_id.as_str()
+            )),
+            spec,
+        });
+        front_ports.push(LoweredFrontPort {
+            front_port_id: planned.front_port_id.clone(),
+            direction: planned.direction,
+            track: planned.track,
+            endpoint,
+            cord,
+            value_kind: planned.value_kind.clone(),
+            abnormal_kind: planned.abnormal_kind.clone(),
+            temporal: planned.temporal,
+            item_capacity: planned.item_capacity,
+            byte_capacity: planned.byte_capacity,
+        });
+    }
+
     let routes = lower_routes(&cords)?;
     let mut host_calls = Vec::new();
     let mut resources = Vec::new();
@@ -930,6 +1026,7 @@ pub fn lower_plan_fragment_for_profile(
         cords,
         fusions,
         remote_endpoints,
+        front_ports,
         routes,
         host_calls,
         resources,
