@@ -249,10 +249,13 @@ The recorded source commit remains distinct from the current release commit.
 Model repetitions and weak phrasing are preserved rather than rewritten into
 an invented dialogue. See the retained recording's README for its exact limits.
 Release promotion does not run this publisher. `journey-publication.yml` runs
-only after the accepted software carrier has deployed, consumes immutable
-claim-specific artifacts from the successful promotion, and refuses to replace
-Pages if `main` has advanced. Its failure leaves both the release and the base
-software publication intact.
+only after the accepted software carrier has deployed. The successful Pages run
+retains one normalized exact base carrier for the downstream workflow regardless
+of whether those bytes were inherited or freshly fabricated. The publisher
+consumes immutable native/browser claim evidence from promotion, creates the
+gallery-only One Form, Two Fronts and Little Life evidence against the accepted
+source, and refuses to replace Pages if `main` has advanced. Its failure leaves
+both the release and the base software publication intact.
 
 `cargo xtask evidence check-three-body-journey --publication-root <directory>
 --output <new-review-directory>` checks the assembled documentary in the pinned

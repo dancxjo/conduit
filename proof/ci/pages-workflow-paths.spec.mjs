@@ -156,7 +156,9 @@ test("product jobs build the immutable PR head and deployments queue", () => {
   const journeyWorkflow = readFileSync(".github/workflows/journey-publication.yml", "utf8");
   assert.match(journeyWorkflow, /workflow_dispatch:/);
   assert.match(journeyWorkflow, /name: conduit-release-publication-context/);
-  assert.match(journeyWorkflow, /name: conduit-pages-carrier/);
+  assert.match(journeyWorkflow, /name: \$\{\{ steps\.context\.outputs\.carrier_name \}\}/);
+  assert.match(journeyWorkflow, /run-id: \$\{\{ steps\.context\.outputs\.carrier_run_id \}\}/);
+  assert.match(journeyWorkflow, /test "\$carrier_run_id" = "\$PAGES_RUN_ID"/);
   assert.match(journeyWorkflow, /conduit-browser-body-journey-/);
   assert.match(journeyWorkflow, /name: conduitos-x86-batch-/);
   assert.match(journeyWorkflow, /cargo xtask evidence one-form-two-fronts --locked/);
@@ -221,12 +223,19 @@ test("Pages execute explicitly selects the carrier even for metadata-only change
   assert.match(consumer, /needs: \[resolve, integration-products\]/);
   assert.match(consumer, /needs\.integration-products\.result == 'success'/);
   assert.match(consumer, /name: conduit-pages-carrier/);
+  assert.match(consumer, /if: needs\.resolve\.outputs\.disposition == 'inherited'[\s\S]*?run-id: \$\{\{ needs\.resolve\.outputs\.run_id \}\}/);
+  assert.match(consumer, /if: needs\.resolve\.outputs\.disposition == 'execute'[\s\S]*?name: conduit-pages-carrier/);
   assert.match(consumer, /verify-pages-carrier\.mjs target\/pages-carrier "\$EXPECTED_TREE"/);
   assert.match(consumer, /Install exact current-product truth and reseal the publication carrier/);
   assert.match(consumer, /if: needs\.resolve\.outputs\.direct_main != 'true'/);
   assert.match(consumer, /git fetch --no-tags origin dev/);
   assert.match(consumer, /emit-current-product-truth\.mjs/);
   assert.match(consumer, /target\/pages-carrier-with-truth/);
+  assert.match(consumer, /name: conduit-release-pages-carrier-\$\{\{ needs\.resolve\.outputs\.source_head \}\}/);
+  assert.match(consumer, /path: target\/pages-carrier/);
+  assert.match(consumer, /CARRIER_RUN_ID: \$\{\{ github\.run_id \}\}/);
+  assert.match(consumer, /--arg schema conduit\.release-publication-context\/v2/);
+  assert.match(consumer, /carrier_run_id:\$carrier_run_id/);
   assert.match(
     consumer,
     /needs\.resolve\.outputs\.direct_main == 'true' && 'target\/pages-carrier\/site' \|\| 'target\/pages-carrier-with-truth\/site'/,

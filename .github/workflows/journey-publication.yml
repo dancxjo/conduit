@@ -50,9 +50,10 @@ jobs:
         run: |
           set -euo pipefail
           context=target/release-publication-context/context.json
-          test "$(jq -r .schema "$context")" = conduit.release-publication-context/v1
+          test "$(jq -r .schema "$context")" = conduit.release-publication-context/v2
           test "$(jq -r .repository "$context")" = "$GITHUB_REPOSITORY"
           promotion_run_id=$(jq -r .promotion_run_id "$context")
+          carrier_run_id=$(jq -r .carrier_run_id "$context")
           carrier_name=$(jq -r .carrier_name "$context")
           release_pr=$(jq -r .release_pr "$context")
           source_commit=$(jq -r .source_commit "$context")
@@ -60,7 +61,9 @@ jobs:
           main_commit=$(jq -r .main_commit "$context")
           main_tree=$(jq -r .main_tree "$context")
           [[ "$promotion_run_id" =~ ^[1-9][0-9]*$ ]]
-          test "$carrier_name" = conduit-pages-carrier
+          [[ "$carrier_run_id" =~ ^[1-9][0-9]*$ ]]
+          test "$carrier_run_id" = "$PAGES_RUN_ID"
+          test "$carrier_name" = "conduit-release-pages-carrier-$source_commit"
           [[ "$release_pr" =~ ^[1-9][0-9]*$ ]]
           [[ "$source_commit" =~ ^[0-9a-f]{40}$ ]]
           [[ "$source_tree" =~ ^[0-9a-f]{40}$ ]]
@@ -79,6 +82,8 @@ jobs:
           test "$source_tree" = "$main_tree"
           {
             echo "promotion_run_id=$promotion_run_id"
+            echo "carrier_run_id=$carrier_run_id"
+            echo "carrier_name=$carrier_name"
             echo "release_pr=$release_pr"
             echo "source_commit=$source_commit"
             echo "source_tree=$source_tree"
@@ -101,10 +106,10 @@ jobs:
       - name: Receive the accepted software carrier
         uses: actions/download-artifact@v8
         with:
-          name: conduit-pages-carrier
+          name: ${{ steps.context.outputs.carrier_name }}
           path: target/pages-carrier-base
           repository: ${{ github.repository }}
-          run-id: ${{ steps.context.outputs.promotion_run_id }}
+          run-id: ${{ steps.context.outputs.carrier_run_id }}
           github-token: ${{ github.token }}
       - name: Receive the producer-owned browser Body track
         uses: actions/download-artifact@v8

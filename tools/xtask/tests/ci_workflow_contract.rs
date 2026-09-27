@@ -791,6 +791,18 @@ fn promotion_is_independent_of_downstream_three_body_documentary() {
     assert!(journey.contains("host prove-local-model"));
     assert!(journey.contains("evidence stage-three-body-journey"));
     assert!(journey.contains("Refuse to overwrite a newer accepted release"));
+    assert!(journey.contains("test \"$carrier_run_id\" = \"$PAGES_RUN_ID\""));
+    assert!(journey.contains("name: ${{ steps.context.outputs.carrier_name }}"));
+    assert!(journey.contains("run-id: ${{ steps.context.outputs.carrier_run_id }}"));
+
+    let pages = fs::read_to_string(root.join(".github/workflows/tour-pages-deploy.yml"))
+        .expect("read Pages workflow");
+    assert!(pages.contains("if: needs.resolve.outputs.disposition == 'inherited'"));
+    assert!(pages.contains("if: needs.resolve.outputs.disposition == 'execute'"));
+    assert!(pages
+        .contains("name: conduit-release-pages-carrier-${{ needs.resolve.outputs.source_head }}"));
+    assert!(pages.contains("CARRIER_RUN_ID: ${{ github.run_id }}"));
+    assert!(pages.contains("--arg schema conduit.release-publication-context/v2"));
 }
 
 #[test]
