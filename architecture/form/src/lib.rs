@@ -878,7 +878,6 @@ fn push_terminal_transduction_text(
         NormalCloseTransduction as Normal,
     };
     let Some(profile) = profile else {
-        text.push_str("terminal-transduction:none|");
         return;
     };
     text.push_str("terminal-transduction:");

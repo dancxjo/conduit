@@ -126,7 +126,10 @@ pub fn compute_fragment_id(fragment: &PlanFragment) -> FragmentId {
         push_u32(&mut canonical, gear.limits.max_queue_bytes);
         push_ports(&mut canonical, &gear.inputs);
         push_ports(&mut canonical, &gear.outputs);
-        push_terminal_transduction(&mut canonical, gear.terminal_transduction.as_ref());
+        if let Some(profile) = gear.terminal_transduction.as_ref() {
+            push_string(&mut canonical, "terminal-transduction@1");
+            push_terminal_transduction(&mut canonical, profile);
+        }
         push_u32(&mut canonical, gear.host_calls.len() as u32);
         for requirement in &gear.host_calls {
             push_string(&mut canonical, requirement.contract_id.as_str());
@@ -327,17 +330,12 @@ pub fn compute_fragment_id(fragment: &PlanFragment) -> FragmentId {
 
 fn push_terminal_transduction(
     canonical: &mut Vec<u8>,
-    profile: Option<&crate::TerminalTransductionProfile>,
+    profile: &crate::TerminalTransductionProfile,
 ) {
     use crate::{
         AbnormalTerminalTransduction as Abnormal, CancellationTransduction as Cancellation,
         NormalCloseTransduction as Normal,
     };
-    let Some(profile) = profile else {
-        canonical.push(0);
-        return;
-    };
-    canonical.push(1);
     match &profile.normal_close {
         Normal::NotAccepted => canonical.push(0),
         Normal::PropagateAfterDrain => canonical.push(1),
