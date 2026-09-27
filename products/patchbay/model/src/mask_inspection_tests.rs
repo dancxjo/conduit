@@ -20,7 +20,7 @@ fn port(name: &str, kind: &str, direction: PortDirection) -> PortDescriptor {
     }
 }
 
-fn specification() -> MaskSpecification {
+fn mask_specification(name: &str) -> MaskSpecification {
     let stages = ["compose", "speak"]
         .into_iter()
         .enumerate()
@@ -53,7 +53,7 @@ fn specification() -> MaskSpecification {
         })
         .collect::<Vec<_>>();
     MaskSpecification::new(
-        "spoken",
+        name,
         1,
         stages,
         vec![MaskCordSpecification {
@@ -130,7 +130,9 @@ fn route(specification: &MaskSpecification) -> SealedMaskRoute {
 
 #[test]
 fn inspection_separates_portable_mask_exact_plan_and_replacement_fact() {
-    let specification = specification();
+    let specification = mask_specification("spoken");
+    let doffed = mask_specification("graphical");
+    let specification_id = specification.specification_id.clone();
     let planned = planned(&specification);
     let route = route(&specification);
     let wardrobe = MaskWardrobe::new(
@@ -146,7 +148,7 @@ fn inspection_separates_portable_mask_exact_plan_and_replacement_fact() {
 
     let projection = project_mask_inspection(
         &wardrobe,
-        &[specification],
+        &[specification, doffed.clone()],
         &[planned],
         &[route],
         &reconciliation,
@@ -154,7 +156,12 @@ fn inspection_separates_portable_mask_exact_plan_and_replacement_fact() {
     )
     .unwrap();
 
-    assert_eq!(projection.specifications.len(), 1);
+    assert_eq!(projection.specifications.len(), 2);
+    assert_eq!(
+        projection.doffed_specification_ids,
+        vec![doffed.specification_id]
+    );
+    assert!(projection.wardrobe.worn.contains(&specification_id));
     assert_eq!(projection.planned_masks[0].stages.len(), 2);
     assert_eq!(projection.planned_masks[0].cords[0].byte_capacity, 4096);
     assert!(!projection.routes[0].selected);
@@ -166,7 +173,7 @@ fn inspection_separates_portable_mask_exact_plan_and_replacement_fact() {
 
 #[test]
 fn route_must_be_one_connected_presentation_to_show_path() {
-    let specification = specification();
+    let specification = mask_specification("spoken");
     let planned = planned(&specification);
     let mut route = route(&specification);
     route.stage_ids.reverse();

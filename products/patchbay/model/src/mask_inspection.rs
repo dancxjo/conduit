@@ -12,6 +12,8 @@ use serde::{Deserialize, Serialize};
 #[serde(deny_unknown_fields)]
 pub struct MaskInspectionProjection {
     pub wardrobe: MaskWardrobe,
+    /// Known specifications currently ineligible under this wardrobe.
+    pub doffed_specification_ids: Vec<MaskSpecificationId>,
     /// Portable meaning, kept distinct from exact implementation choices.
     pub specifications: Vec<MaskSpecification>,
     /// Exact Back, Host, Boot, resource, Cord, and Line facts selected by Plan.
@@ -76,6 +78,13 @@ pub fn project_mask_inspection(
     show: Option<&MaskShow>,
 ) -> Result<MaskInspectionProjection, MaskInspectionError> {
     validate_catalogs(specifications, planned_masks)?;
+    if wardrobe.worn.iter().any(|worn| {
+        !specifications
+            .iter()
+            .any(|specification| specification.specification_id == *worn)
+    }) {
+        return Err(MaskInspectionError::MissingSpecification);
+    }
     for route in routes {
         validate_route(route, specifications, planned_masks)?;
     }
@@ -94,6 +103,11 @@ pub fn project_mask_inspection(
 
     Ok(MaskInspectionProjection {
         wardrobe: wardrobe.clone(),
+        doffed_specification_ids: specifications
+            .iter()
+            .filter(|specification| !wardrobe.worn.contains(&specification.specification_id))
+            .map(|specification| specification.specification_id.clone())
+            .collect(),
         specifications: specifications.to_vec(),
         planned_masks: planned_masks.to_vec(),
         routes: routes
