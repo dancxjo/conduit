@@ -1,16 +1,13 @@
+mod common;
+
 use std::collections::BTreeMap;
 
 use conduit_ai::{
-    install_llm_semantic_catalog, LlmDeterminismProfile, LlmWorkBounds, LocalModelCachePolicy,
-    LocalModelComputeNeed, LocalModelIdentity, LocalModelKindProfile, LocalModelLifecycleState,
-    LocalModelLimits, LocalModelOffer, LOCAL_MODEL_COMPUTE_RESOURCE,
-    LOCAL_MODEL_INFERENCE_SLOT_RESOURCE, LOCAL_MODEL_MEMORY_RESOURCE,
-    LOCAL_MODEL_QUEUE_ITEM_RESOURCE, LOCAL_MODEL_QUEUE_KIB_RESOURCE,
+    install_llm_semantic_catalog, LocalModelKindProfile, LOCAL_MODEL_COMPUTE_RESOURCE,
+    LOCAL_MODEL_INFERENCE_SLOT_RESOURCE,
 };
 use conduit_core::{
-    compute_resource_offer, resource_offer, ArchitectureBaseId, ArchitectureBaseKind, BootId,
-    ComputePoolContract, ComputeServiceGuarantee, HostAdvertisement, HostId, HostProfileId,
-    OfferGeneration, ResourceAdmissionOwner, ResourceHealth, ResourceObservation, SignId,
+    HostAdvertisement, ResourceAdmissionOwner, ResourceHealth, ResourceObservation, SignId,
 };
 use conduit_form::{ProfileCatalog, StartupCatalog};
 use conduit_planner::{
@@ -18,6 +15,8 @@ use conduit_planner::{
     DataFlowObservation, LocalityCandidate, LocalityPlanningBasis, ObservationProvenance,
     PlacementChoice, PlacementChoices, RealizationWorkObservation,
 };
+
+use common::local_model::{dual_local_model_providers, local_model_provider};
 
 fn provenance(id: &str) -> ObservationProvenance {
     ObservationProvenance {
@@ -37,96 +36,6 @@ fn checked_form() -> conduit_form::CheckedForm {
         &profiles,
     )
     .unwrap()
-}
-
-fn local_offer(model: &str, minimum: u32, preferred: u32, maximum: u32) -> LocalModelOffer {
-    LocalModelOffer {
-        identity: LocalModelIdentity {
-            runtime_name: "fixture-runtime".into(),
-            runtime_version: "1".into(),
-            runtime_build_identity: format!("runtime/{model}"),
-            model_name: model.into(),
-            model_content_identity: format!("sha256-{model}"),
-            architecture: "transformer".into(),
-            parameter_profile: "bounded".into(),
-            quantization: "fixture".into(),
-        },
-        limits: LocalModelLimits {
-            work: LlmWorkBounds {
-                maximum_input_bytes: 4_096,
-                maximum_context_items: 1,
-                maximum_output_bytes: 1_024,
-                maximum_work_units: 4_096,
-                maximum_history_items: 0,
-            },
-            model_bytes: 1,
-            admitted_memory_mib: 8,
-            compute: LocalModelComputeNeed {
-                minimum_lanes: minimum,
-                preferred_lanes: preferred,
-                maximum_lanes: maximum,
-                minimum_service_guarantee: ComputeServiceGuarantee::Shared,
-            },
-            maximum_in_flight: 1,
-            maximum_queue_items: 2,
-            maximum_queue_bytes: 8_192,
-            cancellation_supported: true,
-            cache_policy: LocalModelCachePolicy::OneLoadedModelUntilShutdown,
-        },
-        supported_profiles: vec![LocalModelKindProfile::Generate],
-        initialized: true,
-        lifecycle: LocalModelLifecycleState::Ready,
-        determinism: LlmDeterminismProfile::ProviderNondeterministic,
-    }
-}
-
-fn host(id: &str, lanes: u32, need: (u32, u32, u32)) -> HostAdvertisement {
-    let offer = local_offer(id, need.0, need.1, need.2);
-    let construction = format!(
-        "host {id} {{\n  schema = 1\n  target = {{architecture: \"x86_64\", machine: \"workstation\", os: \"linux\"}}\n  need = {{id: \"{id}/memory\", class: \"{LOCAL_MODEL_MEMORY_RESOURCE}\", slots: 8, bytes: 1}}\n  need = {{id: \"{id}/compute\", class: \"{LOCAL_MODEL_COMPUTE_RESOURCE}\", slots: {lanes}, bytes: 1}}\n  need = {{id: \"{id}/slot\", class: \"{LOCAL_MODEL_INFERENCE_SLOT_RESOURCE}\", slots: 1, bytes: 1}}\n  need = {{id: \"{id}/queue-items\", class: \"{LOCAL_MODEL_QUEUE_ITEM_RESOURCE}\", slots: 2, bytes: 1}}\n  need = {{id: \"{id}/queue-kib\", class: \"{LOCAL_MODEL_QUEUE_KIB_RESOURCE}\", slots: 8, bytes: 1}}\n  limits = {{static_memory_bytes: 16777216, heap_arena_bytes: 67108864, queue_items: 4096, buffered_bytes: 16777216, active_instances: 512, operation_slots: 256, timer_slots: 128, line_sessions: 64, evidence_items: 4096}}\n}}\n"
-    );
-    let checked = conduit_host_fabrication::check_host_configuration(
-        conduit_host_fabrication::parse_host_configuration_conduit(&construction).unwrap(),
-        &conduit_workspace_fabrication::catalog(),
-        &conduit_workspace_fabrication::package_set(),
-    )
-    .unwrap();
-    let mut resources = checked
-        .configuration()
-        .resources
-        .iter()
-        .map(|budget| {
-            if budget.class == LOCAL_MODEL_COMPUTE_RESOURCE {
-                compute_resource_offer(
-                    &budget.id,
-                    &budget.class,
-                    budget.slots,
-                    ComputePoolContract {
-                        service_guarantee: ComputeServiceGuarantee::Shared,
-                        architecture_base_id: ArchitectureBaseId::from(format!(
-                            "{id}/hosted-compute"
-                        )),
-                        architecture_base_kind: ArchitectureBaseKind::HostedOs,
-                        topology_groups: vec![],
-                    },
-                )
-            } else {
-                resource_offer(&budget.id, &budget.class, budget.slots)
-            }
-        })
-        .collect::<Vec<_>>();
-    resources.sort();
-    HostAdvertisement {
-        protocol_version: 1,
-        host_id: HostId::from(format!("host/{id}")),
-        boot_id: BootId::from(format!("boot/{id}/1")),
-        offer_generation: OfferGeneration(1),
-        profile: HostProfileId::from("conduit.host/local-model-fixture@1"),
-        bases: vec![],
-        resources,
-        capabilities: offer.capability_offers().unwrap(),
-        planner_capabilities: vec![],
-    }
 }
 
 fn candidate(
@@ -224,7 +133,11 @@ fn set_available(
 fn cross_host_local_models_separate_hard_admission_from_observed_cost_selection() {
     let form = checked_form();
     let form_identity = form.checked_form_id.clone();
-    let hosts = vec![host("compact", 6, (2, 4, 6)), host("wide", 16, (4, 8, 12))];
+    let fixtures = dual_local_model_providers();
+    let hosts = fixtures
+        .iter()
+        .map(|fixture| fixture.advertisement.clone())
+        .collect::<Vec<_>>();
     let candidates = [
         candidate(&form, &hosts[0], "compact"),
         candidate(&form, &hosts[1], "wide"),
@@ -259,12 +172,98 @@ fn cross_host_local_models_separate_hard_admission_from_observed_cost_selection(
     assert_eq!(second.selected.candidate_id, "wide");
     assert_eq!(second.checked_form_id, form_identity);
     assert_eq!(first.checked_form_id, second.checked_form_id);
+
+    let compact_plan = plan_with_hard_requirements(
+        &form,
+        &hosts,
+        &first.selected.placements,
+        &[],
+        &BTreeMap::new(),
+    )
+    .unwrap();
+    let wide_plan = plan_with_hard_requirements(
+        &form,
+        &hosts,
+        &second.selected.placements,
+        &[],
+        &BTreeMap::new(),
+    )
+    .unwrap();
+    let compact = &compact_plan.fragments[0].placements[0];
+    let wide = &wide_plan.fragments[0].placements[0];
+    assert_eq!(compact_plan.checked_form_id, wide_plan.checked_form_id);
+    assert_ne!(compact_plan.plan_id, wide_plan.plan_id);
+    assert_eq!(compact.kind_id, wide.kind_id);
+    assert_ne!(compact.host_id, wide.host_id);
+    assert_ne!(compact.boot_id, wide.boot_id);
+    assert_ne!(compact.artifact_id, wide.artifact_id);
+    assert_ne!(fixtures[0].provider.identity, fixtures[1].provider.identity);
+    assert_eq!(compact.host_id, fixtures[0].advertisement.host_id);
+    assert_eq!(compact.boot_id, fixtures[0].advertisement.boot_id);
+    assert_eq!(wide.host_id, fixtures[1].advertisement.host_id);
+    assert_eq!(wide.boot_id, fixtures[1].advertisement.boot_id);
+    for (planned, fixture) in [compact, wide].into_iter().zip(&fixtures) {
+        let offered = &fixture.advertisement.capabilities[0];
+        assert_eq!(planned.capability_id, offered.capability_id);
+        assert_eq!(
+            planned.implementation_id,
+            offered.implementation.implementation_id
+        );
+        assert_eq!(planned.artifact_id, offered.implementation.artifact_id);
+        assert_eq!(planned.kind_id, offered.kind_id);
+        assert_eq!(form.gears[0].checked_front(), offered.checked_front());
+    }
+}
+
+#[test]
+fn non_equivalent_local_model_profile_is_not_a_generate_substitute() {
+    let form = checked_form();
+    let generate = dual_local_model_providers()[0].clone();
+    let classify = local_model_provider(
+        "classifier",
+        6,
+        (2, 4, 6),
+        LocalModelKindProfile::ClassifyFiniteLabels,
+    );
+    let hosts = vec![generate.advertisement, classify.advertisement];
+    let candidates = [
+        candidate(&form, &hosts[0], "generate"),
+        candidate(&form, &hosts[1], "classify"),
+    ];
+
+    let selection = select_data_locality_candidate(
+        &form,
+        &hosts,
+        &candidates,
+        &basis(&form, &hosts, observations(&hosts), [20, 1]),
+        &[],
+    )
+    .unwrap();
+    assert_eq!(selection.selected.candidate_id, "generate");
+    assert!(matches!(
+        &selection.considered[1].disposition,
+        CandidatePlacementDisposition::Rejected(reason)
+            if reason.contains("does not offer the checked front")
+    ));
+    assert!(matches!(
+        plan_with_hard_requirements(
+            &form,
+            &hosts,
+            &candidates[1].placements,
+            &[],
+            &BTreeMap::new(),
+        ),
+        Err(conduit_planner::PlannerError::WrongSemanticKind(_))
+    ));
 }
 
 #[test]
 fn compute_slot_and_provider_pressure_are_hard_refusals_while_high_cost_is_not() {
     let form = checked_form();
-    let hosts = vec![host("compact", 6, (2, 4, 6)), host("wide", 16, (4, 8, 12))];
+    let hosts = dual_local_model_providers()
+        .into_iter()
+        .map(|fixture| fixture.advertisement)
+        .collect::<Vec<_>>();
     let candidates = [
         candidate(&form, &hosts[0], "compact"),
         candidate(&form, &hosts[1], "wide"),
@@ -339,7 +338,7 @@ fn compute_slot_and_provider_pressure_are_hard_refusals_while_high_cost_is_not()
 #[test]
 fn selected_need_becomes_exact_plan_binding_then_owner_admission() {
     let form = checked_form();
-    let host = host("compact", 6, (2, 4, 6));
+    let host = dual_local_model_providers()[0].advertisement.clone();
     let placements = candidate(&form, &host, "compact").placements;
     let plan = plan_with_hard_requirements(
         &form,
