@@ -310,6 +310,10 @@ pub struct ExpandedAuthoringForm {
     pub front: CheckedFront,
     pub input_bindings: Vec<AuthoringFrontBinding>,
     pub output_bindings: Vec<AuthoringFrontBinding>,
+    /// Exact typed abnormal truth which remains unresolved after the Form's
+    /// internal recovery routes. This is inferred checked meaning, not an
+    /// authored Fore spelling.
+    pub abnormal_export: Option<CheckedFormAbnormalExport>,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -318,6 +322,13 @@ pub struct AuthoringFrontBinding {
     pub gear_id: conduit_core::GearId,
     pub gear_port_id: conduit_core::PortId,
     pub track: conduit_core::ConnectionTrack,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct CheckedFormAbnormalExport {
+    pub value_kind: conduit_core::KindId,
+    pub gear_id: conduit_core::GearId,
+    pub gear_port_id: conduit_core::PortId,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]

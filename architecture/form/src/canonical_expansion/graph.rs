@@ -357,6 +357,104 @@ pub(super) fn resolve_reference(
     stage_for_instance(instance_name, instance, explicit_port)
 }
 
+pub(super) fn resolve_terminal_reference(
+    reference: &str,
+    terminal: crate::TerminalProjection,
+    instances: &BTreeMap<String, Instance>,
+    front_ports: &BTreeMap<&str, (&crate::RuntimePort, &conduit_core::PortDescriptor)>,
+) -> Result<Stage, CanonicalExpansionDiagnostic> {
+    if terminal == crate::TerminalProjection::Abnormal && !reference.contains('.') {
+        if let Some(endpoint) = instances
+            .get(reference)
+            .and_then(|instance| instance.abnormal.clone())
+        {
+            return Ok(Stage {
+                input: None,
+                output: Some(StageSource::Internal(endpoint)),
+            });
+        }
+    }
+    resolve_reference(reference, instances, front_ports)
+}
+
+/// Infer the one exact abnormal terminal which the containing Form must expose.
+///
+/// An exact `Recover` transduction discharges its source only after successful
+/// normal completion at runtime. Observation and ordinary abnormal routing do
+/// not. Multiple remaining origins cannot be collapsed without semantic fan-in,
+/// so expansion refuses rather than inventing an error bus.
+pub(super) fn infer_abnormal_export(
+    gears: &[CheckedGear],
+    connections: &[CheckedConnection],
+) -> Result<Option<TrackedEndpoint>, CanonicalExpansionDiagnostic> {
+    let recovery_edges = connections
+        .iter()
+        .filter(|connection| {
+            if connection.track != conduit_core::ConnectionTrack::AbnormalTerminal {
+                return false;
+            }
+            gears
+                .iter()
+                .find(|gear| gear.gear_id == connection.sink_gear_id)
+                .and_then(|gear| gear.terminal_transduction.as_ref())
+                .is_some_and(|contract| {
+                    contract.input_port_id == connection.sink_port_id
+                        && matches!(
+                            contract.abnormal,
+                            conduit_core::AbnormalTerminalTransduction::Recover
+                        )
+                })
+        })
+        .collect::<Vec<_>>();
+    for (index, edge) in recovery_edges.iter().enumerate() {
+        if recovery_edges[..index].iter().any(|other| {
+            (other.sink_gear_id == edge.sink_gear_id && other.sink_port_id == edge.sink_port_id)
+                || (other.source_gear_id == edge.source_gear_id
+                    && other.source_port_id == edge.source_port_id)
+        }) {
+            return Err(CanonicalExpansionDiagnostic::new(
+                "CND-FRM-054",
+                "projected abnormal recovery must bind one exact source to one exact recovery input"
+                    .into(),
+            ));
+        }
+    }
+    let recovered = recovery_edges
+        .iter()
+        .map(|connection| (&connection.source_gear_id, &connection.source_port_id))
+        .collect::<BTreeSet<_>>();
+
+    let mut unresolved = gears
+        .iter()
+        .flat_map(|gear| {
+            gear.outputs
+                .iter()
+                .filter(|port| port.abnormal_kind.is_some())
+                .filter(|port| !recovered.contains(&(&gear.gear_id, &port.port_id)))
+                .map(|port| TrackedEndpoint {
+                    endpoint: Endpoint {
+                        gear_id: gear.gear_id.clone(),
+                        port: port.clone(),
+                    },
+                    track: conduit_core::ConnectionTrack::AbnormalTerminal,
+                })
+        })
+        .collect::<Vec<_>>();
+    unresolved.sort_by(|left, right| {
+        (&left.gear_id, &left.port.port_id).cmp(&(&right.gear_id, &right.port.port_id))
+    });
+    match unresolved.len() {
+        0 => Ok(None),
+        1 => Ok(unresolved.pop()),
+        count => Err(CanonicalExpansionDiagnostic::new(
+            "CND-FRM-054",
+            format!(
+                "Form has {count} unresolved abnormal terminal origins; route exact recovery until one typed containing-Form terminal remains"
+            ),
+        )),
+    }
+}
+
 pub(super) fn stage_for_instance(
     instance_name: &str,
     instance: &Instance,

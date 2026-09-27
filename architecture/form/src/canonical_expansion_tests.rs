@@ -1,14 +1,25 @@
 use crate::prelude::*;
 
 use crate::{
-    check_syntax_document, expand_canonical_form, parse_syntax_document, ConfigurationValue,
-    ExpandedCanonicalForm, KindConfigurationField, KindConfigurationRule, KindProjection,
-    KindSignature, ProfileCatalog, StartupCatalog, StartupParameterSignature,
+    check_syntax_document, expand_canonical_form, expand_canonical_form_for_authoring,
+    parse_syntax_document, ConfigurationValue, ExpandedCanonicalForm, KindConfigurationField,
+    KindConfigurationRule, KindProjection, KindSignature, ProfileCatalog, StartupCatalog,
+    StartupParameterSignature,
 };
 use conduit_core::{
     kind_id, port_id, AbnormalTerminalTransduction, CancellationTransduction, CapabilityLimits,
     FrontStartupParameter, Kind, KindIdentity, KindSemanticLaw, NormalCloseTransduction,
     PortDescriptor, PortDirection, Quantity, QuantityUnit, TerminalTransductionProfile,
+};
+use conduit_kernel::scheduler::{
+    AssignedAbnormalTransduction, AssignedCancellationTransduction, AssignedConnectionTrack,
+    AssignedNormalCloseTransduction, AssignedTerminalTransduction, CordCapacity, CordSpec,
+    FixedScheduler, NodeSpec, SchedulerError, SchedulerStatus, StepBack, StepInputBytes, StepIo,
+    StepOutcome,
+};
+use conduit_kernel::{
+    CanonicalValue, CordEndpoint, CordId, FixedRoutes, FixedSignLog, FixedValueStore, NodeId,
+    PortId as KernelPortId, RouteRange, RouteTarget,
 };
 
 fn canonical_kind(projection: KindProjection) -> Kind {
@@ -656,6 +667,43 @@ fn terminal_catalogs() -> (StartupCatalog, ProfileCatalog) {
         }
         profile.insert_kind(kind).unwrap();
     }
+    let mut recovery = canonical_kind(KindProjection {
+        kind_id: kind_id("test/fault-recovery"),
+        kind_contract_revision: KindIdentity::from("test/fault-recovery@1"),
+        inputs: vec![PortDescriptor {
+            port_id: port_id("terminal"),
+            value_kind: kind_id("test/fault"),
+            direction: PortDirection::Input,
+            temporal: conduit_core::PortTemporal::Value,
+            abnormal_kind: Some(kind_id("test/fault")),
+        }],
+        outputs: vec![PortDescriptor {
+            port_id: port_id("recovered"),
+            value_kind: kind_id(conduit_core::UNIT_INFO_ID),
+            direction: PortDirection::Output,
+            temporal: conduit_core::PortTemporal::Value,
+            abnormal_kind: None,
+        }],
+        configuration: vec![],
+    });
+    recovery
+        .semantic_laws
+        .push(KindSemanticLaw::TerminalTransduction(
+            TerminalTransductionProfile {
+                input_port_id: port_id("terminal"),
+                output_port_id: port_id("recovered"),
+                normal_close: NormalCloseTransduction::NotAccepted,
+                abnormal: AbnormalTerminalTransduction::Recover,
+                cancellation: CancellationTransduction::NotCancellable,
+            },
+        ));
+    startup
+        .insert(KindSignature {
+            kind: "test/fault-recovery".into(),
+            startup_parameters: vec![],
+        })
+        .unwrap();
+    profile.insert_kind(recovery).unwrap();
     (startup, profile)
 }
 
@@ -776,6 +824,246 @@ fn terminal_projection_survives_a_nested_form_input_boundary() {
     assert_eq!(terminal.source_gear_id.as_str(), "main/source");
     assert_eq!(terminal.sink_gear_id.as_str(), "main/relay/finish");
     assert_eq!(terminal.value_kind.as_str(), conduit_core::UNIT_INFO_ID);
+}
+
+#[test]
+fn unhandled_child_abnormal_is_an_exact_separate_containing_form_export() {
+    let (startup, profile) = terminal_catalogs();
+    let source = "form child (\n output: test/value...| >>\n) {\n work: test/closing-source\n work >> output\n}\n\nform main {\n child: child\n explain: test/fault-sink\n child! >> explain\n}\n";
+    let checked = check_syntax_document(&parse_syntax_document(source), &startup).unwrap();
+
+    let child = expand_canonical_form_for_authoring(&checked, "child", &profile).unwrap();
+    assert_eq!(child.output_bindings.len(), 1);
+    assert_eq!(
+        child.output_bindings[0].track,
+        conduit_core::ConnectionTrack::Payload
+    );
+    let abnormal = child
+        .abnormal_export
+        .expect("unrecovered child terminal is a checked Form-level export");
+    assert_eq!(abnormal.value_kind.as_str(), "test/fault");
+    assert_eq!(abnormal.gear_id.as_str(), "child/work");
+    assert_eq!(abnormal.gear_port_id.as_str(), "out");
+
+    let main = expand_canonical_form(&checked, "main", &profile).unwrap();
+    let terminal = main
+        .connections
+        .iter()
+        .find(|connection| connection.track == conduit_core::ConnectionTrack::AbnormalTerminal)
+        .expect("outer child! resolves to the exact inner terminal origin");
+    assert_eq!(terminal.source_gear_id.as_str(), "main/child/work");
+    assert_eq!(terminal.source_port_id.as_str(), "out");
+    assert_eq!(terminal.value_kind.as_str(), "test/fault");
+    assert_eq!(terminal.sink_gear_id.as_str(), "main/explain");
+}
+
+#[test]
+fn inferred_form_abnormal_composes_recursively_without_payload_binding() {
+    let (startup, profile) = terminal_catalogs();
+    let source = "form leaf {\n work: test/closing-source\n}\n\nform middle {\n leaf: leaf\n}\n\nform main {\n middle: middle\n explain: test/fault-sink\n middle! >> explain\n}\n";
+    let checked = check_syntax_document(&parse_syntax_document(source), &startup).unwrap();
+    let expanded = expand_canonical_form(&checked, "main", &profile).unwrap();
+    let terminal = expanded
+        .connections
+        .iter()
+        .find(|connection| connection.track == conduit_core::ConnectionTrack::AbnormalTerminal)
+        .expect("outer Form projects its recursively inferred typed abnormal export");
+    assert_eq!(terminal.source_gear_id.as_str(), "main/middle/leaf/work");
+    assert_eq!(terminal.value_kind.as_str(), "test/fault");
+}
+
+#[test]
+fn exact_recovery_discharges_the_containing_form_abnormal_export() {
+    let (startup, profile) = terminal_catalogs();
+    let source = "form child {\n work: test/closing-source\n recover: test/fault-recovery\n work! >> recover\n}\n";
+    let checked = check_syntax_document(&parse_syntax_document(source), &startup).unwrap();
+    let child = expand_canonical_form_for_authoring(&checked, "child", &profile).unwrap();
+    assert!(child.abnormal_export.is_none());
+    assert_eq!(child.expanded.connections.len(), 1);
+    assert_eq!(
+        child.expanded.connections[0].track,
+        conduit_core::ConnectionTrack::AbnormalTerminal
+    );
+}
+
+#[test]
+fn multiple_unresolved_child_abnormals_refuse_implicit_fanin() {
+    let (startup, profile) = terminal_catalogs();
+    let source = "form child {\n first: test/closing-source\n second: test/closing-source\n}\n";
+    let checked = check_syntax_document(&parse_syntax_document(source), &startup).unwrap();
+    let error = expand_canonical_form_for_authoring(&checked, "child", &profile).unwrap_err();
+    assert_eq!(error.code, "CND-FRM-054");
+    assert!(error
+        .message
+        .contains("2 unresolved abnormal terminal origins"));
+}
+
+#[test]
+fn multiple_abnormal_origins_cannot_claim_one_implicit_recovery_input() {
+    let (startup, profile) = terminal_catalogs();
+    let source = "form child {\n first: test/closing-source\n second: test/closing-source\n recover: test/fault-recovery\n first! >> recover\n second! >> recover\n}\n";
+    let checked = check_syntax_document(&parse_syntax_document(source), &startup).unwrap();
+    let error = expand_canonical_form_for_authoring(&checked, "child", &profile).unwrap_err();
+    assert_eq!(error.code, "CND-FRM-054");
+    assert!(error.message.contains("one exact source"));
+}
+
+#[derive(Clone, Copy, Debug)]
+enum NestedTerminalDriver {
+    AbnormalSource,
+    Observer,
+    Recovery { phase: u8 },
+}
+
+impl StepBack<1> for NestedTerminalDriver {
+    fn terminal_transduction(&self) -> Option<AssignedTerminalTransduction> {
+        matches!(self, Self::Recovery { .. }).then_some(AssignedTerminalTransduction {
+            input: KernelPortId(0),
+            output: KernelPortId(0),
+            normal_close: AssignedNormalCloseTransduction::NotAccepted,
+            abnormal: AssignedAbnormalTransduction::Recover,
+            cancellation: AssignedCancellationTransduction::NotCancellable,
+        })
+    }
+
+    fn step(&mut self, io: &mut StepIo<1>, _input_bytes: &StepInputBytes<'_, 1>) -> StepOutcome {
+        match self {
+            Self::AbnormalSource => StepOutcome::Abnormal {
+                port: KernelPortId(0),
+                terminal: CanonicalValue::new(&[1, 0, 0x34, 0x12]).unwrap(),
+            },
+            Self::Observer => {
+                if io.input(KernelPortId(0)).is_some() {
+                    io.consume(KernelPortId(0)).unwrap();
+                    StepOutcome::Progress
+                } else if io.input_closed(KernelPortId(0)) {
+                    io.consume_closed(KernelPortId(0)).unwrap();
+                    StepOutcome::Complete
+                } else {
+                    StepOutcome::Await
+                }
+            }
+            Self::Recovery { phase } if *phase == 0 => {
+                if io.input(KernelPortId(0)).is_none() {
+                    return StepOutcome::Await;
+                }
+                io.consume(KernelPortId(0)).unwrap();
+                *phase = 1;
+                StepOutcome::Progress
+            }
+            Self::Recovery { .. } => StepOutcome::Complete,
+        }
+    }
+}
+
+fn nested_terminal_scheduler(
+    sink: NestedTerminalDriver,
+) -> FixedScheduler<NestedTerminalDriver, FixedValueStore<2, 4>, FixedSignLog<16>, 2, 1, 1, 1, 2, 1>
+{
+    let mut routes = FixedRoutes::<2, 1>::new(1);
+    routes
+        .install(
+            NodeId(0),
+            KernelPortId(0),
+            RouteRange { start: 0, len: 1 },
+            &[RouteTarget {
+                cord: CordId(0),
+                sink: CordEndpoint::local(NodeId(1), KernelPortId(0)),
+            }],
+        )
+        .unwrap();
+    routes.seal().unwrap();
+    let mut scheduler = FixedScheduler::new(
+        [
+            NodeSpec {
+                input_cords: [None],
+                maximum_step_fuel: 3,
+            },
+            NodeSpec {
+                input_cords: [Some(CordId(0))],
+                maximum_step_fuel: 3,
+            },
+        ],
+        [CordSpec::local(
+            CordId(0),
+            (NodeId(0), KernelPortId(0)),
+            (NodeId(1), KernelPortId(0)),
+            CordCapacity {
+                slot_start: 0,
+                item_capacity: 1,
+                byte_capacity: 4,
+                pressure_policy: Default::default(),
+            },
+        )
+        .with_track(AssignedConnectionTrack::AbnormalTerminal)],
+        routes,
+        [NestedTerminalDriver::AbnormalSource, sink],
+        FixedValueStore::new(4).unwrap(),
+        FixedSignLog::new((16 * core::mem::size_of::<conduit_kernel::KernelEvent>()) as u32)
+            .unwrap(),
+    )
+    .unwrap();
+    scheduler
+        .bind_terminal_transductions([None, sink.terminal_transduction()])
+        .unwrap();
+    scheduler
+}
+
+#[test]
+fn nested_form_observation_does_not_hide_unhandled_root_abnormal() {
+    let (startup, profile) = terminal_catalogs();
+    let source = "form child {\n work: test/closing-source\n}\n\nform main {\n child: child\n explain: test/fault-sink\n child! >> explain\n}\n";
+    let checked = check_syntax_document(&parse_syntax_document(source), &startup).unwrap();
+    let expanded = expand_canonical_form(&checked, "main", &profile).unwrap();
+    assert_eq!(expanded.connections.len(), 1);
+    assert_eq!(
+        expanded.connections[0].source_gear_id.as_str(),
+        "main/child/work"
+    );
+    assert_eq!(
+        expanded.connections[0].track,
+        conduit_core::ConnectionTrack::AbnormalTerminal
+    );
+
+    let mut scheduler = nested_terminal_scheduler(NestedTerminalDriver::Observer);
+    let error = (0..6)
+        .find_map(|_| scheduler.step().err())
+        .expect("observed child abnormal remains unresolved at root drain");
+    assert!(matches!(
+        error,
+        SchedulerError::SemanticAbnormal {
+            node: NodeId(0),
+            port: KernelPortId(0),
+            ..
+        }
+    ));
+}
+
+#[test]
+fn nested_form_exact_recovery_clears_the_runtime_abnormal_obligation() {
+    let (startup, profile) = terminal_catalogs();
+    let source = "form child {\n work: test/closing-source\n recover: test/fault-recovery\n work! >> recover\n}\n\nform main {\n child: child\n}\n";
+    let checked = check_syntax_document(&parse_syntax_document(source), &startup).unwrap();
+    let expanded = expand_canonical_form(&checked, "main", &profile).unwrap();
+    assert_eq!(expanded.connections.len(), 1);
+    assert_eq!(
+        expanded.connections[0].source_gear_id.as_str(),
+        "main/child/work"
+    );
+    assert_eq!(
+        expanded.connections[0].sink_gear_id.as_str(),
+        "main/child/recover"
+    );
+
+    let mut scheduler = nested_terminal_scheduler(NestedTerminalDriver::Recovery { phase: 0 });
+    let mut status = SchedulerStatus::Progress { node: NodeId(0) };
+    for _ in 0..6 {
+        status = scheduler.step().unwrap();
+        if status == SchedulerStatus::Drained {
+            break;
+        }
+    }
+    assert_eq!(status, SchedulerStatus::Drained);
 }
 
 #[test]
