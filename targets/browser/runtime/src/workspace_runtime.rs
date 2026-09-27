@@ -22,6 +22,7 @@ thread_local! {
     static BODY: RefCell<Option<WorkspaceBody>> = const { RefCell::new(None) };
     static ADMISSIONS: RefCell<Option<AdmissionManager>> = const { RefCell::new(None) };
     static HOST_OFFERS: RefCell<CurrentHostOffers> = RefCell::new(CurrentHostOffers::new());
+    static BROWSER_MASK: RefCell<Option<crate::workspace_mask::BrowserMaskRuntime>> = const { RefCell::new(None) };
 }
 
 #[derive(Deserialize)]
@@ -116,6 +117,16 @@ enum Request {
         presentation_revision: u64,
         playback: conduit_workspace_model::tutorial::TutorialPlayback,
     },
+    PresentTutorialMask {
+        host_id: HostId,
+        boot_id: BootId,
+        revision: u64,
+        playback: conduit_workspace_model::tutorial::TutorialPlayback,
+    },
+    AcknowledgeTutorialMask {
+        acknowledgement: crate::workspace_mask::BrowserMaskAcknowledgement,
+    },
+    TutorialMaskObservation,
     InvitationView {
         invitation_id: String,
         body_id: String,
@@ -567,6 +578,32 @@ fn dispatch(request: Request) -> Result<Vec<u8>, Refusal> {
                     Refusal::new("TutorialPresenterRequest", format!("{error:?}"))
                 })?;
                 return encode(&request);
+            }
+            Request::PresentTutorialMask { host_id, boot_id, revision, playback } => {
+                let presentation = conduit_workspace_model::tutorial::face_presentation(
+                    current, revision, playback,
+                ).map_err(|error| Refusal::new("TutorialMaskPresentation", format!("{error:?}")))?;
+                let (runtime, effect) = crate::workspace_mask::BrowserMaskRuntime::prepare(
+                    current.evidence().body_id.clone(), host_id, boot_id, presentation,
+                ).map_err(|error| Refusal::new("TutorialMaskPrepare", error))?;
+                BROWSER_MASK.with(|slot| *slot.borrow_mut() = Some(runtime));
+                return encode(&effect);
+            }
+            Request::AcknowledgeTutorialMask { acknowledgement } => {
+                return BROWSER_MASK.with(|slot| {
+                    let mut slot = slot.borrow_mut();
+                    let runtime = slot.as_mut().ok_or("Browser Mask has not been prepared")?;
+                    runtime.acknowledge(&acknowledgement)
+                        .map_err(|error| Refusal::new("TutorialMaskAcknowledge", error))?;
+                    encode(&runtime.observation())
+                });
+            }
+            Request::TutorialMaskObservation => {
+                return BROWSER_MASK.with(|slot| {
+                    let slot = slot.borrow();
+                    let runtime = slot.as_ref().ok_or("Browser Mask has not been prepared")?;
+                    encode(&runtime.observation())
+                });
             }
             Request::InvitationView { invitation_id, body_id, body_name, expires_at_millis,
                 transfer_uri, revision, clipboard_available, share_available } => {
