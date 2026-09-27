@@ -284,11 +284,20 @@ fn planning_binds_exact_contract_profile_and_every_port() {
 #[test]
 fn planning_seals_canonical_terminal_transduction_into_the_exact_placement() {
     let profile = conduit_core::TerminalTransductionProfile {
-        normal_close: conduit_core::NormalCloseTransduction::PropagateAfterDrain,
+        input_port_id: conduit_core::port_id("terminal-in"),
+        output_port_id: conduit_core::port_id(conduit_signal::SIGNAL_PORT),
+        normal_close: conduit_core::NormalCloseTransduction::NotAccepted,
         abnormal: conduit_core::AbnormalTerminalTransduction::Recover,
         cancellation: conduit_core::CancellationTransduction::NotCancellable,
     };
     let mut pulse = conduit_signal::pulse_semantic_contract();
+    pulse.inputs.push(conduit_core::PortDescriptor {
+        port_id: conduit_core::port_id("terminal-in"),
+        value_kind: conduit_core::kind_id("test/terminal-input"),
+        direction: conduit_core::PortDirection::Input,
+        temporal: conduit_core::PortTemporal::Value,
+        abnormal_kind: Some(conduit_core::kind_id("test/terminal-input-abnormal")),
+    });
     pulse.configuration = vec![
         conduit_core::KindConfigurationField {
             key: "count".into(),
@@ -318,7 +327,7 @@ fn planning_seals_canonical_terminal_transduction_into_the_exact_placement() {
             profile.clone(),
         ));
     let mut catalog = conduit_form::ProfileCatalog::new();
-    catalog.insert_kind(pulse).unwrap();
+    catalog.insert_kind(pulse.clone()).unwrap();
     catalog
         .insert_kind(conduit_signal::show_semantic_contract())
         .unwrap();
@@ -327,7 +336,8 @@ fn planning_seals_canonical_terminal_transduction_into_the_exact_placement() {
         &catalog,
     )
     .unwrap();
-    let host = host();
+    let mut host = host();
+    host.capabilities[0].inputs = pulse.inputs.clone();
     let placements = default_placements(&form, std::slice::from_ref(&host)).unwrap();
     let planned = plan(
         &form,

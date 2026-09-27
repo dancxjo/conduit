@@ -119,6 +119,7 @@ pub enum LoweringError {
         placement_id: PlacementId,
         port_id: PlanPortId,
     },
+    InvalidTerminalTransduction(PlacementId),
     UnsupportedHostCallConcurrency(PlacementId),
     ResourceBindingInvalid(PlacementId),
     SignBudgetInvalid,
@@ -145,6 +146,82 @@ pub struct LoweredNode {
     pub maximum_step_fuel: u16,
     pub inputs: Vec<LoweredPort>,
     pub outputs: Vec<LoweredPort>,
+    pub terminal_transduction: Option<LoweredTerminalTransduction>,
+}
+
+/// Plan-sealed semantic terminal mapping with exact kernel port ordinals.
+/// Terminal payload types remain owned by the lowered ports; this separately
+/// preserves what the selected Back promises to do with terminal truth.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct LoweredTerminalTransduction {
+    pub input: PortId,
+    pub output: PortId,
+    pub cancellation_input: Option<PortId>,
+    pub profile: conduit_core::TerminalTransductionProfile,
+}
+
+impl LoweredTerminalTransduction {
+    pub fn assigned(&self) -> conduit_kernel::scheduler::AssignedTerminalTransduction {
+        use conduit_kernel::scheduler::{
+            AssignedAbnormalTransduction as Abnormal,
+            AssignedCancellationTransduction as Cancellation,
+            AssignedFiniteTerminalEmission as Emission, AssignedNormalCloseTransduction as Normal,
+            AssignedTerminalTransduction,
+        };
+        let emission = |bound: &conduit_core::FiniteTerminalEmission| Emission {
+            maximum_items: bound.maximum_items,
+            maximum_bytes: bound.maximum_bytes,
+        };
+        let identity = |kind: &conduit_core::KindId| {
+            conduit_core::semantic_digest("conduit/kind-identity", kind.as_str().as_bytes())
+        };
+        AssignedTerminalTransduction {
+            input: self.input,
+            output: self.output,
+            normal_close: match &self.profile.normal_close {
+                conduit_core::NormalCloseTransduction::NotAccepted => Normal::NotAccepted,
+                conduit_core::NormalCloseTransduction::PropagateAfterDrain => {
+                    Normal::PropagateAfterDrain
+                }
+                conduit_core::NormalCloseTransduction::Consume => Normal::Consume,
+                conduit_core::NormalCloseTransduction::FlushThenPropagate(bound) => {
+                    Normal::FlushThenPropagate(emission(bound))
+                }
+                conduit_core::NormalCloseTransduction::DomainSpecific { law } => {
+                    Normal::DomainSpecific { law: identity(law) }
+                }
+            },
+            abnormal: match &self.profile.abnormal {
+                conduit_core::AbnormalTerminalTransduction::NotAccepted => Abnormal::NotAccepted,
+                conduit_core::AbnormalTerminalTransduction::PropagateAfterDrain => {
+                    Abnormal::PropagateAfterDrain
+                }
+                conduit_core::AbnormalTerminalTransduction::Recover => Abnormal::Recover,
+                conduit_core::AbnormalTerminalTransduction::FinalizeThenPropagate(bound) => {
+                    Abnormal::FinalizeThenPropagate(emission(bound))
+                }
+                conduit_core::AbnormalTerminalTransduction::DomainSpecific { law } => {
+                    Abnormal::DomainSpecific { law: identity(law) }
+                }
+            },
+            cancellation: match &self.profile.cancellation {
+                conduit_core::CancellationTransduction::NotCancellable => {
+                    Cancellation::NotCancellable
+                }
+                conduit_core::CancellationTransduction::Request { disposition_kind } => {
+                    Cancellation::Request {
+                        input: self
+                            .cancellation_input
+                            .expect("checked cancellation request has one lowered input"),
+                        disposition_kind: identity(disposition_kind),
+                    }
+                }
+                conduit_core::CancellationTransduction::DomainSpecific { law } => {
+                    Cancellation::DomainSpecific { law: identity(law) }
+                }
+            },
+        }
+    }
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -660,6 +737,53 @@ pub fn lower_plan_fragment_for_profile(
             .and_then(|value| value.checked_add(placement.host_calls.len()))
             .ok_or(LoweringError::CapacityOverflow)
             .and_then(as_u16)?;
+        let terminal_transduction = placement
+            .terminal_transduction
+            .as_ref()
+            .map(|profile| {
+                let input = inputs
+                    .iter()
+                    .find(|port| port.port_id == profile.input_port_id)
+                    .map(|port| port.port)
+                    .ok_or_else(|| {
+                        LoweringError::InvalidTerminalTransduction(placement.placement_id.clone())
+                    })?;
+                let output = outputs
+                    .iter()
+                    .find(|port| port.port_id == profile.output_port_id)
+                    .map(|port| port.port)
+                    .ok_or_else(|| {
+                        LoweringError::InvalidTerminalTransduction(placement.placement_id.clone())
+                    })?;
+                let cancellation_input = if matches!(
+                    profile.cancellation,
+                    conduit_core::CancellationTransduction::Request { .. }
+                ) {
+                    Some(
+                        inputs
+                            .iter()
+                            .find(|port| {
+                                port.value_kind.as_str()
+                                    == conduit_core::CANCELLATION_REQUEST_INFO_ID
+                            })
+                            .map(|port| port.port)
+                            .ok_or_else(|| {
+                                LoweringError::InvalidTerminalTransduction(
+                                    placement.placement_id.clone(),
+                                )
+                            })?,
+                    )
+                } else {
+                    None
+                };
+                Ok(LoweredTerminalTransduction {
+                    input,
+                    output,
+                    cancellation_input,
+                    profile: profile.clone(),
+                })
+            })
+            .transpose()?;
         identity_ports.extend(
             inputs
                 .iter()
@@ -677,6 +801,7 @@ pub fn lower_plan_fragment_for_profile(
             maximum_step_fuel,
             inputs,
             outputs,
+            terminal_transduction: terminal_transduction.clone(),
         });
         node_specs.push(NodeSpec {
             input_cords,

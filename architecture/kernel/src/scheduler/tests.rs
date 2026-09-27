@@ -1,7 +1,8 @@
 use super::{
-    AssignedConnectionTrack, AssignedPressurePolicy, CordCapacity, CordSpec, FixedScheduler,
-    NodeSpec, RemoteIngressOutcome, SchedulerError, SchedulerStatus, StepBack, StepInputBytes,
-    StepIo, StepOutcome,
+    AssignedAbnormalTransduction, AssignedCancellationTransduction, AssignedConnectionTrack,
+    AssignedNormalCloseTransduction, AssignedPressurePolicy, AssignedTerminalTransduction,
+    CordCapacity, CordSpec, FixedScheduler, NodeSpec, RemoteIngressOutcome, SchedulerError,
+    SchedulerStatus, StepBack, StepInputBytes, StepIo, StepOutcome,
 };
 use crate::{
     BoundedValueRef, CanonicalValue, CordId, Failure, FailureCode, FixedHostCallBindings,
@@ -39,12 +40,86 @@ enum Driver {
     },
     TerminalSource,
     SemanticAbnormal,
+    TerminalPropagator {
+        observed: bool,
+    },
+    TerminalEvader,
+    TerminalCancellationEvader,
+    TerminalCancellationCompleter {
+        phase: u8,
+    },
+    TerminalFinalizer {
+        phase: u8,
+        terminal: Option<CanonicalValue>,
+    },
+    TerminalFlusher {
+        phase: u8,
+    },
     TerminalSink {
         observed_bytes: Option<usize>,
     },
 }
 
 impl StepBack<PORTS> for Driver {
+    fn terminal_transduction(&self) -> Option<AssignedTerminalTransduction> {
+        match self {
+            Self::TerminalPropagator { .. } | Self::TerminalEvader => {
+                Some(AssignedTerminalTransduction {
+                    input: PortId(0),
+                    output: PortId(0),
+                    normal_close: AssignedNormalCloseTransduction::PropagateAfterDrain,
+                    abnormal: AssignedAbnormalTransduction::PropagateAfterDrain,
+                    cancellation: AssignedCancellationTransduction::NotCancellable,
+                })
+            }
+            Self::TerminalCancellationEvader => Some(AssignedTerminalTransduction {
+                input: PortId(0),
+                output: PortId(0),
+                normal_close: AssignedNormalCloseTransduction::NotAccepted,
+                abnormal: AssignedAbnormalTransduction::NotAccepted,
+                cancellation: AssignedCancellationTransduction::Request {
+                    input: PortId(1),
+                    disposition_kind: [7; 32],
+                },
+            }),
+            Self::TerminalCancellationCompleter { .. } => Some(AssignedTerminalTransduction {
+                input: PortId(0),
+                output: PortId(0),
+                normal_close: AssignedNormalCloseTransduction::NotAccepted,
+                abnormal: AssignedAbnormalTransduction::NotAccepted,
+                cancellation: AssignedCancellationTransduction::Request {
+                    input: PortId(1),
+                    disposition_kind: [7; 32],
+                },
+            }),
+            Self::TerminalFinalizer { .. } => Some(AssignedTerminalTransduction {
+                input: PortId(0),
+                output: PortId(0),
+                normal_close: AssignedNormalCloseTransduction::NotAccepted,
+                abnormal: AssignedAbnormalTransduction::FinalizeThenPropagate(
+                    super::AssignedFiniteTerminalEmission {
+                        maximum_items: 2,
+                        maximum_bytes: 2,
+                    },
+                ),
+                cancellation: AssignedCancellationTransduction::NotCancellable,
+            }),
+            Self::TerminalFlusher { .. } => Some(AssignedTerminalTransduction {
+                input: PortId(0),
+                output: PortId(0),
+                normal_close: AssignedNormalCloseTransduction::FlushThenPropagate(
+                    super::AssignedFiniteTerminalEmission {
+                        maximum_items: 2,
+                        maximum_bytes: 2,
+                    },
+                ),
+                abnormal: AssignedAbnormalTransduction::NotAccepted,
+                cancellation: AssignedCancellationTransduction::NotCancellable,
+            }),
+            _ => None,
+        }
+    }
+
     fn step(
         &mut self,
         io: &mut StepIo<PORTS>,
@@ -143,6 +218,91 @@ impl StepBack<PORTS> for Driver {
             Self::SemanticAbnormal => StepOutcome::Abnormal {
                 port: PortId(0),
                 terminal: CanonicalValue::new(&[1, 0, 0x34, 0x12]).unwrap(),
+            },
+            Self::TerminalPropagator { observed } => {
+                let Some(terminal) = io.input_abnormal(PortId(0)) else {
+                    return StepOutcome::Await;
+                };
+                io.consume_abnormal(PortId(0)).unwrap();
+                *observed = true;
+                StepOutcome::Abnormal {
+                    port: PortId(0),
+                    terminal,
+                }
+            }
+            Self::TerminalEvader => StepOutcome::Await,
+            Self::TerminalCancellationEvader => {
+                let Some(_) = io.input(PortId(1)) else {
+                    return StepOutcome::Await;
+                };
+                io.consume(PortId(1)).unwrap();
+                StepOutcome::Complete
+            }
+            Self::TerminalCancellationCompleter { phase } => match *phase {
+                0 => {
+                    let Some(_) = io.input(PortId(1)) else {
+                        return StepOutcome::Await;
+                    };
+                    io.consume(PortId(1)).unwrap();
+                    *phase = 1;
+                    StepOutcome::Progress
+                }
+                1 => {
+                    io.exhaust_fuel();
+                    *phase = 2;
+                    StepOutcome::Yield
+                }
+                _ => StepOutcome::Abnormal {
+                    port: PortId(0),
+                    terminal: CanonicalValue::new(&[1]).unwrap(),
+                },
+            },
+            Self::TerminalFinalizer { phase, terminal } => match *phase {
+                0 => {
+                    let Some(observed) = io.input_abnormal(PortId(0)) else {
+                        return StepOutcome::Await;
+                    };
+                    io.consume_abnormal(PortId(0)).unwrap();
+                    io.send_canonical(PortId(0), CanonicalValue::new(&[1]).unwrap())
+                        .unwrap();
+                    *terminal = Some(observed);
+                    *phase = 1;
+                    StepOutcome::Progress
+                }
+                1 if !io.output_ready(PortId(0)) => StepOutcome::Await,
+                1 => {
+                    io.send_canonical(PortId(0), CanonicalValue::new(&[2]).unwrap())
+                        .unwrap();
+                    *phase = 2;
+                    StepOutcome::Progress
+                }
+                _ => StepOutcome::Abnormal {
+                    port: PortId(0),
+                    terminal: terminal.expect("finalizer retained exact terminal"),
+                },
+            },
+            Self::TerminalFlusher { phase } => match *phase {
+                0 => {
+                    if !io.input_closed(PortId(0)) {
+                        return StepOutcome::Await;
+                    }
+                    if !io.output_ready(PortId(0)) {
+                        return StepOutcome::Await;
+                    }
+                    io.consume_closed(PortId(0)).unwrap();
+                    io.send_canonical(PortId(0), CanonicalValue::new(&[1]).unwrap())
+                        .unwrap();
+                    *phase = 1;
+                    StepOutcome::Progress
+                }
+                1 if !io.output_ready(PortId(0)) => StepOutcome::Await,
+                1 => {
+                    io.send_canonical(PortId(0), CanonicalValue::new(&[2]).unwrap())
+                        .unwrap();
+                    *phase = 2;
+                    StepOutcome::Progress
+                }
+                _ => StepOutcome::Complete,
             },
             Self::TerminalSink { observed_bytes } => {
                 if io.input(PortId(0)).is_some() {
@@ -502,10 +662,524 @@ fn remote_payload_terminal_retains_exact_abnormal_truth() {
         ),
         Err(SchedulerError::RemoteDeliveryRejected)
     );
+    assert_eq!(ingress.step(), Err(SchedulerError::InvalidPlan));
+}
+
+#[test]
+fn a_back_observes_and_transduces_exact_abnormal_input_truth() {
+    let remote = RemoteEndpointId(0);
+    let mut routes = FixedRoutes::<2, 1>::new(PORTS as u16);
+    routes
+        .install(
+            NodeId(0),
+            PortId(0),
+            RouteRange { start: 0, len: 1 },
+            &[RouteTarget {
+                cord: CordId(1),
+                sink: crate::CordEndpoint::local(NodeId(1), PortId(0)),
+            }],
+        )
+        .unwrap();
+    routes.seal().unwrap();
+    let signs = FixedSignLog::<16>::new_with_remote_storage(
+        (16 * core::mem::size_of::<crate::KernelEvent>()) as u32,
+        8,
+        crate::remote_sign_storage_bytes(8).unwrap(),
+    )
+    .unwrap();
+    let ingress_capacity = CordCapacity {
+        slot_start: 0,
+        item_capacity: 1,
+        byte_capacity: 4,
+        pressure_policy: Default::default(),
+    };
+    let mut terminal_capacity = ingress_capacity;
+    terminal_capacity.slot_start = 1;
+    let mut scheduler = FixedScheduler::<_, _, _, 2, 2, PORTS, 2, 2, 1>::new(
+        [node([Some(CordId(0)), None]), node([Some(CordId(1)), None])],
+        [
+            CordSpec::remote_ingress(CordId(0), remote, (NodeId(0), PortId(0)), ingress_capacity),
+            CordSpec::local(
+                CordId(1),
+                (NodeId(0), PortId(0)),
+                (NodeId(1), PortId(0)),
+                terminal_capacity,
+            )
+            .with_track(AssignedConnectionTrack::AbnormalTerminal),
+        ],
+        routes,
+        [
+            Driver::TerminalPropagator { observed: false },
+            Driver::TerminalSink {
+                observed_bytes: None,
+            },
+        ],
+        FixedValueStore::<2, 8>::new(8).unwrap(),
+        signs,
+    )
+    .unwrap();
+    assert_eq!(
+        scheduler.bind_terminal_transductions([
+            Some(AssignedTerminalTransduction {
+                input: PortId(0),
+                output: PortId(0),
+                normal_close: AssignedNormalCloseTransduction::PropagateAfterDrain,
+                abnormal: AssignedAbnormalTransduction::Recover,
+                cancellation: AssignedCancellationTransduction::NotCancellable,
+            }),
+            None,
+        ]),
+        Err(SchedulerError::InvalidPlan)
+    );
+    scheduler
+        .bind_terminal_transductions([
+            Some(AssignedTerminalTransduction {
+                input: PortId(0),
+                output: PortId(0),
+                normal_close: AssignedNormalCloseTransduction::PropagateAfterDrain,
+                abnormal: AssignedAbnormalTransduction::PropagateAfterDrain,
+                cancellation: AssignedCancellationTransduction::NotCancellable,
+            }),
+            None,
+        ])
+        .unwrap();
+    let terminal = CanonicalValue::new(&[1, 0, 0x34, 0x12]).unwrap();
+    scheduler
+        .close_remote_input_abnormal(remote, CordId(0), terminal)
+        .unwrap();
+    for _ in 0..6 {
+        if scheduler.step().unwrap() == SchedulerStatus::Drained {
+            break;
+        }
+    }
+    assert_eq!(scheduler.step().unwrap(), SchedulerStatus::Drained);
+    let Driver::TerminalPropagator { observed } = scheduler.drivers()[0] else {
+        panic!("terminal propagator")
+    };
+    assert!(observed);
+    let Driver::TerminalSink { observed_bytes } = scheduler.drivers()[1] else {
+        panic!("terminal sink")
+    };
+    assert_eq!(observed_bytes, Some(4));
+    assert!(scheduler
+        .signs()
+        .contains_kind(KernelEventKind::InputAbnormal));
+    assert!(scheduler
+        .signs()
+        .contains_kind(KernelEventKind::SemanticAbnormal));
+    assert!(!scheduler.signs().contains_kind(KernelEventKind::BackFailed));
+}
+
+#[test]
+fn a_back_cannot_evade_exposed_abnormal_truth_by_awaiting() {
+    let remote = RemoteEndpointId(0);
+    let mut routes = FixedRoutes::<1, 1>::new(PORTS as u16);
+    routes.seal().unwrap();
+    let signs = FixedSignLog::<8>::new_with_remote_storage(
+        (8 * core::mem::size_of::<crate::KernelEvent>()) as u32,
+        4,
+        crate::remote_sign_storage_bytes(4).unwrap(),
+    )
+    .unwrap();
+    let capacity = CordCapacity {
+        slot_start: 0,
+        item_capacity: 1,
+        byte_capacity: 4,
+        pressure_policy: Default::default(),
+    };
+    let mut scheduler = FixedScheduler::<_, _, _, 1, 1, PORTS, 1, 1, 1>::new(
+        [node([Some(CordId(0)), None])],
+        [CordSpec::remote_ingress(
+            CordId(0),
+            remote,
+            (NodeId(0), PortId(0)),
+            capacity,
+        )],
+        routes,
+        [Driver::TerminalEvader],
+        FixedValueStore::<1, 4>::new(4).unwrap(),
+        signs,
+    )
+    .unwrap();
+    scheduler
+        .bind_terminal_transductions([Some(
+            scheduler.drivers()[0].terminal_transduction().unwrap(),
+        )])
+        .unwrap();
+    scheduler
+        .close_remote_input_abnormal(
+            remote,
+            CordId(0),
+            CanonicalValue::new(&[1, 0, 0x34, 0x12]).unwrap(),
+        )
+        .unwrap();
+    assert_eq!(scheduler.step(), Err(SchedulerError::InvalidPlan));
+}
+
+#[test]
+fn a_cancellation_request_cannot_be_consumed_as_normal_completion() {
+    let remote = RemoteEndpointId(0);
+    let mut routes = FixedRoutes::<1, 1>::new(PORTS as u16);
+    routes.seal().unwrap();
+    let capacity = CordCapacity {
+        slot_start: 0,
+        item_capacity: 1,
+        byte_capacity: 1,
+        pressure_policy: Default::default(),
+    };
+    let mut scheduler = FixedScheduler::<_, _, _, 1, 1, PORTS, 1, 1, 1>::new(
+        [node([None, Some(CordId(0))])],
+        [CordSpec::remote_ingress(
+            CordId(0),
+            remote,
+            (NodeId(0), PortId(1)),
+            capacity,
+        )],
+        routes,
+        [Driver::TerminalCancellationEvader],
+        FixedValueStore::<1, 1>::new(1).unwrap(),
+        FixedSignLog::<8>::new_with_remote_storage(
+            (8 * core::mem::size_of::<crate::KernelEvent>()) as u32,
+            4,
+            crate::remote_sign_storage_bytes(4).unwrap(),
+        )
+        .unwrap(),
+    )
+    .unwrap();
+    let contract = scheduler.drivers()[0].terminal_transduction().unwrap();
+    scheduler
+        .bind_terminal_transductions([Some(contract)])
+        .unwrap();
+    assert_eq!(
+        scheduler
+            .admit_remote_input(remote, CordId(0), 0, &[1])
+            .unwrap(),
+        RemoteIngressOutcome::Accepted { sequence: 0 }
+    );
+    assert_eq!(scheduler.step(), Err(SchedulerError::InvalidPlan));
+}
+
+#[test]
+fn cancellation_request_remains_pending_until_typed_disposition_after_multiple_steps() {
+    let cancellation_ingress = RemoteEndpointId(0);
+    let disposition_egress = RemoteEndpointId(1);
+    let mut routes = FixedRoutes::<2, 1>::new(PORTS as u16);
+    routes
+        .install(
+            NodeId(0),
+            PortId(0),
+            RouteRange { start: 0, len: 1 },
+            &[RouteTarget {
+                cord: CordId(1),
+                sink: crate::CordEndpoint::Remote(disposition_egress),
+            }],
+        )
+        .unwrap();
+    routes.seal().unwrap();
+    let cancellation_capacity = CordCapacity {
+        slot_start: 0,
+        item_capacity: 1,
+        byte_capacity: 1,
+        pressure_policy: Default::default(),
+    };
+    let disposition_capacity = CordCapacity {
+        slot_start: 1,
+        item_capacity: 1,
+        byte_capacity: 1,
+        pressure_policy: Default::default(),
+    };
+    let mut scheduler = FixedScheduler::<_, _, _, 1, 2, PORTS, 2, 2, 1>::new(
+        [node([None, Some(CordId(0))])],
+        [
+            CordSpec::remote_ingress(
+                CordId(0),
+                cancellation_ingress,
+                (NodeId(0), PortId(1)),
+                cancellation_capacity,
+            ),
+            CordSpec::remote_egress(
+                CordId(1),
+                (NodeId(0), PortId(0)),
+                disposition_egress,
+                disposition_capacity,
+            )
+            .with_track(AssignedConnectionTrack::AbnormalTerminal),
+        ],
+        routes,
+        [Driver::TerminalCancellationCompleter { phase: 0 }],
+        FixedValueStore::<2, 2>::new(2).unwrap(),
+        FixedSignLog::<12>::new_with_remote_storage(
+            (12 * core::mem::size_of::<crate::KernelEvent>()) as u32,
+            8,
+            crate::remote_sign_storage_bytes(8).unwrap(),
+        )
+        .unwrap(),
+    )
+    .unwrap();
+    let contract = scheduler.drivers()[0].terminal_transduction().unwrap();
+    scheduler
+        .bind_terminal_transductions([Some(contract)])
+        .unwrap();
+    assert_eq!(
+        scheduler
+            .admit_remote_input(cancellation_ingress, CordId(0), 0, &[1])
+            .unwrap(),
+        RemoteIngressOutcome::Accepted { sequence: 0 }
+    );
+
     assert!(matches!(
-        ingress.step().unwrap(),
+        scheduler.step().unwrap(),
         SchedulerStatus::Progress { .. }
     ));
+    assert!(matches!(
+        scheduler.step().unwrap(),
+        SchedulerStatus::Progress { .. }
+    ));
+    assert!(matches!(
+        scheduler.step().unwrap(),
+        SchedulerStatus::Progress { .. }
+    ));
+    let disposition = scheduler
+        .remote_egress_offer(disposition_egress, CordId(1))
+        .unwrap()
+        .unwrap();
+    assert_eq!(scheduler.host_value(disposition.value).unwrap(), &[1]);
+    assert!(!scheduler.signs().contains_kind(KernelEventKind::BackFailed));
+}
+
+#[test]
+fn abnormal_finalization_is_finite_across_steps_and_output_pressure() {
+    let ingress = RemoteEndpointId(0);
+    let egress = RemoteEndpointId(1);
+    let abnormal_egress = RemoteEndpointId(2);
+    let mut routes = FixedRoutes::<2, 2>::new(PORTS as u16);
+    routes
+        .install(
+            NodeId(0),
+            PortId(0),
+            RouteRange { start: 0, len: 2 },
+            &[
+                RouteTarget {
+                    cord: CordId(1),
+                    sink: crate::CordEndpoint::Remote(egress),
+                },
+                RouteTarget {
+                    cord: CordId(2),
+                    sink: crate::CordEndpoint::Remote(abnormal_egress),
+                },
+            ],
+        )
+        .unwrap();
+    routes.seal().unwrap();
+    let ingress_capacity = CordCapacity {
+        slot_start: 0,
+        item_capacity: 1,
+        byte_capacity: 4,
+        pressure_policy: Default::default(),
+    };
+    let egress_capacity = CordCapacity {
+        slot_start: 1,
+        item_capacity: 1,
+        byte_capacity: 1,
+        pressure_policy: Default::default(),
+    };
+    let abnormal_capacity = CordCapacity {
+        slot_start: 2,
+        item_capacity: 1,
+        byte_capacity: 4,
+        pressure_policy: Default::default(),
+    };
+    let mut scheduler = FixedScheduler::<_, _, _, 1, 3, PORTS, 3, 2, 2>::new(
+        [node([Some(CordId(0)), None])],
+        [
+            CordSpec::remote_ingress(CordId(0), ingress, (NodeId(0), PortId(0)), ingress_capacity),
+            CordSpec::remote_egress(CordId(1), (NodeId(0), PortId(0)), egress, egress_capacity),
+            CordSpec::remote_egress(
+                CordId(2),
+                (NodeId(0), PortId(0)),
+                abnormal_egress,
+                abnormal_capacity,
+            )
+            .with_track(AssignedConnectionTrack::AbnormalTerminal),
+        ],
+        routes,
+        [Driver::TerminalFinalizer {
+            phase: 0,
+            terminal: None,
+        }],
+        FixedValueStore::<2, 4>::new(4).unwrap(),
+        FixedSignLog::<16>::new_with_remote_storage(
+            (16 * core::mem::size_of::<crate::KernelEvent>()) as u32,
+            12,
+            crate::remote_sign_storage_bytes(12).unwrap(),
+        )
+        .unwrap(),
+    )
+    .unwrap();
+    let contract = scheduler.drivers()[0].terminal_transduction().unwrap();
+    scheduler
+        .bind_terminal_transductions([Some(contract)])
+        .unwrap();
+    let terminal = CanonicalValue::new(&[1, 0, 0x34, 0x12]).unwrap();
+    scheduler
+        .close_remote_input_abnormal(ingress, CordId(0), terminal)
+        .unwrap();
+
+    assert!(matches!(
+        scheduler.step().unwrap(),
+        SchedulerStatus::Progress { .. }
+    ));
+    let first = scheduler
+        .remote_egress_offer(egress, CordId(1))
+        .unwrap()
+        .unwrap();
+    assert_eq!(scheduler.host_value(first.value).unwrap(), &[1]);
+    assert!(matches!(
+        scheduler.step().unwrap(),
+        SchedulerStatus::Progress { .. }
+    ));
+    scheduler
+        .remote_egress_accept(egress, CordId(1), first.sequence)
+        .unwrap();
+    scheduler
+        .remote_egress_delivered(egress, CordId(1), first.sequence)
+        .unwrap();
+
+    assert!(matches!(
+        scheduler.step().unwrap(),
+        SchedulerStatus::Progress { .. }
+    ));
+    let second = scheduler
+        .remote_egress_offer(egress, CordId(1))
+        .unwrap()
+        .unwrap();
+    assert_eq!(scheduler.host_value(second.value).unwrap(), &[2]);
+    scheduler
+        .remote_egress_accept(egress, CordId(1), second.sequence)
+        .unwrap();
+    scheduler
+        .remote_egress_delivered(egress, CordId(1), second.sequence)
+        .unwrap();
+
+    assert!(matches!(
+        scheduler.step().unwrap(),
+        SchedulerStatus::Progress { .. }
+    ));
+    assert_eq!(
+        scheduler
+            .remote_egress_abnormal_terminal(egress, CordId(1))
+            .unwrap()
+            .unwrap()
+            .as_slice(),
+        terminal.as_slice()
+    );
+    let abnormal = scheduler
+        .remote_egress_offer(abnormal_egress, CordId(2))
+        .unwrap()
+        .unwrap();
+    assert_eq!(
+        scheduler.host_value(abnormal.value).unwrap(),
+        terminal.as_slice()
+    );
+}
+
+#[test]
+fn normal_close_flush_is_finite_across_steps_and_output_pressure() {
+    let ingress = RemoteEndpointId(0);
+    let egress = RemoteEndpointId(1);
+    let mut routes = FixedRoutes::<2, 1>::new(PORTS as u16);
+    routes
+        .install(
+            NodeId(0),
+            PortId(0),
+            RouteRange { start: 0, len: 1 },
+            &[RouteTarget {
+                cord: CordId(1),
+                sink: crate::CordEndpoint::Remote(egress),
+            }],
+        )
+        .unwrap();
+    routes.seal().unwrap();
+    let capacity = CordCapacity {
+        slot_start: 0,
+        item_capacity: 1,
+        byte_capacity: 1,
+        pressure_policy: Default::default(),
+    };
+    let mut scheduler = FixedScheduler::<_, _, _, 1, 2, PORTS, 2, 2, 1>::new(
+        [node([Some(CordId(0)), None])],
+        [
+            CordSpec::remote_ingress(CordId(0), ingress, (NodeId(0), PortId(0)), capacity),
+            CordSpec::remote_egress(
+                CordId(1),
+                (NodeId(0), PortId(0)),
+                egress,
+                CordCapacity {
+                    slot_start: 1,
+                    ..capacity
+                },
+            ),
+        ],
+        routes,
+        [Driver::TerminalFlusher { phase: 0 }],
+        FixedValueStore::<2, 2>::new(2).unwrap(),
+        FixedSignLog::<16>::new_with_remote_storage(
+            (16 * core::mem::size_of::<crate::KernelEvent>()) as u32,
+            10,
+            crate::remote_sign_storage_bytes(10).unwrap(),
+        )
+        .unwrap(),
+    )
+    .unwrap();
+    let contract = scheduler.drivers()[0].terminal_transduction().unwrap();
+    scheduler
+        .bind_terminal_transductions([Some(contract)])
+        .unwrap();
+    scheduler.close_remote_input(ingress, CordId(0)).unwrap();
+
+    assert!(matches!(
+        scheduler.step().unwrap(),
+        SchedulerStatus::Progress { .. }
+    ));
+    let first = scheduler
+        .remote_egress_offer(egress, CordId(1))
+        .unwrap()
+        .unwrap();
+    assert_eq!(scheduler.host_value(first.value).unwrap(), &[1]);
+    assert!(matches!(
+        scheduler.step().unwrap(),
+        SchedulerStatus::Progress { .. }
+    ));
+    scheduler
+        .remote_egress_accept(egress, CordId(1), first.sequence)
+        .unwrap();
+    scheduler
+        .remote_egress_delivered(egress, CordId(1), first.sequence)
+        .unwrap();
+
+    assert!(matches!(
+        scheduler.step().unwrap(),
+        SchedulerStatus::Progress { .. }
+    ));
+    let second = scheduler
+        .remote_egress_offer(egress, CordId(1))
+        .unwrap()
+        .unwrap();
+    assert_eq!(scheduler.host_value(second.value).unwrap(), &[2]);
+    scheduler
+        .remote_egress_accept(egress, CordId(1), second.sequence)
+        .unwrap();
+    scheduler
+        .remote_egress_delivered(egress, CordId(1), second.sequence)
+        .unwrap();
+
+    assert_eq!(scheduler.step().unwrap(), SchedulerStatus::Drained);
+    assert_eq!(
+        scheduler
+            .remote_egress_terminal_disposition(egress, CordId(1))
+            .unwrap(),
+        Some(RemoteTerminalDisposition::NormalClose)
+    );
 }
 
 #[derive(Clone, Copy, Debug)]

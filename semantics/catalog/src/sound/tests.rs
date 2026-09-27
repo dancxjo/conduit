@@ -38,9 +38,11 @@ fn audio_tone_is_exactly_typed_bounded_and_cancellable() {
         conduit_audio::AUDIO_TONE_TERMINAL_INFO_ID
     );
     let terminal = contract.terminal_transduction().unwrap();
+    assert_eq!(terminal.input_port_id, conduit_core::port_id("frequency"));
+    assert_eq!(terminal.output_port_id, conduit_core::port_id("audio"));
     assert_eq!(
         terminal.normal_close,
-        conduit_core::NormalCloseTransduction::PropagateAfterDrain
+        conduit_core::NormalCloseTransduction::NotAccepted
     );
     assert_eq!(
         terminal.abnormal,
