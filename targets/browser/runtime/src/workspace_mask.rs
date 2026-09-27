@@ -34,15 +34,19 @@ use serde::{Deserialize, Serialize};
 use std::collections::BTreeMap;
 
 const MASK_SOURCE: &str = "form browser-graphical (\n >> presentation: Presentation\n interaction: FaceInteraction...| >>\n show: Show >>\n) {\n mask: presentation/browser-dom-mask\n presentation >> mask.presentation\n mask.interaction >> interaction\n mask.show >> show\n}\n";
+const ALTERNATE_MASK_SOURCE: &str = "form browser-graphical-alternate (\n >> presentation: Presentation\n interaction: FaceInteraction...| >>\n show: Show >>\n) {\n mask: presentation/browser-dom-mask\n presentation >> mask.presentation\n mask.interaction >> interaction\n mask.show >> show\n}\n";
 const MASK_OPERATION: &str = "browser.host/dom-mask@1";
 const MASK_BYTES: u32 = 512 * 1024;
 #[path = "workspace_mask_execution.rs"]
 mod execution;
 #[path = "workspace_mask_interaction.rs"]
 mod interaction;
+#[path = "workspace_mask_journey.rs"]
+mod journey;
 #[path = "workspace_mask_plan.rs"]
 mod plan;
 pub use interaction::{BrowserMaskInteraction, BrowserMaskInteractionReceipt};
+pub use journey::BrowserMaskJourneyOutcome;
 
 #[derive(Debug, Clone, Serialize)]
 pub struct BrowserMaskEffect {
@@ -417,6 +421,22 @@ impl BrowserMaskRuntime {
             },
             interaction: self.interaction_receipt.clone(),
         }
+    }
+
+    pub fn actualize_journey(
+        &self,
+        initial: &BrowserMaskObservation,
+    ) -> Result<Vec<BrowserMaskJourneyOutcome>, String> {
+        journey::actualize(initial, self)
+    }
+
+    pub fn replacement(&self, body_id: BodyId) -> Result<(Self, BrowserMaskEffect), String> {
+        Self::prepare(
+            body_id,
+            self.play.host_id.clone(),
+            BootId::from(format!("{}/mask-replacement", self.play.boot_id.as_str())),
+            self.presentation.clone(),
+        )
     }
 }
 

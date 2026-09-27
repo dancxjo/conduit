@@ -49,6 +49,26 @@ test("the ordinary face binds and admits one compiler-free reviewed browser Host
     action_id: "body.use-current",
   });
   expect(inspectedInteraction?.semantic_action?.intent).toBe("conduit.intent/tutorial-next@1");
+  const maskActions = await page.evaluate(() => globalThis.__conduitWorkspace.maskJourney());
+  expect(maskActions.map(({ action_id }) => action_id)).toEqual([
+    "mask.inspect-initial-show", "mask.wear-alternate", "mask.prefer-alternate",
+    "mask.withdraw-selected-route", "mask.inspect-unavailable-show", "mask.add-presentation-host",
+    "mask.admit-replacement-plan", "mask.inspect-replanned-show", "mask.doff-alternate",
+    "mask.inspect-restored-show",
+  ]);
+  expect(new Set(maskActions.map(({ presentation_id }) => presentation_id))).toEqual(
+    new Set([captures["body.inspected"].mask.presentation.identity]),
+  );
+  expect(maskActions[2].plan_id).toBe(maskActions[0].plan_id);
+  expect(maskActions[2].show_id).toBe(maskActions[0].show_id);
+  expect(maskActions.slice(3, 6).every(outcome => outcome.plan_id === maskActions[0].plan_id
+    && outcome.show_id === null && outcome.selected_route_id === null)).toBe(true);
+  expect(maskActions[6].plan_id).not.toBe(maskActions[0].plan_id);
+  expect(maskActions[7]).toMatchObject({ plan_id: maskActions[6].plan_id,
+    selected_route_id: "route/browser-graphical-fallback" });
+  expect(maskActions[9]).toMatchObject({ plan_id: maskActions[6].plan_id,
+    selected_route_id: "route/browser-graphical" });
+  captures["body.inspected"].maskActions = maskActions;
   await page.locator("[data-close-inspection]").click();
   await page.getByRole("button", { name: "+ Forms", exact: true }).click();
   await page.getByRole("textbox", { name: "Find a form", exact: true }).fill("desk");
