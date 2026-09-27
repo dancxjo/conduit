@@ -54,6 +54,8 @@ proposals do not override the current canon.
 
 ## Browser and presentation
 
+- [Face, Presentation, Mask, and Show](../presenter-hourglass.md)
+- [Universal Presentation grammar conformance](presentation-grammar-conformance.md)
 - [Browser host fabrication inventory](browser-fabrication-inventory.md)
 - [Browser host identity and body membership](browser-host-membership.md)
 - [Portable presentation renderer contract](presentation-renderer.md)

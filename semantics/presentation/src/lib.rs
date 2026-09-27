@@ -1,5 +1,14 @@
 #![no_std]
 
+//! The bounded universal grammar spoken by a Body's Face.
+//!
+//! [`Presentation`] carries semantic subjects, relationships, facts, wording,
+//! controls, disclosure, time, and exact provenance without choosing a widget,
+//! scene, spoken script, or renderer mechanism. Ordinary Mask Forms interpret
+//! this grammar into Shows. [`SemanticApplicationView`] and [`ApplicationView`]
+//! remain finite downstream composition and compatibility vocabularies; they
+//! do not define the Face boundary.
+
 extern crate alloc;
 
 mod application_event;
