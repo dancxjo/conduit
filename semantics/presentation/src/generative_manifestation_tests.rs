@@ -365,6 +365,44 @@ fn validator_session_requires_exact_kind_placement_and_current_plan_binding() {
     };
     assert_eq!(generated.validation_receipt().plan_id(), &plan.plan_id);
     assert_eq!(generated.validation_receipt().placement_id(), &placement);
+    assert_eq!(
+        generated
+            .validation_receipt()
+            .source_presentation_identity(),
+        request.semantic_data.source_presentation_identity
+    );
+    assert_eq!(
+        generated
+            .validation_receipt()
+            .source_presentation_revision(),
+        request.semantic_data.source_presentation_revision
+    );
+    assert_eq!(
+        generated.validation_receipt().mask_identity(),
+        "mask/spoken@1"
+    );
+    assert_eq!(
+        generated.validation_receipt().mask_contract_revision(),
+        "mask/spoken-contract@1"
+    );
+    assert_eq!(
+        generated
+            .validation_receipt()
+            .validator_implementation_identity(),
+        "implementation/generated-validator@1"
+    );
+    assert_eq!(
+        generated.validation_receipt().validator_back_identity(),
+        "back/generated-validator"
+    );
+    assert_eq!(
+        generated.validation_receipt().host_id(),
+        &HostId::from("host/validator")
+    );
+    assert_eq!(
+        generated.validation_receipt().boot_id(),
+        &BootId::from("boot/validator")
+    );
 
     let mut wrong_kind = plan.clone();
     wrong_kind.fragments[0].placements[0].kind_id = kind_id("presentation/not-validator");

@@ -228,6 +228,12 @@ impl GeneratedValidationReceipt {
     pub fn candidate_digest(&self) -> &str {
         &self.candidate_digest
     }
+    pub fn source_presentation_identity(&self) -> &str {
+        &self.source_presentation_identity
+    }
+    pub fn source_presentation_revision(&self) -> u64 {
+        self.source_presentation_revision
+    }
     pub fn mask_identity(&self) -> &str {
         &self.mask_identity
     }
