@@ -6,6 +6,409 @@
 
 use serde::{Deserialize, Serialize};
 
+/// One exact ordinary spoken Mask execution retained for producer evidence.
+#[derive(Debug, Clone)]
+pub struct SpokenMaskExecution {
+    pub shown: conduit_presentation::ArtifactAcknowledgedSpokenShow,
+    pub plan: conduit_core::Plan,
+    pub mask: conduit_presentation::MaskForm,
+}
+
+pub struct SpokenMaskRouteSet {
+    pub body_plan: conduit_body::BodyPlan,
+    pub routes: conduit_presentation::AdmittedMaskFormRoutes,
+}
+
+/// Seal already planned Mask Forms as alternative Presenter routes of one
+/// immutable Body Plan. The Body Plan identity, rather than either nested Form
+/// Plan identity, is the wardrobe selection boundary.
+pub fn admit_spoken_mask_routes(
+    executions: &[SpokenMaskExecution],
+    evidence_id: &str,
+) -> Result<SpokenMaskRouteSet, String> {
+    use conduit_body::{
+        Body, BodyFormPlan, BodyPresentationSelector, BodyPresenterChainPlan,
+        BodyPresenterTopology, BodyWorkset, ResidentForm,
+    };
+    let planned = executions
+        .iter()
+        .map(|execution| {
+            conduit_presentation::PlannedMaskForm::admit(&execution.mask, &execution.plan)
+        })
+        .collect::<Result<Vec<_>, _>>()
+        .map_err(|error| format!("admit planned spoken Mask: {error:?}"))?;
+    let residents = planned
+        .iter()
+        .map(|item| {
+            ResidentForm::new(
+                item.mask.form_identity.source_document_id.clone(),
+                item.mask.form_identity.checked_form_id.clone(),
+            )
+        })
+        .collect::<Vec<_>>();
+    let body = Body::born_with_forms(
+        BodyWorkset::from_forms(residents.clone())
+            .map_err(|error| format!("spoken Mask workset: {error:?}"))?,
+        1,
+        conduit_core::SignId::from(format!("sign/{evidence_id}/born")),
+    )
+    .map_err(|error| format!("spoken Mask Body: {error:?}"))?;
+    let wake = body
+        .wake(
+            1,
+            conduit_core::SignId::from(format!("sign/{evidence_id}/wake")),
+        )
+        .map_err(|error| format!("spoken Mask Wake: {error:?}"))?
+        .1;
+    let forms = residents
+        .into_iter()
+        .zip(&planned)
+        .map(|(form, item)| BodyFormPlan {
+            form,
+            plan: item.plan.clone(),
+        })
+        .collect();
+    let topologies = planned
+        .iter()
+        .map(|item| {
+            let first = item
+                .plan
+                .fragments
+                .iter()
+                .flat_map(|fragment| &fragment.placements)
+                .next()
+                .expect("planned Mask has placement")
+                .placement_id
+                .clone();
+            BodyPresenterTopology {
+                presentation: BodyPresentationSelector {
+                    form: Some(ResidentForm::new(
+                        item.mask.form_identity.source_document_id.clone(),
+                        item.mask.form_identity.checked_form_id.clone(),
+                    )),
+                    source_placement_id: first.clone(),
+                },
+                chains: vec![BodyPresenterChainPlan {
+                    plan: item.plan.clone(),
+                    stage_placement_ids: vec![first],
+                }],
+            }
+        })
+        .collect();
+    let body_plan = conduit_body::BodyPlan::seal_with_presenters(&wake, forms, topologies)
+        .map_err(|error| format!("seal spoken Mask Body Plan: {error:?}"))?;
+    let routes = planned
+        .iter()
+        .enumerate()
+        .map(|(index, item)| conduit_presentation::SealedMaskFormRoute {
+            route_id: format!("route/{evidence_id}/{index}"),
+            mask_form: item.mask.form_identity.clone(),
+            plan_id: body_plan.plan_id.clone(),
+            placement_ids: item
+                .plan
+                .fragments
+                .iter()
+                .flat_map(|fragment| &fragment.placements)
+                .map(|placement| placement.placement_id.clone())
+                .collect(),
+            currently_available: true,
+        })
+        .collect();
+    let routes = conduit_presentation::AdmittedMaskFormRoutes::new(&body_plan, &planned, routes)
+        .map_err(|error| format!("admit spoken Mask routes: {error:?}"))?;
+    Ok(SpokenMaskRouteSet { body_plan, routes })
+}
+
+/// Execute the complete spoken Mask through planning, kernel Host Calls,
+/// deterministic speech synthesis, and an acknowledged WAV artifact. The
+/// supplied Manifestation is a result captured from the producer's preceding
+/// live Presenter call; the adapter only correlates it to this exact request.
+/// This proves an artifact effect, not playback or hearing.
+pub fn execute_retained_manifestation_mask(
+    form_name: &str,
+    execution_id: &str,
+    presentation: conduit_presentation::Presentation,
+    retained: conduit_presentation::GeneratedManifestation,
+) -> Result<SpokenMaskExecution, String> {
+    use conduit_core::{
+        BaseImplementationId, BootId, ConnectionTrack, HostId, OfferGeneration, PortDirection,
+        SignId,
+    };
+    use conduit_form::{
+        check_syntax_document, expand_canonical_form_for_authoring, parse_syntax_document,
+        ProfileCatalog, StartupCatalog,
+    };
+    use conduit_planner::{
+        default_expanded_placements, plan_expanded_authoring_with_options, ConnectionQueueLimits,
+        ForeBoundaryKey, PlanningOptions,
+    };
+    use conduit_presentation::{
+        GenerativeNarratorRole, GenerativePresenterBounds, GenerativePresenterPolicy,
+        GenerativePresenterRequest, ManifestationLifecycle, MaskForm, PlannedMaskForm,
+    };
+    use std::collections::BTreeMap;
+
+    struct Replay {
+        offer: conduit_ai::LocalModelOffer,
+        retained: conduit_presentation::GeneratedManifestation,
+    }
+    impl crate::hosted_local_model::HostedLocalModelAdapter for Replay {
+        fn offer(&self) -> &conduit_ai::LocalModelOffer {
+            &self.offer
+        }
+        fn current_pool_health(&self) -> conduit_core::PoolRealizationHealth {
+            conduit_core::PoolRealizationHealth::Ready
+        }
+        fn execute(
+            &mut self,
+            placement: &conduit_core::PlannedGear,
+            input: &[u8],
+            output: &mut Vec<u8>,
+        ) -> crate::hosted_local_model::LocalModelAdapterTerminal {
+            use crate::hosted_local_model::LocalModelAdapterTerminal;
+            if placement.kind_id.as_str() != conduit_ai::LLM_PRESENT_KIND {
+                return LocalModelAdapterTerminal::Refused;
+            }
+            let Ok(request) = serde_json::from_slice::<GenerativePresenterRequest>(input) else {
+                return LocalModelAdapterTerminal::Failed;
+            };
+            let mut manifestation = self.retained.clone();
+            manifestation.request_identity = request.request_identity;
+            manifestation.source_presentation_identity =
+                request.semantic_data.source_presentation_identity;
+            manifestation.source_presentation_revision =
+                request.semantic_data.source_presentation_revision;
+            manifestation.template_contract_revision = request.policy.template_contract_revision;
+            match serde_json::to_vec(&manifestation) {
+                Ok(bytes) => {
+                    output.clear();
+                    output.extend(bytes);
+                    LocalModelAdapterTerminal::Produced
+                }
+                Err(_) => LocalModelAdapterTerminal::Failed,
+            }
+        }
+    }
+    fn offer(
+        retained: &conduit_presentation::GeneratedManifestation,
+    ) -> conduit_ai::LocalModelOffer {
+        use conduit_ai::{
+            LlmDeterminismProfile, LlmWorkBounds, LocalModelCachePolicy, LocalModelComputeNeed,
+            LocalModelIdentity, LocalModelKindProfile, LocalModelLifecycleState, LocalModelLimits,
+            LocalModelOffer,
+        };
+        LocalModelOffer {
+            identity: LocalModelIdentity {
+                runtime_name: retained.provider_identity.clone(),
+                runtime_version: "retained-producer-result".into(),
+                runtime_build_identity: retained.presenter_implementation_identity.clone(),
+                model_name: retained.model_identity.clone(),
+                model_content_identity: retained.generation_run_identity.clone(),
+                architecture: "retained-manifestation".into(),
+                parameter_profile: "exact-result".into(),
+                quantization: "producer-owned".into(),
+            },
+            limits: LocalModelLimits {
+                work: LlmWorkBounds::reviewed_default(),
+                model_bytes: 1,
+                admitted_memory_mib: 1,
+                compute: LocalModelComputeNeed {
+                    minimum_lanes: 1,
+                    preferred_lanes: 1,
+                    maximum_lanes: 1,
+                    minimum_service_guarantee: conduit_core::ComputeServiceGuarantee::Shared,
+                },
+                maximum_in_flight: 1,
+                maximum_queue_items: 1,
+                maximum_queue_bytes: 262_144,
+                cancellation_supported: true,
+                cache_policy: LocalModelCachePolicy::OneLoadedModelUntilShutdown,
+            },
+            supported_profiles: vec![LocalModelKindProfile::PresentSemanticFront],
+            initialized: true,
+            lifecycle: LocalModelLifecycleState::Ready,
+            determinism: LlmDeterminismProfile::ProviderNondeterministic,
+        }
+    }
+    #[derive(Default)]
+    struct Collector(Vec<crate::ExternalForeDelivery>);
+    impl crate::ExternalForeOutputAdapter for Collector {
+        fn deliver(&mut self, output: crate::ExternalForeDelivery) -> Result<(), String> {
+            self.0.push(output);
+            Ok(())
+        }
+    }
+    struct NoopTimer;
+    impl crate::TimerAdapter for NoopTimer {
+        fn wait(&mut self, _: std::time::Duration) {}
+    }
+
+    let safe_id = execution_id.replace('/', "-");
+    let config = crate::StdHostConfig {
+        host_id: HostId::from(format!("host/{execution_id}")),
+        boot_id: BootId::from(format!("boot/{execution_id}")),
+        offer_generation: OfferGeneration(1),
+    };
+    let mut host = crate::StdHost::new_with_local_model(
+        config.clone(),
+        crate::StdHostComposition::minimal(),
+        Box::new(Replay {
+            offer: offer(&retained),
+            retained,
+        }),
+    )?;
+    let destination = std::env::temp_dir().join(format!(
+        "conduit-spoken-mask-{}-{safe_id}.wav",
+        std::process::id()
+    ));
+    let _ = std::fs::remove_file(&destination);
+    host.attach_deterministic_speech_and_wav_artifact(
+        crate::hosted_wav_artifact::WavArtifactSelection::new(
+            &destination,
+            config.boot_id.clone(),
+            config.offer_generation,
+        )?,
+    )?;
+    let mut startup = StartupCatalog::new();
+    let mut profiles = ProfileCatalog::new();
+    conduit_presentation::install_mask_form_value_aliases(&mut startup)?;
+    conduit_presentation::install_spoken_mask_catalog(&mut startup, &mut profiles)?;
+    conduit_ai::install_llm_semantic_catalog(&mut startup, &mut profiles)?;
+    conduit_tongues::install_speech_synthesis_catalog(&mut startup, &mut profiles)?;
+    conduit_semantic_catalog::install_sound_catalogs(&mut startup, &mut profiles)?;
+    let source = format!(
+        r#"form {form_name} (
+ >> presentation: Presentation
+ interaction: FaceInteraction...| >>
+ show: Show >>
+) {{
+ request: presentation/adapt-generative-request
+ language: llm/present
+ speech: presentation/generated-manifestation-speech
+ voice: speech/synthesize(maximum-output-bytes = 32768)
+ convert: audio/convert-pcm-profile(output-sample-rate-hz = 48000, output-channel-layout = "stereo-left-right")
+ artifact: presentation/spoken-artifact
+ shown: presentation/artifact-acknowledged-show
+ no-input: presentation/no-interaction
+ presentation >> request.presentation
+ request.request >> language.request
+ language.result >> speech.manifestation
+ language.result >> shown.manifestation
+ speech.speech >> voice.text
+ voice.audio >> convert.audio
+ convert.converted >> artifact.audio
+ artifact.receipt >> shown.artifact
+ shown.show >> show
+ no-input.interaction >> interaction
+}}
+"#
+    );
+    let checked = check_syntax_document(&parse_syntax_document(&source), &startup)
+        .map_err(|error| format!("check spoken Mask: {error:?}"))?;
+    let authoring = expand_canonical_form_for_authoring(&checked, form_name, &profiles)
+        .map_err(|error| format!("expand spoken Mask: {error:?}"))?;
+    let mask = MaskForm::admit(&authoring).map_err(|error| format!("admit Mask: {error:?}"))?;
+    let hosts = [host.advertisement().clone()];
+    let placements = default_expanded_placements(&authoring.expanded, &hosts)
+        .map_err(|error| format!("place spoken Mask: {error:?}"))?;
+    let boundary_limits = authoring
+        .front
+        .inputs()
+        .iter()
+        .map(|port| (PortDirection::Input, port))
+        .chain(
+            authoring
+                .front
+                .outputs()
+                .iter()
+                .map(|port| (PortDirection::Output, port)),
+        )
+        .map(|(direction, port)| {
+            (
+                ForeBoundaryKey {
+                    direction,
+                    front_port_id: port.port_id.clone(),
+                    track: ConnectionTrack::Payload,
+                },
+                ConnectionQueueLimits {
+                    item_capacity: 1,
+                    byte_capacity: 524_288,
+                },
+            )
+        })
+        .collect();
+    let connection_bases = BTreeMap::new();
+    let line_candidates = BTreeMap::new();
+    let grant_id = format!("grant/{execution_id}");
+    let authority = host.spoken_mask_artifact_authority_grant(&grant_id)?;
+    let plan = plan_expanded_authoring_with_options(
+        &authoring,
+        &hosts,
+        &placements,
+        &[BaseImplementationId::from("conduit.base/local@1")],
+        PlanningOptions {
+            connection_bases: &connection_bases,
+            line_candidates: &line_candidates,
+            connection_item_capacity: 1,
+            connection_byte_capacity: 16_384,
+            authority_grants: std::slice::from_ref(&authority),
+            protected_resource_grants: &[],
+            line_offers: &[],
+        },
+        &boundary_limits,
+    )
+    .map_err(|error| format!("plan spoken Mask: {error:?}"))?;
+    let planned = PlannedMaskForm::admit(&mask, &plan)
+        .map_err(|error| format!("seal spoken Mask: {error:?}"))?;
+    let request = GenerativePresenterRequest::from_presentation(
+        format!("request/{execution_id}"),
+        GenerativePresenterPolicy {
+            template_contract_revision: "template/spoken-mask@1".into(),
+            narrator_role: GenerativeNarratorRole::TransientFirstPersonBodyNarrator,
+            instructions: "Speak one truthful sentence from the supplied Presentation.".into(),
+        },
+        presentation.clone(),
+        None,
+        GenerativePresenterBounds::reviewed_default(),
+    )
+    .map_err(|error| format!("prepare Presenter request: {error:?}"))?;
+    let preparation = crate::spoken_mask_runtime::SpokenMaskPreparation {
+        request,
+        presentation: presentation.clone(),
+        planned_mask: planned,
+        front_subject: "body/current".into(),
+        target_subject: format!("artifact/{execution_id}"),
+        prepared_sign: SignId::from(format!("sign/{execution_id}/prepared")),
+        available_sign: SignId::from(format!("sign/{execution_id}/available")),
+    };
+    let mut collector = Collector::default();
+    host.run_spoken_mask_form_to(
+        plan.fragments[0].clone(),
+        preparation,
+        &[crate::ExternalForeInput {
+            front_port_id: conduit_core::port_id("presentation"),
+            track: ConnectionTrack::Payload,
+            bytes: serde_json::to_vec(&presentation).map_err(|error| error.to_string())?,
+        }],
+        &mut collector,
+        &mut Vec::new(),
+        &mut NoopTimer,
+    )
+    .map_err(|error| format!("execute spoken Mask: {error:?}"))?;
+    let delivery = collector
+        .0
+        .into_iter()
+        .next()
+        .ok_or("spoken Mask emitted no Show")?;
+    let shown: conduit_presentation::ArtifactAcknowledgedSpokenShow =
+        serde_json::from_slice(&delivery.bytes).map_err(|error| error.to_string())?;
+    if shown.show.show.lifecycle != ManifestationLifecycle::Available || !destination.is_file() {
+        return Err("spoken Mask did not retain an available artifact Show".into());
+    }
+    let _ = std::fs::remove_file(destination);
+    Ok(SpokenMaskExecution { shown, plan, mask })
+}
+
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
 pub struct SpokenMaskJourneyObservation {

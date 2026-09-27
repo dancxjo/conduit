@@ -55,6 +55,7 @@ pub(super) fn write(target: &Path, proof: &JourneyProof) -> Result<(), Conduitos
                 ],
             },
             facts,
+            mask_actions: Vec::new(),
         },
         &target.join("body-journey-track"),
     )

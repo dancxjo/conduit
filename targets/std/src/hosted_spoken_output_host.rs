@@ -1,6 +1,9 @@
 impl crate::StdHost {
-    #[cfg(test)]
-    pub(crate) fn attach_deterministic_speech_and_wav_artifact(
+    /// Attach the bounded repository-owned deterministic speech implementation
+    /// and an exact WAV artifact resource. This is an artifact-effect route:
+    /// it proves accepted synthesis and file retention, never playback or
+    /// human hearing.
+    pub fn attach_deterministic_speech_and_wav_artifact(
         &mut self,
         artifact: crate::hosted_wav_artifact::WavArtifactSelection,
     ) -> Result<(), String> {

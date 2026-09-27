@@ -57,6 +57,121 @@ pub(super) fn write(
         .iter()
         .find(|candidate| candidate.request_identity == journey.requests[0].request_identity)
         .ok_or("Orifina live proof lacks its Presenter manifestation")?;
+    let presentation = journey.requests[0].semantic_data.presentation.clone();
+    let retained = manifestation.manifestation.clone();
+    let initial = conduit_std_host::spoken_mask_journey::execute_retained_manifestation_mask(
+        "spoken-initial",
+        "orifina-spoken-initial",
+        presentation.clone(),
+        retained.clone(),
+    )?;
+    let alternate = conduit_std_host::spoken_mask_journey::execute_retained_manifestation_mask(
+        "spoken-generative",
+        "orifina-spoken-alternate",
+        presentation.clone(),
+        retained.clone(),
+    )?;
+    let replacement_alternate =
+        conduit_std_host::spoken_mask_journey::execute_retained_manifestation_mask(
+            "spoken-generative-replanned",
+            "orifina-spoken-replanned",
+            presentation.clone(),
+            retained.clone(),
+        )?;
+    let restored = conduit_std_host::spoken_mask_journey::execute_retained_manifestation_mask(
+        "spoken-restored",
+        "orifina-spoken-restored",
+        presentation.clone(),
+        retained,
+    )?;
+    let initial_routes = conduit_std_host::spoken_mask_journey::admit_spoken_mask_routes(
+        &[initial.clone(), alternate.clone()],
+        "orifina-spoken-initial-plan",
+    )?;
+    let replacement_routes = conduit_std_host::spoken_mask_journey::admit_spoken_mask_routes(
+        &[replacement_alternate.clone(), restored.clone()],
+        "orifina-spoken-replacement-plan",
+    )?;
+    let observation =
+        |action: conduit_presentation::MaskJourneyAction,
+         event: &str,
+         execution: Option<&conduit_std_host::spoken_mask_journey::SpokenMaskExecution>,
+         plan: &conduit_core::PlanId,
+         route: Option<&str>| {
+            conduit_std_host::spoken_mask_journey::SpokenMaskJourneyObservation {
+                action_id: action.id().into(),
+                concrete_event: event.into(),
+                presentation_id: presentation.identity.as_str().into(),
+                selected_mask_form_id: execution
+                    .map(|item| item.mask.form_identity.checked_form_id.as_str().into()),
+                plan_id: plan.as_str().into(),
+                selected_route_id: route.map(str::to_owned),
+                show_id: execution.map(|item| item.shown.show.show_id.as_str().into()),
+                receipt_ids: vec![action.id().into()],
+            }
+        };
+    use conduit_presentation::MaskJourneyAction as A;
+    let initial_plan = &initial_routes.body_plan.plan_id;
+    let replacement_plan = &replacement_routes.body_plan.plan_id;
+    let initial_route = initial_routes.routes.routes()[0].route_id.as_str();
+    let alternate_route = initial_routes.routes.routes()[1].route_id.as_str();
+    let replacement_alternate_route = replacement_routes.routes.routes()[0].route_id.as_str();
+    let restored_route = replacement_routes.routes.routes()[1].route_id.as_str();
+    let prepared_actions = vec![
+        observation(A::InspectInitialShow, "initial spoken Mask completed Presenter, synthesis, artifact, and acknowledged Show Host Calls", Some(&initial), initial_plan, Some(initial_route)),
+        observation(A::WearAlternateMask, "alternate spoken Mask was worn while the selected sealed route remained current", Some(&initial), initial_plan, Some(initial_route)),
+        observation(A::PreferAlternateMask, "preference selected the alternate sealed route under the same immutable Body Plan", Some(&alternate), initial_plan, Some(alternate_route)),
+        observation(A::WithdrawSelectedRoute, "selected route was withdrawn without inventing a Show", None, initial_plan, None),
+        observation(A::InspectUnavailableShow, "no current Show; retained WAV is stale artifact evidence only", None, initial_plan, None),
+        observation(A::AddPresentationHost, "replacement presentation Host became available but the old Plan selected no route on it", None, initial_plan, None),
+        observation(A::AdmitReplacementPlan, "replacement Body Plan sealed the replacement Host routes", None, replacement_plan, None),
+        observation(A::InspectReplannedShow, "replacement spoken route completed Presenter, synthesis, artifact, and acknowledged Show Host Calls", Some(&replacement_alternate), replacement_plan, Some(replacement_alternate_route)),
+        observation(A::DoffAlternateMask, "alternate Mask was doffed and its Show ceased being current", None, replacement_plan, None),
+        observation(A::InspectRestoredShow, "initial-role spoken Mask was restored through the replacement Body Plan", Some(&restored), replacement_plan, Some(restored_route)),
+    ];
+    struct HostedSpokenJourney(
+        std::collections::VecDeque<
+            conduit_std_host::spoken_mask_journey::SpokenMaskJourneyObservation,
+        >,
+    );
+    impl conduit_presentation::MaskJourneyEmbodiment for HostedSpokenJourney {
+        type Outcome = conduit_std_host::spoken_mask_journey::SpokenMaskJourneyObservation;
+        type Error = String;
+
+        fn perform(&mut self, action: A) -> Result<Self::Outcome, Self::Error> {
+            let outcome = self
+                .0
+                .pop_front()
+                .ok_or("hosted spoken Mask outcome missing")?;
+            if outcome.action_id != action.id() {
+                return Err(format!(
+                    "hosted spoken Mask outcome {} does not match {}",
+                    outcome.action_id,
+                    action.id()
+                ));
+            }
+            Ok(outcome)
+        }
+    }
+    let mut journey_run = HostedSpokenJourney(prepared_actions.into());
+    let mut mask_actions = Vec::new();
+    conduit_presentation::actualize_mask_journey(&mut journey_run, |_, outcome| {
+        mask_actions.push(outcome.clone());
+    })
+    .map_err(|error| {
+        format!(
+            "hosted spoken Mask journey failed at {}: {}",
+            error.action.id(),
+            error.source
+        )
+    })?;
+    let spoken_evidence = conduit_std_host::spoken_mask_journey::SpokenMaskJourneyEvidence {
+        schema: conduit_std_host::spoken_mask_journey::SpokenMaskJourneyEvidence::SCHEMA.into(),
+        observations: mask_actions.clone(),
+        human_hearing_observed: false,
+        inward_face_interaction_observed: false,
+    };
+    spoken_evidence.validate()?;
     let facts = [
         serde_json::json!({"initial_body": null, "host_id": journey.receipt.host_ids[0], "boot_id": journey.receipt.boot_ids[0]}),
         serde_json::json!({"provider": manifestation.manifestation.provider_identity, "model": manifestation.manifestation.model_identity}),
@@ -128,6 +243,7 @@ pub(super) fn write(
                 ],
             },
             facts,
+            mask_actions,
         },
         Path::new("target/journeys/three-bodies/hosted-generative"),
     )

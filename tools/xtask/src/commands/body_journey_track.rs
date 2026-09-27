@@ -43,6 +43,7 @@ pub(crate) struct TrackSource {
     pub presenter_id: &'static str,
     pub identities: TrackIdentities,
     pub facts: [Value; 13],
+    pub mask_actions: Vec<conduit_std_host::spoken_mask_journey::SpokenMaskJourneyObservation>,
 }
 
 #[derive(Serialize)]
@@ -133,6 +134,31 @@ pub(crate) fn write(source: TrackSource, output: &Path) -> Result<(), String> {
         "host_id": source.identities.peer_host,
         "boot_id": source.identities.peer_boot,
     }));
+    for observation in &source.mask_actions {
+        let file = format!("{:02}-{}.json", steps.len() + 1, observation.action_id);
+        let relative = format!("artifacts/{file}");
+        let bytes = serde_json::to_vec_pretty(observation)
+            .map_err(|error| format!("encode {} receipt: {error}", observation.action_id))?;
+        write_new(&artifacts.join(file), &bytes)?;
+        steps.push(serde_json::json!({
+            "step_id": observation.action_id,
+            "assertion": observation.concrete_event,
+            "disposition": "established",
+            "provenance": {
+                "body_id": source.identities.body,
+                "plan_id": observation.plan_id,
+                "presentation_id": observation.presentation_id,
+            },
+            "evidence": [{
+                "artifact_id": format!("{}/{}", source.track_id, observation.action_id),
+                "evidence_class": "semantic-receipt",
+                "assertion_rung": "runtime-receipt",
+                "documentary_description": format!("{} producer Mask receipt.", source.embodiment),
+                "path": relative,
+                "sha256": format!("sha256:{:x}", Sha256::digest(&bytes)),
+            }],
+        }));
+    }
     let document = serde_json::json!({
         "schema": "conduit.evidence/body-journey-track@2",
         "journey_id": "orifina/tutorial@1",
@@ -145,6 +171,7 @@ pub(crate) fn write(source: TrackSource, output: &Path) -> Result<(), String> {
         "line_ids": source.identities.line.into_iter().collect::<Vec<_>>(),
         "distributed_plan_ids": source.identities.distributed_plan.into_iter().collect::<Vec<_>>(),
         "steps": steps,
+        "mask_actions": source.mask_actions,
     });
     let bytes = serde_json::to_vec_pretty(&document)
         .map_err(|error| format!("encode Body track: {error}"))?;

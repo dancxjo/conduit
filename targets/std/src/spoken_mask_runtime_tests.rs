@@ -350,6 +350,39 @@ fn registered_spoken_mask_executes_to_an_artifact_acknowledged_show() {
     );
 }
 
+#[test]
+fn producer_callable_replays_a_retained_live_manifestation_through_the_spoken_mask() {
+    let retained = GeneratedManifestation {
+        manifestation_identity: "manifestation/retained-live-result".into(),
+        request_identity: "request/original-live-presenter".into(),
+        source_presentation_identity: presentation().identity.as_str().into(),
+        source_presentation_revision: 1,
+        presenter_implementation_identity: "std/local-open-weight-model@1".into(),
+        provider_identity: "fixture/live-provider".into(),
+        model_identity: "fixture/live-model".into(),
+        template_contract_revision: "template/original@1".into(),
+        generation_run_identity: "run/retained-live-result".into(),
+        disposition: GeneratedManifestationDisposition::Produced,
+        content: vec![GeneratedContentSegment {
+            role: GeneratedContentRole::Speech,
+            bytes: b"The Body has awakened.".to_vec(),
+        }],
+        affordances: vec![],
+    };
+    let executed = crate::spoken_mask_journey::execute_retained_manifestation_mask(
+        "spoken-producer-callable",
+        "spoken-producer-callable",
+        presentation(),
+        retained,
+    )
+    .unwrap();
+    assert_eq!(
+        executed.shown.show.show.lifecycle,
+        ManifestationLifecycle::Available
+    );
+    assert!(executed.shown.artifact.pcm_bytes > 0);
+}
+
 struct SpokenJourney {
     presentation: Presentation,
     wardrobe: conduit_presentation::MaskWardrobe,
