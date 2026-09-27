@@ -2,6 +2,7 @@ mod address_detect_back;
 mod alife_backs;
 mod alife_host;
 mod audio_play_back;
+mod audio_tone_back;
 mod back;
 mod back_capacity;
 mod back_kind;
@@ -106,6 +107,8 @@ mod synth_render;
 mod template_storage_back;
 mod template_storage_host;
 mod test_audio_source;
+#[cfg(test)]
+mod test_audio_tone;
 #[cfg(test)]
 mod test_gate;
 #[cfg(test)]

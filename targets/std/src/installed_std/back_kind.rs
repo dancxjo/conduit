@@ -2,6 +2,7 @@
 
 use super::alife_backs::{LeniaStepBack, OrbiumSeedBack, ScalarFieldPresentationBack};
 use super::audio_play_back::AudioPlayBack;
+use super::audio_tone_back::AudioToneBack;
 use super::body_chat_prompt_back::BodyChatPromptBack;
 use super::body_conversation_context_back::BodyConversationContextBack;
 use super::bool_presentation::BoolPresentationBack;
@@ -153,6 +154,7 @@ pub(super) enum InstalledBack {
     SpeechSynthesis(SpeechSynthesisBack),
     AudioRenderDemand(AudioRenderDemandBack),
     AudioPlay(AudioPlayBack),
+    AudioTone(AudioToneBack),
     WavArtifact(WavArtifactBack),
     PcmProfileConversion(PcmProfileConversionBack),
     MidiOutput(MidiOutputBack),
@@ -217,6 +219,10 @@ pub(super) enum InstalledBack {
     TestScalarLiteral(super::test_scalar_flow::TestScalarLiteralBack),
     #[cfg(test)]
     TestScalarSink(super::test_scalar_flow::TestScalarSinkBack),
+    #[cfg(test)]
+    TestFrequencySource(super::test_audio_tone::FrequencySourceBack),
+    #[cfg(test)]
+    TestTonePcmSink(super::test_audio_tone::TonePcmSinkBack),
     #[cfg(test)]
     TestGateScript(super::test_gate::TestGateScriptBack),
     #[cfg(test)]

@@ -85,6 +85,16 @@ pub(crate) fn test_scalar_sink_offer() -> conduit_core::CapabilityOffer {
 }
 
 #[cfg(test)]
+pub(crate) fn test_frequency_source_offer() -> conduit_core::CapabilityOffer {
+    super::test_audio_tone::source_offer()
+}
+
+#[cfg(test)]
+pub(crate) fn test_tone_pcm_sink_offer() -> conduit_core::CapabilityOffer {
+    super::test_audio_tone::sink_offer()
+}
+
+#[cfg(test)]
 pub(crate) fn test_gate_script_offer() -> conduit_core::CapabilityOffer {
     super::test_gate::source_offer()
 }

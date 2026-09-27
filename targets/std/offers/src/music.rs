@@ -29,6 +29,9 @@ pub const AUDIO_PLAY_ALSA_HW_ARTIFACT: &str = "conduit-std-host/alsa-aplay-hw@1"
 pub const AUDIO_PLAY_ALSA_HW_OPERATION: &str = "conduit.host/audio-play-alsa-hw@1";
 pub const AUDIO_PLAYBACK_RESOURCE_CLASS: &str = "conduit.resource/audio-playback-alsa-hw@1";
 pub const AUDIO_PLAYBACK_AUTHORITY_CONTRACT: &str = "conduit.authority/audio-playback@1";
+pub const AUDIO_TONE_STD_PROFILE: &str = "std/audio-tone-fixed-s16le-mono-48000-f16@1";
+pub const AUDIO_TONE_STD_IMPLEMENTATION: &str = "std/kernel-audio-tone@1";
+pub const AUDIO_TONE_STD_ARTIFACT: &str = "conduit-std-host/audio-tone@1";
 pub const AUDIO_WAV_ARTIFACT_PROFILE: &str = "std/wav-artifact-s16le-48000-stereo@1";
 pub const AUDIO_WAV_ARTIFACT_IMPLEMENTATION: &str = "std/kernel-audio-write-wav@1";
 pub const AUDIO_WAV_ARTIFACT_ARTIFACT: &str = "conduit-std-host/wav-artifact@1";
@@ -162,6 +165,23 @@ pub fn audio_play_alsa_hw_offer() -> CapabilityOffer {
             subject_kind: kind_id(AUDIO_PCM_INFO_ID),
         }],
     )
+}
+
+pub fn audio_tone_offer() -> CapabilityOffer {
+    let contract = conduit_semantic_catalog::audio_tone_semantic_contract();
+    BackOfferBuilder::new(
+        contract,
+        Back {
+            capability_id: CapabilityId::from("audio-tone"),
+            execution_profile_id: ExecutionProfileId::from(AUDIO_TONE_STD_PROFILE),
+            implementation_id: ImplementationId::from(AUDIO_TONE_STD_IMPLEMENTATION),
+            artifact_id: ArtifactId::from(AUDIO_TONE_STD_ARTIFACT),
+            host_calls: Vec::new(),
+            resource_requirements: Vec::new(),
+            authority_requirements: Vec::new(),
+        },
+    )
+    .build()
 }
 
 pub fn audio_write_wav_artifact_offer() -> CapabilityOffer {

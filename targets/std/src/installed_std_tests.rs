@@ -164,6 +164,69 @@ fn typed_tick_plans_and_executes_through_the_installed_kernel_table() {
 }
 
 #[test]
+fn current_frequency_drives_bounded_pcm_through_one_ordinary_play() {
+    let mut host = host("audio-tone-host");
+    let form = parse(
+        "form tone_path {\n source: conduit-test/frequency-source\n tone: audio/tone\n sink: conduit-test/tone-pcm-sink\n source.frequency >> tone.frequency\n tone.audio >> sink.audio\n}.\n",
+        &installed_std::test_catalog(),
+    )
+    .expect("typed audio/tone fixture parses");
+    let hosts = [host.advertisement().clone()];
+    let placements = default_placements(&form, &hosts).expect("audio/tone placements resolve");
+    let plan = plan_with_options(
+        &form,
+        &hosts,
+        &placements,
+        &[BaseImplementationId::from("conduit.base/local@1")],
+        PlanningOptions {
+            connection_bases: &BTreeMap::new(),
+            line_candidates: &BTreeMap::new(),
+            connection_item_capacity: 1,
+            connection_byte_capacity: conduit_semantic_catalog::AUDIO_TONE_PCM_BLOCK_BYTES,
+            authority_grants: &[],
+            protected_resource_grants: &[],
+            line_offers: &[],
+        },
+    )
+    .expect("audio/tone plans with one in-flight PCM block");
+    assert!(plan.fragments[0]
+        .connections
+        .iter()
+        .all(|cord| cord.item_capacity == 1));
+    let tone = plan.fragments[0]
+        .placements
+        .iter()
+        .find(|p| p.kind_id.as_str() == conduit_semantic_catalog::AUDIO_TONE_KIND)
+        .unwrap();
+    assert_eq!(
+        tone.inputs[0].value_kind.as_str(),
+        conduit_core::FREQUENCY_INFO_ID
+    );
+    assert_eq!(
+        tone.outputs[0].abnormal_kind.as_ref().unwrap().as_str(),
+        conduit_audio::AUDIO_TONE_TERMINAL_INFO_ID
+    );
+    assert!(tone.terminal_transduction.is_some());
+    let mut output = Vec::with_capacity(2_048);
+    let mut timer = RecordingTimer { waits: Vec::new() };
+    let report = host
+        .run_fragment_to(plan.fragments[0].clone(), &mut output, &mut timer)
+        .expect("Frequency updates execute through the production installed path");
+    assert!(matches!(
+        report.observations.last().map(|o| &o.kind),
+        Some(ObservationKind::PlanTerminal {
+            disposition: TerminalDisposition::Completed
+        })
+    ));
+    let kernel = report.kernel.unwrap();
+    assert_eq!(kernel.post_play_start_allocations, 0);
+    assert_eq!(
+        kernel.value_allocation_capacity_before,
+        kernel.value_allocation_capacity_after
+    );
+}
+
+#[test]
 fn typed_latest_and_tee_plan_and_execute_with_capacity_one_pressure() {
     let mut host = host("typed-flow-state-host");
     let form = parse(
