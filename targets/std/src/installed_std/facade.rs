@@ -101,6 +101,10 @@ pub(crate) fn test_cancellation_source_offer() -> conduit_core::CapabilityOffer 
 pub(crate) fn test_tone_terminal_recovery_offer() -> conduit_core::CapabilityOffer {
     super::test_audio_tone::recovery_offer()
 }
+#[cfg(test)]
+pub(crate) fn test_normal_close_sink_offer() -> conduit_core::CapabilityOffer {
+    super::test_audio_tone::close_offer()
+}
 
 #[cfg(test)]
 pub(crate) fn test_gate_script_offer() -> conduit_core::CapabilityOffer {

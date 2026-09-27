@@ -232,6 +232,8 @@ installed_step_dispatch!(
     #[cfg(test)]
     TestToneTerminalRecovery,
     #[cfg(test)]
+    TestNormalCloseSink,
+    #[cfg(test)]
     TestGateScript,
     #[cfg(test)]
     TestLogicScript,

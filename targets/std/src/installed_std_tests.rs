@@ -167,7 +167,7 @@ fn typed_tick_plans_and_executes_through_the_installed_kernel_table() {
 fn current_frequency_drives_bounded_pcm_through_one_ordinary_play() {
     let mut host = host("audio-tone-host");
     let form = parse(
-        "form tone_path {\n source: conduit-test/frequency-source\n tone: audio/tone\n sink: conduit-test/tone-pcm-sink\n source.frequency >> tone.frequency\n tone.audio >> sink.audio\n}.\n",
+        "form tone_path {\n source: conduit-test/frequency-source\n tone: audio/tone\n sink: conduit-test/tone-pcm-sink\n closed: conduit-test/normal-close-sink\n source.frequency >> tone.frequency\n tone.audio >> sink.audio\n tone.audio| >> closed.closed\n}.\n",
         &installed_std::test_catalog(),
     )
     .expect("typed audio/tone fixture parses");

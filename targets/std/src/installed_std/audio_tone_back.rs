@@ -49,7 +49,7 @@ impl<const PORTS: usize> StepBack<PORTS> for AudioToneBack {
             let Some(bytes) = inputs.input(PortId(0)) else {
                 return failure(12);
             };
-            let frequency = match Quantity::decode(bytes).ok().and_then(frequency_millihertz) {
+            let frequency = match decode_frequency_input(bytes) {
                 Some(value) => value,
                 _ => return failure(13),
             };
@@ -78,22 +78,28 @@ impl<const PORTS: usize> StepBack<PORTS> for AudioToneBack {
     }
 }
 
-fn frequency_millihertz(quantity: Quantity) -> Option<u64> {
-    let value = u64::try_from(quantity.value()).ok()?;
+fn frequency_millihertz(quantity: Quantity) -> Option<i128> {
+    let value = i128::from(quantity.value());
     match quantity.unit() {
         QuantityUnit::Millihertz => Some(value),
-        QuantityUnit::Hertz => value.checked_mul(1_000),
+        QuantityUnit::Hertz => Some(value * 1_000),
         _ => None,
     }
 }
 
+fn decode_frequency_input(encoded: &[u8]) -> Option<i128> {
+    Quantity::decode(encoded)
+        .ok()
+        .and_then(frequency_millihertz)
+}
+
 fn render_block(
-    frequency_millihertz: u64,
+    frequency_millihertz: i128,
     phase: u32,
     start_frame: u64,
 ) -> Result<(CanonicalValue, u32), ()> {
-    let increment =
-        (((frequency_millihertz as u128) << 32) / (u128::from(SAMPLE_RATE) * 1_000)) as u32;
+    let turns = (frequency_millihertz << 32) / (i128::from(SAMPLE_RATE) * 1_000);
+    let increment = turns.rem_euclid(1_i128 << 32) as u32;
     let header = PcmFrameHeader::new(
         PcmSampleRepresentation::Signed16LittleEndian,
         SAMPLE_RATE,
@@ -175,14 +181,20 @@ mod tests {
     }
 
     #[test]
-    fn renderer_is_total_over_the_nonnegative_frequency_domain() {
-        for frequency in [0, 1, 20_000_000, u64::MAX] {
+    fn every_checked_frequency_encoding_crosses_the_back_boundary() {
+        for quantity in [
+            Quantity::new(i64::MIN, QuantityUnit::Hertz),
+            Quantity::new(i64::MAX, QuantityUnit::Hertz),
+            Quantity::new(i64::MIN, QuantityUnit::Millihertz),
+            Quantity::new(i64::MAX, QuantityUnit::Millihertz),
+            Quantity::new(0, QuantityUnit::Hertz),
+        ] {
+            let frequency = decode_frequency_input(&quantity.encode()).expect("checked Frequency");
             let (block, _) = render_block(frequency, u32::MAX, u64::MAX).unwrap();
             assert_eq!(block.as_slice().len(), BLOCK_BYTES);
         }
-        assert_eq!(
-            frequency_millihertz(Quantity::new(-1, QuantityUnit::Hertz)),
-            None
-        );
+        let (_, positive) = render_block(440_000, 0, 0).unwrap();
+        let (_, negative) = render_block(-440_000, 0, 0).unwrap();
+        assert_eq!(negative, 0_u32.wrapping_sub(positive));
     }
 }

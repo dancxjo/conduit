@@ -23,6 +23,9 @@ const CANCEL_IMPLEMENTATION: &str = "conduit-test/cancellation-source-kernel@1";
 const RECOVERY_KIND: &str = "conduit-test/tone-terminal-recovery";
 const RECOVERY_REVISION: &str = "conduit-test/tone-terminal-recovery@1";
 const RECOVERY_IMPLEMENTATION: &str = "conduit-test/tone-terminal-recovery-kernel@1";
+const CLOSE_KIND: &str = "conduit-test/normal-close-sink";
+const CLOSE_REVISION: &str = "conduit-test/normal-close-sink@1";
+const CLOSE_IMPLEMENTATION: &str = "conduit-test/normal-close-sink-kernel@1";
 pub(super) static SOURCE_FACTORY: BackFactory = BackFactory {
     implementation_id: SOURCE_IMPLEMENTATION,
     budget: source_budget,
@@ -43,6 +46,11 @@ pub(super) static RECOVERY_FACTORY: BackFactory = BackFactory {
     budget: recovery_budget,
     prepare: prepare_recovery,
 };
+pub(super) static CLOSE_FACTORY: BackFactory = BackFactory {
+    implementation_id: CLOSE_IMPLEMENTATION,
+    budget: close_budget,
+    prepare: prepare_close,
+};
 pub(super) struct FrequencySourceBack {
     values: [ValueRef; 2],
     next: usize,
@@ -58,6 +66,7 @@ pub(super) struct CancellationSourceBack {
 pub(super) struct ToneTerminalRecoveryBack {
     seen: bool,
 }
+pub(super) struct NormalCloseSinkBack;
 
 impl<const P: usize> StepBack<P> for FrequencySourceBack {
     fn step(&mut self, io: &mut StepIo<P>, _: &StepInputBytes<'_, P>) -> StepOutcome {
@@ -145,6 +154,21 @@ impl<const P: usize> StepBack<P> for ToneTerminalRecoveryBack {
                 return fail(43);
             }
             io.consume_closed(PortId(0)).unwrap();
+            return StepOutcome::Complete;
+        }
+        StepOutcome::Await
+    }
+}
+impl<const P: usize> StepBack<P> for NormalCloseSinkBack {
+    fn step(&mut self, io: &mut StepIo<P>, inputs: &StepInputBytes<'_, P>) -> StepOutcome {
+        if io.input(PortId(0)).is_some() {
+            let Some(bytes) = inputs.input(PortId(0)) else {
+                return fail(51);
+            };
+            if !bytes.is_empty() {
+                return fail(52);
+            }
+            io.consume(PortId(0)).unwrap();
             return StepOutcome::Complete;
         }
         StepOutcome::Await
@@ -256,6 +280,20 @@ pub(super) fn recovery_offer() -> CapabilityOffer {
         Vec::new(),
     )
 }
+pub(super) fn close_offer() -> CapabilityOffer {
+    offer(
+        CLOSE_KIND,
+        CLOSE_REVISION,
+        CLOSE_IMPLEMENTATION,
+        vec![port(
+            "closed",
+            conduit_core::UNIT_INFO_ID,
+            PortDirection::Input,
+            PortTemporal::Value,
+        )],
+        Vec::new(),
+    )
+}
 pub(super) fn install_catalog(c: &mut ProfileCatalog) {
     for (k, r, i, o) in [
         (
@@ -280,6 +318,12 @@ pub(super) fn install_catalog(c: &mut ProfileCatalog) {
             kind_id(RECOVERY_KIND),
             KindIdentity::from(RECOVERY_REVISION),
             recovery_offer().inputs,
+            Vec::new(),
+        ),
+        (
+            kind_id(CLOSE_KIND),
+            KindIdentity::from(CLOSE_REVISION),
+            close_offer().inputs,
             Vec::new(),
         ),
     ] {
@@ -375,4 +419,19 @@ fn prepare_recovery(
     Ok(InstalledBack::TestToneTerminalRecovery(
         ToneTerminalRecoveryBack { seen: false },
     ))
+}
+fn close_budget(_: &PlannedGear) -> Result<BackBudget, String> {
+    Ok(BackBudget {
+        value_items: 0,
+        value_bytes: 0,
+        host_requests: 0,
+        sign_items: 8,
+        maximum_value_bytes: 0,
+    })
+}
+fn prepare_close(
+    _: &PlannedGear,
+    _: &mut conduit_kernel::HostedValueStore,
+) -> Result<InstalledBack, String> {
+    Ok(InstalledBack::TestNormalCloseSink(NormalCloseSinkBack))
 }

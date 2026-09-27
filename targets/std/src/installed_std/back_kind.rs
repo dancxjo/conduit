@@ -228,6 +228,8 @@ pub(super) enum InstalledBack {
     #[cfg(test)]
     TestToneTerminalRecovery(super::test_audio_tone::ToneTerminalRecoveryBack),
     #[cfg(test)]
+    TestNormalCloseSink(super::test_audio_tone::NormalCloseSinkBack),
+    #[cfg(test)]
     TestGateScript(super::test_gate::TestGateScriptBack),
     #[cfg(test)]
     TestLogicScript(super::test_logic::TestLogicScriptBack),

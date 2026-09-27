@@ -76,8 +76,13 @@ fn source_contract_matches(
         ConnectionTrack::AbnormalTerminal => {
             temporal == PortTemporal::Value && descriptor.abnormal_kind.as_ref() == Some(value_kind)
         }
-        ConnectionTrack::Payload | ConnectionTrack::NormalClose => {
+        ConnectionTrack::Payload => {
             descriptor.value_kind == *value_kind && descriptor.temporal == temporal
+        }
+        ConnectionTrack::NormalClose => {
+            descriptor.temporal == (PortTemporal::Flow { closes: true })
+                && value_kind.as_str() == conduit_core::UNIT_INFO_ID
+                && temporal == PortTemporal::Value
         }
     }
 }
@@ -1075,6 +1080,37 @@ mod terminal_track_tests {
             ConnectionTrack::Payload,
             &kind_id("test/fault"),
             PortTemporal::Value
+        ));
+    }
+
+    #[test]
+    fn normal_close_requires_a_closable_source_and_unit_value_track() {
+        let descriptor = source(Some("test/fault"));
+        assert!(source_contract_matches(
+            &descriptor,
+            ConnectionTrack::NormalClose,
+            &kind_id(conduit_core::UNIT_INFO_ID),
+            PortTemporal::Value
+        ));
+        let mut standing = descriptor.clone();
+        standing.temporal = PortTemporal::Flow { closes: false };
+        assert!(!source_contract_matches(
+            &standing,
+            ConnectionTrack::NormalClose,
+            &kind_id(conduit_core::UNIT_INFO_ID),
+            PortTemporal::Value
+        ));
+        assert!(!source_contract_matches(
+            &descriptor,
+            ConnectionTrack::NormalClose,
+            &kind_id("value/count"),
+            PortTemporal::Value
+        ));
+        assert!(!source_contract_matches(
+            &descriptor,
+            ConnectionTrack::NormalClose,
+            &kind_id(conduit_core::UNIT_INFO_ID),
+            PortTemporal::Flow { closes: true }
         ));
     }
 }
