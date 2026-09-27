@@ -21,7 +21,7 @@ use std::{
 };
 
 const PROTOCOL: u16 = 1;
-const MAXIMUM_CONTROL_FRAME_BYTES: usize = 128 * 1024;
+const MAXIMUM_CONTROL_FRAME_BYTES: usize = 512 * 1024;
 
 #[derive(Debug, Clone)]
 pub(crate) struct DurableHostTruth {
