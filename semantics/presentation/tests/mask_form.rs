@@ -1,13 +1,19 @@
 #![cfg(feature = "form-catalog")]
 
-use conduit_core::{kind_id, port_id, KindIdentity, PortDescriptor, PortDirection, PortTemporal};
+use conduit_core::{
+    bind_active_play, kind_id, port_id, ArtifactId, Back, BackOfferBuilder, BootId, CapabilityId,
+    CapabilityLimits, ExecutionProfileId, HostAdvertisement, HostId, HostProfileId,
+    ImplementationId, Kind, KindIdentity, OfferGeneration, PortDescriptor, PortDirection,
+    PortTemporal, SignId, PROTOCOL_VERSION,
+};
 use conduit_form::{
     check_syntax_document, expand_canonical_form_for_authoring, parse_syntax_document,
-    KindProjection, KindSignature, ProfileCatalog, StartupCatalog,
+    KindSignature, ProfileCatalog, StartupCatalog,
 };
 use conduit_presentation::{
-    MaskForm, MANIFESTATION_VALUE_KIND, PRESENTATION_INTERACTION_VALUE_KIND,
-    PRESENTATION_VALUE_KIND,
+    ManifestationLifecycle, MaskForm, MaskShow, PlannedMaskForm, Presentation, PresentationBasis,
+    PresentationRole, PresentationSubject, PresentationText, MANIFESTATION_VALUE_KIND,
+    PRESENTATION_INTERACTION_VALUE_KIND, PRESENTATION_VALUE_KIND,
 };
 
 fn port(
@@ -24,13 +30,21 @@ fn port(
     }
 }
 
-fn kind(name: &str, inputs: Vec<PortDescriptor>, outputs: Vec<PortDescriptor>) -> KindProjection {
-    KindProjection {
+fn kind(name: &str, inputs: Vec<PortDescriptor>, outputs: Vec<PortDescriptor>) -> Kind {
+    Kind {
+        startup_parameters: vec![],
+        shorthand: None,
         kind_id: kind_id(name),
         kind_contract_revision: KindIdentity::from(format!("conduit.test/{name}@1")),
         inputs,
         outputs,
         configuration: vec![],
+        semantic_laws: Default::default(),
+        limits: CapabilityLimits {
+            max_active_instances: 4,
+            max_queue_items: 4,
+            max_queue_bytes: 64 * 1024,
+        },
     }
 }
 
@@ -181,7 +195,7 @@ fn catalogs() -> (StartupCatalog, ProfileCatalog) {
                 startup_parameters: vec![],
             })
             .unwrap();
-        profiles.insert(definition).unwrap();
+        profiles.insert_kind(definition).unwrap();
     }
     startup
         .insert_value_kind_alias("Presentation", kind_id(PRESENTATION_VALUE_KIND))
@@ -205,6 +219,45 @@ fn admit(source: &str, name: &str) -> MaskForm {
     let checked = check_syntax_document(&syntax, &startup).unwrap();
     let expanded = expand_canonical_form_for_authoring(&checked, name, &profiles).unwrap();
     MaskForm::admit(&expanded).unwrap()
+}
+
+fn host_for(
+    expanded: &conduit_form::ExpandedCanonicalForm,
+    profiles: &ProfileCatalog,
+) -> HostAdvertisement {
+    let capabilities = expanded
+        .gears
+        .iter()
+        .map(|gear| {
+            BackOfferBuilder::new(
+                profiles.canonical_kind(&gear.kind_id).unwrap().clone(),
+                Back {
+                    capability_id: CapabilityId::from(format!("cap/{}", gear.gear_id.as_str())),
+                    execution_profile_id: ExecutionProfileId::from("mask/test@1"),
+                    implementation_id: ImplementationId::from(format!(
+                        "implementation/{}",
+                        gear.gear_id.as_str()
+                    )),
+                    artifact_id: ArtifactId::from(format!("artifact/{}", gear.gear_id.as_str())),
+                    host_calls: vec![],
+                    resource_requirements: vec![],
+                    authority_requirements: vec![],
+                },
+            )
+            .build()
+        })
+        .collect();
+    HostAdvertisement {
+        protocol_version: PROTOCOL_VERSION,
+        host_id: HostId::from("host/mask-test"),
+        boot_id: BootId::from("boot/mask-test"),
+        offer_generation: OfferGeneration(1),
+        profile: HostProfileId::from("mask/test@1"),
+        bases: vec![],
+        resources: vec![],
+        capabilities,
+        planner_capabilities: vec![],
+    }
 }
 
 #[test]
@@ -255,4 +308,88 @@ fn an_ordinary_form_without_the_mask_role_boundary_is_not_a_mask() {
     let checked = check_syntax_document(&syntax, &startup).unwrap();
     let expanded = expand_canonical_form_for_authoring(&checked, "tutorial", &profiles).unwrap();
     assert!(MaskForm::admit(&expanded).is_err());
+}
+
+#[test]
+fn the_ordinary_planner_seals_the_mask_form_without_a_mask_planner() {
+    let source = "form browser-graphical (\n >> presentation: Presentation\n interaction: FaceInteraction...| >>\n show: Show >>\n) {\n output: web/dom\n input: web/input\n presentation >> output.presentation\n output.show >> show\n input.interaction >> interaction\n}\n";
+    let (startup, profiles) = catalogs();
+    let checked = check_syntax_document(&parse_syntax_document(source), &startup).unwrap();
+    let authoring =
+        expand_canonical_form_for_authoring(&checked, "browser-graphical", &profiles).unwrap();
+    let mask = MaskForm::admit(&authoring).unwrap();
+    let host = host_for(&authoring.expanded, &profiles);
+    let placements = conduit_planner::default_expanded_placements(
+        &authoring.expanded,
+        core::slice::from_ref(&host),
+    )
+    .unwrap();
+    let plan =
+        conduit_planner::plan_expanded_canonical(&authoring.expanded, &[host], &placements, &[])
+            .unwrap();
+    let planned = PlannedMaskForm::admit(&mask, &plan).unwrap();
+
+    assert_eq!(
+        planned.plan.checked_form_id,
+        mask.form_identity.checked_form_id
+    );
+    assert_eq!(
+        planned.plan.expanded_form_id,
+        mask.form_identity.expanded_form_id
+    );
+    assert_eq!(planned.show_placement().gear_id, mask.show_output.gear_id);
+
+    let body = conduit_body::Body::born(
+        mask.form_identity.source_document_id.clone(),
+        mask.form_identity.checked_form_id.clone(),
+        1,
+        SignId::from("sign/body-born"),
+    )
+    .unwrap();
+    let (body, wake) = body.wake(1, SignId::from("sign/body-woke")).unwrap();
+    let presentation = Presentation::new(
+        1,
+        PresentationBasis {
+            body_id: Some(body.body_id),
+            wake_id: Some(wake.wake_id),
+            source_document_id: Some(mask.form_identity.source_document_id.clone()),
+            checked_form_id: Some(mask.form_identity.checked_form_id.clone()),
+            expanded_form_id: Some(mask.form_identity.expanded_form_id.clone()),
+            plan_id: Some(plan.plan_id.clone()),
+            active_play_id: None,
+            sign_ids: vec![SignId::from("sign/presentation")],
+        },
+        vec![PresentationSubject {
+            identity: "mask/form".into(),
+            role: PresentationRole::Form,
+            label: "Browser graphical Mask Form".into(),
+            accessibility_name: "Browser graphical Mask Form".into(),
+        }],
+        vec![],
+        vec![],
+        vec![PresentationText {
+            subject: "mask/form".into(),
+            text: "One ordinary Form presents this Face".into(),
+        }],
+    )
+    .unwrap();
+    let terminal = planned.show_placement();
+    let active_play = bind_active_play(&plan.plan_id, &terminal.host_id, &terminal.boot_id, 1);
+    let show = MaskShow::prepared(
+        &planned,
+        &presentation,
+        active_play,
+        "mask/form".into(),
+        "browser/document".into(),
+        SignId::from("sign/show-prepared"),
+    )
+    .unwrap()
+    .transition(
+        ManifestationLifecycle::Available,
+        SignId::from("sign/show-available"),
+    )
+    .unwrap();
+    show.validate(&presentation).unwrap();
+    assert_eq!(show.mask_form, mask.form_identity);
+    assert_eq!(show.planned_mask.plan.plan_id, plan.plan_id);
 }

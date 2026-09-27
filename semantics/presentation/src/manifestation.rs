@@ -116,6 +116,51 @@ impl Manifestation {
             .validate()
             .map_err(|_| ManifestationError::InvalidPresentation)?;
         let placement = renderer_placement(plan, &placement_id)?;
+        Self::prepared_at_placement(
+            presentation,
+            plan,
+            active_play,
+            placement,
+            front_subject,
+            target_subject,
+            sign_id,
+        )
+    }
+
+    pub(crate) fn prepared_at_mask_form_boundary(
+        presentation: &Presentation,
+        plan: &Plan,
+        active_play: ActivePlayIdentity,
+        placement_id: PlacementId,
+        front_subject: String,
+        target_subject: String,
+        sign_id: SignId,
+    ) -> Result<Self, ManifestationError> {
+        presentation
+            .validate()
+            .map_err(|_| ManifestationError::InvalidPresentation)?;
+        let placement = planned_placement(plan, &placement_id)?;
+        Self::prepared_at_placement(
+            presentation,
+            plan,
+            active_play,
+            placement,
+            front_subject,
+            target_subject,
+            sign_id,
+        )
+    }
+
+    #[allow(clippy::too_many_arguments)]
+    fn prepared_at_placement(
+        presentation: &Presentation,
+        plan: &Plan,
+        active_play: ActivePlayIdentity,
+        placement: &PlannedGear,
+        front_subject: String,
+        target_subject: String,
+        sign_id: SignId,
+    ) -> Result<Self, ManifestationError> {
         if active_play.plan_id != plan.plan_id
             || active_play.host_id != placement.host_id
             || active_play.boot_id != placement.boot_id
@@ -268,6 +313,67 @@ impl Manifestation {
         Ok(placement)
     }
 
+    pub(crate) fn validate_against_mask_form<'a>(
+        &self,
+        presentation: &Presentation,
+        plan: &'a Plan,
+    ) -> Result<&'a PlannedGear, ManifestationError> {
+        presentation
+            .validate()
+            .map_err(|_| ManifestationError::InvalidPresentation)?;
+        let placement = planned_placement(plan, &self.placement_id)?;
+        self.validate_at_placement(presentation, plan, placement)?;
+        Ok(placement)
+    }
+
+    fn validate_at_placement(
+        &self,
+        presentation: &Presentation,
+        plan: &Plan,
+        placement: &PlannedGear,
+    ) -> Result<(), ManifestationError> {
+        if self.body_id != presentation.basis.body_id
+            || self.wake_id != presentation.basis.wake_id
+            || self.presentation_id != presentation.identity
+            || self.presentation_revision != presentation.revision
+            || self.plan_id != plan.plan_id
+            || self.presenter_capability_id != placement.capability_id
+            || self.presenter_implementation_id != placement.implementation_id
+            || self.presenter_artifact_id != placement.artifact_id
+            || self.host_id != placement.host_id
+            || self.boot_id != placement.boot_id
+            || self.offer_generation != placement.offer_generation
+            || self.active_play_id
+                != bind_active_play(
+                    &plan.plan_id,
+                    &placement.host_id,
+                    &placement.boot_id,
+                    self.play_sequence,
+                )
+                .active_play_id
+            || self.manifestation_id
+                != bind_manifestation(
+                    &presentation.identity,
+                    &plan.plan_id,
+                    &self.active_play_id,
+                    placement,
+                    &self.front_subject,
+                    &self.target_subject,
+                )
+        {
+            return Err(ManifestationError::StaleIdentity);
+        }
+        validate_target(&self.front_subject)?;
+        validate_front_subject(presentation, &self.front_subject)?;
+        validate_target(&self.target_subject)?;
+        if (self.lifecycle == ManifestationLifecycle::Failed) != self.failure.is_some()
+            || !self.valid_signs()
+        {
+            return Err(ManifestationError::InvalidTransition);
+        }
+        Ok(())
+    }
+
     fn push_sign(&mut self, sign_id: SignId) {
         self.signs.push(ManifestationSign {
             sign_id,
@@ -344,6 +450,20 @@ pub(crate) fn renderer_placement<'a>(
     plan: &'a Plan,
     placement_id: &PlacementId,
 ) -> Result<&'a PlannedGear, ManifestationError> {
+    let placement = planned_placement(plan, placement_id)?;
+    if placement.kind_id.as_str() != RENDERER_KIND
+        || placement.inputs != crate::renderer_inputs()
+        || placement.outputs != crate::renderer_outputs()
+    {
+        return Err(ManifestationError::WrongRendererContract);
+    }
+    Ok(placement)
+}
+
+fn planned_placement<'a>(
+    plan: &'a Plan,
+    placement_id: &PlacementId,
+) -> Result<&'a PlannedGear, ManifestationError> {
     if !verify_plan(plan) {
         return Err(ManifestationError::InvalidPlan);
     }
@@ -353,12 +473,6 @@ pub(crate) fn renderer_placement<'a>(
         .flat_map(|fragment| &fragment.placements)
         .find(|placement| &placement.placement_id == placement_id)
         .ok_or(ManifestationError::MissingRendererPlacement)?;
-    if placement.kind_id.as_str() != RENDERER_KIND
-        || placement.inputs != crate::renderer_inputs()
-        || placement.outputs != crate::renderer_outputs()
-    {
-        return Err(ManifestationError::WrongRendererContract);
-    }
     Ok(placement)
 }
 
