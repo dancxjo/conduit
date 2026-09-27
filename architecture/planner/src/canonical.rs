@@ -52,7 +52,21 @@ pub fn plan_expanded_authoring_with_options(
 ) -> Result<Plan, PlannerError> {
     let mut plan =
         plan_expanded_canonical_with_options(&form.expanded, hosts, placements, bases, options)?;
-    let expected = form.input_bindings.len() + form.output_bindings.len();
+    let expected = form
+        .input_bindings
+        .iter()
+        .map(|binding| ForeBoundaryKey {
+            direction: conduit_core::PortDirection::Input,
+            front_port_id: binding.front_port_id.clone(),
+            track: binding.track,
+        })
+        .chain(form.output_bindings.iter().map(|binding| ForeBoundaryKey {
+            direction: conduit_core::PortDirection::Output,
+            front_port_id: binding.front_port_id.clone(),
+            track: binding.track,
+        }))
+        .collect::<BTreeSet<_>>()
+        .len();
     if expected != boundary_limits.len() {
         return Err(PlannerError::InvalidFormIdentity(
             "every external Fore binding requires one exact queue limit".into(),
@@ -77,10 +91,14 @@ pub fn plan_expanded_authoring_with_options(
                 front_port_id: binding.front_port_id.clone(),
                 track: binding.track,
             };
-            if !seen.insert(key.clone()) {
+            if !seen.insert(key.clone())
+                && (direction != conduit_core::PortDirection::Input
+                    || binding.track != conduit_core::ConnectionTrack::Payload)
+            {
                 return Err(PlannerError::InvalidFormIdentity(format!(
-                    "external Fore port '{}' track '{}' has more than one internal binding; atomic external fan-out is not yet supported",
-                    binding.front_port_id.as_str(), binding.track.as_str(),
+                    "external Fore port '{}' track '{}' has unsupported multiple internal bindings",
+                    binding.front_port_id.as_str(),
+                    binding.track.as_str(),
                 )));
             }
             let limits = boundary_limits.get(&key).ok_or_else(|| {

@@ -410,29 +410,49 @@ pub(super) fn run_fragment_retaining<W: Write, T: TimerAdapter>(
     let supplied_inputs = external_fore
         .as_ref()
         .map_or(&[][..], |binding| binding.inputs);
-    if supplied_inputs.len() != planned_inputs.len() {
+    let planned_input_keys = planned_inputs
+        .iter()
+        .map(|port| (&port.front_port_id, port.track))
+        .collect::<std::collections::BTreeSet<_>>();
+    let supplied_input_keys = supplied_inputs
+        .iter()
+        .map(|input| (&input.front_port_id, input.track))
+        .collect::<std::collections::BTreeSet<_>>();
+    if supplied_inputs.len() != planned_input_keys.len()
+        || supplied_input_keys != planned_input_keys
+    {
         return Err("external Fore input set does not match the sealed Plan".into());
     }
-    for planned in planned_inputs {
+    for (front_port_id, track) in planned_input_keys {
         let supplied = supplied_inputs
             .iter()
-            .find(|input| {
-                input.front_port_id == planned.front_port_id && input.track == planned.track
-            })
+            .find(|input| input.front_port_id == *front_port_id && input.track == track)
             .ok_or_else(|| {
                 format!(
                     "external Fore input '{}' is missing",
-                    planned.front_port_id.as_str()
+                    front_port_id.as_str()
                 )
             })?;
-        if supplied.bytes.len() > planned.byte_capacity as usize {
+        let branches = planned_inputs
+            .iter()
+            .copied()
+            .filter(|planned| planned.front_port_id == *front_port_id && planned.track == track)
+            .collect::<Vec<_>>();
+        if branches
+            .iter()
+            .any(|planned| supplied.bytes.len() > planned.byte_capacity as usize)
+        {
             return Err(format!(
                 "external Fore input '{}' exceeds its sealed byte capacity",
-                planned.front_port_id.as_str()
+                front_port_id.as_str()
             ));
         }
+        let targets = branches
+            .iter()
+            .map(|planned| (planned.endpoint, planned.cord))
+            .collect::<Vec<_>>();
         match scheduler
-            .admit_remote_input(planned.endpoint, planned.cord, 0, &supplied.bytes)
+            .admit_remote_input_fanout(&targets, 0, &supplied.bytes)
             .map_err(|error| format!("admit external Fore input: {error:?}"))?
         {
             conduit_kernel::scheduler::RemoteIngressOutcome::Accepted { sequence: 0 } => {}
@@ -442,9 +462,11 @@ pub(super) fn run_fragment_retaining<W: Write, T: TimerAdapter>(
                 ))
             }
         }
-        scheduler
-            .close_remote_input(planned.endpoint, planned.cord)
-            .map_err(|error| format!("close external Fore input: {error:?}"))?;
+        for planned in branches {
+            scheduler
+                .close_remote_input(planned.endpoint, planned.cord)
+                .map_err(|error| format!("close external Fore input: {error:?}"))?;
+        }
     }
     if lowered
         .fore_ports

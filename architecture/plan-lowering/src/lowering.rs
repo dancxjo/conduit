@@ -1066,9 +1066,11 @@ pub fn lower_plan_fragment_for_profile(
         .with_track(lower_connection_track(planned.track));
         cords.push(LoweredCord {
             connection_id: ConnectionId::from(alloc::format!(
-                "front/{}/{}",
+                "front/{}/{}/{}/{}",
                 planned.direction as u8,
-                planned.front_port_id.as_str()
+                planned.front_port_id.as_str(),
+                planned.placement_id.as_str(),
+                planned.gear_port_id.as_str(),
             )),
             spec,
         });
