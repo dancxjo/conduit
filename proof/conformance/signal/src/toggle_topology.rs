@@ -51,7 +51,7 @@ pub fn distributed_toggle_std_source_advertisement() -> HostAdvertisement {
                 },
                 inputs: Vec::new(),
                 outputs: trigger_outputs(),
-                semantic_contract: Default::default(),
+                semantic_contract: trigger_semantic_contract().semantic_contract(),
                 host_calls: trigger_host_call_requirements(),
                 resource_requirements: trigger_resource_requirements(),
                 authority_requirements: Vec::new(),
@@ -70,7 +70,8 @@ pub fn distributed_toggle_std_source_advertisement() -> HostAdvertisement {
                 implementation: conduit_std_offers::state_toggle_offer().implementation,
                 inputs: toggle_inputs(),
                 outputs: toggle_outputs(),
-                semantic_contract: Default::default(),
+                semantic_contract: conduit_semantic_catalog::state_toggle_semantic_contract()
+                    .semantic_contract(),
                 host_calls: toggle_host_call_requirements(),
                 resource_requirements: toggle_resource_requirements(),
                 authority_requirements: Vec::new(),

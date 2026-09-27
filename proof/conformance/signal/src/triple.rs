@@ -87,7 +87,11 @@ fn capability(capability_id: &str, implementation_id: &str, is_pulse: bool) -> C
         },
         inputs: if is_pulse { vec![] } else { show_inputs() },
         outputs: if is_pulse { pulse_outputs() } else { vec![] },
-        semantic_contract: Default::default(),
+        semantic_contract: if is_pulse {
+            crate::pulse_semantic_contract().semantic_contract()
+        } else {
+            crate::show_semantic_contract().semantic_contract()
+        },
         host_calls: if is_pulse {
             pulse_host_call_requirements()
         } else {

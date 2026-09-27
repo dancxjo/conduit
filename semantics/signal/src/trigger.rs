@@ -9,10 +9,10 @@ use alloc::string::ToString;
 use alloc::vec;
 use alloc::vec::Vec;
 use conduit_core::{
-    await_trigger_host_call_requirement, kind_id, port_id, resource_requirement,
-    ConfigurationEntry, ConfigurationValue, ExecutionProfileId, HostCallRequirement, KindId,
-    KindIdentity, PortDescriptor, PortDirection, ResourceRequirement, ValuePayload,
-    INPUT_RESOURCE_CLASS,
+    await_trigger_host_call_requirement, kind_id, port_id, resource_requirement, CapabilityLimits,
+    ConfigurationEntry, ConfigurationValue, ExecutionProfileId, HostCallRequirement, Kind,
+    KindConfigurationField, KindConfigurationRule, KindId, KindIdentity, PortDescriptor,
+    PortDirection, ResourceRequirement, ValuePayload, INPUT_RESOURCE_CLASS,
 };
 use serde::{Deserialize, Serialize};
 
@@ -111,6 +111,31 @@ pub fn trigger_outputs() -> Vec<PortDescriptor> {
     }]
 }
 
+pub fn trigger_semantic_contract() -> Kind {
+    Kind {
+        startup_parameters: trigger_front_startup_parameters(),
+        shorthand: None,
+        kind_id: trigger_kind(),
+        kind_contract_revision: trigger_contract_revision(),
+        inputs: Vec::new(),
+        outputs: trigger_outputs(),
+        configuration: vec![KindConfigurationField {
+            key: "count".into(),
+            default_value: ConfigurationValue::U64(16),
+            rule: KindConfigurationRule::U64Range {
+                minimum: 0,
+                maximum: MAX_SIGNAL_COUNT,
+            },
+        }],
+        semantic_laws: Default::default(),
+        limits: CapabilityLimits {
+            max_active_instances: 16,
+            max_queue_items: 1,
+            max_queue_bytes: TRIGGER_ENCODED_LEN,
+        },
+    }
+}
+
 pub fn toggle_inputs() -> Vec<PortDescriptor> {
     conduit_semantic_catalog::state_toggle_contract().inputs
 }
@@ -200,38 +225,13 @@ pub fn decode_trigger_bytes(encoded: &[u8]) -> Result<Trigger, crate::SignalProf
 
 #[cfg(feature = "host-profile")]
 pub(crate) fn extend_profile_catalog(catalog: &mut conduit_form::ProfileCatalog) {
-    use conduit_form::{KindConfigurationField, KindConfigurationRule, KindProjection};
-
     catalog
-        .insert(KindProjection {
-            kind_id: trigger_kind(),
-            kind_contract_revision: trigger_contract_revision(),
-            inputs: Vec::new(),
-            outputs: trigger_outputs(),
-            configuration: vec![KindConfigurationField {
-                key: "count".to_string(),
-                default_value: ConfigurationValue::U64(16),
-                rule: KindConfigurationRule::U64Range {
-                    minimum: 0,
-                    maximum: MAX_SIGNAL_COUNT,
-                },
-            }],
-        })
+        .insert_kind(trigger_semantic_contract())
         .expect("signal profile kinds are unique");
     conduit_semantic_catalog::install_bool_presentation_catalog(catalog)
         .expect("toggle presentation kind is unique");
     catalog
-        .insert(KindProjection {
-            kind_id: toggle_kind(),
-            kind_contract_revision: toggle_contract_revision(),
-            inputs: toggle_inputs(),
-            outputs: toggle_outputs(),
-            configuration: vec![KindConfigurationField {
-                key: "initial".to_string(),
-                default_value: ConfigurationValue::Bool(false),
-                rule: KindConfigurationRule::Any,
-            }],
-        })
+        .insert_kind(conduit_semantic_catalog::state_toggle_semantic_contract())
         .expect("signal profile kinds are unique");
 }
 
