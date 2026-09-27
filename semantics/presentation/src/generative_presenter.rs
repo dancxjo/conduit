@@ -24,8 +24,8 @@ pub const MAX_GENERATIVE_PRESENTER_IDENTITY_BYTES: usize = 128;
 pub struct GenerativePresenterInput {
     pub source_presentation_identity: String,
     pub source_presentation_revision: u64,
-    pub context: FaceContext,
-    pub focus: FaceFocus,
+    pub context: Option<FaceContext>,
+    pub focus: Option<FaceFocus>,
     pub presentation: Presentation,
 }
 
@@ -63,6 +63,33 @@ pub enum GenerativePresenterRefusal {
 }
 
 impl GenerativePresenterRequest {
+    /// Build a request directly from the universal Presentation boundary.
+    /// Empty context/focus is explicit: this adapter must not invent
+    /// application-owned Face facts which were not present on its Fore.
+    pub fn from_presentation(
+        request_identity: String,
+        policy: GenerativePresenterPolicy,
+        presentation: Presentation,
+        previous_presentation_identity: Option<String>,
+        bounds: GenerativePresenterBounds,
+    ) -> Result<Self, GenerativePresenterRefusal> {
+        let request = Self {
+            request_identity,
+            policy,
+            semantic_data: GenerativePresenterInput {
+                source_presentation_identity: presentation.identity.as_str().into(),
+                source_presentation_revision: presentation.revision,
+                context: None,
+                focus: None,
+                presentation,
+            },
+            previous_presentation_identity,
+            bounds,
+        };
+        request.validate()?;
+        Ok(request)
+    }
+
     pub fn from_face(
         request_identity: String,
         policy: GenerativePresenterPolicy,
@@ -76,8 +103,8 @@ impl GenerativePresenterRequest {
             semantic_data: GenerativePresenterInput {
                 source_presentation_identity: surface.presentation.identity.as_str().into(),
                 source_presentation_revision: surface.presentation.revision,
-                context: surface.context.clone(),
-                focus: surface.focus.clone(),
+                context: Some(surface.context.clone()),
+                focus: Some(surface.focus.clone()),
                 presentation: surface.presentation.clone(),
             },
             previous_presentation_identity,
@@ -232,6 +259,26 @@ mod tests {
         .unwrap()
     }
 
+    #[test]
+    fn presentation_boundary_does_not_invent_face_context_or_focus() {
+        let presentation = surface().presentation;
+        let request = GenerativePresenterRequest::from_presentation(
+            "request/presentation/7".into(),
+            GenerativePresenterPolicy {
+                template_contract_revision: "presenter-template/1".into(),
+                narrator_role: GenerativeNarratorRole::TransientFirstPersonBodyNarrator,
+                instructions: "Speak only the supplied Presentation".into(),
+            },
+            presentation.clone(),
+            None,
+            GenerativePresenterBounds::reviewed_default(),
+        )
+        .unwrap();
+        assert_eq!(request.semantic_data.presentation, presentation);
+        assert_eq!(request.semantic_data.context, None);
+        assert_eq!(request.semantic_data.focus, None);
+    }
+
     fn manifestation(request: &GenerativePresenterRequest) -> GeneratedManifestation {
         GeneratedManifestation {
             manifestation_identity: "manifestation/generated/7".into(),
@@ -262,8 +309,8 @@ mod tests {
     fn preserves_structured_semantics_separately_from_implementation_policy() {
         let request = request();
         assert_eq!(request.semantic_data.presentation, surface().presentation);
-        assert_eq!(request.semantic_data.context, FaceContext::Overview);
-        assert_eq!(request.semantic_data.focus, FaceFocus::Body);
+        assert_eq!(request.semantic_data.context, Some(FaceContext::Overview));
+        assert_eq!(request.semantic_data.focus, Some(FaceFocus::Body));
         assert_eq!(request.semantic_data.source_presentation_revision, 7);
         assert_eq!(
             request.semantic_data.source_presentation_identity,

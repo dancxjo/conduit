@@ -434,6 +434,7 @@ fn sealed_current_fragment() -> PlanFragment {
             byte_capacity: 9,
             abnormal_kind: None,
         }],
+        fore_ports: Vec::new(),
         shared_pools: Vec::new(),
         startup_dependencies: vec![StartupDependency {
             prerequisite_placement_id: source.clone(),

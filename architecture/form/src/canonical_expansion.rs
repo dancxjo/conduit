@@ -450,6 +450,7 @@ fn instantiate_gear(
                         port: output,
                     }),
                 )]),
+                abnormal: None,
                 bare_ports: Some((Some("next".into()), Some("current".into()))),
                 terminal_transduction: None,
             });
