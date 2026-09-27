@@ -1143,9 +1143,14 @@ fn verify_fragment_fore_ports(fragment: &PlanFragment) -> bool {
             boundary.item_capacity > 0
                 && boundary.byte_capacity > 0
                 && !fragment.fore_ports[..index].iter().any(|prior| {
-                    prior.front_port_id == boundary.front_port_id
+                    let same_fore = prior.front_port_id == boundary.front_port_id
                         && prior.direction == boundary.direction
-                        && prior.track == boundary.track
+                        && prior.track == boundary.track;
+                    same_fore
+                        && (boundary.direction != PortDirection::Input
+                            || boundary.track != ConnectionTrack::Payload
+                            || (prior.placement_id == boundary.placement_id
+                                && prior.gear_port_id == boundary.gear_port_id))
                 })
                 && fragment.placements.iter().any(|placement| {
                     placement.placement_id == boundary.placement_id
