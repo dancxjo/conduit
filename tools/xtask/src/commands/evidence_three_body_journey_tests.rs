@@ -272,30 +272,33 @@ fn documentary_artifacts_are_digest_bound_and_root_confined() {
 #[test]
 fn published_index_preserves_semantic_assertions_and_non_claims() {
     let contract = contract();
-    let index = ThreeBodyJourneyIndex {
-        schema: INDEX_SCHEMA.into(),
-        disposition: "complete".into(),
-        journey_id: contract.journey_id,
-        git_commit: contract.git_commit,
-        semantic_steps: contract.steps,
-        tracks: complete(),
-        recorded_generative: None,
-    };
+    let index = assemble_index(contract, complete(), None).unwrap();
     let page = page::render(&index);
     let value = serde_json::to_value(index).unwrap();
     assert_eq!(
-        value["semantic_steps"][0]["required_assertion"],
+        value["actions"][0]["action"]["required_assertion"],
         "body-absent"
     );
     assert_eq!(
-        value["semantic_steps"][0]["required_assertion_rung"],
+        value["actions"][0]["action"]["required_assertion_rung"],
         "body-biography"
     );
     assert_eq!(
-        value["semantic_steps"][0]["non_claims"][0],
+        value["actions"][0]["action"]["non_claims"][0],
         "not-physical-proof"
     );
-    assert_eq!(value["tracks"].as_array().unwrap().len(), REQUIRED_TRACKS);
+    assert_eq!(value["schema"], INDEX_SCHEMA);
+    assert!(value.get("semantic_steps").is_none());
+    assert!(value.get("tracks").is_none());
+    for action in value["actions"].as_array().unwrap() {
+        assert_eq!(action["bodies"].as_array().unwrap().len(), REQUIRED_TRACKS);
+        let step_id = action["action"]["step_id"].as_str().unwrap();
+        assert!(action["bodies"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .all(|body| { body["observed"]["step_id"].as_str() == Some(step_id) }));
+    }
     assert!(page.contains("Select a body to follow its life"));
     assert!(page.contains("Compare all three"));
     assert!(!page.contains("<details open"));
@@ -328,15 +331,7 @@ fn presenter_policy_has_its_own_documentary_evidence_rung() {
 #[test]
 fn publication_writes_both_views_and_refuses_overwrite() {
     let contract = contract();
-    let index = ThreeBodyJourneyIndex {
-        schema: INDEX_SCHEMA.into(),
-        disposition: "complete".into(),
-        journey_id: contract.journey_id,
-        git_commit: contract.git_commit,
-        semantic_steps: contract.steps,
-        tracks: complete(),
-        recorded_generative: None,
-    };
+    let index = assemble_index(contract, complete(), None).unwrap();
     let root = std::env::temp_dir().join(format!(
         "conduit-three-body-publication-{}",
         std::process::id()
@@ -364,15 +359,7 @@ fn media_is_foreground_and_machine_provenance_stays_collapsed() {
         item.documentary_description = "Visible & audible <proof>".into();
         tracks[0].steps[0].evidence.push(item);
     }
-    let page = page::render(&ThreeBodyJourneyIndex {
-        schema: INDEX_SCHEMA.into(),
-        disposition: "complete".into(),
-        journey_id: contract.journey_id,
-        git_commit: contract.git_commit,
-        semantic_steps: contract.steps,
-        tracks,
-        recorded_generative: None,
-    });
+    let page = page::render(&assemble_index(contract, tracks, None).unwrap());
     for tag in [
         "<img",
         "<audio controls",
@@ -388,6 +375,69 @@ fn media_is_foreground_and_machine_provenance_stays_collapsed() {
         let prefix = &page[..position];
         assert!(prefix.rfind("<details") > prefix.rfind("</details>"));
     }
+}
+
+#[test]
+fn assembler_refuses_missing_duplicate_and_shuffled_track_actions() {
+    let contract = contract();
+    let mut missing = complete();
+    missing[0].steps.remove(4);
+    assert_eq!(
+        assemble_index(contract.clone(), missing, None).unwrap_err(),
+        "track-0 has a missing, extra, or shuffled action"
+    );
+
+    let mut duplicate = complete();
+    duplicate[0].steps[4].step_id = duplicate[0].steps[3].step_id.clone();
+    assert_eq!(
+        assemble_index(contract.clone(), duplicate, None).unwrap_err(),
+        "track-0 has duplicate step journey.step-3"
+    );
+
+    let mut shuffled = complete();
+    shuffled[0].steps.swap(3, 4);
+    assert_eq!(
+        assemble_index(contract, shuffled, None).unwrap_err(),
+        "track-0 has a missing, extra, or shuffled action"
+    );
+}
+
+#[test]
+fn action_major_index_refuses_body_column_shuffle() {
+    let contract = contract();
+    let mut index = assemble_index(contract.clone(), complete(), None).unwrap();
+    index.actions[4].bodies.swap(0, 1);
+    assert_eq!(
+        validate_index(&index, &contract).unwrap_err(),
+        "three-Body Journey action is malformed or out of order"
+    );
+}
+
+#[test]
+fn recorded_generative_observations_live_only_in_the_matching_body_cells() {
+    let contract = contract();
+    let mut tracks = complete();
+    tracks[2].track_id = "hosted-generative".into();
+    let mut recording = tracks[2].clone();
+    recording.git_commit = "b".repeat(40);
+    recording.embodiment = "hosted-open-weight-model-body".into();
+    recording.presenter_id = "presenter-live".into();
+    let index = assemble_index(contract.clone(), tracks, Some(recording)).unwrap();
+    for action in &index.actions {
+        assert_eq!(
+            action
+                .bodies
+                .iter()
+                .filter(|body| body.recorded_generative.is_some())
+                .count(),
+            1
+        );
+        let recorded = action.bodies[2].recorded_generative.as_ref().unwrap();
+        assert_eq!(recorded.observed.step_id, action.action.step_id);
+        assert_eq!(recorded.git_commit, "b".repeat(40));
+    }
+    let (_, reconstructed) = validate_index(&index, &contract).unwrap();
+    assert_eq!(reconstructed.unwrap().git_commit, "b".repeat(40));
 }
 
 #[test]
