@@ -3,8 +3,8 @@
 use conduit_body::{BodyId, WakeId};
 use conduit_core::PlanId;
 use conduit_presentation::{
-    BodyMaskWardrobe, MaskReconciliation, MaskShowDisposition, MaskSpecificationId, MaskWardrobe,
-    MaskWardrobeError, SealedMaskRoute, SelectedMaskRoute,
+    AdmittedMaskRoutes, BodyMaskWardrobe, MaskReconciliation, MaskShowDisposition,
+    MaskSpecificationId, MaskWardrobe, MaskWardrobeError, SelectedMaskRoute,
 };
 use serde::{Deserialize, Serialize};
 
@@ -46,15 +46,18 @@ impl MaskWardrobeControl {
         body_id: &BodyId,
         scoped_wardrobe: BodyMaskWardrobe,
         active_plan_id: PlanId,
-        routes: &[SealedMaskRoute],
+        routes: &AdmittedMaskRoutes,
         selected: Option<SelectedMaskRoute>,
     ) -> Result<Self, MaskWardrobeControlError> {
         if scoped_wardrobe.body_id != *body_id {
             return Err(MaskWardrobeControlError::WrongBody);
         }
+        if routes.plan_id() != &active_plan_id {
+            return Err(MaskWardrobeControlError::StalePlan);
+        }
         let reconciliation = scoped_wardrobe
             .wardrobe
-            .reconcile(&active_plan_id, routes, selected.as_ref())
+            .reconcile_admitted(routes, selected.as_ref())
             .map_err(MaskWardrobeControlError::Wardrobe)?;
         Ok(Self {
             scoped_wardrobe,
@@ -69,8 +72,11 @@ impl MaskWardrobeControl {
         &mut self,
         basis_revision: u64,
         action: MaskWardrobeAction,
-        routes: &[SealedMaskRoute],
+        routes: &AdmittedMaskRoutes,
     ) -> Result<MaskWardrobeControlEvidence, MaskWardrobeControlError> {
+        if routes.plan_id() != &self.active_plan_id {
+            return Err(MaskWardrobeControlError::StalePlan);
+        }
         let next = match &action {
             MaskWardrobeAction::Wear(mask) => {
                 self.scoped_wardrobe.wear(basis_revision, mask.clone())
@@ -83,7 +89,7 @@ impl MaskWardrobeControl {
         .map_err(MaskWardrobeControlError::Wardrobe)?;
         let reconciliation = next
             .wardrobe
-            .reconcile(&self.active_plan_id, routes, self.selected.as_ref())
+            .reconcile_admitted(routes, self.selected.as_ref())
             .map_err(MaskWardrobeControlError::Wardrobe)?;
         self.selected = selection(&reconciliation.show);
         self.scoped_wardrobe = next;
@@ -104,7 +110,7 @@ impl MaskWardrobeControl {
         &mut self,
         basis_plan_id: &PlanId,
         replacement_plan_id: PlanId,
-        routes: &[SealedMaskRoute],
+        routes: &AdmittedMaskRoutes,
     ) -> Result<MaskReconciliation, MaskWardrobeControlError> {
         if basis_plan_id != &self.active_plan_id {
             return Err(MaskWardrobeControlError::StalePlan);
@@ -112,10 +118,13 @@ impl MaskWardrobeControl {
         if replacement_plan_id == self.active_plan_id {
             return Err(MaskWardrobeControlError::ReusedPlan);
         }
+        if routes.plan_id() != &replacement_plan_id {
+            return Err(MaskWardrobeControlError::StalePlan);
+        }
         let reconciliation = self
             .scoped_wardrobe
             .wardrobe
-            .reconcile(&replacement_plan_id, routes, None)
+            .reconcile_admitted(routes, None)
             .map_err(MaskWardrobeControlError::Wardrobe)?;
         self.active_plan_id = replacement_plan_id;
         self.selected = selection(&reconciliation.show);

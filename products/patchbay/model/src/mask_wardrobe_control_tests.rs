@@ -1,17 +1,19 @@
 use conduit_body::Body;
 use conduit_core::{
-    kind_id, port_id, CheckedFormId, KindIdentity, PlanId, PortDescriptor, PortDirection,
-    PortTemporal, SignId, SourceDocumentId,
+    kind_id, port_id, ArtifactId, BootId, CapabilityId, CheckedFormId, HostId, ImplementationId,
+    KindIdentity, PlacementId, PlanId, PortDescriptor, PortDirection, PortTemporal, SignId,
+    SourceDocumentId,
 };
 use conduit_presentation::{
-    BodyMaskWardrobe, MaskBoundaryPort, MaskBoundaryRole, MaskPlanningDisposition,
-    MaskShowDisposition, MaskSpecification, MaskStageId, MaskStageSpecification, MaskWardrobe,
-    MaskWardrobeLifetime, SealedMaskRoute,
+    AdmittedMaskRoutes, BodyMaskWardrobe, MaskBoundaryPort, MaskBoundaryRole,
+    MaskPlanningDisposition, MaskShowDisposition, MaskSpecification, MaskStageId,
+    MaskStageSpecification, MaskWardrobe, MaskWardrobeLifetime, PlannedMask, PlannedMaskStage,
+    SealedMaskRoute,
 };
 
 use crate::{MaskWardrobeAction, MaskWardrobeControl, MaskWardrobeControlError};
 
-fn mask(name: &str) -> conduit_presentation::MaskSpecificationId {
+fn mask(name: &str) -> MaskSpecification {
     let stage = MaskStageId::new("show").unwrap();
     MaskSpecification::new(
         name,
@@ -48,22 +50,44 @@ fn mask(name: &str) -> conduit_presentation::MaskSpecificationId {
         ],
     )
     .unwrap()
-    .specification_id
 }
 
-fn route(
-    mask: &conduit_presentation::MaskSpecificationId,
-    plan: &str,
-    name: &str,
-    available: bool,
-) -> SealedMaskRoute {
+fn route(mask: &MaskSpecification, plan: &str, name: &str) -> SealedMaskRoute {
     SealedMaskRoute {
         route_id: name.into(),
-        specification_id: mask.clone(),
+        specification_id: mask.specification_id.clone(),
         plan_id: PlanId::from(plan),
         stage_ids: vec![MaskStageId::new("show").unwrap()],
-        currently_available: available,
+        currently_available: true,
     }
+}
+
+fn admitted(
+    plan: &str,
+    specifications: &[MaskSpecification],
+    routes: Vec<SealedMaskRoute>,
+) -> AdmittedMaskRoutes {
+    let planned = specifications
+        .iter()
+        .map(|specification| PlannedMask {
+            specification_id: specification.specification_id.clone(),
+            specification_revision: specification.revision,
+            plan_id: PlanId::from(plan),
+            stage_placements: vec![],
+            stages: vec![PlannedMaskStage {
+                stage_id: MaskStageId::new("show").unwrap(),
+                placement_id: PlacementId::from(format!("{plan}/show")),
+                capability_id: CapabilityId::from("capability/show"),
+                implementation_id: ImplementationId::from("implementation/show"),
+                artifact_id: ArtifactId::from("artifact/show"),
+                host_id: HostId::from("host/show"),
+                boot_id: BootId::from("boot/show"),
+                resources: vec![],
+            }],
+            cords: vec![],
+        })
+        .collect::<Vec<_>>();
+    AdmittedMaskRoutes::new(PlanId::from(plan), specifications, &planned, routes).unwrap()
 }
 
 fn body() -> Body {
@@ -84,13 +108,22 @@ fn one_action_seam_distinguishes_same_plan_selection_from_replanning_need() {
     let wardrobe = BodyMaskWardrobe::new(
         body.body_id.clone(),
         None,
-        MaskWardrobe::new(MaskWardrobeLifetime::Body, vec![graphical.clone()], vec![]).unwrap(),
+        MaskWardrobe::new(
+            MaskWardrobeLifetime::Body,
+            vec![graphical.specification_id.clone()],
+            vec![],
+        )
+        .unwrap(),
     )
     .unwrap();
-    let routes = vec![
-        route(&graphical, "plan/a", "route/graphical", true),
-        route(&spoken, "plan/a", "route/spoken", true),
-    ];
+    let routes = admitted(
+        "plan/a",
+        &[graphical.clone(), spoken.clone()],
+        vec![
+            route(&graphical, "plan/a", "route/graphical"),
+            route(&spoken, "plan/a", "route/spoken"),
+        ],
+    );
     let mut control = MaskWardrobeControl::new(
         &body.body_id,
         wardrobe,
@@ -101,7 +134,11 @@ fn one_action_seam_distinguishes_same_plan_selection_from_replanning_need() {
     .unwrap();
 
     let worn = control
-        .apply(0, MaskWardrobeAction::Wear(spoken.clone()), &routes)
+        .apply(
+            0,
+            MaskWardrobeAction::Wear(spoken.specification_id.clone()),
+            &routes,
+        )
         .unwrap();
     assert_eq!(worn.active_plan_id, PlanId::from("plan/a"));
     assert_eq!(
@@ -114,10 +151,18 @@ fn one_action_seam_distinguishes_same_plan_selection_from_replanning_need() {
     ));
 
     control
-        .apply(1, MaskWardrobeAction::Doff(graphical), &routes)
+        .apply(
+            1,
+            MaskWardrobeAction::Doff(graphical.specification_id.clone()),
+            &routes,
+        )
         .unwrap();
     let no_route = control
-        .apply(2, MaskWardrobeAction::Doff(spoken.clone()), &routes)
+        .apply(
+            2,
+            MaskWardrobeAction::Doff(spoken.specification_id.clone()),
+            &routes,
+        )
         .unwrap();
     assert_eq!(
         no_route.reconciliation.planning,
@@ -125,8 +170,13 @@ fn one_action_seam_distinguishes_same_plan_selection_from_replanning_need() {
     );
     assert!(control.selected.is_none());
 
+    let no_routes = admitted("plan/a", &[graphical, spoken.clone()], vec![]);
     let unsealed = control
-        .apply(3, MaskWardrobeAction::Wear(spoken), &[])
+        .apply(
+            3,
+            MaskWardrobeAction::Wear(spoken.specification_id),
+            &no_routes,
+        )
         .unwrap();
     assert_eq!(
         unsealed.reconciliation.planning,
@@ -141,17 +191,32 @@ fn replacement_admission_requires_fresh_exact_plan_and_matching_routes() {
     let wardrobe = BodyMaskWardrobe::new(
         body.body_id.clone(),
         None,
-        MaskWardrobe::new(MaskWardrobeLifetime::Body, vec![spoken.clone()], vec![]).unwrap(),
+        MaskWardrobe::new(
+            MaskWardrobeLifetime::Body,
+            vec![spoken.specification_id.clone()],
+            vec![],
+        )
+        .unwrap(),
     )
     .unwrap();
-    let mut control =
-        MaskWardrobeControl::new(&body.body_id, wardrobe, PlanId::from("plan/a"), &[], None)
-            .unwrap();
+    let empty = admitted("plan/a", core::slice::from_ref(&spoken), vec![]);
+    let mut control = MaskWardrobeControl::new(
+        &body.body_id,
+        wardrobe,
+        PlanId::from("plan/a"),
+        &empty,
+        None,
+    )
+    .unwrap();
     assert_eq!(
-        control.admit_replacement_plan(&PlanId::from("plan/a"), PlanId::from("plan/a"), &[]),
+        control.admit_replacement_plan(&PlanId::from("plan/a"), PlanId::from("plan/a"), &empty,),
         Err(MaskWardrobeControlError::ReusedPlan)
     );
-    let replacement = vec![route(&spoken, "plan/b", "route/spoken", true)];
+    let replacement = admitted(
+        "plan/b",
+        core::slice::from_ref(&spoken),
+        vec![route(&spoken, "plan/b", "route/spoken")],
+    );
     let reconciled = control
         .admit_replacement_plan(
             &PlanId::from("plan/a"),
@@ -164,4 +229,28 @@ fn replacement_admission_requires_fresh_exact_plan_and_matching_routes() {
         reconciled.show,
         MaskShowDisposition::SelectSealed { .. }
     ));
+}
+
+#[test]
+fn fabricated_route_stage_is_refused_before_runtime_selection() {
+    let spoken = mask("spoken");
+    let mut fabricated = route(&spoken, "plan/a", "route/fabricated");
+    fabricated.stage_ids = vec![MaskStageId::new("not-in-plan").unwrap()];
+    let planned = PlannedMask {
+        specification_id: spoken.specification_id.clone(),
+        specification_revision: spoken.revision,
+        plan_id: PlanId::from("plan/a"),
+        stage_placements: vec![],
+        stages: vec![],
+        cords: vec![],
+    };
+    assert_eq!(
+        AdmittedMaskRoutes::new(
+            PlanId::from("plan/a"),
+            &[spoken],
+            &[planned],
+            vec![fabricated],
+        ),
+        Err(conduit_presentation::MaskWardrobeError::UnsealedRoute)
+    );
 }

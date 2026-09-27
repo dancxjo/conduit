@@ -90,6 +90,7 @@ pub enum MaskWardrobeError {
     DuplicateRoute,
     StaleSelection,
     InvalidLifetimeScope,
+    UnsealedRoute,
 }
 
 impl BodyMaskWardrobe {
@@ -259,6 +260,14 @@ impl MaskWardrobe {
                 MaskPlanningDisposition::ReplacementRequired
             },
         })
+    }
+
+    pub fn reconcile_admitted(
+        &self,
+        admitted: &crate::AdmittedMaskRoutes,
+        selected: Option<&SelectedMaskRoute>,
+    ) -> Result<MaskReconciliation, MaskWardrobeError> {
+        self.reconcile(admitted.plan_id(), admitted.routes(), selected)
     }
 
     fn ordered_worn(&self) -> impl Iterator<Item = &MaskSpecificationId> {
