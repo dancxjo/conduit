@@ -69,7 +69,6 @@ mod maker_environment;
 mod mask_inspection;
 #[cfg(test)]
 mod mask_product_tests;
-mod mask_wardrobe_control;
 mod palette;
 #[cfg(test)]
 mod parts_truth_explanation_tests;
@@ -153,7 +152,10 @@ pub use build_birth::{
 };
 pub use candidate_form::PatchbayCandidateForm;
 pub use conduit_body::WakeLifecycle;
-pub use conduit_presentation::{ApplicationTheme, ThemeColor, CONDUIT_APPLICATION_THEME};
+pub use conduit_presentation::{
+    ApplicationTheme, MaskWardrobeAction, MaskWardrobeControl, MaskWardrobeControlError,
+    MaskWardrobeControlEvidence, ThemeColor, CONDUIT_APPLICATION_THEME,
+};
 pub use control::{
     admit_run, ControlError, ControlReceiptProjection, PatchbayRequestId, PlanDocument,
     PlayDocument, PlayExecutionProjection,
@@ -275,7 +277,6 @@ pub use maker_environment::{
     MAX_ENVIRONMENT_COORDINATE, MAX_ENVIRONMENT_ID_BYTES, MAX_PART_NAME_BYTES,
 };
 pub use mask_inspection::*;
-pub use mask_wardrobe_control::*;
 pub use palette::{
     GearPalette, PaletteCategory, PaletteConfigurationSummary, PaletteEntry, PaletteError,
     PaletteIconKey, MAX_PALETTE_ENTRIES, MAX_PALETTE_QUERY_BYTES,

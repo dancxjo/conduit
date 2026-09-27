@@ -1,12 +1,14 @@
-//! One Body-scoped action seam for ordinary Forms worn as Masks.
+//! One Body-scoped semantic action seam for ordinary Forms worn as Masks.
 
+use alloc::vec::Vec;
 use conduit_body::{BodyId, WakeId};
 use conduit_core::{FormIdentity, PlanId};
-use conduit_presentation::{
+use serde::{Deserialize, Serialize};
+
+use crate::{
     AdmittedMaskFormRoutes, BodyMaskWardrobe, MaskReconciliation, MaskShowDisposition,
     MaskWardrobe, MaskWardrobeError, SelectedMaskFormRoute,
 };
-use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub enum MaskWardrobeAction {
