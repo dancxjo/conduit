@@ -1,11 +1,37 @@
 use conduit_core::{
-    kind_id, port_id, KindIdentity, PlanId, PortDescriptor, PortDirection, PortTemporal,
+    kind_id, port_id, CheckedFormId, KindIdentity, PlanId, PortDescriptor, PortDirection,
+    PortTemporal, SignId, SourceDocumentId,
 };
 use conduit_presentation::{
-    MaskBoundaryPort, MaskBoundaryRole, MaskPlanningDisposition, MaskShowDisposition,
-    MaskSpecification, MaskSpecificationId, MaskStageId, MaskStageSpecification, MaskWardrobe,
-    MaskWardrobeError, MaskWardrobeLifetime, SealedMaskRoute, SelectedMaskRoute,
+    BodyMaskWardrobe, MaskBoundaryPort, MaskBoundaryRole, MaskPlanningDisposition,
+    MaskShowDisposition, MaskSpecification, MaskSpecificationId, MaskStageId,
+    MaskStageSpecification, MaskWardrobe, MaskWardrobeError, MaskWardrobeLifetime, SealedMaskRoute,
+    SelectedMaskRoute,
 };
+
+#[test]
+fn wardrobe_lifetime_is_bound_to_exact_body_or_wake_scope() {
+    let body = conduit_body::Body::born(
+        SourceDocumentId::from("source/example"),
+        CheckedFormId::from("checked/example"),
+        0,
+        SignId::from("sign/born"),
+    )
+    .unwrap();
+    let (body, wake) = body.wake(1, SignId::from("sign/wake")).unwrap();
+    let body_id = body.body_id.clone();
+    let wake_id = wake.wake_id.clone();
+    let wake_wardrobe = MaskWardrobe::new(MaskWardrobeLifetime::Wake, vec![], vec![]).unwrap();
+    assert_eq!(
+        BodyMaskWardrobe::new(body_id.clone(), None, wake_wardrobe.clone()),
+        Err(MaskWardrobeError::InvalidLifetimeScope)
+    );
+    let scoped = BodyMaskWardrobe::new(body_id.clone(), Some(wake_id), wake_wardrobe).unwrap();
+    assert_eq!(scoped.body_id, body_id);
+
+    let body_wardrobe = MaskWardrobe::new(MaskWardrobeLifetime::Body, vec![], vec![]).unwrap();
+    assert!(BodyMaskWardrobe::new(body.body_id, None, body_wardrobe).is_ok());
+}
 
 fn mask(name: &str) -> MaskSpecificationId {
     let stage_id = MaskStageId::new("show").unwrap();

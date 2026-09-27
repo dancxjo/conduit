@@ -1,6 +1,7 @@
 //! Inspectable runtime eligibility and immutable-Plan Mask reconciliation.
 
 use alloc::{string::String, vec::Vec};
+use conduit_body::{BodyId, WakeId};
 use conduit_core::PlanId;
 use serde::{Deserialize, Serialize};
 
@@ -24,6 +25,15 @@ pub struct MaskWardrobe {
     /// Most preferred first. Every entry must also be worn. Worn Masks absent
     /// from this list retain eligibility after explicitly preferred Masks.
     pub preference: Vec<MaskSpecificationId>,
+}
+
+/// Exact Body-owned runtime configuration scope. Wake-scoped wardrobes bind
+/// one Wake; Body-scoped wardrobes deliberately survive Wake replacement.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct BodyMaskWardrobe {
+    pub body_id: BodyId,
+    pub wake_id: Option<WakeId>,
+    pub wardrobe: MaskWardrobe,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
@@ -79,6 +89,55 @@ pub enum MaskWardrobeError {
     RouteCapacityExceeded,
     DuplicateRoute,
     StaleSelection,
+    InvalidLifetimeScope,
+}
+
+impl BodyMaskWardrobe {
+    pub fn new(
+        body_id: BodyId,
+        wake_id: Option<WakeId>,
+        wardrobe: MaskWardrobe,
+    ) -> Result<Self, MaskWardrobeError> {
+        wardrobe.validate()?;
+        if matches!(wardrobe.lifetime, MaskWardrobeLifetime::Wake) != wake_id.is_some() {
+            return Err(MaskWardrobeError::InvalidLifetimeScope);
+        }
+        Ok(Self {
+            body_id,
+            wake_id,
+            wardrobe,
+        })
+    }
+
+    pub fn wear(
+        &self,
+        offered_revision: u64,
+        specification_id: MaskSpecificationId,
+    ) -> Result<Self, MaskWardrobeError> {
+        let mut next = self.clone();
+        next.wardrobe = self.wardrobe.wear(offered_revision, specification_id)?;
+        Ok(next)
+    }
+
+    pub fn doff(
+        &self,
+        offered_revision: u64,
+        specification_id: &MaskSpecificationId,
+    ) -> Result<Self, MaskWardrobeError> {
+        let mut next = self.clone();
+        next.wardrobe = self.wardrobe.doff(offered_revision, specification_id)?;
+        Ok(next)
+    }
+
+    pub fn prefer(
+        &self,
+        offered_revision: u64,
+        preference: Vec<MaskSpecificationId>,
+    ) -> Result<Self, MaskWardrobeError> {
+        let mut next = self.clone();
+        next.wardrobe = self.wardrobe.prefer(offered_revision, preference)?;
+        Ok(next)
+    }
 }
 
 impl MaskWardrobe {
