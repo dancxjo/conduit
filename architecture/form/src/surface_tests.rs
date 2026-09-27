@@ -54,8 +54,20 @@ fn legacy_single_greater_than_is_not_retained_as_a_cord_alias() {
         assert!(document
             .diagnostics
             .iter()
-            .any(|diagnostic| diagnostic.code == "CND-FRM-019"));
+            .any(|diagnostic| diagnostic.code == "CND-FRM-019"
+                && diagnostic.message.contains("use '>>'")));
     }
+}
+
+#[test]
+fn comparisons_do_not_become_legacy_cord_diagnostics() {
+    let source = "form comparison {\n    threshold = 3 > 2\n}\n";
+    let document = parse_syntax_document(source);
+    assert!(
+        document.diagnostics.is_empty(),
+        "{:?}",
+        document.diagnostics
+    );
 }
 
 #[test]
