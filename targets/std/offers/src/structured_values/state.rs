@@ -7,7 +7,7 @@ use conduit_core::{
 pub const STATE_VALUE_STD_PROFILE: &str = "std/state-value-kernel-64@1";
 pub const STATE_VALUE_STD_IMPLEMENTATION: &str = "std/kernel-state-value-64@1";
 pub const STATE_VALUE_STD_ARTIFACT: &str = "conduit-kernel/state-delay@1";
-pub const STATE_VALUE_STD_MAXIMUM_BYTES: u32 = 64;
+pub const STATE_VALUE_STD_MAXIMUM_BYTES: u32 = 100;
 
 /// Construct the exact offer for the kernel's finite canonical-value envelope.
 /// This does not register a capability or authorize an effect. The installation

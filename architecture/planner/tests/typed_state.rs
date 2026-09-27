@@ -75,7 +75,7 @@ fn authored_state_reaches_an_exact_plan_and_rejects_silent_initialization_or_cap
         Err(StateValueAdmissionError::InvalidInitialization)
     );
     altered = state.clone();
-    altered.maximum_value_bytes = 65;
+    altered.maximum_value_bytes = placement.limits.max_queue_bytes.checked_add(1).unwrap();
     assert_eq!(
         validate_state_placement(placement, &altered),
         Err(StateValueAdmissionError::InvalidCapacity)

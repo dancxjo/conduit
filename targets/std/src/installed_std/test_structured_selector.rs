@@ -327,6 +327,7 @@ fn configured_values(placement: &PlannedGear) -> Result<Vec<Vec<u8>>, String> {
     };
     match entry.key.as_str() {
         "value" => Ok(vec![unhex(encoded)?]),
+        "values" if encoded.is_empty() => Ok(Vec::new()),
         "values" => encoded.split(',').map(unhex).collect(),
         "choices" => encoded.split([',', '|']).map(unhex).collect(),
         _ => Err("structured fixture value is malformed".into()),

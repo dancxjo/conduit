@@ -17,7 +17,7 @@ pub(super) struct StateExecutionBinding {
 
 /// Private owned cell, never a cloneable serialized checkpoint.
 pub struct RetainedTypedState {
-    cell: StateDelay<64>,
+    cell: StateDelay<100>,
     provenance: RetainedStateProvenance,
     initial_value: Option<Vec<u8>>,
 }
@@ -126,7 +126,7 @@ impl TypedStateBack {
         };
         let (cell, _) = match source
             .cell
-            .try_transfer::<64>(state.slot, state.contract.maximum_value_bytes as usize)
+            .try_transfer::<100>(state.slot, state.contract.maximum_value_bytes as usize)
         {
             Ok(transferred) => transferred,
             Err(refused) => {

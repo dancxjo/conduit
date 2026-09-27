@@ -287,12 +287,32 @@ fn check_form(
                                 .value_kind()
                                 .clone(),
                         };
+                        // `T?(value)` is the canonical KEEP initializer sugar for
+                        // `some(T)`. The finite optional variant itself remains the
+                        // checked State type; the authored initializer is checked
+                        // against its payload type and wrapped during expansion.
+                        // With no initializer expansion supplies canonical `none`.
+                        let initial_type = if retained.optional {
+                            crate::value_type::checked_value_type(
+                                &retained.value_type.text,
+                                catalog,
+                            )
+                            .map_err(|_| SyntaxCheckDiagnostic {
+                                code: "CND-FRM-053",
+                                span: retained.value_type.span,
+                                message:
+                                    "retained optional payload exceeds canonical finite bounds"
+                                        .into(),
+                            })?
+                        } else {
+                            value_type.clone()
+                        };
                         let initial = retained
                             .initial
                             .as_ref()
                             .map(|initial| {
                                 resolver
-                                    .resolve_expression(initial, Some(&value_type))
+                                    .resolve_expression(initial, Some(&initial_type))
                                     .map_err(|error| error.diagnostic(initial.span))
                             })
                             .transpose()?;
