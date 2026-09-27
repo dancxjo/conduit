@@ -2,9 +2,7 @@
 
 use alloc::vec;
 use conduit_core::{
-    CapabilityLimits, ExternalEffectBehavior, FrontStartupParameter, Kind, KindSemanticLaw,
-    PortTemporal, ReplayBehavior, SemanticDependence, SuspensionBehavior, TemporalStateBehavior,
-    VariabilityBehavior, MAXIMUM_STRUCTURED_CANONICAL_BYTES,
+    CapabilityLimits, FrontStartupParameter, Kind, PortTemporal, MAXIMUM_STRUCTURED_CANONICAL_BYTES,
 };
 
 pub fn pure_expression_contract(
@@ -27,16 +25,7 @@ pub fn pure_expression_contract(
         inputs: definition.inputs,
         outputs: definition.outputs,
         configuration: definition.configuration,
-        semantic_laws: vec![
-            KindSemanticLaw::ExternalEffects(ExternalEffectBehavior::None),
-            KindSemanticLaw::TemporalState(TemporalStateBehavior::None),
-            KindSemanticLaw::TimeDependence(SemanticDependence::None),
-            KindSemanticLaw::RandomDependence(SemanticDependence::None),
-            KindSemanticLaw::ResourceDependence(SemanticDependence::None),
-            KindSemanticLaw::Suspension(SuspensionBehavior::Never),
-            KindSemanticLaw::Variability(VariabilityBehavior::DeterministicFromInputs),
-            KindSemanticLaw::Replay(ReplayBehavior::Exact),
-        ],
+        semantic_laws: conduit_form::pure_expression_semantic_laws(),
         limits: CapabilityLimits {
             max_active_instances: 8,
             max_queue_items: 4,
@@ -70,16 +59,7 @@ fn contract(definition: conduit_form::KindProjection) -> Kind {
         inputs: definition.inputs,
         outputs: definition.outputs,
         configuration: definition.configuration,
-        semantic_laws: vec![
-            KindSemanticLaw::ExternalEffects(ExternalEffectBehavior::None),
-            KindSemanticLaw::TemporalState(TemporalStateBehavior::None),
-            KindSemanticLaw::TimeDependence(SemanticDependence::None),
-            KindSemanticLaw::RandomDependence(SemanticDependence::None),
-            KindSemanticLaw::ResourceDependence(SemanticDependence::None),
-            KindSemanticLaw::Suspension(SuspensionBehavior::Never),
-            KindSemanticLaw::Variability(VariabilityBehavior::DeterministicFromInputs),
-            KindSemanticLaw::Replay(ReplayBehavior::Exact),
-        ],
+        semantic_laws: conduit_form::pure_expression_semantic_laws(),
         limits: CapabilityLimits {
             max_active_instances: 8,
             max_queue_items: 4,

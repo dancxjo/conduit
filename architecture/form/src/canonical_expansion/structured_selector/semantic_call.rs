@@ -260,7 +260,7 @@ fn expand_argument_expression(
         outputs: vec![output.clone()],
         semantic_contract: conduit_core::KindSemanticContract {
             configuration: definition.configuration.clone(),
-            laws: Vec::new(),
+            laws: crate::pure_expression_semantic_laws(),
         },
         terminal_transduction: None,
         resource_ports: Vec::new(),

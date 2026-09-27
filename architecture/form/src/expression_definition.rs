@@ -5,12 +5,26 @@ use crate::{
     PortableExpressionProgram, MAXIMUM_PURE_EXPRESSION_PROGRAM_BYTES,
 };
 use conduit_core::{
-    kind_id, port_id, ConfigurationValue, KindIdentity, PortDescriptor, PortDirection,
-    PortTemporal, StructuredInfoRefusal,
+    kind_id, port_id, ConfigurationValue, ExternalEffectBehavior, KindIdentity, KindSemanticLaw,
+    PortDescriptor, PortDirection, PortTemporal, ReplayBehavior, SemanticDependence,
+    StructuredInfoRefusal, SuspensionBehavior, TemporalStateBehavior, VariabilityBehavior,
 };
 
 pub const PURE_EXPRESSION_REVISION: &str = "conduitese/pure-expression-operation@1";
 pub const PURE_FILTER_REVISION: &str = "conduitese/pure-filter-operation@1";
+
+pub fn pure_expression_semantic_laws() -> alloc::vec::Vec<KindSemanticLaw> {
+    vec![
+        KindSemanticLaw::ExternalEffects(ExternalEffectBehavior::None),
+        KindSemanticLaw::TemporalState(TemporalStateBehavior::None),
+        KindSemanticLaw::TimeDependence(SemanticDependence::None),
+        KindSemanticLaw::RandomDependence(SemanticDependence::None),
+        KindSemanticLaw::ResourceDependence(SemanticDependence::None),
+        KindSemanticLaw::Suspension(SuspensionBehavior::Never),
+        KindSemanticLaw::Variability(VariabilityBehavior::DeterministicFromInputs),
+        KindSemanticLaw::Replay(ReplayBehavior::Exact),
+    ]
+}
 
 /// Projects a checked expression into the ordinary Kind/Fore vocabulary used
 /// by expansion and planning. The source spelling and spans are absent from the
