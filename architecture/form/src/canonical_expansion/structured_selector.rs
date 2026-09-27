@@ -9,7 +9,7 @@ mod semantic_call;
 mod substitution;
 mod temporal;
 mod when_filter;
-use semantic_call::expand_semantic_call_graph;
+use semantic_call::{contains_semantic_call, expand_semantic_call_graph};
 use substitution::substitute_immutable_values;
 use temporal::{input_temporal, output_temporal};
 
@@ -318,14 +318,15 @@ fn expand_expression(
             ),
         )
     })?;
-    if temporal == PortTemporal::Value
-        && matches!(expression, crate::ExpressionSyntax::SemanticCall { .. })
-    {
+    if temporal == PortTemporal::Value && contains_semantic_call(&expression) {
         return expand_semantic_call_graph(
             &expression,
             input_type
                 .value_kind()
                 .expect("Cord input has one exact semantic Kind"),
+            expected_output
+                .as_ref()
+                .and_then(crate::CheckedExpressionType::value_kind),
             source_span,
             source_form,
             structured_types,
