@@ -229,19 +229,21 @@ fn catalogs(
             }],
         })
         .unwrap();
+    let sink_contract = KindConfigurationField {
+        key: "value".into(),
+        default_value: ConfigurationValue::Text(String::new()),
+        rule: KindConfigurationRule::TextBytes {
+            maximum: conduit_semantic_catalog::CALENDAR_MAXIMUM_RESULT_BYTES * 2,
+        },
+    };
+    sink.semantic_contract.configuration = vec![sink_contract.clone()];
     profile
         .insert(KindProjection {
             kind_id: sink.kind_id.clone(),
             kind_contract_revision: sink.kind_contract_revision.clone(),
             inputs: sink.inputs.clone(),
             outputs: vec![],
-            configuration: vec![KindConfigurationField {
-                key: "value".into(),
-                default_value: ConfigurationValue::Text(String::new()),
-                rule: KindConfigurationRule::TextBytes {
-                    maximum: conduit_semantic_catalog::CALENDAR_MAXIMUM_RESULT_BYTES * 2,
-                },
-            }],
+            configuration: vec![sink_contract],
         })
         .unwrap();
     (startup, profile, sink)

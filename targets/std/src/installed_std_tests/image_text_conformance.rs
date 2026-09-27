@@ -62,14 +62,14 @@ fn authored_image_text_runs_through_planner_and_production_kernel() {
     let mut profile = ProfileCatalog::new();
     conduit_semantic_catalog::install_human_media_catalogs(&mut startup, &mut profile).unwrap();
     conduit_net::install_typed_record_catalogs(&mut startup, &mut profile).unwrap();
-    install_fixture(&mut startup, &mut profile, &source_offer);
+    install_fixture(&mut startup, &mut profile, &mut source_offer);
     let mut caption_offer = installed_std::test_structured_selector::raw_source_offer(
         "conduit-test/image-caption-source",
         "value/text",
     );
     caption_offer.outputs[0].temporal = PortTemporal::Value;
-    install_fixture(&mut startup, &mut profile, &caption_offer);
-    install_fixture(&mut startup, &mut profile, &sink_offer);
+    install_fixture(&mut startup, &mut profile, &mut caption_offer);
+    install_fixture(&mut startup, &mut profile, &mut sink_offer);
 
     let image_hex = hex(&image_value.canonical_bytes().unwrap());
     let expected_hex = hex(&expected_value.canonical_bytes().unwrap());
@@ -197,9 +197,9 @@ fn authored_image_text_plans_an_exact_remote_framed_record_session() {
     let mut profile = ProfileCatalog::new();
     conduit_semantic_catalog::install_human_media_catalogs(&mut startup, &mut profile).unwrap();
     conduit_net::install_typed_record_catalogs(&mut startup, &mut profile).unwrap();
-    install_fixture(&mut startup, &mut profile, &image_source);
-    install_fixture(&mut startup, &mut profile, &caption_source);
-    install_fixture(&mut startup, &mut profile, &record_sink);
+    install_fixture(&mut startup, &mut profile, &mut image_source);
+    install_fixture(&mut startup, &mut profile, &mut caption_source);
+    install_fixture(&mut startup, &mut profile, &mut record_sink);
 
     let source = format!(
         "form talking-polaroid-remote {{\n image: conduit-test/structured-source(value = \"{}\")\n caption: conduit-test/image-caption-source(value = \"{}\")\n compose: media/compose-image-text\n adapt: media/image-text-to-typed-record\n frame: record/frame-typed\n sink: conduit-test/structured-sink(value = \"{}\")\n image >> compose.image\n caption >> compose.caption\n compose.record >> adapt.record\n adapt.typed >> frame.record\n frame.frame >> sink\n}}\n",
@@ -451,8 +451,14 @@ fn admit_session_pair(
 fn install_fixture(
     startup: &mut StartupCatalog,
     profile: &mut ProfileCatalog,
-    offer: &conduit_core::CapabilityOffer,
+    offer: &mut conduit_core::CapabilityOffer,
 ) {
+    installed_std::test_structured_selector::bind_text_configuration(
+        offer,
+        "value",
+        String::new(),
+        conduit_core::MAXIMUM_STRUCTURED_CANONICAL_BYTES as u32 * 2,
+    );
     startup
         .insert(KindSignature {
             kind: offer.kind_id.as_str().into(),

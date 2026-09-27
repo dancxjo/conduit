@@ -183,6 +183,16 @@ fn fixture_offer(
     } else {
         PortTemporal::Value
     };
+    installed_std::test_structured_selector::bind_text_configuration(
+        &mut offer,
+        if direction == PortDirection::Output {
+            "values"
+        } else {
+            "value"
+        },
+        hex(&value.canonical_bytes().unwrap()),
+        (conduit_core::MAXIMUM_STRUCTURED_CANONICAL_BYTES * 4) as u32,
+    );
     offer
 }
 

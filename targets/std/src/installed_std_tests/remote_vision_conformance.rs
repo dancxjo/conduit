@@ -279,6 +279,12 @@ fn catalogs(
     source.outputs[0].port_id = conduit_core::port_id("image");
     source.outputs[0].temporal = PortTemporal::Current;
     source.capability_id = CapabilityId::from(source_kind);
+    crate::installed_std::test_structured_selector::bind_text_configuration(
+        &mut source,
+        "value",
+        String::new(),
+        conduit_core::MAXIMUM_STRUCTURED_CANONICAL_BYTES as u32 * 2,
+    );
     let mut sink = crate::installed_std::test_local_model_io::sink_offer(
         conduit_semantic_catalog::vision_motions_type()
             .profile()

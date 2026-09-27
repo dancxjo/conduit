@@ -67,8 +67,8 @@ fn secret_knock_composes_input_timing_storage_comparison_and_result_in_one_play(
         150_000,
     )
     .unwrap();
-    let button_offer = sequence_source_offer(&transitions[0], BUTTON_SOURCE, 5);
-    let command_offer = sequence_source_offer(&commands[0], COMMAND_SOURCE, 2);
+    let mut button_offer = sequence_source_offer(&transitions[0], BUTTON_SOURCE, 5);
+    let mut command_offer = sequence_source_offer(&commands[0], COMMAND_SOURCE, 2);
     let mut startup = StartupCatalog::new();
     let mut profile = ProfileCatalog::new();
     install_catalogs(&mut startup, &mut profile);
@@ -78,7 +78,7 @@ fn secret_knock_composes_input_timing_storage_comparison_and_result_in_one_play(
         BUTTON_SOURCE,
         "values",
         &transitions[0],
-        &button_offer,
+        &mut button_offer,
         8,
     );
     install_fixture(
@@ -87,7 +87,7 @@ fn secret_knock_composes_input_timing_storage_comparison_and_result_in_one_play(
         COMMAND_SOURCE,
         "values",
         &commands[0],
-        &command_offer,
+        &mut command_offer,
         4,
     );
     let transition_values = encoded_values(&transitions);
@@ -370,9 +370,15 @@ fn install_fixture(
     kind: &str,
     parameter: &str,
     value: &StructuredInfoValue,
-    offer: &conduit_core::CapabilityOffer,
+    offer: &mut conduit_core::CapabilityOffer,
     multiplier: u32,
 ) {
+    installed_std::test_structured_selector::bind_text_configuration(
+        offer,
+        parameter,
+        hex(&value.canonical_bytes().unwrap()),
+        (conduit_core::MAXIMUM_STRUCTURED_CANONICAL_BYTES * multiplier as usize) as u32,
+    );
     startup
         .insert(KindSignature {
             kind: kind.into(),

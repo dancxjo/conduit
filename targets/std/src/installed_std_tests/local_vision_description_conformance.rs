@@ -196,6 +196,12 @@ fn describe_catalogs(
         offer.outputs[0].port_id = conduit_core::port_id(port);
         offer.outputs[0].temporal = PortTemporal::Current;
         offer.capability_id = CapabilityId::from(kind);
+        crate::installed_std::test_structured_selector::bind_text_configuration(
+            &mut offer,
+            "value",
+            String::new(),
+            conduit_core::MAXIMUM_STRUCTURED_CANONICAL_BYTES as u32 * 2,
+        );
         startup
             .insert(KindSignature {
                 kind: kind.into(),

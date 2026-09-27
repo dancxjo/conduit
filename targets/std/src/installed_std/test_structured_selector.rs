@@ -232,6 +232,19 @@ pub(crate) fn raw_configuration(value: &[u8]) -> Vec<ConfigurationEntry> {
     }]
 }
 
+pub(crate) fn bind_text_configuration(
+    offer: &mut CapabilityOffer,
+    key: &str,
+    default_value: String,
+    maximum: u32,
+) {
+    offer.semantic_contract.configuration = vec![conduit_core::KindConfigurationField {
+        key: key.into(),
+        default_value: ConfigurationValue::Text(default_value),
+        rule: conduit_core::KindConfigurationRule::TextBytes { maximum },
+    }];
+}
+
 fn budget(placement: &PlannedGear) -> Result<BackBudget, String> {
     let configured = configured_values(placement)?;
     let count = u16::try_from(configured.len()).map_err(|_| "too many structured fixtures")?;

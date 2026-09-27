@@ -114,18 +114,18 @@ fn execute_case(
         panic!("middle stage is the checked selector");
     };
 
-    let source_offer =
+    let mut source_offer =
         installed_std::test_structured_selector::offer(&input_type, PortDirection::Output);
-    let sink_offer =
+    let mut sink_offer =
         installed_std::test_structured_selector::offer(expected.value_type(), PortDirection::Input);
     let selector_offer = conduit_std_offers::structured_selector_std_offer(selector, temporal);
     let mut profile = ProfileCatalog::new();
-    profile
-        .insert(fixture_definition(&source_offer, &input))
-        .unwrap();
-    profile
-        .insert(fixture_definition(&sink_offer, &expected))
-        .unwrap();
+    let source_definition = fixture_definition(&source_offer, &input);
+    source_offer.semantic_contract.configuration = source_definition.configuration.clone();
+    profile.insert(source_definition).unwrap();
+    let sink_definition = fixture_definition(&sink_offer, &expected);
+    sink_offer.semantic_contract.configuration = sink_definition.configuration.clone();
+    profile.insert(sink_definition).unwrap();
     profile
         .insert(structured_selector_definition(selector, temporal))
         .unwrap();
