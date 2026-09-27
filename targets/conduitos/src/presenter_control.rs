@@ -15,11 +15,14 @@ use conduit_form::{
     KindSignature, ProfileCatalog, StartupCatalog, check_syntax_document,
     expand_canonical_form_for_authoring, parse_syntax_document,
 };
-use conduit_planner::{default_expanded_placements, plan_expanded_canonical};
+use conduit_planner::{
+    ConnectionQueueLimits, ForeBoundaryKey, PlanningOptions, default_expanded_placements,
+    plan_expanded_authoring_with_options,
+};
 use conduit_presentation::{
-    BodyMaskWardrobe, InteractionRealizationOffer, MAX_RENDERER_VALUE_BYTES, Manifestation,
-    ManifestationLifecycle, MaskForm, MaskWardrobe, MaskWardrobeLifetime, PlannedMaskForm,
-    Presentation, PresentationBasis, PresentationRole, PresentationSubject,
+    BodyMaskWardrobe, InteractionRealizationOffer, MAX_RENDERER_VALUE_BYTES,
+    ManifestationLifecycle, MaskForm, MaskShow, MaskWardrobe, MaskWardrobeLifetime,
+    PlannedMaskForm, Presentation, PresentationBasis, PresentationRole, PresentationSubject,
     RendererRealizationOffer, install_mask_form_value_aliases, interaction_kind_projection,
     interaction_offer, presentation_tee_kind_projection, presentation_tee_offer,
     renderer_kind_projection, renderer_offer,
@@ -44,6 +47,22 @@ pub struct NativeMaskEvidence {
     pub planning_disposition: &'static str,
     pub show_id: Option<String>,
     pub manifestation_id: Option<String>,
+    pub presentation_id: Option<String>,
+    pub presentation_revision: Option<u64>,
+    pub shows: Vec<NativeMaskShowCorrelation>,
+    pub kernel_signs: u16,
+    pub fore_endpoints: u16,
+}
+
+#[derive(Clone, Debug, Eq, PartialEq, Serialize)]
+pub struct NativeMaskShowCorrelation {
+    pub mask_plan_id: conduit_core::PlanId,
+    pub mask_active_play_id: String,
+    pub presentation_id: String,
+    pub presentation_revision: u64,
+    pub show_value_id: String,
+    pub mask_show_id: String,
+    pub manifestation_id: String,
 }
 
 #[derive(Clone)]
@@ -54,10 +73,7 @@ pub(super) struct PresenterControl {
     speech: Option<PresenterStage>,
     sequence: u64,
     presentation: Option<Presentation>,
-    /// Legacy presenter projection only. These manifestations are deliberately
-    /// not `MaskShow`s: the ordinary Mask Plan has not crossed the generic Fore
-    /// execution seam yet.
-    legacy_manifestations: Vec<Manifestation>,
+    shows: Vec<MaskShow>,
     evidence: Option<NativeMaskEvidence>,
 }
 
@@ -83,7 +99,7 @@ impl PresenterControl {
             speech: None,
             sequence: 2,
             presentation: None,
-            legacy_manifestations: Vec::new(),
+            shows: Vec::new(),
             evidence: None,
         })
     }
@@ -123,7 +139,7 @@ impl PresenterControl {
             self.graphical = None;
         }
         self.presentation = None;
-        self.legacy_manifestations.clear();
+        self.shows.clear();
         self.evidence = None;
         Ok(())
     }
@@ -192,7 +208,8 @@ impl PresenterControl {
             Vec::new(),
         )
         .map_err(|_| ())?;
-        let mut manifestations = Vec::new();
+        let mut shows = Vec::new();
+        let mut execution_receipts = Vec::new();
         for (index, stage) in self.graphical.iter().chain(self.speech.iter()).enumerate() {
             let fragment = stage.planned_mask.plan.fragments.first().ok_or(())?;
             let active = conduit_core::bind_active_play(
@@ -201,17 +218,25 @@ impl PresenterControl {
                 &fragment.boot_id,
                 play.play_sequence,
             );
-            let prepared = Manifestation::prepared(
+            let execution = crate::native_mask_play::run(
+                &stage.planned_mask,
                 &presentation,
-                &stage.planned_mask.plan,
+                play.play_sequence,
+            )
+            .map_err(|_| ())?;
+            if execution.active_play_id != active.active_play_id {
+                return Err(());
+            }
+            let prepared = MaskShow::prepared(
+                &stage.planned_mask,
+                &presentation,
                 active,
-                stage.planned_mask.show_placement().placement_id.clone(),
                 "conduitos/patchbay/self".into(),
                 stage.target.clone(),
                 SignId::from(format!("conduitos/presenter/{index}/prepared")),
             )
             .map_err(|_| ())?;
-            manifestations.push(
+            shows.push(
                 prepared
                     .transition(
                         ManifestationLifecycle::Available,
@@ -219,6 +244,7 @@ impl PresenterControl {
                     )
                     .map_err(|_| ())?,
             );
+            execution_receipts.push(execution);
         }
         let mode = match (self.graphical.is_some(), self.speech.is_some()) {
             (true, false) => PatchbayPresenterMode::Graphical,
@@ -226,8 +252,9 @@ impl PresenterControl {
             (false, true) => PatchbayPresenterMode::Speech,
             (false, false) => return Err(()),
         };
-        let mut stages = Vec::with_capacity(manifestations.len());
-        for manifestation in &manifestations {
+        let mut stages = Vec::with_capacity(shows.len());
+        for show in &shows {
+            let manifestation = &show.show;
             let planned = self
                 .graphical
                 .iter()
@@ -268,8 +295,11 @@ impl PresenterControl {
             stages,
         };
         self.sequence = self.sequence.checked_add(1).ok_or(())?;
-        self.presentation = Some(presentation);
-        self.legacy_manifestations = manifestations;
+        self.presentation = Some(presentation.clone());
+        self.shows = shows;
+        if execution_receipts.len() != self.shows.len() {
+            return Err(());
+        }
         let available_masks = self
             .graphical
             .iter()
@@ -326,13 +356,36 @@ impl PresenterControl {
             worn_mask_forms: scoped.wardrobe.worn.clone(),
             application_plan_id: body_plan.plan_id.clone(),
             mask_plan_ids,
-            // The current native execution path has not yet lowered and driven
-            // the ordinary Mask Plan. Retain that gap instead of presenting the
-            // legacy Manifestation as an executed Mask Show.
-            route_disposition: "no-current-show",
-            planning_disposition: "replacement-required",
-            show_id: None,
-            manifestation_id: None,
+            route_disposition: "selected-executed-route",
+            planning_disposition: "not-required",
+            show_id: self.shows.first().map(|show| show.show_id.as_str().into()),
+            manifestation_id: self
+                .shows
+                .first()
+                .map(|show| show.show.manifestation_id.as_str().into()),
+            presentation_id: Some(presentation.identity.as_str().into()),
+            presentation_revision: Some(presentation.revision),
+            shows: execution_receipts
+                .iter()
+                .zip(&self.shows)
+                .map(|(receipt, show)| NativeMaskShowCorrelation {
+                    mask_plan_id: receipt.mask_plan_id.clone(),
+                    mask_active_play_id: receipt.active_play_id.as_str().into(),
+                    presentation_id: receipt.presentation_id.clone(),
+                    presentation_revision: receipt.presentation_revision,
+                    show_value_id: receipt.show_value_id.clone(),
+                    mask_show_id: show.show_id.as_str().into(),
+                    manifestation_id: show.show.manifestation_id.as_str().into(),
+                })
+                .collect(),
+            kernel_signs: execution_receipts
+                .iter()
+                .map(|receipt| receipt.kernel_signs)
+                .sum(),
+            fore_endpoints: execution_receipts
+                .iter()
+                .map(|receipt| receipt.fore_endpoints)
+                .sum(),
         });
         Ok(view)
     }
@@ -417,11 +470,47 @@ fn prepare_stage(
     let placements =
         default_expanded_placements(&authoring.expanded, core::slice::from_ref(&advertisement))
             .map_err(|_| ())?;
-    let plan = plan_expanded_canonical(
-        &authoring.expanded,
+    let boundary_limits = [
+        (conduit_core::PortDirection::Input, "presentation"),
+        (conduit_core::PortDirection::Output, "interaction"),
+        (conduit_core::PortDirection::Output, "show"),
+    ]
+    .into_iter()
+    .map(|(direction, name)| {
+        (
+            ForeBoundaryKey {
+                direction,
+                front_port_id: conduit_core::port_id(name),
+                track: conduit_core::ConnectionTrack::Payload,
+            },
+            ConnectionQueueLimits {
+                item_capacity: 1,
+                byte_capacity: if name == "interaction" {
+                    conduit_presentation::MAX_PRESENTATION_INTERACTION_BYTES as u32
+                } else {
+                    crate::native_mask_play::MAX_MASK_VALUE_BYTES as u32
+                },
+            },
+        )
+    })
+    .collect();
+    let empty_connections = alloc::collections::BTreeMap::new();
+    let empty_lines = alloc::collections::BTreeMap::new();
+    let plan = plan_expanded_authoring_with_options(
+        &authoring,
         &[advertisement],
         &placements,
         &[BaseImplementationId::from("conduit.base/local@1")],
+        PlanningOptions {
+            connection_bases: &empty_connections,
+            line_candidates: &empty_lines,
+            connection_item_capacity: 1,
+            connection_byte_capacity: crate::native_mask_play::MAX_MASK_VALUE_BYTES as u32,
+            authority_grants: &[],
+            protected_resource_grants: &[],
+            line_offers: &[],
+        },
+        &boundary_limits,
     )
     .map_err(|_| ())?;
     Ok(PresenterStage {
@@ -613,6 +702,6 @@ mod tests {
         );
         assert_eq!(topology.chains[0].plan, stage.planned_mask.plan);
         assert!(control.evidence.is_none());
-        assert!(control.legacy_manifestations.is_empty());
+        assert!(control.shows.is_empty());
     }
 }
