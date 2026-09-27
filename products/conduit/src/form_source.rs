@@ -189,4 +189,63 @@ mod tests {
             assert_eq!(mask.form_name, name);
         }
     }
+
+    #[test]
+    fn browser_mask_plans_against_the_installed_browser_family() {
+        use conduit_core::{BootId, HostAdvertisement, HostId, HostProfileId, OfferGeneration};
+
+        let (startup, profiles) = standard_catalogs().unwrap();
+        // The product catalog already owns the shared Mask role Kinds. The
+        // browser family below supplies their concrete realization offers.
+        let syntax = conduit_form::parse_syntax_document(include_str!(
+            "../../../forms/browser-graphical-mask/main.conduit"
+        ));
+        let checked = conduit_form::check_syntax_document(&syntax, &startup).unwrap();
+        let expanded = conduit_form::expand_canonical_form_for_authoring(
+            &checked,
+            "browser-graphical",
+            &profiles,
+        )
+        .unwrap();
+        let mask = conduit_presentation::MaskForm::admit(&expanded).unwrap();
+        let family = conduit_chat::browser_chat_family();
+        let host = HostAdvertisement {
+            protocol_version: conduit_core::PROTOCOL_VERSION,
+            host_id: HostId::from("host/harbor"),
+            boot_id: BootId::from("boot/harbor"),
+            offer_generation: OfferGeneration(1),
+            profile: HostProfileId::from("browser/rich@1"),
+            bases: vec![],
+            resources: family.resources.into_iter().collect(),
+            capabilities: family.capabilities,
+            planner_capabilities: vec![],
+        };
+        let placements = conduit_planner::default_expanded_placements(
+            &expanded.expanded,
+            core::slice::from_ref(&host),
+        )
+        .unwrap();
+        let plan = conduit_planner::plan_expanded_canonical(
+            &expanded.expanded,
+            &[host],
+            &placements,
+            &[conduit_core::BaseImplementationId::from(
+                "conduit.base/local@1",
+            )],
+        )
+        .unwrap();
+        let planned = conduit_presentation::PlannedMaskForm::admit(&mask, &plan).unwrap();
+        assert!(planned.plan.fragments[0]
+            .placements
+            .iter()
+            .any(|placement| {
+                placement.implementation_id.as_str() == "presentation/browser-semantic-dom@1"
+            }));
+        assert!(planned.plan.fragments[0]
+            .placements
+            .iter()
+            .any(|placement| {
+                placement.implementation_id.as_str() == "presentation/browser-human-input@1"
+            }));
+    }
 }
