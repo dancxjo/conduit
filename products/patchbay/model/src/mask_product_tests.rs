@@ -1,3 +1,7 @@
+use conduit_body::{
+    BodyFormPlan, BodyPlan, BodyPresentationSelector, BodyPresenterChainPlan,
+    BodyPresenterTopology, ResidentForm,
+};
 use conduit_core::{
     bind_active_play, kind_id, port_id, ArtifactId, Back, BackOfferBuilder, BootId, CapabilityId,
     CapabilityLimits, ExecutionProfileId, HostAdvertisement, HostId, HostProfileId,
@@ -21,6 +25,7 @@ use crate::{project_mask_inspection, MaskWardrobeAction, MaskWardrobeControl};
 struct Fixture {
     mask: MaskForm,
     planned: PlannedMaskForm,
+    body_plan: BodyPlan,
     routes: AdmittedMaskFormRoutes,
 }
 
@@ -165,10 +170,44 @@ fn fixture(available: bool) -> Fixture {
     )
     .unwrap();
     let planned = PlannedMaskForm::admit(&mask, &plan).unwrap();
+    let body = conduit_body::Body::born(
+        mask.form_identity.source_document_id.clone(),
+        mask.form_identity.checked_form_id.clone(),
+        1,
+        SignId::from("sign/fixture-body-born"),
+    )
+    .unwrap();
+    let wake = body
+        .wake(1, SignId::from("sign/fixture-body-woke"))
+        .unwrap()
+        .1;
+    let resident = ResidentForm::new(
+        mask.form_identity.source_document_id.clone(),
+        mask.form_identity.checked_form_id.clone(),
+    );
+    let first_placement = plan.fragments[0].placements[0].placement_id.clone();
+    let body_plan = BodyPlan::seal_with_presenters(
+        &wake,
+        vec![BodyFormPlan {
+            form: resident.clone(),
+            plan: plan.clone(),
+        }],
+        vec![BodyPresenterTopology {
+            presentation: BodyPresentationSelector {
+                form: Some(resident),
+                source_placement_id: first_placement.clone(),
+            },
+            chains: vec![BodyPresenterChainPlan {
+                plan: plan.clone(),
+                stage_placement_ids: vec![first_placement],
+            }],
+        }],
+    )
+    .unwrap();
     let route = SealedMaskFormRoute {
         route_id: "route/browser-mask".into(),
         mask_form: mask.form_identity.clone(),
-        plan_id: plan.plan_id.clone(),
+        plan_id: body_plan.plan_id.clone(),
         placement_ids: plan
             .fragments
             .iter()
@@ -178,10 +217,12 @@ fn fixture(available: bool) -> Fixture {
         currently_available: available,
     };
     let routes =
-        AdmittedMaskFormRoutes::new(&plan, core::slice::from_ref(&mask), vec![route]).unwrap();
+        AdmittedMaskFormRoutes::new(&body_plan, core::slice::from_ref(&planned), vec![route])
+            .unwrap();
     Fixture {
         mask,
         planned,
+        body_plan,
         routes,
     }
 }
@@ -202,7 +243,7 @@ fn wardrobe_control_and_inspection_use_one_real_form_plan() {
     let mut control = MaskWardrobeControl::new(
         &body.body_id,
         scoped,
-        fixture.planned.plan.plan_id.clone(),
+        &fixture.body_plan,
         &fixture.routes,
         None,
     )
@@ -217,7 +258,7 @@ fn wardrobe_control_and_inspection_use_one_real_form_plan() {
     let MaskShowDisposition::SelectSealed { selected, .. } = &evidence.reconciliation.show else {
         panic!("wearing the admitted Mask Form must select its sealed route");
     };
-    assert_eq!(selected.plan_id, fixture.planned.plan.plan_id);
+    assert_eq!(selected.plan_id, fixture.body_plan.plan_id);
 
     let presentation = Presentation::new(
         1,
@@ -276,7 +317,8 @@ fn wardrobe_control_and_inspection_use_one_real_form_plan() {
     )
     .unwrap();
     let projected = projection.current_show.unwrap();
-    assert_eq!(projected.plan_id, fixture.planned.plan.plan_id);
+    assert_eq!(projected.plan_id, fixture.body_plan.plan_id);
+    assert_eq!(projected.mask_plan_id, fixture.planned.plan.plan_id);
     assert_eq!(projected.show_id, show.show_id.as_str());
     assert_eq!(
         projected.show_occurrence_id,
@@ -302,14 +344,9 @@ fn unavailable_real_plan_route_truthfully_requests_replacement() {
     )
     .unwrap();
     let scoped = BodyMaskWardrobe::new(body_id.clone(), None, wardrobe).unwrap();
-    let control = MaskWardrobeControl::new(
-        &body_id,
-        scoped,
-        fixture.planned.plan.plan_id,
-        &fixture.routes,
-        None,
-    )
-    .unwrap();
+    let control =
+        MaskWardrobeControl::new(&body_id, scoped, &fixture.body_plan, &fixture.routes, None)
+            .unwrap();
 
     assert!(control.selected.is_none());
     let reconciliation = control
