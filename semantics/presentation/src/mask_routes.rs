@@ -1,9 +1,10 @@
 //! Fail-closed admission of Mask Form routes already sealed by an ordinary Plan.
 
 use alloc::vec::Vec;
-use conduit_core::{verify_plan, Plan, PlanId};
+use conduit_body::BodyPlan;
+use conduit_core::{verify_plan, PlanId};
 
-use crate::{MaskForm, SealedMaskFormRoute};
+use crate::{PlannedMaskForm, SealedMaskFormRoute};
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct AdmittedMaskFormRoutes {
@@ -16,43 +17,58 @@ pub enum MaskRouteAdmissionError {
     InvalidPlan,
     WrongPlan,
     UnknownMaskForm,
+    UnsealedMaskForm,
     MissingPlacement,
     MissingBoundary,
 }
 
 impl AdmittedMaskFormRoutes {
     pub fn new(
-        plan: &Plan,
-        masks: &[MaskForm],
+        body_plan: &BodyPlan,
+        masks: &[PlannedMaskForm],
         routes: Vec<SealedMaskFormRoute>,
     ) -> Result<Self, MaskRouteAdmissionError> {
-        if !verify_plan(plan) {
+        if body_plan.verify_seal().is_err() {
             return Err(MaskRouteAdmissionError::InvalidPlan);
         }
-        let placements = plan
-            .fragments
-            .iter()
-            .flat_map(|fragment| &fragment.placements)
-            .collect::<Vec<_>>();
         for route in &routes {
-            if route.plan_id != plan.plan_id {
+            if route.plan_id != body_plan.plan_id {
                 return Err(MaskRouteAdmissionError::WrongPlan);
             }
-            let mask = masks
+            let matching_masks = masks
                 .iter()
-                .find(|mask| mask.form_identity == route.mask_form)
-                .ok_or(MaskRouteAdmissionError::UnknownMaskForm)?;
-            if route.placement_ids.iter().any(|placement_id| {
-                !placements
-                    .iter()
-                    .any(|placement| placement.placement_id == *placement_id)
-            }) {
-                return Err(MaskRouteAdmissionError::MissingPlacement);
+                .filter(|planned| planned.mask.form_identity == route.mask_form)
+                .collect::<Vec<_>>();
+            if matching_masks.is_empty() {
+                return Err(MaskRouteAdmissionError::UnknownMaskForm);
             }
+            let planned = matching_masks
+                .into_iter()
+                .find(|planned| route_matches_plan(route, planned))
+                .ok_or(MaskRouteAdmissionError::MissingPlacement)?;
+            if !verify_plan(&planned.plan)
+                || PlannedMaskForm::admit(&planned.mask, &planned.plan).is_err()
+            {
+                return Err(MaskRouteAdmissionError::InvalidPlan);
+            }
+            let sealed = body_plan
+                .presenter_topologies
+                .iter()
+                .flat_map(|topology| &topology.chains)
+                .any(|chain| chain.plan == planned.plan);
+            if !sealed {
+                return Err(MaskRouteAdmissionError::UnsealedMaskForm);
+            }
+            let placements = planned
+                .plan
+                .fragments
+                .iter()
+                .flat_map(|fragment| &fragment.placements)
+                .collect::<Vec<_>>();
             for boundary in [
-                &mask.presentation_input,
-                &mask.interaction_output,
-                &mask.show_output,
+                &planned.mask.presentation_input,
+                &planned.mask.interaction_output,
+                &planned.mask.show_output,
             ] {
                 let admitted = placements.iter().any(|placement| {
                     placement.gear_id == boundary.gear_id
@@ -64,7 +80,7 @@ impl AdmittedMaskFormRoutes {
             }
         }
         Ok(Self {
-            plan_id: plan.plan_id.clone(),
+            plan_id: body_plan.plan_id.clone(),
             routes,
         })
     }
@@ -76,4 +92,23 @@ impl AdmittedMaskFormRoutes {
     pub fn routes(&self) -> &[SealedMaskFormRoute] {
         &self.routes
     }
+}
+
+fn route_matches_plan(route: &SealedMaskFormRoute, planned: &PlannedMaskForm) -> bool {
+    let placements = planned
+        .plan
+        .fragments
+        .iter()
+        .flat_map(|fragment| &fragment.placements)
+        .map(|placement| &placement.placement_id)
+        .collect::<Vec<_>>();
+    route.placement_ids.len() == placements.len()
+        && route
+            .placement_ids
+            .iter()
+            .enumerate()
+            .all(|(index, placement_id)| {
+                !route.placement_ids[..index].contains(placement_id)
+                    && placements.contains(&placement_id)
+            })
 }

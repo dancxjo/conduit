@@ -30,6 +30,7 @@ pub struct MaskInspectionShow {
     pub route_id: String,
     pub mask_form: FormIdentity,
     pub plan_id: PlanId,
+    pub mask_plan_id: PlanId,
     pub show_id: String,
     pub presentation_id: String,
     pub presentation_revision: u64,
@@ -71,7 +72,7 @@ pub fn project_mask_inspection(
             return Err(MaskInspectionError::StaleSelection);
         }
     }
-    let current_show = project_show(selected, show, planned_masks)?;
+    let current_show = project_show(selected, show, planned_masks, routes)?;
     Ok(MaskInspectionProjection {
         wardrobe: wardrobe.clone(),
         known_mask_forms: known_mask_forms.to_vec(),
@@ -111,6 +112,7 @@ fn project_show(
     selected: Option<&SelectedMaskFormRoute>,
     show: Option<&MaskShow>,
     planned_masks: &[PlannedMaskForm],
+    routes: &AdmittedMaskFormRoutes,
 ) -> Result<Option<MaskInspectionShow>, MaskInspectionError> {
     let (selected, show) = match (selected, show) {
         (Some(selected), Some(show)) => (selected, show),
@@ -118,16 +120,39 @@ fn project_show(
         (None, Some(_)) => return Err(MaskInspectionError::UnexpectedShow),
         (None, None) => return Ok(None),
     };
+    let route = routes
+        .routes()
+        .iter()
+        .find(|route| {
+            route.route_id == selected.route_id
+                && route.mask_form == selected.mask_form
+                && route.plan_id == selected.plan_id
+        })
+        .ok_or(MaskInspectionError::StaleSelection)?;
     let planned = planned_masks
         .iter()
         .find(|planned| {
             planned.mask.form_identity == selected.mask_form
-                && planned.plan.plan_id == selected.plan_id
+                && route.placement_ids.len()
+                    == planned
+                        .plan
+                        .fragments
+                        .iter()
+                        .map(|fragment| fragment.placements.len())
+                        .sum::<usize>()
+                && route.placement_ids.iter().all(|placement_id| {
+                    planned
+                        .plan
+                        .fragments
+                        .iter()
+                        .flat_map(|fragment| &fragment.placements)
+                        .any(|placement| &placement.placement_id == placement_id)
+                })
         })
         .ok_or(MaskInspectionError::MissingPlannedMask)?;
     if show.mask_form != selected.mask_form
         || show.planned_mask != *planned
-        || show.show.plan_id != selected.plan_id
+        || show.show.plan_id != planned.plan.plan_id
         || show.presentation_id != show.show.presentation_id
         || show.presentation_revision != show.show.presentation_revision
     {
@@ -137,6 +162,7 @@ fn project_show(
         route_id: selected.route_id.clone(),
         mask_form: show.mask_form.clone(),
         plan_id: selected.plan_id.clone(),
+        mask_plan_id: planned.plan.plan_id.clone(),
         show_id: show.show_id.as_str().into(),
         presentation_id: show.presentation_id.as_str().into(),
         presentation_revision: show.presentation_revision,

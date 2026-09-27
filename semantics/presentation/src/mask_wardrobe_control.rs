@@ -1,7 +1,7 @@
 //! One Body-scoped semantic action seam for ordinary Forms worn as Masks.
 
 use alloc::vec::Vec;
-use conduit_body::{BodyId, WakeId};
+use conduit_body::{BodyId, BodyPlan, WakeId};
 use conduit_core::{FormIdentity, PlanId};
 use serde::{Deserialize, Serialize};
 
@@ -47,23 +47,23 @@ impl MaskWardrobeControl {
     pub fn new(
         body_id: &BodyId,
         scoped_wardrobe: BodyMaskWardrobe,
-        active_plan_id: PlanId,
+        active_plan: &BodyPlan,
         routes: &AdmittedMaskFormRoutes,
         selected: Option<SelectedMaskFormRoute>,
     ) -> Result<Self, MaskWardrobeControlError> {
-        if scoped_wardrobe.body_id != *body_id {
+        if scoped_wardrobe.body_id != *body_id || active_plan.body_id != *body_id {
             return Err(MaskWardrobeControlError::WrongBody);
         }
-        if routes.plan_id() != &active_plan_id {
+        if routes.plan_id() != &active_plan.plan_id {
             return Err(MaskWardrobeControlError::StalePlan);
         }
         let reconciliation = scoped_wardrobe
             .wardrobe
-            .reconcile(&active_plan_id, routes.routes(), selected.as_ref())
+            .reconcile(&active_plan.plan_id, routes.routes(), selected.as_ref())
             .map_err(MaskWardrobeControlError::Wardrobe)?;
         Ok(Self {
             scoped_wardrobe,
-            active_plan_id,
+            active_plan_id: active_plan.plan_id.clone(),
             selected: selection(&reconciliation.show),
         })
     }
@@ -114,20 +114,27 @@ impl MaskWardrobeControl {
     pub fn admit_replacement_plan(
         &mut self,
         basis_plan_id: &PlanId,
+        replacement_plan: &BodyPlan,
         routes: &AdmittedMaskFormRoutes,
     ) -> Result<MaskReconciliation, MaskWardrobeControlError> {
         if basis_plan_id != &self.active_plan_id {
             return Err(MaskWardrobeControlError::StalePlan);
         }
-        if routes.plan_id() == &self.active_plan_id {
+        if replacement_plan.body_id != self.scoped_wardrobe.body_id {
+            return Err(MaskWardrobeControlError::WrongBody);
+        }
+        if routes.plan_id() != &replacement_plan.plan_id {
+            return Err(MaskWardrobeControlError::StalePlan);
+        }
+        if replacement_plan.plan_id == self.active_plan_id {
             return Err(MaskWardrobeControlError::ReusedPlan);
         }
         let reconciliation = self
             .scoped_wardrobe
             .wardrobe
-            .reconcile(routes.plan_id(), routes.routes(), None)
+            .reconcile(&replacement_plan.plan_id, routes.routes(), None)
             .map_err(MaskWardrobeControlError::Wardrobe)?;
-        self.active_plan_id = routes.plan_id().clone();
+        self.active_plan_id = replacement_plan.plan_id.clone();
         self.selected = selection(&reconciliation.show);
         Ok(reconciliation)
     }

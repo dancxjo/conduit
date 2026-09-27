@@ -1,5 +1,9 @@
 #![cfg(feature = "form-catalog")]
 
+use conduit_body::{
+    Body, BodyFormPlan, BodyPlan, BodyPresentationSelector, BodyPresenterChainPlan,
+    BodyPresenterTopology, BodyWorkset, ResidentForm,
+};
 use conduit_core::{
     bind_active_play, kind_id, port_id, ArtifactId, Back, BackOfferBuilder, BootId, CapabilityId,
     CapabilityLimits, ExecutionProfileId, HostAdvertisement, HostId, HostProfileId,
@@ -254,6 +258,190 @@ fn host_for(
     }
 }
 
+fn body_plan_for(planned_masks: &[PlannedMaskForm]) -> BodyPlan {
+    let residents = planned_masks
+        .iter()
+        .map(|planned| {
+            ResidentForm::new(
+                planned.mask.form_identity.source_document_id.clone(),
+                planned.mask.form_identity.checked_form_id.clone(),
+            )
+        })
+        .collect::<Vec<_>>();
+    let body = Body::born_with_forms(
+        BodyWorkset::from_forms(residents.clone()).unwrap(),
+        1,
+        SignId::from("sign/mask-body-born"),
+    )
+    .unwrap();
+    let wake = body.wake(1, SignId::from("sign/mask-body-woke")).unwrap().1;
+    let forms = residents
+        .into_iter()
+        .zip(planned_masks)
+        .map(|(form, planned)| BodyFormPlan {
+            form,
+            plan: planned.plan.clone(),
+        })
+        .collect();
+    let topologies = planned_masks
+        .iter()
+        .map(|planned| {
+            let first = planned
+                .plan
+                .fragments
+                .iter()
+                .flat_map(|fragment| &fragment.placements)
+                .next()
+                .unwrap()
+                .placement_id
+                .clone();
+            BodyPresenterTopology {
+                presentation: BodyPresentationSelector {
+                    form: Some(ResidentForm::new(
+                        planned.mask.form_identity.source_document_id.clone(),
+                        planned.mask.form_identity.checked_form_id.clone(),
+                    )),
+                    source_placement_id: first.clone(),
+                },
+                chains: vec![BodyPresenterChainPlan {
+                    plan: planned.plan.clone(),
+                    stage_placement_ids: vec![first],
+                }],
+            }
+        })
+        .collect();
+    BodyPlan::seal_with_presenters(&wake, forms, topologies).unwrap()
+}
+
+fn plan_mask(source: &str, name: &str) -> PlannedMaskForm {
+    let (startup, profiles) = catalogs();
+    let checked = check_syntax_document(&parse_syntax_document(source), &startup).unwrap();
+    let authoring = expand_canonical_form_for_authoring(&checked, name, &profiles).unwrap();
+    let mask = MaskForm::admit(&authoring).unwrap();
+    let host = host_for(&authoring.expanded, &profiles);
+    let placements = conduit_planner::default_expanded_placements(
+        &authoring.expanded,
+        core::slice::from_ref(&host),
+    )
+    .unwrap();
+    let connection_bases = std::collections::BTreeMap::new();
+    let line_candidates = std::collections::BTreeMap::new();
+    let boundary_limits = authoring
+        .front
+        .inputs()
+        .iter()
+        .map(|port| (PortDirection::Input, port))
+        .chain(
+            authoring
+                .front
+                .outputs()
+                .iter()
+                .map(|port| (PortDirection::Output, port)),
+        )
+        .map(|(direction, port)| {
+            (
+                conduit_planner::ForeBoundaryKey {
+                    direction,
+                    front_port_id: port.port_id.clone(),
+                    track: conduit_core::ConnectionTrack::Payload,
+                },
+                conduit_planner::ConnectionQueueLimits {
+                    item_capacity: 1,
+                    byte_capacity: 64 * 1024,
+                },
+            )
+        })
+        .collect();
+    let plan = conduit_planner::plan_expanded_authoring_with_options(
+        &authoring,
+        &[host],
+        &placements,
+        &[],
+        conduit_planner::PlanningOptions {
+            connection_bases: &connection_bases,
+            line_candidates: &line_candidates,
+            connection_item_capacity: 1,
+            connection_byte_capacity: 64 * 1024,
+            authority_grants: &[],
+            protected_resource_grants: &[],
+            line_offers: &[],
+        },
+        &boundary_limits,
+    )
+    .unwrap();
+    PlannedMaskForm::admit(&mask, &plan).unwrap()
+}
+
+fn route_for(body_plan: &BodyPlan, planned: &PlannedMaskForm, name: &str) -> SealedMaskFormRoute {
+    SealedMaskFormRoute {
+        route_id: format!("route/{name}"),
+        mask_form: planned.mask.form_identity.clone(),
+        plan_id: body_plan.plan_id.clone(),
+        placement_ids: planned
+            .plan
+            .fragments
+            .iter()
+            .flat_map(|fragment| &fragment.placements)
+            .map(|placement| placement.placement_id.clone())
+            .collect(),
+        currently_available: true,
+    }
+}
+
+#[test]
+fn two_mask_forms_share_one_body_plan_identity_and_unsealed_masks_refuse() {
+    let browser = plan_mask(
+        "form browser (\n >> presentation: Presentation\n interaction: FaceInteraction...| >>\n show: Show >>\n) {\n output: web/dom\n input: web/input\n presentation >> output.presentation\n output.show >> show\n input.interaction >> interaction\n}\n",
+        "browser",
+    );
+    let spoken = plan_mask(
+        "form alternate-browser (\n >> presentation: Presentation\n interaction: FaceInteraction...| >>\n show: Show >>\n) {\n output: web/dom\n input: web/input\n presentation >> output.presentation\n output.show >> show\n input.interaction >> interaction\n}\n",
+        "alternate-browser",
+    );
+    assert_ne!(browser.mask.form_identity, spoken.mask.form_identity);
+    let body_plan = body_plan_for(&[browser.clone(), spoken.clone()]);
+    let routes = vec![
+        route_for(&body_plan, &browser, "browser"),
+        route_for(&body_plan, &spoken, "spoken"),
+    ];
+    let admitted =
+        AdmittedMaskFormRoutes::new(&body_plan, &[browser.clone(), spoken.clone()], routes)
+            .unwrap();
+    assert_eq!(admitted.plan_id(), &body_plan.plan_id);
+    assert!(admitted
+        .routes()
+        .iter()
+        .all(|route| route.plan_id == body_plan.plan_id));
+
+    let mut forged_body_plan = body_plan.clone();
+    forged_body_plan.plan_id = PlanId::from("body-plan/forged");
+    assert_eq!(
+        AdmittedMaskFormRoutes::new(
+            &forged_body_plan,
+            &[browser.clone(), spoken.clone()],
+            admitted.routes().to_vec(),
+        ),
+        Err(MaskRouteAdmissionError::InvalidPlan)
+    );
+
+    let possible_but_unsealed = plan_mask(
+        "form late-browser (\n >> presentation: Presentation\n interaction: FaceInteraction...| >>\n show: Show >>\n) {\n output: web/dom\n input: web/input\n presentation >> output.presentation\n output.show >> show\n input.interaction >> interaction\n}\n",
+        "late-browser",
+    );
+    assert_eq!(
+        AdmittedMaskFormRoutes::new(
+            &body_plan,
+            core::slice::from_ref(&possible_but_unsealed),
+            vec![route_for(
+                &body_plan,
+                &possible_but_unsealed,
+                "late-browser"
+            )],
+        ),
+        Err(MaskRouteAdmissionError::UnsealedMaskForm)
+    );
+}
+
 #[test]
 fn graphical_browser_and_spoken_masks_are_ordinary_forms_with_one_role_boundary() {
     let native = admit(
@@ -364,10 +552,11 @@ fn the_ordinary_planner_seals_the_mask_form_without_a_mask_planner() {
     )
     .unwrap();
     let planned = PlannedMaskForm::admit(&mask, &plan).unwrap();
+    let body_plan = body_plan_for(core::slice::from_ref(&planned));
     let route = SealedMaskFormRoute {
         route_id: "route/browser".into(),
         mask_form: mask.form_identity.clone(),
-        plan_id: plan.plan_id.clone(),
+        plan_id: body_plan.plan_id.clone(),
         placement_ids: plan
             .fragments
             .iter()
@@ -376,14 +565,16 @@ fn the_ordinary_planner_seals_the_mask_form_without_a_mask_planner() {
             .collect(),
         currently_available: true,
     };
-    assert!(
-        AdmittedMaskFormRoutes::new(&plan, core::slice::from_ref(&mask), vec![route.clone()])
-            .is_ok()
-    );
+    assert!(AdmittedMaskFormRoutes::new(
+        &body_plan,
+        core::slice::from_ref(&planned),
+        vec![route.clone()]
+    )
+    .is_ok());
     assert_eq!(
         AdmittedMaskFormRoutes::new(
-            &plan,
-            core::slice::from_ref(&mask),
+            &body_plan,
+            core::slice::from_ref(&planned),
             vec![SealedMaskFormRoute {
                 placement_ids: vec![conduit_core::PlacementId::from("placement/invented")],
                 ..route
