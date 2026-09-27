@@ -78,12 +78,9 @@ test("product jobs build the immutable PR head and deployments queue", () => {
   );
   assert.doesNotMatch(productWorkflow, /github\.event\.pull_request\.(?:head|base)\.sha \|\| inputs\./);
   assert.match(productWorkflow, /name: browser-proof-\$\{\{ matrix\.shard \}\}/);
-  assert.match(
-    productWorkflow,
-    /tour-patchbay-proof:\n    needs: \[plan, browser-runtimes\]/,
-  );
+  assert.doesNotMatch(productWorkflow, /tour-patchbay-proof:/);
+  assert.doesNotMatch(productWorkflow, /proof-receipts:/);
   assert.doesNotMatch(productWorkflow, /conduit-staged-tour-patchbay/);
-  assert.match(productWorkflow, /--grep-invert/);
   assert.match(productWorkflow, /shard: tour/);
   assert.match(productWorkflow, /shard: browser-host/);
   assert.match(productWorkflow, /shard: creche-machines/);
@@ -125,16 +122,14 @@ test("product jobs build the immutable PR head and deployments queue", () => {
   assert.match(productWorkflow, /Restore an identical admitted ConduitOS image/);
   assert.match(productWorkflow, /if: steps\.image-cache\.outputs\.cache-hit != 'true'/);
   assert.match(productWorkflow, /conduitos-releases:\n    needs: conduitos-release-images/);
-  assert.match(productWorkflow, /products-proof:\n    needs: \[plan, tour-patchbay-proof, browser-admission-proof, products-stage, browser-proof, pages-carrier, proof-receipts\]/);
+  assert.match(productWorkflow, /products-proof:\n    needs: \[plan, browser-admission-proof, products-stage, browser-proof, pages-carrier\]/);
   assert.doesNotMatch(productWorkflow, /^  (?:journey|little-life)-evidence:/m);
   assert.doesNotMatch(productWorkflow, /^  journey-gallery:/m);
   assert.match(productWorkflow, /if test "\$PRODUCT_REQUIRED" != true/);
   assert.match(productWorkflow, /test "\$STAGE_RESULT" = success/);
-  assert.match(productWorkflow, /test "\$TOUR_PATCHBAY_RESULT" = success/);
   assert.match(productWorkflow, /test "\$BROWSER_RESULT" = success/);
   assert.match(productWorkflow, /test "\$BROWSER_ADMISSION_RESULT" = success/);
   assert.match(productWorkflow, /test "\$CARRIER_RESULT" = success/);
-  assert.match(productWorkflow, /test "\$RECEIPTS_RESULT" = success/);
 
   const deployWorkflow = readFileSync(".github/workflows/tour-pages-deploy.yml", "utf8");
   assert.match(

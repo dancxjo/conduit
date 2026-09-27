@@ -122,12 +122,7 @@ fn required_product_gate_uses_the_standard_runner_pool() {
 
     assert!(required_gate.contains("if: ${{ always() && !cancelled() }}"));
     assert!(required_gate.contains("runs-on: ubuntu-24.04"));
-    for result in [
-        "TOUR_PATCHBAY_RESULT",
-        "STAGE_RESULT",
-        "BROWSER_RESULT",
-        "CARRIER_RESULT",
-    ] {
+    for result in ["STAGE_RESULT", "BROWSER_RESULT", "CARRIER_RESULT"] {
         assert!(
             required_gate.contains(result),
             "product gate does not inspect `{result}`"
@@ -455,7 +450,7 @@ fn browser_release_installs_its_exact_wasm_target() {
     let browser_release = workflow
         .split("\n  browser-release:\n")
         .nth(1)
-        .and_then(|tail| tail.split("\n  tour-patchbay-proof:\n").next())
+        .and_then(|tail| tail.split("\n  host-releases:\n").next())
         .expect("locate browser release job");
     assert!(browser_release.contains(
         "if: needs.plan.outputs.pages_carrier_required == 'true' || needs.plan.outputs.browser_admission_required == 'true'"
@@ -570,12 +565,20 @@ fn stacked_diff_base_does_not_select_the_controller_version() {
 }
 
 #[test]
-fn legacy_tour_and_patchbay_product_proofs_are_disabled() {
+fn legacy_tour_and_patchbay_product_proof_lanes_are_absent() {
     let root = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../..");
     let workflow = fs::read_to_string(root.join(".github/workflows/tour-products.yml"))
         .expect("read product workflow");
-    assert!(workflow.contains("      tour_required: false"));
-    assert!(workflow.contains("      patchbay_debugger_required: false"));
+    for dead_contract in [
+        "tour_required",
+        "patchbay_debugger_required",
+        "tour-patchbay-proof",
+        "proof-receipts",
+        "browser.tour",
+        "browser.patchbay-debugger",
+    ] {
+        assert!(!workflow.contains(dead_contract));
+    }
 }
 
 #[test]
@@ -677,18 +680,18 @@ fn controller_changes_run_the_dependency_light_planner_test_target() {
 }
 
 #[test]
-fn new_product_proofs_are_attested_by_the_trusted_controller_against_candidate_bytes() {
+fn surviving_pages_carrier_proof_is_attested_by_the_trusted_controller() {
     let root = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../..");
     let workflow = fs::read_to_string(root.join(".github/workflows/tour-products.yml"))
         .expect("read product workflow");
 
-    assert!(workflow.contains("name: Materialize the trusted attestation controller"));
+    assert!(workflow.contains("name: Materialize the trusted carrier attestation controller"));
     assert!(workflow.contains("CONTROLLER_SHA: ${{ needs.plan.outputs.controller_sha }}"));
-    assert!(workflow.contains(
-        "git -c safe.directory=\"$GITHUB_WORKSPACE\" fetch --no-tags origin \"$CONTROLLER_SHA\""
-    ));
-    assert!(workflow.contains("\"$RUNNER_TEMP/conduit-ci-controller-target/debug/conduit-xtask-dispatch\"\n          ci attest-success \"$CONDUIT_CANDIDATE_SHA\""));
-    assert!(!workflow.contains("cargo xtask ci attest-success \"$CONDUIT_CANDIDATE_SHA\"\n          browser.patchbay-debugger"));
+    assert!(workflow.contains("git fetch --no-tags origin \"$CONTROLLER_SHA\""));
+    assert!(
+        workflow.contains("ci attest-success \"$CONDUIT_CANDIDATE_SHA\" products.pages-carrier")
+    );
+    assert!(!workflow.contains("browser.patchbay-debugger"));
 }
 
 #[test]

@@ -80,7 +80,6 @@ fn retained_impact_selects_only_proofs_the_candidate_was_required_to_run() {
         full_fallback: false,
         shared_compile_packages: vec!["conduit-presentation".to_owned()],
         pages_products_required: true,
-        pages_product_proofs: vec!["products.patchbay-debugger".to_owned()],
         esp32_required: false,
         esp32_targets: vec!["c3".to_owned()],
         conduitos_required: false,
@@ -91,11 +90,6 @@ fn retained_impact_selects_only_proofs_the_candidate_was_required_to_run() {
     assert!(is_selected(spec("workspace.products"), Some(&selected)));
     assert!(is_selected(
         spec("workspace.shared-compile"),
-        Some(&selected)
-    ));
-    assert!(is_selected(spec("browser.tour"), Some(&selected)));
-    assert!(is_selected(
-        spec("browser.patchbay-debugger"),
         Some(&selected)
     ));
     assert!(is_selected(spec("products.pages-carrier"), Some(&selected)));
@@ -178,10 +172,10 @@ fn proof_key_changes_only_for_relevant_git_or_contract_inputs() {
     repo.write("proof/browser/executable-tour.spec.mjs", "proof one");
     let first = repo.commit("base");
     let first_tree = resolve_tree(&repo.root, &first).unwrap();
-    let browser = spec("browser.tour");
+    let browser = spec("products.pages-carrier");
     let initial = fingerprint(&repo.root, &first_tree, browser).unwrap();
 
-    repo.write("targets/esp32/readme.txt", "two");
+    repo.write("docs/readme.txt", "two");
     let unrelated = repo.commit("unrelated");
     let unrelated_tree = resolve_tree(&repo.root, &unrelated).unwrap();
     assert_eq!(
@@ -261,11 +255,7 @@ fn product_proof_renames_invalidate_receipts_without_rejecting_the_tree() {
     }
     let before = repo.commit("old product paths");
     validate_registry_paths(&repo.root, &before).unwrap();
-    let ids = [
-        "browser.tour",
-        "browser.patchbay-debugger",
-        "products.pages-carrier",
-    ];
+    let ids = ["products.pages-carrier"];
     for (old, new) in migrations {
         let previous = git_text(&repo.root, &["rev-parse", "HEAD"]).unwrap();
         fs::create_dir_all(repo.root.join(new).parent().unwrap()).unwrap();
@@ -295,8 +285,8 @@ fn product_proof_renames_invalidate_receipts_without_rejecting_the_tree() {
     repo.write("products/creche/browser/creche.mjs", "moved product source");
     let moved = repo.commit("move Creche into its product owner");
     assert_ne!(
-        fingerprint(&repo.root, &changed, spec("browser.tour")).unwrap(),
-        fingerprint(&repo.root, &moved, spec("browser.tour")).unwrap()
+        fingerprint(&repo.root, &changed, spec("products.pages-carrier")).unwrap(),
+        fingerprint(&repo.root, &moved, spec("products.pages-carrier")).unwrap()
     );
     fs::remove_dir_all(repo.root.join("proof/browser")).unwrap();
     let missing = repo.commit("remove required browser proof domain");
@@ -327,38 +317,50 @@ fn current_registry_uses_live_product_ownership_roots() {
     let root = crate::workspace::workspace_root().unwrap();
     let tree = resolve_tree(&root, "HEAD").unwrap();
     validate_registry_paths(&root, &tree).unwrap();
-    let browser = spec("browser.tour");
-    assert!(browser.inputs.contains(&"products/patchbay/html"));
-    assert!(browser.inputs.contains(&"products/tour"));
-    assert!(!browser.inputs.iter().any(|path| path.starts_with("apps/")));
+    let carrier = spec("products.pages-carrier");
+    assert!(carrier.inputs.contains(&"products"));
+    assert!(!carrier.inputs.iter().any(|path| path.starts_with("apps/")));
 }
 
 #[test]
 fn unrelated_merge_inherits_browser_evidence_while_candidate_remains_immutable() {
     let repo = Repository::new();
     repo.write("targets/browser/host/app.js", "browser");
-    repo.write("targets/esp32/firmware/main.rs", "esp");
+    repo.write("docs/readme.md", "base");
     repo.write("proof/browser/executable-tour.spec.mjs", "proof");
     let m0 = repo.commit("m0");
     repo.checkout("candidate-b", Some(&m0));
     repo.write("site/index.html", "candidate presentation");
     let b1 = repo.commit("b1");
     let candidate_tree = resolve_tree(&repo.root, &b1).unwrap();
-    let receipt = receipt_for(&repo.root, &candidate_tree, spec("browser.tour"), &b1);
+    let receipt = receipt_for(
+        &repo.root,
+        &candidate_tree,
+        spec("products.pages-carrier"),
+        &b1,
+    );
 
     git(&repo.root, &["checkout", "-q", "master"]);
-    repo.write("targets/esp32/firmware/main.rs", "merged A");
+    repo.write("docs/readme.md", "merged A");
     let m1 = repo.commit("a1");
     let MergeTree::Clean(integration_tree) = merge_tree(&repo.root, &m1, &b1).unwrap() else {
         panic!("unexpected conflict")
     };
-    let integration_digest =
-        fingerprint(&repo.root, &integration_tree, spec("browser.tour")).unwrap();
+    let integration_digest = fingerprint(
+        &repo.root,
+        &integration_tree,
+        spec("products.pages-carrier"),
+    )
+    .unwrap();
     assert!(receipt_matches(
         &receipt,
-        spec("browser.tour"),
+        spec("products.pages-carrier"),
         &integration_digest,
-        &proof_key(spec("browser.tour"), &integration_digest, &BTreeMap::new())
+        &proof_key(
+            spec("products.pages-carrier"),
+            &integration_digest,
+            &BTreeMap::new()
+        )
     ));
     assert_eq!(resolve_commit(&repo.root, &b1).unwrap(), b1);
 }
@@ -374,7 +376,12 @@ fn related_merge_invalidates_only_its_proof_domain() {
     repo.write("site/index.html", "candidate");
     let b1 = repo.commit("b1");
     let candidate_tree = resolve_tree(&repo.root, &b1).unwrap();
-    let browser_receipt = receipt_for(&repo.root, &candidate_tree, spec("browser.tour"), &b1);
+    let browser_receipt = receipt_for(
+        &repo.root,
+        &candidate_tree,
+        spec("products.pages-carrier"),
+        &b1,
+    );
     let esp_receipt = receipt_for(&repo.root, &candidate_tree, spec("machine.esp32-c3"), &b1);
 
     git(&repo.root, &["checkout", "-q", "master"]);
@@ -383,13 +390,17 @@ fn related_merge_invalidates_only_its_proof_domain() {
     let MergeTree::Clean(tree) = merge_tree(&repo.root, &m1, &b1).unwrap() else {
         panic!("unexpected conflict")
     };
-    let browser_digest = fingerprint(&repo.root, &tree, spec("browser.tour")).unwrap();
+    let browser_digest = fingerprint(&repo.root, &tree, spec("products.pages-carrier")).unwrap();
     let esp_digest = fingerprint(&repo.root, &tree, spec("machine.esp32-c3")).unwrap();
     assert!(!receipt_matches(
         &browser_receipt,
-        spec("browser.tour"),
+        spec("products.pages-carrier"),
         &browser_digest,
-        &proof_key(spec("browser.tour"), &browser_digest, &BTreeMap::new())
+        &proof_key(
+            spec("products.pages-carrier"),
+            &browser_digest,
+            &BTreeMap::new()
+        )
     ));
     assert!(receipt_matches(
         &esp_receipt,
@@ -439,7 +450,7 @@ fn receipts_fail_closed_and_can_be_reused_across_candidate_heads() {
     repo.write("proof/browser/executable-tour.spec.mjs", "proof");
     let b1 = repo.commit("b1");
     let tree = resolve_tree(&repo.root, &b1).unwrap();
-    let proof = spec("browser.tour");
+    let proof = spec("products.pages-carrier");
     let receipt = receipt_for(&repo.root, &tree, proof, &b1);
     repo.write(
         "docs/note.md",

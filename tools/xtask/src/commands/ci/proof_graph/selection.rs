@@ -12,7 +12,6 @@ pub(super) struct ImpactSelection {
     #[serde(default)]
     pub(super) shared_compile_packages: Vec<String>,
     pub(super) pages_products_required: bool,
-    pub(super) pages_product_proofs: Vec<String>,
     pub(super) esp32_required: bool,
     pub(super) esp32_targets: Vec<String>,
     pub(super) conduitos_required: bool,
@@ -55,10 +54,6 @@ pub(super) fn is_selected(spec: &ProofSpec, selected: Option<&ImpactSelection>) 
             .copied()
             .unwrap_or(true),
         Selection::PagesProducts => selected.pages_products_required,
-        Selection::PagesProductProof(id) => selected
-            .pages_product_proofs
-            .iter()
-            .any(|candidate| candidate == id),
         Selection::Esp32Required => selected.esp32_required,
         Selection::Esp32Target(target) => {
             selected.esp32_required
