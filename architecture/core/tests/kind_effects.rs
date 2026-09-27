@@ -3,7 +3,8 @@ use conduit_core::{
     CapabilityLimits, ExecutionProfileId, ExternalEffectBehavior, HostCallContractId,
     HostCallRequirement, ImplementationId, Kind, KindIdentity, KindSemanticLaw, PureExpressionFact,
     PureExpressionRefusal, ReplayBehavior, ResourceClassId, ResourceRequirement,
-    SemanticDependence, SuspensionBehavior, TemporalStateBehavior, VariabilityBehavior,
+    SemanticDependence, SuspensionBehavior, TemporalStateBehavior, TransformationRefusal,
+    VariabilityBehavior, WorkTransformation,
 };
 
 fn pure_laws() -> Vec<KindSemanticLaw> {
@@ -178,4 +179,113 @@ fn selected_back_cannot_hide_effect_authority_or_resource_envelopes() {
         conduit_core::check_pure_expression_back(&authority),
         Err(PureExpressionRefusal::BackAuthority)
     );
+}
+
+#[test]
+fn pure_bounded_work_is_eligible_for_every_observationally_exact_transformation() {
+    let eligibility =
+        conduit_core::derive_transformation_eligibility(&kind(pure_laws()), &back()).unwrap();
+    for transformation in [
+        WorkTransformation::Recompute,
+        WorkTransformation::Fusion,
+        WorkTransformation::Replay,
+        WorkTransformation::Retry,
+        WorkTransformation::Memoize,
+        WorkTransformation::Move,
+    ] {
+        assert_eq!(eligibility.require(transformation), Ok(()));
+    }
+
+    let mut effectful = pure_laws();
+    effectful[0] = KindSemanticLaw::ExternalEffects(ExternalEffectBehavior::Observable);
+    let effectful =
+        conduit_core::derive_transformation_eligibility(&kind(effectful), &back()).unwrap();
+    assert_eq!(
+        effectful.require(WorkTransformation::Memoize),
+        Err(TransformationRefusal::ExternalEffect)
+    );
+    assert_eq!(
+        effectful.require(WorkTransformation::Retry),
+        Err(TransformationRefusal::MissingEffectRetryLaw)
+    );
+}
+
+#[test]
+fn effectful_retry_requires_retained_consumer_evidence() {
+    let operation_key = kind_id("payment/operation-key@1");
+    let transaction = kind_id("payment/transaction@1");
+    let compensation = kind_id("payment/compensation@1");
+    for law in [
+        ReplayBehavior::Idempotent {
+            operation_key_kind: operation_key,
+        },
+        ReplayBehavior::Transactional {
+            transaction_contract: transaction,
+        },
+        ReplayBehavior::Compensatable {
+            compensation_contract: compensation,
+        },
+    ] {
+        let mut laws = pure_laws();
+        laws[0] = KindSemanticLaw::ExternalEffects(ExternalEffectBehavior::Observable);
+        laws[7] = KindSemanticLaw::Replay(law.clone());
+        let eligibility =
+            conduit_core::derive_transformation_eligibility(&kind(laws), &back()).unwrap();
+        assert_eq!(
+            eligibility.require(WorkTransformation::Replay),
+            Err(TransformationRefusal::ExternalEffect)
+        );
+        assert_eq!(
+            eligibility.require(WorkTransformation::Retry),
+            Err(TransformationRefusal::RetainedRetryEvidenceRequired(law))
+        );
+    }
+}
+
+#[test]
+fn stronger_effect_law_does_not_erase_other_retry_axes() {
+    let mut base = pure_laws();
+    base[0] = KindSemanticLaw::ExternalEffects(ExternalEffectBehavior::Observable);
+    base[7] = KindSemanticLaw::Replay(ReplayBehavior::Idempotent {
+        operation_key_kind: kind_id("payment/operation-key@1"),
+    });
+
+    for (index, law, refusal) in [
+        (
+            1,
+            KindSemanticLaw::TemporalState(TemporalStateBehavior::Retained),
+            TransformationRefusal::TemporalState,
+        ),
+        (
+            2,
+            KindSemanticLaw::TimeDependence(SemanticDependence::Ambient),
+            TransformationRefusal::AmbientTime,
+        ),
+        (
+            3,
+            KindSemanticLaw::RandomDependence(SemanticDependence::Ambient),
+            TransformationRefusal::AmbientRandom,
+        ),
+        (
+            4,
+            KindSemanticLaw::ResourceDependence(SemanticDependence::Ambient),
+            TransformationRefusal::AmbientResource,
+        ),
+        (
+            5,
+            KindSemanticLaw::Suspension(SuspensionBehavior::MaySuspend),
+            TransformationRefusal::Suspension,
+        ),
+        (
+            6,
+            KindSemanticLaw::Variability(VariabilityBehavior::AdmittedVariability),
+            TransformationRefusal::Variability,
+        ),
+    ] {
+        let mut laws = base.clone();
+        laws[index] = law;
+        let eligibility =
+            conduit_core::derive_transformation_eligibility(&kind(laws), &back()).unwrap();
+        assert_eq!(eligibility.require(WorkTransformation::Retry), Err(refusal));
+    }
 }
