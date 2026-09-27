@@ -733,6 +733,7 @@ struct CordState {
     queued_bytes: u32,
     producer_closed: bool,
     producer_abnormal: bool,
+    abnormal_terminal: Option<CanonicalValue>,
     next_remote_sequence: u64,
     offered_remote_sequence: Option<u64>,
     remote_accepted: bool,
@@ -745,6 +746,7 @@ impl CordState {
         queued_bytes: 0,
         producer_closed: false,
         producer_abnormal: false,
+        abnormal_terminal: None,
         next_remote_sequence: 0,
         offered_remote_sequence: None,
         remote_accepted: false,
@@ -1379,6 +1381,30 @@ where
         cord: CordId,
         disposition: RemoteTerminalDisposition,
     ) -> Result<(), SchedulerError> {
+        if disposition == RemoteTerminalDisposition::Abnormal {
+            return Err(SchedulerError::InvalidRemoteCordAccess);
+        }
+        self.close_remote_input_terminal(endpoint, cord, None)
+    }
+
+    /// Admit exact typed semantic abnormal truth from a remote source. The
+    /// session layer validates the bytes against the connection's declared F
+    /// before constructing this bounded value.
+    pub fn close_remote_input_abnormal(
+        &mut self,
+        endpoint: RemoteEndpointId,
+        cord: CordId,
+        terminal: CanonicalValue,
+    ) -> Result<(), SchedulerError> {
+        self.close_remote_input_terminal(endpoint, cord, Some(terminal))
+    }
+
+    fn close_remote_input_terminal(
+        &mut self,
+        endpoint: RemoteEndpointId,
+        cord: CordId,
+        abnormal_terminal: Option<CanonicalValue>,
+    ) -> Result<(), SchedulerError> {
         if self.cancelled {
             return Err(SchedulerError::Cancelled);
         }
@@ -1399,13 +1425,17 @@ where
             _ => return Err(SchedulerError::InvalidRemoteCordAccess),
         };
         if self.cords[cord_index].producer_closed {
-            return Ok(());
+            return if self.cords[cord_index].abnormal_terminal == abnormal_terminal {
+                Ok(())
+            } else {
+                Err(SchedulerError::RemoteDeliveryRejected)
+            };
         }
         self.ensure_sign_capacity(1)?;
         self.ensure_remote_sign_capacity(1)?;
         self.cords[cord_index].producer_closed = true;
-        self.cords[cord_index].producer_abnormal =
-            disposition == RemoteTerminalDisposition::Abnormal;
+        self.cords[cord_index].producer_abnormal = abnormal_terminal.is_some();
+        self.cords[cord_index].abnormal_terminal = abnormal_terminal;
         self.ready[usize::from(sink_node.0)] = true;
         self.signs.record_remote(
             sink_node,
@@ -1478,6 +1508,24 @@ where
                 RemoteTerminalDisposition::NormalClose
             }),
         )
+    }
+
+    /// Exact typed terminal bytes for an abnormal remote egress after its
+    /// ordinary values have drained.
+    pub fn remote_egress_abnormal_terminal(
+        &self,
+        endpoint: RemoteEndpointId,
+        cord: CordId,
+    ) -> Result<Option<CanonicalValue>, SchedulerError> {
+        if self.remote_egress_terminal_disposition(endpoint, cord)?
+            != Some(RemoteTerminalDisposition::Abnormal)
+        {
+            return Ok(None);
+        }
+        self.cords
+            .get(usize::from(cord.0))
+            .map(|state| state.abnormal_terminal)
+            .ok_or(SchedulerError::InvalidRemoteCordAccess)
     }
 
     pub fn next_host_request(&mut self) -> Option<HostCallRequest> {
@@ -2610,6 +2658,8 @@ where
             self.cords[cord].producer_closed = true;
             self.cords[cord].producer_abnormal =
                 spec.track != AssignedConnectionTrack::AbnormalTerminal;
+            self.cords[cord].abnormal_terminal =
+                (spec.track != AssignedConnectionTrack::AbnormalTerminal).then_some(terminal);
             if let CordEndpoint::Local { node, .. } = target.sink {
                 self.ready[usize::from(node.0)] = true;
             } else {

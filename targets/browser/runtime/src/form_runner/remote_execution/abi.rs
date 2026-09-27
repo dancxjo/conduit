@@ -341,16 +341,15 @@ pub extern "C" fn conduit_browser_remote_exchange(length: u32) -> i32 {
                     conduit_kernel::RemoteTerminalDisposition::NormalClose,
                 )?;
             }
-            SessionMessage::InputAbnormal { .. } => {
+            SessionMessage::InputAbnormal { terminal, .. } => {
                 if session.direction
                     != conduit_plan_lowering::lowering::RemoteCordDirection::Ingress
                 {
                     return Err("browser remote input abnormal names an egress endpoint".into());
                 }
-                return Err(
-                    "typed semantic abnormal ingress is not yet admitted by the prepared browser kernel"
-                        .into(),
-                );
+                state
+                    .execution
+                    .close_ingress_abnormal(session.endpoint, terminal)?;
             }
             SessionMessage::Terminal { .. } => {}
             SessionMessage::Cancelled { .. } | SessionMessage::Failed { .. } => {
@@ -628,14 +627,33 @@ pub extern "C" fn conduit_browser_remote_finish() -> i32 {
                     .execution
                     .terminal(session.endpoint)?
                     .ok_or_else(|| "browser remote egress is not terminal".to_string())?;
+                let abnormal_terminal = if disposition
+                    == conduit_kernel::RemoteTerminalDisposition::Abnormal
+                {
+                    Some(
+                        state
+                            .execution
+                            .abnormal_terminal(session.endpoint)?
+                            .ok_or_else(|| {
+                                "browser remote abnormal egress lost its typed terminal".to_string()
+                            })?,
+                    )
+                } else {
+                    None
+                };
                 let message = match disposition {
                     conduit_kernel::RemoteTerminalDisposition::NormalClose => {
                         SessionMessage::InputClosed { final_sequence }
                     }
-                    conduit_kernel::RemoteTerminalDisposition::Abnormal => return Err(
-                        "typed semantic abnormal egress is unavailable from the prepared browser kernel"
-                            .into(),
-                    ),
+                    conduit_kernel::RemoteTerminalDisposition::Abnormal => {
+                        SessionMessage::InputAbnormal {
+                            final_sequence,
+                            terminal: abnormal_terminal
+                                .as_ref()
+                                .expect("abnormal disposition prepared exact terminal")
+                                .as_slice(),
+                        }
+                    }
                 };
                 let closed = session.binding.frame(message);
                 session

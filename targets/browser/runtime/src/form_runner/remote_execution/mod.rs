@@ -178,6 +178,18 @@ impl RemoteExecution {
             .map_err(debug)
     }
 
+    pub(super) fn close_ingress_abnormal(
+        &mut self,
+        endpoint: conduit_kernel::RemoteEndpointId,
+        terminal: &[u8],
+    ) -> Result<(), String> {
+        let cord = self.remote(endpoint, RemoteCordDirection::Ingress)?.cord;
+        let terminal = conduit_kernel::CanonicalValue::new(terminal).map_err(debug)?;
+        self.scheduler
+            .close_remote_input_abnormal(endpoint, cord, terminal)
+            .map_err(debug)
+    }
+
     pub(super) fn terminal(
         &mut self,
         endpoint: conduit_kernel::RemoteEndpointId,
@@ -185,6 +197,16 @@ impl RemoteExecution {
         let cord = self.remote(endpoint, RemoteCordDirection::Egress)?.cord;
         self.scheduler
             .remote_egress_terminal_disposition(endpoint, cord)
+            .map_err(debug)
+    }
+
+    pub(super) fn abnormal_terminal(
+        &self,
+        endpoint: conduit_kernel::RemoteEndpointId,
+    ) -> Result<Option<conduit_kernel::CanonicalValue>, String> {
+        let cord = self.remote(endpoint, RemoteCordDirection::Egress)?.cord;
+        self.scheduler
+            .remote_egress_abnormal_terminal(endpoint, cord)
             .map_err(debug)
     }
 
