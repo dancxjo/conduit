@@ -69,6 +69,9 @@ mod maker_environment;
 mod mask_inspection;
 #[cfg(test)]
 mod mask_inspection_tests;
+mod mask_wardrobe_control;
+#[cfg(test)]
+mod mask_wardrobe_control_tests;
 mod palette;
 #[cfg(test)]
 mod parts_truth_explanation_tests;
@@ -276,6 +279,9 @@ pub use maker_environment::{
 pub use mask_inspection::{
     project_mask_inspection, MaskInspectionError, MaskInspectionProjection, MaskInspectionRoute,
     MaskInspectionShow,
+};
+pub use mask_wardrobe_control::{
+    MaskWardrobeAction, MaskWardrobeControl, MaskWardrobeControlError, MaskWardrobeControlEvidence,
 };
 pub use palette::{
     GearPalette, PaletteCategory, PaletteConfigurationSummary, PaletteEntry, PaletteError,
