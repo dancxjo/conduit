@@ -334,7 +334,7 @@ fn the_ordinary_planner_seals_the_mask_form_without_a_mask_planner() {
         )
         .map(|(direction, port)| {
             (
-                conduit_planner::FrontBoundaryKey {
+                conduit_planner::ForeBoundaryKey {
                     direction,
                     front_port_id: port.port_id.clone(),
                     track: conduit_core::ConnectionTrack::Payload,

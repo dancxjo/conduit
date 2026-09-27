@@ -7,7 +7,7 @@ use crate::{
 use alloc::collections::{BTreeMap, BTreeSet};
 use conduit_core::{
     AdmittedLine, AuthorityGrant, BaseImplementationId, FormIdentity, HostAdvertisement,
-    LineAvailability, Plan, PlannedFrontPort, PlannedGear, PlannedSharedPool, PoolMemberLimits,
+    LineAvailability, Plan, PlannedForePort, PlannedGear, PlannedSharedPool, PoolMemberLimits,
     PoolRealizationEnvelope, ResourceBinding, SharedPoolId, SharedPoolSelectionPolicy,
     SHARED_POOL_ADMIT_AUTHORITY_CONTRACT, SHARED_POOL_ADMIT_HOST_CALL_CONTRACT,
     SHARED_POOL_AUTHORITY_SUBJECT_KIND,
@@ -18,19 +18,19 @@ use conduit_form::{
 };
 
 #[derive(Debug, Clone, PartialEq, Eq)]
-pub struct FrontBoundaryKey {
+pub struct ForeBoundaryKey {
     pub direction: conduit_core::PortDirection,
     pub front_port_id: conduit_core::PortId,
     pub track: conduit_core::ConnectionTrack,
 }
 
-impl PartialOrd for FrontBoundaryKey {
+impl PartialOrd for ForeBoundaryKey {
     fn partial_cmp(&self, other: &Self) -> Option<core::cmp::Ordering> {
         Some(self.cmp(other))
     }
 }
 
-impl Ord for FrontBoundaryKey {
+impl Ord for ForeBoundaryKey {
     fn cmp(&self, other: &Self) -> core::cmp::Ordering {
         (self.direction as u8, &self.front_port_id, self.track).cmp(&(
             other.direction as u8,
@@ -48,7 +48,7 @@ pub fn plan_expanded_authoring_with_options(
     placements: &PlacementChoices,
     bases: &[BaseImplementationId],
     options: PlanningOptions<'_>,
-    boundary_limits: &BTreeMap<FrontBoundaryKey, ConnectionQueueLimits>,
+    boundary_limits: &BTreeMap<ForeBoundaryKey, ConnectionQueueLimits>,
 ) -> Result<Plan, PlannerError> {
     let mut plan =
         plan_expanded_canonical_with_options(&form.expanded, hosts, placements, bases, options)?;
@@ -72,7 +72,7 @@ pub fn plan_expanded_authoring_with_options(
         ),
     ] {
         for binding in bindings {
-            let key = FrontBoundaryKey {
+            let key = ForeBoundaryKey {
                 direction,
                 front_port_id: binding.front_port_id.clone(),
                 track: binding.track,
@@ -145,7 +145,7 @@ pub fn plan_expanded_authoring_with_options(
                     binding.front_port_id.as_str(),
                 )));
             }
-            fragment.front_ports.push(PlannedFrontPort {
+            fragment.fore_ports.push(PlannedForePort {
                 front_port_id: binding.front_port_id.clone(),
                 direction,
                 placement_id: placement.placement_id.clone(),
@@ -161,7 +161,7 @@ pub fn plan_expanded_authoring_with_options(
         }
     }
     for fragment in &mut plan.fragments {
-        fragment.front_ports.sort_by(|left, right| {
+        fragment.fore_ports.sort_by(|left, right| {
             (left.direction as u8, &left.front_port_id, left.track).cmp(&(
                 right.direction as u8,
                 &right.front_port_id,
@@ -673,7 +673,7 @@ pub fn plan_expanded_canonical_with_shared_pools(
                 execution_fusions: Vec::new(),
                 states: Vec::new(),
                 connections: Vec::new(),
-                front_ports: Vec::new(),
+                fore_ports: Vec::new(),
                 shared_pools: Vec::new(),
                 startup_dependencies: Vec::new(),
                 startup_order: Vec::new(),

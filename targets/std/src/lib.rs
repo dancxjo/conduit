@@ -347,6 +347,7 @@ pub struct StdKernelExecutionReport {
     pub midi_input: Vec<hosted_midi::MidiInputReport>,
     pub midi_output: Vec<hosted_midi::MidiOutputReport>,
     pub identity: conduit_plan_lowering::lowering::KernelExecutionIdentityMap,
+    pub fore_endpoints: Vec<conduit_plan_lowering::lowering::KernelForeEndpointIdentity>,
     #[cfg(test)]
     pub post_play_start_allocations: usize,
 }

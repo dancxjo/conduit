@@ -62,7 +62,7 @@ pub fn fragment() -> PlanFragment {
         execution_fusions: vec![],
         states: vec![state],
         connections: vec![],
-        front_ports: vec![],
+        fore_ports: vec![],
         shared_pools: vec![],
         startup_dependencies: vec![],
         startup_order: vec![PlacementId::from("placement")],

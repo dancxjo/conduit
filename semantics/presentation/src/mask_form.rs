@@ -149,7 +149,7 @@ impl PlannedMaskForm {
                 else {
                     return false;
                 };
-                fragment.front_ports.iter().any(|port| {
+                fragment.fore_ports.iter().any(|port| {
                     port.front_port_id == boundary.front_port_id
                         && port.direction == direction
                         && port.placement_id == placement.placement_id
