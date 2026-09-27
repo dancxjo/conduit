@@ -90,6 +90,7 @@ mod replanning;
 mod requirements;
 mod resource_binding;
 mod resource_port;
+mod retry;
 mod selected_plan_sealing;
 mod startup;
 pub mod state_delay;
@@ -212,6 +213,7 @@ pub use recursive_recovery::{
 };
 pub use replanning::{replan_selected_realizations_with_characteristics, RealizationReplanOutcome};
 pub use requirements::{plan_with_hard_requirements, HardRealizationRequirements};
+pub use retry::{admit_explicit_retry, RetryAdmission, RetryAdmissionBasis};
 pub use selected_plan_sealing::seal_exact_plan_with_selected_realizations;
 pub use style::{
     dos_shell_style, presentation_style_characteristics, select_realization_with_style, NamedStyle,
