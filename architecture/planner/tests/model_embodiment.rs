@@ -229,6 +229,7 @@ fn graph_plan(stage: usize) -> Plan {
             execution_fusions: vec![],
             states: Vec::new(),
             connections,
+            front_ports: vec![],
             shared_pools: vec![],
             startup_dependencies: vec![],
             startup_order: vec![],

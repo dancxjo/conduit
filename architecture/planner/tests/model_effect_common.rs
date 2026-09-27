@@ -148,6 +148,7 @@ pub fn wired_plan() -> Plan {
                 byte_capacity: 512,
                 abnormal_kind: None,
             }],
+            front_ports: vec![],
             shared_pools: vec![],
             startup_dependencies: vec![StartupDependency {
                 prerequisite_placement_id: PlacementId::from("placement/effect"),
