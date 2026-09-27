@@ -1,0 +1,90 @@
+use conduit_core::{
+    kind_id, port_id, CapabilityLimits, ExternalEffectBehavior, Kind, KindIdentity,
+    KindSemanticLaw, PortDescriptor, PortDirection, PortTemporal, ReplayBehavior,
+    SemanticDependence, SuspensionBehavior, TemporalStateBehavior, VariabilityBehavior,
+};
+use conduit_form::{
+    check_syntax_document, expand_canonical_form, parse_syntax_document, KindProjection,
+    KindSignature, ProfileCatalog, StartupCatalog, PURE_EXPRESSION_REVISION,
+};
+
+fn port(name: &str, direction: PortDirection) -> PortDescriptor {
+    PortDescriptor {
+        port_id: port_id(name),
+        value_kind: kind_id(conduit_core::SCALAR_INFO_ID),
+        direction,
+        temporal: PortTemporal::Value,
+    }
+}
+
+fn pure_kind() -> Kind {
+    Kind {
+        kind_id: kind_id("math/negate"),
+        kind_contract_revision: KindIdentity::from("math/negate@1"),
+        startup_parameters: vec![],
+        shorthand: Some((port_id("value"), port_id("result"))),
+        inputs: vec![port("value", PortDirection::Input)],
+        outputs: vec![port("result", PortDirection::Output)],
+        configuration: vec![],
+        semantic_laws: vec![
+            KindSemanticLaw::ExternalEffects(ExternalEffectBehavior::None),
+            KindSemanticLaw::TemporalState(TemporalStateBehavior::None),
+            KindSemanticLaw::TimeDependence(SemanticDependence::None),
+            KindSemanticLaw::RandomDependence(SemanticDependence::None),
+            KindSemanticLaw::ResourceDependence(SemanticDependence::None),
+            KindSemanticLaw::Suspension(SuspensionBehavior::Never),
+            KindSemanticLaw::Variability(VariabilityBehavior::DeterministicFromInputs),
+            KindSemanticLaw::Replay(ReplayBehavior::Exact),
+        ],
+        limits: CapabilityLimits {
+            max_active_instances: 1,
+            max_queue_items: 1,
+            max_queue_bytes: 8,
+        },
+    }
+}
+
+#[test]
+fn direct_pure_semantic_call_lowers_to_the_called_kind_not_a_host_call() {
+    let mut startup = StartupCatalog::new();
+    for kind in ["test/scalar-source", "test/scalar-sink"] {
+        startup
+            .insert(KindSignature {
+                kind: kind.into(),
+                startup_parameters: vec![],
+            })
+            .unwrap();
+    }
+    let mut profile = ProfileCatalog::new();
+    profile.insert_kind(pure_kind()).unwrap();
+    profile
+        .insert(KindProjection {
+            kind_id: kind_id("test/scalar-source"),
+            kind_contract_revision: KindIdentity::from("test/scalar-source@1"),
+            inputs: vec![],
+            outputs: vec![port("out", PortDirection::Output)],
+            configuration: vec![],
+        })
+        .unwrap();
+    profile
+        .insert(KindProjection {
+            kind_id: kind_id("test/scalar-sink"),
+            kind_contract_revision: KindIdentity::from("test/scalar-sink@1"),
+            inputs: vec![port("in", PortDirection::Input)],
+            outputs: vec![],
+            configuration: vec![],
+        })
+        .unwrap();
+    let source = "form calculate {\n source: test/scalar-source\n sink: test/scalar-sink\n source >> (math/negate(.)) >> sink\n}\n";
+    let checked = check_syntax_document(&parse_syntax_document(source), &startup).unwrap();
+    let expanded = expand_canonical_form(&checked, "calculate", &profile).unwrap();
+    assert!(expanded
+        .gears
+        .iter()
+        .any(|gear| gear.kind_id.as_str() == "math/negate"));
+    assert!(expanded
+        .gears
+        .iter()
+        .all(|gear| gear.kind_contract_revision.as_str() != PURE_EXPRESSION_REVISION));
+    expanded.validate_expansion().unwrap();
+}
