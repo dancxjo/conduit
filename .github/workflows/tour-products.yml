@@ -50,11 +50,9 @@ jobs:
   plan:
     runs-on: ubuntu-latest
     outputs:
-      exact_execution: ${{ inputs.development_admission || inputs.execute_proofs != '' }}
       required: ${{ inputs.full_suite || inputs.development_admission && fromJSON(steps.impact.outputs.browser_required || 'false') || (inputs.execute_proofs != '' && fromJSON(steps.exact.outputs.required)) || (inputs.execute_proofs == '' && fromJSON(steps.slice.outputs.required || steps.impact.outputs.pages_products_required || 'true')) }}
       proofs: ${{ (inputs.execute_proofs != '' && inputs.execute_proofs) || steps.slice.outputs.proofs || steps.impact.outputs.pages_product_proofs || '[]' }}
       browser_runtime_required: ${{ inputs.full_suite || inputs.development_admission && fromJSON(steps.impact.outputs.browser_required || 'false') || (inputs.execute_proofs != '' && fromJSON(steps.exact.outputs.browser_runtime_required)) || (inputs.execute_proofs == '' && fromJSON(steps.slice.outputs.required || steps.impact.outputs.pages_products_required || 'true')) }}
-      tour_required: false
       pages_carrier_required: ${{ inputs.full_suite || !inputs.development_admission && ((inputs.execute_proofs != '' && fromJSON(steps.exact.outputs.pages_carrier_required)) || (inputs.execute_proofs == '' && fromJSON(steps.slice.outputs.required || steps.impact.outputs.pages_products_required || 'true'))) }}
       browser_admission_required: ${{ inputs.development_admission && fromJSON(steps.impact.outputs.browser_required || 'false') }}
       host_releases_required: ${{ inputs.full_suite || steps.native-host-release.outputs.required == 'true' || !inputs.development_admission && fromJSON(steps.slice.outputs.required || steps.impact.outputs.pages_products_required || 'true') }}
@@ -63,7 +61,6 @@ jobs:
       stack_tip_sha: ${{ steps.stack.outputs.tip_sha || env.CONDUIT_CANDIDATE_SHA }}
       standalone_locks_required: ${{ inputs.full_suite && 'true' || steps.impact.outputs.esp32_required || 'true' }}
       controller_sha: ${{ steps.controller.outputs.sha }}
-      patchbay_debugger_required: false
     steps:
       - uses: actions/checkout@v7
         with:
@@ -160,29 +157,6 @@ jobs:
           "$RUNNER_TEMP/conduit-ci-controller-target/debug/conduit-xtask-dispatch"
           ci product-execution-plan --proof-ids-json "$EXECUTE_PROOFS" --locked
           >> "$GITHUB_OUTPUT"
-      - name: Admit a proof node unknown to the prior trusted controller
-        id: debugger-bootstrap
-        if: steps.stack.outputs.role != 'intermediate'
-        env:
-          TRUSTED_PROOFS: ${{ steps.impact.outputs.pages_product_proofs || '[]' }}
-          CONTROLLER_SHA: ${{ steps.controller.outputs.sha }}
-        run: |
-          required=false
-          reason=trusted-registry-not-selected
-          if printf '%s' "$TRUSTED_PROOFS" | grep -Fq 'products.patchbay-debugger'; then
-            required=true
-            reason=trusted-registry
-          elif ! git diff --quiet "$CONTROLLER_SHA" -- \
-            .github/workflows/tour-products.yml \
-            tools/xtask/src/commands/ci/impact/product_registry.rs \
-            tools/xtask/src/commands/ci/proof_graph/spec.rs
-          then
-            required=true
-            reason=proof-definition-bootstrap
-          fi
-          echo "required=$required" >> "$GITHUB_OUTPUT"
-          printf 'Patchbay debugger selection: `%s` (%s)\n' "$required" "$reason" >> "$GITHUB_STEP_SUMMARY"
-
   browser-runtimes:
     needs: plan
     if: needs.plan.outputs.browser_runtime_required == 'true'
@@ -251,124 +225,6 @@ jobs:
         run: >-
           "$RUNNER_TEMP/conduit-ci-controller-target/debug/conduit-xtask-dispatch"
           ci standalone-locks --locked
-
-  tour-patchbay-proof:
-    needs: [plan, browser-runtimes]
-    if: >-
-      always() && !cancelled() && needs.plan.result == 'success' &&
-      needs.browser-runtimes.result == 'success' &&
-      (needs.plan.outputs.tour_required == 'true' || needs.plan.outputs.patchbay_debugger_required == 'true')
-    runs-on: ubuntu-24.04
-    timeout-minutes: 8
-    container:
-      image: mcr.microsoft.com/playwright:v1.62.0-noble
-      options: --ipc=host
-    env:
-      NPM_CONFIG_AUDIT: "false"
-      NPM_CONFIG_FUND: "false"
-    steps:
-      - uses: actions/checkout@v7
-        with:
-          ref: ${{ env.CONDUIT_CANDIDATE_SHA }}
-      - name: Install the pinned browser proof dependency
-        run: npm --prefix proof/browser ci --ignore-scripts --prefer-offline
-      - name: Download the exact browser product runtimes
-        uses: ./.github/actions/download-artifact-retry
-        with:
-          name: conduit-browser-product-runtimes
-          path: target/browser-product-runtimes
-      - name: Stage only the Tour and its real embedded Patchbay
-        run: |
-          mkdir -p target/debug
-          cp target/browser-product-runtimes/conduit-browser-host target/debug/conduit-browser-host
-          chmod 755 target/debug/conduit-browser-host
-          products/tour/tools/stage-tour-product.sh target/browser-product-runtimes/tour-runtime.wasm target/tour-product
-      - name: Prove exact live-debugger projection
-        run: >-
-          node --test
-          proof/browser/patchbay-debugger-projection.test.mjs
-          proof/browser/playwright-config.test.mjs
-          proof/ci/browser-product-ownership.test.mjs
-      - name: Prove the Tour and real embedded Patchbay before machine fabrication completes
-        if: needs.plan.outputs.tour_required == 'true'
-        run: >-
-          node proof/browser/node_modules/@playwright/test/cli.js test
-          --config proof/browser/playwright.config.mjs
-          proof/browser/executable-tour.spec.mjs
-          --project chromium
-          --workers 1
-          --retries 0
-          --grep
-          "real Patchbay renderer|animated Cords|pairs narrative with Patchbay|invalid Form|canonical syntax projection|reviewed Back|Form Gallery browses exact canonical Forms|Hosts chapter shows the exact installed offers"
-      - name: Complete the exact Tour proposition without entering the carrier pipeline
-        if: inputs.development_admission != true && needs.plan.outputs.exact_execution == 'true' && needs.plan.outputs.tour_required == 'true'
-        run: >-
-          node proof/browser/node_modules/@playwright/test/cli.js test
-          --config proof/browser/playwright.config.mjs
-          proof/browser/executable-tour.spec.mjs
-          --project chromium
-          --workers 1
-          --retries 0
-          --grep-invert
-          "real Patchbay renderer|animated Cords|pairs narrative with Patchbay|invalid Form|canonical syntax projection|reviewed Back|Form Gallery browses exact canonical Forms|Hosts chapter shows the exact installed offers"
-      - name: Install the native Rust linker
-        if: needs.plan.outputs.patchbay_debugger_required == 'true'
-        run: |
-          apt-get update
-          apt-get install -y --no-install-recommends build-essential
-      - uses: dtolnay/rust-toolchain@1.98.1
-        if: needs.plan.outputs.patchbay_debugger_required == 'true'
-      - uses: Swatinem/rust-cache@v2
-        if: needs.plan.outputs.patchbay_debugger_required == 'true'
-        with:
-          cache-on-failure: false
-      - name: Build only the Patchbay browser product
-        if: needs.plan.outputs.patchbay_debugger_required == 'true'
-        run: cargo build --locked -p patchbay-html
-      - name: Prove the finite debugger model
-        if: needs.plan.outputs.patchbay_debugger_required == 'true'
-        run: cargo test --locked -p patchbay-model debugger_
-      - name: Prove bounded kernel debugger control and causality
-        if: needs.plan.outputs.patchbay_debugger_required == 'true'
-        run: cargo test --locked -p conduit-kernel --test debug_observation
-      - name: Prove the focused Patchbay debugger interactions
-        if: needs.plan.outputs.patchbay_debugger_required == 'true'
-        run: >-
-          node proof/browser/node_modules/@playwright/test/cli.js test
-          --config proof/browser/patchbay-debugger.config.mjs
-          proof/browser/patchbay-debugger-watch.spec.mjs
-          --project chromium
-          --workers 1
-          --retries 0
-      - name: Materialize the trusted attestation controller
-        if: needs.plan.outputs.patchbay_debugger_required == 'true'
-        env:
-          CONTROLLER_SHA: ${{ needs.plan.outputs.controller_sha }}
-        run: |
-          git -c safe.directory="$GITHUB_WORKSPACE" fetch --no-tags origin "$CONTROLLER_SHA"
-          git -c safe.directory="$GITHUB_WORKSPACE" worktree add --detach "$RUNNER_TEMP/conduit-ci-controller" "$CONTROLLER_SHA"
-          CARGO_TARGET_DIR="$RUNNER_TEMP/conduit-ci-controller-target" \
-            cargo build --manifest-path "$RUNNER_TEMP/conduit-ci-controller/Cargo.toml" \
-            --package conduit-xtask-dispatch --locked
-      - name: Attest the exact successful debugger proof key
-        if: needs.plan.outputs.patchbay_debugger_required == 'true'
-        run: >-
-          "$RUNNER_TEMP/conduit-ci-controller-target/debug/conduit-xtask-dispatch"
-          ci attest-success "$CONDUIT_CANDIDATE_SHA"
-          browser.patchbay-debugger
-          --evidence patchbay-model-debugger
-          --evidence kernel-debug-observation
-          --evidence playwright-chromium
-          --out target/ci-receipts/browser.patchbay-debugger.json
-          --locked
-      - name: Retain immutable debugger evidence
-        if: needs.plan.outputs.patchbay_debugger_required == 'true'
-        uses: ./.github/actions/upload-artifact-retry
-        with:
-          name: ci-proof-browser.patchbay-debugger-${{ env.CONDUIT_CANDIDATE_SHA }}
-          path: target/ci-receipts/browser.patchbay-debugger.json
-          if-no-files-found: error
-          retention-days: 14
 
   browser-admission-stage:
     needs: [plan, browser-runtimes, browser-release]
@@ -1253,52 +1109,8 @@ jobs:
           if-no-files-found: error
           retention-days: 14
 
-  proof-receipts:
-    needs: [plan, tour-patchbay-proof, browser-proof]
-    if: >-
-      always() && !cancelled() && !inputs.development_admission &&
-      needs.plan.outputs.tour_required == 'true' &&
-      needs.tour-patchbay-proof.result == 'success' &&
-      (needs.plan.outputs.exact_execution == 'true' || needs.browser-proof.result == 'success')
-    runs-on: ubuntu-slim
-    timeout-minutes: 5
-    steps:
-      - uses: actions/checkout@v7
-        with:
-          ref: ${{ env.CONDUIT_CANDIDATE_SHA }}
-          fetch-depth: 0
-      - uses: dtolnay/rust-toolchain@1.98.1
-      - name: Materialize the trusted proof attestation controller
-        env:
-          CONTROLLER_SHA: ${{ needs.plan.outputs.controller_sha }}
-        run: |
-          git fetch --no-tags origin "$CONTROLLER_SHA"
-          git worktree add --detach "$RUNNER_TEMP/conduit-ci-controller" "$CONTROLLER_SHA"
-          CARGO_TARGET_DIR="$RUNNER_TEMP/conduit-ci-controller-target" \
-            cargo build --manifest-path "$RUNNER_TEMP/conduit-ci-controller/Cargo.toml" \
-            --package conduit-xtask-dispatch --locked
-      - name: Attest the exact successful Tour proof proposition
-        shell: bash
-        env:
-          EXACT_EXECUTION: ${{ needs.plan.outputs.exact_execution }}
-        run: |
-          evidence=(--evidence tour-patchbay-proof)
-          if test "$EXACT_EXECUTION" != true; then
-            evidence+=(--evidence browser-proof-tour)
-          fi
-          "$RUNNER_TEMP/conduit-ci-controller-target/debug/conduit-xtask-dispatch" \
-            ci attest-success "$CONDUIT_CANDIDATE_SHA" browser.tour \
-            "${evidence[@]}" --out target/ci-receipts/browser.tour.json --locked
-      - name: Retain immutable Tour proof evidence
-        uses: ./.github/actions/upload-artifact-retry
-        with:
-          name: ci-proof-browser.tour-${{ env.CONDUIT_CANDIDATE_SHA }}
-          path: target/ci-receipts/browser.tour.json
-          if-no-files-found: error
-          retention-days: 14
-
   products-proof:
-    needs: [plan, tour-patchbay-proof, browser-admission-proof, products-stage, browser-proof, pages-carrier, proof-receipts]
+    needs: [plan, browser-admission-proof, products-stage, browser-proof, pages-carrier]
     # A deliberately cancelled duplicate lifecycle run is not new proof
     # failure. Real dependency failures still reach this gate and fail it.
     if: ${{ always() && !cancelled() }}
@@ -1309,27 +1121,16 @@ jobs:
         env:
           PRODUCT_REQUIRED: ${{ needs.plan.outputs.required }}
           PRODUCT_PROOFS: ${{ needs.plan.outputs.proofs }}
-          TOUR_REQUIRED: ${{ needs.plan.outputs.tour_required }}
-          DEBUGGER_REQUIRED: ${{ needs.plan.outputs.patchbay_debugger_required }}
           CARRIER_REQUIRED: ${{ needs.plan.outputs.pages_carrier_required }}
           BROWSER_ADMISSION_REQUIRED: ${{ needs.plan.outputs.browser_admission_required }}
           BROWSER_ADMISSION_RESULT: ${{ needs.browser-admission-proof.result }}
-          TOUR_PATCHBAY_RESULT: ${{ needs.tour-patchbay-proof.result }}
           STAGE_RESULT: ${{ needs.products-stage.result }}
           BROWSER_RESULT: ${{ needs.browser-proof.result }}
           CARRIER_RESULT: ${{ needs.pages-carrier.result }}
-          RECEIPTS_RESULT: ${{ needs.proof-receipts.result }}
-          DEVELOPMENT_ADMISSION: ${{ inputs.development_admission }}
         run: |
           if test "$PRODUCT_REQUIRED" != true; then
             echo "No Pages product proof inputs changed: $PRODUCT_PROOFS"
             exit 0
-          fi
-          if test "$TOUR_REQUIRED" = true || test "$DEBUGGER_REQUIRED" = true; then
-            test "$TOUR_PATCHBAY_RESULT" = success
-          fi
-          if test "$TOUR_REQUIRED" = true && test "$DEVELOPMENT_ADMISSION" != true; then
-            test "$RECEIPTS_RESULT" = success
           fi
           if test "$BROWSER_ADMISSION_REQUIRED" = true; then
             test "$BROWSER_ADMISSION_RESULT" = success

@@ -137,9 +137,7 @@ fn build_plan(proof_ids: Vec<String>) -> Result<CheckExecution, Box<dyn std::err
                 plan.conduitos_tools_required = true;
                 plan.conduitos_aarch64_product_required = true;
             }
-            Selection::PagesProducts
-            | Selection::PagesProductProof(_)
-            | Selection::ConduitosRequired => {
+            Selection::PagesProducts | Selection::ConduitosRequired => {
                 return Err(format!(
                     "proof {proof_id} is not an independently schedulable check proposition"
                 )
@@ -188,7 +186,7 @@ mod tests {
     fn unknown_duplicate_and_product_lane_ids_fail_closed() {
         assert!(validate_for_test(&["unknown.proof"]).is_err());
         assert!(validate_for_test(&["workspace.lint", "workspace.lint"]).is_err());
-        assert!(validate_for_test(&["browser.tour"]).is_err());
+        assert!(validate_for_test(&["products.pages-carrier"]).is_err());
         assert!(emit(&format!(
             "[\"{}\"]",
             "x".repeat(MAXIMUM_PROOF_IDS_JSON_BYTES)

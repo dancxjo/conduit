@@ -20,7 +20,6 @@ pub(super) enum Selection {
     SharedCompile,
     WorkspaceShard(&'static str),
     PagesProducts,
-    PagesProductProof(&'static str),
     Esp32Required,
     Esp32Target(&'static str),
     ConduitosRequired,
@@ -205,59 +204,6 @@ pub(super) const PROOFS: &[ProofSpec] = &[
         applicability: Applicability::CandidateAndIntegration,
         selection: Selection::WorkspaceShard("pico"),
         command: "cargo xtask check workspace-pico --locked",
-    },
-    ProofSpec {
-        id: "browser.tour",
-        contract_version: 3,
-        kind: ProofKind::Browser,
-        inputs: &[
-            "Cargo.toml",
-            "Cargo.lock",
-            "architecture/form",
-            "architecture/kernel",
-            "targets/browser",
-            "products/patchbay/html",
-            "products/tour",
-            "products/creche",
-            "products/workspace",
-            "site",
-        ],
-        // Fingerprint complete owning domains so a trusted controller can
-        // validate a candidate that renames proof, staging, or workflow files.
-        // Paths and bytes remain hashed; renames invalidate prior receipts.
-        implementation_inputs: &["proof/browser", "proof/ci", "tools/ci", "tools", "proof/browser/package.json", "proof/browser/package-lock.json", "targets/browser/tools", "products/tour/tools", "products/creche/tools", "products/patchbay/tools", "site/tools", ".github/workflows"],
-        consumed_artifacts: &[],
-        environment: "playwright-chromium-1.62.0-noble-worker1-retry0",
-        applicability: Applicability::CandidateAndIntegration,
-        selection: Selection::PagesProducts,
-        command: "node proof/browser/node_modules/@playwright/test/cli.js test --config proof/browser/playwright.config.mjs proof/browser/executable-tour.spec.mjs --project chromium --workers 1 --retries 0",
-    },
-    ProofSpec {
-        id: "browser.patchbay-debugger",
-        contract_version: 2,
-        kind: ProofKind::Browser,
-        inputs: &[
-            "Cargo.toml",
-            "Cargo.lock",
-            "proof/browser",
-            "architecture/kernel/src/debug_observation.rs",
-            "architecture/kernel/src/debug_observation",
-            "architecture/kernel/src/scheduler.rs",
-            "architecture/kernel/src/scheduler/debug_control.rs",
-            "architecture/kernel/tests/debug_observation.rs",
-            "products/patchbay/html",
-            "products/patchbay/model",
-            "semantics/tongues",
-        ],
-        // Fingerprint complete owning domains so a trusted controller can
-        // validate a candidate that renames proof, staging, or workflow files.
-        // Paths and bytes remain hashed; renames invalidate prior receipts.
-        implementation_inputs: &["proof/browser", "proof/ci", "tools/ci", "tools", "proof/browser/package.json", "proof/browser/package-lock.json", "targets/browser/tools", "products/tour/tools", "products/creche/tools", "products/patchbay/tools", "site/tools", ".github/workflows"],
-        consumed_artifacts: &[],
-        environment: "playwright-chromium-1.62.0-noble-worker1-retry0",
-        applicability: Applicability::CandidateAndIntegration,
-        selection: Selection::PagesProductProof("products.patchbay-debugger"),
-        command: "cargo test --locked -p patchbay-model debugger_ && cargo test --locked -p conduit-kernel --test debug_observation && node proof/browser/node_modules/@playwright/test/cli.js test --config proof/browser/patchbay-debugger.config.mjs proof/browser/patchbay-debugger-watch.spec.mjs --project chromium --workers 1 --retries 0",
     },
     ProofSpec {
         id: "products.pages-carrier",

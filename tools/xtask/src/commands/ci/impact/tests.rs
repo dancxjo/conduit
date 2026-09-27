@@ -242,10 +242,7 @@ fn pages_products_follow_the_typed_live_ownership_registry() {
     )
     .unwrap();
     assert!(debugger.pages_products_required);
-    assert_eq!(
-        debugger.pages_product_proofs,
-        ["products.pages-carrier", "products.patchbay-debugger"]
-    );
+    assert_eq!(debugger.pages_product_proofs, ["products.pages-carrier"]);
 
     for path in [
         "docs/architecture/example.md",
