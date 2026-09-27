@@ -8,19 +8,20 @@ use conduit_body::{
 use conduit_core::{
     ArtifactId, BaseImplementationId, CapabilityId, CapabilityLimits, ExecutionProfileId,
     HostAdvertisement, HostCallContractId, HostCallRequirement, HostId, HostProfileId,
-    ImplementationId, OfferGeneration, PROTOCOL_VERSION, SignId, kind_id, resource_offer,
-    resource_requirement,
+    ImplementationId, ImplementationOffer, OfferGeneration, PROTOCOL_VERSION, SignId, kind_id,
+    resource_offer, resource_requirement,
 };
 use conduit_form::{
-    ProfileCatalog, StartupCatalog, check_syntax_document, expand_canonical_form_for_authoring,
-    parse_syntax_document,
+    KindSignature, ProfileCatalog, StartupCatalog, check_syntax_document,
+    expand_canonical_form_for_authoring, parse_syntax_document,
 };
 use conduit_planner::{default_expanded_placements, plan_expanded_canonical};
 use conduit_presentation::{
     InteractionRealizationOffer, MAX_RENDERER_VALUE_BYTES, ManifestationLifecycle, MaskForm,
     MaskShow, PlannedMaskForm, Presentation, PresentationBasis, PresentationRole,
-    PresentationSubject, RendererRealizationOffer, install_mask_form_catalogs, interaction_offer,
-    renderer_offer,
+    PresentationSubject, RendererRealizationOffer, install_mask_form_value_aliases,
+    interaction_kind_projection, interaction_offer, presentation_tee_kind_projection,
+    presentation_tee_offer, renderer_kind_projection, renderer_offer,
 };
 use patchbay_application::{
     PatchbayPresenterMode, PatchbayPresenterStage, PatchbayPresenterTopology,
@@ -290,7 +291,20 @@ fn prepare_stage(
 ) -> Result<PresenterStage, ()> {
     let mut startup = StartupCatalog::new();
     let mut catalog = ProfileCatalog::new();
-    install_mask_form_catalogs(&mut startup, &mut catalog).map_err(|_| ())?;
+    install_mask_form_value_aliases(&mut startup).map_err(|_| ())?;
+    for projection in [
+        renderer_kind_projection(),
+        interaction_kind_projection(),
+        presentation_tee_kind_projection(),
+    ] {
+        startup
+            .insert(KindSignature {
+                kind: projection.kind_id.as_str().into(),
+                startup_parameters: Vec::new(),
+            })
+            .map_err(|_| ())?;
+        catalog.insert(projection).map_err(|_| ())?;
+    }
     let (source, entry) = match adapter {
         Adapter::Native => (
             include_str!("../../../forms/native-graphical-mask/main.conduit"),
@@ -368,6 +382,19 @@ fn renderer_host(
             ),
         ],
         capabilities: vec![
+            presentation_tee_offer(
+                CapabilityId::from(format!("{capability}-tee")),
+                ImplementationOffer {
+                    execution_profile_id: ExecutionProfileId::from("conduitos/bounded-presenter@1"),
+                    implementation_id: ImplementationId::from("conduit.presentation/tee-kernel@1"),
+                    artifact_id: ArtifactId::from("conduitos/presentation-tee@1"),
+                },
+                CapabilityLimits {
+                    max_active_instances: 1,
+                    max_queue_items: 1,
+                    max_queue_bytes: MAX_RENDERER_VALUE_BYTES,
+                },
+            ),
             renderer_offer(RendererRealizationOffer {
                 capability_id: CapabilityId::from(capability),
                 execution_profile_id: ExecutionProfileId::from("conduitos/bounded-presenter@1"),
@@ -457,11 +484,15 @@ mod tests {
             stage.planned_mask.plan.expanded_form_id,
             stage.planned_mask.mask.form_identity.expanded_form_id
         );
-        assert_eq!(stage.planned_mask.mask.presentation_inputs.len(), 2);
         assert_eq!(
-            stage.planned_mask.mask.presentation_inputs.len() + 2,
-            4,
-            "two Presentation fan-out bindings, interaction output, and Show output retain the four public Mask edges"
+            [
+                &stage.planned_mask.mask.presentation_input,
+                &stage.planned_mask.mask.interaction_output,
+                &stage.planned_mask.mask.show_output,
+            ]
+            .len(),
+            3,
+            "the Mask retains one Presentation input and its interaction and Show outputs"
         );
         assert_eq!(
             stage
@@ -471,8 +502,8 @@ mod tests {
                 .iter()
                 .map(|fragment| fragment.connections.len())
                 .sum::<usize>(),
-            1,
-            "the renderer-to-interaction Show correlation is the Mask's internal Cord"
+            3,
+            "the planned Mask retains both Presentation branches and the renderer-to-interaction Show correlation"
         );
 
         let topology = control
