@@ -20,7 +20,7 @@ use conduit_kernel::{
     HostCallOutcome, HostedSignLog, HostedValueStore, PortId as KernelPortId, RequestId,
 };
 use conduit_plan_lowering::lowering::{
-    lower_plan_fragment, LoweredFrontPort, FIXED_KERNEL_STORAGE_PORTS_PER_NODE,
+    lower_plan_fragment, LoweredForePort, FIXED_KERNEL_STORAGE_PORTS_PER_NODE,
 };
 use conduit_presentation::{
     install_mask_form_value_aliases, AdmittedMaskFormRoutes, BodyMaskWardrobe,
@@ -146,8 +146,8 @@ pub struct BrowserMaskRuntime {
     presentation: Presentation,
     show: MaskShow,
     scheduler: MaskScheduler,
-    show_boundary: LoweredFrontPort,
-    interaction_boundary: LoweredFrontPort,
+    show_boundary: LoweredForePort,
+    interaction_boundary: LoweredForePort,
     pending_node: conduit_kernel::NodeId,
     pending_request: RequestId,
 }
@@ -213,11 +213,11 @@ impl BrowserMaskRuntime {
         let lowered = lower_plan_fragment(fragment)
             .map_err(|error| format!("lower browser Mask: {error:?}"))?;
         let presentation_boundary =
-            exact_boundary(&lowered.front_ports, "presentation", PortDirection::Input)?;
+            exact_boundary(&lowered.fore_ports, "presentation", PortDirection::Input)?;
         let show_boundary =
-            exact_boundary(&lowered.front_ports, "show", PortDirection::Output)?.clone();
+            exact_boundary(&lowered.fore_ports, "show", PortDirection::Output)?.clone();
         let interaction_boundary =
-            exact_boundary(&lowered.front_ports, "interaction", PortDirection::Output)?.clone();
+            exact_boundary(&lowered.fore_ports, "interaction", PortDirection::Output)?.clone();
         let mut scheduler = mask_scheduler(fragment, &lowered)?;
         let presentation_bytes =
             serde_json::to_vec(&presentation).map_err(|error| error.to_string())?;
@@ -412,10 +412,10 @@ fn port(
 }
 
 fn exact_boundary<'a>(
-    ports: &'a [LoweredFrontPort],
+    ports: &'a [LoweredForePort],
     name: &str,
     direction: PortDirection,
-) -> Result<&'a LoweredFrontPort, String> {
+) -> Result<&'a LoweredForePort, String> {
     let mut matches = ports
         .iter()
         .filter(|port| port.front_port_id.as_str() == name && port.direction == direction);
@@ -476,13 +476,27 @@ fn mask_scheduler(
     let sign_bytes = u32::from(MASK_SIGN_ITEMS)
         .checked_mul(core::mem::size_of::<conduit_kernel::KernelEvent>() as u32)
         .ok_or("browser Mask Sign budget overflow")?;
-    const MASK_REMOTE_SIGN_ITEMS: u16 = 64;
-    let remote_sign_bytes = conduit_kernel::remote_sign_storage_bytes(MASK_REMOTE_SIGN_ITEMS)
+    let remote_sign_items = lowered
+        .fore_ports
+        .iter()
+        .try_fold(0u16, |total, port| {
+            let multiplier = if port.direction == PortDirection::Input {
+                1
+            } else {
+                3
+            };
+            port.item_capacity
+                .checked_mul(multiplier)
+                .and_then(|items| items.checked_add(1))
+                .and_then(|items| total.checked_add(items))
+        })
+        .ok_or("browser Mask remote Sign item budget overflow")?;
+    let remote_sign_bytes = conduit_kernel::remote_sign_storage_bytes(remote_sign_items)
         .ok_or("browser Mask remote Sign budget overflow")?;
     let signs = HostedSignLog::new_with_remote_storage(
         MASK_SIGN_ITEMS,
         sign_bytes,
-        MASK_REMOTE_SIGN_ITEMS,
+        remote_sign_items,
         remote_sign_bytes,
     )
     .map_err(|error| format!("prepare browser Mask signs: {error:?}"))?;
@@ -503,7 +517,7 @@ fn mask_scheduler(
 
 fn drive_mask_to_terminal(
     scheduler: &mut MaskScheduler,
-    boundaries: [&LoweredFrontPort; 2],
+    boundaries: [&LoweredForePort; 2],
 ) -> Result<(), String> {
     for _ in 0..32 {
         if boundaries.iter().all(|port| {
@@ -634,7 +648,7 @@ fn planned_mask(
     ] {
         for binding in bindings {
             boundary_limits.insert(
-                conduit_planner::FrontBoundaryKey {
+                conduit_planner::ForeBoundaryKey {
                     direction,
                     front_port_id: binding.front_port_id.clone(),
                     track: binding.track,
