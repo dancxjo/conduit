@@ -355,8 +355,15 @@ pub fn standard_profile_catalog() -> conduit_form::ProfileCatalog {
 
     let mut catalog = ProfileCatalog::new();
     for (contract, revision) in supported_nucleus_contracts_with_revisions() {
+        let kind = match contract.kind_id.as_str() {
+            MATH_CLAMP_KIND => math_clamp_semantic_contract(),
+            MATH_SCALE_KIND => math_scale_semantic_contract(),
+            MATH_DEADBAND_KIND => math_deadband_semantic_contract(),
+            AUDIO_TONE_KIND => audio_tone_semantic_contract(),
+            _ => contract.into_semantic_contract(revision),
+        };
         catalog
-            .insert_kind(contract.into_semantic_contract(revision))
+            .insert_kind(kind)
             .expect("standard catalog kinds are unique");
     }
     catalog

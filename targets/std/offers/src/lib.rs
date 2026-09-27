@@ -417,6 +417,7 @@ mod tests {
     fn hosted_inventory_matches_every_portable_nucleus_contract_exactly() {
         let contracts = conduit_semantic_catalog::supported_nucleus_contracts();
         let offers = supported_nucleus_offers();
+        let profile = conduit_semantic_catalog::standard_profile_catalog();
         assert_eq!(offers.len(), contracts.len());
 
         for (contract, offer) in contracts.iter().zip(&offers) {
@@ -424,6 +425,21 @@ mod tests {
             assert_eq!(offer.inputs, contract.inputs);
             assert_eq!(offer.outputs, contract.outputs);
             assert_eq!(offer.limits, contract.limits);
+            let checked = profile
+                .canonical_kind(&contract.kind_id)
+                .expect("portable canonical Kind exists in the standard profile");
+            assert_eq!(
+                offer.kind_contract_revision,
+                checked.kind_contract_revision,
+                "{} revision",
+                contract.kind_id.as_str()
+            );
+            assert_eq!(
+                offer.semantic_contract,
+                checked.semantic_contract(),
+                "{} semantic contract",
+                contract.kind_id.as_str()
+            );
         }
     }
 

@@ -52,9 +52,9 @@ pub(crate) fn supported_nucleus_contracts_with_revisions(
             text_presentation_contract(),
             "conduit.std/presentation-text@1",
         ),
-        (key_event_tee_contract(), "conduit.input/key-tee@1"),
-        (keymap_contract(), "conduit.input/keymap@1"),
-        (chords_contract(), "conduit.input/chords@1"),
+        (key_event_tee_contract(), KEY_EVENT_TEE_REVISION),
+        (keymap_contract(), KEYMAP_REVISION),
+        (chords_contract(), CHORDS_REVISION),
         (state_count_contract(), STATE_COUNT_CONTRACT_REVISION),
         (state_toggle_contract(), "conduit.std/state-toggle@1"),
         (
