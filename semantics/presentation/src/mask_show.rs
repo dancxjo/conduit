@@ -8,7 +8,7 @@ use sha2::{Digest, Sha256};
 use crate::{
     Manifestation, ManifestationError, ManifestationFailure, ManifestationLifecycle,
     MaskBoundaryRole, MaskSpecification, MaskSpecificationId, PlannedMask, Presentation,
-    PresentationContentId,
+    PresentationContentId, PresentationInteraction,
 };
 
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]
@@ -31,6 +31,15 @@ pub struct MaskShow {
     pub manifestation: Manifestation,
 }
 
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct MaskInteractionCorrelation {
+    pub show_id: MaskShowId,
+    pub specification_id: MaskSpecificationId,
+    pub presentation_id: PresentationContentId,
+    pub presentation_revision: u64,
+    pub interaction: PresentationInteraction,
+}
+
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum MaskShowError {
     StaleSpecification,
@@ -40,6 +49,7 @@ pub enum MaskShowError {
     WrongTerminalPlacement,
     InvalidManifestation(ManifestationError),
     StaleShowIdentity,
+    StaleInteraction,
 }
 
 impl MaskShow {
@@ -134,6 +144,28 @@ impl MaskShow {
             return Err(MaskShowError::StaleShowIdentity);
         }
         Ok(())
+    }
+
+    /// Correlate Mask-local input with the exact public Show it returned
+    /// through. This grants no application authority; the ordinary Face
+    /// interaction path still accepts or refuses the semantic action.
+    pub fn correlate_interaction(
+        &self,
+        interaction: PresentationInteraction,
+    ) -> Result<MaskInteractionCorrelation, MaskShowError> {
+        if interaction.presentation_id != self.presentation_id.as_str()
+            || interaction.presentation_revision != self.presentation_revision
+            || interaction.manifestation_id != self.manifestation.manifestation_id.as_str()
+        {
+            return Err(MaskShowError::StaleInteraction);
+        }
+        Ok(MaskInteractionCorrelation {
+            show_id: self.show_id.clone(),
+            specification_id: self.specification_id.clone(),
+            presentation_id: self.presentation_id.clone(),
+            presentation_revision: self.presentation_revision,
+            interaction,
+        })
     }
 }
 

@@ -3,15 +3,17 @@
 mod common;
 
 use common::{checked_renderer_form, host, plan_for, presentation, WAYLAND_RESOURCE};
-use conduit_core::{bind_active_play, SignId};
+use conduit_core::{bind_active_play, Plan, SignId};
 use conduit_presentation::{
-    Manifestation, ManifestationLifecycle, Presentation, PresentationAction,
-    PresentationActionAvailability, PresentationDisclosureLevel, PresentationInput,
-    PresentationInteraction, PresentationInteractionDisposition, PresentationInteractionFailure,
-    PresentationInteractionLedger, PresentationInteractionRefusal, UTF8_TEXT_VALUE_KIND,
+    Manifestation, ManifestationLifecycle, MaskBoundaryPort, MaskBoundaryRole, MaskShow,
+    MaskShowError, MaskSpecification, MaskStageId, MaskStagePlacement, MaskStageSpecification,
+    Presentation, PresentationAction, PresentationActionAvailability, PresentationDisclosureLevel,
+    PresentationInput, PresentationInteraction, PresentationInteractionDisposition,
+    PresentationInteractionFailure, PresentationInteractionLedger, PresentationInteractionRefusal,
+    UTF8_TEXT_VALUE_KIND,
 };
 
-fn available_interaction_basis() -> (Presentation, Manifestation) {
+fn available_interaction_basis() -> (Presentation, Manifestation, Plan) {
     let form = checked_renderer_form();
     let plan = plan_for(
         &form,
@@ -76,12 +78,12 @@ fn available_interaction_basis() -> (Presentation, Manifestation) {
         SignId::from("interaction/available"),
     )
     .unwrap();
-    (presentation, manifestation)
+    (presentation, manifestation, plan)
 }
 
 #[test]
 fn cancellation_and_renderer_failure_are_terminal_evidence_not_success() {
-    let (presentation, manifestation) = available_interaction_basis();
+    let (presentation, manifestation, _) = available_interaction_basis();
     for failure in [
         PresentationInteractionFailure::Cancelled,
         PresentationInteractionFailure::AdapterUnavailable,
@@ -112,7 +114,7 @@ fn cancellation_and_renderer_failure_are_terminal_evidence_not_success() {
 
 #[test]
 fn exact_available_interaction_round_trips_and_evidence_omits_plaintext() {
-    let (presentation, manifestation) = available_interaction_basis();
+    let (presentation, manifestation, _) = available_interaction_basis();
     let interaction = PresentationInteraction::new(
         &presentation,
         &manifestation,
@@ -147,7 +149,7 @@ fn exact_available_interaction_round_trips_and_evidence_omits_plaintext() {
 
 #[test]
 fn stale_wrong_empty_oversize_malformed_duplicate_and_pressure_refuse_distinctly() {
-    let (presentation, manifestation) = available_interaction_basis();
+    let (presentation, manifestation, _) = available_interaction_basis();
     let make = |value: &[u8], sequence| {
         PresentationInteraction::new(
             &presentation,
@@ -210,5 +212,84 @@ fn stale_wrong_empty_oversize_malformed_duplicate_and_pressure_refuse_distinctly
             3
         ),
         Err(PresentationInteractionRefusal::StaleManifestation)
+    );
+}
+
+#[test]
+fn mask_local_input_is_correlated_to_one_exact_show_before_face_delivery() {
+    let (presentation, _, plan) = available_interaction_basis();
+    let placement = &plan.fragments[0].placements[0];
+    let stage_id = MaskStageId::new("renderer").unwrap();
+    let specification = MaskSpecification::new(
+        "interactive-renderer",
+        1,
+        vec![MaskStageSpecification {
+            stage_id: stage_id.clone(),
+            kind_id: placement.kind_id.clone(),
+            kind_contract_revision: placement.kind_contract_revision.clone(),
+            inputs: placement.inputs.clone(),
+            outputs: placement.outputs.clone(),
+        }],
+        vec![],
+        vec![
+            MaskBoundaryPort {
+                role: MaskBoundaryRole::PresentationInput,
+                stage_id: stage_id.clone(),
+                port_id: placement.inputs[0].port_id.clone(),
+            },
+            MaskBoundaryPort {
+                role: MaskBoundaryRole::ShowOutput,
+                stage_id: stage_id.clone(),
+                port_id: placement.outputs[0].port_id.clone(),
+            },
+        ],
+    )
+    .unwrap();
+    let planned = specification
+        .admit_plan(
+            &plan,
+            vec![MaskStagePlacement {
+                stage_id,
+                placement_id: placement.placement_id.clone(),
+            }],
+        )
+        .unwrap();
+    let active = bind_active_play(&plan.plan_id, &placement.host_id, &placement.boot_id, 1);
+    let show = MaskShow::prepared(
+        &specification,
+        &planned,
+        &presentation,
+        &plan,
+        active,
+        "patchbay/form".into(),
+        "display/0".into(),
+        SignId::from("mask/interaction/prepared"),
+    )
+    .unwrap()
+    .transition(
+        ManifestationLifecycle::Available,
+        SignId::from("mask/interaction/available"),
+    )
+    .unwrap();
+    let interaction = PresentationInteraction::new(
+        &presentation,
+        &show.manifestation,
+        "message/input",
+        "message/send",
+        "patchbay/form",
+        UTF8_TEXT_VALUE_KIND,
+        b"hello",
+        7,
+    )
+    .unwrap();
+    let correlation = show.correlate_interaction(interaction.clone()).unwrap();
+    assert_eq!(correlation.show_id, show.show_id);
+    assert_eq!(correlation.specification_id, specification.specification_id);
+
+    let mut stale = interaction;
+    stale.manifestation_id = "manifestation/another-show".into();
+    assert_eq!(
+        show.correlate_interaction(stale),
+        Err(MaskShowError::StaleInteraction)
     );
 }
