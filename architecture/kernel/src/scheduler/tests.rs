@@ -287,6 +287,91 @@ fn abnormal_track_transduces_semantic_terminal_without_manufacturing_back_failur
     assert!(!scheduler.signs().contains_kind(KernelEventKind::BackFailed));
 }
 
+#[test]
+fn abnormal_terminal_fanout_is_atomic_across_every_explicit_track() {
+    let mut routes = FixedRoutes::<3, 2>::new(PORTS as u16);
+    routes
+        .install(
+            NodeId(0),
+            PortId(0),
+            RouteRange { start: 0, len: 2 },
+            &[
+                RouteTarget {
+                    cord: CordId(0),
+                    sink: crate::CordEndpoint::local(NodeId(1), PortId(0)),
+                },
+                RouteTarget {
+                    cord: CordId(1),
+                    sink: crate::CordEndpoint::local(NodeId(2), PortId(0)),
+                },
+            ],
+        )
+        .unwrap();
+    routes.seal().unwrap();
+    let signs =
+        FixedSignLog::<24>::new((24 * core::mem::size_of::<crate::KernelEvent>()) as u32).unwrap();
+    let mut scheduler = FixedScheduler::<_, _, _, 3, 2, PORTS, 2, 3, 2>::new(
+        [
+            node([None, None]),
+            node([Some(CordId(0)), None]),
+            node([Some(CordId(1)), None]),
+        ],
+        [
+            CordSpec::local(
+                CordId(0),
+                (NodeId(0), PortId(0)),
+                (NodeId(1), PortId(0)),
+                CordCapacity {
+                    slot_start: 0,
+                    item_capacity: 1,
+                    byte_capacity: 4,
+                    pressure_policy: Default::default(),
+                },
+            )
+            .with_track(AssignedConnectionTrack::AbnormalTerminal),
+            CordSpec::local(
+                CordId(1),
+                (NodeId(0), PortId(0)),
+                (NodeId(2), PortId(0)),
+                CordCapacity {
+                    slot_start: 1,
+                    item_capacity: 1,
+                    byte_capacity: 4,
+                    pressure_policy: Default::default(),
+                },
+            )
+            .with_track(AssignedConnectionTrack::AbnormalTerminal),
+        ],
+        routes,
+        [
+            Driver::SemanticAbnormal,
+            Driver::TerminalSink {
+                observed_bytes: None,
+            },
+            Driver::TerminalSink {
+                observed_bytes: None,
+            },
+        ],
+        FixedValueStore::<3, 8>::new(8).unwrap(),
+        signs,
+    )
+    .unwrap();
+
+    for _ in 0..8 {
+        if scheduler.step().unwrap() == SchedulerStatus::Drained {
+            break;
+        }
+    }
+    assert_eq!(scheduler.step().unwrap(), SchedulerStatus::Drained);
+    for driver in &scheduler.drivers()[1..] {
+        let Driver::TerminalSink { observed_bytes } = driver else {
+            panic!("terminal sink")
+        };
+        assert_eq!(*observed_bytes, Some(4));
+    }
+    assert_eq!(scheduler.values().used_items(), 0);
+}
+
 #[derive(Clone, Copy, Debug)]
 enum HostDriver {
     Source {
