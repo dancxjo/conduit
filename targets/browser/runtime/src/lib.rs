@@ -70,6 +70,7 @@ mod tour_navigation;
 mod tour_workspace;
 mod webchat;
 mod webrtc_session;
+mod workspace_mask;
 #[cfg(all(feature = "creche-surface", feature = "form-runner"))]
 mod workspace_runtime;
 

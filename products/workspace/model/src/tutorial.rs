@@ -59,6 +59,31 @@ pub fn generative_request(
     presentation_revision: u64,
     playback: TutorialPlayback,
 ) -> Result<GenerativePresenterRequest, TutorialPresenterRefusal> {
+    let face = tutorial_face(body, presentation_revision, playback)?;
+    GenerativePresenterRequest::from_face(
+        request_identity,
+        orifina_completion_presenter_policy(),
+        &face,
+        None,
+        GenerativePresenterBounds::reviewed_default(),
+    )
+    .map_err(TutorialPresenterRefusal::InvalidRequest)
+}
+
+/// Project the canonical Face grammar consumed by every tutorial Mask.
+pub fn face_presentation(
+    body: &WorkspaceBody,
+    presentation_revision: u64,
+    playback: TutorialPlayback,
+) -> Result<Presentation, TutorialPresenterRefusal> {
+    Ok(tutorial_face(body, presentation_revision, playback)?.presentation)
+}
+
+fn tutorial_face(
+    body: &WorkspaceBody,
+    presentation_revision: u64,
+    playback: TutorialPlayback,
+) -> Result<Face, TutorialPresenterRefusal> {
     let purpose = purpose_state(body).map_err(TutorialPresenterRefusal::InvalidPurpose)?;
     let readiness =
         derive_fulfillment_readiness(&purpose).map_err(TutorialPresenterRefusal::InvalidPurpose)?;
@@ -154,14 +179,7 @@ pub fn generative_request(
         face.presentation.disclosures,
     )
     .map_err(TutorialPresenterRefusal::InvalidActionPresentation)?;
-    GenerativePresenterRequest::from_face(
-        request_identity,
-        orifina_completion_presenter_policy(),
-        &face,
-        None,
-        GenerativePresenterBounds::reviewed_default(),
-    )
-    .map_err(TutorialPresenterRefusal::InvalidRequest)
+    Ok(face)
 }
 
 pub fn presentation(
