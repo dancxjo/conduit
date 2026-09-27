@@ -9,7 +9,7 @@ use conduit_core::PlanFragment;
 #[cfg(test)]
 use std::io::Write;
 
-pub(crate) struct RunLifecycle<'a, 'indicator> {
+pub(crate) struct RunLifecycle<'a, 'indicator, 'external> {
     pub control: &'a super::RunControl,
     pub retained: Option<&'a mut Vec<crate::state_value::RetainedTypedState>>,
     pub indicator: Option<&'indicator mut dyn crate::hosted_indicator::HostedIndicatorAdapter>,
@@ -19,6 +19,7 @@ pub(crate) struct RunLifecycle<'a, 'indicator> {
     pub microphone: Option<&'a mut crate::hosted_microphone::AlsaMicrophoneAdapter>,
     pub wav_artifact: Option<&'a crate::hosted_wav_artifact::WavArtifactSelection>,
     pub vision: Option<&'a mut crate::hosted_vision::FiniteHostedVisionBase>,
+    pub external_fore: Option<crate::host_execution::ExternalForeRun<'external>>,
 }
 
 pub(crate) struct InstalledRunHost<'a, 'keyboard, 'model> {
@@ -62,6 +63,7 @@ pub(crate) fn run_fragment<W: Write, T: TimerAdapter>(
             microphone: None,
             wav_artifact: None,
             vision: None,
+            external_fore: None,
         },
     )
     .map(|run| run.report)
