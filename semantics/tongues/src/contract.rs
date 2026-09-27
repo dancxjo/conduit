@@ -4,8 +4,8 @@ use conduit_core::{
     PortDescriptor, PortDirection, PortTemporal,
 };
 use conduit_form::{
-    KindConfigurationField, KindConfigurationRule, KindProjection, KindSignature, ProfileCatalog,
-    StartupCatalog, StartupParameterSignature,
+    KindConfigurationField, KindConfigurationRule, KindSignature, ProfileCatalog, StartupCatalog,
+    StartupParameterSignature,
 };
 use serde::{Deserialize, Serialize};
 
@@ -154,13 +154,7 @@ pub fn install_speech_commit_catalog(
         startup_parameters: vec![],
     })?;
     profile
-        .insert(KindProjection {
-            kind_id: contract.kind_id,
-            kind_contract_revision: contract.kind_contract_revision,
-            inputs: contract.inputs,
-            outputs: contract.outputs,
-            configuration: vec![],
-        })
+        .insert_kind(contract.into_semantic_capability_contract())
         .map_err(|error| error.to_string())
 }
 

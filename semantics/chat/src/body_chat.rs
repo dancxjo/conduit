@@ -444,14 +444,14 @@ pub fn install_body_chat_catalog(
         startup_parameters: vec![],
     })?;
     profile
-        .insert(body_chat_prompt_definition())
+        .insert_kind(body_chat_prompt_semantic_contract())
         .map_err(|error| error.to_string())?;
     startup.insert(KindSignature {
         kind: BODY_CONVERSATION_CONTEXT_KIND.into(),
         startup_parameters: vec![],
     })?;
     profile
-        .insert(body_conversation_context_definition())
+        .insert_kind(body_conversation_context_semantic_contract())
         .map_err(|error| error.to_string())?;
     startup.insert(KindSignature {
         kind: BODY_CHAT_FORM_KIND.into(),
