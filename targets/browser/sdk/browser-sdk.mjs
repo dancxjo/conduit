@@ -97,6 +97,7 @@ export class BrowserHost {
       root: this.#state.root,
       membership: this.#state.membership,
       createPlay: (options) => new BrowserPlay(BROWSER_HOST_KEY, options),
+      acquireBodyHost: acquireBrowserBodyHost,
       name,
       forms,
       sequence: () => {
