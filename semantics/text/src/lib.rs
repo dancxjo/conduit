@@ -30,8 +30,8 @@ pub use morse_values_into::*;
 use alloc::{string::String, vec, vec::Vec};
 use conduit_core::{
     kind_id, port_id, CapabilityLimits, ConfigurationValue, FrontStartupParameter, Kind,
-    KindConfigurationField, KindConfigurationRule, KindIdentity, PortDescriptor, PortDirection,
-    PortTemporal,
+    KindConfigurationField, KindConfigurationRule, KindIdentity, KindSemanticLaw,
+    KindTerminalBehavior, PortDescriptor, PortDirection, PortTemporal,
 };
 
 pub const TEXT_VALUE_KIND: &str = "value/text";
@@ -67,6 +67,13 @@ pub struct TextKindContract {
 
 impl TextKindContract {
     pub fn into_semantic_contract(self) -> Kind {
+        let terminal_behavior = match self.kind_id.as_str() {
+            TEXT_LITERAL_KIND => KindTerminalBehavior::EmitsOnce,
+            TEXT_UPPER_KIND | TEXT_JOIN_KIND | ADDRESS_DETECT_KIND => {
+                KindTerminalBehavior::MirrorsInputTerminal
+            }
+            _ => unreachable!("text contract kind is closed"),
+        };
         let shorthand = match self.kind_id.as_str() {
             TEXT_UPPER_KIND | TEXT_JOIN_KIND => Some((
                 self.inputs[0].port_id.clone(),
@@ -102,7 +109,7 @@ impl TextKindContract {
             inputs: self.inputs,
             outputs: self.outputs,
             configuration,
-            semantic_laws: Default::default(),
+            semantic_laws: vec![KindSemanticLaw::Terminal(terminal_behavior)],
             limits: self.limits,
         }
     }
