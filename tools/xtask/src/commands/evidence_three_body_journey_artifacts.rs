@@ -17,7 +17,7 @@ pub(super) fn require_documentary(
     if recording.track_id != current.track_id
         || recording.body_id != current.body_id
         || recording.journey_id != current.journey_id
-        || recording.steps.len() != current.steps.len()
+        || step_id_sequence(recording)? != step_id_sequence(current)?
     {
         return Err("live documentary has a different journey, Body or step set".into());
     }
@@ -40,7 +40,7 @@ pub(super) fn read_recording(
         || recording.journey_id != current.journey_id
         || recording.body_id != current.body_id
         || !valid_commit(&recording.git_commit)
-        || recording.steps.len() != current.steps.len()
+        || step_id_sequence(&recording)? != step_id_sequence(current)?
     {
         return Err("live documentary has a different journey, Body or proof class".into());
     }
@@ -49,8 +49,12 @@ pub(super) fn read_recording(
     let current_root = sources[position]
         .parent()
         .ok_or("current track lacks parent")?;
-    for (recorded, release) in recording.steps.iter().zip(&current.steps) {
-        if recorded.step_id != release.step_id || recorded.assertion != release.assertion {
+    let release_steps = step_map(current)?;
+    for recorded in &recording.steps {
+        let release = release_steps
+            .get(recorded.step_id.as_str())
+            .ok_or("live documentary step does not match release semantics")?;
+        if recorded.assertion != release.assertion {
             return Err("live documentary step does not match release semantics".into());
         }
         if matches!(
@@ -91,6 +95,34 @@ pub(super) fn read_recording(
         }
     }
     Ok(recording)
+}
+
+fn step_id_sequence(track: &BodyTrack) -> Result<Vec<&str>, String> {
+    let by_id = step_map(track)?;
+    if by_id.len() != track.steps.len() {
+        return Err(format!(
+            "{} has duplicate documentary steps",
+            track.track_id
+        ));
+    }
+    Ok(track
+        .steps
+        .iter()
+        .map(|step| step.step_id.as_str())
+        .collect())
+}
+
+fn step_map(track: &BodyTrack) -> Result<BTreeMap<&str, &TrackStep>, String> {
+    let mut steps = BTreeMap::new();
+    for step in &track.steps {
+        if steps.insert(step.step_id.as_str(), step).is_some() {
+            return Err(format!(
+                "{} has duplicate documentary steps",
+                track.track_id
+            ));
+        }
+    }
+    Ok(steps)
 }
 
 pub(super) fn verify_artifacts(track: &BodyTrack, source: &Path) -> Result<(), String> {

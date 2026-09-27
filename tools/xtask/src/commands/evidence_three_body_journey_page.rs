@@ -1,65 +1,78 @@
 //! Human-facing documentary over verified journey evidence.
-use super::{BodyTrack, ThreeBodyJourneyIndex, TrackStep};
+use super::{JourneyBodyCell, ThreeBodyJourneyIndex, TrackStep};
 use std::fmt::Write;
 
 pub(super) fn render(index: &ThreeBodyJourneyIndex) -> String {
     let mut html = String::from("<!doctype html><html lang=\"en\"><head><meta charset=\"utf-8\"><meta name=\"viewport\" content=\"width=device-width,initial-scale=1\"><meta name=\"color-scheme\" content=\"dark\"><title>One journey. Three bodies. — Conduit</title><style>");
     html.push_str(include_str!("evidence_three_body_journey.css"));
     html.push_str("</style></head><body><nav class=\"topbar\"><a href=\"../../\">Conduit / Journeys</a><a href=\"#by-step\">Explore the journey</a></nav><header><p class=\"eyebrow\">A life in three kinds of machinery</p><h1>One journey.<br><em>Three bodies.</em></h1><p class=\"lede\">A computer boots. A browser opens. A model finds its voice. Watch them wake, do useful work, welcome another host, recover from failure, and come to rest.</p><a class=\"button\" href=\"#by-step\">Begin the journey ↓</a></header><main id=\"by-step\"><p class=\"eyebrow\">The same moment, three ways</p><h2>Watch the meaning carry through.</h2><p>Compare the screens and words below. Select a body to follow its life from beginning to end.</p><div class=\"view-controls\" role=\"group\" aria-label=\"Journey view\"><button data-view=\"all\" aria-pressed=\"true\">Compare all three</button>");
-    for track in &index.tracks {
+    let bodies = index
+        .actions
+        .first()
+        .map(|action| action.bodies.as_slice())
+        .unwrap_or_default();
+    for body in bodies {
         let _ = write!(
             html,
             "<button data-view=\"{}\" aria-pressed=\"false\">{}</button>",
-            escape(&track.track_id),
-            label(track)
+            escape(&body.track_id),
+            label(body)
         );
     }
     html.push_str("</div><nav class=\"chapter-nav\" aria-label=\"Journey moments\">");
-    for (i, step) in index.semantic_steps.iter().enumerate() {
+    for (i, action) in index.actions.iter().enumerate() {
         let _ = write!(
             html,
             "<a href=\"#moment-{i}\">{:02} {}</a>",
             i + 1,
-            escape(&step.title)
+            escape(&action.action.title)
         );
     }
     html.push_str("</nav>");
-    for (i, contract) in index.semantic_steps.iter().enumerate() {
+    for (i, action) in index.actions.iter().enumerate() {
+        let contract = &action.action;
         let _ = write!(html, "<article class=\"chapter\" id=\"moment-{i}\"><div class=\"chapter-heading\"><span class=\"number\">{:02}</span><div><h2>{}</h2><p>{}</p></div></div><div class=\"comparison\">", i+1, escape(&contract.title), escape(&contract.what_happened));
-        for track in &index.tracks {
-            let observed = &track.steps[i];
+        for body in &action.bodies {
+            let observed = &body.observed;
             let _ = write!(
                 html,
                 "<section class=\"body-panel\" data-body=\"{}\"><h3>{}</h3>",
-                escape(&track.track_id),
-                label(track)
+                escape(&body.track_id),
+                label(body)
             );
-            if let Some(recording) = index
-                .recorded_generative
-                .as_ref()
-                .filter(|_| track.track_id == "hosted-generative")
-            {
+            if let Some(recording) = &body.recorded_generative {
                 html.push_str(
                     "<p class=\"proof-mode\">Recorded live Gemma · voiced with Piper</p>",
                 );
-                render_media(
-                    &mut html,
-                    recording,
-                    &recording.steps[i],
-                    "live-conformance",
-                );
+                render_media(&mut html, body, &recording.observed, "live-conformance");
                 render_evidence(
                     &mut html,
-                    recording,
-                    &recording.steps[i],
+                    body,
+                    &recording.observed,
                     "live-conformance",
+                    &recording.git_commit,
+                    &recording.presenter_id,
                 );
                 html.push_str("<details><summary>Current release contract check</summary>");
-                render_evidence(&mut html, track, observed, &track.track_id);
+                render_evidence(
+                    &mut html,
+                    body,
+                    observed,
+                    &body.track_id,
+                    &index.git_commit,
+                    &body.presenter_id,
+                );
                 html.push_str("</details>");
             } else {
-                render_media(&mut html, track, observed, &track.track_id);
-                render_evidence(&mut html, track, observed, &track.track_id);
+                render_media(&mut html, body, observed, &body.track_id);
+                render_evidence(
+                    &mut html,
+                    body,
+                    observed,
+                    &body.track_id,
+                    &index.git_commit,
+                    &body.presenter_id,
+                );
             }
             html.push_str("<details><summary>What this does—and does not—prove</summary><ul>");
             for claim in &contract.non_claims {
@@ -77,21 +90,21 @@ pub(super) fn render(index: &ThreeBodyJourneyIndex) -> String {
     html
 }
 
-fn label(track: &BodyTrack) -> &'static str {
-    match track.track_id.as_str() {
+fn label(body: &JourneyBodyCell) -> &'static str {
+    match body.track_id.as_str() {
         "native-graphical" => "ConduitOS",
         "browser-graphical" => "Browser",
         _ => "Conversational",
     }
 }
 
-fn render_media(html: &mut String, track: &BodyTrack, observed: &TrackStep, root: &str) {
-    if track.embodiment.contains("fixture") {
+fn render_media(html: &mut String, body: &JourneyBodyCell, observed: &TrackStep, root: &str) {
+    if body.embodiment.contains("fixture") {
         html.push_str(
             "<p class=\"proof-mode\">Release contract recording · deterministic model fixture</p>",
         );
     }
-    if track.track_id == "hosted-generative"
+    if body.track_id == "hosted-generative"
         && matches!(
             observed.step_id.as_str(),
             "body.absent" | "bootstrap.started"
@@ -136,13 +149,20 @@ fn render_media(html: &mut String, track: &BodyTrack, observed: &TrackStep, root
     }
 }
 
-fn render_evidence(html: &mut String, track: &BodyTrack, observed: &TrackStep, root: &str) {
+fn render_evidence(
+    html: &mut String,
+    _body: &JourneyBodyCell,
+    observed: &TrackStep,
+    root: &str,
+    git_commit: &str,
+    presenter_id: &str,
+) {
     html.push_str("<details class=\"evidence\"><summary>Evidence</summary><ul>");
     let _ = write!(
         html,
         "<li>Recorded source: {} · Presenter: {}</li>",
-        escape(&track.git_commit),
-        escape(&track.presenter_id)
+        escape(git_commit),
+        escape(presenter_id)
     );
     for evidence in &observed.evidence {
         let _ = write!(

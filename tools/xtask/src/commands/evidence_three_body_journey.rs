@@ -7,7 +7,7 @@ use std::path::{Path, PathBuf};
 
 const CONTRACT_SCHEMA: &str = "conduit.evidence/semantic-journey-contract@2";
 const TRACK_SCHEMA: &str = "conduit.evidence/body-journey-track@2";
-const INDEX_SCHEMA: &str = "conduit.evidence/three-body-journey-index@3";
+const INDEX_SCHEMA: &str = "conduit.evidence/three-body-journey-index@4";
 const MAXIMUM_DOCUMENT_BYTES: usize = 1024 * 1024;
 const MAXIMUM_MEDIA_BYTES: u64 = 64 * 1024 * 1024;
 const MAXIMUM_STEPS: usize = 32;
@@ -189,7 +189,7 @@ struct BodyTrack {
     steps: Vec<TrackStep>,
 }
 
-#[derive(Clone, Debug, Deserialize, Serialize)]
+#[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
 #[serde(deny_unknown_fields)]
 struct HostIdentity {
     host_id: String,
@@ -238,9 +238,38 @@ struct ThreeBodyJourneyIndex {
     disposition: String,
     journey_id: String,
     git_commit: String,
-    semantic_steps: Vec<ContractStep>,
-    tracks: Vec<BodyTrack>,
-    recorded_generative: Option<BodyTrack>,
+    actions: Vec<JourneyAction>,
+}
+
+#[derive(Debug, Deserialize, Serialize)]
+#[serde(deny_unknown_fields)]
+struct JourneyAction {
+    action: ContractStep,
+    bodies: Vec<JourneyBodyCell>,
+}
+
+#[derive(Debug, Deserialize, Serialize)]
+#[serde(deny_unknown_fields)]
+struct JourneyBodyCell {
+    track_id: String,
+    embodiment: String,
+    body_id: String,
+    presenter_id: String,
+    hosts: Vec<HostIdentity>,
+    line_ids: Vec<String>,
+    distributed_plan_ids: Vec<String>,
+    observed: TrackStep,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    recorded_generative: Option<RecordedGenerativeObservation>,
+}
+
+#[derive(Debug, Deserialize, Serialize)]
+#[serde(deny_unknown_fields)]
+struct RecordedGenerativeObservation {
+    git_commit: String,
+    embodiment: String,
+    presenter_id: String,
+    observed: TrackStep,
 }
 
 pub(super) fn run(
@@ -264,15 +293,7 @@ pub(super) fn run(
         .map(|source| artifacts::read_recording(source, &tracks, &track_paths))
         .transpose()?;
     artifacts::require_documentary(&tracks, recorded_generative.as_ref())?;
-    let index = ThreeBodyJourneyIndex {
-        schema: INDEX_SCHEMA.into(),
-        disposition: "complete".into(),
-        journey_id: contract.journey_id,
-        git_commit: contract.git_commit,
-        semantic_steps: contract.steps,
-        tracks,
-        recorded_generative,
-    };
+    let index = assemble_index(contract, tracks, recorded_generative)?;
     publish(&index, &output)?;
     println!("THREE-BODY JOURNEY INDEX COMPLETE: {}", output.display());
     Ok(())
@@ -295,16 +316,15 @@ pub(super) fn stage(
         return Err("three-Body Journey index is malformed or stale".into());
     }
     let contract = contract::canonical(&expected_git_commit);
-    artifacts::require_documentary(&index.tracks, index.recorded_generative.as_ref())?;
-    validate(&contract, &index.tracks, &expected_git_commit)?;
-    if index.journey_id != contract.journey_id || index.semantic_steps.len() != contract.steps.len()
-    {
-        return Err("three-Body Journey index diverges from the canonical contract".into());
-    }
-    for track in &index.tracks {
+    let (tracks, recorded_generative) = validate_index(&index, &contract)?;
+    artifacts::require_documentary(&tracks, recorded_generative.as_ref())?;
+    validate(&contract, &tracks, &expected_git_commit)?;
+    for track in &tracks {
         let track_path = publication_root.join(&track.track_id).join("track.json");
         let retained: BodyTrack = read_bounded_json(&track_path)?;
-        if retained.track_id != track.track_id || retained.body_id != track.body_id {
+        if serde_json::to_value(&retained).map_err(|error| error.to_string())?
+            != serde_json::to_value(track).map_err(|error| error.to_string())?
+        {
             return Err(format!(
                 "retained track '{}' diverges from its index",
                 track.track_id
@@ -312,15 +332,14 @@ pub(super) fn stage(
         }
         verify_artifacts(&retained, &track_path)?;
     }
-    if let Some(recording) = &index.recorded_generative {
-        let sources: Vec<_> = index
-            .tracks
+    if let Some(recording) = &recorded_generative {
+        let sources: Vec<_> = tracks
             .iter()
             .map(|track| publication_root.join(&track.track_id).join("track.json"))
             .collect();
         let retained = artifacts::read_recording(
             &publication_root.join("live-conformance/track.json"),
-            &index.tracks,
+            &tracks,
             &sources,
         )?;
         if serde_json::to_value(&retained).map_err(|e| e.to_string())?
@@ -386,6 +405,203 @@ pub(super) fn stage(
         .map_err(|error| format!("write journeys gallery entrance: {error}"))?;
     println!("STAGED three-Body Journey for {expected_git_commit}");
     Ok(())
+}
+
+fn assemble_index(
+    contract: JourneyContract,
+    tracks: Vec<BodyTrack>,
+    recorded_generative: Option<BodyTrack>,
+) -> Result<ThreeBodyJourneyIndex, String> {
+    let track_steps = tracks
+        .iter()
+        .map(|track| ordered_steps(track, &contract.steps))
+        .collect::<Result<Vec<_>, _>>()?;
+    let recorded_steps = recorded_generative
+        .as_ref()
+        .map(|track| ordered_steps(track, &contract.steps))
+        .transpose()?;
+    let actions = contract
+        .steps
+        .iter()
+        .map(|action| {
+            let bodies = tracks
+                .iter()
+                .zip(&track_steps)
+                .map(|(track, steps)| JourneyBodyCell {
+                    track_id: track.track_id.clone(),
+                    embodiment: track.embodiment.clone(),
+                    body_id: track.body_id.clone(),
+                    presenter_id: track.presenter_id.clone(),
+                    hosts: track.hosts.clone(),
+                    line_ids: track.line_ids.clone(),
+                    distributed_plan_ids: track.distributed_plan_ids.clone(),
+                    observed: steps[action.step_id.as_str()].clone(),
+                    recorded_generative: recorded_generative.as_ref().and_then(|recording| {
+                        (track.track_id == "hosted-generative").then(|| {
+                            RecordedGenerativeObservation {
+                                git_commit: recording.git_commit.clone(),
+                                embodiment: recording.embodiment.clone(),
+                                presenter_id: recording.presenter_id.clone(),
+                                observed: recorded_steps.as_ref().expect("recording map exists")
+                                    [action.step_id.as_str()]
+                                .clone(),
+                            }
+                        })
+                    }),
+                })
+                .collect();
+            JourneyAction {
+                action: action.clone(),
+                bodies,
+            }
+        })
+        .collect();
+    Ok(ThreeBodyJourneyIndex {
+        schema: INDEX_SCHEMA.into(),
+        disposition: "complete".into(),
+        journey_id: contract.journey_id,
+        git_commit: contract.git_commit,
+        actions,
+    })
+}
+
+fn ordered_steps<'a>(
+    track: &'a BodyTrack,
+    actions: &[ContractStep],
+) -> Result<BTreeMap<&'a str, &'a TrackStep>, String> {
+    let mut by_id = BTreeMap::new();
+    for step in &track.steps {
+        if by_id.insert(step.step_id.as_str(), step).is_some() {
+            return Err(format!(
+                "{} has duplicate step {}",
+                track.track_id, step.step_id
+            ));
+        }
+    }
+    let expected = actions
+        .iter()
+        .map(|step| step.step_id.as_str())
+        .collect::<Vec<_>>();
+    let observed = track
+        .steps
+        .iter()
+        .map(|step| step.step_id.as_str())
+        .collect::<Vec<_>>();
+    if observed != expected || by_id.len() != actions.len() {
+        return Err(format!(
+            "{} has a missing, extra, or shuffled action",
+            track.track_id
+        ));
+    }
+    Ok(by_id)
+}
+
+fn validate_index(
+    index: &ThreeBodyJourneyIndex,
+    contract: &JourneyContract,
+) -> Result<(Vec<BodyTrack>, Option<BodyTrack>), String> {
+    if index.journey_id != contract.journey_id || index.actions.len() != contract.steps.len() {
+        return Err("three-Body Journey index diverges from the canonical contract".into());
+    }
+    for (position, action) in index.actions.iter().enumerate() {
+        let body_order = action
+            .bodies
+            .iter()
+            .map(|body| body.track_id.as_str())
+            .collect::<Vec<_>>();
+        let expected_body_order = index.actions[0]
+            .bodies
+            .iter()
+            .map(|body| body.track_id.as_str())
+            .collect::<Vec<_>>();
+        if action.action.step_id != contract.steps[position].step_id
+            || serde_json::to_value(&action.action).map_err(|e| e.to_string())?
+                != serde_json::to_value(&contract.steps[position]).map_err(|e| e.to_string())?
+            || action.bodies.len() != REQUIRED_TRACKS
+            || body_order != expected_body_order
+        {
+            return Err("three-Body Journey action is malformed or out of order".into());
+        }
+    }
+    let first = index
+        .actions
+        .first()
+        .ok_or("three-Body Journey index has no actions")?;
+    let mut tracks = Vec::with_capacity(REQUIRED_TRACKS);
+    let mut recording = None;
+    for basis in &first.bodies {
+        let mut steps = Vec::with_capacity(index.actions.len());
+        let mut recorded_steps = Vec::new();
+        for action in &index.actions {
+            let cell = action
+                .bodies
+                .iter()
+                .find(|cell| cell.track_id == basis.track_id)
+                .ok_or("three-Body Journey action omitted a Body cell")?;
+            if cell.embodiment != basis.embodiment
+                || cell.body_id != basis.body_id
+                || cell.presenter_id != basis.presenter_id
+                || cell.hosts != basis.hosts
+                || cell.line_ids != basis.line_ids
+                || cell.distributed_plan_ids != basis.distributed_plan_ids
+                || cell.observed.step_id != action.action.step_id
+            {
+                return Err("three-Body Journey Body cell changed identity or action".into());
+            }
+            steps.push(cell.observed.clone());
+            if let Some(recorded) = &cell.recorded_generative {
+                let basis_recorded = basis
+                    .recorded_generative
+                    .as_ref()
+                    .ok_or("recorded generative observations are incomplete")?;
+                if cell.track_id != "hosted-generative"
+                    || recorded.git_commit != basis_recorded.git_commit
+                    || recorded.embodiment != basis_recorded.embodiment
+                    || recorded.presenter_id != basis_recorded.presenter_id
+                    || recorded.observed.step_id != action.action.step_id
+                {
+                    return Err("recorded generative observation changed identity or action".into());
+                }
+                recorded_steps.push(recorded.observed.clone());
+            }
+        }
+        tracks.push(BodyTrack {
+            schema: TRACK_SCHEMA.into(),
+            journey_id: index.journey_id.clone(),
+            git_commit: index.git_commit.clone(),
+            track_id: basis.track_id.clone(),
+            embodiment: basis.embodiment.clone(),
+            body_id: basis.body_id.clone(),
+            presenter_id: basis.presenter_id.clone(),
+            hosts: basis.hosts.clone(),
+            line_ids: basis.line_ids.clone(),
+            distributed_plan_ids: basis.distributed_plan_ids.clone(),
+            steps,
+        });
+        if !recorded_steps.is_empty() {
+            let recorded = basis
+                .recorded_generative
+                .as_ref()
+                .ok_or("recorded generative observations are incomplete")?;
+            if recorded_steps.len() != index.actions.len() || recording.is_some() {
+                return Err("recorded generative observations are incomplete or duplicated".into());
+            }
+            recording = Some(BodyTrack {
+                schema: TRACK_SCHEMA.into(),
+                journey_id: index.journey_id.clone(),
+                git_commit: recorded.git_commit.clone(),
+                track_id: basis.track_id.clone(),
+                embodiment: recorded.embodiment.clone(),
+                body_id: basis.body_id.clone(),
+                presenter_id: recorded.presenter_id.clone(),
+                hosts: basis.hosts.clone(),
+                line_ids: basis.line_ids.clone(),
+                distributed_plan_ids: basis.distributed_plan_ids.clone(),
+                steps: recorded_steps,
+            });
+        }
+    }
+    Ok((tracks, recording))
 }
 
 fn copy_publication(source: &Path, destination: &Path) -> Result<(), String> {
@@ -527,7 +743,9 @@ fn validate(
         {
             has_distributed_body = true;
         }
-        for (required, observed) in contract.steps.iter().zip(&track.steps) {
+        let steps = ordered_steps(track, &contract.steps)?;
+        for required in &contract.steps {
+            let observed = steps[required.step_id.as_str()];
             validate_step(track, required, observed)?;
             claim_identity(
                 &mut plans,
