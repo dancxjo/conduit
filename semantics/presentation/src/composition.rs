@@ -1,4 +1,8 @@
-//! Fixed-capacity renderer-neutral presentation obligations.
+//! Fixed-capacity realization operations for graphical presenter pipelines.
+//!
+//! This older icon/frame/badge carrier is downstream Mask machinery. It is
+//! deliberately **not** the universal grammar's semantic composition, which
+//! is represented by [`crate::PresentationCompositionRelation`].
 
 pub const PRESENTATION_COMPOSITION_KIND: &str = "presentation/composition@1";
 pub const MAX_COMPOSITION_ITEMS: usize = 8;
@@ -217,6 +221,8 @@ const EMPTY_ITEM: CompositionItem = CompositionItem {
 };
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
+/// A bounded realization program, retained for existing presenter pipelines.
+/// It does not express rhetorical grouping, contrast, emphasis, or co-presence.
 pub struct PresentationComposition {
     count: u8,
     items: [CompositionItem; MAX_COMPOSITION_ITEMS],

@@ -32,6 +32,7 @@ impl ProjectionContentId {
 pub enum ProjectionItem {
     Subject(String),
     Relationship(u16),
+    Composition(u16),
     Property(u16),
     Text(u16),
     Action(String),
@@ -251,6 +252,7 @@ fn item_exists(presentation: &Presentation, item: &ProjectionItem) -> bool {
         ProjectionItem::Relationship(index) => {
             usize::from(*index) < presentation.relationships.len()
         }
+        ProjectionItem::Composition(index) => usize::from(*index) < presentation.composition.len(),
         ProjectionItem::Property(index) => usize::from(*index) < presentation.properties.len(),
         ProjectionItem::Text(index) => usize::from(*index) < presentation.text.len(),
         ProjectionItem::Action(identity) => presentation
@@ -285,6 +287,7 @@ fn hash_item(digest: &mut Sha256, item: &ProjectionItem) {
             hash_string(digest, identity);
         }
         ProjectionItem::Relationship(index) => hash_ordinal(digest, 1, *index),
+        ProjectionItem::Composition(index) => hash_ordinal(digest, 5, *index),
         ProjectionItem::Property(index) => hash_ordinal(digest, 2, *index),
         ProjectionItem::Text(index) => hash_ordinal(digest, 3, *index),
         ProjectionItem::Action(identity) => {

@@ -6,9 +6,11 @@ use common::{checked_renderer_form, host, plan_for, presentation, WAYLAND_RESOUR
 use conduit_core::{bind_active_play, SignId};
 use conduit_presentation::{
     Manifestation, ManifestationLifecycle, Presentation, PresentationAction,
-    PresentationActionAvailability, PresentationDisclosureLevel, PresentationInput,
-    PresentationInteraction, PresentationInteractionDisposition, PresentationInteractionFailure,
-    PresentationInteractionLedger, PresentationInteractionRefusal, UTF8_TEXT_VALUE_KIND,
+    PresentationActionAvailability, PresentationContextBasis, PresentationDisclosureLevel,
+    PresentationInput, PresentationInteraction, PresentationInteractionContext,
+    PresentationInteractionDisposition, PresentationInteractionFailure,
+    PresentationInteractionLedger, PresentationInteractionRefusal, PresentationRelationshipKind,
+    UTF8_TEXT_VALUE_KIND,
 };
 
 fn available_interaction_basis() -> (Presentation, Manifestation) {
@@ -143,6 +145,39 @@ fn exact_available_interaction_round_trips_and_evidence_omits_plaintext() {
         .unwrap();
     assert_eq!(evidence.value_bytes, 5);
     assert!(!format!("{evidence:?}").contains("hello"));
+}
+
+#[test]
+fn changing_only_interaction_context_stales_action_and_input_correlation() {
+    let (presentation, manifestation) = available_interaction_basis();
+    let interaction = PresentationInteraction::new(
+        &presentation,
+        &manifestation,
+        "message/input",
+        "message/send",
+        "patchbay/form",
+        UTF8_TEXT_VALUE_KIND,
+        b"hello",
+        8,
+    )
+    .unwrap();
+    let other_context = presentation
+        .clone()
+        .with_interaction_context(PresentationInteractionContext {
+            identity: "presentation/context/other-participant".into(),
+            basis: vec![PresentationContextBasis {
+                source: "patchbay/form".into(),
+                relationship: PresentationRelationshipKind::Contains,
+                target: "patchbay/renderer".into(),
+            }],
+        })
+        .unwrap();
+
+    assert_ne!(presentation.identity, other_context.identity);
+    assert_eq!(
+        interaction.validate_against(&other_context, &manifestation),
+        Err(PresentationInteractionRefusal::StalePresentation)
+    );
 }
 
 #[test]
