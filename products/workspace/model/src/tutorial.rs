@@ -104,6 +104,41 @@ fn tutorial_face(
         vec![],
     )
     .map_err(TutorialPresenterRefusal::InvalidFace)?;
+    if let Some(realization) = body.realization() {
+        let mut tutorial_plans = realization.plan.forms.iter().filter(|form| {
+            form.plan
+                .fragments
+                .iter()
+                .flat_map(|fragment| &fragment.placements)
+                .any(|placement| {
+                    placement.kind_id.as_str() == "application/retained"
+                        && placement.configuration.iter().any(|entry| {
+                            entry.key == "application"
+                                && matches!(
+                                    &entry.value,
+                                    conduit_core::ConfigurationValue::Text(value)
+                                        if value == "tutorial"
+                                )
+                        })
+                })
+        });
+        if let Some(tutorial_plan) = tutorial_plans
+            .next()
+            .filter(|_| tutorial_plans.next().is_none())
+        {
+            face.presentation.basis.source_document_id =
+                Some(tutorial_plan.form.source_document_id.clone());
+            face.presentation.basis.checked_form_id =
+                Some(tutorial_plan.form.checked_form_id.clone());
+            face.presentation.basis.expanded_form_id =
+                Some(tutorial_plan.plan.expanded_form_id.clone());
+            face.presentation.basis.plan_id = Some(realization.plan.plan_id.clone());
+            face.presentation.basis.active_play_id = realization
+                .play
+                .as_ref()
+                .map(|play| play.active_play_id.clone());
+        }
+    }
     let body_subject = format!("body/{}", body.evidence().body.body_id.as_str());
     // The conversational Presenter receives the same tutorial meaning as the
     // graphical view, not merely the generic Face's identifier-heavy summary.

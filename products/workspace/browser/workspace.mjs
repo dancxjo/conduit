@@ -148,9 +148,17 @@ export async function startApplication(application) {
       tutorialCore.hidden = resident;
       tutorialResident.hidden = !resident;
       const revision = ++tutorialRevision;
-      const mask = session.presentTutorialMask(revision, playback.state);
+      // A freshly born or explicitly lulled Body has no current Wake/Body
+      // Plan, so it truthfully has no current Mask Show. The semantic
+      // lifecycle surface remains usable to request Wake; once a realization
+      // exists, every resident presentation and interaction crosses the exact
+      // sealed Mask route below.
+      const mask = session.current()?.plan_id
+        ? session.presentTutorialMask(revision, playback.state)
+        : null;
       currentMask = mask;
       const applyMask = () => {
+        if (!mask) return null;
         tutorial.dataset.maskShowId = mask.show_id;
         tutorial.dataset.maskManifestationId = mask.manifestation_id;
         tutorial.dataset.maskPlanId = mask.mask_plan_id;
@@ -171,11 +179,13 @@ export async function startApplication(application) {
       if (resident) { applyMask(); return; }
       tutorialPresentation.present('body-tutorial', session.tutorialView(revision, playback.state), { onEvent(event) {
         tutorialPresentation.nextEvent('body-tutorial');
-        try {
-          submitMaskInteraction(event);
-        } catch (error) {
-          fail(error);
-          return;
+        if (mask) {
+          try {
+            submitMaskInteraction(event);
+          } catch (error) {
+            fail(error);
+            return;
+          }
         }
         handleTutorialEvent(event);
       } });
