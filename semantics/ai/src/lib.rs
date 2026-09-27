@@ -182,6 +182,7 @@ fn text_port(name: &str, direction: PortDirection) -> PortDescriptor {
         value_kind: kind_id(TEXT_VALUE_KIND),
         direction,
         temporal: PortTemporal::Value,
+        abnormal_kind: None,
     }
 }
 

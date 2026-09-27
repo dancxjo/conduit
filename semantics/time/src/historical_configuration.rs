@@ -97,12 +97,14 @@ pub fn historical_timeline_kind_projection() -> conduit_form::KindProjection {
             value_kind: value_kind(crate::HISTORICAL_TIMELINE_COMMAND_INFO_ID),
             direction: PortDirection::Input,
             temporal: PortTemporal::Flow { closes: true },
+            abnormal_kind: None,
         }],
         outputs: alloc::vec![PortDescriptor {
             port_id: port_id("timeline"),
             value_kind: value_kind("history/typed-timeline@1"),
             direction: PortDirection::Output,
             temporal: PortTemporal::Value,
+            abnormal_kind: None,
         }],
         configuration: vec![
             KindConfigurationField {

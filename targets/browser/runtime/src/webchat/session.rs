@@ -260,6 +260,7 @@ impl BrowserChatSession {
             item_capacity: 0,
             byte_capacity: 0,
             pressure_policy: Default::default(),
+            track: Default::default(),
         };
         let mut cord_specs = [inactive_cord; CORDS];
         for (target, cord) in cord_specs.iter_mut().zip(&lowered.cords) {

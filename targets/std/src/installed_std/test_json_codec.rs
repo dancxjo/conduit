@@ -157,6 +157,7 @@ fn offer(
         value_kind: kind_id(conduit_web::JSON_TEXT_INFO_ID),
         direction,
         temporal: PortTemporal::Value,
+        abnormal_kind: None,
     };
     CapabilityOffer {
         startup_parameters: Vec::new(),

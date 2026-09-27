@@ -315,6 +315,7 @@ fn generate_cords(
                 item_capacity: cord.spec.item_capacity,
                 byte_capacity: cord.spec.byte_capacity,
                 pressure_policy: cord.spec.pressure_policy,
+                track: cord.spec.track,
             })
         })
         .collect()

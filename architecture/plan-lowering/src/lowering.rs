@@ -49,6 +49,22 @@ fn lower_pressure_policy(policy: conduit_core::DeliveryPressurePolicy) -> Assign
     }
 }
 
+fn lower_connection_track(
+    track: conduit_core::ConnectionTrack,
+) -> conduit_kernel::scheduler::AssignedConnectionTrack {
+    match track {
+        conduit_core::ConnectionTrack::Payload => {
+            conduit_kernel::scheduler::AssignedConnectionTrack::Payload
+        }
+        conduit_core::ConnectionTrack::NormalClose => {
+            conduit_kernel::scheduler::AssignedConnectionTrack::NormalClose
+        }
+        conduit_core::ConnectionTrack::AbnormalTerminal => {
+            conduit_kernel::scheduler::AssignedConnectionTrack::AbnormalTerminal
+        }
+    }
+}
+
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum LoweringError {
     InvalidFragment,
@@ -747,6 +763,7 @@ pub fn lower_plan_fragment_for_profile(
                         pressure_policy: lower_pressure_policy(connection.pressure_policy),
                     },
                 )
+                .with_track(lower_connection_track(connection.track))
             }
             (Some((source_node, source_port)), None) => {
                 let endpoint = lower_remote_endpoints(
@@ -767,6 +784,7 @@ pub fn lower_plan_fragment_for_profile(
                         pressure_policy: lower_pressure_policy(connection.pressure_policy),
                     },
                 )
+                .with_track(lower_connection_track(connection.track))
             }
             (None, Some((sink_node, sink_port))) => {
                 let endpoint = lower_remote_endpoints(
@@ -787,6 +805,7 @@ pub fn lower_plan_fragment_for_profile(
                         pressure_policy: lower_pressure_policy(connection.pressure_policy),
                     },
                 )
+                .with_track(lower_connection_track(connection.track))
             }
             (None, None) => {
                 return Err(LoweringError::UnknownConnectionEndpoint(

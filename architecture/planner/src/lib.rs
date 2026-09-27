@@ -644,13 +644,14 @@ pub(crate) fn plan_validated_form_with_connection_limits(
         }
         planned_connections.push(PlannedConnection {
             connection_id: ConnectionId::from(hash_string(&format!(
-                "connection:{}:{}:{}:{}:{}:{}:{}",
+                "connection:{}:{}:{}:{}:{}:{}:{}:{}",
                 form.checked_form_id.as_str(),
                 connection.source_gear_id.as_str(),
                 connection.source_port_id.as_str(),
                 connection.sink_gear_id.as_str(),
                 connection.sink_port_id.as_str(),
                 connection.value_kind.as_str(),
+                connection.track.as_str(),
                 connection.temporal.as_str(),
             ))),
             source_placement_id: source_plan.placement_id.clone(),
@@ -658,6 +659,12 @@ pub(crate) fn plan_validated_form_with_connection_limits(
             sink_placement_id: sink_plan.placement_id.clone(),
             sink_port_id: connection.sink_port_id.clone(),
             value_kind: connection.value_kind.clone(),
+            abnormal_kind: source_capability
+                .outputs
+                .iter()
+                .find(|port| port.port_id == connection.source_port_id)
+                .and_then(|port| port.abnormal_kind.clone()),
+            track: connection.track,
             temporal: connection.temporal,
             pressure_policy: if source_plan.kind_id.as_str() == "flow/coalesce-latest" {
                 DeliveryPressurePolicy::CoalesceLatest

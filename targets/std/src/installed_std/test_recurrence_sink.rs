@@ -88,6 +88,7 @@ pub(crate) fn offer() -> CapabilityOffer {
             value_kind,
             direction: PortDirection::Input,
             temporal: PortTemporal::Value,
+            abnormal_kind: None,
         }],
         outputs: vec![],
         host_calls: vec![],

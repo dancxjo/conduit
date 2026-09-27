@@ -38,6 +38,7 @@ pub fn measurement_observation_definition() -> KindProjection {
             value_kind: kind_id(QUANTITY_INFO_ID),
             direction: PortDirection::Input,
             temporal: PortTemporal::Value,
+            abnormal_kind: None,
         }],
         outputs: vec![PortDescriptor {
             port_id: port_id("measurement"),
@@ -48,6 +49,7 @@ pub fn measurement_observation_definition() -> KindProjection {
                 .clone(),
             direction: PortDirection::Output,
             temporal: PortTemporal::Value,
+            abnormal_kind: None,
         }],
         configuration: vec![KindConfigurationField {
             key: "clock-basis".into(),

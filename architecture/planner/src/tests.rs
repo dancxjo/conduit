@@ -978,6 +978,7 @@ fn planning_rejects_same_front_with_different_semantics_and_front_changes() {
             value_kind: kind_id("value/unexpected"),
             direction: conduit_core::PortDirection::Output,
             temporal: conduit_core::PortTemporal::Value,
+            abnormal_kind: None,
         });
     assert!(matches!(
         plan(

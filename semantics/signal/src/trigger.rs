@@ -107,6 +107,7 @@ pub fn trigger_outputs() -> Vec<PortDescriptor> {
         value_kind: trigger_value_kind(),
         direction: PortDirection::Output,
         temporal: conduit_core::PortTemporal::Flow { closes: true },
+        abnormal_kind: None,
     }]
 }
 

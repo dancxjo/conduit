@@ -69,6 +69,7 @@ fn primitive(kind: &str, direction: PortDirection, value_kind: KindId) -> KindPr
         value_kind,
         direction,
         temporal: PortTemporal::Value,
+        abnormal_kind: None,
     };
     KindProjection {
         kind_id: KindId::from(kind),

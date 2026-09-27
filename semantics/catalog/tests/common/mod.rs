@@ -139,6 +139,7 @@ pub fn recurrence_proof_offer() -> CapabilityOffer {
             value_kind: result.profile().unwrap().value_kind().clone(),
             direction: PortDirection::Output,
             temporal: PortTemporal::Value,
+            abnormal_kind: None,
         }],
         host_calls: vec![],
         resource_requirements: vec![],
@@ -273,5 +274,6 @@ fn typed_port(
         value_kind: value_type.profile().unwrap().value_kind().clone(),
         direction,
         temporal: PortTemporal::Value,
+        abnormal_kind: None,
     }
 }

@@ -32,6 +32,7 @@ pub struct SessionMachine {
     transfer: Option<TransferState>,
     next_sequence: u64,
     input_closed: bool,
+    input_abnormal: bool,
     local_failure: Option<SessionFailureState>,
     peer_failure: Option<SessionFailureState>,
     local_terminal: Option<SessionTerminalDisposition>,
@@ -51,6 +52,7 @@ impl SessionMachine {
             transfer: None,
             next_sequence: 0,
             input_closed: false,
+            input_abnormal: false,
             local_failure: None,
             peer_failure: None,
             local_terminal: None,
@@ -92,6 +94,7 @@ impl SessionMachine {
                 }
             },
             input_closed: self.input_closed,
+            input_abnormal: self.input_abnormal,
         }
     }
 
@@ -240,6 +243,35 @@ impl SessionMachine {
                     return Err(WireError::ReorderedFrame);
                 }
                 self.input_closed = true;
+                self.input_abnormal = false;
+                Ok(())
+            }
+            SessionMessage::InputAbnormal {
+                final_sequence,
+                terminal,
+            } => {
+                self.require_active()?;
+                if self.binding.abnormal_kind.is_none() {
+                    return Err(WireError::ValueContractMismatch);
+                }
+                if terminal.len()
+                    > usize::try_from(self.binding.limits.maximum_payload_bytes)
+                        .map_err(|_| WireError::InvalidLimits)?
+                {
+                    return Err(WireError::OversizedPayload);
+                }
+                if self.input_closed && final_sequence == self.next_sequence {
+                    return Err(WireError::DuplicateFrame);
+                }
+                if !self.source_direction(direction)
+                    || self.input_closed
+                    || self.transfer.is_some()
+                    || final_sequence != self.next_sequence
+                {
+                    return Err(WireError::ReorderedFrame);
+                }
+                self.input_closed = true;
+                self.input_abnormal = true;
                 Ok(())
             }
             SessionMessage::Cancelled { code } => {

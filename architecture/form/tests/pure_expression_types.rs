@@ -59,12 +59,14 @@ fn pure_kind(name: &str) -> Kind {
             value_kind: kind_id("value/scalar"),
             direction: PortDirection::Input,
             temporal: PortTemporal::Value,
+            abnormal_kind: None,
         }],
         outputs: vec![PortDescriptor {
             port_id: port_id("result"),
             value_kind: kind_id("value/scalar"),
             direction: PortDirection::Output,
             temporal: PortTemporal::Value,
+            abnormal_kind: None,
         }],
         configuration: Vec::new(),
         semantic_laws: vec![

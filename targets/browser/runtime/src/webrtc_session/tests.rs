@@ -63,6 +63,7 @@ fn dynamic_binding() -> SessionBinding {
                 maximum_frame_bytes: FRAME_CAPACITY as u32,
             },
         },
+        abnormal_kind: None,
     }
 }
 

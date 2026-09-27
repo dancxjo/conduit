@@ -167,6 +167,18 @@ pub fn compute_fragment_id(fragment: &PlanFragment) -> FragmentId {
         push_string(&mut canonical, connection.sink_placement_id.as_str());
         push_string(&mut canonical, connection.sink_port_id.as_str());
         push_string(&mut canonical, connection.value_kind.as_str());
+        match &connection.abnormal_kind {
+            Some(kind) => {
+                canonical.push(1);
+                push_string(&mut canonical, kind.as_str());
+            }
+            None => canonical.push(0),
+        }
+        canonical.push(match connection.track {
+            crate::ConnectionTrack::Payload => 0,
+            crate::ConnectionTrack::NormalClose => 1,
+            crate::ConnectionTrack::AbnormalTerminal => 2,
+        });
         canonical.push(match connection.temporal {
             PortTemporal::Value => 0,
             PortTemporal::Flow { closes: false } => 1,
@@ -418,5 +430,12 @@ fn push_ports(canonical: &mut Vec<u8>, ports: &[PortDescriptor]) {
             PortTemporal::Flow { closes: true } => 2,
             PortTemporal::Current => 3,
         });
+        match &port.abnormal_kind {
+            Some(kind) => {
+                canonical.push(1);
+                push_string(canonical, kind.as_str());
+            }
+            None => canonical.push(0),
+        }
     }
 }

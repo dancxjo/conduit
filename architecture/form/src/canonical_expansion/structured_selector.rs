@@ -33,6 +33,7 @@ pub fn structured_selector_definition(
                 .clone(),
             direction: PortDirection::Input,
             temporal,
+            abnormal_kind: None,
         }],
         outputs: vec![PortDescriptor {
             port_id: conduit_core::port_id("output"),
@@ -44,6 +45,7 @@ pub fn structured_selector_definition(
                 .clone(),
             direction: PortDirection::Output,
             temporal,
+            abnormal_kind: None,
         }],
         configuration: vec![KindConfigurationField {
             key: "selector".to_string(),
@@ -259,7 +261,7 @@ fn expand_expression(
         StageSource::Internal(endpoint) => {
             (endpoint.port.value_kind.clone(), endpoint.port.temporal)
         }
-        StageSource::FaceInput(_, kind, temporal) => (kind.clone(), *temporal),
+        StageSource::FaceInput(_, kind, temporal, _, _) => (kind.clone(), *temporal),
     };
     let right_stage = right.iter().find_map(|stage| match stage {
         PendingStage::Ready(stage) => Some(stage),
@@ -292,7 +294,7 @@ fn expand_expression(
         .and_then(|inputs| inputs.first())
         .map(|sink| match sink {
             StageSink::Internal(endpoint) => endpoint.port.value_kind.clone(),
-            StageSink::FaceOutput(_, kind, _) => kind.clone(),
+            StageSink::FaceOutput(_, kind, _, _, _) => kind.clone(),
         })
         .map(crate::CheckedExpressionType::Semantic);
     let checked = crate::expression_check::check_expression_as(
@@ -388,13 +390,15 @@ fn expand_expression(
         source_span,
     });
     Ok(Stage {
-        input: Some(vec![StageSink::Internal(Endpoint {
-            gear_id: gear_id.clone(),
-            port: input,
-        })]),
-        output: Some(StageSource::Internal(Endpoint {
+        input: Some(vec![StageSink::Internal(TrackedEndpoint::payload(
+            Endpoint {
+                gear_id: gear_id.clone(),
+                port: input,
+            },
+        ))]),
+        output: Some(StageSource::Internal(TrackedEndpoint::payload(Endpoint {
             gear_id,
             port: output,
-        })),
+        }))),
     })
 }

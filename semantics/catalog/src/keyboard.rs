@@ -62,6 +62,7 @@ pub fn keyboard_outputs() -> Vec<PortDescriptor> {
         value_kind: kind_id(KEY_EVENT_INFO_ID),
         direction: PortDirection::Output,
         temporal: PortTemporal::Flow { closes: false },
+        abnormal_kind: None,
     }]
 }
 

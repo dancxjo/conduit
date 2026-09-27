@@ -12,6 +12,9 @@ pub struct SessionCheckpoint {
     pub next_sequence: u64,
     pub transfer: SessionTransferCheckpoint,
     pub input_closed: bool,
+    /// The observed input terminal was semantic abnormal truth rather than
+    /// normal closure. Valid only when `input_closed` is also true.
+    pub input_abnormal: bool,
 }
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
@@ -41,7 +44,11 @@ pub(super) fn reconcile_checkpoints(
     local: SessionCheckpoint,
     peer: SessionCheckpoint,
 ) -> Result<SessionResumeAction, WireError> {
-    if local.input_closed != peer.input_closed {
+    if local.input_closed != peer.input_closed
+        || local.input_abnormal != peer.input_abnormal
+        || local.input_abnormal && !local.input_closed
+        || peer.input_abnormal && !peer.input_closed
+    {
         return Err(WireError::InvalidState);
     }
     if local == peer {
@@ -57,11 +64,13 @@ pub(super) fn reconcile_checkpoints(
                 next_sequence,
                 transfer: SessionTransferCheckpoint::Offered(sequence),
                 input_closed: false,
+                input_abnormal: false,
             },
             SessionCheckpoint {
                 next_sequence: peer_next,
                 transfer: SessionTransferCheckpoint::None,
                 input_closed: false,
+                input_abnormal: false,
             },
         ) if sequence == next_sequence && peer_next == next_sequence => {
             Ok(SessionResumeAction::ReplayOffered(sequence))
@@ -72,11 +81,13 @@ pub(super) fn reconcile_checkpoints(
                 next_sequence,
                 transfer: SessionTransferCheckpoint::None,
                 input_closed: false,
+                input_abnormal: false,
             },
             SessionCheckpoint {
                 next_sequence: peer_next,
                 transfer: SessionTransferCheckpoint::Offered(sequence),
                 input_closed: false,
+                input_abnormal: false,
             },
         ) if sequence == next_sequence && peer_next == next_sequence => {
             Ok(SessionResumeAction::AwaitReplay(sequence))
@@ -87,11 +98,13 @@ pub(super) fn reconcile_checkpoints(
                 next_sequence,
                 transfer: SessionTransferCheckpoint::Accepted(sequence),
                 input_closed: false,
+                input_abnormal: false,
             },
             SessionCheckpoint {
                 next_sequence: peer_next,
                 transfer: SessionTransferCheckpoint::None,
                 input_closed: false,
+                input_abnormal: false,
             },
         ) if sequence == next_sequence && sequence.checked_add(1) == Some(peer_next) => {
             Ok(SessionResumeAction::AdvanceDelivered(sequence))
@@ -102,11 +115,13 @@ pub(super) fn reconcile_checkpoints(
                 next_sequence,
                 transfer: SessionTransferCheckpoint::None,
                 input_closed: false,
+                input_abnormal: false,
             },
             SessionCheckpoint {
                 next_sequence: peer_next,
                 transfer: SessionTransferCheckpoint::Accepted(sequence),
                 input_closed: false,
+                input_abnormal: false,
             },
         ) if sequence.checked_add(1) == Some(next_sequence) && peer_next == sequence => {
             Ok(SessionResumeAction::AdvanceDelivered(sequence))

@@ -32,6 +32,7 @@ pub fn renderer_inputs() -> alloc::vec::Vec<PortDescriptor> {
         value_kind: kind_id(PRESENTATION_VALUE_KIND),
         direction: PortDirection::Input,
         temporal: PortTemporal::Value,
+        abnormal_kind: None,
     }]
 }
 
@@ -41,6 +42,7 @@ pub fn renderer_outputs() -> alloc::vec::Vec<PortDescriptor> {
         value_kind: kind_id(SHOW_VALUE_KIND),
         direction: PortDirection::Output,
         temporal: PortTemporal::Value,
+        abnormal_kind: None,
     }]
 }
 
@@ -51,12 +53,14 @@ pub fn interaction_inputs() -> alloc::vec::Vec<PortDescriptor> {
             value_kind: kind_id(PRESENTATION_VALUE_KIND),
             direction: PortDirection::Input,
             temporal: PortTemporal::Value,
+            abnormal_kind: None,
         },
         PortDescriptor {
             port_id: port_id("show"),
             value_kind: kind_id(SHOW_VALUE_KIND),
             direction: PortDirection::Input,
             temporal: PortTemporal::Value,
+            abnormal_kind: None,
         },
     ]
 }
@@ -67,6 +71,7 @@ pub fn interaction_outputs() -> alloc::vec::Vec<PortDescriptor> {
         value_kind: kind_id(crate::PRESENTATION_INTERACTION_VALUE_KIND),
         direction: PortDirection::Output,
         temporal: PortTemporal::Flow { closes: true },
+        abnormal_kind: None,
     }]
 }
 
@@ -80,6 +85,7 @@ pub fn presentation_tee_outputs() -> alloc::vec::Vec<PortDescriptor> {
         value_kind: kind_id(PRESENTATION_VALUE_KIND),
         direction: PortDirection::Output,
         temporal: PortTemporal::Value,
+        abnormal_kind: None,
     }]
 }
 

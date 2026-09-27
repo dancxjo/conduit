@@ -112,6 +112,7 @@ pub fn replay_source_kind_projection() -> conduit_form::KindProjection {
             .clone(),
         direction,
         temporal: PortTemporal::Value,
+        abnormal_kind: None,
     };
     conduit_form::KindProjection {
         kind_id: kind_id(REPLAY_SOURCE_KIND),

@@ -262,6 +262,7 @@ fn remote_frame(message: SessionMessage<'_>) -> SessionFrame<'_> {
             source_boot_id: "boot/one",
             sink_host_id: "host/second",
             sink_boot_id: "boot/two",
+            abnormal_kind: None,
             value_kind: "text/plain",
             limits: conduit_wire::SessionLimits {
                 maximum_in_flight_items: 1,

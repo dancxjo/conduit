@@ -35,4 +35,8 @@ pub struct PortDescriptor {
     pub direction: PortDirection,
     #[serde(default)]
     pub temporal: PortTemporal,
+    /// Exact bounded semantic info carried by this endpoint's `!` track.
+    /// Absence means the Fore does not promise an abnormal terminal track.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub abnormal_kind: Option<KindId>,
 }

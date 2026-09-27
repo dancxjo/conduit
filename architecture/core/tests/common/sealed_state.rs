@@ -16,6 +16,7 @@ pub fn fragment() -> PlanFragment {
         value_kind: value_kind.clone(),
         direction,
         temporal: PortTemporal::Value,
+        abnormal_kind: None,
     };
     PlanFragment {
         completion_policy: conduit_core::PlanCompletionPolicy::Live,

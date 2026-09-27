@@ -325,6 +325,7 @@ fn scalar_port(name: &str, direction: PortDirection, temporal: PortTemporal) -> 
         value_kind: kind_id(SCALAR_INFO_ID),
         direction,
         temporal,
+        abnormal_kind: None,
     }
 }
 

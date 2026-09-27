@@ -22,6 +22,7 @@ pub fn pulse_presentation_contract() -> StandardKindContract {
             value_kind: kind_id(conduit_time::PULSE_OBSERVATION_VALUE_KIND),
             direction: PortDirection::Input,
             temporal: conduit_core::PortTemporal::Flow { closes: false },
+            abnormal_kind: None,
         }],
         outputs: Vec::new(),
         configuration: Default::default(),

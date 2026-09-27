@@ -27,6 +27,7 @@ pub fn state_value_contract(
         value_kind: profile.value_kind().clone(),
         direction,
         temporal,
+        abnormal_kind: None,
     };
     Ok(StructuredValueContract {
         startup_parameters: vec![FrontStartupParameter {

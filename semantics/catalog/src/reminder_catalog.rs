@@ -112,5 +112,6 @@ fn port(name: &str, direction: PortDirection) -> PortDescriptor {
             .clone(),
         direction,
         temporal: PortTemporal::Value,
+        abnormal_kind: None,
     }
 }

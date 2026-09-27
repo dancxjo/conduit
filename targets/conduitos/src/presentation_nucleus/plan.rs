@@ -129,6 +129,7 @@ fn text_source_offer() -> CapabilityOffer {
             value_kind: kind_id(conduit_semantic_catalog::TEXT_PRESENTATION_VALUE_KIND),
             direction: PortDirection::Output,
             temporal: PortTemporal::Value,
+            abnormal_kind: None,
         }],
         host_calls: Vec::new(),
         resource_requirements: Vec::new(),

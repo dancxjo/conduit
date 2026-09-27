@@ -130,6 +130,7 @@ fn outputs() -> Vec<PortDescriptor> {
         value_kind: kind_id(AUDIO_PCM_INFO_ID),
         direction: PortDirection::Output,
         temporal: PortTemporal::Value,
+        abnormal_kind: None,
     }]
 }
 

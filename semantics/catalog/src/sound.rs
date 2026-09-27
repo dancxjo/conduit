@@ -242,6 +242,7 @@ pub fn audio_capture_push_to_talk_contract() -> StandardKindContract {
             value_kind: kind_id(AUDIO_PCM_INFO_ID),
             direction: PortDirection::Output,
             temporal: PortTemporal::Flow { closes: true },
+            abnormal_kind: None,
         }],
         configuration: vec![u64_configuration(
             AUDIO_CAPTURE_MAXIMUM_TURN_MILLIS_KEY,
@@ -376,6 +377,7 @@ pub(super) fn port(name: &str, info: &str, direction: PortDirection) -> PortDesc
         value_kind: kind_id(info),
         direction,
         temporal: PortTemporal::Value,
+        abnormal_kind: None,
     }
 }
 fn tone_limits() -> CapabilityLimits {

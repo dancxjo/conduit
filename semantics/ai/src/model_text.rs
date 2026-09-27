@@ -209,6 +209,7 @@ fn port_with_temporal(
         value_kind: kind_id(value_kind),
         direction,
         temporal,
+        abnormal_kind: None,
     }
 }
 

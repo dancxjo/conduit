@@ -109,6 +109,7 @@ fn message_name(message: SessionMessage<'_>) -> &'static str {
         SessionMessage::Accepted { .. } => "accepted",
         SessionMessage::Delivered { .. } => "delivered",
         SessionMessage::InputClosed { .. } => "input-closed",
+        SessionMessage::InputAbnormal { .. } => "input-abnormal",
         SessionMessage::Cancelled { .. } => "cancelled",
         SessionMessage::Failed { .. } => "failed",
         SessionMessage::Terminal { .. } => "terminal",

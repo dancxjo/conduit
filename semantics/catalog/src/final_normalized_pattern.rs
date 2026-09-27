@@ -29,12 +29,14 @@ pub fn final_normalized_pattern_definition() -> KindProjection {
             value_kind: value_kind.clone(),
             direction: PortDirection::Input,
             temporal: PortTemporal::Flow { closes: true },
+            abnormal_kind: None,
         }],
         outputs: vec![PortDescriptor {
             port_id: port_id("pattern"),
             value_kind,
             direction: PortDirection::Output,
             temporal: PortTemporal::Value,
+            abnormal_kind: None,
         }],
         configuration: vec![KindConfigurationField {
             key: "maximum-values".into(),

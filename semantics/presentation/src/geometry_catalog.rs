@@ -255,6 +255,7 @@ pub fn geometry_port(
             .clone(),
         direction,
         temporal: PortTemporal::Value,
+        abnormal_kind: None,
     }
 }
 

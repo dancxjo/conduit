@@ -53,6 +53,7 @@ pub fn frame_resource_plan(
             value_kind: kind_id(RESOURCE_REFERENCE_INFO_ID),
             direction,
             temporal: PortTemporal::Value,
+            abnormal_kind: None,
         };
         let kind = format!("frame/{name}");
         let definition = KindProjection {

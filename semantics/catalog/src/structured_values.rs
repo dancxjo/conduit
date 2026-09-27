@@ -79,6 +79,7 @@ fn contract(
             PortDirection::Input
         },
         temporal: PortTemporal::Value,
+        abnormal_kind: None,
     };
     StructuredValueContract {
         startup_parameters: if source {

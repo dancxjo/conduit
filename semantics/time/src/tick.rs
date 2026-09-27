@@ -88,6 +88,7 @@ pub fn tick_outputs() -> Vec<PortDescriptor> {
         value_kind: tick_value_kind(),
         direction: PortDirection::Output,
         temporal: PortTemporal::Flow { closes: true },
+        abnormal_kind: None,
     }]
 }
 
@@ -100,6 +101,7 @@ pub fn time_every_outputs() -> Vec<PortDescriptor> {
         value_kind: tick_value_kind(),
         direction: PortDirection::Output,
         temporal: PortTemporal::Flow { closes: false },
+        abnormal_kind: None,
     }]
 }
 

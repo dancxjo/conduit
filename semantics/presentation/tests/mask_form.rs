@@ -28,6 +28,7 @@ fn port(
         value_kind: kind_id(kind),
         direction,
         temporal,
+        abnormal_kind: None,
     }
 }
 

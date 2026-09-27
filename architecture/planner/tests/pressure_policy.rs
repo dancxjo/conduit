@@ -30,6 +30,7 @@ fn tick_current_sink_offer() -> CapabilityOffer {
                 .clone(),
             direction: PortDirection::Input,
             temporal: PortTemporal::Current,
+            abnormal_kind: None,
         }],
         outputs: vec![],
         host_calls: vec![],

@@ -1,6 +1,7 @@
 use super::{
-    AssignedPressurePolicy, CordCapacity, CordSpec, FixedScheduler, NodeSpec, RemoteIngressOutcome,
-    SchedulerError, SchedulerStatus, StepBack, StepInputBytes, StepIo, StepOutcome,
+    AssignedConnectionTrack, AssignedPressurePolicy, CordCapacity, CordSpec, FixedScheduler,
+    NodeSpec, RemoteIngressOutcome, SchedulerError, SchedulerStatus, StepBack, StepInputBytes,
+    StepIo, StepOutcome,
 };
 use crate::{
     BoundedValueRef, CanonicalValue, CordId, Failure, FailureCode, FixedHostCallBindings,
@@ -34,6 +35,11 @@ enum Driver {
     },
     BlockedSink {
         cancelled: bool,
+    },
+    TerminalSource,
+    SemanticAbnormal,
+    TerminalSink {
+        observed_bytes: Option<usize>,
     },
 }
 
@@ -132,6 +138,28 @@ impl StepBack<PORTS> for Driver {
                 }
             }
             Self::BlockedSink { .. } => StepOutcome::Await,
+            Self::TerminalSource => StepOutcome::Complete,
+            Self::SemanticAbnormal => StepOutcome::Abnormal {
+                port: PortId(0),
+                terminal: CanonicalValue::new(&[1, 0, 0x34, 0x12]).unwrap(),
+            },
+            Self::TerminalSink { observed_bytes } => {
+                if io.input(PortId(0)).is_some() {
+                    *observed_bytes = Some(
+                        _input_bytes
+                            .input(PortId(0))
+                            .expect("terminal value has canonical bytes")
+                            .len(),
+                    );
+                    io.consume(PortId(0)).unwrap();
+                    StepOutcome::Progress
+                } else if io.input_closed(PortId(0)) {
+                    io.consume_closed(PortId(0)).unwrap();
+                    StepOutcome::Complete
+                } else {
+                    StepOutcome::Await
+                }
+            }
         }
     }
 
@@ -142,6 +170,121 @@ impl StepBack<PORTS> for Driver {
             _ => {}
         }
     }
+}
+
+#[test]
+fn normal_close_track_delivers_one_unit_value_and_never_payload() {
+    let mut routes = FixedRoutes::<2, 1>::new(PORTS as u16);
+    routes
+        .install(
+            NodeId(0),
+            PortId(0),
+            RouteRange { start: 0, len: 1 },
+            &[RouteTarget {
+                cord: CordId(0),
+                sink: crate::CordEndpoint::local(NodeId(1), PortId(0)),
+            }],
+        )
+        .unwrap();
+    routes.seal().unwrap();
+    let signs =
+        FixedSignLog::<16>::new((16 * core::mem::size_of::<crate::KernelEvent>()) as u32).unwrap();
+    let mut scheduler = FixedScheduler::<_, _, _, 2, 1, PORTS, 1, 2, 1>::new(
+        [node([None, None]), node([Some(CordId(0)), None])],
+        [CordSpec::local(
+            CordId(0),
+            (NodeId(0), PortId(0)),
+            (NodeId(1), PortId(0)),
+            CordCapacity {
+                slot_start: 0,
+                item_capacity: 1,
+                byte_capacity: 1,
+                pressure_policy: Default::default(),
+            },
+        )
+        .with_track(AssignedConnectionTrack::NormalClose)],
+        routes,
+        [
+            Driver::TerminalSource,
+            Driver::TerminalSink {
+                observed_bytes: None,
+            },
+        ],
+        FixedValueStore::<2, 1>::new(1).unwrap(),
+        signs,
+    )
+    .unwrap();
+
+    for _ in 0..6 {
+        if scheduler.step().unwrap() == SchedulerStatus::Drained {
+            break;
+        }
+    }
+    assert_eq!(scheduler.step().unwrap(), SchedulerStatus::Drained);
+    let Driver::TerminalSink { observed_bytes } = scheduler.drivers()[1] else {
+        panic!("terminal sink")
+    };
+    assert_eq!(observed_bytes, Some(0));
+    assert_eq!(scheduler.values().used_items(), 0);
+}
+
+#[test]
+fn abnormal_track_transduces_semantic_terminal_without_manufacturing_back_failure() {
+    let mut routes = FixedRoutes::<2, 1>::new(PORTS as u16);
+    routes
+        .install(
+            NodeId(0),
+            PortId(0),
+            RouteRange { start: 0, len: 1 },
+            &[RouteTarget {
+                cord: CordId(0),
+                sink: crate::CordEndpoint::local(NodeId(1), PortId(0)),
+            }],
+        )
+        .unwrap();
+    routes.seal().unwrap();
+    let signs =
+        FixedSignLog::<16>::new((16 * core::mem::size_of::<crate::KernelEvent>()) as u32).unwrap();
+    let mut scheduler = FixedScheduler::<_, _, _, 2, 1, PORTS, 1, 2, 1>::new(
+        [node([None, None]), node([Some(CordId(0)), None])],
+        [CordSpec::local(
+            CordId(0),
+            (NodeId(0), PortId(0)),
+            (NodeId(1), PortId(0)),
+            CordCapacity {
+                slot_start: 0,
+                item_capacity: 1,
+                byte_capacity: 4,
+                pressure_policy: Default::default(),
+            },
+        )
+        .with_track(AssignedConnectionTrack::AbnormalTerminal)],
+        routes,
+        [
+            Driver::SemanticAbnormal,
+            Driver::TerminalSink {
+                observed_bytes: None,
+            },
+        ],
+        FixedValueStore::<2, 4>::new(4).unwrap(),
+        signs,
+    )
+    .unwrap();
+
+    for _ in 0..6 {
+        if scheduler.step().unwrap() == SchedulerStatus::Drained {
+            break;
+        }
+    }
+    assert_eq!(scheduler.step().unwrap(), SchedulerStatus::Drained);
+    let Driver::TerminalSink { observed_bytes } = scheduler.drivers()[1] else {
+        panic!("terminal sink")
+    };
+    assert_eq!(observed_bytes, Some(4));
+    assert!(scheduler
+        .signs()
+        .contains_kind(KernelEventKind::SemanticAbnormal));
+    assert!(!scheduler.signs().contains_kind(KernelEventKind::BackFailed));
 }
 
 #[derive(Clone, Copy, Debug)]

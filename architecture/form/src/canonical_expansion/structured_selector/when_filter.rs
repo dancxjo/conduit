@@ -23,7 +23,7 @@ pub(super) fn expand_when_filter(
         StageSource::Internal(endpoint) => {
             (endpoint.port.value_kind.clone(), endpoint.port.temporal)
         }
-        StageSource::FaceInput(_, kind, temporal) => (kind.clone(), *temporal),
+        StageSource::FaceInput(_, kind, temporal, _, _) => (kind.clone(), *temporal),
     };
     if let Some(right_temporal) = right.iter().find_map(|stage| match stage {
         PendingStage::Ready(stage) => input_temporal(stage),
@@ -113,14 +113,16 @@ pub(super) fn expand_when_filter(
         source_span,
     });
     Ok(Stage {
-        input: Some(vec![StageSink::Internal(Endpoint {
-            gear_id: gear_id.clone(),
-            port: input,
-        })]),
-        output: Some(StageSource::Internal(Endpoint {
+        input: Some(vec![StageSink::Internal(TrackedEndpoint::payload(
+            Endpoint {
+                gear_id: gear_id.clone(),
+                port: input,
+            },
+        ))]),
+        output: Some(StageSource::Internal(TrackedEndpoint::payload(Endpoint {
             gear_id,
             port: output,
-        })),
+        }))),
     })
 }
 

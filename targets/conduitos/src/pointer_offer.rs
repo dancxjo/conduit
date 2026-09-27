@@ -206,6 +206,7 @@ pub(crate) fn append_to_advertisement(
                 value_kind,
                 direction: PortDirection::Output,
                 temporal: PortTemporal::Value,
+                abnormal_kind: None,
             }],
             host_calls: vec![HostCallRequirement {
                 contract_id: HostCallContractId::from(NEXT_POINTER_EVENT_HOST_CALL),

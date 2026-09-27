@@ -403,6 +403,7 @@ pub fn body_conversation_context_definition() -> KindProjection {
             value_kind: kind_id(conduit_body::BODY_CONVERSATION_CONTEXT_VALUE_KIND),
             direction: PortDirection::Output,
             temporal: PortTemporal::Current,
+            abnormal_kind: None,
         }],
         configuration: vec![],
     }
@@ -415,6 +416,7 @@ fn port(name: &str, kind: &str, temporal: PortTemporal) -> PortDescriptor {
         value_kind: kind_id(kind),
         direction: PortDirection::Input,
         temporal,
+        abnormal_kind: None,
     }
 }
 #[cfg(feature = "form-catalog")]
@@ -424,6 +426,7 @@ fn output(name: &str, kind: &str) -> PortDescriptor {
         value_kind: kind_id(kind),
         direction: PortDirection::Output,
         temporal: PortTemporal::Flow { closes: true },
+        abnormal_kind: None,
     }
 }
 

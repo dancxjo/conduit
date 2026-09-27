@@ -384,6 +384,7 @@ fn request_port(direction: PortDirection) -> PortDescriptor {
         value_kind: kind_id(REQUEST_VALUE_KIND),
         direction,
         temporal: PortTemporal::Value,
+        abnormal_kind: None,
     }
 }
 

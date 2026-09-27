@@ -118,6 +118,7 @@ fn text_source_offer() -> CapabilityOffer {
             value_kind: kind_id(conduit_semantic_catalog::TEXT_PRESENTATION_VALUE_KIND),
             direction: PortDirection::Output,
             temporal: PortTemporal::Value,
+            abnormal_kind: None,
         }],
         host_calls: Vec::new(),
         resource_requirements: Vec::new(),
@@ -147,6 +148,7 @@ fn fixture_offer(kind: &str, value_kind: &str, maximum_bytes: u32) -> Capability
             value_kind: kind_id(value_kind),
             direction: PortDirection::Input,
             temporal: PortTemporal::Value,
+            abnormal_kind: None,
         }],
         outputs: Vec::new(),
         host_calls: vec![HostCallRequirement {
@@ -184,6 +186,7 @@ pub(super) fn fixture_catalog() -> Result<conduit_form::ProfileCatalog, String> 
                     value_kind: kind_id(value_kind),
                     direction: PortDirection::Input,
                     temporal: PortTemporal::Value,
+                    abnormal_kind: None,
                 }],
                 outputs: Vec::new(),
                 configuration: Default::default(),

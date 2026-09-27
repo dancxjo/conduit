@@ -302,6 +302,7 @@ mod tests {
                 value_kind: kind_id("value/text"),
                 direction,
                 temporal: PortTemporal::Value,
+                abnormal_kind: None,
             },
         }
     }

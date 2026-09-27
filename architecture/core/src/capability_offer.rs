@@ -40,6 +40,13 @@ impl Kind {
         if self.kind_contract_revision.as_str().is_empty() {
             return Err(KindValidationError::EmptyIdentity);
         }
+        if self.inputs.iter().chain(&self.outputs).any(|port| {
+            port.abnormal_kind
+                .as_ref()
+                .is_some_and(|kind| kind.as_str().is_empty())
+        }) {
+            return Err(KindValidationError::EmptyAbnormalTerminalKind);
+        }
         let mut keys = BTreeSet::new();
         for field in &self.configuration {
             if !keys.insert(field.key.as_str()) {
@@ -76,6 +83,7 @@ pub enum KindValidationError {
     DuplicateConfigurationKey,
     ConfigurationMissingFromFront,
     ConfigurationFrontMismatch,
+    EmptyAbnormalTerminalKind,
 }
 
 /// Host-owned identity and requirements for one semantic realization.
@@ -192,6 +200,7 @@ mod tests {
                 direction: PortDirection::Input,
                 value_kind: kind_id("value/count"),
                 temporal: PortTemporal::Value,
+                abnormal_kind: None,
             }],
             outputs: Vec::new(),
             configuration: Default::default(),

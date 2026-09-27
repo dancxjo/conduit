@@ -130,6 +130,7 @@ pub fn lenia_step_definition() -> KindProjection {
                 value_kind: kind_id(conduit_time::TICK_VALUE_KIND),
                 direction: PortDirection::Input,
                 temporal: PortTemporal::Flow { closes: true },
+                abnormal_kind: None,
             },
         ],
         outputs: vec![field_port(
@@ -183,6 +184,7 @@ fn field_port(name: &str, direction: PortDirection, temporal: PortTemporal) -> P
         value_kind: kind_id(crate::SCALAR_FIELD2_INFO_ID),
         direction,
         temporal,
+        abnormal_kind: None,
     }
 }
 

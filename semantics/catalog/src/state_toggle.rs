@@ -39,12 +39,14 @@ pub fn state_toggle_contract() -> StandardKindContract {
             value_kind: kind_id(conduit_time::TICK_VALUE_KIND),
             direction: PortDirection::Input,
             temporal: PortTemporal::Flow { closes: true },
+            abnormal_kind: None,
         }],
         outputs: vec![PortDescriptor {
             port_id: port_id("value"),
             value_kind: kind_id(BOOL_INFO_ID),
             direction: PortDirection::Output,
             temporal: PortTemporal::Current,
+            abnormal_kind: None,
         }],
         configuration: vec![KindConfigurationField {
             key: "initial".to_string(),

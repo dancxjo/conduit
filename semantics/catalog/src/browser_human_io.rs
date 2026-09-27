@@ -34,6 +34,7 @@ pub fn image_text_compose_semantic_contract() -> Kind {
                 value_kind: kind_id("value/text"),
                 direction: PortDirection::Input,
                 temporal: PortTemporal::Value,
+                abnormal_kind: None,
             },
         ],
         outputs: vec![structured_port(
@@ -405,6 +406,7 @@ fn structured_port(
         value_kind: value_type.profile().unwrap().value_kind().clone(),
         direction,
         temporal: PortTemporal::Value,
+        abnormal_kind: None,
     }
 }
 

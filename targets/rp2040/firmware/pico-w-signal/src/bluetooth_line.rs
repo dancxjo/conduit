@@ -562,6 +562,7 @@ fn binding(runtime: &RuntimeTranscriptIdentity) -> Result<SessionBinding, UsbLin
                 maximum_frame_bytes: planned.maximum_frame_bytes,
             },
         },
+        abnormal_kind: None,
     }
     .with_observed_boots(
         BootId::from(planned.peer_boot),

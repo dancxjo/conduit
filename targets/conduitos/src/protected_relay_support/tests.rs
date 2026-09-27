@@ -112,6 +112,7 @@ fn binding() -> SessionBinding {
         line_session_id: "line/one".to_string(),
         candidate_binding: ROUTE.to_string(),
         transport_binding: "relay/wss/certificate/one".to_string(),
+        abnormal_kind: None,
     }
 }
 

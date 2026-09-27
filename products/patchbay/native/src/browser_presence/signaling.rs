@@ -233,6 +233,7 @@ mod tests {
                     maximum_frame_bytes: MAX_WEBRTC_SESSION_HELLO_BYTES as u32,
                 },
             },
+            abnormal_kind: None,
         }
     }
 

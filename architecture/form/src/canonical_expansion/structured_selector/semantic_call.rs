@@ -204,14 +204,16 @@ fn expand_argument_expression(
         source_span,
     });
     Ok(Stage {
-        input: Some(vec![StageSink::Internal(Endpoint {
-            gear_id: gear_id.clone(),
-            port: input,
-        })]),
-        output: Some(StageSource::Internal(Endpoint {
+        input: Some(vec![StageSink::Internal(TrackedEndpoint::payload(
+            Endpoint {
+                gear_id: gear_id.clone(),
+                port: input,
+            },
+        ))]),
+        output: Some(StageSource::Internal(TrackedEndpoint::payload(Endpoint {
             gear_id,
             port: output,
-        })),
+        }))),
     })
 }
 
@@ -245,14 +247,28 @@ fn contains_semantic_call(expression: &crate::ExpressionSyntax) -> bool {
     }
 }
 
-fn connect(source: Endpoint, sink: Endpoint, connections: &mut Vec<CheckedConnection>) {
+fn connect(
+    source: TrackedEndpoint,
+    sink: TrackedEndpoint,
+    connections: &mut Vec<CheckedConnection>,
+) {
+    let source_track = source.track;
+    let Endpoint {
+        gear_id: source_gear_id,
+        port: source_port,
+    } = source.endpoint;
+    let Endpoint {
+        gear_id: sink_gear_id,
+        port: sink_port,
+    } = sink.endpoint;
     connections.push(CheckedConnection {
-        source_gear_id: source.gear_id,
-        source_port_id: source.port.port_id,
-        sink_gear_id: sink.gear_id,
-        sink_port_id: sink.port.port_id,
-        value_kind: source.port.value_kind,
-        temporal: source.port.temporal,
+        source_gear_id,
+        source_port_id: source_port.port_id,
+        sink_gear_id,
+        sink_port_id: sink_port.port_id,
+        value_kind: source_port.value_kind,
+        track: source_track,
+        temporal: source_port.temporal,
     });
 }
 
@@ -328,16 +344,16 @@ fn expand_one(
                 .iter()
                 .cloned()
                 .map(|port| {
-                    StageSink::Internal(Endpoint {
+                    StageSink::Internal(TrackedEndpoint::payload(Endpoint {
                         gear_id: gear_id.clone(),
                         port,
-                    })
+                    }))
                 })
                 .collect(),
         ),
-        output: Some(StageSource::Internal(Endpoint {
+        output: Some(StageSource::Internal(TrackedEndpoint::payload(Endpoint {
             gear_id,
             port: output,
-        })),
+        }))),
     })
 }

@@ -30,34 +30,69 @@ struct Endpoint {
     port: PortDescriptor,
 }
 
+#[derive(Debug, Clone)]
+struct TrackedEndpoint {
+    endpoint: Endpoint,
+    track: conduit_core::ConnectionTrack,
+}
+
+impl TrackedEndpoint {
+    fn payload(endpoint: Endpoint) -> Self {
+        Self {
+            endpoint,
+            track: conduit_core::ConnectionTrack::Payload,
+        }
+    }
+}
+
+impl core::ops::Deref for TrackedEndpoint {
+    type Target = Endpoint;
+
+    fn deref(&self) -> &Self::Target {
+        &self.endpoint
+    }
+}
+
 #[derive(Debug)]
 struct Fragment {
     gears: Vec<CheckedGear>,
     connections: Vec<CheckedConnection>,
     shared_pools: Vec<ExpandedSharedPool>,
     provenance: Vec<ExpandedGearProvenance>,
-    inputs: BTreeMap<String, Vec<Endpoint>>,
-    outputs: BTreeMap<String, Endpoint>,
+    inputs: BTreeMap<String, Vec<TrackedEndpoint>>,
+    outputs: BTreeMap<String, TrackedEndpoint>,
     shorthand: Option<(String, String)>,
 }
 
 #[derive(Debug)]
 struct Instance {
-    inputs: BTreeMap<String, Vec<Endpoint>>,
-    outputs: BTreeMap<String, Endpoint>,
+    inputs: BTreeMap<String, Vec<TrackedEndpoint>>,
+    outputs: BTreeMap<String, TrackedEndpoint>,
     bare_ports: Option<(Option<String>, Option<String>)>,
 }
 
 #[derive(Debug, Clone)]
 enum StageSource {
-    Internal(Endpoint),
-    FaceInput(String, conduit_core::KindId, conduit_core::PortTemporal),
+    Internal(TrackedEndpoint),
+    FaceInput(
+        String,
+        conduit_core::KindId,
+        conduit_core::PortTemporal,
+        Option<conduit_core::KindId>,
+        conduit_core::ConnectionTrack,
+    ),
 }
 
 #[derive(Debug, Clone)]
 enum StageSink {
-    Internal(Endpoint),
-    FaceOutput(String, conduit_core::KindId, conduit_core::PortTemporal),
+    Internal(TrackedEndpoint),
+    FaceOutput(
+        String,
+        conduit_core::KindId,
+        conduit_core::PortTemporal,
+        Option<conduit_core::KindId>,
+        conduit_core::ConnectionTrack,
+    ),
 }
 
 #[derive(Debug, Clone)]
@@ -167,23 +202,21 @@ fn expand_instance_inner(
                 CheckedCordStage::Reference(reference) => structured_selector::PendingStage::Ready(
                     resolve_reference(reference, &instances, &front_ports)?,
                 ),
-                CheckedCordStage::TerminalProjection { source_span, .. } => {
-                    return Err(CanonicalExpansionDiagnostic::new(
-                        "CND-FRM-046",
-                        format!(
-                            "terminal projection at {}:{} has not yet been lowered",
-                            source_span.line, source_span.column
-                        ),
-                    ));
-                }
-                CheckedCordStage::Cancellation { source_span, .. } => {
-                    return Err(CanonicalExpansionDiagnostic::new(
-                        "CND-FRM-046",
-                        format!(
-                            "semantic cancellation at {}:{} has not yet been lowered",
-                            source_span.line, source_span.column
-                        ),
-                    ));
+                CheckedCordStage::TerminalProjection {
+                    endpoint,
+                    terminal,
+                    source_span,
+                } => structured_selector::PendingStage::Ready(project_terminal(
+                    resolve_reference(endpoint, &instances, &front_ports)?,
+                    *terminal,
+                    *source_span,
+                )?),
+                CheckedCordStage::Cancellation { gear, source_span } => {
+                    structured_selector::PendingStage::Ready(cancellation_sink(
+                        gear,
+                        &instances,
+                        *source_span,
+                    )?)
                 }
                 CheckedCordStage::When {
                     expression,
@@ -467,12 +500,14 @@ fn instantiate_gear(
                 // A retained declaration accepts each admitted value occurrence; upstream
                 // flow-to-value lifting remains explicit in the ordinary cord checker.
                 temporal: conduit_core::PortTemporal::Value,
+                abnormal_kind: None,
             };
             let output = PortDescriptor {
                 port_id: conduit_core::port_id("out"),
                 value_kind: value_kind.clone(),
                 direction: conduit_core::PortDirection::Output,
                 temporal: conduit_core::PortTemporal::Current,
+                abnormal_kind: None,
             };
             gears.push(CheckedGear {
                 gear_id: gear_id.clone(),
@@ -497,17 +532,17 @@ fn instantiate_gear(
             return Ok(Instance {
                 inputs: BTreeMap::from([(
                     "in".to_string(),
-                    vec![Endpoint {
+                    vec![TrackedEndpoint::payload(Endpoint {
                         gear_id: gear_id.clone(),
                         port: input,
-                    }],
+                    })],
                 )]),
                 outputs: BTreeMap::from([(
                     "out".to_string(),
-                    Endpoint {
+                    TrackedEndpoint::payload(Endpoint {
                         gear_id,
                         port: output,
-                    },
+                    }),
                 )]),
                 bare_ports: Some((Some("in".into()), Some("out".into()))),
             });
@@ -588,10 +623,10 @@ fn instantiate_gear(
             .map(|port| {
                 (
                     port.port_id.as_str().to_string(),
-                    vec![Endpoint {
+                    vec![TrackedEndpoint::payload(Endpoint {
                         gear_id: gear_id.clone(),
                         port: port.clone(),
-                    }],
+                    })],
                 )
             })
             .collect(),
@@ -601,10 +636,10 @@ fn instantiate_gear(
             .map(|port| {
                 (
                     port.port_id.as_str().to_string(),
-                    Endpoint {
+                    TrackedEndpoint::payload(Endpoint {
                         gear_id: gear_id.clone(),
                         port: port.clone(),
-                    },
+                    }),
                 )
             })
             .collect(),

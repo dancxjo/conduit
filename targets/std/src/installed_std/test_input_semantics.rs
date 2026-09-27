@@ -226,6 +226,7 @@ fn source_port() -> PortDescriptor {
         value_kind: kind_id(KEY_EVENT_INFO_ID),
         direction: PortDirection::Output,
         temporal: PortTemporal::Flow { closes: true },
+        abnormal_kind: None,
     }
 }
 
@@ -235,6 +236,7 @@ fn sink_port() -> PortDescriptor {
         value_kind: kind_id(CHORD_INFO_ID),
         direction: PortDirection::Input,
         temporal: PortTemporal::Flow { closes: false },
+        abnormal_kind: None,
     }
 }
 

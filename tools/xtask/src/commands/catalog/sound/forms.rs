@@ -128,6 +128,7 @@ fn source(kind: &str, port: &str, info: &str) -> KindProjection {
             value_kind: kind_id(info),
             direction: PortDirection::Output,
             temporal: PortTemporal::Value,
+            abnormal_kind: None,
         }],
         configuration: Default::default(),
     }

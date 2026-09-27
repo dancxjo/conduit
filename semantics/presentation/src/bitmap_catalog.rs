@@ -23,6 +23,7 @@ pub fn bitmap_presentation_definition() -> KindProjection {
             value_kind: kind_id(GRAY8_BITMAP_INFO_KIND),
             direction: PortDirection::Input,
             temporal: PortTemporal::Flow { closes: true },
+            abnormal_kind: None,
         }],
         outputs: Vec::new(),
         configuration: Default::default(),

@@ -663,15 +663,31 @@ impl InstalledRemoteFragment {
             .map_err(|error| format!("admit remote std value: {error:?}"))
     }
     pub fn close_ingress(&mut self, endpoint: RemoteEndpointId) -> Result<(), String> {
+        self.close_ingress_with_disposition(
+            endpoint,
+            conduit_kernel::RemoteTerminalDisposition::NormalClose,
+        )
+    }
+    pub fn close_ingress_with_disposition(
+        &mut self,
+        endpoint: RemoteEndpointId,
+        disposition: conduit_kernel::RemoteTerminalDisposition,
+    ) -> Result<(), String> {
         let cord = self.endpoint_cord(endpoint, RemoteCordDirection::Ingress)?;
         self.scheduler
-            .close_remote_input(endpoint, cord)
+            .close_remote_input_with_disposition(endpoint, cord, disposition)
             .map_err(|error| format!("close remote std input: {error:?}"))
     }
     pub fn egress_terminal(&mut self, endpoint: RemoteEndpointId) -> Result<bool, String> {
+        Ok(self.egress_terminal_disposition(endpoint)?.is_some())
+    }
+    pub fn egress_terminal_disposition(
+        &mut self,
+        endpoint: RemoteEndpointId,
+    ) -> Result<Option<conduit_kernel::RemoteTerminalDisposition>, String> {
         let cord = self.endpoint_cord(endpoint, RemoteCordDirection::Egress)?;
         self.scheduler
-            .remote_egress_terminal(endpoint, cord)
+            .remote_egress_terminal_disposition(endpoint, cord)
             .map_err(|error| format!("complete remote std output: {error:?}"))
     }
     pub fn cancel(&mut self) -> Result<(), String> {

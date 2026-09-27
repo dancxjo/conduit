@@ -89,8 +89,9 @@ pub fn expand_canonical_form_for_authoring_with_backs(
         .flat_map(|(front_port, endpoints)| {
             endpoints.iter().map(|endpoint| AuthoringFrontBinding {
                 front_port_id: conduit_core::PortId::from(front_port.as_str()),
-                gear_id: endpoint.gear_id.clone(),
-                gear_port_id: endpoint.port.port_id.clone(),
+                gear_id: endpoint.endpoint.gear_id.clone(),
+                gear_port_id: endpoint.endpoint.port.port_id.clone(),
+                track: endpoint.track,
             })
         })
         .collect();
@@ -99,8 +100,9 @@ pub fn expand_canonical_form_for_authoring_with_backs(
         .iter()
         .map(|(front_port, endpoint)| AuthoringFrontBinding {
             front_port_id: conduit_core::PortId::from(front_port.as_str()),
-            gear_id: endpoint.gear_id.clone(),
-            gear_port_id: endpoint.port.port_id.clone(),
+            gear_id: endpoint.endpoint.gear_id.clone(),
+            gear_port_id: endpoint.endpoint.port.port_id.clone(),
+            track: endpoint.track,
         })
         .collect();
     let mut gears = fragment.gears;

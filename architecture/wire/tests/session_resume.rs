@@ -103,6 +103,7 @@ fn binding() -> SessionBinding {
                 maximum_frame_bytes: 512,
             },
         },
+        abnormal_kind: None,
     }
 }
 
@@ -182,6 +183,7 @@ fn clean_and_finite_in_flight_checkpoints_reconcile_on_a_new_attachment() {
                         next_sequence: 0,
                         transfer: SessionTransferCheckpoint::None,
                         input_closed: false,
+                        input_abnormal: false,
                     },
                 },
             )
@@ -202,6 +204,7 @@ fn clean_and_finite_in_flight_checkpoints_reconcile_on_a_new_attachment() {
                         next_sequence: 0,
                         transfer: SessionTransferCheckpoint::Offered(0),
                         input_closed: false,
+                        input_abnormal: false,
                     },
                 },
             )
@@ -231,6 +234,7 @@ fn clean_and_finite_in_flight_checkpoints_reconcile_on_a_new_attachment() {
                         next_sequence: 1,
                         transfer: SessionTransferCheckpoint::None,
                         input_closed: false,
+                        input_abnormal: false,
                     },
                 },
             )
@@ -273,6 +277,7 @@ fn contradictory_stale_or_different_logical_checkpoints_fail_closed() {
                     next_sequence: 8,
                     transfer: SessionTransferCheckpoint::Accepted(7),
                     input_closed: false,
+                    input_abnormal: false,
                 },
             },
         ),

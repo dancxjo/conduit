@@ -104,6 +104,7 @@ pub fn replay_control_kind_projection() -> conduit_form::KindProjection {
             .clone(),
         direction,
         temporal,
+        abnormal_kind: None,
     };
     conduit_form::KindProjection {
         kind_id: kind_id(crate::REPLAY_CONTROL_KIND),

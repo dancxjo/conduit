@@ -19,6 +19,7 @@ pub fn tick_presentation_contract() -> StandardKindContract {
             value_kind: kind_id(conduit_time::TICK_VALUE_KIND),
             direction: PortDirection::Input,
             temporal: conduit_core::PortTemporal::Flow { closes: false },
+            abnormal_kind: None,
         }],
         outputs: Vec::new(),
         configuration: Default::default(),

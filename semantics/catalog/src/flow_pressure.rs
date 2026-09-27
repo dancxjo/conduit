@@ -112,6 +112,7 @@ fn port(
         value_kind: value_kind.clone(),
         direction,
         temporal,
+        abnormal_kind: None,
     }
 }
 

@@ -329,6 +329,8 @@ pub(super) fn resolve_reference(
                     reference.to_string(),
                     descriptor.value_kind.clone(),
                     crate::value_type::canonical_port_temporal(port.temporal),
+                    descriptor.abnormal_kind.clone(),
+                    conduit_core::ConnectionTrack::Payload,
                 )),
             },
             RuntimePortDirection::Output => Stage {
@@ -336,6 +338,8 @@ pub(super) fn resolve_reference(
                     reference.to_string(),
                     descriptor.value_kind.clone(),
                     crate::value_type::canonical_port_temporal(port.temporal),
+                    descriptor.abnormal_kind.clone(),
+                    conduit_core::ConnectionTrack::Payload,
                 )]),
                 output: None,
             },
@@ -397,56 +401,185 @@ pub(super) fn stage_for_instance(
     })
 }
 
+pub(super) fn project_terminal(
+    mut stage: Stage,
+    terminal: crate::TerminalProjection,
+    source_span: crate::Span,
+) -> Result<Stage, CanonicalExpansionDiagnostic> {
+    let output = stage.output.as_mut().ok_or_else(|| {
+        CanonicalExpansionDiagnostic::new(
+            "CND-FRM-046",
+            format!(
+                "terminal projection at {}:{} requires an output endpoint",
+                source_span.line, source_span.column
+            ),
+        )
+    })?;
+    let temporal = match output {
+        StageSource::Internal(endpoint) => endpoint.port.temporal,
+        StageSource::FaceInput(_, _, temporal, _, _) => *temporal,
+    };
+    let track = match terminal {
+        crate::TerminalProjection::NormalClose => {
+            if !matches!(temporal, conduit_core::PortTemporal::Flow { closes: true }) {
+                return Err(CanonicalExpansionDiagnostic::new(
+                    "CND-FRM-046",
+                    format!(
+                        "normal-close projection at {}:{} is legal only for a closing Flow",
+                        source_span.line, source_span.column
+                    ),
+                ));
+            }
+            conduit_core::ConnectionTrack::NormalClose
+        }
+        crate::TerminalProjection::Abnormal => conduit_core::ConnectionTrack::AbnormalTerminal,
+    };
+    match output {
+        StageSource::Internal(endpoint) => {
+            if terminal == crate::TerminalProjection::Abnormal
+                && endpoint.port.abnormal_kind.is_none()
+            {
+                return Err(CanonicalExpansionDiagnostic::new(
+                    "CND-FRM-046",
+                    format!(
+                        "abnormal terminal projection at {}:{} requires the source Kind Fore to declare an exact abnormal terminal type for output '{}'",
+                        source_span.line,
+                        source_span.column,
+                        endpoint.port.port_id.as_str()
+                    ),
+                ));
+            }
+            endpoint.track = track;
+        }
+        StageSource::FaceInput(_, _, _, abnormal_kind, projected_track) => {
+            if terminal == crate::TerminalProjection::Abnormal && abnormal_kind.is_none() {
+                return Err(CanonicalExpansionDiagnostic::new(
+                    "CND-FRM-046",
+                    format!(
+                        "abnormal terminal projection at {}:{} requires an exact abnormal terminal type on the Form Fore",
+                        source_span.line, source_span.column
+                    ),
+                ));
+            }
+            *projected_track = track;
+        }
+    }
+    stage.input = None;
+    Ok(stage)
+}
+
+pub(super) fn cancellation_sink(
+    gear: &str,
+    instances: &BTreeMap<String, Instance>,
+    source_span: crate::Span,
+) -> Result<Stage, CanonicalExpansionDiagnostic> {
+    if gear.contains('.') {
+        return Err(CanonicalExpansionDiagnostic::new(
+            "CND-FRM-046",
+            format!(
+                "semantic cancellation at {}:{} names a Gear, not an arbitrary Port",
+                source_span.line, source_span.column
+            ),
+        ));
+    }
+    let instance = instances.get(gear).ok_or_else(|| {
+        CanonicalExpansionDiagnostic::new(
+            "CND-FRM-046",
+            format!(
+                "semantic cancellation at {}:{} references unknown Gear '{gear}'",
+                source_span.line, source_span.column
+            ),
+        )
+    })?;
+    let mut cancellation_inputs = instance.inputs.iter().filter(|(_, endpoints)| {
+        endpoints.iter().all(|endpoint| {
+            endpoint.port.value_kind.as_str() == conduit_core::CANCELLATION_REQUEST_INFO_ID
+        })
+    });
+    let Some((input_name, _)) = cancellation_inputs.next() else {
+        return Err(CanonicalExpansionDiagnostic::new(
+            "CND-FRM-046",
+            format!(
+                "Gear '{gear}' does not declare the canonical '{}' Fore control required by semantic cancellation",
+                conduit_core::CANCELLATION_REQUEST_INFO_ID
+            ),
+        ));
+    };
+    if cancellation_inputs.next().is_some() {
+        return Err(CanonicalExpansionDiagnostic::new(
+            "CND-FRM-046",
+            format!("Gear '{gear}' declares more than one semantic cancellation control"),
+        ));
+    }
+    let mut stage = stage_for_instance(gear, instance, Some(input_name)).map_err(|_| {
+        CanonicalExpansionDiagnostic::new(
+            "CND-FRM-046",
+            format!("Gear '{gear}' has an invalid semantic cancellation Fore control"),
+        )
+    })?;
+    stage.output = None;
+    Ok(stage)
+}
+
 pub(super) fn connect(
     source: StageSource,
     sink: StageSink,
     connections: &mut Vec<CheckedConnection>,
-    inputs: &mut BTreeMap<String, Vec<Endpoint>>,
-    outputs: &mut BTreeMap<String, Endpoint>,
+    inputs: &mut BTreeMap<String, Vec<TrackedEndpoint>>,
+    outputs: &mut BTreeMap<String, TrackedEndpoint>,
 ) -> Result<(), CanonicalExpansionDiagnostic> {
     match (source, sink) {
         (StageSource::Internal(source), StageSink::Internal(sink)) => {
-            let reactively_lifted_value = matches!(
-                (source.port.temporal, sink.port.temporal),
-                (
-                    conduit_core::PortTemporal::Flow { .. },
-                    conduit_core::PortTemporal::Value
-                )
-            );
-            let finite_flow_into_standing_consumer = matches!(
-                (source.port.temporal, sink.port.temporal),
-                (
-                    conduit_core::PortTemporal::Flow { closes: true },
-                    conduit_core::PortTemporal::Flow { closes: false }
-                )
-            );
-            if source.port.value_kind != sink.port.value_kind
-                || (source.port.temporal != sink.port.temporal
-                    && !reactively_lifted_value
-                    && !finite_flow_into_standing_consumer)
-            {
-                return Err(CanonicalExpansionDiagnostic::new(
-                    "CND-FRM-045",
-                    format!(
-                        "cord connects incompatible runtime contracts: source {} {} -> sink {} {}",
-                        source.port.value_kind.as_str(),
-                        source.port.temporal.as_str(),
-                        sink.port.value_kind.as_str(),
-                        sink.port.temporal.as_str()
-                    ),
-                ));
-            }
+            let connection_track = connection_track(source.track, sink.track)?;
+            validate_connection_contract(&source.port, &sink.port, connection_track)?;
+            let Endpoint {
+                gear_id: source_gear_id,
+                port: source_port,
+            } = source.endpoint;
+            let Endpoint {
+                gear_id: sink_gear_id,
+                port: sink_port,
+            } = sink.endpoint;
             connections.push(CheckedConnection {
-                source_gear_id: source.gear_id,
-                source_port_id: source.port.port_id,
-                sink_gear_id: sink.gear_id,
-                sink_port_id: sink.port.port_id,
-                value_kind: source.port.value_kind,
-                temporal: source.port.temporal,
+                source_gear_id,
+                source_port_id: source_port.port_id,
+                sink_gear_id,
+                sink_port_id: sink_port.port_id,
+                value_kind: match connection_track {
+                    conduit_core::ConnectionTrack::Payload => source_port.value_kind.clone(),
+                    conduit_core::ConnectionTrack::NormalClose => {
+                        conduit_core::kind_id(conduit_core::UNIT_INFO_ID)
+                    }
+                    conduit_core::ConnectionTrack::AbnormalTerminal => source_port
+                        .abnormal_kind
+                        .clone()
+                        .expect("abnormal projection validated its exact Fore kind"),
+                },
+                track: connection_track,
+                temporal: if connection_track == conduit_core::ConnectionTrack::Payload {
+                    source_port.temporal
+                } else {
+                    conduit_core::PortTemporal::Value
+                },
             });
         }
-        (StageSource::FaceInput(name, value_type, temporal), StageSink::Internal(sink)) => {
-            require_front_contract(&name, &value_type, temporal, &sink.port, true)?;
+        (
+            StageSource::FaceInput(name, value_type, temporal, abnormal_kind, track),
+            StageSink::Internal(mut sink),
+        ) => {
+            sink.track = track;
+            if track == conduit_core::ConnectionTrack::Payload {
+                require_front_contract(&name, &value_type, temporal, &sink.port, true)?;
+            } else {
+                let source = conduit_core::PortDescriptor {
+                    port_id: conduit_core::port_id(name.as_str()),
+                    value_kind: value_type,
+                    direction: conduit_core::PortDirection::Output,
+                    temporal,
+                    abnormal_kind,
+                };
+                validate_connection_contract(&source, &sink.port, track)?;
+            }
             let endpoints = inputs.entry(name.clone()).or_default();
             if endpoints.iter().any(|endpoint| {
                 endpoint.gear_id == sink.gear_id && endpoint.port.port_id == sink.port.port_id
@@ -458,11 +591,26 @@ pub(super) fn connect(
             }
             endpoints.push(sink);
         }
-        (StageSource::Internal(source), StageSink::FaceOutput(name, value_type, temporal)) => {
-            require_front_contract(&name, &value_type, temporal, &source.port, false)?;
+        (
+            StageSource::Internal(mut source),
+            StageSink::FaceOutput(name, value_type, temporal, abnormal_kind, track),
+        ) => {
+            source.track = track;
+            if track == conduit_core::ConnectionTrack::Payload {
+                require_front_contract(&name, &value_type, temporal, &source.port, false)?;
+            } else {
+                let sink = conduit_core::PortDescriptor {
+                    port_id: conduit_core::port_id(name.as_str()),
+                    value_kind: value_type,
+                    direction: conduit_core::PortDirection::Input,
+                    temporal,
+                    abnormal_kind,
+                };
+                validate_connection_contract(&source.port, &sink, track)?;
+            }
             insert_boundary(outputs, name, source)?;
         }
-        (StageSource::FaceInput(_, _, _), StageSink::FaceOutput(_, _, _)) => {
+        (StageSource::FaceInput(_, _, _, _, _), StageSink::FaceOutput(_, _, _, _, _)) => {
             return Err(CanonicalExpansionDiagnostic::new(
                 "CND-FRM-046",
                 "runtime front passthrough must cross an admitted gear".into(),
@@ -472,10 +620,75 @@ pub(super) fn connect(
     Ok(())
 }
 
+fn connection_track(
+    source: conduit_core::ConnectionTrack,
+    sink: conduit_core::ConnectionTrack,
+) -> Result<conduit_core::ConnectionTrack, CanonicalExpansionDiagnostic> {
+    use conduit_core::ConnectionTrack;
+    match (source, sink) {
+        (ConnectionTrack::Payload, track) | (track, ConnectionTrack::Payload) => Ok(track),
+        (left, right) if left == right => Ok(left),
+        _ => Err(CanonicalExpansionDiagnostic::new(
+            "CND-FRM-045",
+            "one Cord cannot combine normal-close and abnormal-terminal tracks".into(),
+        )),
+    }
+}
+
+fn validate_connection_contract(
+    source: &conduit_core::PortDescriptor,
+    sink: &conduit_core::PortDescriptor,
+    track: conduit_core::ConnectionTrack,
+) -> Result<(), CanonicalExpansionDiagnostic> {
+    use conduit_core::{ConnectionTrack, PortTemporal};
+    let compatible = match track {
+        ConnectionTrack::Payload => {
+            let reactively_lifted_value = matches!(
+                (source.temporal, sink.temporal),
+                (PortTemporal::Flow { .. }, PortTemporal::Value)
+            );
+            let finite_flow_into_standing_consumer = matches!(
+                (source.temporal, sink.temporal),
+                (
+                    PortTemporal::Flow { closes: true },
+                    PortTemporal::Flow { closes: false }
+                )
+            );
+            source.value_kind == sink.value_kind
+                && (source.temporal == sink.temporal
+                    || reactively_lifted_value
+                    || finite_flow_into_standing_consumer)
+        }
+        ConnectionTrack::NormalClose => {
+            matches!(source.temporal, PortTemporal::Flow { closes: true })
+                && sink.temporal == PortTemporal::Value
+                && sink.value_kind.as_str() == conduit_core::UNIT_INFO_ID
+        }
+        ConnectionTrack::AbnormalTerminal => {
+            sink.temporal == PortTemporal::Value
+                && source.abnormal_kind.as_ref() == Some(&sink.value_kind)
+        }
+    };
+    if compatible {
+        return Ok(());
+    }
+    Err(CanonicalExpansionDiagnostic::new(
+        "CND-FRM-045",
+        format!(
+            "cord connects incompatible {} contracts: source {} {} -> sink {} {}",
+            track.as_str(),
+            source.value_kind.as_str(),
+            source.temporal.as_str(),
+            sink.value_kind.as_str(),
+            sink.temporal.as_str()
+        ),
+    ))
+}
+
 fn insert_boundary(
-    boundaries: &mut BTreeMap<String, Endpoint>,
+    boundaries: &mut BTreeMap<String, TrackedEndpoint>,
     name: String,
-    endpoint: Endpoint,
+    endpoint: TrackedEndpoint,
 ) -> Result<(), CanonicalExpansionDiagnostic> {
     if boundaries.insert(name.clone(), endpoint).is_some() {
         return Err(CanonicalExpansionDiagnostic::new(
@@ -531,8 +744,8 @@ fn require_front_contract(
 
 pub(super) fn validate_front_bindings(
     form: &CheckedCanonicalForm,
-    inputs: &BTreeMap<String, Vec<Endpoint>>,
-    outputs: &BTreeMap<String, Endpoint>,
+    inputs: &BTreeMap<String, Vec<TrackedEndpoint>>,
+    outputs: &BTreeMap<String, TrackedEndpoint>,
 ) -> Result<(), CanonicalExpansionDiagnostic> {
     for port in &form.runtime_ports {
         let bound = match port.direction {

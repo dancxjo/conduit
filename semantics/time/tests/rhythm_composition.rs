@@ -54,6 +54,7 @@ fn catalogs() -> (StartupCatalog, ProfileCatalog) {
             value_kind: kind_id(value),
             direction,
             temporal: PortTemporal::Flow { closes: false },
+            abnormal_kind: None,
         };
         profile
             .insert(KindProjection {

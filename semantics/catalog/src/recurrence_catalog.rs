@@ -49,6 +49,7 @@ pub fn recurrence_semantic_contract() -> Kind {
                 .clone(),
             direction: PortDirection::Output,
             temporal: PortTemporal::Value,
+            abnormal_kind: None,
         }],
         configuration: Default::default(),
         semantic_laws: Default::default(),
@@ -354,6 +355,7 @@ pub fn install_recurrence_catalogs(
                     .clone(),
                 direction: PortDirection::Output,
                 temporal: PortTemporal::Value,
+                abnormal_kind: None,
             }],
             configuration: vec![KindConfigurationField {
                 key: "request".into(),

@@ -317,6 +317,7 @@ pub struct AuthoringFrontBinding {
     pub front_port_id: conduit_core::PortId,
     pub gear_id: conduit_core::GearId,
     pub gear_port_id: conduit_core::PortId,
+    pub track: conduit_core::ConnectionTrack,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]

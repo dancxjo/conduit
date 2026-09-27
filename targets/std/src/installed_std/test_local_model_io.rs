@@ -279,6 +279,7 @@ fn offer(
         value_kind: kind_id(value_kind),
         direction,
         temporal: PortTemporal::Value,
+        abnormal_kind: None,
     };
     CapabilityOffer {
         startup_parameters: Vec::new(),

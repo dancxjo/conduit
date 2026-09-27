@@ -120,6 +120,7 @@ fn source_offer(value: Scalar) -> CapabilityOffer {
             value_kind: kind_id(conduit_core::SCALAR_INFO_ID),
             direction: PortDirection::Output,
             temporal: PortTemporal::Flow { closes: true },
+            abnormal_kind: None,
         }],
         host_calls: Vec::new(),
         resource_requirements: Vec::new(),
@@ -167,6 +168,7 @@ fn scalar_port(name: &str, direction: PortDirection) -> PortDescriptor {
         value_kind: kind_id(conduit_core::SCALAR_INFO_ID),
         direction,
         temporal: PortTemporal::Current,
+        abnormal_kind: None,
     }
 }
 
