@@ -121,17 +121,43 @@ impl PlannedMaskForm {
         {
             return Err(MaskFormError::StalePlan);
         }
-        for boundary in [
-            &mask.presentation_input,
-            &mask.interaction_output,
-            &mask.show_output,
+        for (boundary, direction, value_kind, temporal) in [
+            (
+                &mask.presentation_input,
+                PortDirection::Input,
+                PRESENTATION_VALUE_KIND,
+                PortTemporal::Value,
+            ),
+            (
+                &mask.interaction_output,
+                PortDirection::Output,
+                PRESENTATION_INTERACTION_VALUE_KIND,
+                PortTemporal::Flow { closes: true },
+            ),
+            (
+                &mask.show_output,
+                PortDirection::Output,
+                SHOW_VALUE_KIND,
+                PortTemporal::Value,
+            ),
         ] {
-            if !plan
-                .fragments
-                .iter()
-                .flat_map(|fragment| &fragment.placements)
-                .any(|placement| placement.gear_id == boundary.gear_id)
-            {
+            if !plan.fragments.iter().any(|fragment| {
+                let Some(placement) = fragment
+                    .placements
+                    .iter()
+                    .find(|placement| placement.gear_id == boundary.gear_id)
+                else {
+                    return false;
+                };
+                fragment.fore_ports.iter().any(|port| {
+                    port.front_port_id == boundary.front_port_id
+                        && port.direction == direction
+                        && port.placement_id == placement.placement_id
+                        && port.gear_port_id == boundary.gear_port_id
+                        && port.value_kind.as_str() == value_kind
+                        && port.temporal == temporal
+                })
+            }) {
                 return Err(MaskFormError::MissingPlannedBoundary);
             }
         }

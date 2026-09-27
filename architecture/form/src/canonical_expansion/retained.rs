@@ -85,6 +85,7 @@ pub(super) fn initialized_structured_state(
         inputs: vec![input.clone()],
         outputs: vec![output.clone()],
         terminal_transduction: None,
+        resource_ports: Vec::new(),
         configuration: vec![
             conduit_core::ConfigurationEntry {
                 key: "initial".into(),

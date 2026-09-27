@@ -662,6 +662,29 @@ pub struct PlannedResourceConnection {
     pub source_binding: ResourceBinding,
 }
 
+/// One finite external binding of an ordinary Form's checked Front.
+///
+/// This is plan truth, not ambient host wiring: planning seals the exact
+/// internal placement and Port which an admitted caller may feed or observe.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct PlannedForePort {
+    pub front_port_id: PortId,
+    pub direction: PortDirection,
+    pub placement_id: PlacementId,
+    pub gear_port_id: PortId,
+    pub value_kind: KindId,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub abnormal_kind: Option<KindId>,
+    #[serde(default)]
+    pub track: ConnectionTrack,
+    #[serde(default)]
+    pub temporal: PortTemporal,
+    #[serde(default)]
+    pub pressure_policy: DeliveryPressurePolicy,
+    pub item_capacity: u16,
+    pub byte_capacity: u32,
+}
+
 #[derive(Debug, Default, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]
 #[serde(rename_all = "kebab-case")]
 pub enum ConnectionTrack {
@@ -711,6 +734,9 @@ pub struct PlanFragment {
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub states: Vec<PlannedStateBoundary>,
     pub connections: Vec<PlannedConnection>,
+    /// Plan-sealed external Fore bindings for this Host fragment.
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub fore_ports: Vec<PlannedForePort>,
     #[serde(default)]
     pub shared_pools: Vec<PlannedSharedPool>,
     pub startup_dependencies: Vec<StartupDependency>,
@@ -1080,6 +1106,7 @@ pub fn verify_plan_fragment(fragment: &PlanFragment) -> bool {
         .filter(|item| item.host_id == fragment.host_id && item.fragment_id == fragment.fragment_id)
         .count();
     own_matches == 1
+        && verify_fragment_fore_ports(fragment)
         && fragment.placements.iter().all(|placement| {
             placement
                 .terminal_transduction
@@ -1105,6 +1132,36 @@ pub fn verify_plan_fragment(fragment: &PlanFragment) -> bool {
             &fragment.realization_backs,
             &commitments,
         ) == fragment.plan_id
+}
+
+fn verify_fragment_fore_ports(fragment: &PlanFragment) -> bool {
+    fragment
+        .fore_ports
+        .iter()
+        .enumerate()
+        .all(|(index, boundary)| {
+            boundary.item_capacity > 0
+                && boundary.byte_capacity > 0
+                && !fragment.fore_ports[..index].iter().any(|prior| {
+                    prior.front_port_id == boundary.front_port_id
+                        && prior.direction == boundary.direction
+                        && prior.track == boundary.track
+                })
+                && fragment.placements.iter().any(|placement| {
+                    placement.placement_id == boundary.placement_id
+                        && match boundary.direction {
+                            PortDirection::Input => &placement.inputs,
+                            PortDirection::Output => &placement.outputs,
+                        }
+                        .iter()
+                        .any(|port| {
+                            port.port_id == boundary.gear_port_id
+                                && port.value_kind == boundary.value_kind
+                                && port.abnormal_kind == boundary.abnormal_kind
+                                && port.temporal == boundary.temporal
+                        })
+                })
+        })
 }
 
 fn push_string(canonical: &mut Vec<u8>, value: &str) {

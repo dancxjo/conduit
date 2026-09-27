@@ -205,6 +205,7 @@ fn unavailable_host_must_be_exactly_sealed_by_the_same_plan() {
             execution_fusions: vec![],
             states: Vec::new(),
             connections: vec![],
+            fore_ports: vec![],
             shared_pools: vec![],
             startup_dependencies: vec![],
             startup_order: vec![],

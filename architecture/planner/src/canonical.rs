@@ -7,15 +7,181 @@ use crate::{
 use alloc::collections::{BTreeMap, BTreeSet};
 use conduit_core::{
     AdmittedLine, AuthorityGrant, BaseImplementationId, FormIdentity, HostAdvertisement,
-    LineAvailability, Plan, PlannedGear, PlannedSharedPool, PoolMemberLimits,
+    LineAvailability, Plan, PlannedForePort, PlannedGear, PlannedSharedPool, PoolMemberLimits,
     PoolRealizationEnvelope, ResourceBinding, SharedPoolId, SharedPoolSelectionPolicy,
     SHARED_POOL_ADMIT_AUTHORITY_CONTRACT, SHARED_POOL_ADMIT_HOST_CALL_CONTRACT,
     SHARED_POOL_AUTHORITY_SUBJECT_KIND,
 };
 use conduit_form::{
     expand_canonical_form, expand_canonical_form_with_backs, CanonicalBackCatalog, CheckedForm,
-    CheckedSyntaxDocument, ExpandedCanonicalForm, ProfileCatalog,
+    CheckedSyntaxDocument, ExpandedAuthoringForm, ExpandedCanonicalForm, ProfileCatalog,
 };
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct ForeBoundaryKey {
+    pub direction: conduit_core::PortDirection,
+    pub front_port_id: conduit_core::PortId,
+    pub track: conduit_core::ConnectionTrack,
+}
+
+impl PartialOrd for ForeBoundaryKey {
+    fn partial_cmp(&self, other: &Self) -> Option<core::cmp::Ordering> {
+        Some(self.cmp(other))
+    }
+}
+
+impl Ord for ForeBoundaryKey {
+    fn cmp(&self, other: &Self) -> core::cmp::Ordering {
+        (self.direction as u8, &self.front_port_id, self.track).cmp(&(
+            other.direction as u8,
+            &other.front_port_id,
+            other.track,
+        ))
+    }
+}
+
+/// Plans an open ordinary Form and seals every external Fore binding into the
+/// immutable Plan. Every binding needs an exact finite queue budget.
+pub fn plan_expanded_authoring_with_options(
+    form: &ExpandedAuthoringForm,
+    hosts: &[HostAdvertisement],
+    placements: &PlacementChoices,
+    bases: &[BaseImplementationId],
+    options: PlanningOptions<'_>,
+    boundary_limits: &BTreeMap<ForeBoundaryKey, ConnectionQueueLimits>,
+) -> Result<Plan, PlannerError> {
+    let mut plan =
+        plan_expanded_canonical_with_options(&form.expanded, hosts, placements, bases, options)?;
+    let expected = form.input_bindings.len() + form.output_bindings.len();
+    if expected != boundary_limits.len() {
+        return Err(PlannerError::InvalidFormIdentity(
+            "every external Fore binding requires one exact queue limit".into(),
+        ));
+    }
+    let mut seen = BTreeSet::new();
+    for (direction, bindings, descriptors) in [
+        (
+            conduit_core::PortDirection::Input,
+            form.input_bindings.as_slice(),
+            form.front.inputs(),
+        ),
+        (
+            conduit_core::PortDirection::Output,
+            form.output_bindings.as_slice(),
+            form.front.outputs(),
+        ),
+    ] {
+        for binding in bindings {
+            let key = ForeBoundaryKey {
+                direction,
+                front_port_id: binding.front_port_id.clone(),
+                track: binding.track,
+            };
+            if !seen.insert(key.clone()) {
+                return Err(PlannerError::InvalidFormIdentity(format!(
+                    "external Fore port '{}' track '{}' has more than one internal binding; atomic external fan-out is not yet supported",
+                    binding.front_port_id.as_str(), binding.track.as_str(),
+                )));
+            }
+            let limits = boundary_limits.get(&key).ok_or_else(|| {
+                PlannerError::InvalidFormIdentity(format!(
+                    "external Fore port '{}' track '{}' has no queue limit",
+                    binding.front_port_id.as_str(),
+                    binding.track.as_str(),
+                ))
+            })?;
+            if limits.item_capacity == 0 || limits.byte_capacity == 0 {
+                return Err(PlannerError::InvalidFormIdentity(format!(
+                    "external Fore port '{}' has a zero queue limit",
+                    binding.front_port_id.as_str(),
+                )));
+            }
+            let descriptor = descriptors
+                .iter()
+                .find(|port| port.port_id == binding.front_port_id)
+                .ok_or_else(|| {
+                    PlannerError::InvalidFormIdentity("external Fore descriptor is missing".into())
+                })?;
+            let fragment = plan
+                .fragments
+                .iter_mut()
+                .find(|fragment| {
+                    fragment
+                        .placements
+                        .iter()
+                        .any(|placement| placement.gear_id == binding.gear_id)
+                })
+                .ok_or_else(|| {
+                    PlannerError::InvalidFormIdentity("external Fore placement is missing".into())
+                })?;
+            let placement = fragment
+                .placements
+                .iter()
+                .find(|placement| placement.gear_id == binding.gear_id)
+                .expect("fragment selected by this placement");
+            let internal = match direction {
+                conduit_core::PortDirection::Input => &placement.inputs,
+                conduit_core::PortDirection::Output => &placement.outputs,
+            }
+            .iter()
+            .find(|port| port.port_id == binding.gear_port_id)
+            .ok_or_else(|| {
+                PlannerError::InvalidFormIdentity("external Fore internal port is missing".into())
+            })?;
+            if internal.value_kind != descriptor.value_kind
+                || internal.temporal != descriptor.temporal
+                || internal.abnormal_kind != descriptor.abnormal_kind
+            {
+                return Err(PlannerError::InvalidFormIdentity(format!(
+                    "external Fore port '{}' does not match its selected Back",
+                    binding.front_port_id.as_str(),
+                )));
+            }
+            if limits.item_capacity > placement.limits.max_queue_items
+                || limits.byte_capacity > placement.limits.max_queue_bytes
+            {
+                return Err(PlannerError::QueueRequirementAboveHostLimit(format!(
+                    "external Fore port '{}' exceeds selected Back queue limits",
+                    binding.front_port_id.as_str(),
+                )));
+            }
+            fragment.fore_ports.push(PlannedForePort {
+                front_port_id: binding.front_port_id.clone(),
+                direction,
+                placement_id: placement.placement_id.clone(),
+                gear_port_id: binding.gear_port_id.clone(),
+                value_kind: descriptor.value_kind.clone(),
+                abnormal_kind: descriptor.abnormal_kind.clone(),
+                track: binding.track,
+                temporal: descriptor.temporal,
+                pressure_policy: conduit_core::DeliveryPressurePolicy::PreserveOrder,
+                item_capacity: limits.item_capacity,
+                byte_capacity: limits.byte_capacity,
+            });
+        }
+    }
+    for fragment in &mut plan.fragments {
+        fragment.fore_ports.sort_by(|left, right| {
+            (left.direction as u8, &left.front_port_id, left.track).cmp(&(
+                right.direction as u8,
+                &right.front_port_id,
+                right.track,
+            ))
+        });
+    }
+    Ok(
+        conduit_core::seal_plan_with_realization_backs_and_completion(
+            FormIdentity {
+                source_document_id: plan.source_document_id,
+                checked_form_id: plan.checked_form_id,
+                expanded_form_id: plan.expanded_form_id,
+            },
+            plan.completion_policy,
+            plan.realization_backs,
+            plan.fragments,
+        ),
+    )
+}
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum CanonicalRealizationMode {
@@ -507,6 +673,7 @@ pub fn plan_expanded_canonical_with_shared_pools(
                 execution_fusions: Vec::new(),
                 states: Vec::new(),
                 connections: Vec::new(),
+                fore_ports: Vec::new(),
                 shared_pools: Vec::new(),
                 startup_dependencies: Vec::new(),
                 startup_order: Vec::new(),

@@ -232,7 +232,7 @@ pub(super) fn run_fragment_retaining<W: Write, T: TimerAdapter>(
     next_sign_sequence: &mut u64,
     _output: &mut W,
     timer: &mut T,
-    lifecycle: RunLifecycle<'_, '_>,
+    lifecycle: RunLifecycle<'_, '_, '_>,
 ) -> Result<crate::state_value::RetainedStdRun, String> {
     let RunLifecycle {
         control,
@@ -244,6 +244,7 @@ pub(super) fn run_fragment_retaining<W: Write, T: TimerAdapter>(
         mut microphone,
         wav_artifact,
         mut vision,
+        mut external_fore,
     } = lifecycle;
     let InstalledRunHost {
         advertisement,
@@ -299,6 +300,19 @@ pub(super) fn run_fragment_retaining<W: Write, T: TimerAdapter>(
             .ok_or_else(|| "installed sign item budget overflow".to_string())?;
         maximum_value_bytes = maximum_value_bytes.max(budget.maximum_value_bytes);
     }
+    for fore in lowered
+        .fore_ports
+        .iter()
+        .filter(|fore| fore.direction == conduit_core::PortDirection::Input)
+    {
+        value_items = value_items
+            .checked_add(fore.item_capacity)
+            .ok_or_else(|| "external Fore input value item budget overflow".to_string())?;
+        value_bytes = value_bytes
+            .checked_add(fore.byte_capacity)
+            .ok_or_else(|| "external Fore input value byte budget overflow".to_string())?;
+        maximum_value_bytes = maximum_value_bytes.max(fore.byte_capacity);
+    }
     #[cfg(test)]
     if fragment
         .placements
@@ -328,14 +342,37 @@ pub(super) fn run_fragment_retaining<W: Write, T: TimerAdapter>(
     let value_allocation_before = values.allocation_capacities();
 
     let kernel_tables = kernel_preparation::KernelTables::prepare(&[&lowered])?;
+    let remote_sign_items = lowered.fore_ports.iter().try_fold(0_u16, |total, fore| {
+        let events = match fore.direction {
+            conduit_core::PortDirection::Input => fore.item_capacity.checked_add(1),
+            conduit_core::PortDirection::Output => fore
+                .item_capacity
+                .checked_mul(3)
+                .and_then(|count| count.checked_add(1)),
+        }
+        .ok_or_else(|| "external Fore lifecycle Sign capacity overflow".to_string())?;
+        total
+            .checked_add(events)
+            .ok_or_else(|| "external Fore lifecycle Sign capacity overflow".to_string())
+    })?;
+    sign_items = sign_items
+        .checked_add(remote_sign_items)
+        .ok_or_else(|| "external Fore Sign capacity overflow".to_string())?;
     let sign_bytes = u32::from(sign_items)
         .checked_mul(
             u32::try_from(core::mem::size_of::<conduit_kernel::KernelEvent>())
                 .map_err(|_| "installed sign charge overflow".to_string())?,
         )
         .ok_or_else(|| "installed sign byte budget overflow".to_string())?;
-    let sign = HostedSignLog::new(sign_items, sign_bytes)
-        .map_err(|error| format!("installed sign store: {error:?}"))?;
+    let remote_sign_bytes = conduit_kernel::remote_sign_storage_bytes(remote_sign_items)
+        .ok_or_else(|| "external Fore remote Sign byte budget overflow".to_string())?;
+    let sign = HostedSignLog::new_with_remote_storage(
+        sign_items,
+        sign_bytes,
+        remote_sign_items,
+        remote_sign_bytes,
+    )
+    .map_err(|error| format!("installed sign store: {error:?}"))?;
     let mut external_listener = external_websocket_host::prepare(fragment)?;
     let mut http_host = http_host::InstalledHttpHost::prepare(fragment)?;
     let mut calendar_host = calendar_provider_host::CalendarProviderHost::prepare(fragment)?;
@@ -358,6 +395,65 @@ pub(super) fn run_fragment_retaining<W: Write, T: TimerAdapter>(
         _output.flush().map_err(|error| error.to_string())?;
     }
     let mut scheduler = kernel_tables.install(drivers, values, sign)?;
+    let mut external_fore_deliveries = Vec::with_capacity(
+        lowered
+            .fore_ports
+            .iter()
+            .filter(|port| port.direction == conduit_core::PortDirection::Output)
+            .count(),
+    );
+    let planned_inputs = lowered
+        .fore_ports
+        .iter()
+        .filter(|port| port.direction == conduit_core::PortDirection::Input)
+        .collect::<Vec<_>>();
+    let supplied_inputs = external_fore
+        .as_ref()
+        .map_or(&[][..], |binding| binding.inputs);
+    if supplied_inputs.len() != planned_inputs.len() {
+        return Err("external Fore input set does not match the sealed Plan".into());
+    }
+    for planned in planned_inputs {
+        let supplied = supplied_inputs
+            .iter()
+            .find(|input| {
+                input.front_port_id == planned.front_port_id && input.track == planned.track
+            })
+            .ok_or_else(|| {
+                format!(
+                    "external Fore input '{}' is missing",
+                    planned.front_port_id.as_str()
+                )
+            })?;
+        if supplied.bytes.len() > planned.byte_capacity as usize {
+            return Err(format!(
+                "external Fore input '{}' exceeds its sealed byte capacity",
+                planned.front_port_id.as_str()
+            ));
+        }
+        match scheduler
+            .admit_remote_input(planned.endpoint, planned.cord, 0, &supplied.bytes)
+            .map_err(|error| format!("admit external Fore input: {error:?}"))?
+        {
+            conduit_kernel::scheduler::RemoteIngressOutcome::Accepted { sequence: 0 } => {}
+            outcome => {
+                return Err(format!(
+                    "external Fore input was not admitted exactly: {outcome:?}"
+                ))
+            }
+        }
+        scheduler
+            .close_remote_input(planned.endpoint, planned.cord)
+            .map_err(|error| format!("close external Fore input: {error:?}"))?;
+    }
+    if lowered
+        .fore_ports
+        .iter()
+        .any(|port| port.direction == conduit_core::PortDirection::Output)
+        && external_fore.is_none()
+    {
+        return Err("sealed external Fore output has no acknowledging adapter".into());
+    }
 
     let presentation_capacity = fragment
         .placements
@@ -648,6 +744,40 @@ pub(super) fn run_fragment_retaining<W: Write, T: TimerAdapter>(
     let play_start_probe = crate::allocation_probe::begin();
     let mut accepted_stop = None;
     let terminal_disposition = loop {
+        for planned in lowered
+            .fore_ports
+            .iter()
+            .filter(|port| port.direction == conduit_core::PortDirection::Output)
+        {
+            while let Some(offer) = scheduler
+                .remote_egress_offer(planned.endpoint, planned.cord)
+                .map_err(|error| format!("offer external Fore output: {error:?}"))?
+            {
+                let bytes = scheduler
+                    .host_value(offer.value)
+                    .map_err(|error| format!("read external Fore output: {error:?}"))?
+                    .to_vec();
+                let delivery = crate::ExternalForeDelivery {
+                    front_port_id: planned.front_port_id.clone(),
+                    track: planned.track,
+                    value_kind: planned.value_kind.clone(),
+                    sequence: offer.sequence,
+                    bytes,
+                };
+                external_fore
+                    .as_mut()
+                    .expect("output adapter checked above")
+                    .output
+                    .deliver(delivery.clone())?;
+                scheduler
+                    .remote_egress_accept(planned.endpoint, planned.cord, offer.sequence)
+                    .map_err(|error| format!("accept external Fore output: {error:?}"))?;
+                scheduler
+                    .remote_egress_delivered(planned.endpoint, planned.cord, offer.sequence)
+                    .map_err(|error| format!("acknowledge external Fore output: {error:?}"))?;
+                external_fore_deliveries.push(delivery);
+            }
+        }
         if accepted_stop.is_none() {
             if let Some(request_id) = control.requested_stop() {
                 scheduler
@@ -3017,6 +3147,21 @@ pub(super) fn run_fragment_retaining<W: Write, T: TimerAdapter>(
             }
         }
     };
+    for planned in lowered
+        .fore_ports
+        .iter()
+        .filter(|port| port.direction == conduit_core::PortDirection::Output)
+    {
+        if !scheduler
+            .remote_egress_terminal(planned.endpoint, planned.cord)
+            .map_err(|error| format!("observe external Fore terminal: {error:?}"))?
+        {
+            return Err(format!(
+                "external Fore output '{}' did not reach an observed normal terminal",
+                planned.front_port_id.as_str()
+            ));
+        }
+    }
     for state in synth_states.iter_mut().flatten() {
         state.stop();
     }
@@ -3255,6 +3400,7 @@ pub(super) fn run_fragment_retaining<W: Write, T: TimerAdapter>(
             .and_then(crate::hosted_microphone::AlsaMicrophoneAdapter::take_receipt)
             .into_iter()
             .collect(),
+        external_fore_deliveries,
         kernel: Some(StdKernelExecutionReport {
             active_play_id: active_play.active_play_id,
             decisions: scheduler.decisions(),
@@ -3268,6 +3414,7 @@ pub(super) fn run_fragment_retaining<W: Write, T: TimerAdapter>(
             midi_input,
             midi_output,
             identity: execution_identity,
+            fore_endpoints: lowered.identity.fore_endpoints.clone(),
             #[cfg(test)]
             post_play_start_allocations,
         }),
