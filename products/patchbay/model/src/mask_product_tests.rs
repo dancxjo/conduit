@@ -119,9 +119,51 @@ fn fixture(available: bool) -> Fixture {
         core::slice::from_ref(&host),
     )
     .unwrap();
-    let plan =
-        conduit_planner::plan_expanded_canonical(&authoring.expanded, &[host], &placements, &[])
-            .unwrap();
+    let connection_bases = std::collections::BTreeMap::new();
+    let line_candidates = std::collections::BTreeMap::new();
+    let boundary_limits = authoring
+        .front
+        .inputs()
+        .iter()
+        .map(|port| (PortDirection::Input, port))
+        .chain(
+            authoring
+                .front
+                .outputs()
+                .iter()
+                .map(|port| (PortDirection::Output, port)),
+        )
+        .map(|(direction, port)| {
+            (
+                conduit_planner::ForeBoundaryKey {
+                    direction,
+                    front_port_id: port.port_id.clone(),
+                    track: conduit_core::ConnectionTrack::Payload,
+                },
+                conduit_planner::ConnectionQueueLimits {
+                    item_capacity: 1,
+                    byte_capacity: 64 * 1024,
+                },
+            )
+        })
+        .collect();
+    let plan = conduit_planner::plan_expanded_authoring_with_options(
+        &authoring,
+        &[host],
+        &placements,
+        &[],
+        conduit_planner::PlanningOptions {
+            connection_bases: &connection_bases,
+            line_candidates: &line_candidates,
+            connection_item_capacity: 1,
+            connection_byte_capacity: 64 * 1024,
+            authority_grants: &[],
+            protected_resource_grants: &[],
+            line_offers: &[],
+        },
+        &boundary_limits,
+    )
+    .unwrap();
     let planned = PlannedMaskForm::admit(&mask, &plan).unwrap();
     let route = SealedMaskFormRoute {
         route_id: "route/browser-mask".into(),
