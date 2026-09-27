@@ -881,6 +881,10 @@ fn push_terminal_transduction_text(
         return;
     };
     text.push_str("terminal-transduction:");
+    text.push_str(profile.input_port_id.as_str());
+    text.push('>');
+    text.push_str(profile.output_port_id.as_str());
+    text.push(':');
     match &profile.normal_close {
         Normal::NotAccepted => text.push_str("close/not-accepted"),
         Normal::PropagateAfterDrain => text.push_str("close/propagate-after-drain"),

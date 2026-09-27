@@ -106,6 +106,33 @@ pub(crate) fn validate_terminal_transduction_ports(
     profile: &crate::TerminalTransductionProfile,
 ) -> Result<(), KindValidationError> {
     use crate::{AbnormalTerminalTransduction, CancellationTransduction, NormalCloseTransduction};
+    let input = inputs
+        .iter()
+        .find(|port| port.port_id == profile.input_port_id)
+        .ok_or(KindValidationError::UnknownTerminalTransductionInput)?;
+    let output = outputs
+        .iter()
+        .find(|port| port.port_id == profile.output_port_id)
+        .ok_or(KindValidationError::UnknownTerminalTransductionOutput)?;
+    if !matches!(&profile.normal_close, NormalCloseTransduction::NotAccepted)
+        && (!matches!(input.temporal, crate::PortTemporal::Flow { closes: true })
+            || !matches!(output.temporal, crate::PortTemporal::Flow { closes: true }))
+    {
+        return Err(KindValidationError::TerminalCloseModalityMismatch);
+    }
+    if !matches!(&profile.abnormal, AbnormalTerminalTransduction::NotAccepted)
+        && input.abnormal_kind.is_none()
+    {
+        return Err(KindValidationError::TerminalAbnormalKindMismatch);
+    }
+    if matches!(
+        &profile.abnormal,
+        AbnormalTerminalTransduction::PropagateAfterDrain
+            | AbnormalTerminalTransduction::FinalizeThenPropagate(_)
+    ) && input.abnormal_kind != output.abnormal_kind
+    {
+        return Err(KindValidationError::TerminalAbnormalKindMismatch);
+    }
     let close_bound = match &profile.normal_close {
         NormalCloseTransduction::FlushThenPropagate(bound) => Some(bound),
         _ => None,
@@ -142,10 +169,7 @@ pub(crate) fn validate_terminal_transduction_ports(
         if cancellation_inputs != 1 {
             return Err(KindValidationError::CancellationControlMismatch);
         }
-        if !outputs
-            .iter()
-            .any(|port| port.abnormal_kind.as_ref() == Some(disposition_kind))
-        {
+        if output.abnormal_kind.as_ref() != Some(disposition_kind) {
             return Err(KindValidationError::CancellationDispositionMismatch);
         }
     }
@@ -163,6 +187,10 @@ pub enum KindValidationError {
     DuplicateTerminalTransduction,
     EmptyTerminalEmissionBound,
     EmptyTerminalLawIdentity,
+    UnknownTerminalTransductionInput,
+    UnknownTerminalTransductionOutput,
+    TerminalCloseModalityMismatch,
+    TerminalAbnormalKindMismatch,
     CancellationControlMismatch,
     CancellationDispositionMismatch,
 }
@@ -377,6 +405,8 @@ mod tests {
     #[test]
     fn terminal_transduction_keeps_types_and_three_behaviors_independent() {
         let mut contract = contract();
+        contract.inputs[0].temporal = PortTemporal::Flow { closes: true };
+        contract.inputs[0].abnormal_kind = Some(kind_id("test/work-terminal"));
         contract.inputs.push(PortDescriptor {
             port_id: port_id("halt"),
             direction: PortDirection::Input,
@@ -395,6 +425,8 @@ mod tests {
             .semantic_laws
             .push(KindSemanticLaw::TerminalTransduction(
                 crate::TerminalTransductionProfile {
+                    input_port_id: port_id("in"),
+                    output_port_id: port_id("result"),
                     normal_close: crate::NormalCloseTransduction::FlushThenPropagate(
                         crate::FiniteTerminalEmission {
                             maximum_items: 1,
@@ -408,6 +440,44 @@ mod tests {
                 },
             ));
         assert_eq!(contract.validate(), Ok(()));
+
+        let mut wrong_input = contract.clone();
+        let KindSemanticLaw::TerminalTransduction(profile) = &mut wrong_input.semantic_laws[0]
+        else {
+            unreachable!()
+        };
+        profile.input_port_id = port_id("invented");
+        assert_eq!(
+            wrong_input.validate(),
+            Err(KindValidationError::UnknownTerminalTransductionInput)
+        );
+
+        let mut wrong_terminal_kind = contract.clone();
+        wrong_terminal_kind.inputs[0].abnormal_kind = Some(kind_id("test/other-terminal"));
+        assert_eq!(
+            wrong_terminal_kind.validate(),
+            Err(KindValidationError::TerminalAbnormalKindMismatch)
+        );
+
+        for abnormal in [
+            crate::AbnormalTerminalTransduction::Recover,
+            crate::AbnormalTerminalTransduction::DomainSpecific {
+                law: kind_id("test/recover-law"),
+            },
+        ] {
+            let mut missing_abnormal_input = contract.clone();
+            missing_abnormal_input.inputs[0].abnormal_kind = None;
+            let KindSemanticLaw::TerminalTransduction(profile) =
+                &mut missing_abnormal_input.semantic_laws[0]
+            else {
+                unreachable!()
+            };
+            profile.abnormal = abnormal;
+            assert_eq!(
+                missing_abnormal_input.validate(),
+                Err(KindValidationError::TerminalAbnormalKindMismatch)
+            );
+        }
 
         let mut missing_control = contract.clone();
         missing_control

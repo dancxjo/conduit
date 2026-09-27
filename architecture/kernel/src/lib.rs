@@ -613,6 +613,7 @@ pub enum KernelEventKind {
     RemoteInputAdmitted,
     RemoteInputClosed,
     InputClosed,
+    InputAbnormal,
     HostCallRequested,
     HostCallCancellationRequested,
     HostCallCompleted,

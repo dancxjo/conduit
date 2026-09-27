@@ -336,6 +336,8 @@ fn push_terminal_transduction(
         AbnormalTerminalTransduction as Abnormal, CancellationTransduction as Cancellation,
         NormalCloseTransduction as Normal,
     };
+    push_string(canonical, profile.input_port_id.as_str());
+    push_string(canonical, profile.output_port_id.as_str());
     match &profile.normal_close {
         Normal::NotAccepted => canonical.push(0),
         Normal::PropagateAfterDrain => canonical.push(1),

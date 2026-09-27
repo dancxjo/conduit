@@ -1,7 +1,7 @@
 use alloc::{string::String, vec::Vec};
 use serde::{de::Error as _, Deserialize, Deserializer, Serialize};
 
-use crate::{KindId, StructuredInfoValue, MAXIMUM_STRUCTURED_CANONICAL_BYTES};
+use crate::{KindId, PortId, StructuredInfoValue, MAXIMUM_STRUCTURED_CANONICAL_BYTES};
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize)]
 pub struct StructuredConfigurationValue {
@@ -147,6 +147,10 @@ pub enum KindSemanticLaw {
 /// or cancellation truth.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct TerminalTransductionProfile {
+    /// Exact input Fore port whose terminal truth this contract consumes.
+    pub input_port_id: PortId,
+    /// Exact output Fore port on which propagated terminal truth appears.
+    pub output_port_id: PortId,
     pub normal_close: NormalCloseTransduction,
     pub abnormal: AbnormalTerminalTransduction,
     pub cancellation: CancellationTransduction,

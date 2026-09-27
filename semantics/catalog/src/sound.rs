@@ -282,7 +282,9 @@ pub fn audio_tone_semantic_contract() -> Kind {
         .semantic_laws
         .push(KindSemanticLaw::TerminalTransduction(
             TerminalTransductionProfile {
-                normal_close: NormalCloseTransduction::PropagateAfterDrain,
+                input_port_id: port_id("frequency"),
+                output_port_id: port_id("audio"),
+                normal_close: NormalCloseTransduction::NotAccepted,
                 abnormal: AbnormalTerminalTransduction::NotAccepted,
                 cancellation: CancellationTransduction::Request {
                     disposition_kind: kind_id(AUDIO_TONE_TERMINAL_INFO_ID),
