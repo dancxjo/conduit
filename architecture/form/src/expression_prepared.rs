@@ -4,7 +4,7 @@ use crate::{
     BinaryOperator, PortableExpressionEvaluationRefusal as Refusal, PortableExpressionNode,
     PortableExpressionOperation, PortableExpressionProgram, UnaryOperator,
 };
-use alloc::{boxed::Box, string::ToString, vec, vec::Vec};
+use alloc::{boxed::Box, string::ToString, vec::Vec};
 use conduit_core::{
     decode_count, encode_count, primitive_info_kind, FixedInteger, InfoBool, PrimitiveInfoKind,
     Quantity, QuantityUnit, Scalar, StructuredInfoTypeShape, BOOL_INFO_ID, COUNT_INFO_ID,
@@ -12,12 +12,20 @@ use conduit_core::{
 };
 use core::cmp::Ordering;
 
+mod structured;
+use structured::PreparedStructuredExpression;
+
 /// A prepared primitive-only evaluator. Construction owns every allocation;
 /// `evaluate` uses fixed stack values and one capacity-stable output buffer.
 pub struct PreparedPortableExpressionEvaluator {
-    root: PreparedNode,
+    root: PreparedRoot,
     input_kind: PrimitiveInfoKind,
     output: Vec<u8>,
+}
+
+enum PreparedRoot {
+    Primitive(PreparedNode),
+    Structured(PreparedStructuredExpression),
 }
 
 struct PreparedNode {
@@ -72,23 +80,39 @@ impl PrimitiveValue {
 impl PreparedPortableExpressionEvaluator {
     pub fn new(program: &PortableExpressionProgram) -> Result<Self, Refusal> {
         let input_kind = leaf_kind(&program.input_type)?;
-        let root = prepare_node(&program.root)?;
-        if root.kind != leaf_kind(&program.output_type)? {
-            return Err(Refusal::InvalidProgram);
-        }
+        let root = match program.output_type.shape() {
+            StructuredInfoTypeShape::Leaf(_) => {
+                let root = prepare_node(&program.root)?;
+                if root.kind != leaf_kind(&program.output_type)? {
+                    return Err(Refusal::InvalidProgram);
+                }
+                PreparedRoot::Primitive(root)
+            }
+            _ => PreparedRoot::Structured(PreparedStructuredExpression::new(program)?),
+        };
         Ok(Self {
             root,
             input_kind,
-            output: vec![0; MAXIMUM_STRUCTURED_LEAF_BYTES],
+            output: Vec::with_capacity(conduit_core::MAXIMUM_STRUCTURED_CANONICAL_BYTES),
         })
     }
 
     pub fn evaluate(&mut self, input: &[u8]) -> Result<&[u8], Refusal> {
         conduit_core::validate_primitive_info(kind_name(self.input_kind), input)
             .map_err(|_| Refusal::InvalidInput)?;
-        let value = evaluate_node(&self.root, input, self.input_kind)?;
-        self.output[..value.length].copy_from_slice(value.as_slice());
-        Ok(&self.output[..value.length])
+        self.output.clear();
+        match &mut self.root {
+            PreparedRoot::Primitive(root) => {
+                let value = evaluate_node(root, input, self.input_kind)?;
+                self.output.extend_from_slice(value.as_slice());
+            }
+            PreparedRoot::Structured(root) => root.evaluate(input, &mut self.output)?,
+        }
+        Ok(&self.output)
+    }
+
+    pub fn output_capacity(&self) -> usize {
+        self.output.capacity()
     }
 }
 
