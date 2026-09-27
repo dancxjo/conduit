@@ -28,6 +28,9 @@ impl AdmittedMaskFormRoutes {
         masks: &[PlannedMaskForm],
         routes: Vec<SealedMaskFormRoute>,
     ) -> Result<Self, MaskRouteAdmissionError> {
+        if body_plan.verify_seal().is_err() {
+            return Err(MaskRouteAdmissionError::InvalidPlan);
+        }
         for route in &routes {
             if route.plan_id != body_plan.plan_id {
                 return Err(MaskRouteAdmissionError::WrongPlan);

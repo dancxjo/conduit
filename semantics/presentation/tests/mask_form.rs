@@ -413,6 +413,17 @@ fn two_mask_forms_share_one_body_plan_identity_and_unsealed_masks_refuse() {
         .iter()
         .all(|route| route.plan_id == body_plan.plan_id));
 
+    let mut forged_body_plan = body_plan.clone();
+    forged_body_plan.plan_id = PlanId::from("body-plan/forged");
+    assert_eq!(
+        AdmittedMaskFormRoutes::new(
+            &forged_body_plan,
+            &[browser.clone(), spoken.clone()],
+            admitted.routes().to_vec(),
+        ),
+        Err(MaskRouteAdmissionError::InvalidPlan)
+    );
+
     let possible_but_unsealed = plan_mask(
         "form late-browser (\n >> presentation: Presentation\n interaction: FaceInteraction...| >>\n show: Show >>\n) {\n output: web/dom\n input: web/input\n presentation >> output.presentation\n output.show >> show\n input.interaction >> interaction\n}\n",
         "late-browser",

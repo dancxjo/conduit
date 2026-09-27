@@ -120,7 +120,7 @@ impl BodyPlan {
         }) {
             return Err(BodyPlanError::MissingForm);
         }
-        validate_presenter_topologies(wake, &presenter_topologies)?;
+        validate_presenter_topologies(&wake.workset, &presenter_topologies)?;
         presenter_topologies.sort_by(|left, right| left.presentation.cmp(&right.presentation));
         let plan_id = bind_body_plan(
             &wake.body_id,
@@ -156,6 +156,60 @@ impl BodyPlan {
             self.presenter_topologies.clone(),
         )?;
         if resealed.plan_id != self.plan_id {
+            return Err(BodyPlanError::InvalidIdentity);
+        }
+        Ok(())
+    }
+
+    /// Revalidate the immutable body-wide seal without relying on ambient Wake
+    /// state. Runtime consumers use this before trusting nested Form Plans.
+    pub fn verify_seal(&self) -> Result<(), BodyPlanError> {
+        self.workset
+            .validate()
+            .map_err(|_| BodyPlanError::InvalidIdentity)?;
+        if self.workset.is_empty() {
+            return Err(BodyPlanError::EmptyWorkset);
+        }
+        if self.forms.len() > MAX_BODY_FORMS {
+            return Err(BodyPlanError::FormCapacityExceeded);
+        }
+        if self
+            .forms
+            .windows(2)
+            .any(|pair| pair[0].form >= pair[1].form)
+        {
+            return Err(BodyPlanError::DuplicateForm);
+        }
+        for partition in &self.forms {
+            if !self.workset.contains(&partition.form)
+                || !verify_plan(&partition.plan)
+                || partition.plan.source_document_id != partition.form.source_document_id
+                || partition.plan.checked_form_id != partition.form.checked_form_id
+            {
+                return Err(BodyPlanError::InvalidPlan);
+            }
+        }
+        if self.workset.forms().iter().any(|form| {
+            self.forms
+                .binary_search_by(|value| value.form.cmp(form))
+                .is_err()
+        }) {
+            return Err(BodyPlanError::MissingForm);
+        }
+        validate_presenter_topologies(&self.workset, &self.presenter_topologies)?;
+        if self
+            .presenter_topologies
+            .windows(2)
+            .any(|pair| pair[0].presentation >= pair[1].presentation)
+            || self.plan_id
+                != bind_body_plan(
+                    &self.body_id,
+                    &self.wake_id,
+                    self.workload_revision,
+                    &self.forms,
+                    &self.presenter_topologies,
+                )
+        {
             return Err(BodyPlanError::InvalidIdentity);
         }
         Ok(())
@@ -236,7 +290,7 @@ fn bind_body_plan(
 }
 
 fn validate_presenter_topologies(
-    wake: &Wake,
+    workset: &BodyWorkset,
     topologies: &[BodyPresenterTopology],
 ) -> Result<(), BodyPlanError> {
     if topologies.len() > MAX_BODY_PRESENTER_TOPOLOGIES {
@@ -247,7 +301,7 @@ fn validate_presenter_topologies(
             .presentation
             .form
             .as_ref()
-            .is_some_and(|form| !wake.workset.contains(form))
+            .is_some_and(|form| !workset.contains(form))
             || topology
                 .presentation
                 .source_placement_id
