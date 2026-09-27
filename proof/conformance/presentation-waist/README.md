@@ -24,6 +24,11 @@ Run the deterministic model proof with:
 node --test proof/conformance/presentation-waist/presentation-waist.test.mjs
 ```
 
-This is contract/model evidence. It is not browser, speech-device, physical, or
-human-enactment evidence. The three projectors are deliberately transparent so
-the test can detect semantic loss independently of presentation appearance.
+`specimens.json` is also consumed by a `conduit-presentation` integration test.
+That test constructs and validates the current Rust `Presentation` type for all
+ten specimens, then exercises the production deterministic-linear projector.
+
+The graphical and spoken projectors remain transparent contract models. This is
+not actual graphical-Mask, speech-device, physical, or human-enactment evidence.
+Those two real Mask integrations remain required before this matrix can support
+closing #4167.
