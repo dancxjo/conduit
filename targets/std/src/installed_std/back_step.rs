@@ -160,6 +160,7 @@ installed_step_dispatch!(
     SpeechSynthesis,
     AudioRenderDemand,
     AudioPlay,
+    AudioTone,
     WavArtifact,
     PcmProfileConversion,
     MidiOutput,
@@ -222,6 +223,16 @@ installed_step_dispatch!(
     TestScalarLiteral,
     #[cfg(test)]
     TestScalarSink,
+    #[cfg(test)]
+    TestFrequencySource,
+    #[cfg(test)]
+    TestTonePcmSink,
+    #[cfg(test)]
+    TestCancellationSource,
+    #[cfg(test)]
+    TestToneTerminalRecovery,
+    #[cfg(test)]
+    TestNormalCloseSink,
     #[cfg(test)]
     TestGateScript,
     #[cfg(test)]

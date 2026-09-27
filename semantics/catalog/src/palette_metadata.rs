@@ -10,10 +10,10 @@ use conduit_presentation::BITMAP_PRESENTATION_KIND;
 
 use crate::{
     APPLICATION_EVENT_SOURCE_KIND, APPLICATION_VIEW_PRESENTATION_KIND, AUDIO_RENDER_DEMAND_KIND,
-    BOOL_PRESENTATION_KIND, CHORDS_KIND, COPY_FILE_KIND, COUNT_PRESENTATION_KIND, GATE_KIND,
-    GRAPHICS_ICON_KIND, GRAPHICS_PRESENTATION_KIND, GRAPHICS_RECT_KIND, GRAPHICS_TEXT_KIND,
-    KEYBOARD_KIND, KEYMAP_KIND, KEY_EVENT_TEE_KIND, LATEST_KIND, LAYOUT_ALIGN_KIND,
-    LAYOUT_COLUMN_KIND, LAYOUT_INSET_KIND, LAYOUT_ROW_KIND, LAYOUT_STACK_KIND,
+    AUDIO_TONE_KIND, BOOL_PRESENTATION_KIND, CHORDS_KIND, COPY_FILE_KIND, COUNT_PRESENTATION_KIND,
+    GATE_KIND, GRAPHICS_ICON_KIND, GRAPHICS_PRESENTATION_KIND, GRAPHICS_RECT_KIND,
+    GRAPHICS_TEXT_KIND, KEYBOARD_KIND, KEYMAP_KIND, KEY_EVENT_TEE_KIND, LATEST_KIND,
+    LAYOUT_ALIGN_KIND, LAYOUT_COLUMN_KIND, LAYOUT_INSET_KIND, LAYOUT_ROW_KIND, LAYOUT_STACK_KIND,
     LAYOUT_VIEWPORT_KIND, LOGIC_COMPARE_KIND, LOGIC_NOT_KIND, LOGIC_SELECT_KIND, MATH_CLAMP_KIND,
     MATH_DEADBAND_KIND, MATH_SCALE_KIND, MUSIC_INPUT_KIND, MUSIC_SYNTH_KIND, PATCHBAY_CORD_KIND,
     PATCHBAY_GEAR_FACE_KIND, PATCHBAY_PORT_KIND, PATCHBAY_PRESENTATION_KIND,
@@ -105,6 +105,11 @@ pub fn palette_metadata(kind_id: &KindId) -> Option<PaletteMetadata> {
             PaletteCategory::TimeAndFlow,
             &["audio", "render", "interval", "clock"],
             PaletteIconKey::Clock,
+        ),
+        AUDIO_TONE_KIND => metadata(
+            PaletteCategory::Transform,
+            &["audio", "tone", "frequency", "pcm"],
+            PaletteIconKey::Type,
         ),
         MUSIC_SYNTH_KIND => metadata(
             PaletteCategory::Transform,
@@ -496,7 +501,7 @@ mod tests {
     #[test]
     fn every_supported_kind_has_non_fallback_legibility_metadata() {
         let contracts = crate::palette_contracts();
-        assert_eq!(contracts.len(), 74);
+        assert_eq!(contracts.len(), 75);
         assert_eq!(
             contracts
                 .iter()

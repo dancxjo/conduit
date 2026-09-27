@@ -33,6 +33,7 @@ pub(super) fn lower_ports(
                 value_kind: descriptor.value_kind.clone(),
                 direction: descriptor.direction,
                 temporal: descriptor.temporal,
+                abnormal_kind: descriptor.abnormal_kind.clone(),
             })
         })
         .collect()

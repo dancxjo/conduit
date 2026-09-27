@@ -342,6 +342,7 @@ pub(super) fn build_advertisement(
     if composition.alife {
         capabilities.extend(conduit_std_offers::alife_offers());
     }
+    capabilities.push(conduit_std_offers::audio_tone_offer());
     if playback.is_some() {
         capabilities.push(conduit_std_offers::audio_play_alsa_hw_offer());
     }

@@ -5,6 +5,7 @@ use super::alife_backs::{
     LENIA_STEP_FACTORY, ORBIUM_SEED_FACTORY, SCALAR_FIELD_PRESENTATION_FACTORY,
 };
 use super::audio_play_back::AUDIO_PLAY_FACTORY;
+use super::audio_tone_back::FACTORY as AUDIO_TONE_FACTORY;
 use super::back::BackFactory;
 use super::body_chat_prompt_back::FACTORY as BODY_CHAT_PROMPT_FACTORY;
 use super::body_conversation_context_back::FACTORY as BODY_CONVERSATION_CONTEXT_FACTORY;
@@ -113,6 +114,13 @@ use super::synth_back::MUSIC_SYNTH_FACTORY;
 use super::template_storage_back::FACTORY as TEMPLATE_STORAGE_FACTORY;
 use super::test_audio_source::FACTORY as TEST_PCM_SOURCE_FACTORY;
 #[cfg(test)]
+use super::test_audio_tone::{
+    CANCEL_FACTORY as TEST_CANCELLATION_SOURCE_FACTORY,
+    CLOSE_FACTORY as TEST_NORMAL_CLOSE_SINK_FACTORY,
+    RECOVERY_FACTORY as TEST_TONE_TERMINAL_RECOVERY_FACTORY,
+    SINK_FACTORY as TEST_TONE_PCM_SINK_FACTORY, SOURCE_FACTORY as TEST_FREQUENCY_SOURCE_FACTORY,
+};
+#[cfg(test)]
 use super::test_gate::{TEST_GATE_SCRIPT_FACTORY, TEST_SLOW_SCALAR_SINK_FACTORY};
 #[cfg(test)]
 use super::test_input_semantics::{TEST_CHORD_SINK_FACTORY, TEST_KEY_EVENT_SOURCE_FACTORY};
@@ -168,6 +176,17 @@ use super::whisper_speech_back::{
 use conduit_core::{ImplementationId, PlanFragment};
 
 const FACTORIES: &[&BackFactory] = &[
+    &AUDIO_TONE_FACTORY,
+    #[cfg(test)]
+    &TEST_FREQUENCY_SOURCE_FACTORY,
+    #[cfg(test)]
+    &TEST_TONE_PCM_SINK_FACTORY,
+    #[cfg(test)]
+    &TEST_CANCELLATION_SOURCE_FACTORY,
+    #[cfg(test)]
+    &TEST_TONE_TERMINAL_RECOVERY_FACTORY,
+    #[cfg(test)]
+    &TEST_NORMAL_CLOSE_SINK_FACTORY,
     #[cfg(any(test, feature = "local-model-proof"))]
     &RECORDED_SPEECH_FACTORY,
     &WHISPER_SPEECH_FACTORY,

@@ -15,10 +15,28 @@ pub fn install_sound_catalogs(
     profile: &mut conduit_form::ProfileCatalog,
 ) -> Result<(), String> {
     for (contract, revision) in sound_contracts_with_revisions() {
-        install_contract(startup, profile, contract, revision)?;
+        if contract.kind_id.as_str() == super::AUDIO_TONE_KIND {
+            install_semantic_contract(startup, profile, super::audio_tone_semantic_contract())?;
+        } else {
+            install_contract(startup, profile, contract, revision)?;
+        }
     }
     crate::install_structured_music_form_catalogs(startup, profile)?;
     Ok(())
+}
+
+fn install_semantic_contract(
+    startup: &mut conduit_form::StartupCatalog,
+    profile: &mut conduit_form::ProfileCatalog,
+    contract: conduit_core::Kind,
+) -> Result<(), String> {
+    startup.insert(KindSignature {
+        kind: contract.kind_id.as_str().to_string(),
+        startup_parameters: Vec::new(),
+    })?;
+    profile
+        .insert_kind(contract)
+        .map_err(|error| error.to_string())
 }
 
 /// Install only the portable push-to-talk Front when another semantic owner
