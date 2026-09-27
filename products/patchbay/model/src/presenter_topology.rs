@@ -9,8 +9,7 @@ use conduit_core::{
     PlacementId, Plan, PlanId, SourceDocumentId,
 };
 use conduit_presentation::{
-    Manifestation, ManifestationLifecycle, ManifestationSet, Presentation,
-    PresenterTopologyAdmission,
+    Manifestation, ManifestationLifecycle, ManifestationSet, MaskTopologyAdmission, Presentation,
 };
 use serde::{Deserialize, Serialize};
 
@@ -143,10 +142,10 @@ impl PresenterTopology {
             .ok_or(PresenterTopologyRefusal::InvalidTopology)?;
         let mut chains = Vec::with_capacity(selected.chains.len());
         for (chain_index, selected_chain) in selected.chains.iter().enumerate() {
-            let admission = PresenterTopologyAdmission::from_plan(&selected_chain.plan)
+            let admission = MaskTopologyAdmission::from_plan(&selected_chain.plan)
                 .map_err(map_admission_error)?;
             let admitted = admission
-                .chains
+                .paths
                 .iter()
                 .find(|chain| {
                     chain
@@ -199,9 +198,9 @@ impl PresenterTopology {
         {
             return Err(PresenterTopologyRefusal::SupersededBodyTruth);
         }
-        let admission = PresenterTopologyAdmission::from_plan(plan).map_err(map_admission_error)?;
+        let admission = MaskTopologyAdmission::from_plan(plan).map_err(map_admission_error)?;
         let chains = admission
-            .chains
+            .paths
             .into_iter()
             .enumerate()
             .map(|(chain_index, chain)| {

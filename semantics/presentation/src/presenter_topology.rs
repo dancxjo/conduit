@@ -1,4 +1,8 @@
-//! Presenter chains derived from ordinary immutable Plan placements and Cords.
+//! Compatibility admission for Mask paths derived from immutable Plan truth.
+//!
+//! New Mask specifications use [`PlannedMask`]. This projection remains for
+//! body Plans produced by the historical presenter entrance, but its canonical
+//! types no longer impose Presentation-to-Presentation intermediate stages.
 
 use alloc::{collections::BTreeMap, vec::Vec};
 use conduit_core::{
@@ -11,11 +15,13 @@ use crate::{
     MANIFESTATION_VALUE_KIND, PRESENTATION_VALUE_KIND, PRESENTER_STAGE_KIND, RENDERER_KIND,
 };
 
-pub const MAX_PRESENTER_CHAINS: usize = 8;
-pub const MAX_PRESENTER_STAGES_PER_CHAIN: usize = 8;
+pub const MAX_MASK_TOPOLOGY_PATHS: usize = 8;
+pub const MAX_MASK_TOPOLOGY_STAGES_PER_PATH: usize = 8;
+pub const MAX_PRESENTER_CHAINS: usize = MAX_MASK_TOPOLOGY_PATHS;
+pub const MAX_PRESENTER_STAGES_PER_CHAIN: usize = MAX_MASK_TOPOLOGY_STAGES_PER_PATH;
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
-pub struct PlannedPresenterStage {
+pub struct PlannedMaskTopologyStage {
     pub placement_id: PlacementId,
     pub capability_id: CapabilityId,
     pub implementation_id: ImplementationId,
@@ -29,18 +35,18 @@ pub struct PlannedPresenterStage {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
-pub struct PlannedPresenterChain {
-    pub stages: Vec<PlannedPresenterStage>,
+pub struct PlannedMaskTopologyPath {
+    pub stages: Vec<PlannedMaskTopologyStage>,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
-pub struct PresenterTopologyAdmission {
+pub struct MaskTopologyAdmission {
     pub plan_id: PlanId,
-    pub chains: Vec<PlannedPresenterChain>,
+    pub paths: Vec<PlannedMaskTopologyPath>,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
-pub enum PresenterTopologyError {
+pub enum MaskTopologyError {
     InvalidPlan,
     InvalidStageContract,
     IncompatibleType,
@@ -51,10 +57,10 @@ pub enum PresenterTopologyError {
     DuplicateStage,
 }
 
-impl PresenterTopologyAdmission {
-    pub fn from_plan(plan: &Plan) -> Result<Self, PresenterTopologyError> {
+impl MaskTopologyAdmission {
+    pub fn from_plan(plan: &Plan) -> Result<Self, MaskTopologyError> {
         if !verify_plan(plan) {
-            return Err(PresenterTopologyError::InvalidPlan);
+            return Err(MaskTopologyError::InvalidPlan);
         }
         let placements = plan
             .fragments
@@ -102,12 +108,12 @@ impl PresenterTopologyAdmission {
             walk(root, &placements, &next, &mut Vec::new(), &mut chains)?;
         }
         if chains.len() > MAX_PRESENTER_CHAINS {
-            return Err(PresenterTopologyError::ParallelChainBound);
+            return Err(MaskTopologyError::ParallelChainBound);
         }
         if !placements.values().any(|p| is_legacy_presenter(p)) {
             return Ok(Self {
                 plan_id: plan.plan_id.clone(),
-                chains,
+                paths: chains,
             });
         }
         let visited = chains
@@ -120,32 +126,40 @@ impl PresenterTopologyAdmission {
             .filter(|p| is_legacy_presenter(p))
             .any(|p| !visited.contains(&p.placement_id))
         {
-            return Err(PresenterTopologyError::Cycle);
+            return Err(MaskTopologyError::Cycle);
         }
         Ok(Self {
             plan_id: plan.plan_id.clone(),
-            chains,
+            paths: chains,
         })
     }
 }
+
+/// Historical names remain source-compatible while callers migrate to Mask
+/// vocabulary. They are aliases to the heterogeneous topology, not the old
+/// Presentation-to-Presentation restriction.
+pub type PresenterTopologyAdmission = MaskTopologyAdmission;
+pub type PresenterTopologyError = MaskTopologyError;
+pub type PlannedPresenterChain = PlannedMaskTopologyPath;
+pub type PlannedPresenterStage = PlannedMaskTopologyStage;
 
 fn walk(
     placement: &PlannedGear,
     placements: &BTreeMap<PlacementId, &PlannedGear>,
     next: &BTreeMap<PlacementId, Vec<PlacementId>>,
     path: &mut Vec<PlacementId>,
-    chains: &mut Vec<PlannedPresenterChain>,
-) -> Result<(), PresenterTopologyError> {
+    chains: &mut Vec<PlannedMaskTopologyPath>,
+) -> Result<(), MaskTopologyError> {
     if path.contains(&placement.placement_id) {
-        return Err(PresenterTopologyError::Cycle);
+        return Err(MaskTopologyError::Cycle);
     }
     if path.len() >= MAX_PRESENTER_STAGES_PER_CHAIN {
-        return Err(PresenterTopologyError::ChainLengthBound);
+        return Err(MaskTopologyError::ChainLengthBound);
     }
     validate_stage(placement)?;
     path.push(placement.placement_id.clone());
     if placement.outputs[0].value_kind.as_str() == MANIFESTATION_VALUE_KIND {
-        chains.push(PlannedPresenterChain {
+        chains.push(PlannedMaskTopologyPath {
             stages: path
                 .iter()
                 .map(|id| stage(placements[id]))
@@ -154,15 +168,13 @@ fn walk(
     } else {
         let successors = next
             .get(&placement.placement_id)
-            .ok_or(PresenterTopologyError::MissingTerminalRenderer)?;
+            .ok_or(MaskTopologyError::MissingTerminalRenderer)?;
         if successors.is_empty() {
-            return Err(PresenterTopologyError::MissingTerminalRenderer);
+            return Err(MaskTopologyError::MissingTerminalRenderer);
         }
         for id in successors {
             walk(
-                placements
-                    .get(id)
-                    .ok_or(PresenterTopologyError::InvalidPlan)?,
+                placements.get(id).ok_or(MaskTopologyError::InvalidPlan)?,
                 placements,
                 next,
                 path,
@@ -182,17 +194,17 @@ fn is_mask_stage(p: &PlannedGear) -> bool {
     p.inputs.len() == 1 && p.outputs.len() == 1
 }
 
-fn validate_stage(p: &PlannedGear) -> Result<(), PresenterTopologyError> {
+fn validate_stage(p: &PlannedGear) -> Result<(), MaskTopologyError> {
     if p.inputs.len() != 1 || p.outputs.len() != 1 {
-        return Err(PresenterTopologyError::InvalidStageContract);
+        return Err(MaskTopologyError::InvalidStageContract);
     }
     Ok(())
 }
 
-fn validate_legacy_stage(p: &PlannedGear) -> Result<(), PresenterTopologyError> {
+fn validate_legacy_stage(p: &PlannedGear) -> Result<(), MaskTopologyError> {
     validate_stage(p)?;
     if p.inputs[0].value_kind.as_str() != PRESENTATION_VALUE_KIND {
-        return Err(PresenterTopologyError::InvalidStageContract);
+        return Err(MaskTopologyError::InvalidStageContract);
     }
     let expected_output = if p.kind_id.as_str() == RENDERER_KIND {
         MANIFESTATION_VALUE_KIND
@@ -200,14 +212,14 @@ fn validate_legacy_stage(p: &PlannedGear) -> Result<(), PresenterTopologyError> 
         PRESENTATION_VALUE_KIND
     };
     if p.outputs[0].value_kind.as_str() != expected_output {
-        return Err(PresenterTopologyError::IncompatibleType);
+        return Err(MaskTopologyError::IncompatibleType);
     }
     Ok(())
 }
 
-fn stage(p: &PlannedGear) -> Result<PlannedPresenterStage, PresenterTopologyError> {
+fn stage(p: &PlannedGear) -> Result<PlannedMaskTopologyStage, MaskTopologyError> {
     validate_stage(p)?;
-    Ok(PlannedPresenterStage {
+    Ok(PlannedMaskTopologyStage {
         placement_id: p.placement_id.clone(),
         capability_id: p.capability_id.clone(),
         implementation_id: p.implementation_id.clone(),

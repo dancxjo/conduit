@@ -13,7 +13,7 @@ use conduit_presentation::{
     presenter_stage_kind_projection, presenter_stage_offer, renderer_kind_projection,
     ManifestationLifecycle, MaskBoundaryPort, MaskBoundaryRole, MaskCordSpecification, MaskShow,
     MaskSpecification, MaskStageId, MaskStagePlacement, MaskStageSpecification,
-    PresenterTopologyAdmission, MAX_RENDERER_VALUE_BYTES,
+    MaskTopologyAdmission, MAX_RENDERER_VALUE_BYTES,
 };
 use std::collections::BTreeMap;
 
@@ -119,21 +119,21 @@ fn ordinary_plan_cords_seal_a_typed_two_stage_presenter_chain() {
         &[BaseImplementationId::from("conduit.base/local@1")],
     )
     .unwrap();
-    let topology = PresenterTopologyAdmission::from_plan(&sealed).unwrap();
+    let topology = MaskTopologyAdmission::from_plan(&sealed).unwrap();
     assert_eq!(topology.plan_id, sealed.plan_id);
-    assert_eq!(topology.chains.len(), 1);
-    assert_eq!(topology.chains[0].stages.len(), 2);
+    assert_eq!(topology.paths.len(), 1);
+    assert_eq!(topology.paths[0].stages.len(), 2);
     assert_eq!(
-        topology.chains[0].stages[0].implementation_id.as_str(),
+        topology.paths[0].stages[0].implementation_id.as_str(),
         "normalize@1"
     );
     assert_eq!(
-        topology.chains[0].stages[1].implementation_id.as_str(),
+        topology.paths[0].stages[1].implementation_id.as_str(),
         "speech@1"
     );
-    assert_eq!(topology.chains[0].stages[0].input_item_capacity, 4);
-    assert!(topology.chains[0].stages[0].resources.is_empty());
-    assert_eq!(topology.chains[0].stages[1].resources.len(), 1);
+    assert_eq!(topology.paths[0].stages[0].input_item_capacity, 4);
+    assert!(topology.paths[0].stages[0].resources.is_empty());
+    assert_eq!(topology.paths[0].stages[1].resources.len(), 1);
     assert!(!SOURCE.contains("speech-host"));
 }
 
@@ -183,9 +183,9 @@ fn two_renderer_placements_are_two_independently_admitted_chains() {
         ]),
     };
     let sealed = plan(&form, &[graphical, speech], &placements, &[]).unwrap();
-    let topology = PresenterTopologyAdmission::from_plan(&sealed).unwrap();
-    assert_eq!(topology.chains.len(), 2);
-    assert!(topology.chains.iter().all(|chain| chain.stages.len() == 1));
+    let topology = MaskTopologyAdmission::from_plan(&sealed).unwrap();
+    assert_eq!(topology.paths.len(), 2);
+    assert!(topology.paths.iter().all(|path| path.stages.len() == 1));
 }
 
 #[test]
@@ -309,11 +309,11 @@ fn one_mask_chain_preserves_heterogeneous_language_text_and_pcm_stages() {
     )
     .unwrap();
 
-    let topology = PresenterTopologyAdmission::from_plan(&sealed).unwrap();
-    assert_eq!(topology.chains.len(), 1);
-    assert_eq!(topology.chains[0].stages.len(), 3);
+    let topology = MaskTopologyAdmission::from_plan(&sealed).unwrap();
+    assert_eq!(topology.paths.len(), 1);
+    assert_eq!(topology.paths[0].stages.len(), 3);
     assert_eq!(
-        topology.chains[0]
+        topology.paths[0]
             .stages
             .iter()
             .map(|stage| (stage.input_kind.as_str(), stage.output_kind.as_str()))
