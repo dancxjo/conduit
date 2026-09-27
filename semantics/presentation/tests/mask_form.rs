@@ -3,7 +3,7 @@
 use conduit_core::{
     bind_active_play, kind_id, port_id, ArtifactId, Back, BackOfferBuilder, BootId, CapabilityId,
     CapabilityLimits, ExecutionProfileId, HostAdvertisement, HostId, HostProfileId,
-    ImplementationId, Kind, KindIdentity, OfferGeneration, PortDescriptor, PortDirection,
+    ImplementationId, Kind, KindIdentity, OfferGeneration, PlanId, PortDescriptor, PortDirection,
     PortTemporal, SignId, PROTOCOL_VERSION,
 };
 use conduit_form::{
@@ -372,10 +372,10 @@ fn the_ordinary_planner_seals_the_mask_form_without_a_mask_planner() {
         PresentationBasis {
             body_id: Some(body.body_id),
             wake_id: Some(wake.wake_id),
-            source_document_id: Some(mask.form_identity.source_document_id.clone()),
-            checked_form_id: Some(mask.form_identity.checked_form_id.clone()),
-            expanded_form_id: Some(mask.form_identity.expanded_form_id.clone()),
-            plan_id: Some(plan.plan_id.clone()),
+            source_document_id: Some(conduit_core::SourceDocumentId::from("source/tutorial")),
+            checked_form_id: Some(conduit_core::CheckedFormId::from("checked/tutorial")),
+            expanded_form_id: Some(conduit_core::ExpandedFormId::from("expanded/tutorial")),
+            plan_id: Some(PlanId::from("plan/tutorial")),
             active_play_id: None,
             sign_ids: vec![SignId::from("sign/presentation")],
         },
@@ -411,5 +411,7 @@ fn the_ordinary_planner_seals_the_mask_form_without_a_mask_planner() {
     .unwrap();
     show.validate(&presentation).unwrap();
     assert_eq!(show.mask_form, mask.form_identity);
+    assert_eq!(show.presentation_plan_id, PlanId::from("plan/tutorial"));
+    assert_ne!(show.presentation_plan_id, show.planned_mask.plan.plan_id);
     assert_eq!(show.planned_mask.plan.plan_id, plan.plan_id);
 }
