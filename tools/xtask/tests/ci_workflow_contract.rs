@@ -464,6 +464,22 @@ fn browser_release_installs_its_exact_wasm_target() {
 }
 
 #[test]
+fn browser_development_admission_does_not_fabricate_avr_firmware() {
+    let root = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../..");
+    let workflow = fs::read_to_string(root.join(".github/workflows/tour-products.yml"))
+        .expect("read product workflow");
+    let avr_release = workflow
+        .split("\n  avr-release:\n")
+        .nth(1)
+        .and_then(|tail| tail.split("\n  browser-release:\n").next())
+        .expect("locate AVR release job");
+
+    assert!(avr_release.contains("if: needs.plan.outputs.pages_carrier_required == 'true'"));
+    assert!(!avr_release.contains("browser_admission_required"));
+    assert!(avr_release.contains("cargo +1.98.1 xtask avr release"));
+}
+
+#[test]
 fn product_descendants_use_explicit_direct_result_admission() {
     let root = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../..");
     let workflow = fs::read_to_string(root.join(".github/workflows/tour-products.yml"))

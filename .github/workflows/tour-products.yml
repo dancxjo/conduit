@@ -509,7 +509,7 @@ jobs:
 
   avr-release:
     needs: plan
-    if: needs.plan.outputs.pages_carrier_required == 'true' || needs.plan.outputs.browser_admission_required == 'true'
+    if: needs.plan.outputs.pages_carrier_required == 'true'
     runs-on: ubuntu-latest
     timeout-minutes: 20
     steps:
