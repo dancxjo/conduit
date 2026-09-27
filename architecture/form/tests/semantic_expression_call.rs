@@ -45,7 +45,7 @@ fn pure_kind() -> Kind {
 }
 
 #[test]
-fn direct_pure_semantic_call_lowers_to_the_called_kind_not_a_host_call() {
+fn nested_pure_semantic_calls_lower_to_ordered_called_kind_gears_not_host_calls() {
     let mut startup = StartupCatalog::new();
     for kind in ["test/scalar-source", "test/scalar-sink"] {
         startup
@@ -75,16 +75,25 @@ fn direct_pure_semantic_call_lowers_to_the_called_kind_not_a_host_call() {
             configuration: vec![],
         })
         .unwrap();
-    let source = "form calculate {\n source: test/scalar-source\n sink: test/scalar-sink\n source >> (math/negate(.)) >> sink\n}\n";
+    let source = "form calculate {\n source: test/scalar-source\n sink: test/scalar-sink\n source >> (math/negate(math/negate(.))) >> sink\n}\n";
     let checked = check_syntax_document(&parse_syntax_document(source), &startup).unwrap();
     let expanded = expand_canonical_form(&checked, "calculate", &profile).unwrap();
     assert!(expanded
         .gears
         .iter()
         .any(|gear| gear.kind_id.as_str() == "math/negate"));
+    assert_eq!(
+        expanded
+            .gears
+            .iter()
+            .filter(|gear| gear.kind_id.as_str() == "math/negate")
+            .count(),
+        2
+    );
     assert!(expanded
         .gears
         .iter()
         .all(|gear| gear.kind_contract_revision.as_str() != PURE_EXPRESSION_REVISION));
+    assert_eq!(expanded.connections.len(), 3);
     expanded.validate_expansion().unwrap();
 }
