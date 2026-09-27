@@ -1,7 +1,7 @@
 //! One exact Show of one Presentation through one planned ordinary Mask Form.
 
 use alloc::{format, string::String};
-use conduit_core::{ActivePlayIdentity, FormIdentity, SignId};
+use conduit_core::{ActivePlayIdentity, FormIdentity, PlanId, SignId};
 use serde::{Deserialize, Serialize};
 use sha2::{Digest, Sha256};
 
@@ -24,6 +24,10 @@ impl MaskShowId {
 pub struct MaskShow {
     pub show_id: MaskShowId,
     pub mask_form: FormIdentity,
+    /// The application/tutorial Form that produced the Face Presentation.
+    pub presentation_form: FormIdentity,
+    /// The application Plan is deliberately distinct from the Mask Plan.
+    pub presentation_plan_id: PlanId,
     pub presentation_id: PresentationContentId,
     pub presentation_revision: u64,
     pub planned_mask: PlannedMaskForm,
@@ -42,6 +46,7 @@ pub struct MaskInteractionCorrelation {
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum MaskShowError {
     StalePresentation,
+    MissingPresentationBasis,
     StalePlan,
     InvalidManifestation(ManifestationError),
     StaleShowIdentity,
@@ -58,7 +63,7 @@ impl MaskShow {
         target_subject: String,
         sign_id: SignId,
     ) -> Result<Self, MaskShowError> {
-        validate_basis(planned_mask, presentation)?;
+        let (presentation_form, presentation_plan_id) = validate_basis(presentation)?;
         let show = Manifestation::prepared_at_mask_form_boundary(
             presentation,
             &planned_mask.plan,
@@ -73,6 +78,8 @@ impl MaskShow {
         Ok(Self {
             show_id,
             mask_form: planned_mask.mask.form_identity.clone(),
+            presentation_form,
+            presentation_plan_id,
             presentation_id: presentation.identity.clone(),
             presentation_revision: presentation.revision,
             planned_mask: planned_mask.clone(),
@@ -107,8 +114,10 @@ impl MaskShow {
     }
 
     pub fn validate(&self, presentation: &Presentation) -> Result<(), MaskShowError> {
-        validate_basis(&self.planned_mask, presentation)?;
+        let (presentation_form, presentation_plan_id) = validate_basis(presentation)?;
         if self.mask_form != self.planned_mask.mask.form_identity
+            || self.presentation_form != presentation_form
+            || self.presentation_plan_id != presentation_plan_id
             || self.presentation_id != presentation.identity
             || self.presentation_revision != presentation.revision
             || self.show.placement_id != self.planned_mask.show_placement().placement_id
@@ -144,14 +153,27 @@ impl MaskShow {
     }
 }
 
-fn validate_basis(
-    _planned_mask: &PlannedMaskForm,
-    presentation: &Presentation,
-) -> Result<(), MaskShowError> {
+fn validate_basis(presentation: &Presentation) -> Result<(FormIdentity, PlanId), MaskShowError> {
     presentation
         .validate()
         .map_err(|_| MaskShowError::StalePresentation)?;
-    Ok(())
+    let basis = &presentation.basis;
+    let (Some(source_document_id), Some(checked_form_id), Some(expanded_form_id), Some(plan_id)) = (
+        basis.source_document_id.clone(),
+        basis.checked_form_id.clone(),
+        basis.expanded_form_id.clone(),
+        basis.plan_id.clone(),
+    ) else {
+        return Err(MaskShowError::MissingPresentationBasis);
+    };
+    Ok((
+        FormIdentity {
+            source_document_id,
+            checked_form_id,
+            expanded_form_id,
+        },
+        plan_id,
+    ))
 }
 
 fn bind_show(
@@ -160,9 +182,21 @@ fn bind_show(
     show: &Show,
 ) -> MaskShowId {
     let canonical = format!(
-        "conduit.presentation/mask-form-show@1\n{}\n{}\n{}\n{}\n{}\n{}\n",
+        "conduit.presentation/mask-form-show@1\n{}\n{}\n{}\n{}\n{}\n{}\n{}\n{}\n",
         planned_mask.mask.form_identity.checked_form_id.as_str(),
         planned_mask.mask.form_identity.expanded_form_id.as_str(),
+        presentation
+            .basis
+            .checked_form_id
+            .as_ref()
+            .expect("validated Mask Presentation retains its application Form")
+            .as_str(),
+        presentation
+            .basis
+            .plan_id
+            .as_ref()
+            .expect("validated Mask Presentation retains its application Plan")
+            .as_str(),
         presentation.identity.as_str(),
         presentation.revision,
         planned_mask.plan.plan_id.as_str(),

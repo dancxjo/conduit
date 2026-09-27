@@ -187,6 +187,69 @@ fn resident_patchbay_replans_its_own_graphical_and_speech_presenters() {
     let speech = journey.projection();
     assert_eq!(speech.body_id, initial.body_id);
     assert_ne!(speech.plan_id, parallel.plan_id);
+    let mask = speech
+        .mask
+        .as_ref()
+        .expect("replacement retains Mask truth");
+    assert!(mask.actions.contains(&"doff"));
+    assert_eq!(mask.route_disposition, "selected-executed-route");
+    assert_eq!(mask.planning_disposition, "not-required");
+    assert!(mask.show_id.is_some() && mask.manifestation_id.is_some());
+    assert!(mask.presentation_id.is_some() && mask.presentation_revision.is_some());
+    assert_eq!(mask.mask_actions.len(), 10);
+    assert_eq!(
+        mask.mask_actions
+            .iter()
+            .map(|outcome| outcome.action_id)
+            .collect::<Vec<_>>(),
+        conduit_presentation::MASK_JOURNEY_ACTIONS.map(conduit_presentation::MaskJourneyAction::id)
+    );
+    assert!(
+        mask.mask_actions
+            .iter()
+            .all(|outcome| outcome.presentation_id == mask.presentation_id.as_deref().unwrap())
+    );
+    let initial_show = &mask.mask_actions[0];
+    let preferred = &mask.mask_actions[2];
+    assert_eq!(preferred.plan_id, initial_show.plan_id);
+    assert_ne!(preferred.show_id, initial_show.show_id);
+    assert_ne!(preferred.selected_route_id, initial_show.selected_route_id);
+    assert_ne!(
+        preferred.selected_mask_form_id,
+        initial_show.selected_mask_form_id
+    );
+    for unavailable in &mask.mask_actions[3..6] {
+        assert_eq!(unavailable.plan_id, initial_show.plan_id);
+        assert!(unavailable.show_id.is_none());
+    }
+    let replacement = &mask.mask_actions[6];
+    assert_ne!(replacement.plan_id, initial_show.plan_id);
+    assert!(replacement.show_id.is_some());
+    assert_eq!(mask.mask_actions[7].plan_id, replacement.plan_id);
+    let restored = &mask.mask_actions[9];
+    assert!(restored.show_id.is_some());
+    assert_eq!(restored.plan_id, replacement.plan_id);
+    assert_eq!(
+        restored.selected_mask_form_id,
+        initial_show.selected_mask_form_id
+    );
+    assert!(mask.kernel_signs > 0 && mask.fore_endpoints >= 3);
+    assert_eq!(mask.shows.len(), 1);
+    assert_eq!(mask.shows[0].mask_show_id, mask.show_id.as_deref().unwrap());
+    assert_eq!(
+        mask.shows[0].manifestation_id,
+        mask.manifestation_id.as_deref().unwrap()
+    );
+    assert_eq!(
+        mask.shows[0].presentation_id,
+        mask.presentation_id.as_deref().unwrap()
+    );
+    assert!(
+        mask.mask_plan_ids
+            .iter()
+            .all(|plan| Some(plan) != speech.plan_id.as_ref()),
+        "application and Mask Plan identities remain distinct"
+    );
     let speech_view = journey.foreground_application_view().unwrap();
     assert_eq!(
         speech_view

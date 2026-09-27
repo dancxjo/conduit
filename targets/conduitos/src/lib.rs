@@ -141,6 +141,8 @@ mod wss_candidate_support;
     feature = "aarch64-orange-pi-5"
 ))]
 pub mod linear_presenter;
+mod native_mask_journey;
+mod native_mask_play;
 #[cfg(any(test, target_arch = "x86_64", feature = "hosted-tools"))]
 pub mod presentation_nucleus;
 #[cfg(any(

@@ -22,6 +22,8 @@ thread_local! {
     static BODY: RefCell<Option<WorkspaceBody>> = const { RefCell::new(None) };
     static ADMISSIONS: RefCell<Option<AdmissionManager>> = const { RefCell::new(None) };
     static HOST_OFFERS: RefCell<CurrentHostOffers> = RefCell::new(CurrentHostOffers::new());
+    static BROWSER_MASK: RefCell<Option<crate::workspace_mask::BrowserMaskRuntime>> = const { RefCell::new(None) };
+    static MASK_JOURNEY_INITIAL: RefCell<Option<crate::workspace_mask::BrowserMaskObservation>> = const { RefCell::new(None) };
 }
 
 #[derive(Deserialize)]
@@ -116,6 +118,22 @@ enum Request {
         presentation_revision: u64,
         playback: conduit_workspace_model::tutorial::TutorialPlayback,
     },
+    PresentTutorialMask {
+        host_id: HostId,
+        boot_id: BootId,
+        revision: u64,
+        playback: conduit_workspace_model::tutorial::TutorialPlayback,
+    },
+    AcknowledgeTutorialMask {
+        acknowledgement: crate::workspace_mask::BrowserMaskAcknowledgement,
+    },
+    InteractWithTutorialMask {
+        interaction: crate::workspace_mask::BrowserMaskInteraction,
+    },
+    TutorialMaskObservation,
+    TutorialMaskJourney,
+    BeginTutorialMaskJourney,
+    PrepareTutorialMaskReplacement,
     InvitationView {
         invitation_id: String,
         body_id: String,
@@ -567,6 +585,77 @@ fn dispatch(request: Request) -> Result<Vec<u8>, Refusal> {
                     Refusal::new("TutorialPresenterRequest", format!("{error:?}"))
                 })?;
                 return encode(&request);
+            }
+            Request::PresentTutorialMask { host_id, boot_id, revision, playback } => {
+                let realization = current.realization().ok_or_else(|| Refusal::new("TutorialMaskPrepare", "Body has no active realization"))?;
+                let presentation = conduit_workspace_model::tutorial::face_presentation(
+                    current, revision, playback,
+                ).map_err(|error| Refusal::new("TutorialMaskPresentation", format!("{error:?}")))?;
+                let (runtime, effect) = crate::workspace_mask::BrowserMaskRuntime::prepare(
+                    current.evidence().body_id.clone(), host_id, boot_id, presentation,
+                    realization.wake.clone(), realization.plan.clone(),
+                ).map_err(|error| Refusal::new("TutorialMaskPrepare", error))?;
+                BROWSER_MASK.with(|slot| *slot.borrow_mut() = Some(runtime));
+                return encode(&effect);
+            }
+            Request::AcknowledgeTutorialMask { acknowledgement } => {
+                return BROWSER_MASK.with(|slot| {
+                    let mut slot = slot.borrow_mut();
+                    let runtime = slot.as_mut().ok_or("Browser Mask has not been prepared")?;
+                    runtime.acknowledge(&acknowledgement)
+                        .map_err(|error| Refusal::new("TutorialMaskAcknowledge", error))?;
+                    encode(&runtime.observation())
+                });
+            }
+            Request::InteractWithTutorialMask { interaction } => {
+                return BROWSER_MASK.with(|slot| {
+                    let mut slot = slot.borrow_mut();
+                    let runtime = slot.as_mut().ok_or("Browser Mask has not been prepared")?;
+                    let receipt = runtime.interact(&interaction)
+                        .map_err(|error| Refusal::new("TutorialMaskInteraction", error))?;
+                    encode(&receipt)
+                });
+            }
+            Request::TutorialMaskObservation => {
+                return BROWSER_MASK.with(|slot| {
+                    let slot = slot.borrow();
+                    let runtime = slot.as_ref().ok_or("Browser Mask has not been prepared")?;
+                    encode(&runtime.observation())
+                });
+            }
+            Request::TutorialMaskJourney => {
+                return BROWSER_MASK.with(|slot| {
+                    let slot = slot.borrow();
+                    let runtime = slot.as_ref().ok_or("Browser Mask has not been prepared")?;
+                    let initial = MASK_JOURNEY_INITIAL.with(|initial| initial.borrow().clone())
+                        .ok_or("Browser Mask journey has no retained initial realization")?;
+                    let outcomes = runtime.actualize_journey(&initial)
+                        .map_err(|error| Refusal::new("TutorialMaskJourney", error))?;
+                    encode(&outcomes)
+                });
+            }
+            Request::BeginTutorialMaskJourney => {
+                return BROWSER_MASK.with(|slot| {
+                    let slot = slot.borrow();
+                    let runtime = slot.as_ref().ok_or("Browser Mask has not been prepared")?;
+                    let observation = runtime.observation();
+                    if observation.mask_show.show.lifecycle != conduit_presentation::ManifestationLifecycle::Available
+                        || observation.interaction.is_none() {
+                        return Err(Refusal::new("TutorialMaskJourney", "initial browser Mask lacks DOM acknowledgement or interaction"));
+                    }
+                    MASK_JOURNEY_INITIAL.with(|initial| *initial.borrow_mut() = Some(observation));
+                    encode(&serde_json::json!({"status":"retained"}))
+                });
+            }
+            Request::PrepareTutorialMaskReplacement => {
+                let (runtime, effect) = BROWSER_MASK.with(|slot| {
+                    let slot = slot.borrow();
+                    let runtime = slot.as_ref().ok_or("Browser Mask has not been prepared")?;
+                    runtime.replacement(current.evidence().body_id.clone())
+                        .map_err(|error| Refusal::new("TutorialMaskReplacement", error))
+                })?;
+                BROWSER_MASK.with(|slot| *slot.borrow_mut() = Some(runtime));
+                return encode(&effect);
             }
             Request::InvitationView { invitation_id, body_id, body_name, expires_at_millis,
                 transfer_uri, revision, clipboard_available, share_available } => {
