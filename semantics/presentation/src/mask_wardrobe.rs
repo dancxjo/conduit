@@ -53,7 +53,7 @@ pub struct SelectedMaskRoute {
     pub plan_id: PlanId,
 }
 
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub enum MaskShowDisposition {
     Retain(SelectedMaskRoute),
     SelectSealed {
@@ -73,7 +73,7 @@ pub enum MaskPlanningDisposition {
     ReplacementRequired,
 }
 
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct MaskReconciliation {
     pub show: MaskShowDisposition,
     pub planning: MaskPlanningDisposition,

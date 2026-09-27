@@ -6,15 +6,16 @@ use conduit_presentation::{
     BodyMaskWardrobe, MaskReconciliation, MaskShowDisposition, MaskSpecificationId, MaskWardrobe,
     MaskWardrobeError, SealedMaskRoute, SelectedMaskRoute,
 };
+use serde::{Deserialize, Serialize};
 
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub enum MaskWardrobeAction {
     Wear(MaskSpecificationId),
     Doff(MaskSpecificationId),
     Prefer(Vec<MaskSpecificationId>),
 }
 
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct MaskWardrobeControlEvidence {
     pub body_id: BodyId,
     pub wake_id: Option<WakeId>,
@@ -25,7 +26,7 @@ pub struct MaskWardrobeControlEvidence {
     pub reconciliation: MaskReconciliation,
 }
 
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct MaskWardrobeControl {
     pub scoped_wardrobe: BodyMaskWardrobe,
     pub active_plan_id: PlanId,
