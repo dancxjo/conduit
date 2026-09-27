@@ -520,7 +520,7 @@ mod structured_selector_back;
 pub use structured_selector_back::StructuredSelectorBack;
 
 mod pure_expression;
-pub use pure_expression::pure_expression_contract;
+pub use pure_expression::{pure_expression_contract, pure_filter_contract};
 #[cfg(feature = "kernel-step")]
 mod pure_expression_back;
 #[cfg(feature = "kernel-step")]

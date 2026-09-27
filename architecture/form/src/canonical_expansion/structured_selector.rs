@@ -8,6 +8,7 @@ use conduit_core::{
 mod semantic_call;
 mod substitution;
 mod temporal;
+mod when_filter;
 use semantic_call::{
     direct_call_kind, expand_direct_semantic_call, expand_semantic_call_chain, semantic_call_chain,
 };
@@ -66,6 +67,10 @@ pub(super) enum PendingStage {
         expression: crate::ExpressionSyntax,
         source_span: crate::Span,
     },
+    When {
+        expression: crate::ExpressionSyntax,
+        source_span: crate::Span,
+    },
     Selector {
         selector: StructuredSelector,
         source_span: crate::Span,
@@ -120,17 +125,39 @@ pub(super) fn resolve_selectors(
                     gear_ids,
                     anonymous_counts,
                 )?),
+                PendingStage::When {
+                    expression,
+                    source_span,
+                } => stages.push(when_filter::expand_when_filter(
+                    expression,
+                    *source_span,
+                    stages.last(),
+                    &pending[index + 1..],
+                    source_form,
+                    structured_types,
+                    catalog,
+                    environment,
+                    path,
+                    gears,
+                    provenance,
+                    gear_ids,
+                    anonymous_counts,
+                )?),
                 PendingStage::Selector { .. } => unreachable!(),
             }
             continue;
         };
         let left = pending[..index].iter().rev().find_map(|stage| match stage {
             PendingStage::Ready(stage) => output_temporal(stage),
-            PendingStage::Selector { .. } | PendingStage::Expression { .. } => None,
+            PendingStage::Selector { .. }
+            | PendingStage::Expression { .. }
+            | PendingStage::When { .. } => None,
         });
         let right = pending[index + 1..].iter().find_map(|stage| match stage {
             PendingStage::Ready(stage) => input_temporal(stage),
-            PendingStage::Selector { .. } | PendingStage::Expression { .. } => None,
+            PendingStage::Selector { .. }
+            | PendingStage::Expression { .. }
+            | PendingStage::When { .. } => None,
         });
         let temporal = match (left, right) {
             (
@@ -238,7 +265,9 @@ fn expand_expression(
     };
     if let Some(right_temporal) = right.iter().find_map(|stage| match stage {
         PendingStage::Ready(stage) => input_temporal(stage),
-        PendingStage::Selector { .. } | PendingStage::Expression { .. } => None,
+        PendingStage::Selector { .. }
+        | PendingStage::Expression { .. }
+        | PendingStage::When { .. } => None,
     }) {
         if right_temporal != temporal {
             return Err(CanonicalExpansionDiagnostic::new(

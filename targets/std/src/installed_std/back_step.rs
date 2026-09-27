@@ -188,6 +188,7 @@ installed_step_dispatch!(
     RecordDeliveryStatus,
     RecordTranscript,
     StructuredSelector,
+    PureFilter,
     PureExpression,
     StructuredLiteral,
     StructuredPresentation,

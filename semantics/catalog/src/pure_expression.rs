@@ -45,6 +45,49 @@ pub fn pure_expression_contract(
     })
 }
 
+pub fn pure_filter_contract(
+    program: &conduit_form::PortableExpressionProgram,
+    temporal: PortTemporal,
+) -> Result<Kind, conduit_core::StructuredInfoRefusal> {
+    Ok(contract(conduit_form::portable_filter_definition(
+        program, temporal,
+    )?))
+}
+
+fn contract(definition: conduit_form::KindProjection) -> Kind {
+    Kind {
+        startup_parameters: vec![FrontStartupParameter {
+            name: "program".into(),
+            value_type: conduit_core::kind_id("value/text"),
+            has_default: false,
+        }],
+        shorthand: Some((
+            conduit_core::port_id("input"),
+            conduit_core::port_id("output"),
+        )),
+        kind_id: definition.kind_id,
+        kind_contract_revision: definition.kind_contract_revision,
+        inputs: definition.inputs,
+        outputs: definition.outputs,
+        configuration: definition.configuration,
+        semantic_laws: vec![
+            KindSemanticLaw::ExternalEffects(ExternalEffectBehavior::None),
+            KindSemanticLaw::TemporalState(TemporalStateBehavior::None),
+            KindSemanticLaw::TimeDependence(SemanticDependence::None),
+            KindSemanticLaw::RandomDependence(SemanticDependence::None),
+            KindSemanticLaw::ResourceDependence(SemanticDependence::None),
+            KindSemanticLaw::Suspension(SuspensionBehavior::Never),
+            KindSemanticLaw::Variability(VariabilityBehavior::DeterministicFromInputs),
+            KindSemanticLaw::Replay(ReplayBehavior::Exact),
+        ],
+        limits: CapabilityLimits {
+            max_active_instances: 8,
+            max_queue_items: 4,
+            max_queue_bytes: (MAXIMUM_STRUCTURED_CANONICAL_BYTES * 4) as u32,
+        },
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
