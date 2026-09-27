@@ -7,7 +7,9 @@ use conduit_core::{
 };
 use serde::{Deserialize, Serialize};
 
-use crate::{PRESENTATION_VALUE_KIND, PRESENTER_STAGE_KIND, RENDERER_KIND};
+use crate::{
+    MANIFESTATION_VALUE_KIND, PRESENTATION_VALUE_KIND, PRESENTER_STAGE_KIND, RENDERER_KIND,
+};
 
 pub const MAX_PRESENTER_CHAINS: usize = 8;
 pub const MAX_PRESENTER_STAGES_PER_CHAIN: usize = 8;
@@ -60,20 +62,26 @@ impl PresenterTopologyAdmission {
             .flat_map(|f| &f.placements)
             .map(|p| (p.placement_id.clone(), p))
             .collect::<BTreeMap<_, _>>();
+        for placement in placements.values().filter(|p| is_legacy_presenter(p)) {
+            validate_legacy_stage(placement)?;
+        }
         let mut next = BTreeMap::<PlacementId, Vec<PlacementId>>::new();
         let mut incoming = BTreeMap::<PlacementId, usize>::new();
         for fragment in &plan.fragments {
             for cord in &fragment.connections {
-                if cord.value_kind.as_str() != PRESENTATION_VALUE_KIND {
-                    continue;
-                }
                 let Some(source) = placements.get(&cord.source_placement_id) else {
                     continue;
                 };
                 let Some(sink) = placements.get(&cord.sink_placement_id) else {
                     continue;
                 };
-                if is_presenter(source) && is_presenter(sink) {
+                if is_mask_stage(source)
+                    && is_mask_stage(sink)
+                    && source.outputs[0].port_id == cord.source_port_id
+                    && sink.inputs[0].port_id == cord.sink_port_id
+                    && source.outputs[0].value_kind == cord.value_kind
+                    && sink.inputs[0].value_kind == cord.value_kind
+                {
                     next.entry(source.placement_id.clone())
                         .or_default()
                         .push(sink.placement_id.clone());
@@ -83,7 +91,11 @@ impl PresenterTopologyAdmission {
         }
         let roots = placements
             .values()
-            .filter(|p| is_presenter(p) && incoming.get(&p.placement_id).copied().unwrap_or(0) == 0)
+            .filter(|p| {
+                is_mask_stage(p)
+                    && p.inputs[0].value_kind.as_str() == PRESENTATION_VALUE_KIND
+                    && incoming.get(&p.placement_id).copied().unwrap_or(0) == 0
+            })
             .collect::<Vec<_>>();
         let mut chains = Vec::new();
         for root in roots {
@@ -92,7 +104,7 @@ impl PresenterTopologyAdmission {
         if chains.len() > MAX_PRESENTER_CHAINS {
             return Err(PresenterTopologyError::ParallelChainBound);
         }
-        if !placements.values().any(|p| is_presenter(p)) {
+        if !placements.values().any(|p| is_legacy_presenter(p)) {
             return Ok(Self {
                 plan_id: plan.plan_id.clone(),
                 chains,
@@ -105,7 +117,7 @@ impl PresenterTopologyAdmission {
             .collect::<alloc::collections::BTreeSet<_>>();
         if placements
             .values()
-            .filter(|p| is_presenter(p))
+            .filter(|p| is_legacy_presenter(p))
             .any(|p| !visited.contains(&p.placement_id))
         {
             return Err(PresenterTopologyError::Cycle);
@@ -132,7 +144,7 @@ fn walk(
     }
     validate_stage(placement)?;
     path.push(placement.placement_id.clone());
-    if placement.kind_id.as_str() == RENDERER_KIND {
+    if placement.outputs[0].value_kind.as_str() == MANIFESTATION_VALUE_KIND {
         chains.push(PlannedPresenterChain {
             stages: path
                 .iter()
@@ -162,19 +174,32 @@ fn walk(
     Ok(())
 }
 
-fn is_presenter(p: &PlannedGear) -> bool {
+fn is_legacy_presenter(p: &PlannedGear) -> bool {
     matches!(p.kind_id.as_str(), PRESENTER_STAGE_KIND | RENDERER_KIND)
 }
 
+fn is_mask_stage(p: &PlannedGear) -> bool {
+    p.inputs.len() == 1 && p.outputs.len() == 1
+}
+
 fn validate_stage(p: &PlannedGear) -> Result<(), PresenterTopologyError> {
-    if p.inputs.len() != 1 || p.inputs[0].value_kind.as_str() != PRESENTATION_VALUE_KIND {
+    if p.inputs.len() != 1 || p.outputs.len() != 1 {
         return Err(PresenterTopologyError::InvalidStageContract);
     }
-    let final_stage = p.kind_id.as_str() == RENDERER_KIND;
-    if (!final_stage
-        && (p.outputs.len() != 1 || p.outputs[0].value_kind.as_str() != PRESENTATION_VALUE_KIND))
-        || (final_stage && p.outputs.len() != 1)
-    {
+    Ok(())
+}
+
+fn validate_legacy_stage(p: &PlannedGear) -> Result<(), PresenterTopologyError> {
+    validate_stage(p)?;
+    if p.inputs[0].value_kind.as_str() != PRESENTATION_VALUE_KIND {
+        return Err(PresenterTopologyError::InvalidStageContract);
+    }
+    let expected_output = if p.kind_id.as_str() == RENDERER_KIND {
+        MANIFESTATION_VALUE_KIND
+    } else {
+        PRESENTATION_VALUE_KIND
+    };
+    if p.outputs[0].value_kind.as_str() != expected_output {
         return Err(PresenterTopologyError::IncompatibleType);
     }
     Ok(())

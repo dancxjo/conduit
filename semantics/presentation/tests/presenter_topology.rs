@@ -3,10 +3,11 @@
 mod common;
 
 use conduit_core::{
-    ArtifactId, BaseImplementationId, CapabilityId, CapabilityLimits, ExecutionProfileId, GearId,
-    ImplementationId, ImplementationOffer,
+    kind_id, port_id, ArtifactId, Back, BackOfferBuilder, BaseImplementationId, CapabilityId,
+    CapabilityLimits, ExecutionProfileId, GearId, ImplementationId, ImplementationOffer, Kind,
+    KindIdentity, PortDescriptor, PortDirection, PortTemporal,
 };
-use conduit_form::{parse, ProfileCatalog};
+use conduit_form::{parse, KindProjection, ProfileCatalog};
 use conduit_planner::{plan, PlacementChoice, PlacementChoices};
 use conduit_presentation::{
     presenter_stage_kind_projection, presenter_stage_offer, renderer_kind_projection,
@@ -15,6 +16,50 @@ use conduit_presentation::{
 use std::collections::BTreeMap;
 
 const SOURCE: &str = "form spoken-front {\n normalize: presentation/presenter-stage\n speech: presentation/renderer\n normalize.presentation >> speech.presentation\n}\n";
+
+fn stage_kind(kind: &str, input: &str, output: &str) -> Kind {
+    Kind {
+        startup_parameters: vec![],
+        shorthand: None,
+        kind_id: kind_id(kind),
+        kind_contract_revision: KindIdentity::from(format!("conduit.test/{kind}@1")),
+        inputs: vec![PortDescriptor {
+            port_id: port_id("input"),
+            value_kind: kind_id(input),
+            direction: PortDirection::Input,
+            temporal: PortTemporal::Value,
+        }],
+        outputs: vec![PortDescriptor {
+            port_id: port_id("output"),
+            value_kind: kind_id(output),
+            direction: PortDirection::Output,
+            temporal: PortTemporal::Value,
+        }],
+        configuration: vec![],
+        semantic_laws: Default::default(),
+        limits: CapabilityLimits {
+            max_active_instances: 1,
+            max_queue_items: 8,
+            max_queue_bytes: MAX_RENDERER_VALUE_BYTES,
+        },
+    }
+}
+
+fn stage_offer(kind: Kind, name: &str) -> conduit_core::CapabilityOffer {
+    BackOfferBuilder::new(
+        kind,
+        Back {
+            capability_id: CapabilityId::from(name),
+            execution_profile_id: ExecutionProfileId::from(format!("test/{name}@1")),
+            implementation_id: ImplementationId::from(format!("{name}@1")),
+            artifact_id: ArtifactId::from(format!("{name}-artifact@1")),
+            host_calls: vec![],
+            resource_requirements: vec![],
+            authority_requirements: vec![],
+        },
+    )
+    .build()
+}
 
 #[test]
 fn ordinary_plan_cords_seal_a_typed_two_stage_presenter_chain() {
@@ -139,4 +184,85 @@ fn two_renderer_placements_are_two_independently_admitted_chains() {
     let topology = PresenterTopologyAdmission::from_plan(&sealed).unwrap();
     assert_eq!(topology.chains.len(), 2);
     assert!(topology.chains.iter().all(|chain| chain.stages.len() == 1));
+}
+
+#[test]
+fn one_mask_chain_preserves_heterogeneous_language_text_and_pcm_stages() {
+    let language = stage_kind(
+        "presentation/generative-language",
+        "presentation/presentation@1",
+        "text/text@1",
+    );
+    let speech = stage_kind("speech/synthesize", "text/text@1", "audio/pcm@1");
+    let playback = stage_kind("audio/play", "audio/pcm@1", "presentation/manifestation@1");
+    let mut catalog = ProfileCatalog::new();
+    for kind in [&language, &speech, &playback] {
+        catalog.insert(KindProjection::from(kind)).unwrap();
+    }
+    let source = "form spoken-mask {\n language: presentation/generative-language\n voice: speech/synthesize\n output: audio/play\n language.output >> voice.input\n voice.output >> output.input\n}\n";
+    let form = parse(source, &catalog).unwrap();
+    let mut host = common::host(
+        "speech-host",
+        "speech-boot",
+        "unused-renderer",
+        "unused-renderer@1",
+        "unused-renderer-artifact@1",
+        "presentation/base/test-speech@1",
+        common::WAYLAND_RESOURCE,
+    );
+    host.capabilities.extend([
+        stage_offer(language, "language"),
+        stage_offer(speech, "voice"),
+        stage_offer(playback, "output"),
+    ]);
+    host.capabilities
+        .sort_by(|left, right| left.capability_id.cmp(&right.capability_id));
+    let placements = PlacementChoices {
+        by_gear: BTreeMap::from([
+            (
+                GearId::from("spoken-mask/language"),
+                PlacementChoice {
+                    host_id: host.host_id.clone(),
+                    capability_id: CapabilityId::from("language"),
+                },
+            ),
+            (
+                GearId::from("spoken-mask/voice"),
+                PlacementChoice {
+                    host_id: host.host_id.clone(),
+                    capability_id: CapabilityId::from("voice"),
+                },
+            ),
+            (
+                GearId::from("spoken-mask/output"),
+                PlacementChoice {
+                    host_id: host.host_id.clone(),
+                    capability_id: CapabilityId::from("output"),
+                },
+            ),
+        ]),
+    };
+    let sealed = plan(
+        &form,
+        &[host],
+        &placements,
+        &[BaseImplementationId::from("conduit.base/local@1")],
+    )
+    .unwrap();
+
+    let topology = PresenterTopologyAdmission::from_plan(&sealed).unwrap();
+    assert_eq!(topology.chains.len(), 1);
+    assert_eq!(topology.chains[0].stages.len(), 3);
+    assert_eq!(
+        topology.chains[0]
+            .stages
+            .iter()
+            .map(|stage| (stage.input_kind.as_str(), stage.output_kind.as_str()))
+            .collect::<Vec<_>>(),
+        vec![
+            ("presentation/presentation@1", "text/text@1"),
+            ("text/text@1", "audio/pcm@1"),
+            ("audio/pcm@1", "presentation/manifestation@1"),
+        ]
+    );
 }
