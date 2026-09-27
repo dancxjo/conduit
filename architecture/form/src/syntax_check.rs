@@ -48,14 +48,10 @@ pub(crate) fn check_document(
         forms.push(check_form(form, catalog, &form_signatures, &form_fronts)?);
     }
     forms.sort_by(|left, right| left.name.cmp(&right.name));
-    Ok(CheckedSyntaxDocument {
-        source_document_id: SourceDocumentId::from(hash_string(&format!(
-            "canonical-source:{}",
-            document.round_trip()
-        ))),
-        forms,
-        structured_types: catalog.structured_types_by_value_kind().map_err(|_| {
-            SyntaxCheckDiagnostic {
+    let mut structured_types =
+        catalog
+            .structured_types_by_value_kind()
+            .map_err(|_| SyntaxCheckDiagnostic {
                 code: "CND-FRM-053",
                 span: crate::Span {
                     start: 0,
@@ -66,8 +62,51 @@ pub(crate) fn check_document(
                     end_column: 1,
                 },
                 message: "structured type registry exceeds canonical bounds".into(),
+            })?;
+    for form in &document.forms {
+        for (source_type, optional) in form
+            .front
+            .startup_parameters
+            .iter()
+            .map(|parameter| (parameter.value_type.text.as_str(), parameter.optional))
+            .chain(form.front.runtime_ports.iter().map(|port| {
+                (
+                    port.value_type.text.as_str(),
+                    matches!(
+                        port.temporal,
+                        crate::RuntimePortTemporal::OptionalValue
+                            | crate::RuntimePortTemporal::CurrentOptional
+                    ),
+                )
+            }))
+        {
+            if optional {
+                let value_type = crate::value_type::checked_optional_type(source_type, catalog)
+                    .map_err(|_| SyntaxCheckDiagnostic {
+                        code: "CND-FRM-053",
+                        span: form.span,
+                        message: "optional type exceeds canonical finite bounds".into(),
+                    })?;
+                let value_kind = value_type
+                    .profile()
+                    .map_err(|_| SyntaxCheckDiagnostic {
+                        code: "CND-FRM-053",
+                        span: form.span,
+                        message: "optional type profile exceeds canonical finite bounds".into(),
+                    })?
+                    .value_kind()
+                    .clone();
+                structured_types.insert(value_kind, value_type);
             }
-        })?,
+        }
+    }
+    Ok(CheckedSyntaxDocument {
+        source_document_id: SourceDocumentId::from(hash_string(&format!(
+            "canonical-source:{}",
+            document.round_trip()
+        ))),
+        forms,
+        structured_types,
     })
 }
 

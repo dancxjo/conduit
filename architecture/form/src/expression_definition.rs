@@ -28,15 +28,13 @@ pub fn pure_expression_definition(
     portable_expression_definition(&program, temporal)
 }
 
-/// Projects a checked Boolean predicate into a flow-preserving filter. A
-/// rejected item produces no output; closure remains the input flow's closure.
+/// Projects a checked Boolean predicate into canonical unary filtering. Flows
+/// drop rejected items; one values emit the exact finite optional variant.
 pub fn pure_filter_definition(
     expression: &CheckedExpression,
     temporal: PortTemporal,
 ) -> Result<KindProjection, StructuredInfoRefusal> {
-    if expression.value_type != crate::CheckedExpressionType::semantic(conduit_core::BOOL_INFO_ID)
-        || !matches!(temporal, PortTemporal::Flow { .. })
-    {
+    if expression.value_type != crate::CheckedExpressionType::semantic(conduit_core::BOOL_INFO_ID) {
         return Err(StructuredInfoRefusal::MalformedCanonicalEncoding);
     }
     let program =
@@ -53,7 +51,7 @@ pub fn portable_filter_definition(
 ) -> Result<KindProjection, StructuredInfoRefusal> {
     if program.output_type
         != conduit_core::StructuredInfoType::leaf(kind_id(conduit_core::BOOL_INFO_ID))?
-        || !matches!(temporal, PortTemporal::Flow { .. })
+        || temporal == PortTemporal::Current
     {
         return Err(StructuredInfoRefusal::MalformedCanonicalEncoding);
     }
@@ -62,6 +60,14 @@ pub fn portable_filter_definition(
         _ => StructuredInfoRefusal::MalformedCanonicalEncoding,
     })?;
     let value = expression_port_kind(&program.input_type)?;
+    let output = if temporal == PortTemporal::Value {
+        conduit_core::optional_info_type(program.input_type.clone())?
+            .profile()?
+            .value_kind()
+            .clone()
+    } else {
+        value.clone()
+    };
     let identity = hash_string(&format!(
         "pure-filter:{PURE_FILTER_REVISION}:{}:{}:{}",
         value.as_str(),
@@ -79,7 +85,7 @@ pub fn portable_filter_definition(
         }],
         outputs: vec![PortDescriptor {
             port_id: port_id("output"),
-            value_kind: value,
+            value_kind: output,
             direction: PortDirection::Output,
             temporal,
         }],

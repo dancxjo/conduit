@@ -25,12 +25,6 @@ pub(super) fn expand_when_filter(
         }
         StageSource::FaceInput(_, kind, temporal) => (kind.clone(), *temporal),
     };
-    if !matches!(temporal, PortTemporal::Flow { .. }) {
-        return Err(diagnostic(
-            source_span,
-            "when filter over one value requires the canonical finite optional representation, which is not yet implemented; flow filters are supported",
-        ));
-    }
     if let Some(right_temporal) = right.iter().find_map(|stage| match stage {
         PendingStage::Ready(stage) => input_temporal(stage),
         PendingStage::Selector { .. }
@@ -40,7 +34,7 @@ pub(super) fn expand_when_filter(
         if right_temporal != temporal {
             return Err(diagnostic(
                 source_span,
-                "when filter cannot change a flow's temporal contract",
+                "when filter cannot change a Cord's temporal contract",
             ));
         }
     }

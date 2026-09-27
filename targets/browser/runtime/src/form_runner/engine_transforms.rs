@@ -20,13 +20,12 @@ pub(in crate::form_runner) fn complete_transform(
         let input = scheduler
             .kernel
             .host_value(request.input.value)
-            .map_err(debug_error)?
-            .to_vec();
+            .map_err(debug_error)?;
         let index = usize::from(request.node.0);
         let result = scheduler.applications[index]
             .as_mut()
             .ok_or("browser application state was not prepared before Play")?
-            .execute(&input);
+            .execute(input);
         let outcome = match result {
             Ok(bytes) => HostCallOutcome {
                 disposition: HostCallDisposition::Completed,
@@ -169,12 +168,11 @@ pub(in crate::form_runner) fn complete_transform(
         let input = scheduler
             .kernel
             .host_value(request.input.value)
-            .map_err(debug_error)?
-            .to_vec();
+            .map_err(debug_error)?;
         let result = scheduler.pure_expressions[usize::from(request.node.0)]
             .as_mut()
             .ok_or("pure expression was not prepared before Play")?
-            .execute(&input);
+            .execute(input);
         let outcome = match result {
             Ok(output) => HostCallOutcome {
                 disposition: HostCallDisposition::Completed,
@@ -207,20 +205,19 @@ pub(in crate::form_runner) fn complete_transform(
         let input = scheduler
             .kernel
             .host_value(request.input.value)
-            .map_err(debug_error)?
-            .to_vec();
+            .map_err(debug_error)?;
         let result = scheduler.pure_expressions[usize::from(request.node.0)]
             .as_mut()
             .ok_or("pure filter was not prepared before Play")?
-            .execute_filter(&input);
+            .execute_filter(input);
         let outcome = match result {
-            Ok(true) => HostCallOutcome {
+            Ok(Some(encoded)) => HostCallOutcome {
                 disposition: HostCallDisposition::Completed,
                 output: Some(
                     BoundedValueRef::new(
                         scheduler
                             .kernel
-                            .store_host_value(&input)
+                            .store_host_value(encoded)
                             .map_err(debug_error)?,
                         operation.maximum_output_bytes,
                     )
@@ -228,7 +225,7 @@ pub(in crate::form_runner) fn complete_transform(
                 ),
                 failure: None,
             },
-            Ok(false) => HostCallOutcome {
+            Ok(None) => HostCallOutcome {
                 disposition: HostCallDisposition::Completed,
                 output: None,
                 failure: None,

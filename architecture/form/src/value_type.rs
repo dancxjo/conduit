@@ -81,6 +81,23 @@ pub(crate) fn checked_value_kind(
         })
 }
 
+pub(crate) fn checked_value_type(
+    source_type: &str,
+    catalog: &StartupCatalog,
+) -> Result<conduit_core::StructuredInfoType, StructuredInfoRefusal> {
+    if let Some(value_type) = catalog.structured_type(source_type) {
+        return Ok(value_type.clone());
+    }
+    conduit_core::StructuredInfoType::leaf(checked_value_kind(source_type, catalog)?)
+}
+
+pub(crate) fn checked_optional_type(
+    source_type: &str,
+    catalog: &StartupCatalog,
+) -> Result<conduit_core::StructuredInfoType, StructuredInfoRefusal> {
+    conduit_core::optional_info_type(checked_value_type(source_type, catalog)?)
+}
+
 pub(crate) fn checked_front(
     form: &FormSyntax,
     catalog: &StartupCatalog,
@@ -170,7 +187,10 @@ fn checked_value_kind_with_modality(
 ) -> Result<KindId, StructuredInfoRefusal> {
     let value_kind = checked_value_kind(source_type, catalog)?;
     Ok(if optional {
-        kind_id(&format!("optional<{}>", value_kind.as_str()))
+        checked_optional_type(source_type, catalog)?
+            .profile()?
+            .value_kind()
+            .clone()
     } else {
         value_kind
     })

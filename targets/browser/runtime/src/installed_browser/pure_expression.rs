@@ -29,6 +29,12 @@ pub(super) static FILTER_INSTALLATION: BrowserInstallation = BrowserInstallation
 
 pub(crate) struct PreparedExpression {
     evaluator: conduit_form::PreparedPortableExpressionEvaluator,
+    filter_output: Option<PreparedFilterOutput>,
+}
+
+enum PreparedFilterOutput {
+    Flow(Vec<u8>),
+    Value(conduit_core::PreparedOptionalInfoEncoder),
 }
 
 impl PreparedExpression {
@@ -41,9 +47,28 @@ impl PreparedExpression {
         }
         let program = program_from_placement(placement)?;
         validate(placement, &program)?;
+        let filter_output = if placement.kind_contract_revision.as_str()
+            == conduit_form::PURE_FILTER_REVISION
+        {
+            Some(match placement.inputs[0].temporal {
+                PortTemporal::Value => PreparedFilterOutput::Value(
+                    conduit_core::PreparedOptionalInfoEncoder::new(program.input_type.clone())
+                        .map_err(|error| format!("prepare optional filter output: {error:?}"))?,
+                ),
+                PortTemporal::Flow { .. } => PreparedFilterOutput::Flow(Vec::with_capacity(
+                    MAXIMUM_STRUCTURED_CANONICAL_BYTES,
+                )),
+                PortTemporal::Current => {
+                    return Err("when filter does not admit current-value temporal input".into())
+                }
+            })
+        } else {
+            None
+        };
         Ok(Some(Self {
             evaluator: conduit_form::PreparedPortableExpressionEvaluator::new(&program)
                 .map_err(|error| format!("prepare pure expression evaluator: {error:?}"))?,
+            filter_output,
         }))
     }
 
@@ -51,13 +76,34 @@ impl PreparedExpression {
         self.evaluator.evaluate(input).map_err(failure)
     }
 
-    pub(crate) fn execute_filter(&mut self, input: &[u8]) -> Result<bool, Failure> {
-        conduit_core::InfoBool::decode(self.evaluator.evaluate(input).map_err(failure)?)
-            .map(conduit_core::InfoBool::get)
-            .map_err(|_| Failure {
-                code: FailureCode::InvalidInput,
-                detail: 7,
-            })
+    pub(crate) fn execute_filter(&mut self, input: &[u8]) -> Result<Option<&[u8]>, Failure> {
+        let selected =
+            conduit_core::InfoBool::decode(self.evaluator.evaluate(input).map_err(failure)?)
+                .map(conduit_core::InfoBool::get)
+                .map_err(|_| Failure {
+                    code: FailureCode::InvalidInput,
+                    detail: 7,
+                })?;
+        match self.filter_output.as_mut().ok_or(Failure {
+            code: FailureCode::InvalidInput,
+            detail: 8,
+        })? {
+            PreparedFilterOutput::Flow(output) => {
+                if !selected {
+                    return Ok(None);
+                }
+                output.clear();
+                output.extend_from_slice(input);
+                Ok(Some(output))
+            }
+            PreparedFilterOutput::Value(output) => output
+                .encode(selected.then_some(input))
+                .map(Some)
+                .map_err(|_| Failure {
+                    code: FailureCode::InvalidInput,
+                    detail: 9,
+                }),
+        }
     }
 }
 
