@@ -78,6 +78,7 @@ mod tests {
             limits: offer.limits,
             inputs: offer.inputs,
             outputs: offer.outputs,
+            terminal_transduction: None,
             host_calls: offer.host_calls,
             resources: vec![],
             authority: vec![],

@@ -2,12 +2,13 @@ use crate::prelude::*;
 
 use crate::{
     check_syntax_document, expand_canonical_form, parse_syntax_document, ConfigurationValue,
-    KindConfigurationField, KindConfigurationRule, KindProjection, KindSignature, ProfileCatalog,
-    StartupCatalog, StartupParameterSignature,
+    ExpandedCanonicalForm, KindConfigurationField, KindConfigurationRule, KindProjection,
+    KindSignature, ProfileCatalog, StartupCatalog, StartupParameterSignature,
 };
 use conduit_core::{
-    kind_id, port_id, CapabilityLimits, FrontStartupParameter, Kind, KindIdentity, PortDescriptor,
-    PortDirection, Quantity, QuantityUnit,
+    kind_id, port_id, AbnormalTerminalTransduction, CancellationTransduction, CapabilityLimits,
+    FrontStartupParameter, Kind, KindIdentity, KindSemanticLaw, NormalCloseTransduction,
+    PortDescriptor, PortDirection, Quantity, QuantityUnit, TerminalTransductionProfile,
 };
 
 fn canonical_kind(projection: KindProjection) -> Kind {
@@ -80,6 +81,56 @@ fn port(name: &str, direction: PortDirection) -> PortDescriptor {
         temporal: conduit_core::PortTemporal::Value,
         abnormal_kind: None,
     }
+}
+
+#[test]
+fn canonical_terminal_transduction_survives_expansion_and_changes_identity() {
+    fn expand(
+        abnormal: AbnormalTerminalTransduction,
+    ) -> (ExpandedCanonicalForm, conduit_core::CheckedFormId) {
+        let mut kind = canonical_kind(KindProjection {
+            kind_id: kind_id("test/terminal-transform"),
+            kind_contract_revision: KindIdentity::from("test/terminal-transform@1"),
+            inputs: vec![port("input", PortDirection::Input)],
+            outputs: vec![port("output", PortDirection::Output)],
+            configuration: vec![],
+        });
+        kind.semantic_laws
+            .push(KindSemanticLaw::TerminalTransduction(
+                TerminalTransductionProfile {
+                    normal_close: NormalCloseTransduction::PropagateAfterDrain,
+                    abnormal,
+                    cancellation: CancellationTransduction::NotCancellable,
+                },
+            ));
+        let mut profiles = ProfileCatalog::new();
+        profiles.insert_kind(kind).unwrap();
+        let startup = profiles.startup_catalog().unwrap();
+        let source = "form main {\n transform: test/terminal-transform\n}\n";
+        let checked = check_syntax_document(&parse_syntax_document(source), &startup).unwrap();
+        let expanded = expand_canonical_form(&checked, "main", &profiles).unwrap();
+        let planned_form = crate::parse(source, &profiles).unwrap();
+        planned_form.validate_identities().unwrap();
+        assert_eq!(
+            planned_form.gears[0].terminal_transduction,
+            expanded.gears[0].terminal_transduction
+        );
+        (expanded, planned_form.checked_form_id)
+    }
+
+    let (propagating, propagating_checked) =
+        expand(AbnormalTerminalTransduction::PropagateAfterDrain);
+    assert_eq!(
+        propagating.gears[0].terminal_transduction,
+        Some(TerminalTransductionProfile {
+            normal_close: NormalCloseTransduction::PropagateAfterDrain,
+            abnormal: AbnormalTerminalTransduction::PropagateAfterDrain,
+            cancellation: CancellationTransduction::NotCancellable,
+        })
+    );
+    let (recovering, recovering_checked) = expand(AbnormalTerminalTransduction::Recover);
+    assert_ne!(propagating_checked, recovering_checked);
+    assert_ne!(propagating.expanded_form_id, recovering.expanded_form_id);
 }
 
 #[test]

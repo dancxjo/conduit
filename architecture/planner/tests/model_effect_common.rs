@@ -43,6 +43,7 @@ fn placement(
         },
         inputs,
         outputs,
+        terminal_transduction: None,
         host_calls: vec![],
         resources: vec![],
         authority: vec![],

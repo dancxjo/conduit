@@ -201,6 +201,7 @@ pub(super) fn expanded_identity(
                 },
             );
         }
+        crate::push_terminal_transduction_text(&mut canonical, gear.terminal_transduction.as_ref());
         for entry in &gear.configuration {
             push(&mut canonical, &entry.key);
             match entry.value {

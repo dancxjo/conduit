@@ -65,6 +65,7 @@ pub(crate) fn placement(
             },
             inputs: Vec::new(),
             outputs: Vec::new(),
+            terminal_transduction: None,
             host_calls: vec![HostCallRequirement {
                 contract_id: operation.into(),
                 target_kind: Some(kind),

@@ -186,6 +186,7 @@ fn expand_argument_expression(
         shorthand: Some((input.port_id.clone(), output.port_id.clone())),
         inputs: vec![input.clone()],
         outputs: vec![output.clone()],
+        terminal_transduction: None,
         configuration: definition
             .configuration
             .into_iter()
@@ -321,6 +322,7 @@ fn expand_one(
         shorthand: kind.shorthand.clone(),
         inputs: kind.inputs.clone(),
         outputs: kind.outputs.clone(),
+        terminal_transduction: kind.terminal_transduction().cloned(),
         configuration: kind
             .configuration
             .iter()

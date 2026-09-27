@@ -555,6 +555,7 @@ pub(crate) fn plan_validated_form_with_connection_limits(
             limits: capability.limits.clone(),
             inputs: capability.inputs.clone(),
             outputs: capability.outputs.clone(),
+            terminal_transduction: gear.terminal_transduction.clone(),
             host_calls: capability.host_calls.clone(),
             resources: resource_bindings,
             authority: authority_bindings,

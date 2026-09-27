@@ -126,6 +126,7 @@ pub fn compute_fragment_id(fragment: &PlanFragment) -> FragmentId {
         push_u32(&mut canonical, gear.limits.max_queue_bytes);
         push_ports(&mut canonical, &gear.inputs);
         push_ports(&mut canonical, &gear.outputs);
+        push_terminal_transduction(&mut canonical, gear.terminal_transduction.as_ref());
         push_u32(&mut canonical, gear.host_calls.len() as u32);
         for requirement in &gear.host_calls {
             push_string(&mut canonical, requirement.contract_id.as_str());
@@ -322,6 +323,60 @@ pub fn compute_fragment_id(fragment: &PlanFragment) -> FragmentId {
     push_u32(&mut canonical, fragment.sign_storage_budget.byte_capacity);
     crate::state_delay::push_canonical_state(&mut canonical, &fragment.states);
     FragmentId::from(hash_bytes(&canonical))
+}
+
+fn push_terminal_transduction(
+    canonical: &mut Vec<u8>,
+    profile: Option<&crate::TerminalTransductionProfile>,
+) {
+    use crate::{
+        AbnormalTerminalTransduction as Abnormal, CancellationTransduction as Cancellation,
+        NormalCloseTransduction as Normal,
+    };
+    let Some(profile) = profile else {
+        canonical.push(0);
+        return;
+    };
+    canonical.push(1);
+    match &profile.normal_close {
+        Normal::NotAccepted => canonical.push(0),
+        Normal::PropagateAfterDrain => canonical.push(1),
+        Normal::Consume => canonical.push(2),
+        Normal::FlushThenPropagate(bound) => {
+            canonical.push(3);
+            canonical.extend_from_slice(&bound.maximum_items.to_le_bytes());
+            push_u32(canonical, bound.maximum_bytes);
+        }
+        Normal::DomainSpecific { law } => {
+            canonical.push(4);
+            push_string(canonical, law.as_str());
+        }
+    }
+    match &profile.abnormal {
+        Abnormal::NotAccepted => canonical.push(0),
+        Abnormal::PropagateAfterDrain => canonical.push(1),
+        Abnormal::Recover => canonical.push(2),
+        Abnormal::FinalizeThenPropagate(bound) => {
+            canonical.push(3);
+            canonical.extend_from_slice(&bound.maximum_items.to_le_bytes());
+            push_u32(canonical, bound.maximum_bytes);
+        }
+        Abnormal::DomainSpecific { law } => {
+            canonical.push(4);
+            push_string(canonical, law.as_str());
+        }
+    }
+    match &profile.cancellation {
+        Cancellation::NotCancellable => canonical.push(0),
+        Cancellation::Request { disposition_kind } => {
+            canonical.push(1);
+            push_string(canonical, disposition_kind.as_str());
+        }
+        Cancellation::DomainSpecific { law } => {
+            canonical.push(2);
+            push_string(canonical, law.as_str());
+        }
+    }
 }
 
 fn push_checked_front(canonical: &mut Vec<u8>, front: &CheckedFront) {

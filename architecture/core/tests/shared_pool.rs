@@ -124,6 +124,7 @@ fn fragment(pool: PlannedSharedPool) -> PlanFragment {
                 },
                 inputs: Vec::new(),
                 outputs: Vec::new(),
+                terminal_transduction: None,
                 host_calls: Vec::new(),
                 resources: Vec::new(),
                 authority: Vec::new(),

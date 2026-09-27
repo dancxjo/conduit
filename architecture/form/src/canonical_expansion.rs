@@ -519,6 +519,7 @@ fn instantiate_gear(
                 shorthand: Some((input.port_id.clone(), output.port_id.clone())),
                 inputs: vec![input.clone()],
                 outputs: vec![output.clone()],
+                terminal_transduction: None,
                 configuration,
                 pool_references: Vec::new(),
             });
@@ -606,6 +607,10 @@ fn instantiate_gear(
         },
         inputs: definition.inputs.clone(),
         outputs: definition.outputs.clone(),
+        terminal_transduction: catalog
+            .canonical_kind(&kind_id)
+            .and_then(conduit_core::Kind::terminal_transduction)
+            .cloned(),
         configuration,
         pool_references,
     });

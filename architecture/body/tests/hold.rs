@@ -60,6 +60,7 @@ fn exact_plan(label: &str, host: &str) -> Plan {
             },
             inputs: vec![],
             outputs: vec![],
+            terminal_transduction: None,
             host_calls: vec![],
             resources: vec![ResourceBinding {
                 content: None,

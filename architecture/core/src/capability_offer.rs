@@ -24,6 +24,13 @@ pub struct Kind {
 }
 
 impl Kind {
+    pub fn terminal_transduction(&self) -> Option<&crate::TerminalTransductionProfile> {
+        self.semantic_laws.iter().find_map(|law| match law {
+            KindSemanticLaw::TerminalTransduction(profile) => Some(profile),
+            _ => None,
+        })
+    }
+
     pub fn checked_front(&self) -> CheckedFront {
         CheckedFront::new(
             self.startup_parameters.clone(),
@@ -90,6 +97,14 @@ fn validate_terminal_transduction(
     kind: &Kind,
     profile: &crate::TerminalTransductionProfile,
 ) -> Result<(), KindValidationError> {
+    validate_terminal_transduction_ports(&kind.inputs, &kind.outputs, profile)
+}
+
+pub(crate) fn validate_terminal_transduction_ports(
+    inputs: &[PortDescriptor],
+    outputs: &[PortDescriptor],
+    profile: &crate::TerminalTransductionProfile,
+) -> Result<(), KindValidationError> {
     use crate::{AbnormalTerminalTransduction, CancellationTransduction, NormalCloseTransduction};
     let close_bound = match &profile.normal_close {
         NormalCloseTransduction::FlushThenPropagate(bound) => Some(bound),
@@ -120,16 +135,14 @@ fn validate_terminal_transduction(
         return Err(KindValidationError::EmptyTerminalLawIdentity);
     }
     if let CancellationTransduction::Request { disposition_kind } = &profile.cancellation {
-        let cancellation_inputs = kind
-            .inputs
+        let cancellation_inputs = inputs
             .iter()
             .filter(|port| port.value_kind.as_str() == crate::CANCELLATION_REQUEST_INFO_ID)
             .count();
         if cancellation_inputs != 1 {
             return Err(KindValidationError::CancellationControlMismatch);
         }
-        if !kind
-            .outputs
+        if !outputs
             .iter()
             .any(|port| port.abnormal_kind.as_ref() == Some(disposition_kind))
         {

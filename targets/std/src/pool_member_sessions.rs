@@ -327,6 +327,7 @@ mod tests {
             },
             inputs: vec![],
             outputs: vec![],
+            terminal_transduction: None,
             host_calls: vec![],
             resources: vec![],
             authority: vec![],
