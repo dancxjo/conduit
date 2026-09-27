@@ -81,6 +81,17 @@ pub struct Manifestation {
     pub signs: alloc::vec::Vec<ManifestationSign>,
 }
 
+/// Canonical presentation vocabulary for one finite realized occurrence.
+///
+/// The underlying Rust representation retains its historical name while the
+/// public Mask boundary and semantic value identity migrate to Show.
+pub type Show = Manifestation;
+pub type ShowId = ManifestationId;
+pub type ShowLifecycle = ManifestationLifecycle;
+pub type ShowFailure = ManifestationFailure;
+pub type ShowSign = ManifestationSign;
+pub type ShowError = ManifestationError;
+
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum ManifestationError {
     InvalidPresentation,

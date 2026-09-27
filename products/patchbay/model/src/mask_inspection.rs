@@ -33,7 +33,7 @@ pub struct MaskInspectionShow {
     pub show_id: String,
     pub presentation_id: String,
     pub presentation_revision: u64,
-    pub manifestation_id: String,
+    pub show_occurrence_id: String,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -127,9 +127,9 @@ fn project_show(
         .ok_or(MaskInspectionError::MissingPlannedMask)?;
     if show.mask_form != selected.mask_form
         || show.planned_mask != *planned
-        || show.manifestation.plan_id != selected.plan_id
-        || show.presentation_id != show.manifestation.presentation_id
-        || show.presentation_revision != show.manifestation.presentation_revision
+        || show.show.plan_id != selected.plan_id
+        || show.presentation_id != show.show.presentation_id
+        || show.presentation_revision != show.show.presentation_revision
     {
         return Err(MaskInspectionError::ShowMismatch);
     }
@@ -140,6 +140,6 @@ fn project_show(
         show_id: show.show_id.as_str().into(),
         presentation_id: show.presentation_id.as_str().into(),
         presentation_revision: show.presentation_revision,
-        manifestation_id: show.manifestation.manifestation_id.as_str().into(),
+        show_occurrence_id: show.show.manifestation_id.as_str().into(),
     }))
 }

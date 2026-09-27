@@ -7,7 +7,7 @@ use sha2::{Digest, Sha256};
 
 use crate::{
     Manifestation, ManifestationError, ManifestationFailure, ManifestationLifecycle,
-    PlannedMaskForm, Presentation, PresentationContentId, PresentationInteraction,
+    PlannedMaskForm, Presentation, PresentationContentId, PresentationInteraction, Show,
 };
 
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]
@@ -27,7 +27,7 @@ pub struct MaskShow {
     pub presentation_id: PresentationContentId,
     pub presentation_revision: u64,
     pub planned_mask: PlannedMaskForm,
-    pub manifestation: Manifestation,
+    pub show: Show,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
@@ -59,7 +59,7 @@ impl MaskShow {
         sign_id: SignId,
     ) -> Result<Self, MaskShowError> {
         validate_basis(planned_mask, presentation)?;
-        let manifestation = Manifestation::prepared_at_mask_form_boundary(
+        let show = Manifestation::prepared_at_mask_form_boundary(
             presentation,
             &planned_mask.plan,
             active_play,
@@ -69,14 +69,14 @@ impl MaskShow {
             sign_id,
         )
         .map_err(MaskShowError::InvalidManifestation)?;
-        let show_id = bind_show(planned_mask, presentation, &manifestation);
+        let show_id = bind_show(planned_mask, presentation, &show);
         Ok(Self {
             show_id,
             mask_form: planned_mask.mask.form_identity.clone(),
             presentation_id: presentation.identity.clone(),
             presentation_revision: presentation.revision,
             planned_mask: planned_mask.clone(),
-            manifestation,
+            show,
         })
     }
 
@@ -86,8 +86,8 @@ impl MaskShow {
         sign_id: SignId,
     ) -> Result<Self, MaskShowError> {
         let mut next = self.clone();
-        next.manifestation = self
-            .manifestation
+        next.show = self
+            .show
             .transition(lifecycle, sign_id)
             .map_err(MaskShowError::InvalidManifestation)?;
         Ok(next)
@@ -99,8 +99,8 @@ impl MaskShow {
         sign_id: SignId,
     ) -> Result<Self, MaskShowError> {
         let mut next = self.clone();
-        next.manifestation = self
-            .manifestation
+        next.show = self
+            .show
             .fail(failure, sign_id)
             .map_err(MaskShowError::InvalidManifestation)?;
         Ok(next)
@@ -111,14 +111,14 @@ impl MaskShow {
         if self.mask_form != self.planned_mask.mask.form_identity
             || self.presentation_id != presentation.identity
             || self.presentation_revision != presentation.revision
-            || self.manifestation.placement_id != self.planned_mask.show_placement().placement_id
+            || self.show.placement_id != self.planned_mask.show_placement().placement_id
         {
             return Err(MaskShowError::StalePlan);
         }
-        self.manifestation
+        self.show
             .validate_against_mask_form(presentation, &self.planned_mask.plan)
             .map_err(MaskShowError::InvalidManifestation)?;
-        if self.show_id != bind_show(&self.planned_mask, presentation, &self.manifestation) {
+        if self.show_id != bind_show(&self.planned_mask, presentation, &self.show) {
             return Err(MaskShowError::StaleShowIdentity);
         }
         Ok(())
@@ -130,7 +130,7 @@ impl MaskShow {
     ) -> Result<MaskInteractionCorrelation, MaskShowError> {
         if interaction.presentation_id != self.presentation_id.as_str()
             || interaction.presentation_revision != self.presentation_revision
-            || interaction.manifestation_id != self.manifestation.manifestation_id.as_str()
+            || interaction.manifestation_id != self.show.manifestation_id.as_str()
         {
             return Err(MaskShowError::StaleInteraction);
         }
@@ -160,7 +160,7 @@ fn validate_basis(
 fn bind_show(
     planned_mask: &PlannedMaskForm,
     presentation: &Presentation,
-    manifestation: &Manifestation,
+    show: &Show,
 ) -> MaskShowId {
     let canonical = format!(
         "conduit.presentation/mask-form-show@1\n{}\n{}\n{}\n{}\n{}\n{}\n",
@@ -169,7 +169,7 @@ fn bind_show(
         presentation.identity.as_str(),
         presentation.revision,
         planned_mask.plan.plan_id.as_str(),
-        manifestation.manifestation_id.as_str(),
+        show.manifestation_id.as_str(),
     );
     let digest = Sha256::digest(canonical.as_bytes());
     let mut identity = String::from("show/");
