@@ -6,8 +6,9 @@ use serde::{Deserialize, Serialize};
 use sha2::{Digest, Sha256};
 
 use crate::{
-    identity::hash_string, Presentation, PresentationContentId, PresentationRelationshipKind,
-    MAX_PRESENTATION_ID_BYTES, MAX_PRESENTATION_TEXT_BYTES,
+    identity::{hash_relationship, hash_string},
+    Presentation, PresentationContentId, PresentationRelationshipKind, MAX_PRESENTATION_ID_BYTES,
+    MAX_PRESENTATION_TEXT_BYTES,
 };
 
 pub const MAX_NAVIGATION_PLACES: usize = 3;
@@ -250,7 +251,7 @@ impl PresentationNavigation {
         for follow in &self.follows {
             hash_string(&mut digest, &follow.identity);
             hash_string(&mut digest, &follow.source_subject);
-            digest.update([follow.relationship as u8]);
+            hash_relationship(&mut digest, &follow.relationship);
             hash_string(&mut digest, &follow.target_subject);
             digest.update([follow.target_place as u8, follow.target_aspect as u8]);
         }

@@ -85,6 +85,10 @@ pub fn render_linear_navigation(
                 .relationships
                 .get(usize::from(*index))
                 .map(linear_relationship),
+            ProjectionItem::Composition(index) => presentation
+                .composition
+                .get(usize::from(*index))
+                .map(crate::linear_composition),
             ProjectionItem::Property(index) => presentation
                 .properties
                 .get(usize::from(*index))

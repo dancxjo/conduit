@@ -43,7 +43,7 @@ fn projected_roles(
                 .subjects
                 .iter()
                 .find(|subject| &subject.identity == identity)
-                .map(|subject| subject.role),
+                .map(|subject| subject.role.clone()),
             _ => None,
         })
         .collect()
