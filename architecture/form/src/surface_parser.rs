@@ -409,6 +409,12 @@ impl<'a> Parser<'a> {
                 span: self.span(start, start + text.len()),
             }));
         }
+        if has_legacy_top_level_cord(text) {
+            return Err((
+                FormError::InvalidSyntax("'>' is not a Conduitese cord; use '>>'".into()),
+                self.span(start, start + text.len()),
+            ));
+        }
         if let Some(colon) = top_level_positions(text, ':').first().copied() {
             let name = text[..colon].trim();
             let invoked = text[colon + 1..].trim();
@@ -729,6 +735,16 @@ fn has_top_level_cord(text: &str) -> bool {
     top_level_token_positions(text, ">>")
         .into_iter()
         .any(|position| !text[..position].ends_with('>') && !text[position + 2..].starts_with('>'))
+}
+
+fn has_legacy_top_level_cord(text: &str) -> bool {
+    top_level_positions(text, '>').into_iter().any(|position| {
+        !text[..position]
+            .chars()
+            .next_back()
+            .is_some_and(|character| matches!(character, '>' | '='))
+            && !text[position + 1..].starts_with(['>', '='])
+    })
 }
 
 fn top_level_assignment(text: &str) -> Option<usize> {
