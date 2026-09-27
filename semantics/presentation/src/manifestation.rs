@@ -271,45 +271,7 @@ impl Manifestation {
             .validate()
             .map_err(|_| ManifestationError::InvalidPresentation)?;
         let placement = renderer_placement(plan, &self.placement_id)?;
-        if self.body_id != presentation.basis.body_id
-            || self.wake_id != presentation.basis.wake_id
-            || self.presentation_id != presentation.identity
-            || self.presentation_revision != presentation.revision
-            || self.plan_id != plan.plan_id
-            || self.presenter_capability_id != placement.capability_id
-            || self.presenter_implementation_id != placement.implementation_id
-            || self.presenter_artifact_id != placement.artifact_id
-            || self.host_id != placement.host_id
-            || self.boot_id != placement.boot_id
-            || self.offer_generation != placement.offer_generation
-            || self.active_play_id
-                != bind_active_play(
-                    &plan.plan_id,
-                    &placement.host_id,
-                    &placement.boot_id,
-                    self.play_sequence,
-                )
-                .active_play_id
-            || self.manifestation_id
-                != bind_manifestation(
-                    &presentation.identity,
-                    &plan.plan_id,
-                    &self.active_play_id,
-                    placement,
-                    &self.front_subject,
-                    &self.target_subject,
-                )
-        {
-            return Err(ManifestationError::StaleIdentity);
-        }
-        validate_target(&self.front_subject)?;
-        validate_front_subject(presentation, &self.front_subject)?;
-        validate_target(&self.target_subject)?;
-        if (self.lifecycle == ManifestationLifecycle::Failed) != self.failure.is_some()
-            || !self.valid_signs()
-        {
-            return Err(ManifestationError::InvalidTransition);
-        }
+        self.validate_at_placement(presentation, plan, placement)?;
         Ok(placement)
     }
 
