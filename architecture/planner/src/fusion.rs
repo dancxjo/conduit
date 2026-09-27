@@ -369,10 +369,7 @@ fn validate_fusion_offer(
         let eligibility = conduit_core::derive_transformation_eligibility(semantic_kind, &back)
             .map_err(|refusal| format!("fusion eligibility derivation refused: {refusal:?}"))?;
         eligibility
-            .require(
-                conduit_core::WorkTransformation::Fusion,
-                conduit_core::ReplayEvidence::None,
-            )
+            .require(conduit_core::WorkTransformation::Fusion)
             .map_err(|refusal| format!("fusion is not semantically eligible: {refusal:?}"))?;
     }
     let gear_set = offer.gear_ids.iter().collect::<BTreeSet<_>>();

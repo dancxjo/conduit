@@ -2,7 +2,7 @@ use conduit_core::{
     kind_id, ArtifactId, AuthorityContractId, AuthorityRequirement, Back, CapabilityId,
     CapabilityLimits, ExecutionProfileId, ExternalEffectBehavior, HostCallContractId,
     HostCallRequirement, ImplementationId, Kind, KindIdentity, KindSemanticLaw, PureExpressionFact,
-    PureExpressionRefusal, ReplayBehavior, ReplayEvidence, ResourceClassId, ResourceRequirement,
+    PureExpressionRefusal, ReplayBehavior, ResourceClassId, ResourceRequirement,
     SemanticDependence, SuspensionBehavior, TemporalStateBehavior, TransformationRefusal,
     VariabilityBehavior, WorkTransformation,
 };
@@ -193,10 +193,7 @@ fn pure_bounded_work_is_eligible_for_every_observationally_exact_transformation(
         WorkTransformation::Memoize,
         WorkTransformation::Move,
     ] {
-        assert_eq!(
-            eligibility.require(transformation, ReplayEvidence::None),
-            Ok(())
-        );
+        assert_eq!(eligibility.require(transformation), Ok(()));
     }
 
     let mut effectful = pure_laws();
@@ -204,69 +201,91 @@ fn pure_bounded_work_is_eligible_for_every_observationally_exact_transformation(
     let effectful =
         conduit_core::derive_transformation_eligibility(&kind(effectful), &back()).unwrap();
     assert_eq!(
-        effectful.require(WorkTransformation::Memoize, ReplayEvidence::None),
+        effectful.require(WorkTransformation::Memoize),
         Err(TransformationRefusal::ExternalEffect)
     );
     assert_eq!(
-        effectful.require(WorkTransformation::Retry, ReplayEvidence::None),
-        Err(TransformationRefusal::MissingEffectReplayLaw)
+        effectful.require(WorkTransformation::Retry),
+        Err(TransformationRefusal::MissingEffectRetryLaw)
     );
 }
 
 #[test]
-fn effectful_retry_requires_the_exact_stronger_law_and_observation() {
+fn effectful_retry_requires_retained_consumer_evidence() {
     let operation_key = kind_id("payment/operation-key@1");
     let transaction = kind_id("payment/transaction@1");
     let compensation = kind_id("payment/compensation@1");
-    let wrong = kind_id("payment/wrong@1");
-
-    for (law, absent, exact) in [
-        (
-            ReplayBehavior::Idempotent {
-                operation_key_kind: operation_key.clone(),
-            },
-            TransformationRefusal::MissingOperationKey(operation_key.clone()),
-            ReplayEvidence::OperationKey {
-                value_kind: &operation_key,
-            },
-        ),
-        (
-            ReplayBehavior::Transactional {
-                transaction_contract: transaction.clone(),
-            },
-            TransformationRefusal::TransactionMayBeCommitted(transaction.clone()),
-            ReplayEvidence::TransactionNotCommitted {
-                contract: &transaction,
-            },
-        ),
-        (
-            ReplayBehavior::Compensatable {
-                compensation_contract: compensation.clone(),
-            },
-            TransformationRefusal::CompensationNotCompleted(compensation.clone()),
-            ReplayEvidence::CompensationCompleted {
-                contract: &compensation,
-            },
-        ),
+    for law in [
+        ReplayBehavior::Idempotent {
+            operation_key_kind: operation_key,
+        },
+        ReplayBehavior::Transactional {
+            transaction_contract: transaction,
+        },
+        ReplayBehavior::Compensatable {
+            compensation_contract: compensation,
+        },
     ] {
         let mut laws = pure_laws();
         laws[0] = KindSemanticLaw::ExternalEffects(ExternalEffectBehavior::Observable);
-        laws[7] = KindSemanticLaw::Replay(law);
+        laws[7] = KindSemanticLaw::Replay(law.clone());
         let eligibility =
             conduit_core::derive_transformation_eligibility(&kind(laws), &back()).unwrap();
         assert_eq!(
-            eligibility.require(WorkTransformation::Retry, ReplayEvidence::None),
-            Err(absent)
+            eligibility.require(WorkTransformation::Replay),
+            Err(TransformationRefusal::ExternalEffect)
         );
-        assert!(eligibility
-            .require(
-                WorkTransformation::Retry,
-                ReplayEvidence::OperationKey { value_kind: &wrong },
-            )
-            .is_err());
         assert_eq!(
-            eligibility.require(WorkTransformation::Retry, exact),
-            Ok(())
+            eligibility.require(WorkTransformation::Retry),
+            Err(TransformationRefusal::RetainedRetryEvidenceRequired(law))
         );
+    }
+}
+
+#[test]
+fn stronger_effect_law_does_not_erase_other_retry_axes() {
+    let mut base = pure_laws();
+    base[0] = KindSemanticLaw::ExternalEffects(ExternalEffectBehavior::Observable);
+    base[7] = KindSemanticLaw::Replay(ReplayBehavior::Idempotent {
+        operation_key_kind: kind_id("payment/operation-key@1"),
+    });
+
+    for (index, law, refusal) in [
+        (
+            1,
+            KindSemanticLaw::TemporalState(TemporalStateBehavior::Retained),
+            TransformationRefusal::TemporalState,
+        ),
+        (
+            2,
+            KindSemanticLaw::TimeDependence(SemanticDependence::Ambient),
+            TransformationRefusal::AmbientTime,
+        ),
+        (
+            3,
+            KindSemanticLaw::RandomDependence(SemanticDependence::Ambient),
+            TransformationRefusal::AmbientRandom,
+        ),
+        (
+            4,
+            KindSemanticLaw::ResourceDependence(SemanticDependence::Ambient),
+            TransformationRefusal::AmbientResource,
+        ),
+        (
+            5,
+            KindSemanticLaw::Suspension(SuspensionBehavior::MaySuspend),
+            TransformationRefusal::Suspension,
+        ),
+        (
+            6,
+            KindSemanticLaw::Variability(VariabilityBehavior::AdmittedVariability),
+            TransformationRefusal::Variability,
+        ),
+    ] {
+        let mut laws = base.clone();
+        laws[index] = law;
+        let eligibility =
+            conduit_core::derive_transformation_eligibility(&kind(laws), &back()).unwrap();
+        assert_eq!(eligibility.require(WorkTransformation::Retry), Err(refusal));
     }
 }

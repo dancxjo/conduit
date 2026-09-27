@@ -27,14 +27,6 @@ pub enum WorkTransformation {
     Move,
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum ReplayEvidence<'a> {
-    None,
-    OperationKey { value_kind: &'a KindId },
-    TransactionNotCommitted { contract: &'a KindId },
-    CompensationCompleted { contract: &'a KindId },
-}
-
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct TransformationEligibility {
     kind_id: KindId,
@@ -57,10 +49,8 @@ pub enum TransformationRefusal {
     Suspension,
     Variability,
     ReplayIneligible,
-    MissingEffectReplayLaw,
-    MissingOperationKey(KindId),
-    TransactionMayBeCommitted(KindId),
-    CompensationNotCompleted(KindId),
+    MissingEffectRetryLaw,
+    RetainedRetryEvidenceRequired(ReplayBehavior),
     BackHostCall,
     BackResource,
     BackAuthority,
@@ -262,17 +252,14 @@ impl TransformationEligibility {
         &self.facts
     }
 
-    pub fn require(
-        &self,
-        transformation: WorkTransformation,
-        evidence: ReplayEvidence<'_>,
-    ) -> Result<(), TransformationRefusal> {
+    pub fn require(&self, transformation: WorkTransformation) -> Result<(), TransformationRefusal> {
         match transformation {
             WorkTransformation::Recompute
             | WorkTransformation::Fusion
             | WorkTransformation::Memoize
             | WorkTransformation::Move => self.require_recomputable(),
-            WorkTransformation::Replay | WorkTransformation::Retry => self.require_replay(evidence),
+            WorkTransformation::Replay => self.require_recomputable(),
+            WorkTransformation::Retry => self.require_retry(),
         }
     }
 
@@ -290,48 +277,38 @@ impl TransformationEligibility {
         Ok(())
     }
 
-    fn require_replay(&self, evidence: ReplayEvidence<'_>) -> Result<(), TransformationRefusal> {
+    fn require_retry(&self) -> Result<(), TransformationRefusal> {
         if self.facts.external_effects == ExternalEffectBehavior::None {
             return self.require_recomputable();
         }
-        match (&self.facts.replay, evidence) {
-            (
-                ReplayBehavior::Idempotent { operation_key_kind },
-                ReplayEvidence::OperationKey { value_kind },
-            ) if operation_key_kind == value_kind => Ok(()),
-            (ReplayBehavior::Idempotent { operation_key_kind }, _) => Err(
-                TransformationRefusal::MissingOperationKey(operation_key_kind.clone()),
+        // A stronger effect law constrains duplicate effects; it does not erase
+        // state, ambient inputs, suspension, or admitted variability.
+        if self.facts.temporal_state != TemporalStateBehavior::None {
+            return Err(TransformationRefusal::TemporalState);
+        }
+        if self.facts.time_dependence != SemanticDependence::None {
+            return Err(TransformationRefusal::AmbientTime);
+        }
+        if self.facts.random_dependence != SemanticDependence::None {
+            return Err(TransformationRefusal::AmbientRandom);
+        }
+        if self.facts.resource_dependence != SemanticDependence::None {
+            return Err(TransformationRefusal::AmbientResource);
+        }
+        if self.facts.suspension != SuspensionBehavior::Never {
+            return Err(TransformationRefusal::Suspension);
+        }
+        if self.facts.variability != VariabilityBehavior::DeterministicFromInputs {
+            return Err(TransformationRefusal::Variability);
+        }
+        match &self.facts.replay {
+            law @ (ReplayBehavior::Idempotent { .. }
+            | ReplayBehavior::Transactional { .. }
+            | ReplayBehavior::Compensatable { .. }) => Err(
+                TransformationRefusal::RetainedRetryEvidenceRequired(law.clone()),
             ),
-            (
-                ReplayBehavior::Transactional {
-                    transaction_contract,
-                },
-                ReplayEvidence::TransactionNotCommitted { contract },
-            ) if transaction_contract == contract => Ok(()),
-            (
-                ReplayBehavior::Transactional {
-                    transaction_contract,
-                },
-                _,
-            ) => Err(TransformationRefusal::TransactionMayBeCommitted(
-                transaction_contract.clone(),
-            )),
-            (
-                ReplayBehavior::Compensatable {
-                    compensation_contract,
-                },
-                ReplayEvidence::CompensationCompleted { contract },
-            ) if compensation_contract == contract => Ok(()),
-            (
-                ReplayBehavior::Compensatable {
-                    compensation_contract,
-                },
-                _,
-            ) => Err(TransformationRefusal::CompensationNotCompleted(
-                compensation_contract.clone(),
-            )),
-            (ReplayBehavior::Ineligible | ReplayBehavior::Exact, _) => {
-                Err(TransformationRefusal::MissingEffectReplayLaw)
+            ReplayBehavior::Ineligible | ReplayBehavior::Exact => {
+                Err(TransformationRefusal::MissingEffectRetryLaw)
             }
         }
     }
