@@ -11,7 +11,9 @@ use conduit_form::{parse, KindProjection, ProfileCatalog};
 use conduit_planner::{plan, PlacementChoice, PlacementChoices};
 use conduit_presentation::{
     presenter_stage_kind_projection, presenter_stage_offer, renderer_kind_projection,
-    PresenterTopologyAdmission, MAX_RENDERER_VALUE_BYTES,
+    MaskBoundaryPort, MaskBoundaryRole, MaskCordSpecification, MaskSpecification, MaskStageId,
+    MaskStagePlacement, MaskStageSpecification, PresenterTopologyAdmission,
+    MAX_RENDERER_VALUE_BYTES,
 };
 use std::collections::BTreeMap;
 
@@ -195,6 +197,63 @@ fn one_mask_chain_preserves_heterogeneous_language_text_and_pcm_stages() {
     );
     let speech = stage_kind("speech/synthesize", "text/text@1", "audio/pcm@1");
     let playback = stage_kind("audio/play", "audio/pcm@1", "presentation/manifestation@1");
+    let stage_id = |value| MaskStageId::new(value).unwrap();
+    let specification = MaskSpecification::new(
+        "generative-spoken",
+        1,
+        vec![
+            MaskStageSpecification {
+                stage_id: stage_id("language"),
+                kind_id: language.kind_id.clone(),
+                kind_contract_revision: language.kind_contract_revision.clone(),
+                inputs: language.inputs.clone(),
+                outputs: language.outputs.clone(),
+            },
+            MaskStageSpecification {
+                stage_id: stage_id("voice"),
+                kind_id: speech.kind_id.clone(),
+                kind_contract_revision: speech.kind_contract_revision.clone(),
+                inputs: speech.inputs.clone(),
+                outputs: speech.outputs.clone(),
+            },
+            MaskStageSpecification {
+                stage_id: stage_id("output"),
+                kind_id: playback.kind_id.clone(),
+                kind_contract_revision: playback.kind_contract_revision.clone(),
+                inputs: playback.inputs.clone(),
+                outputs: playback.outputs.clone(),
+            },
+        ],
+        vec![
+            MaskCordSpecification {
+                source_stage_id: stage_id("language"),
+                source_port_id: port_id("output"),
+                sink_stage_id: stage_id("voice"),
+                sink_port_id: port_id("input"),
+                value_kind: kind_id("text/text@1"),
+            },
+            MaskCordSpecification {
+                source_stage_id: stage_id("voice"),
+                source_port_id: port_id("output"),
+                sink_stage_id: stage_id("output"),
+                sink_port_id: port_id("input"),
+                value_kind: kind_id("audio/pcm@1"),
+            },
+        ],
+        vec![
+            MaskBoundaryPort {
+                role: MaskBoundaryRole::PresentationInput,
+                stage_id: stage_id("language"),
+                port_id: port_id("input"),
+            },
+            MaskBoundaryPort {
+                role: MaskBoundaryRole::ShowOutput,
+                stage_id: stage_id("output"),
+                port_id: port_id("output"),
+            },
+        ],
+    )
+    .unwrap();
     let mut catalog = ProfileCatalog::new();
     for kind in [&language, &speech, &playback] {
         catalog.insert(KindProjection::from(kind)).unwrap();
@@ -264,5 +323,41 @@ fn one_mask_chain_preserves_heterogeneous_language_text_and_pcm_stages() {
             ("text/text@1", "audio/pcm@1"),
             ("audio/pcm@1", "presentation/manifestation@1"),
         ]
+    );
+
+    let placement_for = |gear: &str| {
+        sealed
+            .fragments
+            .iter()
+            .flat_map(|fragment| &fragment.placements)
+            .find(|placement| placement.gear_id.as_str() == gear)
+            .unwrap()
+            .placement_id
+            .clone()
+    };
+    let admitted = specification
+        .admit_plan(
+            &sealed,
+            vec![
+                MaskStagePlacement {
+                    stage_id: stage_id("language"),
+                    placement_id: placement_for("spoken-mask/language"),
+                },
+                MaskStagePlacement {
+                    stage_id: stage_id("voice"),
+                    placement_id: placement_for("spoken-mask/voice"),
+                },
+                MaskStagePlacement {
+                    stage_id: stage_id("output"),
+                    placement_id: placement_for("spoken-mask/output"),
+                },
+            ],
+        )
+        .unwrap();
+    assert_eq!(admitted.specification_id, specification.specification_id);
+    assert_eq!(admitted.plan_id, sealed.plan_id);
+    assert_ne!(
+        admitted.specification_id.as_str(),
+        admitted.plan_id.as_str()
     );
 }
