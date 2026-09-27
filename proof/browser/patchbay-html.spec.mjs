@@ -204,7 +204,7 @@ test("HTML Patchbay reconstructs one typed state accessibly and survives deliver
     await expect(page.locator("#plan")).toContainText("presentation/renderer-dom-svg@1");
     await expect(page.locator("#plan")).toContainText("patchbay-html/dom-svg@1");
     await expect(page.locator("#realizations")).toContainText("Port presentation · Input · Info presentation/presentation@1 · Value");
-    await expect(page.locator("#realizations")).toContainText("Port manifestation · Output · Info presentation/manifestation@1 · Value");
+    await expect(page.locator("#realizations")).toContainText("Port show · Output · Info presentation/show@1 · Value");
     await expect(page.locator("#realizations")).toContainText("Resource patchbay-html/host/presentation");
     await expect(page.locator("#realizations")).toContainText("Base conduit.host/present@1 · target presentation/base/dom-svg@1");
     await expect(page.locator("#realizations")).toContainText("project · host patchbay-presentation/host · boot patchbay-presentation/boot");

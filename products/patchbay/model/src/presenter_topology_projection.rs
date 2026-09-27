@@ -76,7 +76,7 @@ pub fn project_presenter_topology(
         });
         properties.push(PresentationProperty {
             subject: chain_subject.clone(),
-            name: "manifestation".into(),
+            name: "show".into(),
             value: PresentationPropertyValue::Identity(chain.manifestation_id.clone()),
         });
         actions.push(topology_action(

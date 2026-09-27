@@ -8,7 +8,7 @@ use conduit_form::{check_syntax_document, parse_syntax_document, KindSignature, 
 use conduit_planner::{default_placements, PlannerError};
 use conduit_presentation::{
     Manifestation, ManifestationError, ManifestationFailure, ManifestationLifecycle, Presentation,
-    PresentationError, PresentationText, MANIFESTATION_VALUE_KIND, PRESENTATION_VALUE_KIND,
+    PresentationError, PresentationText, PRESENTATION_VALUE_KIND, SHOW_VALUE_KIND,
 };
 mod common;
 use common::{checked_renderer_form, host, plan_for, presentation, DOM_RESOURCE, WAYLAND_RESOURCE};
@@ -92,10 +92,7 @@ fn renderer_front_can_be_composed_as_an_ordinary_form_back() {
         )
         .unwrap();
     startup
-        .insert_value_kind_alias(
-            "Manifestation",
-            conduit_core::kind_id(MANIFESTATION_VALUE_KIND),
-        )
+        .insert_value_kind_alias("Manifestation", conduit_core::kind_id(SHOW_VALUE_KIND))
         .unwrap();
     startup
         .insert(KindSignature {

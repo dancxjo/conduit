@@ -7,6 +7,8 @@ use crate::FormEditorError;
 pub(crate) fn standard_catalogs() -> Result<(StartupCatalog, ProfileCatalog), FormEditorError> {
     let mut startup = StartupCatalog::new();
     let mut profile = ProfileCatalog::new();
+    conduit_presentation::install_mask_form_value_aliases(&mut startup)
+        .map_err(FormEditorError::Catalog)?;
     conduit_semantic_catalog::install_text_pipeline_catalogs(&mut startup, &mut profile)
         .map_err(FormEditorError::Catalog)?;
     conduit_semantic_catalog::install_text_state_catalogs(&mut startup, &mut profile)

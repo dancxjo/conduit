@@ -11,10 +11,10 @@ use conduit_form::{
     KindSignature, ProfileCatalog, StartupCatalog,
 };
 use conduit_presentation::{
-    AdmittedMaskFormRoutes, ManifestationLifecycle, MaskForm, MaskRouteAdmissionError, MaskShow,
-    PlannedMaskForm, Presentation, PresentationBasis, PresentationRole, PresentationSubject,
-    PresentationText, SealedMaskFormRoute, MANIFESTATION_VALUE_KIND,
-    PRESENTATION_INTERACTION_VALUE_KIND, PRESENTATION_VALUE_KIND,
+    install_mask_form_value_aliases, AdmittedMaskFormRoutes, ManifestationLifecycle, MaskForm,
+    MaskRouteAdmissionError, MaskShow, PlannedMaskForm, Presentation, PresentationBasis,
+    PresentationRole, PresentationSubject, PresentationText, SealedMaskFormRoute,
+    PRESENTATION_INTERACTION_VALUE_KIND, PRESENTATION_VALUE_KIND, SHOW_VALUE_KIND,
 };
 
 fn port(
@@ -91,7 +91,7 @@ fn catalogs() -> (StartupCatalog, ProfileCatalog) {
             )],
             vec![port(
                 "show",
-                MANIFESTATION_VALUE_KIND,
+                SHOW_VALUE_KIND,
                 PortDirection::Output,
                 PortTemporal::Value,
             )],
@@ -116,7 +116,7 @@ fn catalogs() -> (StartupCatalog, ProfileCatalog) {
             )],
             vec![port(
                 "show",
-                MANIFESTATION_VALUE_KIND,
+                SHOW_VALUE_KIND,
                 PortDirection::Output,
                 PortTemporal::Value,
             )],
@@ -171,7 +171,7 @@ fn catalogs() -> (StartupCatalog, ProfileCatalog) {
             )],
             vec![port(
                 "show",
-                MANIFESTATION_VALUE_KIND,
+                SHOW_VALUE_KIND,
                 PortDirection::Output,
                 PortTemporal::Value,
             )],
@@ -198,18 +198,7 @@ fn catalogs() -> (StartupCatalog, ProfileCatalog) {
             .unwrap();
         profiles.insert_kind(definition).unwrap();
     }
-    startup
-        .insert_value_kind_alias("Presentation", kind_id(PRESENTATION_VALUE_KIND))
-        .unwrap();
-    startup
-        .insert_value_kind_alias(
-            "FaceInteraction",
-            kind_id(PRESENTATION_INTERACTION_VALUE_KIND),
-        )
-        .unwrap();
-    startup
-        .insert_value_kind_alias("Show", kind_id(MANIFESTATION_VALUE_KIND))
-        .unwrap();
+    install_mask_form_value_aliases(&mut startup).unwrap();
     startup
         .insert_value_kind_alias("Text", kind_id("text/text@1"))
         .unwrap();

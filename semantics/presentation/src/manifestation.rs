@@ -471,7 +471,7 @@ fn bind_manifestation(
 ) -> ManifestationId {
     let mut digest = Sha256::new();
     for value in [
-        "conduit.presentation/manifestation@1",
+        "conduit.presentation/show@1",
         presentation.as_str(),
         plan.as_str(),
         active_play.as_str(),

@@ -11,9 +11,7 @@ use conduit_core::{
 };
 use serde::{Deserialize, Serialize};
 
-use crate::{
-    MANIFESTATION_VALUE_KIND, PRESENTATION_INTERACTION_VALUE_KIND, PRESENTATION_VALUE_KIND,
-};
+use crate::{PRESENTATION_INTERACTION_VALUE_KIND, PRESENTATION_VALUE_KIND, SHOW_VALUE_KIND};
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
@@ -92,7 +90,7 @@ impl MaskForm {
         let show = required_port(
             form.front.outputs(),
             "show",
-            MANIFESTATION_VALUE_KIND,
+            SHOW_VALUE_KIND,
             PortDirection::Output,
             PortTemporal::Value,
         )
