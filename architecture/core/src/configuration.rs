@@ -127,6 +127,9 @@ pub enum KindConfigurationRule {
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub enum KindSemanticLaw {
     Terminal(KindTerminalBehavior),
+    /// How this Kind transforms terminal truth. This is deliberately
+    /// independent of every Port's value, temporal, and abnormal-info types.
+    TerminalTransduction(TerminalTransductionProfile),
     ExternalEffects(ExternalEffectBehavior),
     TemporalState(TemporalStateBehavior),
     TimeDependence(SemanticDependence),
@@ -135,6 +138,56 @@ pub enum KindSemanticLaw {
     Suspension(SuspensionBehavior),
     Variability(VariabilityBehavior),
     Replay(ReplayBehavior),
+}
+
+/// Independent terminal behaviors owned by a Kind's checked Fore.
+///
+/// This is not a Port modality and does not describe the type carried by `!`.
+/// It records what an implementation must do after receiving close, abnormal,
+/// or cancellation truth.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct TerminalTransductionProfile {
+    pub normal_close: NormalCloseTransduction,
+    pub abnormal: AbnormalTerminalTransduction,
+    pub cancellation: CancellationTransduction,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub enum NormalCloseTransduction {
+    NotAccepted,
+    PropagateAfterDrain,
+    Consume,
+    FlushThenPropagate(FiniteTerminalEmission),
+    DomainSpecific { law: KindId },
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub enum AbnormalTerminalTransduction {
+    NotAccepted,
+    PropagateAfterDrain,
+    Recover,
+    FinalizeThenPropagate(FiniteTerminalEmission),
+    DomainSpecific { law: KindId },
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub enum CancellationTransduction {
+    NotCancellable,
+    /// A request may be accepted, denied, or stale. Acceptance eventually
+    /// produces the exact typed abnormal disposition named here.
+    Request {
+        disposition_kind: KindId,
+    },
+    DomainSpecific {
+        law: KindId,
+    },
+}
+
+/// Exact additional output work permitted only by a terminal behavior.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+pub struct FiniteTerminalEmission {
+    pub maximum_items: u16,
+    pub maximum_bytes: u32,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
