@@ -121,14 +121,14 @@ pub fn install_rhythm_catalog(
         }],
     })?;
     profile
-        .insert(pulse_observe_kind_projection())
+        .insert_kind(pulse_observe_semantic_contract())
         .map_err(|error| error.to_string())?;
     startup.insert(KindSignature {
         kind: PHASE_SYNCHRONIZE_KIND.into(),
         startup_parameters: vec![],
     })?;
     profile
-        .insert(phase_synchronize_kind_projection())
+        .insert_kind(phase_synchronize_semantic_contract())
         .map_err(|error| error.to_string())?;
     startup.insert(KindSignature {
         kind: crate::RHYTHM_STATE_SOURCE_KIND.into(),
@@ -147,7 +147,7 @@ pub fn install_rhythm_catalog(
         .collect(),
     })?;
     profile
-        .insert(rhythm_state_source_kind_projection())
+        .insert_kind(rhythm_state_source_semantic_contract())
         .map_err(|error| error.to_string())
 }
 
@@ -195,7 +195,7 @@ pub fn rhythm_state_source_semantic_contract() -> Kind {
         kind_contract_revision: definition.kind_contract_revision,
         inputs: definition.inputs,
         outputs: definition.outputs,
-        configuration: Default::default(),
+        configuration: definition.configuration,
         semantic_laws: Default::default(),
         limits: CapabilityLimits {
             max_active_instances: 8,
@@ -242,7 +242,7 @@ pub fn phase_synchronize_semantic_contract() -> Kind {
         kind_contract_revision: definition.kind_contract_revision,
         inputs: definition.inputs,
         outputs: definition.outputs,
-        configuration: Default::default(),
+        configuration: definition.configuration,
         semantic_laws: Default::default(),
         limits: CapabilityLimits {
             max_active_instances: 8,
@@ -288,7 +288,7 @@ pub fn pulse_observe_semantic_contract() -> Kind {
         kind_contract_revision: definition.kind_contract_revision,
         inputs: definition.inputs,
         outputs: definition.outputs,
-        configuration: Default::default(),
+        configuration: definition.configuration,
         semantic_laws: Default::default(),
         limits: CapabilityLimits {
             max_active_instances: 8,
