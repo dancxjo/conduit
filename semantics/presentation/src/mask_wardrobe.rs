@@ -55,7 +55,7 @@ pub enum MaskShowDisposition {
     },
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 pub enum MaskPlanningDisposition {
     NotRequired,
     /// An authorized control loop may request replacement planning. This fact
