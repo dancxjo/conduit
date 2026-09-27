@@ -312,6 +312,7 @@ export function acquireBrowserBodyHost({ api, hostId, bootId, proposal: supplied
       if (!output) throw new Error("browser presentation slot not acquired");
       output.dataset.hostId = effect.host_id;
       output.dataset.bootId = effect.boot_id;
+      output.dataset.bodyPlanId = started.play.plan_id;
       output.dataset.planId = effect.plan_id;
       output.dataset.activePlayId = effect.active_play_id;
       output.dataset.placementId = effect.placement_id;
