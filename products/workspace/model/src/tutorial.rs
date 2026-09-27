@@ -10,10 +10,10 @@ use conduit_presentation::{
     ActionAvailability, ApplicationEventKind, Face, FaceContext, FaceFocus, FaceRefusal,
     GenerativePresenterBounds, GenerativePresenterRefusal, GenerativePresenterRequest,
     OrifinaPresentationRefusal, Presentation, PresentationAction, PresentationActionAvailability,
-    PresentationDisclosureLevel, PresentationError, PresentationMechanism, PresentationProperty,
-    PresentationPropertyValue, PresentationText, SemanticAction, SemanticApplicationView,
-    SemanticPresentationNode, StatusKind, orifina_completion_presenter_policy,
-    project_orifina_purpose_presentation,
+    PresentationDisclosureLevel, PresentationError, PresentationInput, PresentationMechanism,
+    PresentationProperty, PresentationPropertyValue, PresentationText, SemanticAction,
+    SemanticApplicationView, SemanticPresentationNode, StatusKind,
+    orifina_completion_presenter_policy, project_orifina_purpose_presentation,
 };
 use serde::{Deserialize, Serialize};
 
@@ -59,6 +59,31 @@ pub fn generative_request(
     presentation_revision: u64,
     playback: TutorialPlayback,
 ) -> Result<GenerativePresenterRequest, TutorialPresenterRefusal> {
+    let face = tutorial_face(body, presentation_revision, playback)?;
+    GenerativePresenterRequest::from_face(
+        request_identity,
+        orifina_completion_presenter_policy(),
+        &face,
+        None,
+        GenerativePresenterBounds::reviewed_default(),
+    )
+    .map_err(TutorialPresenterRefusal::InvalidRequest)
+}
+
+/// Project the canonical Face grammar consumed by every tutorial Mask.
+pub fn face_presentation(
+    body: &WorkspaceBody,
+    presentation_revision: u64,
+    playback: TutorialPlayback,
+) -> Result<Presentation, TutorialPresenterRefusal> {
+    Ok(tutorial_face(body, presentation_revision, playback)?.presentation)
+}
+
+fn tutorial_face(
+    body: &WorkspaceBody,
+    presentation_revision: u64,
+    playback: TutorialPlayback,
+) -> Result<Face, TutorialPresenterRefusal> {
     let purpose = purpose_state(body).map_err(TutorialPresenterRefusal::InvalidPurpose)?;
     let readiness =
         derive_fulfillment_readiness(&purpose).map_err(TutorialPresenterRefusal::InvalidPurpose)?;
@@ -79,6 +104,41 @@ pub fn generative_request(
         vec![],
     )
     .map_err(TutorialPresenterRefusal::InvalidFace)?;
+    if let Some(realization) = body.realization() {
+        let mut tutorial_plans = realization.plan.forms.iter().filter(|form| {
+            form.plan
+                .fragments
+                .iter()
+                .flat_map(|fragment| &fragment.placements)
+                .any(|placement| {
+                    placement.kind_id.as_str() == "application/retained"
+                        && placement.configuration.iter().any(|entry| {
+                            entry.key == "application"
+                                && matches!(
+                                    &entry.value,
+                                    conduit_core::ConfigurationValue::Text(value)
+                                        if value == "tutorial"
+                                )
+                        })
+                })
+        });
+        if let Some(tutorial_plan) = tutorial_plans
+            .next()
+            .filter(|_| tutorial_plans.next().is_none())
+        {
+            face.presentation.basis.source_document_id =
+                Some(tutorial_plan.form.source_document_id.clone());
+            face.presentation.basis.checked_form_id =
+                Some(tutorial_plan.form.checked_form_id.clone());
+            face.presentation.basis.expanded_form_id =
+                Some(tutorial_plan.plan.expanded_form_id.clone());
+            face.presentation.basis.plan_id = Some(realization.plan.plan_id.clone());
+            face.presentation.basis.active_play_id = realization
+                .play
+                .as_ref()
+                .map(|play| play.active_play_id.clone());
+        }
+    }
     let body_subject = format!("body/{}", body.evidence().body.body_id.as_str());
     // The conversational Presenter receives the same tutorial meaning as the
     // graphical view, not merely the generic Face's identifier-heavy summary.
@@ -137,10 +197,20 @@ pub fn generative_request(
     face.presentation.actions.push(PresentationAction {
         identity: identity.into(),
         intent: intent.into(),
-        target: body_subject,
+        target: body_subject.clone(),
         label: label.into(),
         disclosure: PresentationDisclosureLevel::CurrentAction,
         availability: PresentationActionAvailability::Available,
+    });
+    face.presentation.inputs.push(PresentationInput {
+        identity: "input/tutorial-action".into(),
+        target: body_subject.clone(),
+        value_kind: conduit_presentation::UTF8_TEXT_VALUE_KIND.into(),
+        maximum_bytes: 256,
+        allow_empty: true,
+        label: label.into(),
+        accessibility_name: label.into(),
+        submit_action: identity.into(),
     });
     face.presentation = Presentation::new_with_interactions(
         face.presentation.revision,
@@ -154,14 +224,7 @@ pub fn generative_request(
         face.presentation.disclosures,
     )
     .map_err(TutorialPresenterRefusal::InvalidActionPresentation)?;
-    GenerativePresenterRequest::from_face(
-        request_identity,
-        orifina_completion_presenter_policy(),
-        &face,
-        None,
-        GenerativePresenterBounds::reviewed_default(),
-    )
-    .map_err(TutorialPresenterRefusal::InvalidRequest)
+    Ok(face)
 }
 
 pub fn presentation(

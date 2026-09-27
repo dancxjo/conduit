@@ -47,9 +47,9 @@ pub(super) fn retain(
         if speech.is_empty() {
             return Err(format!("{step_id} has no retained outward speech").into());
         }
-        let step = track["steps"]
+        let step = track["receipts"]
             .as_array_mut()
-            .ok_or("missing steps")?
+            .ok_or("missing receipts")?
             .iter_mut()
             .find(|step| step["step_id"] == step_id)
             .ok_or("missing step")?;

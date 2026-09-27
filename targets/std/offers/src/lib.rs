@@ -103,6 +103,10 @@ mod speech_synthesis;
 #[cfg(feature = "speech")]
 pub use speech_synthesis::*;
 #[cfg(feature = "speech")]
+mod spoken_mask;
+#[cfg(feature = "speech")]
+pub use spoken_mask::*;
+#[cfg(feature = "speech")]
 mod conversation_commit;
 #[cfg(feature = "speech")]
 pub use conversation_commit::*;
