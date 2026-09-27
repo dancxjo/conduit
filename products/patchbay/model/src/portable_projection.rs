@@ -1,10 +1,11 @@
 //! Adapt the living Patchbay projection into Conduit's portable Presentation value.
 
 use conduit_body::{Body, BodyLifecycleError, BodyState, Wake, WakeLifecycle};
-use conduit_core::SignId;
+use conduit_core::{ActivePlayId, CheckedFormId, ExpandedFormId, PlanId, SignId, SourceDocumentId};
 use conduit_presentation::{
     Presentation, PresentationAction, PresentationActionAvailability, PresentationBasis,
-    PresentationDisclosure, PresentationDisclosureLevel, PresentationError, PresentationRole,
+    PresentationContributionBasis, PresentationDisclosure, PresentationDisclosureLevel,
+    PresentationError, PresentationFragment, PresentationFragmentError, PresentationRole,
 };
 
 pub(super) use crate::portable_content::ContentBuilder;
@@ -19,6 +20,7 @@ pub enum PortableProjectionError {
     PlanMismatch,
     PlayMismatch,
     InvalidPresentation(PresentationError),
+    InvalidFragment(PresentationFragmentError),
 }
 
 impl core::fmt::Display for PortableProjectionError {
@@ -46,6 +48,80 @@ impl PatchbayPresentation {
         body: &Body,
         wake: Option<&Wake>,
     ) -> Result<Presentation, PortableProjectionError> {
+        let projection = self.prepare_portable_content(body, wake)?;
+        Presentation::new_with_semantics(
+            self.revision,
+            PresentationBasis {
+                body_id: Some(body.body_id.clone()),
+                wake_id: wake.map(|wake| wake.wake_id.clone()),
+                source_document_id: Some(projection.source_document_id),
+                checked_form_id: Some(projection.checked_form_id),
+                expanded_form_id: projection.expanded_form_id,
+                plan_id: projection.plan_id,
+                active_play_id: projection.active_play_id,
+                sign_ids: projection.sign_ids,
+            },
+            projection.content.subjects,
+            projection.content.relationships,
+            projection.content.properties,
+            projection.content.text,
+            projection.actions,
+            vec![PresentationDisclosure {
+                subject: projection.document,
+                level: PresentationDisclosureLevel::Primary,
+            }],
+        )
+        .map_err(PortableProjectionError::InvalidPresentation)
+    }
+
+    /// Project Patchbay meaning as an ordinary resident Form contribution.
+    ///
+    /// Face-owned Body and resident-Form subjects are referenced but not
+    /// redeclared, preventing Patchbay from becoming a second truth registry.
+    pub fn to_presentation_fragment(
+        &self,
+        body: &Body,
+        wake: &Wake,
+        basis: PresentationContributionBasis,
+    ) -> Result<PresentationFragment, PortableProjectionError> {
+        let mut projection = self.prepare_portable_content(body, Some(wake))?;
+        let face_owned_forms = body
+            .workset
+            .forms()
+            .iter()
+            .map(|form| format!("form/{}", form.checked_form_id.as_str()))
+            .collect::<Vec<_>>();
+        let body_subject = format!("body/{}", body.body_id.as_str());
+        projection.content.subjects.retain(|subject| {
+            subject.identity != body_subject && !face_owned_forms.contains(&subject.identity)
+        });
+        let fragment = PresentationFragment {
+            basis,
+            subjects: projection.content.subjects,
+            relationships: projection.content.relationships,
+            composition: Vec::new(),
+            properties: projection.content.properties,
+            text: projection.content.text,
+            actions: projection.actions,
+            inputs: Vec::new(),
+            disclosures: vec![PresentationDisclosure {
+                subject: projection.document,
+                level: PresentationDisclosureLevel::Primary,
+            }],
+            temporal_references: Vec::new(),
+            temporal_facts: Vec::new(),
+        };
+        fragment
+            .validate_bounds()
+            .map_err(PortableProjectionError::InvalidFragment)?;
+        Ok(fragment)
+    }
+
+    fn prepare_portable_content(
+        &self,
+        body: &Body,
+        wake: Option<&Wake>,
+    ) -> Result<PreparedPatchbayContent, PortableProjectionError> {
         body.validate()
             .map_err(PortableProjectionError::InvalidBody)?;
         if let Some(wake) = wake {
@@ -108,30 +184,30 @@ impl PatchbayPresentation {
             || lifecycle_actions(WakeLifecycle::Lulled, &target),
             |wake| lifecycle_actions(wake.lifecycle, &target),
         );
-        Presentation::new_with_semantics(
-            self.revision,
-            PresentationBasis {
-                body_id: Some(body.body_id.clone()),
-                wake_id: wake.map(|wake| wake.wake_id.clone()),
-                source_document_id: Some(source_document_id),
-                checked_form_id: Some(checked_form_id),
-                expanded_form_id: identities.expanded_form_id,
-                plan_id: identities.plan_id,
-                active_play_id: identities.active_play_id,
-                sign_ids,
-            },
-            content.subjects,
-            content.relationships,
-            content.properties,
-            content.text,
+        Ok(PreparedPatchbayContent {
+            source_document_id,
+            checked_form_id,
+            expanded_form_id: identities.expanded_form_id,
+            plan_id: identities.plan_id,
+            active_play_id: identities.active_play_id,
+            sign_ids,
+            document,
+            content,
             actions,
-            vec![PresentationDisclosure {
-                subject: document,
-                level: PresentationDisclosureLevel::Primary,
-            }],
-        )
-        .map_err(PortableProjectionError::InvalidPresentation)
+        })
     }
+}
+
+struct PreparedPatchbayContent {
+    source_document_id: SourceDocumentId,
+    checked_form_id: CheckedFormId,
+    expanded_form_id: Option<ExpandedFormId>,
+    plan_id: Option<PlanId>,
+    active_play_id: Option<ActivePlayId>,
+    sign_ids: Vec<SignId>,
+    document: String,
+    content: ContentBuilder,
+    actions: Vec<PresentationAction>,
 }
 
 pub(super) fn lifecycle_actions(lifecycle: WakeLifecycle, target: &str) -> Vec<PresentationAction> {
