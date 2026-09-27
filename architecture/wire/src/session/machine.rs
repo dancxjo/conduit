@@ -282,6 +282,9 @@ impl SessionMachine {
                 {
                     return Err(WireError::OversizedPayload);
                 }
+                if conduit_core::primitive_info_kind(abnormal_kind.as_str()).is_none() {
+                    return Err(WireError::ValueContractMismatch);
+                }
                 conduit_core::validate_primitive_info(abnormal_kind.as_str(), terminal)
                     .map_err(|_| WireError::ValueContractMismatch)?;
                 let terminal_digest =

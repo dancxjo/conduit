@@ -291,7 +291,7 @@ fn lifecycle_is_exact_bounded_and_terminal() {
 #[test]
 fn typed_abnormal_terminal_is_distinct_bounded_session_truth() {
     let mut declared_binding = binding();
-    declared_binding.abnormal_kind = Some(KindId::from("test/terminal-fault"));
+    declared_binding.abnormal_kind = Some(KindId::from(conduit_core::TEXT_INFO_ID));
     let mut source = SessionMachine::new(declared_binding.clone(), SessionRole::Source).unwrap();
     trigger(&mut source);
     let abnormal = declared_binding.frame(SessionMessage::InputAbnormal {
@@ -304,7 +304,7 @@ fn typed_abnormal_terminal_is_distinct_bounded_session_truth() {
     assert_eq!(
         source.checkpoint().abnormal_terminal_digest,
         Some(conduit_core::semantic_digest(
-            "test/terminal-fault",
+            conduit_core::TEXT_INFO_ID,
             b"fault-7"
         ))
     );
@@ -323,7 +323,10 @@ fn typed_abnormal_terminal_is_distinct_bounded_session_truth() {
         MAXIMUM_FRAME_BYTES,
     )
     .unwrap();
-    assert_eq!(decoded.identity.abnormal_kind, Some("test/terminal-fault"));
+    assert_eq!(
+        decoded.identity.abnormal_kind,
+        Some(conduit_core::TEXT_INFO_ID)
+    );
     assert_eq!(decoded.message, abnormal.message);
 
     let undeclared_binding = binding();
@@ -336,6 +339,21 @@ fn typed_abnormal_terminal_is_distinct_bounded_session_truth() {
     });
     assert_eq!(
         undeclared.admit_outbound(undeclared_abnormal),
+        Err(WireError::ValueContractMismatch)
+    );
+
+    let mut unvalidated_domain_binding = binding();
+    unvalidated_domain_binding.abnormal_kind = Some(KindId::from("test/terminal-fault"));
+    let mut unvalidated_domain =
+        SessionMachine::new(unvalidated_domain_binding.clone(), SessionRole::Source).unwrap();
+    trigger(&mut unvalidated_domain);
+    assert_eq!(
+        unvalidated_domain.admit_outbound(unvalidated_domain_binding.frame(
+            SessionMessage::InputAbnormal {
+                final_sequence: 0,
+                terminal: b"raw",
+            },
+        )),
         Err(WireError::ValueContractMismatch)
     );
 

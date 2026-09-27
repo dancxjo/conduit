@@ -1,12 +1,30 @@
 //! Direct finite-Step dispatch for every Back installed in the std profile.
 
 use super::back_kind::InstalledBack;
-use conduit_kernel::scheduler::{StepBack, StepInputBytes, StepIo, StepOutcome};
+use conduit_kernel::scheduler::{
+    AssignedTerminalTransduction, StepBack, StepInputBytes, StepIo, StepOutcome,
+};
 use conduit_kernel::RequestId;
 
 macro_rules! installed_step_dispatch {
     ($( $(#[$attribute:meta])* $variant:ident ),+ $(,)?) => {
         impl<const PORTS: usize> StepBack<PORTS> for InstalledBack {
+            fn terminal_transduction(&self) -> Option<AssignedTerminalTransduction> {
+                match self {
+                    Self::TypedState(operation) => StepBack::<PORTS>::terminal_transduction(operation.as_ref()),
+                    Self::ButtonMapper(operation) => StepBack::<PORTS>::terminal_transduction(operation.as_ref()),
+                    Self::MidiInput(operation) => StepBack::<PORTS>::terminal_transduction(operation.as_ref()),
+                    Self::TestPcmSource(operation) => StepBack::<PORTS>::terminal_transduction(operation.as_ref()),
+                    $(
+                        $(#[$attribute])*
+                        Self::$variant(operation) => {
+                            StepBack::<PORTS>::terminal_transduction(operation)
+                        }
+                    )+
+                    Self::Inactive => None,
+                }
+            }
+
             fn step_committed(&mut self) {
                 match self {
                     Self::TypedState(operation) => StepBack::<PORTS>::step_committed(operation.as_mut()),

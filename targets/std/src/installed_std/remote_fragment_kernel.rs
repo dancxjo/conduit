@@ -684,6 +684,15 @@ impl InstalledRemoteFragment {
         terminal: &[u8],
     ) -> Result<(), String> {
         let cord = self.endpoint_cord(endpoint, RemoteCordDirection::Ingress)?;
+        let session = self
+            .sessions
+            .get(endpoint)
+            .ok_or_else(|| "unknown remote std ingress session".to_string())?;
+        validate_remote_abnormal(
+            session.binding().abnormal_kind.as_ref(),
+            session.binding().limits.maximum_payload_bytes,
+            terminal,
+        )?;
         let terminal = conduit_kernel::CanonicalValue::new(terminal)
             .map_err(|error| format!("bound remote std abnormal terminal: {error:?}"))?;
         self.scheduler
@@ -762,6 +771,28 @@ impl InstalledRemoteFragment {
     }
 }
 
+fn validate_remote_abnormal(
+    abnormal_kind: Option<&conduit_core::KindId>,
+    maximum_payload_bytes: u32,
+    terminal: &[u8],
+) -> Result<(), String> {
+    let abnormal_kind = abnormal_kind
+        .ok_or_else(|| "remote std ingress has no abnormal terminal kind".to_string())?;
+    if conduit_core::primitive_info_kind(abnormal_kind.as_str()).is_none() {
+        return Err(
+            "remote std abnormal terminal kind has no installed exact validator".to_string(),
+        );
+    }
+    if terminal.len()
+        > usize::try_from(maximum_payload_bytes)
+            .map_err(|_| "remote std abnormal terminal bound is not addressable".to_string())?
+    {
+        return Err("remote std abnormal terminal exceeds its planned bound".into());
+    }
+    conduit_core::validate_primitive_info(abnormal_kind.as_str(), terminal)
+        .map_err(|_| "remote std abnormal terminal does not inhabit its planned kind".to_string())
+}
+
 fn exact_cord(
     lowered: &LoweredPlanFragment,
     cord: CordId,
@@ -810,4 +841,20 @@ fn remote_sign_capacity(lowered: &LoweredPlanFragment) -> Result<u16, String> {
                 .checked_add(events)
                 .ok_or_else(|| "remote lifecycle Sign capacity overflow".to_string())
         })
+}
+
+#[cfg(test)]
+mod terminal_tests {
+    use super::*;
+
+    #[test]
+    fn remote_abnormal_truth_must_inhabit_the_exact_planned_kind_and_bound() {
+        let unit = conduit_core::kind_id(conduit_core::UNIT_INFO_ID);
+        assert_eq!(validate_remote_abnormal(Some(&unit), 1, &[]), Ok(()));
+        assert!(validate_remote_abnormal(Some(&unit), 1, &[0]).is_err());
+        assert!(validate_remote_abnormal(Some(&unit), 0, &[0]).is_err());
+        assert!(validate_remote_abnormal(None, 1, &[]).is_err());
+        let domain = conduit_core::kind_id("domain/specific/fault");
+        assert!(validate_remote_abnormal(Some(&domain), 8, b"bounded but untyped").is_err());
+    }
 }

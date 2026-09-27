@@ -95,9 +95,15 @@ fn canonical_terminal_transduction_survives_expansion_and_changes_identity() {
             outputs: vec![port("output", PortDirection::Output)],
             configuration: vec![],
         });
+        kind.inputs[0].temporal = conduit_core::PortTemporal::Flow { closes: true };
+        kind.inputs[0].abnormal_kind = Some(kind_id("test/terminal"));
+        kind.outputs[0].temporal = conduit_core::PortTemporal::Flow { closes: true };
+        kind.outputs[0].abnormal_kind = Some(kind_id("test/terminal"));
         kind.semantic_laws
             .push(KindSemanticLaw::TerminalTransduction(
                 TerminalTransductionProfile {
+                    input_port_id: port_id("input"),
+                    output_port_id: port_id("output"),
                     normal_close: NormalCloseTransduction::PropagateAfterDrain,
                     abnormal,
                     cancellation: CancellationTransduction::NotCancellable,
@@ -123,6 +129,8 @@ fn canonical_terminal_transduction_survives_expansion_and_changes_identity() {
     assert_eq!(
         propagating.gears[0].terminal_transduction,
         Some(TerminalTransductionProfile {
+            input_port_id: port_id("input"),
+            output_port_id: port_id("output"),
             normal_close: NormalCloseTransduction::PropagateAfterDrain,
             abnormal: AbnormalTerminalTransduction::PropagateAfterDrain,
             cancellation: CancellationTransduction::NotCancellable,

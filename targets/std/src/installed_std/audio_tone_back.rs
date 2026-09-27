@@ -4,7 +4,11 @@ use super::back::{BackBudget, BackFactory, InstalledBack};
 use conduit_audio::{AudioToneTerminal, PcmChannelLayout, PcmFrameHeader, PcmSampleRepresentation};
 use conduit_core::{PlannedGear, Quantity, QuantityUnit};
 use conduit_kernel::{
-    scheduler::{StepBack, StepInputBytes, StepIo, StepOutcome},
+    scheduler::{
+        AssignedAbnormalTransduction, AssignedCancellationTransduction,
+        AssignedNormalCloseTransduction, AssignedTerminalTransduction, StepBack, StepInputBytes,
+        StepIo, StepOutcome,
+    },
     CanonicalValue, Failure, FailureCode, PortId,
 };
 
@@ -26,6 +30,22 @@ pub(super) struct AudioToneBack {
 }
 
 impl<const PORTS: usize> StepBack<PORTS> for AudioToneBack {
+    fn terminal_transduction(&self) -> Option<AssignedTerminalTransduction> {
+        Some(AssignedTerminalTransduction {
+            input: PortId(0),
+            output: PortId(0),
+            normal_close: AssignedNormalCloseTransduction::NotAccepted,
+            abnormal: AssignedAbnormalTransduction::NotAccepted,
+            cancellation: AssignedCancellationTransduction::Request {
+                input: PortId(1),
+                disposition_kind: conduit_core::semantic_digest(
+                    "conduit/kind-identity",
+                    conduit_audio::AUDIO_TONE_TERMINAL_INFO_ID.as_bytes(),
+                ),
+            },
+        })
+    }
+
     fn step(&mut self, io: &mut StepIo<PORTS>, inputs: &StepInputBytes<'_, PORTS>) -> StepOutcome {
         if io.input(PortId(1)).is_some() {
             let Some(bytes) = inputs.input(PortId(1)) else {
@@ -65,8 +85,6 @@ impl<const PORTS: usize> StepBack<PORTS> for AudioToneBack {
             return StepOutcome::Progress;
         }
         if !self.closed && io.input_closed(PortId(0)) {
-            io.consume_closed(PortId(0))
-                .expect("observed Frequency close");
             self.closed = true;
             return StepOutcome::Complete;
         }
@@ -168,6 +186,30 @@ fn prepare(
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn back_declares_the_exact_lowered_terminal_contract() {
+        let profile = conduit_semantic_catalog::audio_tone_semantic_contract()
+            .terminal_transduction()
+            .unwrap()
+            .clone();
+        let lowered = conduit_plan_lowering::lowering::LoweredTerminalTransduction {
+            input: PortId(0),
+            output: PortId(0),
+            cancellation_input: Some(PortId(1)),
+            profile,
+        };
+        let back = AudioToneBack {
+            phase: 0,
+            start_frame: 0,
+            closed: false,
+        };
+        assert_eq!(
+            StepBack::<2>::terminal_transduction(&back),
+            Some(lowered.assigned())
+        );
+    }
+
     #[test]
     fn current_frequency_changes_subsequent_contiguous_pcm() {
         let (low, phase) = render_block(220_000, 0, 0).unwrap();
