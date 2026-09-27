@@ -106,6 +106,7 @@ pub mod hosted_reminder;
 pub mod hosted_resource;
 pub mod hosted_speech;
 pub mod hosted_speech_recognition;
+pub mod spoken_mask_journey;
 pub mod spoken_mask_runtime;
 #[cfg(test)]
 mod spoken_mask_runtime_tests;
