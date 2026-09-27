@@ -84,9 +84,9 @@ fn fresh_state_profile_refuses_retained_state_instead_of_resetting_it() {
 }
 
 #[test]
-fn plan_sealed_front_ports_lower_to_exact_bounded_remote_cords() {
+fn plan_sealed_fore_ports_lower_to_exact_bounded_remote_cords() {
     use conduit_core::{
-        ConnectionTrack, DeliveryPressurePolicy, PlannedFrontPort, PortDirection, PortTemporal,
+        ConnectionTrack, DeliveryPressurePolicy, PlannedForePort, PortDirection, PortTemporal,
     };
     use conduit_kernel::CordEndpoint;
     use conduit_plan_lowering::lowering::{
@@ -94,8 +94,8 @@ fn plan_sealed_front_ports_lower_to_exact_bounded_remote_cords() {
     };
 
     let mut fragment = common::fragment();
-    fragment.front_ports = vec![
-        PlannedFrontPort {
+    fragment.fore_ports = vec![
+        PlannedForePort {
             front_port_id: conduit_core::port_id("presentation"),
             direction: PortDirection::Input,
             placement_id: conduit_core::PlacementId::from("placement"),
@@ -108,7 +108,7 @@ fn plan_sealed_front_ports_lower_to_exact_bounded_remote_cords() {
             item_capacity: 1,
             byte_capacity: 1,
         },
-        PlannedFrontPort {
+        PlannedForePort {
             front_port_id: conduit_core::port_id("show"),
             direction: PortDirection::Output,
             placement_id: conduit_core::PlacementId::from("placement"),
@@ -131,9 +131,9 @@ fn plan_sealed_front_ports_lower_to_exact_bounded_remote_cords() {
             .unwrap(),
     )
     .unwrap();
-    assert_eq!(lowered.front_ports.len(), 2);
-    let input = &lowered.front_ports[0];
-    let output = &lowered.front_ports[1];
+    assert_eq!(lowered.fore_ports.len(), 2);
+    let input = &lowered.fore_ports[0];
+    let output = &lowered.fore_ports[1];
     assert_eq!(input.front_port_id, conduit_core::port_id("presentation"));
     assert_eq!(output.front_port_id, conduit_core::port_id("show"));
     assert!(

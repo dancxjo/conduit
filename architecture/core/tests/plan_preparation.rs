@@ -127,7 +127,7 @@ fn exact_plan(hosts: &[&str], label: &str) -> Plan {
             execution_fusions: vec![],
             states: Vec::new(),
             connections: vec![],
-            front_ports: vec![],
+            fore_ports: vec![],
             shared_pools: vec![],
             startup_dependencies: vec![],
             startup_order: vec![],

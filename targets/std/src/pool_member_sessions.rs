@@ -239,6 +239,7 @@ mod tests {
             execution_fusions: vec![],
             states: vec![],
             connections: vec![],
+            fore_ports: vec![],
             shared_pools: vec![pool],
             startup_dependencies: vec![],
             cancellation_policy: CancellationPolicy::CancelAllAndRejectLateCompletion,
