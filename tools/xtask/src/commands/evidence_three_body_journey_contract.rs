@@ -54,6 +54,66 @@ fn canonical_action(action: JourneyActionKind) -> ContractAction {
             "An exact Plan and Play performed useful work; embodiment-specific inspection or revision may remain in detailed receipts.",
             &["Body", "Form", "Plan", "Play"][..], &["standing-form-used"][..],
         ),
+        JourneyActionKind::MaskInspectInitialShow => mask_action(
+            "mask.inspect-initial-show",
+            "Inspect the initial Show",
+            "The Body inspected its exact current Presentation, Mask route, Plan, and Show.",
+            "The initial human-facing realization is producer evidence, not an inferred screenshot label.",
+        ),
+        JourneyActionKind::MaskWearAlternate => mask_action(
+            "mask.wear-alternate",
+            "Wear an alternate Mask",
+            "The Body made a second ordinary Mask Form eligible in its revisioned wardrobe.",
+            "Eligibility changed without mutating the immutable body-wide Plan.",
+        ),
+        JourneyActionKind::MaskPreferAlternate => mask_action(
+            "mask.prefer-alternate",
+            "Prefer the alternate Mask",
+            "The Body preferred and selected an already-sealed alternate Mask route.",
+            "Selection changed under the same body-wide Plan; no unsealed route was invented.",
+        ),
+        JourneyActionKind::MaskWithdrawSelectedRoute => mask_action(
+            "mask.withdraw-selected-route",
+            "Withdraw the selected route",
+            "The selected sealed Mask route became unavailable.",
+            "The Body retained NoShow rather than silently retaining an unavailable realization.",
+        ),
+        JourneyActionKind::MaskInspectUnavailableShow => mask_action(
+            "mask.inspect-unavailable-show",
+            "Inspect truthful unavailability",
+            "The Body inspected the interval in which no worn Mask was realizable.",
+            "Lack of Show remained distinct from Face truth and from authority to replan.",
+        ),
+        JourneyActionKind::MaskAddPresentationHost => mask_action(
+            "mask.add-presentation-host",
+            "Add a presentation Host",
+            "A new Host or Boot offered a possible Mask realization.",
+            "Availability alone did not mutate the old Plan or create a Show.",
+        ),
+        JourneyActionKind::MaskAdmitReplacementPlan => mask_action(
+            "mask.admit-replacement-plan",
+            "Admit a replacement Plan",
+            "Authorized planning admitted a distinct body-wide replacement Plan.",
+            "The replacement is a new immutable identity, not disguised same-Plan fallback.",
+        ),
+        JourneyActionKind::MaskInspectReplannedShow => mask_action(
+            "mask.inspect-replanned-show",
+            "Inspect the replanned Show",
+            "The Body inspected the Show realized by the replacement Plan.",
+            "Presentation identity remained stable while realization identity changed.",
+        ),
+        JourneyActionKind::MaskDoffAlternate => mask_action(
+            "mask.doff-alternate",
+            "Doff the alternate Mask",
+            "The Body removed the alternate Mask from its eligible wardrobe.",
+            "A doffed Mask could not remain selected merely because its Back stayed available.",
+        ),
+        JourneyActionKind::MaskInspectRestoredShow => mask_action(
+            "mask.inspect-restored-show",
+            "Inspect the restored Show",
+            "The Body inspected its restored original Mask under the replacement Plan.",
+            "The journey ended with exact Mask, route, Plan, and Show correlation.",
+        ),
         JourneyActionKind::BreakAndRecover => (
             "journey.break-recover", "Break and recovery outcome", "The Body retained a real failure or refusal, plus an independently evidenced recovery where one existed.",
             "Failure remained failure; no later success was relabeled as recovery for a different obligation.",
@@ -78,4 +138,40 @@ fn canonical_action(action: JourneyActionKind) -> ContractAction {
             "not-pixel-wording-or-timing-equality".into(),
         ],
     }
+}
+
+fn mask_action(
+    id: &'static str,
+    title: &'static str,
+    happened: &'static str,
+    established: &'static str,
+) -> (
+    &'static str,
+    &'static str,
+    &'static str,
+    &'static str,
+    &'static [&'static str],
+    &'static [&'static str],
+) {
+    let assertion = match id {
+        "mask.inspect-initial-show" => &["mask-mask.inspect-initial-show"][..],
+        "mask.wear-alternate" => &["mask-mask.wear-alternate"][..],
+        "mask.prefer-alternate" => &["mask-mask.prefer-alternate"][..],
+        "mask.withdraw-selected-route" => &["mask-mask.withdraw-selected-route"][..],
+        "mask.inspect-unavailable-show" => &["mask-mask.inspect-unavailable-show"][..],
+        "mask.add-presentation-host" => &["mask-mask.add-presentation-host"][..],
+        "mask.admit-replacement-plan" => &["mask-mask.admit-replacement-plan"][..],
+        "mask.inspect-replanned-show" => &["mask-mask.inspect-replanned-show"][..],
+        "mask.doff-alternate" => &["mask-mask.doff-alternate"][..],
+        "mask.inspect-restored-show" => &["mask-mask.inspect-restored-show"][..],
+        _ => &[][..],
+    };
+    (
+        id,
+        title,
+        happened,
+        established,
+        &["Body", "Face", "Mask", "Plan", "Show"],
+        assertion,
+    )
 }

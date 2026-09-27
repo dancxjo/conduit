@@ -5,9 +5,9 @@ use sha2::{Digest, Sha256};
 use std::collections::{BTreeMap, BTreeSet};
 use std::path::{Path, PathBuf};
 
-const CONTRACT_SCHEMA: &str = "conduit.evidence/semantic-journey-contract@3";
+const CONTRACT_SCHEMA: &str = "conduit.evidence/semantic-journey-contract@4";
 const TRACK_SCHEMA: &str = "conduit.evidence/body-journey-track@4";
-const INDEX_SCHEMA: &str = "conduit.evidence/three-body-journey-index@5";
+const INDEX_SCHEMA: &str = "conduit.evidence/three-body-journey-index@6";
 const MAXIMUM_DOCUMENT_BYTES: usize = 1024 * 1024;
 const MAXIMUM_MEDIA_BYTES: u64 = 64 * 1024 * 1024;
 const MAXIMUM_STEPS: usize = 32;
@@ -58,14 +58,34 @@ enum JourneyActionKind {
     Bootstrap,
     Birth,
     UsefulWork,
+    MaskInspectInitialShow,
+    MaskWearAlternate,
+    MaskPreferAlternate,
+    MaskWithdrawSelectedRoute,
+    MaskInspectUnavailableShow,
+    MaskAddPresentationHost,
+    MaskAdmitReplacementPlan,
+    MaskInspectReplannedShow,
+    MaskDoffAlternate,
+    MaskInspectRestoredShow,
     BreakAndRecover,
     RestAndFinish,
 }
 
-const REQUIRED_ACTIONS: [JourneyActionKind; 5] = [
+const REQUIRED_ACTIONS: [JourneyActionKind; 15] = [
     JourneyActionKind::Bootstrap,
     JourneyActionKind::Birth,
     JourneyActionKind::UsefulWork,
+    JourneyActionKind::MaskInspectInitialShow,
+    JourneyActionKind::MaskWearAlternate,
+    JourneyActionKind::MaskPreferAlternate,
+    JourneyActionKind::MaskWithdrawSelectedRoute,
+    JourneyActionKind::MaskInspectUnavailableShow,
+    JourneyActionKind::MaskAddPresentationHost,
+    JourneyActionKind::MaskAdmitReplacementPlan,
+    JourneyActionKind::MaskInspectReplannedShow,
+    JourneyActionKind::MaskDoffAlternate,
+    JourneyActionKind::MaskInspectRestoredShow,
     JourneyActionKind::BreakAndRecover,
     JourneyActionKind::RestAndFinish,
 ];

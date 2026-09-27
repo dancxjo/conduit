@@ -208,7 +208,7 @@ pub(crate) fn write(mut source: TrackSource, output: &Path) -> Result<(), String
             &["body.lulled", "body.fulfilled"][..],
         ),
     ];
-    let actions = action_receipts
+    let mut actions = action_receipts
         .iter()
         .map(|(action_id, receipt_ids)| {
             let concrete_event = source
@@ -223,6 +223,20 @@ pub(crate) fn write(mut source: TrackSource, output: &Path) -> Result<(), String
             }))
         })
         .collect::<Result<Vec<_>, String>>()?;
+    let mask_public_actions = source
+        .mask_actions
+        .as_array()
+        .expect("Mask action length was checked above")
+        .iter()
+        .map(|outcome| {
+            serde_json::json!({
+                "action_id": outcome["action_id"],
+                "concrete_event": outcome["concrete_event"],
+                "receipt_ids": outcome["receipt_ids"],
+            })
+        })
+        .collect::<Vec<_>>();
+    actions.splice(3..3, mask_public_actions);
     let mut hosts = vec![serde_json::json!({
         "host_id": source.identities.host,
         "boot_id": source.identities.boot,

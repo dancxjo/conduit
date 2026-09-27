@@ -102,6 +102,46 @@ fn track(index: usize) -> BodyTrack {
                 )
             }),
     );
+    let mask_actions = mask_actions(index);
+    let mut actions = vec![
+        TrackActionObservation {
+            action_id: "journey.bootstrap".into(),
+            concrete_event: format!(
+                "Embodiment {index} began without a Body and started bootstrap."
+            ),
+            receipt_ids: vec!["body.absent".into(), "bootstrap.started".into()],
+        },
+        TrackActionObservation {
+            action_id: "journey.birth".into(),
+            concrete_event: format!("Embodiment {index} created and woke its Body."),
+            receipt_ids: vec!["body.born".into(), "body.awake".into()],
+        },
+        TrackActionObservation {
+            action_id: "journey.useful-work".into(),
+            concrete_event: format!("Embodiment {index} performed its concrete useful work."),
+            receipt_ids: vec!["form.used".into()],
+        },
+        TrackActionObservation {
+            action_id: "journey.break-recover".into(),
+            concrete_event: format!(
+                "Embodiment {index} retained a fault and its recovery outcome."
+            ),
+            receipt_ids: vec!["fault.observed".into(), "body.repaired".into()],
+        },
+        TrackActionObservation {
+            action_id: "journey.rest-finish".into(),
+            concrete_event: format!("Embodiment {index} lulled and fulfilled its Body."),
+            receipt_ids: vec!["body.lulled".into(), "body.fulfilled".into()],
+        },
+    ];
+    actions.splice(
+        3..3,
+        mask_actions.iter().map(|action| TrackActionObservation {
+            action_id: action.action_id.clone(),
+            concrete_event: action.concrete_event.clone(),
+            receipt_ids: action.receipt_ids.clone(),
+        }),
+    );
     BodyTrack {
         schema: TRACK_SCHEMA.into(),
         journey_id: "orifina/tutorial@1".into(),
@@ -138,38 +178,8 @@ fn track(index: usize) -> BodyTrack {
             Vec::new()
         },
         receipts,
-        actions: vec![
-            TrackActionObservation {
-                action_id: "journey.bootstrap".into(),
-                concrete_event: format!(
-                    "Embodiment {index} began without a Body and started bootstrap."
-                ),
-                receipt_ids: vec!["body.absent".into(), "bootstrap.started".into()],
-            },
-            TrackActionObservation {
-                action_id: "journey.birth".into(),
-                concrete_event: format!("Embodiment {index} created and woke its Body."),
-                receipt_ids: vec!["body.born".into(), "body.awake".into()],
-            },
-            TrackActionObservation {
-                action_id: "journey.useful-work".into(),
-                concrete_event: format!("Embodiment {index} performed its concrete useful work."),
-                receipt_ids: vec!["form.used".into()],
-            },
-            TrackActionObservation {
-                action_id: "journey.break-recover".into(),
-                concrete_event: format!(
-                    "Embodiment {index} retained a fault and its recovery outcome."
-                ),
-                receipt_ids: vec!["fault.observed".into(), "body.repaired".into()],
-            },
-            TrackActionObservation {
-                action_id: "journey.rest-finish".into(),
-                concrete_event: format!("Embodiment {index} lulled and fulfilled its Body."),
-                receipt_ids: vec!["body.lulled".into(), "body.fulfilled".into()],
-            },
-        ],
-        mask_actions: mask_actions(index),
+        actions,
+        mask_actions,
     }
 }
 
@@ -178,13 +188,21 @@ fn complete() -> Vec<BodyTrack> {
 }
 
 #[test]
-fn exactly_three_materially_distinct_tracks_share_five_ordered_actions() {
+fn exactly_three_materially_distinct_tracks_share_one_ordered_action_journey() {
     let contract = contract::canonical(&"a".repeat(40));
     validate(&contract, &complete(), &contract.git_commit).unwrap();
     let index = assemble_index(contract, complete(), None).unwrap();
-    assert_eq!(index.actions.len(), 5);
+    assert_eq!(index.actions.len(), 15);
     assert!(index.actions.iter().all(|action| action.bodies.len() == 3));
     assert_eq!(index.actions[2].action.action_id, "journey.useful-work");
+    assert_eq!(
+        index.actions[3].action.action_id,
+        "mask.inspect-initial-show"
+    );
+    assert_eq!(
+        index.actions[12].action.action_id,
+        "mask.inspect-restored-show"
+    );
 }
 
 #[test]
@@ -208,7 +226,7 @@ fn action_order_and_required_semantics_fail_closed() {
         .unwrap_err()
         .contains("shuffled"));
     let mut tracks = complete();
-    tracks[1].actions[3].receipt_ids = vec!["body.repaired".into()];
+    tracks[1].actions[13].receipt_ids = vec!["body.repaired".into()];
     assert!(validate(&contract, &tracks, &contract.git_commit)
         .unwrap_err()
         .contains("required semantic receipts"));
@@ -259,7 +277,7 @@ fn extra_detailed_receipts_do_not_become_public_actions() {
         .push(receipt(0, "mask.replanned", "mask-replanned"));
     validate(&contract, &tracks, &contract.git_commit).unwrap();
     let index = assemble_index(contract, tracks, None).unwrap();
-    assert_eq!(index.actions.len(), 5);
+    assert_eq!(index.actions.len(), 15);
     assert!(index.actions.iter().all(|action| action.bodies[0]
         .receipts
         .iter()

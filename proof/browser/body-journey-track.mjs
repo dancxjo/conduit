@@ -161,17 +161,22 @@ export async function writeBrowserBodyJourneyTrack(source, screenshotPath, outpu
       documentary_description: "Watch the complete uncut browser session, including birth, host admission, refusal, recovery and fulfillment.",
       path: relative, sha256: digest(bytes) });
   }
+  const publicActions = [
+    { action_id: "journey.bootstrap", concrete_event: "The browser Host started with no Body, then accepted the bounded bootstrap through the live DOM entrance.", receipt_ids: ["body.absent", "bootstrap.started"] },
+    { action_id: "journey.birth", concrete_event: "The browser birth action created this independent Body and admitted its first wake.", receipt_ids: ["body.born", "body.awake"] },
+    { action_id: "journey.useful-work", concrete_event: "A browser interaction exercised the standing Form through its retained Plan and Play.", receipt_ids: ["form.used"] },
+    { action_id: "journey.break-recover", concrete_event: "A refused browser wake remained a fault until a later admitted wake established repair.", receipt_ids: ["fault.observed", "body.repaired"] },
+    { action_id: "journey.rest-finish", concrete_event: "Explicit browser actions lulled the Body and then fulfilled its biography.", receipt_ids: ["body.lulled", "body.fulfilled"] },
+  ];
+  publicActions.splice(3, 0, ...maskActions.map(action => ({
+    action_id: action.action_id, concrete_event: action.concrete_event, receipt_ids: action.receipt_ids,
+  })));
   await writeFile(join(output, "track.json"), `${JSON.stringify({
     schema: "conduit.evidence/body-journey-track@4", journey_id: "orifina/tutorial@1", git_commit: commit,
     track_id: "browser-graphical", embodiment: "browser-wasm-body", body_id: ids.body,
     presenter_id: ids.maskForm, hosts: [
       { host_id: ids.host, boot_id: ids.boot }, { host_id: ids.peerHost, boot_id: ids.peerBoot },
-    ], line_ids: [], distributed_plan_ids: [], receipts, actions: [
-      { action_id: "journey.bootstrap", concrete_event: "The browser Host started with no Body, then accepted the bounded bootstrap through the live DOM entrance.", receipt_ids: ["body.absent", "bootstrap.started"] },
-      { action_id: "journey.birth", concrete_event: "The browser birth action created this independent Body and admitted its first wake.", receipt_ids: ["body.born", "body.awake"] },
-      { action_id: "journey.useful-work", concrete_event: "A browser interaction exercised the standing Form through its retained Plan and Play.", receipt_ids: ["form.used"] },
-      { action_id: "journey.break-recover", concrete_event: "A refused browser wake remained a fault until a later admitted wake established repair.", receipt_ids: ["fault.observed", "body.repaired"] },
-      { action_id: "journey.rest-finish", concrete_event: "Explicit browser actions lulled the Body and then fulfilled its biography.", receipt_ids: ["body.lulled", "body.fulfilled"] },
-    ], mask_actions: maskActions,
+    ], line_ids: [], distributed_plan_ids: [], receipts, actions: publicActions,
+    mask_actions: maskActions,
   }, null, 2)}\n`, { flag: "wx" });
 }
