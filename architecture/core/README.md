@@ -33,6 +33,7 @@ depends on semantic, application, target, or proof packages.
 | `shared_pool.rs` | universal architecture | Generic finite shared-pool identity, admission, and placement records. |
 | `state_delay.rs` | universal architecture | Explicit typed computational-state identity, continuation, and retained-resource admission. |
 | `stream_sampling.rs` | universal architecture | Deterministic bounded source-item selection with exact selected/unselected ownership and accounting, distinct from pressure loss or coalescing. |
+| `terminal_info.rs` | universal architecture | Canonical bounded abnormal-terminal info, including exact category, causal evidence digest, and optional domain-owned fault identity. |
 | `deadline.rs` | generic mechanism | Exact bounded monotonic-deadline operation/resource contract; no clock implementation or scheduling policy. |
 | `delivery.rs` | universal architecture | Versioned delivery/evolution, atomic admission, explicit pressure/coalescing accounting, and finite typed queues without replacing concrete info. |
 | `device.rs` | universal architecture | Optional bounded host-observed Device grouping and provenance, validated against exact current host capability truth without granting authority. |

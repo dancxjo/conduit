@@ -620,6 +620,7 @@ pub enum KernelEventKind {
     BackCompleted,
     BackFailed,
     SemanticAbnormal,
+    SemanticAbnormalRecovered,
     CancellationRequested,
     RunCancelled,
 }
@@ -1211,6 +1212,7 @@ fn transient_sign(kind: KernelEventKind) -> bool {
             | KernelEventKind::BackCompleted
             | KernelEventKind::BackFailed
             | KernelEventKind::SemanticAbnormal
+            | KernelEventKind::SemanticAbnormalRecovered
             | KernelEventKind::RunCancelled
     )
 }

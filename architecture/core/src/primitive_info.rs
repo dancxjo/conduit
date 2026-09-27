@@ -5,6 +5,7 @@
 
 use crate::{
     InfoBool, InfoDecodeError, Quantity, QuantityDecodeRefusal, QuantityDimension, Scalar,
+    TerminalInfo, TerminalInfoDecodeRefusal,
 };
 
 pub const UNIT_INFO_ID: &str = "value/unit";
@@ -18,6 +19,7 @@ pub const COUNT_ENCODED_LEN: usize = 8;
 pub enum PrimitiveInfoKind {
     Unit,
     CancellationRequest,
+    Terminal,
     Bool,
     Count,
     Scalar,
@@ -54,6 +56,7 @@ pub enum PrimitiveInfoRefusal {
     Scalar(InfoDecodeError),
     TextUtf8,
     Quantity(QuantityDecodeRefusal),
+    Terminal(TerminalInfoDecodeRefusal),
     WrongQuantityDimension {
         expected: QuantityDimension,
         actual: QuantityDimension,
@@ -68,6 +71,7 @@ pub const fn primitive_info_kind(identity: &str) -> Option<PrimitiveInfoKind> {
     match identity.as_bytes() {
         b"value/unit" => Some(PrimitiveInfoKind::Unit),
         b"control/cancellation-request" => Some(PrimitiveInfoKind::CancellationRequest),
+        b"conduit/terminal-info@1" => Some(PrimitiveInfoKind::Terminal),
         b"value/bool" => Some(PrimitiveInfoKind::Bool),
         b"value/count" => Some(PrimitiveInfoKind::Count),
         b"value/scalar" => Some(PrimitiveInfoKind::Scalar),
@@ -104,6 +108,9 @@ pub fn validate_primitive_info(identity: &str, encoded: &[u8]) -> Result<(), Pri
         Some(PrimitiveInfoKind::CancellationRequest) if !encoded.is_empty() => {
             Err(PrimitiveInfoRefusal::UnitNotEmpty)
         }
+        Some(PrimitiveInfoKind::Terminal) => TerminalInfo::decode(encoded)
+            .map(|_| ())
+            .map_err(PrimitiveInfoRefusal::Terminal),
         Some(
             PrimitiveInfoKind::Unit
             | PrimitiveInfoKind::CancellationRequest

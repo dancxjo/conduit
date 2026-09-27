@@ -1,13 +1,19 @@
 use super::back::{BackBudget, BackFactory, InstalledBack};
 use conduit_audio::{PcmChannelLayout, PcmFrameHeader, PcmSampleRepresentation, AUDIO_PCM_INFO_ID};
 use conduit_core::{
-    kind_id, port_id, ArtifactId, CapabilityId, CapabilityLimits, CapabilityOffer,
-    ExecutionProfileId, ImplementationId, KindIdentity, PlannedGear, PortDescriptor, PortDirection,
-    PortTemporal, Quantity, QuantityUnit, FREQUENCY_INFO_ID,
+    kind_id, port_id, AbnormalTerminalTransduction, ArtifactId, CancellationTransduction,
+    CapabilityId, CapabilityLimits, CapabilityOffer, ExecutionProfileId, ImplementationId, Kind,
+    KindIdentity, KindSemanticLaw, NormalCloseTransduction, PlannedGear, PortDescriptor,
+    PortDirection, PortTemporal, Quantity, QuantityUnit, TerminalTransductionProfile,
+    FREQUENCY_INFO_ID, UNIT_INFO_ID,
 };
 use conduit_form::{KindProjection, ProfileCatalog};
 use conduit_kernel::{
-    scheduler::{StepBack, StepInputBytes, StepIo, StepOutcome},
+    scheduler::{
+        AssignedAbnormalTransduction, AssignedCancellationTransduction,
+        AssignedNormalCloseTransduction, AssignedTerminalTransduction, StepBack, StepInputBytes,
+        StepIo, StepOutcome,
+    },
     Failure, FailureCode, PortId, ValueRef, ValueStorage,
 };
 
@@ -134,7 +140,20 @@ impl<const P: usize> StepBack<P> for CancellationSourceBack {
     }
 }
 impl<const P: usize> StepBack<P> for ToneTerminalRecoveryBack {
+    fn terminal_transduction(&self) -> Option<AssignedTerminalTransduction> {
+        Some(AssignedTerminalTransduction {
+            input: PortId(0),
+            output: PortId(0),
+            normal_close: AssignedNormalCloseTransduction::NotAccepted,
+            abnormal: AssignedAbnormalTransduction::Recover,
+            cancellation: AssignedCancellationTransduction::NotCancellable,
+        })
+    }
+
     fn step(&mut self, io: &mut StepIo<P>, inputs: &StepInputBytes<'_, P>) -> StepOutcome {
+        if self.seen {
+            return StepOutcome::Complete;
+        }
         if io.input(PortId(0)).is_some() {
             let Some(bytes) = inputs.input(PortId(0)) else {
                 return fail(41);
@@ -148,13 +167,6 @@ impl<const P: usize> StepBack<P> for ToneTerminalRecoveryBack {
             io.consume(PortId(0)).unwrap();
             self.seen = true;
             return StepOutcome::Progress;
-        }
-        if io.input_closed(PortId(0)) {
-            if !self.seen {
-                return fail(43);
-            }
-            io.consume_closed(PortId(0)).unwrap();
-            return StepOutcome::Complete;
         }
         StepOutcome::Await
     }
@@ -271,14 +283,51 @@ pub(super) fn recovery_offer() -> CapabilityOffer {
         RECOVERY_KIND,
         RECOVERY_REVISION,
         RECOVERY_IMPLEMENTATION,
-        vec![port(
-            "terminal",
-            conduit_audio::AUDIO_TONE_TERMINAL_INFO_ID,
-            PortDirection::Input,
-            PortTemporal::Value,
-        )],
-        Vec::new(),
+        vec![recovery_input()],
+        vec![recovery_output()],
     )
+}
+
+fn recovery_input() -> PortDescriptor {
+    let mut input = port(
+        "terminal",
+        conduit_audio::AUDIO_TONE_TERMINAL_INFO_ID,
+        PortDirection::Input,
+        PortTemporal::Value,
+    );
+    input.abnormal_kind = Some(kind_id(conduit_audio::AUDIO_TONE_TERMINAL_INFO_ID));
+    input
+}
+
+fn recovery_output() -> PortDescriptor {
+    port(
+        "recovered",
+        UNIT_INFO_ID,
+        PortDirection::Output,
+        PortTemporal::Value,
+    )
+}
+
+fn recovery_kind() -> Kind {
+    Kind {
+        startup_parameters: Vec::new(),
+        shorthand: None,
+        kind_id: kind_id(RECOVERY_KIND),
+        kind_contract_revision: KindIdentity::from(RECOVERY_REVISION),
+        inputs: vec![recovery_input()],
+        outputs: vec![recovery_output()],
+        configuration: Vec::new(),
+        semantic_laws: vec![KindSemanticLaw::TerminalTransduction(
+            TerminalTransductionProfile {
+                input_port_id: port_id("terminal"),
+                output_port_id: port_id("recovered"),
+                normal_close: NormalCloseTransduction::NotAccepted,
+                abnormal: AbnormalTerminalTransduction::Recover,
+                cancellation: CancellationTransduction::NotCancellable,
+            },
+        )],
+        limits: recovery_offer().limits,
+    }
 }
 pub(super) fn close_offer() -> CapabilityOffer {
     offer(
@@ -315,12 +364,6 @@ pub(super) fn install_catalog(c: &mut ProfileCatalog) {
             cancel_offer().outputs,
         ),
         (
-            kind_id(RECOVERY_KIND),
-            KindIdentity::from(RECOVERY_REVISION),
-            recovery_offer().inputs,
-            Vec::new(),
-        ),
-        (
             kind_id(CLOSE_KIND),
             KindIdentity::from(CLOSE_REVISION),
             close_offer().inputs,
@@ -336,6 +379,7 @@ pub(super) fn install_catalog(c: &mut ProfileCatalog) {
         })
         .unwrap()
     }
+    c.insert_kind(recovery_kind()).unwrap();
 }
 fn source_budget(_: &PlannedGear) -> Result<BackBudget, String> {
     Ok(BackBudget {

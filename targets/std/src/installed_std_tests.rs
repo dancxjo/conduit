@@ -272,6 +272,18 @@ fn authored_tone_cancellation_routes_exact_observed_terminal_truth() {
         conduit_core::ConnectionTrack::AbnormalTerminal
     );
     assert_ne!(cancellation.value_kind, terminal.value_kind);
+    let recovery = plan.fragments[0]
+        .placements
+        .iter()
+        .find(|placement| placement.kind_id.as_str() == "conduit-test/tone-terminal-recovery")
+        .expect("recovery placement is exact Plan truth");
+    assert!(matches!(
+        recovery
+            .terminal_transduction
+            .as_ref()
+            .map(|profile| &profile.abnormal),
+        Some(conduit_core::AbnormalTerminalTransduction::Recover)
+    ));
     let mut output = Vec::with_capacity(2_048);
     let mut timer = RecordingTimer { waits: Vec::new() };
     let report = host
@@ -282,6 +294,10 @@ fn authored_tone_cancellation_routes_exact_observed_terminal_truth() {
         .kernel_sign
         .iter()
         .any(|event| event.kind == conduit_kernel::KernelEventKind::SemanticAbnormal));
+    assert!(kernel
+        .kernel_sign
+        .iter()
+        .any(|event| { event.kind == conduit_kernel::KernelEventKind::SemanticAbnormalRecovered }));
     assert!(!kernel.kernel_sign.iter().any(|event| matches!(
         event.kind,
         conduit_kernel::KernelEventKind::CancellationRequested
