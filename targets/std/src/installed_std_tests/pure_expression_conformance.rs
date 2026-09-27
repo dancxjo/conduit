@@ -1,11 +1,12 @@
 use super::{host, installed_std, RecordingTimer};
 use conduit_core::{BaseImplementationId, KindIdentity, Quantity, QuantityUnit};
 use conduit_form::{
-    check_syntax_document, expand_canonical_form, parse_syntax_document, KindConfigurationField,
-    KindConfigurationRule, KindProjection, KindSignature, ProfileCatalog, StartupCatalog,
-    StartupParameterSignature,
+    check_expression, check_syntax_document, expand_canonical_form, parse_syntax_document,
+    BackStatement, CheckedExpressionType, CordStage, ExpressionTypeContext, KindConfigurationField,
+    KindConfigurationRule, KindProjection, KindSignature, PortableExpressionProgram,
+    ProfileCatalog, StartupCatalog, StartupParameterSignature,
 };
-use std::collections::BTreeMap;
+use std::collections::{BTreeMap, BTreeSet};
 
 #[test]
 fn fixed_integer_expression_plans_and_plays_through_the_std_host() {
@@ -31,6 +32,49 @@ fn ternary_selects_one_exact_branch_through_the_std_host() {
         conduit_core::SCALAR_INFO_ID,
         conduit_core::SCALAR_INFO_ID,
         ". > 0 ? 1 : (1 / 0)",
+    );
+}
+
+#[test]
+fn anonymous_record_and_tuple_plan_and_play_through_the_std_host() {
+    let expression_source = "(., { doubled: . + . })";
+    let syntax = parse_syntax_document(&format!(
+        "form typed (\n input: U8 >> output: U8\n) {{\n input >> ({expression_source}) >> output\n}}\n"
+    ));
+    let BackStatement::Cord(cord) = &syntax.forms[0].back[0] else {
+        panic!("fixture contains one Cord")
+    };
+    let CordStage::PureExpression(expression) = &cord.stages[1] else {
+        panic!("fixture contains one expression")
+    };
+    let input_type = CheckedExpressionType::semantic("value/u8");
+    let empty_values = BTreeMap::new();
+    let empty_types = BTreeMap::new();
+    let empty_numeric = BTreeSet::new();
+    let empty_kinds = BTreeMap::new();
+    let checked = check_expression(
+        &expression.syntax,
+        &ExpressionTypeContext {
+            input: &input_type,
+            immutable_values: &empty_values,
+            structured_types: &empty_types,
+            literal_types: &empty_values,
+            numeric_types: &empty_numeric,
+            semantic_kinds: &empty_kinds,
+        },
+    )
+    .unwrap();
+    let program = PortableExpressionProgram::from_checked(&checked).unwrap();
+    let expected = program.evaluate(&[3]).unwrap();
+    let output_kind = program.output_type.profile().unwrap().value_kind().clone();
+    assert_pipeline_plans_and_plays(
+        &[3],
+        &expected,
+        "value/u8",
+        output_kind.as_str(),
+        &format!("({expression_source})"),
+        false,
+        false,
     );
 }
 

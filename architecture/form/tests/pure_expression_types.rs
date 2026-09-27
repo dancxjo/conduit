@@ -466,6 +466,10 @@ fn portable_anonymous_structures_carry_their_exact_checked_profile() {
     let output = program.evaluate(&[3]).unwrap();
     let value = conduit_core::StructuredInfoValue::from_canonical_bytes(&output).unwrap();
     assert_eq!(value.value_type(), &program.output_type);
+    let mut prepared = PreparedPortableExpressionEvaluator::new(&program).unwrap();
+    let capacity = prepared.output_capacity();
+    assert_eq!(prepared.evaluate(&[3]).unwrap(), output);
+    assert_eq!(prepared.output_capacity(), capacity);
 }
 
 #[test]
