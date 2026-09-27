@@ -122,9 +122,10 @@ pub fn proof_domain_offer(
 
 pub fn recurrence_proof_offer() -> CapabilityOffer {
     let contract = conduit_semantic_catalog::recurrence_semantic_contract();
+    let semantic_contract = contract.semantic_contract();
     let result = conduit_semantic_catalog::recurrence_result_type();
     conduit_core::capability_offer_from_parts! {
-        semantic_contract: Default::default(),
+        semantic_contract,
         startup_parameters: contract.startup_parameters,
         shorthand: None,
         capability_id: CapabilityId::from("proof/time-expand-recurrence"),
