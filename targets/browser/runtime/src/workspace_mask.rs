@@ -1,6 +1,8 @@
 //! Browser realization of the tutorial Face through one ordinary Mask Form.
 
-use conduit_body::BodyId;
+use conduit_body::{
+    BodyId, BodyPlan, BodyPresentationSelector, BodyPresenterChainPlan, BodyPresenterTopology, Wake,
+};
 use conduit_core::{
     bind_active_play, kind_id, port_id, ActivePlayIdentity, ArtifactId, Back, BackOfferBuilder,
     BootId, CapabilityId, CapabilityLimits, ExecutionProfileId, HostAdvertisement,
@@ -81,6 +83,8 @@ pub struct BrowserMaskObservation {
     pub schema: &'static str,
     pub wardrobe_action: MaskWardrobeControlEvidence,
     pub planned_mask: PlannedMaskForm,
+    pub alternate: PlannedMaskForm,
+    pub body_plan: BodyPlan,
     pub mask_play: ActivePlayIdentity,
     pub presentation: Presentation,
     pub mask_show: MaskShow,
@@ -118,6 +122,9 @@ pub struct BrowserMaskRuntime {
     routes: AdmittedMaskFormRoutes,
     wardrobe_action: MaskWardrobeControlEvidence,
     planned: PlannedMaskForm,
+    alternate: PlannedMaskForm,
+    body_plan: BodyPlan,
+    wake: Wake,
     play: ActivePlayIdentity,
     presentation: Presentation,
     show: MaskShow,
@@ -138,21 +145,64 @@ impl BrowserMaskRuntime {
         host_id: HostId,
         boot_id: BootId,
         presentation: Presentation,
+        wake: Wake,
+        base_plan: BodyPlan,
     ) -> Result<(Self, BrowserMaskEffect), String> {
-        let (mask, planned, routes) = plan::planned_mask(host_id, boot_id)?;
+        let planned = plan::planned_mask(
+            host_id.clone(),
+            boot_id.clone(),
+            MASK_SOURCE,
+            "browser-graphical",
+        )?;
+        let alternate = plan::planned_mask(
+            host_id,
+            boot_id,
+            ALTERNATE_MASK_SOURCE,
+            "browser-graphical-alternate",
+        )?;
+        let source_placement_id = base_plan
+            .forms
+            .first()
+            .and_then(|f| f.plan.fragments.first())
+            .and_then(|f| f.placements.first())
+            .ok_or("Body Plan lacks Presentation source placement")?
+            .placement_id
+            .clone();
+        let chains = [&planned, &alternate]
+            .into_iter()
+            .map(|p| BodyPresenterChainPlan {
+                plan: p.plan.clone(),
+                stage_placement_ids: p
+                    .plan
+                    .fragments
+                    .iter()
+                    .flat_map(|f| &f.placements)
+                    .map(|v| v.placement_id.clone())
+                    .collect(),
+            })
+            .collect();
+        let body_plan = BodyPlan::seal_with_presenters(
+            &wake,
+            base_plan.forms.clone(),
+            vec![BodyPresenterTopology {
+                presentation: BodyPresentationSelector {
+                    form: base_plan.forms.first().map(|f| f.form.clone()),
+                    source_placement_id,
+                },
+                chains,
+            }],
+        )
+        .map_err(|e| format!("seal browser Mask Body Plan: {e:?}"))?;
+        let routes = plan::admitted_routes(&body_plan, &planned, &alternate, true, true)?;
+        let mask = planned.mask.clone();
         let wardrobe = MaskWardrobe::new(MaskWardrobeLifetime::Body, vec![], vec![])
             .map_err(|error| format!("{error:?}"))?;
         let scoped =
             BodyMaskWardrobe::new(body_id, None, wardrobe).map_err(|error| format!("{error:?}"))?;
         let scoped_body_id = scoped.body_id.clone();
-        let mut control = MaskWardrobeControl::new(
-            &scoped_body_id,
-            scoped,
-            planned.plan.plan_id.clone(),
-            &routes,
-            None,
-        )
-        .map_err(|error| format!("{error:?}"))?;
+        let mut control =
+            MaskWardrobeControl::new(&scoped_body_id, scoped, &body_plan, &routes, None)
+                .map_err(|error| format!("{error:?}"))?;
         let wardrobe_action = control
             .apply(
                 0,
@@ -277,6 +327,9 @@ impl BrowserMaskRuntime {
                 routes,
                 wardrobe_action,
                 planned,
+                alternate,
+                body_plan,
+                wake,
                 play,
                 presentation,
                 show,
@@ -395,6 +448,8 @@ impl BrowserMaskRuntime {
             schema: "conduit.browser/mask-observation@1",
             wardrobe_action: self.wardrobe_action.clone(),
             planned_mask: self.planned.clone(),
+            alternate: self.alternate.clone(),
+            body_plan: self.body_plan.clone(),
             mask_play: self.play.clone(),
             presentation: self.presentation.clone(),
             mask_show: self.show.clone(),
@@ -436,6 +491,8 @@ impl BrowserMaskRuntime {
             self.play.host_id.clone(),
             BootId::from(format!("{}/mask-replacement", self.play.boot_id.as_str())),
             self.presentation.clone(),
+            self.wake.clone(),
+            self.body_plan.clone(),
         )
     }
 }

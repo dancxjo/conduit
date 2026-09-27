@@ -587,11 +587,13 @@ fn dispatch(request: Request) -> Result<Vec<u8>, Refusal> {
                 return encode(&request);
             }
             Request::PresentTutorialMask { host_id, boot_id, revision, playback } => {
+                let realization = current.realization().ok_or_else(|| Refusal::new("TutorialMaskPrepare", "Body has no active realization"))?;
                 let presentation = conduit_workspace_model::tutorial::face_presentation(
                     current, revision, playback,
                 ).map_err(|error| Refusal::new("TutorialMaskPresentation", format!("{error:?}")))?;
                 let (runtime, effect) = crate::workspace_mask::BrowserMaskRuntime::prepare(
                     current.evidence().body_id.clone(), host_id, boot_id, presentation,
+                    realization.wake.clone(), realization.plan.clone(),
                 ).map_err(|error| Refusal::new("TutorialMaskPrepare", error))?;
                 BROWSER_MASK.with(|slot| *slot.borrow_mut() = Some(runtime));
                 return encode(&effect);

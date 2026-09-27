@@ -92,13 +92,48 @@ fn acknowledgement(effect: &BrowserMaskEffect) -> BrowserMaskAcknowledgement {
     }
 }
 
+fn body_plan_basis() -> (BodyId, conduit_body::Wake, conduit_body::BodyPlan) {
+    let planned = plan::planned_mask(
+        HostId::from("host/browser"),
+        BootId::from("boot/browser"),
+        MASK_SOURCE,
+        "browser-graphical",
+    )
+    .unwrap();
+    let resident = conduit_body::ResidentForm::new(
+        planned.mask.form_identity.source_document_id.clone(),
+        planned.mask.form_identity.checked_form_id.clone(),
+    );
+    let born = conduit_body::Body::born(
+        resident.source_document_id.clone(),
+        resident.checked_form_id.clone(),
+        1,
+        SignId::from("sign/body-born-plan-basis"),
+    )
+    .unwrap();
+    let body = born.body_id.clone();
+    let (_, wake) = born.wake(1, SignId::from("sign/wake")).unwrap();
+    let body_plan = conduit_body::BodyPlan::seal(
+        &wake,
+        vec![conduit_body::BodyFormPlan {
+            form: resident,
+            plan: planned.plan,
+        }],
+    )
+    .unwrap();
+    (body, wake, body_plan)
+}
+
 #[test]
 fn show_becomes_available_only_after_exact_browser_acknowledgement() {
+    let (body, wake, body_plan) = body_plan_basis();
     let (mut runtime, effect) = BrowserMaskRuntime::prepare(
-        body_id(),
+        body,
         HostId::from("host/browser"),
         BootId::from("boot/browser"),
         presentation(),
+        wake,
+        body_plan,
     )
     .unwrap();
     assert_eq!(
@@ -164,7 +199,9 @@ fn show_becomes_available_only_after_exact_browser_acknowledgement() {
     }
 
     let initial = runtime.observation();
-    let (mut replacement, replacement_effect) = runtime.replacement(body_id()).unwrap();
+    let (mut replacement, replacement_effect) = runtime
+        .replacement(initial.wardrobe_action.body_id.clone())
+        .unwrap();
     replacement
         .acknowledge(&acknowledgement(&replacement_effect))
         .unwrap();
