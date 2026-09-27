@@ -19,6 +19,7 @@ use conduit_presentation::{
     PRESENTATION_VALUE_KIND, SHOW_VALUE_KIND,
 };
 use serde::{Deserialize, Serialize};
+use std::collections::BTreeMap;
 
 const MASK_SOURCE: &str = "form browser-graphical (\n >> presentation: Presentation\n interaction: FaceInteraction...| >>\n show: Show >>\n) {\n mask: presentation/browser-dom-mask\n presentation >> mask.presentation\n mask.interaction >> interaction\n mask.show >> show\n}\n";
 
@@ -287,9 +288,42 @@ fn planned_mask(
         core::slice::from_ref(&host),
     )
     .map_err(|error| format!("{error:?}"))?;
-    let plan =
-        conduit_planner::plan_expanded_canonical(&authoring.expanded, &[host], &placements, &[])
-            .map_err(|error| format!("{error:?}"))?;
+    let mut boundary_limits = BTreeMap::new();
+    for (direction, bindings) in [
+        (PortDirection::Input, authoring.input_bindings.as_slice()),
+        (PortDirection::Output, authoring.output_bindings.as_slice()),
+    ] {
+        for binding in bindings {
+            boundary_limits.insert(
+                conduit_planner::FrontBoundaryKey {
+                    direction,
+                    front_port_id: binding.front_port_id.clone(),
+                    track: binding.track,
+                },
+                conduit_planner::ConnectionQueueLimits {
+                    item_capacity: 4,
+                    byte_capacity: 512 * 1024,
+                },
+            );
+        }
+    }
+    let plan = conduit_planner::plan_expanded_authoring_with_options(
+        &authoring,
+        &[host],
+        &placements,
+        &[],
+        conduit_planner::PlanningOptions {
+            connection_bases: &BTreeMap::new(),
+            line_candidates: &BTreeMap::new(),
+            connection_item_capacity: 4,
+            connection_byte_capacity: 512 * 1024,
+            authority_grants: &[],
+            protected_resource_grants: &[],
+            line_offers: &[],
+        },
+        &boundary_limits,
+    )
+    .map_err(|error| format!("{error:?}"))?;
     let planned = PlannedMaskForm::admit(&mask, &plan).map_err(|error| format!("{error:?}"))?;
     let route = SealedMaskFormRoute {
         route_id: "route/browser-graphical".into(),
