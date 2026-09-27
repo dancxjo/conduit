@@ -202,8 +202,7 @@ impl PresenterControl {
             vec![PresentationSubject {
                 identity: "conduitos/patchbay/self".into(),
                 role: PresentationRole::Document,
-                label: "Patchbay".into(),
-                accessibility_name: "Patchbay controlling its own Presenter topology".into(),
+                name: "Patchbay controlling its own Presenter topology".into(),
             }],
             Vec::new(),
             Vec::new(),

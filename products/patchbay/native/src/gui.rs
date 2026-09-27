@@ -145,9 +145,7 @@ pub fn draw_patchbay_with_debugger(
         gesture,
         viewport,
     } = view;
-    debug_assert!(Icon::ALL
-        .iter()
-        .all(|icon| !icon.accessibility_name().is_empty()));
+    debug_assert!(Icon::ALL.iter().all(|icon| !icon.name().is_empty()));
     let mut canvas = SoftwareCanvas::new(pixels, width, height);
     let theme = &CONDUIT_APPLICATION_THEME;
     let width = i32::try_from(width).unwrap_or(i32::MAX);

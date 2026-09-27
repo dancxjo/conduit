@@ -43,7 +43,7 @@ pub fn project_ssd1306_frame(
             presentation
                 .subjects
                 .iter()
-                .map(|subject| subject.label.as_str()),
+                .map(|subject| subject.name.as_str()),
         );
     let first = candidates
         .next()

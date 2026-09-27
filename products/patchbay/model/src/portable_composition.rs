@@ -5,7 +5,7 @@
 //! reference composition operations.
 
 use conduit_presentation::{
-    AccessibilityRole, CompositionError, CompositionItem, CompositionItemKind, GraphicsCommand,
+    CompositionError, CompositionItem, CompositionItemKind, CompositionRole, GraphicsCommand,
     GraphicsError, GraphicsPaintRole, GraphicsScene, GraphicsShapeStyle, LayoutAlignment,
     LayoutFrame, PresentationComposition, PresentationIconKey,
 };
@@ -13,9 +13,9 @@ use conduit_presentation::{
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct DirectObligation {
     pub kind: CompositionItemKind,
-    pub role: AccessibilityRole,
+    pub role: CompositionRole,
     pub token: String,
-    pub accessibility_name: String,
+    pub name: String,
 }
 
 #[derive(Debug, Clone, Default, PartialEq, Eq)]
@@ -24,36 +24,36 @@ pub struct DirectPresentation {
 }
 
 impl DirectPresentation {
-    pub fn icon(token: &str, accessibility_name: &str) -> Result<Self, CompositionError> {
+    pub fn icon(token: &str, name: &str) -> Result<Self, CompositionError> {
         if !conduit_presentation::is_authoritative_icon(token) {
             return Err(CompositionError::UnknownIcon);
         }
         Ok(Self {
             obligations: vec![DirectObligation {
                 kind: CompositionItemKind::Icon,
-                role: AccessibilityRole::Image,
+                role: CompositionRole::Image,
                 token: token.into(),
-                accessibility_name: accessibility_name.into(),
+                name: name.into(),
             }],
         })
     }
 
-    pub fn frame(mut self, role: &str, accessibility_name: &str) -> Self {
+    pub fn frame(mut self, role: &str, name: &str) -> Self {
         self.obligations.push(DirectObligation {
             kind: CompositionItemKind::Frame,
-            role: AccessibilityRole::Group,
+            role: CompositionRole::Group,
             token: role.into(),
-            accessibility_name: accessibility_name.into(),
+            name: name.into(),
         });
         self
     }
 
-    pub fn badge(mut self, state: &str, accessibility_name: &str) -> Self {
+    pub fn badge(mut self, state: &str, name: &str) -> Self {
         self.obligations.push(DirectObligation {
             kind: CompositionItemKind::Badge,
-            role: AccessibilityRole::Status,
+            role: CompositionRole::Status,
             token: state.into(),
-            accessibility_name: accessibility_name.into(),
+            name: name.into(),
         });
         self
     }
@@ -65,7 +65,7 @@ impl DirectPresentation {
                 obligation.kind,
                 obligation.role,
                 &obligation.token,
-                &obligation.accessibility_name,
+                &obligation.name,
             )?)?;
         }
         Ok(output)

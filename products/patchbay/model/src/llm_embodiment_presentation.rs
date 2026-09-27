@@ -127,20 +127,17 @@ fn project_view(
     content.subject(
         body_subject.clone(),
         PresentationRole::Body,
-        "Embodied model Body",
         "Body whose exact form wiring defines model perception and power",
     );
     content.subject(
         form.clone(),
         PresentationRole::Form,
-        format!("{:?}", view.stage),
         format!("Exact {:?} model Form", view.stage),
     );
     content.contains(&body_subject, &form);
     content.subject(
         gear.clone(),
         PresentationRole::Gear,
-        "Local model Gear",
         "Same realized local model Gear",
     );
     content.contains(&form, &gear);
@@ -154,14 +151,12 @@ fn project_view(
     content.subject(
         proposal.clone(),
         PresentationRole::Status,
-        "MODEL PROPOSAL",
         "Model-derived proposal awaiting an ordinary authority decision",
     );
     content.describes(&proposal, &gear);
     content.subject(
         decision.clone(),
         PresentationRole::Status,
-        "MODEL REQUEST DECISION",
         "Ordinary proposal-gate decision",
     );
     content.describes(&decision, &proposal);
@@ -180,7 +175,6 @@ fn project_view(
         content.subject(
             identity.clone(),
             PresentationRole::Sign,
-            "SYSTEM SIGN",
             "System effect evidence after admitted execution",
         );
         content.describes(&identity, &decision);
@@ -226,7 +220,6 @@ fn append_ports(content: &mut Content, gear: &str, view: &EmbodiedModelView) {
             content.subject(
                 port.clone(),
                 PresentationRole::Port,
-                format!("{direction}: {}", kind.as_str()),
                 format!("Wired {direction} Port carrying {}", kind.as_str()),
             );
             content.contains(gear, &port);
@@ -234,7 +227,6 @@ fn append_ports(content: &mut Content, gear: &str, view: &EmbodiedModelView) {
             content.subject(
                 cord.clone(),
                 PresentationRole::Cord,
-                "Planned Cord",
                 format!("Exact planned Cord carrying {}", kind.as_str()),
             );
             content.connects(&port, &cord);

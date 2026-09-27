@@ -152,7 +152,7 @@ fn resident_view_joins_body_truth_only_for_its_current_play() {
         .presentation
         .actions
         .iter()
-        .find(|action| action.label == "Continue")
+        .find(|action| action.name == "Continue")
         .unwrap();
     assert!(surface
         .presentation

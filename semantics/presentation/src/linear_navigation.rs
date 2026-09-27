@@ -53,7 +53,7 @@ pub fn render_linear_navigation(
     for place in &observation.available_places {
         builder.push(format!(
             "AVAILABLE PLACE {:?} root={:?} label={:?}",
-            place.place, place.root_subject, place.label
+            place.place, place.root_subject, place.name
         ))?;
     }
     for aspect in &observation.available_aspects {

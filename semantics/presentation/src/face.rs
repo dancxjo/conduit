@@ -146,14 +146,12 @@ impl Face {
             PresentationSubject {
                 identity: body_subject.clone(),
                 role: PresentationRole::Body,
-                label: "Body".into(),
-                accessibility_name: "Current body".into(),
+                name: "Current body".into(),
             },
             PresentationSubject {
                 identity: context_subject.clone(),
                 role: PresentationRole::Region,
-                label: context_label(&context).into(),
-                accessibility_name: format!("Current {} context", context_label(&context)),
+                name: format!("Current {} context", context_label(&context)),
             },
         ];
         let mut relationships = vec![PresentationRelationship {
@@ -223,8 +221,7 @@ impl Face {
             subjects.push(PresentationSubject {
                 identity: form_subject.clone(),
                 role: PresentationRole::Form,
-                label: form.checked_form_id.as_str().into(),
-                accessibility_name: format!("Resident Form {}", form.checked_form_id.as_str()),
+                name: format!("Resident Form {}", form.checked_form_id.as_str()),
             });
             relationships.push(PresentationRelationship {
                 source: body_subject.clone(),

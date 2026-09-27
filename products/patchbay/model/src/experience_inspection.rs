@@ -223,8 +223,7 @@ mod tests {
             vec![PresentationSubject {
                 identity: "door-open".into(),
                 role: PresentationRole::Info,
-                label: "Door state".into(),
-                accessibility_name: "Door state".into(),
+                name: "Door state".into(),
             }],
             vec![],
             vec![],

@@ -374,8 +374,7 @@ fn subject(identity: &str, role: PresentationRole, label: &str) -> PresentationS
     PresentationSubject {
         identity: identity.into(),
         role,
-        label: label.into(),
-        accessibility_name: label.into(),
+        name: label.into(),
     }
 }
 

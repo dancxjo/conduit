@@ -385,7 +385,7 @@ fn native_follow_crosses_exact_documentary_correlation_and_returns() {
         .find(|subject| subject.identity == forward.target_subject)
         .unwrap();
     assert!(ordinary.contains("FOLLOW Realizes"));
-    assert!(ordinary.contains(&destination.accessibility_name));
+    assert!(ordinary.contains(&destination.name));
     assert!(ordinary.contains("[F3 SELECTED]"));
 
     let before = presentation.clone();
@@ -711,7 +711,7 @@ fn native_front_door_focuses_and_invokes_actions_only_on_current_projection_subj
         .iter()
         .find(|subject| subject.identity == form_two)
         .expect("focus form subject should exist")
-        .label
+        .name
         .as_str()
         .to_string();
     let focused_actions = action_lines_for_form_label(&projected_lines, &form_two_label)
@@ -731,7 +731,7 @@ fn native_front_door_focuses_and_invokes_actions_only_on_current_projection_subj
         .iter()
         .find(|subject| subject.identity == form_one)
         .expect("other form subject should exist")
-        .label
+        .name
         .as_str()
         .to_string();
     let unfocused_actions = action_lines_for_form_label(&projected_lines, &form_one_label)
@@ -767,7 +767,7 @@ fn native_front_door_focuses_and_invokes_actions_only_on_current_projection_subj
         .iter()
         .find(|subject| subject.identity == form_one)
         .expect("focus form subject should exist")
-        .label
+        .name
         .as_str()
         .to_string();
     let focused_actions = action_lines_for_form_label(&projected_lines, &form_one_label)

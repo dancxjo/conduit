@@ -199,8 +199,7 @@ mod tests {
             vec![PresentationSubject {
                 identity: "body/current".into(),
                 role: PresentationRole::Body,
-                label: "Current body".into(),
-                accessibility_name: "Current body".into(),
+                name: "Current body".into(),
             }],
             vec![],
             vec![],
@@ -213,7 +212,7 @@ mod tests {
                     identity: "patchbay.open".into(),
                     intent: "conduit.intent/inspect@1".into(),
                     target: "body/current".into(),
-                    label: "Inspect Body".into(),
+                    name: "Inspect Body".into(),
                     disclosure: PresentationDisclosureLevel::CurrentAction,
                     availability: PresentationActionAvailability::Available,
                 },
@@ -221,7 +220,7 @@ mod tests {
                     identity: "body.fulfill".into(),
                     intent: "conduit.intent/fulfill@1".into(),
                     target: "body/current".into(),
-                    label: "Fulfill Body".into(),
+                    name: "Fulfill Body".into(),
                     disclosure: PresentationDisclosureLevel::CurrentAction,
                     availability: PresentationActionAvailability::Unavailable {
                         reason_code: "not-ready".into(),

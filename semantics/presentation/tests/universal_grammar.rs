@@ -19,8 +19,7 @@ fn subject(identity: &str, role: &str, name: &str) -> PresentationSubject {
     PresentationSubject {
         identity: identity.into(),
         role: PresentationRole::Semantic(kind_id(role)),
-        label: name.into(),
-        accessibility_name: name.into(),
+        name: name.into(),
     }
 }
 
@@ -79,7 +78,7 @@ fn lesson_in(context: &str) -> Presentation {
             identity: "lesson/answer".into(),
             intent: "education/answer@1".into(),
             target: "concept/mitochondrion".into(),
-            label: "Answer".into(),
+            name: "Answer".into(),
             disclosure: PresentationDisclosureLevel::CurrentAction,
             availability: PresentationActionAvailability::Available,
         }],
@@ -89,8 +88,7 @@ fn lesson_in(context: &str) -> Presentation {
             value_kind: UTF8_TEXT_VALUE_KIND.into(),
             maximum_bytes: 128,
             allow_empty: false,
-            label: "Answer".into(),
-            accessibility_name: "Answer".into(),
+            name: "Answer".into(),
             submit_action: "lesson/answer".into(),
         }],
         vec![
@@ -156,7 +154,7 @@ fn one_open_domain_presentation_survives_linear_graphical_and_generative_masks()
         vec![NavigationPlace {
             place: PresentationPlace::Program,
             root_subject: "lesson/cell".into(),
-            label: "Lesson".into(),
+            name: "Lesson".into(),
             aspects: vec![NavigationAspect {
                 aspect: PresentationAspect::Structure,
                 focusable_subjects: vec![
@@ -223,8 +221,12 @@ fn one_open_domain_presentation_survives_linear_graphical_and_generative_masks()
         GenerativePresenterBounds::reviewed_default(),
     )
     .unwrap();
-    let round_trip: GenerativePresenterRequest =
-        serde_json::from_slice(&serde_json::to_vec(&request).unwrap()).unwrap();
+    let encoded = serde_json::to_vec(&request).unwrap();
+    let wire_text = core::str::from_utf8(&encoded).unwrap();
+    assert!(wire_text.contains("\"name\":\"The cell\""));
+    assert!(!wire_text.contains("\"label\":"));
+    assert!(!wire_text.contains("\"accessibility_name\":"));
+    let round_trip: GenerativePresenterRequest = serde_json::from_slice(&encoded).unwrap();
     assert_eq!(round_trip.semantic_data.presentation, presentation);
 }
 
@@ -250,7 +252,7 @@ fn interaction_context_is_exact_identity_bearing_truth() {
         vec![NavigationPlace {
             place: PresentationPlace::Program,
             root_subject: "lesson/cell".into(),
-            label: "Lesson".into(),
+            name: "Lesson".into(),
             aspects: vec![NavigationAspect {
                 aspect: PresentationAspect::Structure,
                 focusable_subjects: vec!["concept/mitochondrion".into()],

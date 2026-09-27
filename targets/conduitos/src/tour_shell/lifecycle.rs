@@ -30,8 +30,7 @@ pub(super) fn with_presenter_host(
     presentation.subjects.push(PresentationSubject {
         identity: identity.into(),
         role: PresentationRole::Host,
-        label: "Native presenter Host".into(),
-        accessibility_name: alloc::format!("Native presenter Host {identity}"),
+        name: alloc::format!("Native presenter Host {identity}"),
     });
     presentation.relationships.push(PresentationRelationship {
         source: "tour/status/host".into(),

@@ -153,8 +153,7 @@ fn presentation() -> Presentation {
         vec![PresentationSubject {
             identity: "body/current".into(),
             role: PresentationRole::Body,
-            label: "Current body".into(),
-            accessibility_name: "Current body".into(),
+            name: "Current body".into(),
         }],
         vec![],
         vec![],

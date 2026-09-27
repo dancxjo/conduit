@@ -587,7 +587,7 @@ test("narrow enlarged-content workspace has exclusive drawers and restored focus
       await expect(page.locator("#semantic-actions button")).toHaveCount(actions.length);
       for(const [index,action] of actions.entries()){
         const control=page.locator(`#semantic-actions [data-application-key="semantic-${index}"]`);
-        await expect(control).toHaveText(action.label.toUpperCase());
+        await expect(control).toHaveText(action.name.toUpperCase());
         if(action.availability==="Available")await expect(control).toBeEnabled();else await expect(control).toBeDisabled();
         const availability=page.locator(`#semantic-actions [data-application-key="availability-${index}"]`);
         if(action.availability?.Refused)await expect(availability).toHaveAttribute("data-application-evidence","refused");
@@ -629,7 +629,7 @@ test("Flow scene reconciliation is finite and identity-exact", async ({page}) =>
       first.viewport={x:31,y:-27,zoom:1.4};
       const duplicate=scene.reconcileFlowScene(scene.projectFlowScene(canonical),first);
       const added=structuredClone(canonical);
-      added.presentation.subjects.push({identity:"subject/new",role:"Gear",label:"New",accessibility_name:"New gear"});
+      added.presentation.subjects.push({identity:"subject/new",role:"Gear",name:"New gear"});
       const withNew=scene.reconcileFlowScene(scene.projectFlowScene(added),duplicate);
       const withNewAgain=scene.reconcileFlowScene(scene.projectFlowScene(added),duplicate);
       const removed=structuredClone(added);

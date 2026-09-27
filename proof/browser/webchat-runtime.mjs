@@ -154,7 +154,7 @@ export async function createWebchatRuntime({ wasmBytes, url, form = "webchat-bro
       if (!subject) return null;
       if (subject.role === "Collection") {
         const list = document.createElement("ol");
-        list.setAttribute("aria-label", subject.accessibility_name);
+        list.setAttribute("aria-label", subject.name);
         for (const child of contained(presentation, identity)) {
           const rendered = renderSubject(child);
           if (rendered) list.append(rendered);
@@ -172,7 +172,7 @@ export async function createWebchatRuntime({ wasmBytes, url, form = "webchat-bro
         if (!contract) return null;
         const label = document.createElement("label"); label.textContent = contract.label;
         const input = document.createElement("input");
-        input.setAttribute("aria-label", contract.accessibility_name);
+        input.setAttribute("aria-label", contract.name);
         input.maxLength = contract.maximum_bytes;
         input.dataset.inputId = contract.identity;
         input.addEventListener("keydown", (event) => {
@@ -181,7 +181,7 @@ export async function createWebchatRuntime({ wasmBytes, url, form = "webchat-bro
         label.append(input);
         const action = presentation.actions.find((candidate) => candidate.identity === contract.submit_action);
         if (action) {
-          const button = document.createElement("button"); button.type = "button"; button.textContent = action.label;
+          const button = document.createElement("button"); button.type = "button"; button.textContent = action.name;
           button.disabled = action.availability !== "Available";
           button.addEventListener("click", () => enqueue(() => submitInteraction(input, contract)));
           label.append(button);
