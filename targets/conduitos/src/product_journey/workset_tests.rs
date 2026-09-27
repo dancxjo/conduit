@@ -192,9 +192,21 @@ fn resident_patchbay_replans_its_own_graphical_and_speech_presenters() {
         .as_ref()
         .expect("replacement retains Mask truth");
     assert!(mask.actions.contains(&"doff"));
-    assert_eq!(mask.route_disposition, "no-current-show");
-    assert_eq!(mask.planning_disposition, "replacement-required");
-    assert!(mask.show_id.is_none() && mask.manifestation_id.is_none());
+    assert_eq!(mask.route_disposition, "selected-executed-route");
+    assert_eq!(mask.planning_disposition, "not-required");
+    assert!(mask.show_id.is_some() && mask.manifestation_id.is_some());
+    assert!(mask.presentation_id.is_some() && mask.presentation_revision.is_some());
+    assert!(mask.kernel_signs > 0 && mask.fore_endpoints >= 3);
+    assert_eq!(mask.shows.len(), 1);
+    assert_eq!(mask.shows[0].mask_show_id, mask.show_id.as_deref().unwrap());
+    assert_eq!(
+        mask.shows[0].manifestation_id,
+        mask.manifestation_id.as_deref().unwrap()
+    );
+    assert_eq!(
+        mask.shows[0].presentation_id,
+        mask.presentation_id.as_deref().unwrap()
+    );
     assert!(
         mask.mask_plan_ids
             .iter()
