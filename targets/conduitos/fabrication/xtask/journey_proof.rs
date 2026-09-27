@@ -730,13 +730,44 @@ fn execute_image(
                 "native runtime did not retain its Body-scoped Mask disposition",
             )
         })?;
+        let mask_application_plan = text(native_mask, "application_plan_id")?;
+        let mask_application_plan_is_observed = records.iter().any(|record| {
+            record.get("plan_id").and_then(Value::as_str) == Some(mask_application_plan.as_str())
+        });
         if text(native_mask, "schema")? != "conduit.conduitos/native-mask-control@1"
             || text(native_mask, "body_id")? != text(born, "body_id")?
-            || text(native_mask, "application_plan_id")? != plan_id
-            || text(native_mask, "route_disposition")? != "no-current-show"
-            || text(native_mask, "planning_disposition")? != "replacement-required"
-            || native_mask.get("show_id") != Some(&Value::Null)
-            || native_mask.get("manifestation_id") != Some(&Value::Null)
+            || !mask_application_plan_is_observed
+            || text(native_mask, "route_disposition")? != "selected-executed-route"
+            || text(native_mask, "planning_disposition")? != "not-required"
+            || text(native_mask, "show_id")?.is_empty()
+            || text(native_mask, "manifestation_id")?.is_empty()
+            || text(native_mask, "presentation_id")?.is_empty()
+            || number(native_mask, "kernel_signs")? == 0
+            || number(native_mask, "fore_endpoints")? < 3
+            || native_mask
+                .get("shows")
+                .and_then(Value::as_array)
+                .is_none_or(|shows| {
+                    shows.is_empty()
+                        || shows.iter().enumerate().any(|(index, show)| {
+                            show.get("mask_plan_id")
+                                .and_then(Value::as_str)
+                                .is_none_or(str::is_empty)
+                                || show
+                                    .get("mask_active_play_id")
+                                    .and_then(Value::as_str)
+                                    .is_none_or(str::is_empty)
+                                || show.get("presentation_id") != native_mask.get("presentation_id")
+                                || show
+                                    .get("show_value_id")
+                                    .and_then(Value::as_str)
+                                    .is_none_or(str::is_empty)
+                                || (index == 0
+                                    && (show.get("mask_show_id") != native_mask.get("show_id")
+                                        || show.get("manifestation_id")
+                                            != native_mask.get("manifestation_id")))
+                        })
+                })
             || native_mask
                 .get("actions")
                 .and_then(Value::as_array)
@@ -756,7 +787,7 @@ fn execute_image(
         {
             return Err(ConduitosError::refusal(
                 "product-journey-mask-sign-invalid",
-                "native Mask receipt conflates application/Mask Plans or invents an unexecuted Show",
+                "native Mask receipt does not prove one plan-sealed Fore execution and correlated Show",
             ));
         }
         super::journey_workset::validate_causality(
