@@ -44,8 +44,28 @@ fn pure_kind() -> Kind {
     }
 }
 
-#[test]
-fn nested_pure_semantic_calls_lower_to_ordered_called_kind_gears_not_host_calls() {
+fn pure_binary_kind() -> Kind {
+    Kind {
+        kind_id: kind_id("math/add"),
+        kind_contract_revision: KindIdentity::from("math/add@1"),
+        startup_parameters: vec![],
+        shorthand: None,
+        inputs: vec![
+            port("left", PortDirection::Input),
+            port("right", PortDirection::Input),
+        ],
+        outputs: vec![port("result", PortDirection::Output)],
+        configuration: vec![],
+        semantic_laws: pure_kind().semantic_laws,
+        limits: CapabilityLimits {
+            max_active_instances: 1,
+            max_queue_items: 1,
+            max_queue_bytes: 16,
+        },
+    }
+}
+
+fn catalogs(kind: Kind) -> (StartupCatalog, ProfileCatalog) {
     let mut startup = StartupCatalog::new();
     for kind in ["test/scalar-source", "test/scalar-sink"] {
         startup
@@ -56,7 +76,7 @@ fn nested_pure_semantic_calls_lower_to_ordered_called_kind_gears_not_host_calls(
             .unwrap();
     }
     let mut profile = ProfileCatalog::new();
-    profile.insert_kind(pure_kind()).unwrap();
+    profile.insert_kind(kind).unwrap();
     profile
         .insert(KindProjection {
             kind_id: kind_id("test/scalar-source"),
@@ -75,6 +95,12 @@ fn nested_pure_semantic_calls_lower_to_ordered_called_kind_gears_not_host_calls(
             configuration: vec![],
         })
         .unwrap();
+    (startup, profile)
+}
+
+#[test]
+fn nested_pure_semantic_calls_lower_to_ordered_called_kind_gears_not_host_calls() {
+    let (startup, profile) = catalogs(pure_kind());
     let source = "form calculate {\n source: test/scalar-source\n sink: test/scalar-sink\n source >> (math/negate(math/negate(.))) >> sink\n}\n";
     let checked = check_syntax_document(&parse_syntax_document(source), &startup).unwrap();
     let expanded = expand_canonical_form(&checked, "calculate", &profile).unwrap();
@@ -89,6 +115,28 @@ fn nested_pure_semantic_calls_lower_to_ordered_called_kind_gears_not_host_calls(
             .filter(|gear| gear.kind_id.as_str() == "math/negate")
             .count(),
         2
+    );
+    assert!(expanded
+        .gears
+        .iter()
+        .all(|gear| gear.kind_contract_revision.as_str() != PURE_EXPRESSION_REVISION));
+    assert_eq!(expanded.connections.len(), 3);
+    expanded.validate_expansion().unwrap();
+}
+
+#[test]
+fn repeated_input_arguments_lower_to_one_multi_input_semantic_gear() {
+    let (startup, profile) = catalogs(pure_binary_kind());
+    let source = "form calculate {\n source: test/scalar-source\n sink: test/scalar-sink\n source >> (math/add(., .)) >> sink\n}\n";
+    let checked = check_syntax_document(&parse_syntax_document(source), &startup).unwrap();
+    let expanded = expand_canonical_form(&checked, "calculate", &profile).unwrap();
+    assert_eq!(
+        expanded
+            .gears
+            .iter()
+            .filter(|gear| gear.kind_id.as_str() == "math/add")
+            .count(),
+        1
     );
     assert!(expanded
         .gears

@@ -8,7 +8,9 @@ use conduit_core::{
 mod semantic_call;
 mod substitution;
 mod temporal;
-use semantic_call::{expand_semantic_call_chain, semantic_call_chain};
+use semantic_call::{
+    direct_call_kind, expand_direct_semantic_call, expand_semantic_call_chain, semantic_call_chain,
+};
 use substitution::substitute_immutable_values;
 use temporal::{input_temporal, output_temporal};
 
@@ -293,6 +295,19 @@ fn expand_expression(
                     anonymous_counts,
                 );
             }
+        }
+        if let Some(kind) = direct_call_kind(&expression) {
+            return expand_direct_semantic_call(
+                kind,
+                source_span,
+                source_form,
+                catalog,
+                path,
+                gears,
+                provenance,
+                gear_ids,
+                anonymous_counts,
+            );
         }
     }
     let definition = crate::pure_expression_definition(&checked, temporal).map_err(|_| {

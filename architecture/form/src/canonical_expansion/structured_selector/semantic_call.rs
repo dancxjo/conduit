@@ -16,6 +16,47 @@ pub(super) fn semantic_call_chain(
     }
 }
 
+pub(super) fn direct_call_kind(
+    expression: &crate::ExpressionSyntax,
+) -> Option<&crate::SpannedText> {
+    let crate::ExpressionSyntax::SemanticCall {
+        kind, arguments, ..
+    } = expression
+    else {
+        return None;
+    };
+    (!arguments.is_empty()
+        && arguments
+            .iter()
+            .all(|argument| matches!(argument, crate::ExpressionSyntax::Input(_))))
+    .then_some(kind)
+}
+
+#[allow(clippy::too_many_arguments)]
+pub(super) fn expand_direct_semantic_call(
+    kind: &crate::SpannedText,
+    source_span: crate::Span,
+    source_form: &CheckedCanonicalForm,
+    catalog: &ProfileCatalog,
+    path: &[String],
+    gears: &mut Vec<CheckedGear>,
+    provenance: &mut Vec<ExpandedGearProvenance>,
+    gear_ids: &mut BTreeSet<GearId>,
+    anonymous_counts: &mut BTreeMap<String, usize>,
+) -> Result<Stage, CanonicalExpansionDiagnostic> {
+    expand_one(
+        kind,
+        source_span,
+        source_form,
+        catalog,
+        path,
+        gears,
+        provenance,
+        gear_ids,
+        anonymous_counts,
+    )
+}
+
 #[allow(clippy::too_many_arguments)]
 pub(super) fn expand_semantic_call_chain(
     calls: &[crate::SpannedText],
@@ -117,7 +158,6 @@ fn expand_one(
             format!("expanded gear path '{}' is not unique", gear_id.as_str()),
         ));
     }
-    let input = kind.inputs[0].clone();
     let output = kind.outputs[0].clone();
     gears.push(CheckedGear {
         gear_id: gear_id.clone(),
@@ -145,10 +185,18 @@ fn expand_one(
         source_span,
     });
     Ok(Stage {
-        input: Some(vec![StageSink::Internal(Endpoint {
-            gear_id: gear_id.clone(),
-            port: input,
-        })]),
+        input: Some(
+            kind.inputs
+                .iter()
+                .cloned()
+                .map(|port| {
+                    StageSink::Internal(Endpoint {
+                        gear_id: gear_id.clone(),
+                        port,
+                    })
+                })
+                .collect(),
+        ),
         output: Some(StageSource::Internal(Endpoint {
             gear_id,
             port: output,
