@@ -50,7 +50,7 @@ impl<const PORTS: usize> StepBack<PORTS> for AudioToneBack {
                 return failure(12);
             };
             let frequency = match Quantity::decode(bytes).ok().and_then(frequency_millihertz) {
-                Some(value) if (20_000..=20_000_000).contains(&value) => value,
+                Some(value) => value,
                 _ => return failure(13),
             };
             let (block, next_phase) = match render_block(frequency, self.phase, self.start_frame) {
@@ -61,7 +61,7 @@ impl<const PORTS: usize> StepBack<PORTS> for AudioToneBack {
             io.send_canonical(PortId(0), block)
                 .expect("ready PCM output");
             self.phase = next_phase;
-            self.start_frame += u64::from(FRAMES);
+            self.start_frame = self.start_frame.wrapping_add(u64::from(FRAMES));
             return StepOutcome::Progress;
         }
         if !self.closed && io.input_closed(PortId(0)) {
@@ -92,8 +92,8 @@ fn render_block(
     phase: u32,
     start_frame: u64,
 ) -> Result<(CanonicalValue, u32), ()> {
-    let increment = ((frequency_millihertz as u128) << 32) / (u128::from(SAMPLE_RATE) * 1_000);
-    let increment = u32::try_from(increment).map_err(|_| ())?;
+    let increment =
+        (((frequency_millihertz as u128) << 32) / (u128::from(SAMPLE_RATE) * 1_000)) as u32;
     let header = PcmFrameHeader::new(
         PcmSampleRepresentation::Signed16LittleEndian,
         SAMPLE_RATE,
@@ -172,5 +172,17 @@ mod tests {
         assert_eq!(hh.start_frame, u64::from(FRAMES));
         assert_ne!(lp, hp);
         assert_eq!(low.as_slice().len(), BLOCK_BYTES);
+    }
+
+    #[test]
+    fn renderer_is_total_over_the_nonnegative_frequency_domain() {
+        for frequency in [0, 1, 20_000_000, u64::MAX] {
+            let (block, _) = render_block(frequency, u32::MAX, u64::MAX).unwrap();
+            assert_eq!(block.as_slice().len(), BLOCK_BYTES);
+        }
+        assert_eq!(
+            frequency_millihertz(Quantity::new(-1, QuantityUnit::Hertz)),
+            None
+        );
     }
 }

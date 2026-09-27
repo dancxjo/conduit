@@ -115,6 +115,8 @@ use super::template_storage_back::FACTORY as TEMPLATE_STORAGE_FACTORY;
 use super::test_audio_source::FACTORY as TEST_PCM_SOURCE_FACTORY;
 #[cfg(test)]
 use super::test_audio_tone::{
+    CANCEL_FACTORY as TEST_CANCELLATION_SOURCE_FACTORY,
+    RECOVERY_FACTORY as TEST_TONE_TERMINAL_RECOVERY_FACTORY,
     SINK_FACTORY as TEST_TONE_PCM_SINK_FACTORY, SOURCE_FACTORY as TEST_FREQUENCY_SOURCE_FACTORY,
 };
 #[cfg(test)]
@@ -178,6 +180,10 @@ const FACTORIES: &[&BackFactory] = &[
     &TEST_FREQUENCY_SOURCE_FACTORY,
     #[cfg(test)]
     &TEST_TONE_PCM_SINK_FACTORY,
+    #[cfg(test)]
+    &TEST_CANCELLATION_SOURCE_FACTORY,
+    #[cfg(test)]
+    &TEST_TONE_TERMINAL_RECOVERY_FACTORY,
     #[cfg(any(test, feature = "local-model-proof"))]
     &RECORDED_SPEECH_FACTORY,
     &WHISPER_SPEECH_FACTORY,

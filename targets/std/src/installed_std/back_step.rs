@@ -228,6 +228,10 @@ installed_step_dispatch!(
     #[cfg(test)]
     TestTonePcmSink,
     #[cfg(test)]
+    TestCancellationSource,
+    #[cfg(test)]
+    TestToneTerminalRecovery,
+    #[cfg(test)]
     TestGateScript,
     #[cfg(test)]
     TestLogicScript,

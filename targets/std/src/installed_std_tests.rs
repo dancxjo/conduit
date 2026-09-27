@@ -227,6 +227,76 @@ fn current_frequency_drives_bounded_pcm_through_one_ordinary_play() {
 }
 
 #[test]
+fn authored_tone_cancellation_routes_exact_observed_terminal_truth() {
+    let mut host = host("audio-tone-cancellation-host");
+    let form = parse(
+        "form tone_cancel {\n cancel: conduit-test/cancellation-source\n tone: audio/tone\n recovery: conduit-test/tone-terminal-recovery\n cancel.request >> tone~\n tone.audio! >> recovery.terminal\n}.\n",
+        &installed_std::test_catalog(),
+    ).expect("canonical tone cancellation Form parses");
+    let hosts = [host.advertisement().clone()];
+    let placements = default_placements(&form, &hosts).expect("cancellation placements resolve");
+    let plan = plan_with_options(
+        &form,
+        &hosts,
+        &placements,
+        &[BaseImplementationId::from("conduit.base/local@1")],
+        PlanningOptions {
+            connection_bases: &BTreeMap::new(),
+            line_candidates: &BTreeMap::new(),
+            connection_item_capacity: 1,
+            connection_byte_capacity: conduit_semantic_catalog::AUDIO_TONE_PCM_BLOCK_BYTES,
+            authority_grants: &[],
+            protected_resource_grants: &[],
+            line_offers: &[],
+        },
+    )
+    .expect("typed cancellation and abnormal tracks plan");
+    assert_eq!(plan.fragments[0].connections.len(), 2);
+    assert!(plan.fragments[0]
+        .connections
+        .iter()
+        .all(|cord| cord.item_capacity == 1));
+    let cancellation = form
+        .connections
+        .iter()
+        .find(|cord| cord.value_kind.as_str() == conduit_core::CANCELLATION_REQUEST_INFO_ID)
+        .unwrap();
+    let terminal = form
+        .connections
+        .iter()
+        .find(|cord| cord.value_kind.as_str() == conduit_audio::AUDIO_TONE_TERMINAL_INFO_ID)
+        .unwrap();
+    assert_eq!(cancellation.track, conduit_core::ConnectionTrack::Payload);
+    assert_eq!(
+        terminal.track,
+        conduit_core::ConnectionTrack::AbnormalTerminal
+    );
+    assert_ne!(cancellation.value_kind, terminal.value_kind);
+    let mut output = Vec::with_capacity(2_048);
+    let mut timer = RecordingTimer { waits: Vec::new() };
+    let report = host
+        .run_fragment_to(plan.fragments[0].clone(), &mut output, &mut timer)
+        .expect("semantic cancellation is recovered through the installed runtime");
+    let kernel = report.kernel.unwrap();
+    assert!(kernel
+        .kernel_sign
+        .iter()
+        .any(|event| event.kind == conduit_kernel::KernelEventKind::SemanticAbnormal));
+    assert!(!kernel.kernel_sign.iter().any(|event| matches!(
+        event.kind,
+        conduit_kernel::KernelEventKind::CancellationRequested
+            | conduit_kernel::KernelEventKind::RunCancelled
+    )));
+    assert_eq!(kernel.post_play_start_allocations, 0);
+    assert!(matches!(
+        report.observations.last().map(|o| &o.kind),
+        Some(ObservationKind::PlanTerminal {
+            disposition: TerminalDisposition::Completed
+        })
+    ));
+}
+
+#[test]
 fn typed_latest_and_tee_plan_and_execute_with_capacity_one_pressure() {
     let mut host = host("typed-flow-state-host");
     let form = parse(

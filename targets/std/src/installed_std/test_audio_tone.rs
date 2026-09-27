@@ -17,6 +17,12 @@ const SOURCE_IMPLEMENTATION: &str = "conduit-test/frequency-source-kernel@1";
 const SINK_KIND: &str = "conduit-test/tone-pcm-sink";
 const SINK_REVISION: &str = "conduit-test/tone-pcm-sink@1";
 const SINK_IMPLEMENTATION: &str = "conduit-test/tone-pcm-sink-kernel@1";
+const CANCEL_KIND: &str = "conduit-test/cancellation-source";
+const CANCEL_REVISION: &str = "conduit-test/cancellation-source@1";
+const CANCEL_IMPLEMENTATION: &str = "conduit-test/cancellation-source-kernel@1";
+const RECOVERY_KIND: &str = "conduit-test/tone-terminal-recovery";
+const RECOVERY_REVISION: &str = "conduit-test/tone-terminal-recovery@1";
+const RECOVERY_IMPLEMENTATION: &str = "conduit-test/tone-terminal-recovery-kernel@1";
 pub(super) static SOURCE_FACTORY: BackFactory = BackFactory {
     implementation_id: SOURCE_IMPLEMENTATION,
     budget: source_budget,
@@ -27,6 +33,16 @@ pub(super) static SINK_FACTORY: BackFactory = BackFactory {
     budget: sink_budget,
     prepare: prepare_sink,
 };
+pub(super) static CANCEL_FACTORY: BackFactory = BackFactory {
+    implementation_id: CANCEL_IMPLEMENTATION,
+    budget: cancel_budget,
+    prepare: prepare_cancel,
+};
+pub(super) static RECOVERY_FACTORY: BackFactory = BackFactory {
+    implementation_id: RECOVERY_IMPLEMENTATION,
+    budget: recovery_budget,
+    prepare: prepare_recovery,
+};
 pub(super) struct FrequencySourceBack {
     values: [ValueRef; 2],
     next: usize,
@@ -34,6 +50,13 @@ pub(super) struct FrequencySourceBack {
 pub(super) struct TonePcmSinkBack {
     first: [u8; 32],
     seen: u8,
+}
+pub(super) struct CancellationSourceBack {
+    value: ValueRef,
+    emitted: bool,
+}
+pub(super) struct ToneTerminalRecoveryBack {
+    seen: bool,
 }
 
 impl<const P: usize> StepBack<P> for FrequencySourceBack {
@@ -81,6 +104,45 @@ impl<const P: usize> StepBack<P> for TonePcmSinkBack {
         if io.input_closed(PortId(0)) {
             if self.seen != 2 {
                 return fail(35);
+            }
+            io.consume_closed(PortId(0)).unwrap();
+            return StepOutcome::Complete;
+        }
+        StepOutcome::Await
+    }
+}
+impl<const P: usize> StepBack<P> for CancellationSourceBack {
+    fn step(&mut self, io: &mut StepIo<P>, _: &StepInputBytes<'_, P>) -> StepOutcome {
+        if self.emitted {
+            return StepOutcome::Complete;
+        }
+        if !io.output_ready(PortId(0)) {
+            return StepOutcome::Await;
+        }
+        io.send(PortId(0), self.value).unwrap();
+        self.emitted = true;
+        StepOutcome::Progress
+    }
+}
+impl<const P: usize> StepBack<P> for ToneTerminalRecoveryBack {
+    fn step(&mut self, io: &mut StepIo<P>, inputs: &StepInputBytes<'_, P>) -> StepOutcome {
+        if io.input(PortId(0)).is_some() {
+            let Some(bytes) = inputs.input(PortId(0)) else {
+                return fail(41);
+            };
+            if self.seen
+                || conduit_audio::AudioToneTerminal::decode(bytes)
+                    != Ok(conduit_audio::AudioToneTerminal::Cancelled)
+            {
+                return fail(42);
+            }
+            io.consume(PortId(0)).unwrap();
+            self.seen = true;
+            return StepOutcome::Progress;
+        }
+        if io.input_closed(PortId(0)) {
+            if !self.seen {
+                return fail(43);
             }
             io.consume_closed(PortId(0)).unwrap();
             return StepOutcome::Complete;
@@ -166,6 +228,34 @@ pub(super) fn sink_offer() -> CapabilityOffer {
         Vec::new(),
     )
 }
+pub(super) fn cancel_offer() -> CapabilityOffer {
+    offer(
+        CANCEL_KIND,
+        CANCEL_REVISION,
+        CANCEL_IMPLEMENTATION,
+        Vec::new(),
+        vec![port(
+            "request",
+            conduit_core::CANCELLATION_REQUEST_INFO_ID,
+            PortDirection::Output,
+            PortTemporal::Value,
+        )],
+    )
+}
+pub(super) fn recovery_offer() -> CapabilityOffer {
+    offer(
+        RECOVERY_KIND,
+        RECOVERY_REVISION,
+        RECOVERY_IMPLEMENTATION,
+        vec![port(
+            "terminal",
+            conduit_audio::AUDIO_TONE_TERMINAL_INFO_ID,
+            PortDirection::Input,
+            PortTemporal::Value,
+        )],
+        Vec::new(),
+    )
+}
 pub(super) fn install_catalog(c: &mut ProfileCatalog) {
     for (k, r, i, o) in [
         (
@@ -178,6 +268,18 @@ pub(super) fn install_catalog(c: &mut ProfileCatalog) {
             kind_id(SINK_KIND),
             KindIdentity::from(SINK_REVISION),
             sink_offer().inputs,
+            Vec::new(),
+        ),
+        (
+            kind_id(CANCEL_KIND),
+            KindIdentity::from(CANCEL_REVISION),
+            Vec::new(),
+            cancel_offer().outputs,
+        ),
+        (
+            kind_id(RECOVERY_KIND),
+            KindIdentity::from(RECOVERY_REVISION),
+            recovery_offer().inputs,
             Vec::new(),
         ),
     ] {
@@ -232,4 +334,45 @@ fn prepare_sink(
         first: [0; 32],
         seen: 0,
     }))
+}
+
+fn cancel_budget(_: &PlannedGear) -> Result<BackBudget, String> {
+    Ok(BackBudget {
+        value_items: 1,
+        value_bytes: 0,
+        host_requests: 0,
+        sign_items: 8,
+        maximum_value_bytes: 0,
+    })
+}
+fn prepare_cancel(
+    _: &PlannedGear,
+    store: &mut conduit_kernel::HostedValueStore,
+) -> Result<InstalledBack, String> {
+    let value = store
+        .store(&[])
+        .map_err(|error| format!("store cancellation request: {error:?}"))?;
+    Ok(InstalledBack::TestCancellationSource(
+        CancellationSourceBack {
+            value,
+            emitted: false,
+        },
+    ))
+}
+fn recovery_budget(_: &PlannedGear) -> Result<BackBudget, String> {
+    Ok(BackBudget {
+        value_items: 0,
+        value_bytes: 0,
+        host_requests: 0,
+        sign_items: 8,
+        maximum_value_bytes: conduit_audio::AUDIO_TONE_TERMINAL_ENCODED_LEN as u32,
+    })
+}
+fn prepare_recovery(
+    _: &PlannedGear,
+    _: &mut conduit_kernel::HostedValueStore,
+) -> Result<InstalledBack, String> {
+    Ok(InstalledBack::TestToneTerminalRecovery(
+        ToneTerminalRecoveryBack { seen: false },
+    ))
 }

@@ -93,6 +93,14 @@ pub(crate) fn test_frequency_source_offer() -> conduit_core::CapabilityOffer {
 pub(crate) fn test_tone_pcm_sink_offer() -> conduit_core::CapabilityOffer {
     super::test_audio_tone::sink_offer()
 }
+#[cfg(test)]
+pub(crate) fn test_cancellation_source_offer() -> conduit_core::CapabilityOffer {
+    super::test_audio_tone::cancel_offer()
+}
+#[cfg(test)]
+pub(crate) fn test_tone_terminal_recovery_offer() -> conduit_core::CapabilityOffer {
+    super::test_audio_tone::recovery_offer()
+}
 
 #[cfg(test)]
 pub(crate) fn test_gate_script_offer() -> conduit_core::CapabilityOffer {
