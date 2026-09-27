@@ -115,10 +115,12 @@ pub use advice::{
 };
 pub use body_envelope::plan_with_resource_allowances;
 pub use canonical::{
-    default_expanded_placements, plan_canonical_realization_with_options, plan_expanded_canonical,
+    default_expanded_placements, plan_canonical_realization_with_options,
+    plan_expanded_authoring_with_options, plan_expanded_canonical,
     plan_expanded_canonical_with_connection_limits, plan_expanded_canonical_with_options,
     plan_expanded_canonical_with_shared_pools, CanonicalRealizationMode,
-    CanonicalRealizationSelectionError, PlannedCanonicalRealization, SharedPoolPlanningRequirement,
+    CanonicalRealizationSelectionError, FrontBoundaryKey, PlannedCanonicalRealization,
+    SharedPoolPlanningRequirement,
 };
 pub use characteristics::{
     plan_selected_realizations_with_characteristics,
@@ -792,6 +794,7 @@ pub(crate) fn plan_validated_form_with_connection_limits(
                 execution_fusions: Vec::new(),
                 states,
                 connections,
+                front_ports: Vec::new(),
                 shared_pools: Vec::new(),
                 startup_dependencies,
                 startup_order,

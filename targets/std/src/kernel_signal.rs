@@ -741,6 +741,7 @@ fn run_signal_profile<
         speech_synthesis: Vec::new(),
         speech_recognition: Vec::new(),
         microphone: Vec::new(),
+        external_fore_deliveries: Vec::new(),
         kernel: Some(StdKernelExecutionReport {
             active_play_id: active_play.active_play_id,
             decisions: scheduler.decisions(),

@@ -15,6 +15,12 @@ struct HostRunInputs<'a> {
     indicator: Option<&'a mut dyn hosted_indicator::HostedIndicatorAdapter>,
     retained: Option<&'a mut Vec<state_value::RetainedTypedState>>,
     attach_live: bool,
+    external_fore: Option<ExternalForeRun<'a>>,
+}
+
+pub struct ExternalForeRun<'a> {
+    pub inputs: &'a [ExternalForeInput],
+    pub output: &'a mut dyn ExternalForeOutputAdapter,
 }
 
 impl StdHost {
@@ -75,6 +81,7 @@ impl StdHost {
                 indicator: adapters.indicator,
                 retained: None,
                 attach_live: false,
+                external_fore: None,
             },
         )
         .map(|run| run.report)
@@ -98,6 +105,7 @@ impl StdHost {
                 indicator: None,
                 retained: None,
                 attach_live: false,
+                external_fore: None,
             },
         )
     }
@@ -120,6 +128,34 @@ impl StdHost {
                 indicator: None,
                 retained: None,
                 attach_live: true,
+                external_fore: None,
+            },
+        )
+        .map(|run| run.report)
+    }
+
+    pub fn run_external_form_to<W: Write, T: TimerAdapter>(
+        &mut self,
+        fragment: PlanFragment,
+        inputs: &[ExternalForeInput],
+        output_adapter: &mut dyn ExternalForeOutputAdapter,
+        output: &mut W,
+        timer: &mut T,
+    ) -> Result<StdRunReport, String> {
+        self.run_fragment_owned_with_keyboard_to(
+            fragment,
+            output,
+            timer,
+            &RunControl::default(),
+            HostRunInputs {
+                keyboard: None,
+                indicator: None,
+                retained: None,
+                attach_live: false,
+                external_fore: Some(ExternalForeRun {
+                    inputs,
+                    output: output_adapter,
+                }),
             },
         )
         .map(|run| run.report)
@@ -138,6 +174,7 @@ impl StdHost {
             indicator,
             retained,
             attach_live,
+            external_fore,
         } = inputs;
         write_operator_report(output, self.advertisement(), &fragment.plan_id, &fragment)?;
 
@@ -193,6 +230,7 @@ impl StdHost {
                         microphone: self.microphone.as_mut(),
                         wav_artifact: self.wav_artifact.as_ref(),
                         vision: self.vision.as_mut(),
+                        external_fore,
                     },
                 )
             } else {

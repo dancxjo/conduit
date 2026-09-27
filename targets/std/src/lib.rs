@@ -72,6 +72,28 @@ mod house_conversation_topology;
 #[cfg(unix)]
 pub mod pico_indicator;
 pub use host_execution::HostedRunAdapters;
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct ExternalForeInput {
+    pub front_port_id: conduit_core::PortId,
+    pub track: conduit_core::ConnectionTrack,
+    pub bytes: Vec<u8>,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct ExternalForeDelivery {
+    pub front_port_id: conduit_core::PortId,
+    pub track: conduit_core::ConnectionTrack,
+    pub value_kind: conduit_core::KindId,
+    pub sequence: u64,
+    pub bytes: Vec<u8>,
+}
+
+/// A host acknowledges external Fore output only after its exact effect has
+/// been accepted. Returning an error leaves the kernel value undelivered.
+pub trait ExternalForeOutputAdapter {
+    fn deliver(&mut self, output: ExternalForeDelivery) -> Result<(), String>;
+}
 pub mod hosted_linguistics;
 pub mod hosted_local_model;
 pub mod hosted_messaging;
@@ -279,6 +301,7 @@ pub struct StdRunReport {
     pub speech_synthesis: Vec<SpeechSynthesisExecutionReceipt>,
     pub speech_recognition: Vec<SpeechRecognitionExecutionReceipt>,
     pub microphone: Vec<hosted_microphone::MicrophoneCaptureReceipt>,
+    pub external_fore_deliveries: Vec<ExternalForeDelivery>,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
