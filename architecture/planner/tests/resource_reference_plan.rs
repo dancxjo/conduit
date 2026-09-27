@@ -75,6 +75,7 @@ fn offer(definition: &KindProjection) -> CapabilityOffer {
         .into_iter()
         .collect();
     CapabilityOffer {
+        semantic_contract: Default::default(),
         startup_parameters: vec![],
         shorthand: None,
         capability_id: CapabilityId::from(format!("capability/{slug}")),

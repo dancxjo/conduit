@@ -102,6 +102,7 @@ fn advertisement(
         bases: vec![],
         resources: vec![],
         capabilities: vec![CapabilityOffer {
+            semantic_contract: Default::default(),
             startup_parameters,
             shorthand: None,
             capability_id: CapabilityId::from("time-recurrence"),

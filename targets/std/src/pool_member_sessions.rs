@@ -307,6 +307,7 @@ mod tests {
             consumers: vec![consumer_id.clone()],
         };
         let consumer = PlannedGear {
+            semantic_contract: Default::default(),
             placement_id: consumer_id.clone(),
             gear_id: GearId::from("client"),
             kind_id: KindId::from("flow/pool-observe"),

@@ -533,6 +533,7 @@ fn offer(kind: &str, capability: &str, resource_units: u32) -> CapabilityOffer {
         })
         .collect();
     CapabilityOffer {
+        semantic_contract: Default::default(),
         startup_parameters,
         shorthand: None,
         capability_id: CapabilityId::from(capability),

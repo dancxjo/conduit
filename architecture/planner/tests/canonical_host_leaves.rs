@@ -117,6 +117,7 @@ form welcome {
 fn offer(definition: &KindProjection) -> CapabilityOffer {
     let slug = definition.kind_id.as_str().replace('/', "-");
     CapabilityOffer {
+        semantic_contract: Default::default(),
         startup_parameters: definition
             .configuration
             .iter()

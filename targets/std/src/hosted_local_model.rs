@@ -138,6 +138,7 @@ pub(crate) fn generate_text_capability_offer(
     let maximum_output_bytes = u32::try_from(offer.limits.work.maximum_output_bytes)
         .map_err(|_| "local-model output bound exceeds the canonical Host Call".to_string())?;
     Ok(conduit_core::CapabilityOffer {
+        semantic_contract: Default::default(),
         startup_parameters: [
             "maximum-input-bytes",
             "maximum-context-tokens",

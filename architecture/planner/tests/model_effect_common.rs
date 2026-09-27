@@ -22,6 +22,7 @@ fn placement(
     outputs: Vec<PortDescriptor>,
 ) -> PlannedGear {
     PlannedGear {
+        semantic_contract: Default::default(),
         placement_id: PlacementId::from(id),
         gear_id: GearId::from(id),
         kind_id: kind_id(kind),

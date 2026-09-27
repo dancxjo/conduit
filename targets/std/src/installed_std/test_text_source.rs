@@ -46,6 +46,7 @@ impl TestTextSourceBack {}
 
 pub(super) fn offer() -> CapabilityOffer {
     CapabilityOffer {
+        semantic_contract: Default::default(),
         startup_parameters: vec![conduit_core::FrontStartupParameter {
             name: "invalid".into(),
             value_type: conduit_core::kind_id("value/bool"),

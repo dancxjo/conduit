@@ -72,6 +72,7 @@ fn offer_from_front(
     maximum: u16,
 ) -> CapabilityOffer {
     CapabilityOffer {
+        semantic_contract: Default::default(),
         startup_parameters: front.startup_parameters().to_vec(),
         shorthand: front
             .shorthand()

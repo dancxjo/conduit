@@ -90,6 +90,7 @@ pub fn proof_domain_offer(
     operation: &str,
 ) -> CapabilityOffer {
     CapabilityOffer {
+        semantic_contract: Default::default(),
         startup_parameters: vec![],
         shorthand: None,
         capability_id: CapabilityId::from(format!("proof/{}@1", kind.as_str())),
@@ -123,6 +124,7 @@ pub fn recurrence_proof_offer() -> CapabilityOffer {
     let contract = conduit_semantic_catalog::recurrence_semantic_contract();
     let result = conduit_semantic_catalog::recurrence_result_type();
     CapabilityOffer {
+        semantic_contract: Default::default(),
         startup_parameters: contract.startup_parameters,
         shorthand: None,
         capability_id: CapabilityId::from("proof/time-expand-recurrence"),
@@ -231,6 +233,7 @@ fn workflow_proof_offer(
         maximum_output_bytes: conduit_core::MAXIMUM_STRUCTURED_CANONICAL_BYTES as u32,
     };
     CapabilityOffer {
+        semantic_contract: Default::default(),
         startup_parameters: vec![],
         shorthand: None,
         capability_id: CapabilityId::from(format!("proof/{kind}@1")),

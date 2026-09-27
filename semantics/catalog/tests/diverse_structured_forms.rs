@@ -151,6 +151,7 @@ fn structured_literal_proof_offer(
 ) -> CapabilityOffer {
     let contract = conduit_semantic_catalog::structured_literal_contract(type_name, value_type);
     CapabilityOffer {
+        semantic_contract: Default::default(),
         startup_parameters: contract.startup_parameters,
         shorthand: None,
         capability_id: "proof/structured-literal".into(),
@@ -176,6 +177,7 @@ fn structured_selector_proof_offer(
 ) -> CapabilityOffer {
     let contract = conduit_semantic_catalog::structured_selector_contract(selector, temporal);
     CapabilityOffer {
+        semantic_contract: Default::default(),
         startup_parameters: contract.startup_parameters,
         shorthand: contract.shorthand,
         capability_id: "proof/structured-selector".into(),

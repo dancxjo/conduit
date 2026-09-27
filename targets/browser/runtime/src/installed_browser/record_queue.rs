@@ -106,6 +106,7 @@ mod tests {
     fn placement(maximum_frame_bytes: u64) -> PlannedGear {
         let offer = offer();
         PlannedGear {
+            semantic_contract: Default::default(),
             placement_id: "queue-placement".into(),
             gear_id: "queue".into(),
             kind_id: offer.kind_id,

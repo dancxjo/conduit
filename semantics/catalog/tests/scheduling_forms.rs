@@ -220,6 +220,7 @@ fn schedule_conformance_offers(profile: &ProfileCatalog) -> Vec<CapabilityOffer>
         .map(|kind| {
             let definition = profile.get(&kind_id(kind)).unwrap();
             CapabilityOffer {
+                semantic_contract: Default::default(),
                 startup_parameters: vec![],
                 shorthand: None,
                 capability_id: CapabilityId::from(format!("test/schedule-contract/{kind}@1")),

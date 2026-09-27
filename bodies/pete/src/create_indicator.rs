@@ -118,6 +118,7 @@ pub fn live_indicator_advertisement(
     ];
     requirements.sort();
     let show = CapabilityOffer {
+        semantic_contract: Default::default(),
         startup_parameters: Vec::new(),
         shorthand: None,
         capability_id: CapabilityId::from(INDICATOR_CAPABILITY),

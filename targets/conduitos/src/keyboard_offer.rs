@@ -172,6 +172,7 @@ pub(crate) fn append_to_advertisement(
     }
     requirements.sort();
     let capability = conduit_core::CapabilityOffer {
+        semantic_contract: Default::default(),
         startup_parameters: Vec::new(),
         shorthand: None,
         capability_id: CapabilityId::from("conduitos/input-keyboard@1"),

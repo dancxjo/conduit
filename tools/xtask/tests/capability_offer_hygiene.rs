@@ -727,8 +727,10 @@ fn migrated_production_offers_cannot_restate_capability_truth() {
         let raw_literals = source
             .lines()
             .filter(|line| {
-                line.contains("CapabilityOffer {")
-                    && !line.contains("-> CapabilityOffer {")
+                line.contains(
+                    "CapabilityOffer {
+                    semantic_contract: Default::default(),",
+                ) && !line.contains("-> CapabilityOffer {")
                     && !line.contains("struct CapabilityOffer {")
             })
             .count();

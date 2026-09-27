@@ -171,6 +171,7 @@ fn documentary_offer() -> LocalModelOffer {
 
 fn documentary_placement(contract: &conduit_ai::LlmSemanticContract) -> PlannedGear {
     PlannedGear {
+        semantic_contract: Default::default(),
         placement_id: PlacementId::from("placement/interpreter"),
         gear_id: GearId::from("observer/interpreter"),
         kind_id: contract.kind_id.clone(),

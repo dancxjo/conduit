@@ -159,6 +159,7 @@ pub(crate) fn offer_named(
         abnormal_kind: None,
     };
     CapabilityOffer {
+        semantic_contract: Default::default(),
         startup_parameters: vec![conduit_core::FrontStartupParameter {
             name: "value".into(),
             value_type: conduit_core::kind_id("value/text"),

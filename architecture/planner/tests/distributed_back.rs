@@ -156,6 +156,7 @@ fn direct_expanded() -> conduit_form::ExpandedCanonicalForm {
 fn offer(definition: &KindProjection, part: &str) -> CapabilityOffer {
     let slug = definition.kind_id.as_str().replace('/', "-");
     CapabilityOffer {
+        semantic_contract: Default::default(),
         startup_parameters: vec![],
         shorthand: None,
         capability_id: CapabilityId::from(format!("{part}/{slug}")),

@@ -37,6 +37,7 @@ pub fn hosted_hnsw_vector_search_offer(
     let contract = vector_search_contract();
     let metric = metric_slug(profile.metric);
     Ok(CapabilityOffer {
+        semantic_contract: Default::default(),
         startup_parameters: vector_search_startup_parameters(),
         shorthand: None,
         capability_id: CapabilityId::from(format!(

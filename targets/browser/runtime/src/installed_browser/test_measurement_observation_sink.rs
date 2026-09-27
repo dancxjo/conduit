@@ -16,6 +16,7 @@ pub(super) static SINK: BrowserInstallation = BrowserInstallation {
 
 pub(crate) fn offer() -> CapabilityOffer {
     CapabilityOffer {
+        semantic_contract: Default::default(),
         kind_id: KIND.into(),
         kind_contract_revision: "conduit-test/measurement-observation-sink@1".into(),
         capability_id: KIND.into(),

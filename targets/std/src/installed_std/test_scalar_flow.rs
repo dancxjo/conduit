@@ -233,6 +233,7 @@ fn offer(
     outputs: Vec<PortDescriptor>,
 ) -> CapabilityOffer {
     CapabilityOffer {
+        semantic_contract: Default::default(),
         startup_parameters: if identity.kind == SINK_KIND {
             vec![conduit_core::FrontStartupParameter {
                 name: "expected".into(),

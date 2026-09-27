@@ -355,6 +355,7 @@ fn sealed_current_fragment() -> PlanFragment {
         offer_generation: OfferGeneration(1),
         placements: vec![
             PlannedGear {
+                semantic_contract: Default::default(),
                 placement_id: source.clone(),
                 gear_id: GearId::from("source"),
                 kind_id: KindId::from("test/source"),
@@ -386,6 +387,7 @@ fn sealed_current_fragment() -> PlanFragment {
                 pool_references: Vec::new(),
             },
             PlannedGear {
+                semantic_contract: Default::default(),
                 placement_id: sink.clone(),
                 gear_id: GearId::from("sink"),
                 kind_id: KindId::from("test/sink"),

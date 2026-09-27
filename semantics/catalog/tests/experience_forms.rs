@@ -120,6 +120,7 @@ fn one_checked_experiencer_moves_between_compatible_hosts_without_changing_meani
         bases: vec![],
         resources: vec![],
         capabilities: vec![CapabilityOffer {
+            semantic_contract: Default::default(),
             startup_parameters: vec![],
             shorthand: None,
             capability_id: CapabilityId::from(format!("experience/{name}/relate-current")),

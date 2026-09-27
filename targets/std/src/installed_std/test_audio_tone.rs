@@ -214,6 +214,7 @@ fn offer(
     outputs: Vec<PortDescriptor>,
 ) -> CapabilityOffer {
     CapabilityOffer {
+        semantic_contract: Default::default(),
         startup_parameters: Vec::new(),
         shorthand: None,
         capability_id: CapabilityId::from(implementation),

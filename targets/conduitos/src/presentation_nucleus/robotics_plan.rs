@@ -120,6 +120,7 @@ fn discard_kinds() -> [(&'static str, &'static str); 5] {
 
 fn discard_offer(kind: &str, value_kind: &str) -> CapabilityOffer {
     CapabilityOffer {
+        semantic_contract: Default::default(),
         startup_parameters: Vec::new(),
         shorthand: None,
         capability_id: CapabilityId::from(format!(

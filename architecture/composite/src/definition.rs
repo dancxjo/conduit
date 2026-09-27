@@ -154,6 +154,7 @@ impl KernelCompositeDefinition {
             offer_generation,
             profile,
             external_capability: CapabilityOffer {
+                semantic_contract: Default::default(),
                 startup_parameters: vec![],
                 shorthand: None,
                 capability_id: exported.capability_id,

@@ -92,6 +92,15 @@ fn choices_are_exact_boot_scoped_plan_bindings() {
     .expect("other exact handle plans");
     assert_ne!(plan.plan_id, changed.plan_id);
 
+    let mut changed_contract = plan.clone();
+    changed_contract.fragments[0].placements[0]
+        .semantic_contract
+        .laws
+        .push(conduit_core::KindSemanticLaw::ExternalEffects(
+            conduit_core::ExternalEffectBehavior::Observable,
+        ));
+    assert!(!verify_plan(&changed_contract));
+
     let mut mutated = plan;
     mutated.fragments[0].placements[0].resources[0]
         .protected

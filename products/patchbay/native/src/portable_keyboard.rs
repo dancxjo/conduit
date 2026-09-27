@@ -268,6 +268,7 @@ pub fn append_offer(advertisement: &mut HostAdvertisement) -> Result<(), String>
     ];
     requirements.sort();
     advertisement.capabilities.push(CapabilityOffer {
+        semantic_contract: Default::default(),
         startup_parameters: Vec::new(),
         shorthand: None,
         capability_id: CapabilityId::from("patchbay-native/input-keyboard@1"),

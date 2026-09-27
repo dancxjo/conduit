@@ -15,6 +15,7 @@ pub(crate) fn offer() -> CapabilityOffer {
     contract.inputs = contract.outputs;
     contract.inputs[0].direction = PortDirection::Input;
     CapabilityOffer {
+        semantic_contract: Default::default(),
         kind_id: KIND.into(),
         kind_contract_revision: "conduit-test/timing-sink@1".into(),
         capability_id: KIND.into(),

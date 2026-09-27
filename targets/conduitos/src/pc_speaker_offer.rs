@@ -137,6 +137,7 @@ pub(crate) fn append_to_advertisement(
         .sort_by(|left, right| left.pool_id.cmp(&right.pool_id));
     let contract = conduit_semantic_catalog::sound_tone_play_contract();
     advertisement.capabilities.push(CapabilityOffer {
+        semantic_contract: Default::default(),
         startup_parameters: Vec::new(),
         shorthand: None,
         capability_id: CapabilityId::from(PC_SPEAKER_CAPABILITY),

@@ -642,4 +642,52 @@ mod tests {
             Err(KindValidationError::ConfigurationFrontMismatch)
         );
     }
+
+    #[test]
+    fn semantic_contract_is_required_in_json_and_breaks_legacy_positional_frames_closed() {
+        #[derive(serde::Serialize, serde::Deserialize)]
+        struct LegacyCapabilityOffer {
+            startup_parameters: Vec<FrontStartupParameter>,
+            shorthand: Option<(PortId, PortId)>,
+            capability_id: CapabilityId,
+            kind_id: KindId,
+            kind_contract_revision: KindIdentity,
+            inputs: Vec<PortDescriptor>,
+            outputs: Vec<PortDescriptor>,
+            implementation: ImplementationOffer,
+            host_calls: Vec<HostCallRequirement>,
+            resource_requirements: Vec<ResourceRequirement>,
+            authority_requirements: Vec<AuthorityRequirement>,
+            limits: CapabilityLimits,
+        }
+
+        let offer = BackOfferBuilder::new(contract(), realization("wire-proof")).build();
+        let mut json = serde_json::to_value(&offer).unwrap();
+        json.as_object_mut().unwrap().remove("semantic_contract");
+        assert!(serde_json::from_value::<CapabilityOffer>(json).is_err());
+
+        let legacy = LegacyCapabilityOffer {
+            startup_parameters: offer.startup_parameters.clone(),
+            shorthand: offer.shorthand.clone(),
+            capability_id: offer.capability_id.clone(),
+            kind_id: offer.kind_id.clone(),
+            kind_contract_revision: offer.kind_contract_revision.clone(),
+            inputs: offer.inputs.clone(),
+            outputs: offer.outputs.clone(),
+            implementation: offer.implementation.clone(),
+            host_calls: offer.host_calls.clone(),
+            resource_requirements: offer.resource_requirements.clone(),
+            authority_requirements: offer.authority_requirements.clone(),
+            limits: offer.limits.clone(),
+        };
+        let legacy_bytes = postcard::to_allocvec(&legacy).unwrap();
+        assert!(postcard::from_bytes::<CapabilityOffer>(&legacy_bytes).is_err());
+
+        // CapabilityOffer is a named-field JSON contract. Its flattened
+        // implementation fields deliberately make positional serializers
+        // refuse rather than silently assign a newly inserted field to an
+        // older position. A future positional carrier needs its own versioned
+        // envelope and cannot inherit this record layout.
+        assert!(postcard::to_allocvec(&offer).is_err());
+    }
 }

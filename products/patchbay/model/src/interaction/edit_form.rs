@@ -116,6 +116,7 @@ fn text_field(key: &str) -> KindConfigurationField {
 
 pub(super) fn edit_offer() -> CapabilityOffer {
     CapabilityOffer {
+        semantic_contract: Default::default(),
         startup_parameters: edit_signature()
             .startup_parameters
             .into_iter()

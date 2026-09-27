@@ -193,6 +193,7 @@ fn proof_offers() -> Vec<conduit_core::CapabilityOffer> {
     ]
     .into_iter()
     .map(|(kind, outputs)| conduit_core::CapabilityOffer {
+        semantic_contract: Default::default(),
         startup_parameters: vec![],
         shorthand: None,
         capability_id: conduit_core::CapabilityId::from(format!("proof/{kind}@1")),

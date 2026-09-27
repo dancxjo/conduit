@@ -221,6 +221,7 @@ fn capability(catalog: &ProfileCatalog, kind: &str) -> Result<CapabilityOffer, C
         .get(&kind_id(kind))
         .ok_or_else(|| CatalogError::new("sound-adapter-kind-missing", kind))?;
     Ok(CapabilityOffer {
+        semantic_contract: Default::default(),
         startup_parameters: definition
             .configuration
             .iter()

@@ -223,6 +223,7 @@ fn host(name: &str, kinds: &[&str], profile: &ProfileCatalog) -> HostAdvertiseme
             .map(|kind| {
                 let definition = profile.get(&kind_id(kind)).unwrap();
                 CapabilityOffer {
+                    semantic_contract: Default::default(),
                     startup_parameters: vec![],
                     shorthand: None,
                     capability_id: CapabilityId::from(format!("{name}/{kind}")),

@@ -370,6 +370,7 @@ fn offer(
     startup_parameters: Vec<FrontStartupParameter>,
 ) -> CapabilityOffer {
     CapabilityOffer {
+        semantic_contract: Default::default(),
         startup_parameters,
         shorthand: None,
         capability_id: CapabilityId::from(format!("proof/{}", kind.as_str())),

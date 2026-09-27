@@ -203,6 +203,7 @@ struct ApplianceOfferSpec<'a> {
 
 fn appliance_offer(spec: ApplianceOfferSpec<'_>) -> CapabilityOffer {
     CapabilityOffer {
+        semantic_contract: Default::default(),
         capability_id: CapabilityId::from(spec.capability),
         kind_id: kind_id(spec.kind),
         kind_contract_revision: KindIdentity::from(spec.revision),

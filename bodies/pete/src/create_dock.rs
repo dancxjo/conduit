@@ -123,6 +123,7 @@ pub fn live_create_dock_advertisement(
         subject_kind: kind_id(BOOL_INFO_ID),
     };
     let dock = CapabilityOffer {
+        semantic_contract: Default::default(),
         startup_parameters: vec![FrontStartupParameter {
             name: "timeout-ms".into(),
             value_type: conduit_core::kind_id("value/count"),

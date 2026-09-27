@@ -186,6 +186,7 @@ pub(crate) fn append_to_advertisement(
     advertisement
         .capabilities
         .push(conduit_core::CapabilityOffer {
+            semantic_contract: Default::default(),
             startup_parameters: Vec::new(),
             shorthand: None,
             capability_id: CapabilityId::from("conduitos/input-pointer@1"),

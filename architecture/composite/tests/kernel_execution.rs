@@ -54,6 +54,7 @@ fn advertisement(host: &str, boot: &str) -> HostAdvertisement {
         resources: vec![],
         planner_capabilities: vec![],
         capabilities: vec![CapabilityOffer {
+            semantic_contract: Default::default(),
             startup_parameters: vec![],
             shorthand: None,
             capability_id: CapabilityId::from("echo"),

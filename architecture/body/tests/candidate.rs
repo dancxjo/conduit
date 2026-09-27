@@ -36,6 +36,7 @@ fn advertisement(host: &str, boot: &str, generation: u64) -> HostAdvertisement {
 
 fn capability(index: usize) -> CapabilityOffer {
     CapabilityOffer {
+        semantic_contract: Default::default(),
         startup_parameters: Vec::new(),
         shorthand: None,
         capability_id: CapabilityId::from(format!("claimed/capability/{index}")),

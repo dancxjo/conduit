@@ -67,9 +67,8 @@ pub use configuration::{
     AbnormalTerminalTransduction, CancellationTransduction, ConfigurationEntry, ConfigurationValue,
     ExternalEffectBehavior, FiniteTerminalEmission, KindConfigurationField, KindConfigurationRule,
     KindSemanticContract, KindSemanticLaw, KindTerminalBehavior, NormalCloseTransduction,
-    ReplayBehavior,
-    SemanticDependence, StructuredConfigurationValue, SuspensionBehavior, TemporalStateBehavior,
-    TerminalTransductionProfile, VariabilityBehavior,
+    ReplayBehavior, SemanticDependence, StructuredConfigurationValue, SuspensionBehavior,
+    TemporalStateBehavior, TerminalTransductionProfile, VariabilityBehavior,
 };
 pub use consequential_effect::*;
 pub use control_loop::*;
@@ -426,7 +425,6 @@ pub struct CapabilityOffer {
     pub kind_contract_revision: KindIdentity,
     pub inputs: Vec<PortDescriptor>,
     pub outputs: Vec<PortDescriptor>,
-    #[serde(default, skip_serializing_if = "KindSemanticContract::is_empty")]
     pub semantic_contract: KindSemanticContract,
     #[serde(flatten)]
     pub implementation: ImplementationOffer,
@@ -535,7 +533,6 @@ pub struct PlannedGear {
     pub limits: CapabilityLimits,
     pub inputs: Vec<PortDescriptor>,
     pub outputs: Vec<PortDescriptor>,
-    #[serde(default, skip_serializing_if = "KindSemanticContract::is_empty")]
     pub semantic_contract: KindSemanticContract,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub terminal_transduction: Option<TerminalTransductionProfile>,

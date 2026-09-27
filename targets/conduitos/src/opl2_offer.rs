@@ -158,6 +158,7 @@ pub fn append_to_advertisement(
     ];
     requirements.sort();
     advertisement.capabilities.push(CapabilityOffer {
+        semantic_contract: Default::default(),
         startup_parameters: Vec::new(),
         shorthand: None,
         capability_id: CapabilityId::from(OPL2_CAPABILITY),

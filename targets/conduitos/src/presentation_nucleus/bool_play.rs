@@ -201,6 +201,7 @@ fn advertisement(host: &str, boot: &str, value: InfoBool) -> HostAdvertisement {
 
 fn source_offer(value: InfoBool) -> CapabilityOffer {
     CapabilityOffer {
+        semantic_contract: Default::default(),
         startup_parameters: Vec::new(),
         shorthand: None,
         capability_id: CapabilityId::from(if value.get() {

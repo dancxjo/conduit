@@ -76,6 +76,7 @@ fn offer(kind: &str, host: &str) -> CapabilityOffer {
     let definition = definition(kind);
     let sink = kind == SINK;
     CapabilityOffer {
+        semantic_contract: Default::default(),
         startup_parameters: vec![],
         shorthand: None,
         capability_id: CapabilityId::from(format!("{host}/{}", kind.replace('/', "-"))),

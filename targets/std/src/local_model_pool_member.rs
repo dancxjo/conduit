@@ -90,6 +90,7 @@ impl StdHost {
             selection.operation_id.as_str()
         );
         let placement = PlannedGear {
+            semantic_contract: Default::default(),
             placement_id: PlacementId::from(dynamic_identity.clone()),
             gear_id: GearId::from(dynamic_identity),
             kind_id: capability.kind_id.clone(),

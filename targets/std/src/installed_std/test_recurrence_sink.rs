@@ -69,6 +69,7 @@ pub(crate) fn offer() -> CapabilityOffer {
         .value_kind()
         .clone();
     CapabilityOffer {
+        semantic_contract: Default::default(),
         startup_parameters: vec![conduit_core::FrontStartupParameter {
             name: "expected".into(),
             value_type: conduit_core::kind_id("value/count"),

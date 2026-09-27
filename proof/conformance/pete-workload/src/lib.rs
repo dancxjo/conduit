@@ -497,6 +497,7 @@ mod tests {
             offer_generation: OfferGeneration(1),
             profile: HostProfileId::from("proof/pete-homeostasis@1"),
             external_capability: CapabilityOffer {
+                semantic_contract: Default::default(),
                 startup_parameters: vec![],
                 shorthand: None,
                 capability_id: CapabilityId::from("run"),
@@ -642,6 +643,7 @@ mod tests {
             .flat_map(|item| &item.expanded.gears)
             .enumerate()
             .map(|(index, gear)| CapabilityOffer {
+                semantic_contract: Default::default(),
                 startup_parameters: gear.startup_parameters.clone(),
                 shorthand: gear.shorthand.clone(),
                 capability_id: CapabilityId::from(format!("proof/{host_id}/{index}")),

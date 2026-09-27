@@ -45,6 +45,7 @@ fn host() -> HostAdvertisement {
         planner_capabilities: vec![],
         capabilities: vec![
             CapabilityOffer {
+                semantic_contract: conduit_signal::pulse_semantic_contract().semantic_contract(),
                 startup_parameters: conduit_signal::pulse_front_startup_parameters(),
                 shorthand: None,
                 capability_id: conduit_core::CapabilityId::from("pulse-1"),
@@ -67,6 +68,7 @@ fn host() -> HostAdvertisement {
                 },
             },
             CapabilityOffer {
+                semantic_contract: conduit_signal::show_semantic_contract().semantic_contract(),
                 startup_parameters: vec![],
                 shorthand: None,
                 capability_id: conduit_core::CapabilityId::from("stdout-show-1"),

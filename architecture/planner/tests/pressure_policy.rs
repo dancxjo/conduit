@@ -13,6 +13,7 @@ mod common;
 
 fn tick_current_sink_offer() -> CapabilityOffer {
     CapabilityOffer {
+        semantic_contract: Default::default(),
         startup_parameters: vec![],
         shorthand: None,
         capability_id: CapabilityId::from("fixture-tick-current-sink"),

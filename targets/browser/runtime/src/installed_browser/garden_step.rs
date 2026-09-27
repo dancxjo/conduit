@@ -361,6 +361,7 @@ mod tests {
     fn placement() -> PlannedGear {
         let offered = minimal_offer();
         PlannedGear {
+            semantic_contract: Default::default(),
             placement_id: "garden-step-placement".into(),
             gear_id: "garden-step".into(),
             kind_id: offered.kind_id,

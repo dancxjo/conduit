@@ -65,6 +65,7 @@ fn fragment(pool: PlannedSharedPool) -> PlanFragment {
         boot_id: BootId::from("coordinator/boot-1"),
         offer_generation: OfferGeneration(1),
         placements: vec![PlannedGear {
+            semantic_contract: Default::default(),
             placement_id: PlacementId::from("model-consumer"),
             gear_id: GearId::from("model-consumer"),
             kind_id: kind_id("test/model-consumer"),

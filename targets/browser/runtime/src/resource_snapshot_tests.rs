@@ -44,6 +44,7 @@ pub(crate) fn placement(
     };
     (
         PlannedGear {
+            semantic_contract: Default::default(),
             placement_id: "snapshot-placement".into(),
             gear_id: "snapshot".into(),
             kind_id: kind.clone(),

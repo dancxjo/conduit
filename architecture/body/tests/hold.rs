@@ -39,6 +39,7 @@ fn exact_plan(label: &str, host: &str) -> Plan {
         boot_id: BootId::from(format!("{host}-boot")),
         offer_generation: OfferGeneration(7),
         placements: vec![PlannedGear {
+            semantic_contract: Default::default(),
             placement_id: PlacementId::from(format!("{label}-placement")),
             gear_id: GearId::from("gear-a"),
             kind_id: KindId::from("test/kind"),

@@ -13,6 +13,7 @@ use conduit_core::{
 
 fn member_offer(kind: &str, revision: &str) -> CapabilityOffer {
     CapabilityOffer {
+        semantic_contract: Default::default(),
         startup_parameters: vec![FrontStartupParameter {
             name: "peer".into(),
             value_type: "PeerId".into(),
@@ -103,6 +104,7 @@ fn fragment(pool: PlannedSharedPool) -> PlanFragment {
             .consumers
             .iter()
             .map(|placement_id| PlannedGear {
+                semantic_contract: Default::default(),
                 placement_id: placement_id.clone(),
                 gear_id: GearId::from(placement_id.as_str()),
                 kind_id: kind_id("test/pool-consumer"),

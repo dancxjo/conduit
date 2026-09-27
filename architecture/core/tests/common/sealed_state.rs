@@ -31,6 +31,7 @@ pub fn fragment() -> PlanFragment {
         boot_id: BootId::from("boot"),
         offer_generation: OfferGeneration(1),
         placements: vec![PlannedGear {
+            semantic_contract: Default::default(),
             placement_id: PlacementId::from("placement"),
             gear_id: state.gear_id.clone(),
             kind_id: kind_id("fixture/state"),

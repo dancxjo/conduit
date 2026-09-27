@@ -152,6 +152,16 @@ pub(super) fn initialized_structured_state(
         shorthand: Some((input.port_id.clone(), output.port_id.clone())),
         inputs: vec![input.clone()],
         outputs: vec![output.clone()],
+        semantic_contract: conduit_core::KindSemanticContract {
+            configuration: vec![conduit_core::KindConfigurationField {
+                key: "initial".into(),
+                default_value: conduit_core::ConfigurationValue::Structured(initial.clone()),
+                rule: conduit_core::KindConfigurationRule::Structured {
+                    profile: profile.value_kind().clone(),
+                },
+            }],
+            laws: Vec::new(),
+        },
         terminal_transduction: None,
         resource_ports: Vec::new(),
         configuration: vec![

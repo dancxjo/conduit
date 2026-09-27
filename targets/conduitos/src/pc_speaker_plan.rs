@@ -208,6 +208,7 @@ fn checked_expanded(
 
 fn tone_source_offer(build_id: &str) -> CapabilityOffer {
     CapabilityOffer {
+        semantic_contract: Default::default(),
         startup_parameters: Vec::new(),
         shorthand: None,
         capability_id: CapabilityId::from("conduitos-fixture-tone-source@1"),

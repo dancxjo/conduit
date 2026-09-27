@@ -120,6 +120,7 @@ fn source_host(host_id: HostId, boot_id: BootId) -> HostAdvertisement {
         bases: vec![],
         resources: Vec::new(),
         capabilities: vec![CapabilityOffer {
+            semantic_contract: Default::default(),
             startup_parameters: Vec::new(),
             shorthand: None,
             capability_id: CapabilityId::from(PRESENTATION_PROJECT_CAPABILITY),

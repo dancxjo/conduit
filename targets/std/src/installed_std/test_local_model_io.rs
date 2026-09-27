@@ -282,6 +282,7 @@ fn offer(
         abnormal_kind: None,
     };
     CapabilityOffer {
+        semantic_contract: Default::default(),
         startup_parameters: Vec::new(),
         shorthand: None,
         capability_id: CapabilityId::from(format!("{kind}/{value_kind}")),

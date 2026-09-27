@@ -278,6 +278,7 @@ fn host(
 fn text_literal_fixture_offer(implementation: &str) -> conduit_core::CapabilityOffer {
     let contract = conduit_text::text_literal_semantics();
     conduit_core::CapabilityOffer {
+        semantic_contract: Default::default(),
         startup_parameters: vec![conduit_core::FrontStartupParameter {
             name: "value".into(),
             value_type: conduit_core::kind_id("value/text"),

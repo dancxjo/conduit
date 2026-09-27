@@ -146,6 +146,7 @@ fn advertisement(
 
 fn source_offer(kind: &str, value: Scalar) -> CapabilityOffer {
     CapabilityOffer {
+        semantic_contract: Default::default(),
         startup_parameters: Vec::new(),
         shorthand: None,
         capability_id: CapabilityId::from(format!(

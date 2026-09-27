@@ -420,6 +420,7 @@ fn source_offer(
     fields: &[&str],
 ) -> CapabilityOffer {
     CapabilityOffer {
+        semantic_contract: Default::default(),
         startup_parameters: fields
             .iter()
             .map(|name| FrontStartupParameter {
@@ -448,6 +449,7 @@ fn source_offer(
 
 fn apply_offer() -> CapabilityOffer {
     CapabilityOffer {
+        semantic_contract: Default::default(),
         startup_parameters: vec![],
         shorthand: None,
         capability_id: CapabilityId::from("patchbay-apply"),

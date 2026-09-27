@@ -146,6 +146,7 @@ mod tests {
     fn placement() -> PlannedGear {
         let offered = offer();
         PlannedGear {
+            semantic_contract: Default::default(),
             placement_id: "plot-placement".into(),
             gear_id: "plot".into(),
             kind_id: offered.kind_id,

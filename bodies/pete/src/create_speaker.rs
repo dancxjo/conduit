@@ -198,6 +198,7 @@ pub fn live_speaker_advertisement(
         bases: vec![],
         resources,
         capabilities: vec![CapabilityOffer {
+            semantic_contract: Default::default(),
             startup_parameters: Vec::new(),
             shorthand: None,
             capability_id: CapabilityId::from(SPEAKER_CAPABILITY),

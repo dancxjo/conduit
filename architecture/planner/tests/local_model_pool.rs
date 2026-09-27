@@ -91,6 +91,7 @@ fn consumer_host(front: &conduit_core::CheckedFront) -> HostAdvertisement {
         bases: vec![],
         resources: vec![],
         capabilities: vec![CapabilityOffer {
+            semantic_contract: Default::default(),
             startup_parameters: front.startup_parameters().to_vec(),
             shorthand: front
                 .shorthand()

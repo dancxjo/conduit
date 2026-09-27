@@ -233,6 +233,7 @@ fn signed_scalar_control_is_visible_bounded_and_authored_exactly() {
 #[test]
 fn boolean_contract_projects_a_toggle_with_explicit_choices() {
     let gear = conduit_form::CheckedGear {
+        semantic_contract: Default::default(),
         gear_id: conduit_core::GearId::from("controls/pulse"),
         kind_id: conduit_core::kind_id(conduit_semantic_catalog::STATE_TOGGLE_KIND),
         kind_contract_revision: conduit_core::KindIdentity::from(

@@ -229,6 +229,7 @@ fn fixture_offer(
         maximum_output_bytes: 0,
     });
     CapabilityOffer {
+        semantic_contract: Default::default(),
         startup_parameters: Vec::new(),
         shorthand: None,
         capability_id: CapabilityId::from(kind),

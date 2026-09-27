@@ -96,6 +96,7 @@ fn canonical_live_conversation_is_one_reviewed_temporal_form() {
 fn synthetic_offer(definition: &KindProjection, host: &str) -> CapabilityOffer {
     let slug = definition.kind_id.as_str().replace('/', "-");
     CapabilityOffer {
+        semantic_contract: Default::default(),
         startup_parameters: definition
             .configuration
             .iter()

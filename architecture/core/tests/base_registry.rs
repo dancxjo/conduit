@@ -17,6 +17,7 @@ fn limits() -> BaseRegistryLimits {
 
 fn capability(id: &str) -> CapabilityOffer {
     CapabilityOffer {
+        semantic_contract: Default::default(),
         startup_parameters: vec![],
         shorthand: None,
         capability_id: CapabilityId::from(id),

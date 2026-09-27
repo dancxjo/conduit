@@ -1084,6 +1084,7 @@ fn build_advertisement(host_id: &str, boot_id: &str) -> HostAdvertisement {
         }],
         capabilities: vec![
             CapabilityOffer {
+                semantic_contract: Default::default(),
                 startup_parameters: conduit_signal::pulse_front_startup_parameters(),
                 shorthand: None,
                 capability_id: CapabilityId::from("pulse-1"),
@@ -1106,6 +1107,7 @@ fn build_advertisement(host_id: &str, boot_id: &str) -> HostAdvertisement {
                 },
             },
             CapabilityOffer {
+                semantic_contract: Default::default(),
                 startup_parameters: vec![],
                 shorthand: None,
                 capability_id: CapabilityId::from("dom-show-1"),
