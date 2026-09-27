@@ -40,7 +40,7 @@ const APPLICATION_LOADER: &[u8] =
 const APPLICATION_STORAGE: &[u8] =
     include_bytes!("../../../../targets/browser/host/assets/browser-application-storage.mjs");
 // Matches the runtime resource bound in patchbay.application.template.json.
-const MAX_BROWSER_WASM_BYTES: usize = 8 * 1024 * 1024;
+const MAX_BROWSER_WASM_BYTES: usize = 12 * 1024 * 1024;
 const EMPTY_BROWSER_WASM: &[u8] = b"\0asm\x01\0\0\0";
 
 #[derive(Debug)]
