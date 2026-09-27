@@ -11,9 +11,13 @@ use crate::{
 };
 use alloc::{string::String, vec};
 use conduit_core::{
-    kind_id, BoundedResourceRef, ResourceClassId, ResourceExtent, ResourceLifetime,
-    ResourceSemanticIdentity, ResourceVersionIdentity,
+    kind_id, ArtifactId, Back, BackOfferBuilder, BootId, BoundedResourceRef, CapabilityId,
+    ExecutionProfileId, HostAdvertisement, HostId, HostProfileId, ImplementationId,
+    OfferGeneration, PlacementId, ResourceClassId, ResourceExtent, ResourceLifetime,
+    ResourceSemanticIdentity, ResourceVersionIdentity, PROTOCOL_VERSION,
 };
+use conduit_form::ProfileCatalog;
+use conduit_planner::{default_placements, plan};
 
 fn request() -> GenerativePresenterRequest {
     let reference = BoundedResourceRef {
@@ -223,12 +227,54 @@ fn session() -> GeneratedValidationSession {
     .unwrap()
 }
 
+fn validator_plan() -> (conduit_core::Plan, PlacementId) {
+    plan_for_kind(GENERATED_VALIDATOR_KIND)
+}
+
+fn plan_for_kind(kind_identity: &str) -> (conduit_core::Plan, PlacementId) {
+    let validator = spoken_mask_kinds()
+        .into_iter()
+        .find(|kind| kind.kind_id.as_str() == kind_identity)
+        .unwrap();
+    let mut profiles = ProfileCatalog::new();
+    profiles.insert_kind(validator.clone()).unwrap();
+    let source = alloc::format!("form validation {{\n    validator: {kind_identity}\n}}\n");
+    let checked = conduit_form::parse(&source, &profiles).unwrap();
+    let host = HostAdvertisement {
+        protocol_version: PROTOCOL_VERSION,
+        host_id: HostId::from("host/validator"),
+        boot_id: BootId::from("boot/validator"),
+        offer_generation: OfferGeneration(1),
+        profile: HostProfileId::from("validator/test@1"),
+        bases: vec![],
+        resources: vec![],
+        capabilities: vec![BackOfferBuilder::new(
+            validator,
+            Back {
+                capability_id: CapabilityId::from("back/generated-validator"),
+                execution_profile_id: ExecutionProfileId::from("validator/test@1"),
+                implementation_id: ImplementationId::from("implementation/generated-validator@1"),
+                artifact_id: ArtifactId::from("artifact/generated-validator@1"),
+                host_calls: vec![],
+                resource_requirements: vec![],
+                authority_requirements: vec![],
+            },
+        )
+        .build()],
+        planner_capabilities: vec![],
+    };
+    let choices = default_placements(&checked, core::slice::from_ref(&host)).unwrap();
+    let plan = plan(&checked, &[host], &choices, &[]).unwrap();
+    let placement = plan.fragments[0].placements[0].placement_id.clone();
+    (plan, placement)
+}
+
 #[test]
 fn accepted_output_requires_exact_typed_content_composition_and_action_correlations() {
     let request = request();
     let candidate = candidate(&request);
     let outcome = session()
-        .retain(&request, candidate.clone(), assessment(&candidate))
+        .retain_unplanned(&request, candidate.clone(), assessment(&candidate))
         .unwrap();
     let GeneratedValidationOutcome::Accepted(accepted) = outcome else {
         panic!("accepted outcome")
@@ -238,6 +284,138 @@ fn accepted_output_requires_exact_typed_content_composition_and_action_correlati
         "assessment/4"
     );
     assert_eq!(accepted.content().len(), 1);
+}
+
+#[test]
+fn deterministic_validator_accepts_only_exact_presentation_wording() {
+    let request = request();
+    let mut candidate = candidate(&request);
+    candidate.content[0].bytes = b"Produces cellular energy".to_vec();
+    candidate.candidate_identity = candidate.digest();
+    let envelope = GeneratedValidationEnvelope {
+        request,
+        candidate: candidate.clone(),
+    };
+    let assessment = assess_generated_output_exactly(
+        &envelope,
+        "assessment/exact".into(),
+        "mask/spoken@1".into(),
+    );
+    assert_eq!(
+        assessment.disposition,
+        GeneratedValidationDisposition::Accepted
+    );
+    assert_eq!(assessment.accepted_correlations, candidate.correlations);
+
+    let mut thought = envelope.clone();
+    thought.candidate.content[0].role = GeneratedContentRole::PresentedThought;
+    thought.candidate.candidate_identity = thought.candidate.digest();
+    assert_eq!(
+        assess_generated_output_exactly(
+            &thought,
+            "assessment/thought".into(),
+            "mask/spoken@1".into(),
+        )
+        .disposition,
+        GeneratedValidationDisposition::Accepted
+    );
+
+    let mut paraphrase = envelope;
+    paraphrase.candidate.content[0].bytes = b"It makes energy for the cell".to_vec();
+    paraphrase.candidate.candidate_identity = paraphrase.candidate.digest();
+    let assessment = assess_generated_output_exactly(
+        &paraphrase,
+        "assessment/paraphrase".into(),
+        "mask/spoken@1".into(),
+    );
+    assert_eq!(
+        assessment.disposition,
+        GeneratedValidationDisposition::Refused
+    );
+    assert!(assessment.accepted_correlations.is_empty());
+}
+
+#[test]
+fn validator_session_requires_exact_kind_placement_and_current_plan_binding() {
+    let (plan, placement) = validator_plan();
+    let session = GeneratedValidationSession::from_plan(
+        &plan,
+        &placement,
+        "mask/spoken@1".into(),
+        "mask/spoken-contract@1".into(),
+    )
+    .unwrap();
+    let request = request();
+    let mut exact_candidate = candidate(&request);
+    exact_candidate.content[0].bytes = b"Produces cellular energy".to_vec();
+    exact_candidate.candidate_identity = exact_candidate.digest();
+    let exact_assessment = assess_generated_output_exactly(
+        &GeneratedValidationEnvelope {
+            request: request.clone(),
+            candidate: exact_candidate.clone(),
+        },
+        "assessment/planned".into(),
+        "mask/spoken@1".into(),
+    );
+    let outcome = session
+        .retain(&plan, &request, exact_candidate, exact_assessment)
+        .unwrap();
+    let GeneratedValidationOutcome::Accepted(generated) = outcome else {
+        panic!("accepted outcome")
+    };
+    assert_eq!(generated.validation_receipt().plan_id(), &plan.plan_id);
+    assert_eq!(generated.validation_receipt().placement_id(), &placement);
+
+    let mut wrong_kind = plan.clone();
+    wrong_kind.fragments[0].placements[0].kind_id = kind_id("presentation/not-validator");
+    assert!(matches!(
+        GeneratedValidationSession::from_plan(
+            &wrong_kind,
+            &placement,
+            "mask/spoken@1".into(),
+            "mask/spoken-contract@1".into(),
+        ),
+        Err(GeneratedValidationError::InvalidPlan)
+    ));
+    assert!(matches!(
+        GeneratedValidationSession::from_plan(
+            &plan,
+            &PlacementId::from("placement/missing"),
+            "mask/spoken@1".into(),
+            "mask/spoken-contract@1".into(),
+        ),
+        Err(GeneratedValidationError::MissingValidatorPlacement)
+    ));
+    let (other_plan, other_placement) = plan_for_kind(PRESENTATION_TO_GENERATIVE_REQUEST_KIND);
+    assert!(matches!(
+        GeneratedValidationSession::from_plan(
+            &other_plan,
+            &other_placement,
+            "mask/spoken@1".into(),
+            "mask/spoken-contract@1".into(),
+        ),
+        Err(GeneratedValidationError::WrongValidatorKind)
+    ));
+
+    let stale_session = GeneratedValidationSession::from_plan(
+        &plan,
+        &placement,
+        "mask/spoken@1".into(),
+        "mask/spoken-contract@1".into(),
+    )
+    .unwrap();
+    let mut stale_plan = plan.clone();
+    stale_plan.plan_id = conduit_core::PlanId::from("plan/stale");
+    let candidate = candidate(&request);
+    assert_eq!(
+        stale_session.retain(
+            &stale_plan,
+            &request,
+            candidate.clone(),
+            assessment(&candidate),
+        ),
+        Err(GeneratedValidationError::StaleValidatorBinding)
+    );
 }
 
 #[test]
@@ -303,13 +481,13 @@ fn receipt_rejects_digest_provenance_presentation_and_mask_mismatch() {
     let mut wrong = assessment(&candidate);
     wrong.candidate_digest = "sha256:wrong".into();
     assert_eq!(
-        session().retain(&request, candidate.clone(), wrong),
+        session().retain_unplanned(&request, candidate.clone(), wrong),
         Err(GeneratedValidationError::CandidateDigestMismatch)
     );
     let mut wrong = assessment(&candidate);
     wrong.source_presentation_revision += 1;
     assert_eq!(
-        session().retain(&request, candidate.clone(), wrong),
+        session().retain_unplanned(&request, candidate.clone(), wrong),
         Err(GeneratedValidationError::PresentationMismatch)
     );
     assert_eq!(
@@ -320,14 +498,16 @@ fn receipt_rejects_digest_provenance_presentation_and_mask_mismatch() {
             "mask/spoken-contract@1".into()
         )
         .unwrap()
-        .retain(&request, candidate.clone(), assessment(&candidate)),
+        .retain_unplanned(&request, candidate.clone(), assessment(&candidate)),
         Err(GeneratedValidationError::MaskMismatch)
     );
     let mut wrong = assessment(&candidate);
     wrong.disposition = GeneratedValidationDisposition::Refused;
     wrong.refusal_code = Some("unsupported-claim".into());
     wrong.accepted_correlations.clear();
-    let outcome = session().retain(&request, candidate, wrong).unwrap();
+    let outcome = session()
+        .retain_unplanned(&request, candidate, wrong)
+        .unwrap();
     let GeneratedValidationOutcome::Terminal(receipt) = outcome else {
         panic!("terminal outcome")
     };

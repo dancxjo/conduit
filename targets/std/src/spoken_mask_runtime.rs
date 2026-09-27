@@ -10,9 +10,12 @@ use conduit_kernel::{
     BoundedValueRef, Failure, FailureCode, HostCallDisposition, HostCallId, PortId, RequestId,
 };
 use conduit_presentation::{
-    ArtifactAcknowledgedSpokenShow, GeneratedManifestation, GenerativePresenterRequest,
-    ManifestationLifecycle, MaskShow, PlannedMaskForm, Presentation, SpokenMaskArtifactReceipt,
+    ArtifactAcknowledgedSpokenShow, GeneratedManifestation, GeneratedManifestationCandidate,
+    GeneratedValidationSession, GenerativePresenterRequest, ManifestationLifecycle, MaskShow,
+    PlannedMaskForm, Presentation, SpokenMaskArtifactReceipt,
 };
+
+mod validation;
 
 pub const PRESENTATION_TO_REQUEST_CALL: HostCallId = HostCallId(0);
 pub const GENERATED_MANIFESTATION_TO_SPEECH_CALL: HostCallId = HostCallId(0);
@@ -34,6 +37,10 @@ pub struct SpokenMaskSemanticSession {
     prepared_sign: conduit_core::SignId,
     available_sign: conduit_core::SignId,
     generated: Option<GeneratedManifestation>,
+    validator: Option<GeneratedValidationSession>,
+    pending_candidate: Option<GeneratedManifestationCandidate>,
+    terminal_validation: Option<conduit_presentation::GeneratedValidationReceipt>,
+    pending_validation_request: Option<Vec<u8>>,
 }
 
 #[derive(Clone)]
@@ -86,6 +93,27 @@ impl SpokenMaskSemanticSession {
         {
             return Err("spoken Mask preparation identities do not correlate".into());
         }
+        let validator_placement = planned_mask
+            .plan
+            .fragments
+            .iter()
+            .flat_map(|fragment| &fragment.placements)
+            .find(|placement| {
+                placement.kind_id.as_str() == conduit_presentation::GENERATED_VALIDATOR_KIND
+            })
+            .ok_or_else(|| "spoken Mask Plan omitted its semantic validator".to_string())?;
+        let validator = GeneratedValidationSession::from_plan(
+            &planned_mask.plan,
+            &validator_placement.placement_id,
+            planned_mask
+                .mask
+                .form_identity
+                .checked_form_id
+                .as_str()
+                .into(),
+            conduit_presentation::SPOKEN_MASK_CONTRACT_REVISION.into(),
+        )
+        .map_err(|error| format!("prepare generated validator session: {error:?}"))?;
         Ok(Self {
             request,
             presentation,
@@ -96,6 +124,10 @@ impl SpokenMaskSemanticSession {
             prepared_sign,
             available_sign,
             generated: None,
+            validator: Some(validator),
+            pending_candidate: None,
+            terminal_validation: None,
+            pending_validation_request: None,
         })
     }
 
@@ -120,11 +152,25 @@ impl SpokenMaskSemanticSession {
         if encoded.len() > self.request.bounds.maximum_output_bytes as usize {
             return Err("generated manifestation exceeds its admitted bound".into());
         }
-        let generated: GeneratedManifestation = serde_json::from_slice(encoded)
-            .map_err(|error| format!("decode generated manifestation: {error}"))?;
+        let candidate: GeneratedManifestationCandidate = serde_json::from_slice(encoded)
+            .map_err(|error| format!("decode accepted manifestation handle: {error}"))?;
+        let generated = self
+            .generated
+            .as_ref()
+            .ok_or_else(|| "spoken Show registration preceded semantic validation".to_string())?;
+        if generated.candidate() != &candidate {
+            return Err("spoken Show registration used a stale manifestation handle".into());
+        }
+        Ok(())
+    }
+
+    pub fn register_accepted_manifestation(
+        &mut self,
+        generated: GeneratedManifestation,
+    ) -> Result<(), String> {
         self.request
-            .validate_manifestation(&generated)
-            .map_err(|error| format!("invalid generated manifestation: {error:?}"))?;
+            .validate_candidate(generated.candidate())
+            .map_err(|error| format!("invalid accepted generated manifestation: {error:?}"))?;
         if self.generated.is_some() {
             return Err("spoken Mask already registered one generated manifestation".into());
         }
@@ -136,13 +182,27 @@ impl SpokenMaskSemanticSession {
         if encoded.len() > self.request.bounds.maximum_output_bytes as usize {
             return Err("generated manifestation exceeds its admitted bound".into());
         }
-        let generated: GeneratedManifestation = serde_json::from_slice(encoded)
-            .map_err(|error| format!("decode generated manifestation: {error}"))?;
+        let candidate: GeneratedManifestationCandidate = serde_json::from_slice(encoded)
+            .map_err(|error| format!("decode accepted manifestation handle: {error}"))?;
+        let generated = self
+            .generated
+            .as_ref()
+            .ok_or_else(|| "speech extraction preceded semantic validation".to_string())?;
+        if generated.candidate() != &candidate {
+            return Err("speech extraction used a stale manifestation handle".into());
+        }
+        self.extract_accepted_speech(generated)
+    }
+
+    pub fn extract_accepted_speech(
+        &self,
+        generated: &GeneratedManifestation,
+    ) -> Result<Vec<u8>, String> {
         self.request
-            .validate_manifestation(&generated)
-            .map_err(|error| format!("invalid generated manifestation: {error:?}"))?;
+            .validate_candidate(generated.candidate())
+            .map_err(|error| format!("invalid accepted generated manifestation: {error:?}"))?;
         let mut speech_segments = generated
-            .content
+            .content()
             .iter()
             .filter(|segment| segment.role == conduit_presentation::GeneratedContentRole::Speech);
         let speech = speech_segments
@@ -186,7 +246,7 @@ impl SpokenMaskSemanticSession {
             .map_err(|error| format!("make spoken Show available: {error:?}"))?;
         let result = ArtifactAcknowledgedSpokenShow {
             show: available,
-            generated_manifestation_identity: generated.manifestation_identity.clone(),
+            generated_manifestation_identity: generated.manifestation_identity().into(),
             artifact,
         };
         result

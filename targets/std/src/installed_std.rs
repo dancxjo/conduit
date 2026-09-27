@@ -32,6 +32,7 @@ mod flow_pressure_form_tests;
 mod flow_state_backs;
 mod generate_text;
 mod generated_speech_commit_back;
+mod generated_validation_backs;
 mod house_prompt_back;
 mod http;
 mod http_host;
@@ -1999,6 +2000,11 @@ pub(super) fn run_fragment_retaining<W: Write, T: TimerAdapter>(
             } else if matches!(
                 contract.as_str(),
                 conduit_std_offers::PRESENTATION_REQUEST_OPERATION
+                    | conduit_std_offers::REGISTER_VALIDATION_REQUEST_OPERATION
+                    | conduit_std_offers::BUILD_VALIDATION_ENVELOPE_OPERATION
+                    | conduit_std_offers::ASSESS_GENERATED_ENVELOPE_OPERATION
+                    | conduit_std_offers::REGISTER_GENERATED_CANDIDATE_OPERATION
+                    | conduit_std_offers::RETAIN_GENERATED_ASSESSMENT_OPERATION
                     | conduit_std_offers::GENERATED_SPEECH_OPERATION
                     | conduit_std_offers::REGISTER_MANIFESTATION_OPERATION
                     | conduit_std_offers::ARTIFACT_SHOW_OPERATION
@@ -2009,6 +2015,21 @@ pub(super) fn run_fragment_retaining<W: Write, T: TimerAdapter>(
                 let result = match contract.as_str() {
                     conduit_std_offers::PRESENTATION_REQUEST_OPERATION => {
                         session.adapt_presentation(input).map(Some)
+                    }
+                    conduit_std_offers::REGISTER_VALIDATION_REQUEST_OPERATION => {
+                        session.register_validation_request(input).map(|()| None)
+                    }
+                    conduit_std_offers::BUILD_VALIDATION_ENVELOPE_OPERATION => {
+                        session.finish_validation_envelope(input).map(Some)
+                    }
+                    conduit_std_offers::ASSESS_GENERATED_ENVELOPE_OPERATION => {
+                        session.assess_generated_envelope(input).map(Some)
+                    }
+                    conduit_std_offers::REGISTER_GENERATED_CANDIDATE_OPERATION => {
+                        session.register_generated_candidate(input).map(|()| None)
+                    }
+                    conduit_std_offers::RETAIN_GENERATED_ASSESSMENT_OPERATION => {
+                        session.retain_generated_assessment(input).map(Some)
                     }
                     conduit_std_offers::GENERATED_SPEECH_OPERATION => {
                         session.validate_and_extract_speech(input).map(Some)

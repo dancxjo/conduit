@@ -11,14 +11,77 @@ pub const GENERATED_SPEECH_IMPLEMENTATION: &str = "std/spoken-mask-generated-spe
 pub const SPOKEN_ARTIFACT_IMPLEMENTATION: &str = "std/spoken-mask-wav-artifact@1";
 pub const ARTIFACT_SHOW_IMPLEMENTATION: &str = "std/spoken-mask-artifact-show@1";
 pub const NO_INTERACTION_IMPLEMENTATION: &str = "std/spoken-mask-no-interaction@1";
+pub const VALIDATION_ENVELOPE_IMPLEMENTATION: &str = "std/generated-validation-envelope@1";
+pub const GENERATED_VALIDATOR_IMPLEMENTATION: &str = "std/generated-semantic-validator@1";
+pub const RETAIN_GENERATED_VALIDATION_IMPLEMENTATION: &str = "std/retain-generated-validation@1";
 pub const PRESENTATION_REQUEST_OPERATION: &str = "conduit.host/spoken-mask-request@1";
 pub const GENERATED_SPEECH_OPERATION: &str = "conduit.host/spoken-mask-speech@1";
 pub const SPOKEN_ARTIFACT_OPERATION: &str = "conduit.host/spoken-mask-artifact@1";
 pub const REGISTER_MANIFESTATION_OPERATION: &str = "conduit.host/spoken-mask-register@1";
 pub const ARTIFACT_SHOW_OPERATION: &str = "conduit.host/spoken-mask-show@1";
+pub const REGISTER_GENERATED_CANDIDATE_OPERATION: &str =
+    "conduit.host/register-generated-candidate@1";
+pub const RETAIN_GENERATED_ASSESSMENT_OPERATION: &str =
+    "conduit.host/retain-generated-assessment@1";
+pub const REGISTER_VALIDATION_REQUEST_OPERATION: &str =
+    "conduit.host/register-generated-validation-request@1";
+pub const BUILD_VALIDATION_ENVELOPE_OPERATION: &str =
+    "conduit.host/build-generated-validation-envelope@1";
+pub const ASSESS_GENERATED_ENVELOPE_OPERATION: &str =
+    "conduit.host/assess-generated-validation-envelope@1";
 
 pub fn spoken_mask_offers() -> Vec<CapabilityOffer> {
     vec![
+        semantic_offer(
+            conduit_presentation::GENERATED_VALIDATION_ENVELOPE_KIND,
+            "generated-validation-envelope",
+            VALIDATION_ENVELOPE_IMPLEMENTATION,
+            vec![
+                call(
+                    BUILD_VALIDATION_ENVELOPE_OPERATION,
+                    conduit_presentation::MAX_GENERATIVE_PRESENTER_OUTPUT_BYTES as u32,
+                    conduit_presentation::MAX_GENERATED_VALIDATION_ENVELOPE_BYTES as u32,
+                ),
+                call(
+                    REGISTER_VALIDATION_REQUEST_OPERATION,
+                    conduit_presentation::MAX_GENERATIVE_PRESENTER_INPUT_BYTES as u32,
+                    0,
+                ),
+            ],
+            vec![],
+            vec![],
+        ),
+        semantic_offer(
+            conduit_presentation::GENERATED_VALIDATOR_KIND,
+            "generated-semantic-validator",
+            GENERATED_VALIDATOR_IMPLEMENTATION,
+            vec![call(
+                ASSESS_GENERATED_ENVELOPE_OPERATION,
+                conduit_presentation::MAX_GENERATED_VALIDATION_ENVELOPE_BYTES as u32,
+                conduit_presentation::MAX_GENERATIVE_PRESENTER_OUTPUT_BYTES as u32,
+            )],
+            vec![],
+            vec![],
+        ),
+        semantic_offer(
+            conduit_presentation::RETAIN_GENERATED_VALIDATION_KIND,
+            "retain-generated-validation",
+            RETAIN_GENERATED_VALIDATION_IMPLEMENTATION,
+            vec![
+                call(
+                    REGISTER_GENERATED_CANDIDATE_OPERATION,
+                    conduit_presentation::MAX_GENERATIVE_PRESENTER_OUTPUT_BYTES as u32,
+                    0,
+                ),
+                call(
+                    RETAIN_GENERATED_ASSESSMENT_OPERATION,
+                    conduit_presentation::MAX_GENERATIVE_PRESENTER_OUTPUT_BYTES as u32,
+                    conduit_presentation::MAX_GENERATIVE_PRESENTER_OUTPUT_BYTES as u32,
+                ),
+            ],
+            vec![],
+            vec![],
+        ),
         semantic_offer(
             conduit_presentation::PRESENTATION_TO_GENERATIVE_REQUEST_KIND,
             "spoken-mask-presentation-request",

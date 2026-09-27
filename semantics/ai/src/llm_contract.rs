@@ -44,7 +44,7 @@ const JUDGMENT_RESULT: &str = "llm/judgment-result@1";
 pub const GENERATIVE_PRESENTER_INPUT_VALUE_KIND: &str =
     "conduit.presentation/generative-presenter-input@1";
 pub const GENERATED_MANIFESTATION_VALUE_KIND: &str =
-    "conduit.presentation/generated-manifestation@2";
+    "conduit.presentation/generated-manifestation-candidate@1";
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 pub enum LlmDeterminismProfile {

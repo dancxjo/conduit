@@ -13,6 +13,9 @@ pub const SPOKEN_MASK_ARTIFACT_RECEIPT_KIND: &str =
     "conduit.presentation/spoken-mask-artifact-receipt@1";
 pub const MAX_SPOKEN_MASK_ARTIFACT_IDENTITY_BYTES: usize = 256;
 pub const PRESENTATION_TO_GENERATIVE_REQUEST_KIND: &str = "presentation/adapt-generative-request";
+pub const GENERATED_VALIDATION_ENVELOPE_KIND: &str =
+    "presentation/build-generated-validation-envelope";
+pub const RETAIN_GENERATED_VALIDATION_KIND: &str = "presentation/retain-generated-validation";
 pub const GENERATED_MANIFESTATION_TO_SPEECH_KIND: &str =
     "presentation/generated-manifestation-speech";
 pub const SPOKEN_ARTIFACT_KIND: &str = "presentation/spoken-artifact";
@@ -137,7 +140,13 @@ pub fn spoken_mask_kinds() -> alloc::vec::Vec<conduit_core::Kind> {
         startup_parameters: alloc::vec::Vec::new(),
         shorthand: None,
         kind_id: kind_id(identity),
-        kind_contract_revision: KindIdentity::from(SPOKEN_MASK_CONTRACT_REVISION),
+        kind_contract_revision: KindIdentity::from(
+            if identity == crate::GENERATED_VALIDATOR_KIND {
+                crate::GENERATED_VALIDATOR_CONTRACT_REVISION
+            } else {
+                SPOKEN_MASK_CONTRACT_REVISION
+            },
+        ),
         inputs,
         outputs,
         configuration: Default::default(),
@@ -149,6 +158,67 @@ pub fn spoken_mask_kinds() -> alloc::vec::Vec<conduit_core::Kind> {
         },
     };
     alloc::vec![
+        kind(
+            GENERATED_VALIDATION_ENVELOPE_KIND,
+            alloc::vec![
+                port(
+                    "request",
+                    crate::GENERATIVE_PRESENTER_INPUT_KIND,
+                    PortDirection::Input,
+                    PortTemporal::Value,
+                ),
+                port(
+                    "candidate",
+                    crate::GENERATED_MANIFESTATION_CANDIDATE_KIND,
+                    PortDirection::Input,
+                    PortTemporal::Value,
+                ),
+            ],
+            alloc::vec![port(
+                "envelope",
+                crate::GENERATED_VALIDATION_ENVELOPE_VALUE_KIND,
+                PortDirection::Output,
+                PortTemporal::Value,
+            )],
+        ),
+        kind(
+            crate::GENERATED_VALIDATOR_KIND,
+            alloc::vec![port(
+                "envelope",
+                crate::GENERATED_VALIDATION_ENVELOPE_VALUE_KIND,
+                PortDirection::Input,
+                PortTemporal::Value,
+            )],
+            alloc::vec![port(
+                "assessment",
+                crate::GENERATED_VALIDATOR_ASSESSMENT_VALUE_KIND,
+                PortDirection::Output,
+                PortTemporal::Value,
+            )],
+        ),
+        kind(
+            RETAIN_GENERATED_VALIDATION_KIND,
+            alloc::vec![
+                port(
+                    "candidate",
+                    crate::GENERATED_MANIFESTATION_CANDIDATE_KIND,
+                    PortDirection::Input,
+                    PortTemporal::Value,
+                ),
+                port(
+                    "assessment",
+                    crate::GENERATED_VALIDATOR_ASSESSMENT_VALUE_KIND,
+                    PortDirection::Input,
+                    PortTemporal::Value,
+                ),
+            ],
+            alloc::vec![port(
+                "manifestation",
+                crate::GENERATED_MANIFESTATION_KIND,
+                PortDirection::Output,
+                PortTemporal::Value,
+            )],
+        ),
         kind(
             PRESENTATION_TO_GENERATIVE_REQUEST_KIND,
             alloc::vec![port(

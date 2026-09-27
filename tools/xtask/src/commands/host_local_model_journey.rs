@@ -224,7 +224,7 @@ pub(super) fn write(
                     .cloned()
                     .ok_or("missing Orifina Play")?,
                 presentation: manifestation.source_presentation_identity.clone(),
-                manifestation: manifestation.manifestation.manifestation_identity.clone(),
+                manifestation: manifestation.manifestation.candidate_identity.clone(),
                 line: None,
                 signs: BTreeMap::from([
                     ("body.born", born),

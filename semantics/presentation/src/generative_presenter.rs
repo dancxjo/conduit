@@ -17,6 +17,10 @@ use serde::{Deserialize, Serialize};
 
 pub const GENERATIVE_PRESENTER_INPUT_KIND: &str =
     "conduit.presentation/generative-presenter-input@1";
+/// Untrusted provider output awaiting an accountable semantic validator.
+pub const GENERATED_MANIFESTATION_CANDIDATE_KIND: &str =
+    "conduit.presentation/generated-manifestation-candidate@1";
+/// Accepted generated output carrying a retained validation receipt.
 pub const GENERATED_MANIFESTATION_KIND: &str = "conduit.presentation/generated-manifestation@2";
 pub const MAX_GENERATIVE_PRESENTER_IDENTITY_BYTES: usize = 128;
 /// One structured semantic snapshot supplied as data to a Presenter.

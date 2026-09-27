@@ -128,7 +128,7 @@ pub fn execute_retained_manifestation_mask(
     form_name: &str,
     execution_id: &str,
     presentation: conduit_presentation::Presentation,
-    retained: conduit_presentation::GeneratedManifestation,
+    retained: conduit_presentation::GeneratedManifestationCandidate,
 ) -> Result<SpokenMaskExecution, String> {
     use conduit_core::{
         BaseImplementationId, BootId, ConnectionTrack, HostId, OfferGeneration, PortDirection,
@@ -150,7 +150,7 @@ pub fn execute_retained_manifestation_mask(
 
     struct Replay {
         offer: conduit_ai::LocalModelOffer,
-        retained: conduit_presentation::GeneratedManifestation,
+        retained: conduit_presentation::GeneratedManifestationCandidate,
     }
     impl crate::hosted_local_model::HostedLocalModelAdapter for Replay {
         fn offer(&self) -> &conduit_ai::LocalModelOffer {
@@ -179,6 +179,7 @@ pub fn execute_retained_manifestation_mask(
             manifestation.source_presentation_revision =
                 request.semantic_data.source_presentation_revision;
             manifestation.template_contract_revision = request.policy.template_contract_revision;
+            manifestation.candidate_identity = manifestation.digest();
             match serde_json::to_vec(&manifestation) {
                 Ok(bytes) => {
                     output.clear();
@@ -190,7 +191,7 @@ pub fn execute_retained_manifestation_mask(
         }
     }
     fn offer(
-        retained: &conduit_presentation::GeneratedManifestation,
+        retained: &conduit_presentation::GeneratedManifestationCandidate,
     ) -> conduit_ai::LocalModelOffer {
         use conduit_ai::{
             LlmDeterminismProfile, LlmWorkBounds, LocalModelCachePolicy, LocalModelComputeNeed,
@@ -284,6 +285,9 @@ pub fn execute_retained_manifestation_mask(
 ) {{
  request: presentation/adapt-generative-request
  language: llm/present
+ envelope: presentation/build-generated-validation-envelope
+ validator: presentation/generated-semantic-validator
+ accepted: presentation/retain-generated-validation
  speech: presentation/generated-manifestation-speech
  voice: speech/synthesize(maximum-output-bytes = 32768)
  convert: audio/convert-pcm-profile(output-sample-rate-hz = 48000, output-channel-layout = "stereo-left-right")
@@ -292,8 +296,13 @@ pub fn execute_retained_manifestation_mask(
  no-input: presentation/no-interaction
  presentation >> request.presentation
  request.request >> language.request
- language.result >> speech.manifestation
- language.result >> shown.manifestation
+ request.request >> envelope.request
+ language.result >> envelope.candidate
+ language.result >> accepted.candidate
+ envelope.envelope >> validator.envelope
+ validator.assessment >> accepted.assessment
+ accepted.manifestation >> speech.manifestation
+ accepted.manifestation >> shown.manifestation
  speech.speech >> voice.text
  voice.audio >> convert.audio
  convert.converted >> artifact.audio

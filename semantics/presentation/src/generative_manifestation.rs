@@ -2,6 +2,7 @@
 
 use crate::GenerativePresenterRefusal;
 use alloc::{string::String, vec::Vec};
+use conduit_core::{BootId, CapabilityId, HostId, ImplementationId, PlacementId, PlanId};
 use serde::{Deserialize, Serialize};
 use sha2::{Digest, Sha256};
 
@@ -141,8 +142,12 @@ pub enum GeneratedValidationDisposition {
 #[serde(deny_unknown_fields)]
 pub struct GeneratedValidationReceipt {
     pub(crate) receipt_identity: String,
-    pub(crate) validator_implementation_identity: String,
-    pub(crate) validator_back_identity: String,
+    pub(crate) plan_id: PlanId,
+    pub(crate) placement_id: PlacementId,
+    pub(crate) validator_implementation_identity: ImplementationId,
+    pub(crate) validator_back_identity: CapabilityId,
+    pub(crate) host_id: HostId,
+    pub(crate) boot_id: BootId,
     pub(crate) assessment_identity: String,
     pub(crate) candidate_digest: String,
     pub(crate) source_presentation_identity: String,
@@ -203,10 +208,22 @@ impl GeneratedValidationReceipt {
         &self.accepted_correlations
     }
     pub fn validator_implementation_identity(&self) -> &str {
-        &self.validator_implementation_identity
+        self.validator_implementation_identity.as_str()
     }
     pub fn validator_back_identity(&self) -> &str {
-        &self.validator_back_identity
+        self.validator_back_identity.as_str()
+    }
+    pub fn plan_id(&self) -> &PlanId {
+        &self.plan_id
+    }
+    pub fn placement_id(&self) -> &PlacementId {
+        &self.placement_id
+    }
+    pub fn host_id(&self) -> &HostId {
+        &self.host_id
+    }
+    pub fn boot_id(&self) -> &BootId {
+        &self.boot_id
     }
     pub fn candidate_digest(&self) -> &str {
         &self.candidate_digest
@@ -238,6 +255,10 @@ pub enum GeneratedValidationError {
     NotAccepted,
     InvalidAcceptedCorrelations,
     InvalidAssessmentContract,
+    InvalidPlan,
+    MissingValidatorPlacement,
+    WrongValidatorKind,
+    StaleValidatorBinding,
 }
 
 impl GeneratedManifestationCandidate {
