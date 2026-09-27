@@ -198,7 +198,7 @@ fn tutorial_face(
         identity: identity.into(),
         intent: intent.into(),
         target: body_subject.clone(),
-        label: label.into(),
+        name: label.into(),
         disclosure: PresentationDisclosureLevel::CurrentAction,
         availability: PresentationActionAvailability::Available,
     });
@@ -208,8 +208,7 @@ fn tutorial_face(
         value_kind: conduit_presentation::UTF8_TEXT_VALUE_KIND.into(),
         maximum_bytes: 256,
         allow_empty: true,
-        label: label.into(),
-        accessibility_name: label.into(),
+        name: label.into(),
         submit_action: identity.into(),
     });
     face.presentation = Presentation::new_with_interactions(

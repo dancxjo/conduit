@@ -61,7 +61,7 @@ pub(super) fn append_follow_lines(
             follow.relationship,
             follow.identity,
             destination.role,
-            destination.accessibility_name,
+            destination.name,
             follow.target_place,
             follow.target_aspect
         ));

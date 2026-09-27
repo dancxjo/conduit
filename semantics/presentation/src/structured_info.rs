@@ -57,8 +57,7 @@ impl StructuredSignPresentation {
                 } else {
                     PresentationRole::Info
                 },
-                accessibility_name: format!("Structured Info {label}"),
-                label,
+                name: label,
             });
             subject_ids.push(identity.clone());
             if let Some(parent) = node.parent {
@@ -125,7 +124,7 @@ impl StructuredSignPresentation {
             vec![NavigationPlace {
                 place: PresentationPlace::Body,
                 root_subject: root,
-                label: "Structured Sign".to_string(),
+                name: "Structured Sign".to_string(),
                 aspects: vec![NavigationAspect {
                     aspect: PresentationAspect::Signs,
                     focusable_subjects: subject_ids,

@@ -75,7 +75,6 @@ impl PatchbayPresentation {
         let document = content.subject_with_identity(
             format!("document/{}", source_document_id.as_str()),
             PresentationRole::Document,
-            source_document_id.as_str(),
             format!("Patchbay document {}", source_document_id.as_str()),
         );
         content.line(
@@ -101,7 +100,6 @@ impl PatchbayPresentation {
             let action_target = content.subject_with_identity(
                 target.clone(),
                 PresentationRole::Form,
-                "Current form",
                 "Current checked and expanded Form",
             );
             content.contains(&document, &action_target);
@@ -167,7 +165,7 @@ pub(super) fn lifecycle_actions(lifecycle: WakeLifecycle, target: &str) -> Vec<P
         identity: format!("action/{name}/{target}"),
         intent: (*intent).into(),
         target: target.into(),
-        label: (*label).into(),
+        name: (*label).into(),
         disclosure: PresentationDisclosureLevel::CurrentAction,
         availability: if matches!(*name, "open-back" | "save" | "toggle-linear-view")
             || current.contains(name)
@@ -189,7 +187,6 @@ fn append_sound(presentation: &PatchbayPresentation, document: &str, content: &m
     };
     let sound = content.subject(
         PresentationRole::Plan,
-        "Sound realization",
         "Sound realization compatibility and exact selection",
     );
     content.contains(document, &sound);
@@ -312,7 +309,6 @@ fn append_document(
         let form_subject = content.subject_with_identity(
             format!("form/{}", form.checked_form_id.as_str()),
             PresentationRole::Form,
-            form.checked_form_id.as_str(),
             format!(
                 "Form {} checked {}",
                 form.name,
@@ -346,7 +342,7 @@ fn append_document(
                 GraphItemKind::StartupValue | GraphItemKind::Gear => PresentationRole::Gear,
                 GraphItemKind::Cord => PresentationRole::Cord,
             };
-            let subject = content.subject(role, &item.identity, &item.label);
+            let subject = content.subject(role, &item.label);
             content.contains(&form_subject, &subject);
             content.line(
                 &subject,
@@ -368,11 +364,7 @@ fn append_document(
 }
 
 fn append_diagnostic(document: &str, code: &str, message: &str, content: &mut ContentBuilder) {
-    let subject = content.subject(
-        PresentationRole::Diagnostic,
-        code,
-        format!("Diagnostic {code}"),
-    );
+    let subject = content.subject(PresentationRole::Diagnostic, format!("Diagnostic {code}"));
     content.describes(&subject, document);
     content.line(&subject, format!("{code}: {message}"));
 }
@@ -386,7 +378,6 @@ fn append_plan_and_play(
         let subject = content.subject_with_identity(
             format!("plan/{}", plan.plan_id.as_str()),
             PresentationRole::Plan,
-            plan.plan_id.as_str(),
             format!("Plan {}", plan.plan_id.as_str()),
         );
         content.describes(&subject, document);
@@ -398,7 +389,6 @@ fn append_plan_and_play(
         let subject = content.subject_with_identity(
             format!("play/{}", play.active_play_id.as_str()),
             PresentationRole::Play,
-            play.active_play_id.as_str(),
             format!("Play {}", play.active_play_id.as_str()),
         );
         content.describes(&subject, document);
@@ -415,7 +405,6 @@ pub(super) fn append_sign(document: &str, sign: &SignId, content: &mut ContentBu
     let subject = content.subject_with_identity(
         format!("sign/{}", sign.as_str()),
         PresentationRole::Sign,
-        sign.as_str(),
         format!("Sign {}", sign.as_str()),
     );
     content.describes(&subject, document);

@@ -14,13 +14,13 @@ const quantity=value=>({value_kind:"value/quantity",canonical_bytes:[3,...new Ui
 const state={waveform:"sine",volume:50,sustain:false,name:"Conduit",revision:1,panicCount:0};
 const evidence=[];let browserAttached=true,physicalAttached=true;
 
-function interaction(semantic_id,family,current,extra={}){return {semantic_id,label:semantic_id,contract_identity:`contract/${semantic_id}`,state_identity:`state/${semantic_id}/${state.revision}`,state_revision:state.revision,next_sequence:state.revision,family,current,availability:"available",accessibility_name:semantic_id,...extra};}
+function interaction(semantic_id,family,current,extra={}){return {semantic_id,name:semantic_id,contract_identity:`contract/${semantic_id}`,state_identity:`state/${semantic_id}/${state.revision}`,state_revision:state.revision,next_sequence:state.revision,family,current,availability:"available",...extra};}
 function snapshot(){return {presentation_id:"presentation/instrument",presentation_revision:state.revision,manifestation_id:"manifestation/browser/instrument",interactions:[
   interaction("waveform",{kind:"choose-one"},{identities:[`waveform/${state.waveform}`]},{options}),
   interaction("volume",{kind:"scalar",unit_tag:3,minimum:0,maximum:100,granularity:1},{quantity:state.volume},{manifestation:{scalar:"range"}}),
-  interaction("panic",{kind:"activate"},{},{action_label:"Panic"}),
+  interaction("panic",{kind:"activate"},{},{action_name:"Panic"}),
   interaction("sustain",{kind:"boolean"},{boolean:state.sustain}),
-  interaction("name",{kind:"text",maximum_bytes:32,allow_empty:false},{},{submit_label:"Set name"}),
+  interaction("name",{kind:"text",maximum_bytes:32,allow_empty:false},{},{submit_name:"Set name"}),
 ]};}
 function decodeText(value){return new TextDecoder().decode(new Uint8Array(value.canonical_bytes));}
 function decodeQuantity(value){return Number(new DataView(new Uint8Array(value.canonical_bytes).buffer).getBigInt64(1,true));}

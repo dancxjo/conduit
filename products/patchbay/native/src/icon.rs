@@ -65,7 +65,7 @@ impl Icon {
         Self::Inspect,
     ];
 
-    pub const fn accessibility_name(self) -> &'static str {
+    pub const fn name(self) -> &'static str {
         match self {
             Self::Form => "Form",
             Self::Build => "Build",

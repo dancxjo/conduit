@@ -154,8 +154,8 @@ pub(crate) fn push_linear_basis(
 
 pub(crate) fn linear_subject(subject: &crate::PresentationSubject) -> String {
     format!(
-        "SUBJECT role={:?} id={:?} label={:?} accessibility={:?}",
-        subject.role, subject.identity, subject.label, subject.accessibility_name
+        "SUBJECT role={:?} id={:?} name={:?}",
+        subject.role, subject.identity, subject.name
     )
 }
 
@@ -181,11 +181,11 @@ pub(crate) fn linear_text(text: &crate::PresentationText) -> String {
 
 pub(crate) fn linear_action(action: &crate::PresentationAction) -> String {
     format!(
-        "ACTION id={:?} intent={:?} target={:?} label={:?} disclosure={:?} availability={}",
+        "ACTION id={:?} intent={:?} target={:?} name={:?} disclosure={:?} availability={}",
         action.identity,
         action.intent,
         action.target,
-        action.label,
+        action.name,
         action.disclosure,
         display_availability(&action.availability)
     )

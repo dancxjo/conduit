@@ -100,14 +100,12 @@ pub fn presentation(form: &conduit_form::CheckedForm, plan: &conduit_core::Plan)
             PresentationSubject {
                 identity: "patchbay/form".into(),
                 role: PresentationRole::Form,
-                label: "Patchbay".into(),
-                accessibility_name: "Patchbay Form".into(),
+                name: "Patchbay Form".into(),
             },
             PresentationSubject {
                 identity: "patchbay/renderer".into(),
                 role: PresentationRole::Gear,
-                label: "Renderer".into(),
-                accessibility_name: "Portable presentation renderer".into(),
+                name: "Portable presentation renderer".into(),
             },
         ],
         vec![PresentationRelationship {

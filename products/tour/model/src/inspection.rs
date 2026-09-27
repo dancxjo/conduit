@@ -30,8 +30,7 @@ pub(crate) fn fields(
         subjects.push(PresentationSubject {
             identity: identity.clone(),
             role: PresentationRole::Info,
-            label: label.into(),
-            accessibility_name: label.into(),
+            name: label.into(),
         });
         text.push(PresentationText {
             subject: identity,

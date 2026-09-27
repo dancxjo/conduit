@@ -107,8 +107,12 @@ pub enum PresentationRole {
 pub struct PresentationSubject {
     pub identity: String,
     pub role: PresentationRole,
-    pub label: String,
-    pub accessibility_name: String,
+    /// The one ordinary bounded human name for this semantic subject.
+    ///
+    /// Masks may render, speak, emboss, or expose this through a platform
+    /// accessibility API. Those are realizations of the same name rather than
+    /// a second accessibility-only truth channel.
+    pub name: String,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]
@@ -341,8 +345,7 @@ impl Presentation {
             if let PresentationRole::Semantic(identity) = &subject.role {
                 validate_semantic_identity(identity)?;
             }
-            validate_text(&subject.label)?;
-            validate_text(&subject.accessibility_name)?;
+            validate_text(&subject.name)?;
         }
         for index in 0..self.subjects.len() {
             if self.subjects[index + 1..]
@@ -449,12 +452,7 @@ impl Presentation {
             .saturating_add(
                 self.subjects
                     .iter()
-                    .map(|subject| {
-                        subject.identity.len()
-                            + subject.label.len()
-                            + subject.accessibility_name.len()
-                            + 1
-                    })
+                    .map(|subject| subject.identity.len() + subject.name.len() + 1)
                     .sum::<usize>(),
             )
             .saturating_add(

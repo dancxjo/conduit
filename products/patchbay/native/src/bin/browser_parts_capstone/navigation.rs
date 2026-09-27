@@ -247,7 +247,7 @@ fn role(
         .subjects
         .iter()
         .find(|candidate| candidate.identity == subject)
-        .map(|candidate| candidate.role)
+        .map(|candidate| candidate.role.clone())
 }
 
 fn navigate(

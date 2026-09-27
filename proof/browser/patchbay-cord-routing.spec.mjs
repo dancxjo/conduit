@@ -27,7 +27,7 @@ async function renderCycleCordFixture(page,snapshot) {
     const gear=owner(output),form=presentation.relationships.find(relationship=>relationship.kind==="Contains"&&relationship.target===gear)?.source;
     if(!input||!gear||!form)throw new Error("documentary fixture cycle ownership is incomplete");
     const semanticIdentity="cord/zz-cycle-proof",subjectIdentity=`cord/${semanticIdentity}`;
-    presentation.subjects.push({identity:subjectIdentity,role:"Cord",label:"Cycle proof Cord",accessibility_name:"Cycle proof Cord returning to the same gear"});
+    presentation.subjects.push({identity:subjectIdentity,role:"Cord",name:"Cycle proof Cord returning to the same gear"});
     presentation.relationships.push({source:form,target:subjectIdentity,kind:"Contains"},{source:subjectIdentity,target:output.subject.identity,kind:"Connects"},{source:subjectIdentity,target:input.subject.identity,kind:"Connects"});
     presentation.properties.push({subject:subjectIdentity,name:"semantic-id",value:{Identity:semanticIdentity}},{subject:subjectIdentity,name:"source-port",value:{Identity:output.semantic}},{subject:subjectIdentity,name:"sink-port",value:{Identity:input.semantic}},{subject:subjectIdentity,name:"value-kind",value:{Text:"value/text"}});
     const {renderFlow}=await import("/assets/flow.js");renderFlow(fixture,{onSelect:()=>{},onClear:()=>{},lens:"world"});

@@ -38,7 +38,7 @@ fn authored_state_is_the_bounded_semantic_ui_truth() {
         presentation.inputs[0].maximum_bytes,
         MAXIMUM_CHAT_MESSAGE_BYTES
     );
-    assert_eq!(presentation.inputs[0].label, "Message");
+    assert_eq!(presentation.inputs[0].name, "Message");
     assert!(
         presentation
             .subjects
@@ -68,7 +68,7 @@ fn source_label_change_alone_changes_presentation_identity_and_input_semantics()
         .presentation()
         .unwrap();
     assert_ne!(first.identity, second.identity);
-    assert_eq!(second.inputs[0].label, "Say something");
+    assert_eq!(second.inputs[0].name, "Say something");
 }
 
 #[test]

@@ -20,7 +20,8 @@ pub struct PresentationAction {
     pub identity: String,
     pub intent: String,
     pub target: String,
-    pub label: String,
+    /// The one ordinary bounded human name for this semantic action.
+    pub name: String,
     pub disclosure: PresentationDisclosureLevel,
     pub availability: PresentationActionAvailability,
 }
@@ -110,7 +111,7 @@ impl Presentation {
             let action = &self.actions[index];
             validate_id(&action.identity)?;
             validate_id(&action.intent)?;
-            validate_text(&action.label)?;
+            validate_text(&action.name)?;
             if !self.has_subject(&action.target) {
                 return Err(PresentationError::UnknownActionTarget);
             }
@@ -158,7 +159,7 @@ impl Presentation {
                 action.identity.len()
                     + action.intent.len()
                     + action.target.len()
-                    + action.label.len()
+                    + action.name.len()
                     + 1
                     + availability_len(&action.availability)
             })
@@ -175,7 +176,7 @@ impl Presentation {
             hash_string(digest, &action.identity);
             hash_string(digest, &action.intent);
             hash_string(digest, &action.target);
-            hash_string(digest, &action.label);
+            hash_string(digest, &action.name);
             digest.update([action.disclosure as u8]);
             match &action.availability {
                 PresentationActionAvailability::Available => digest.update([0]),

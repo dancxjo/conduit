@@ -182,7 +182,7 @@ test("visible Presenter controls replace Patchbay's own topology through fresh B
   await expect(page.locator('[data-application-collection="presenter-topology-chains"] [data-application-component="artifact"]')).toHaveCount(1);
   const speech = await snapshot(page);
   expect(speech.body_planning.current_plan_id).not.toBe(parallel.body_planning.current_plan_id);
-  expect(speech.presenter_topology.subjects.some(subject => subject.accessibility_name.includes("test-speech"))).toBe(true);
+  expect(speech.presenter_topology.subjects.some(subject => subject.name.includes("test-speech"))).toBe(true);
 
   await page.getByRole("button", { name: "Add Presenter", exact: true }).click();
   await expect(page.locator('[data-application-collection="presenter-topology-chains"] [data-application-component="artifact"]')).toHaveCount(2);

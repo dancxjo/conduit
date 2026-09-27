@@ -20,7 +20,6 @@ pub(super) fn append_exact_graph(
         let subject = content.subject_with_identity(
             format!("gear/{}", composition.identity),
             PresentationRole::Gear,
-            &composition.gear_name,
             format!(
                 "Form-backed Gear {} through checked Back {}",
                 composition.gear_name,
@@ -74,7 +73,6 @@ pub(super) fn append_exact_graph(
             let port_subject = content.subject_with_identity(
                 format!("port/{}", port.identity),
                 PresentationRole::Port,
-                port.descriptor.port_id.as_str(),
                 format!(
                     "Stable Front {:?} Port {} carrying {}",
                     port.descriptor.direction,
@@ -115,7 +113,6 @@ pub(super) fn append_exact_graph(
         let subject = content.subject_with_identity(
             format!("gear/{}", gear.identity),
             PresentationRole::Gear,
-            gear.gear_id.as_str(),
             format!("{} Gear, {}", gear.gear_id.as_str(), gear.kind_id.as_str()),
         );
         let parent = graph
@@ -140,7 +137,7 @@ pub(super) fn append_exact_graph(
         identity(content, &subject, "source-form", &gear.source_form);
         text(content, &subject, "form-path", &gear.form_path.join(" / "));
         text(content, &subject, "icon-token", icon.as_str());
-        text(content, &subject, "icon-name", icon.accessibility_name());
+        text(content, &subject, "icon-name", icon.name());
         for (index, control) in gear.controls.iter().enumerate() {
             text(
                 content,
@@ -180,7 +177,6 @@ pub(super) fn append_exact_graph(
             let port_subject = content.subject_with_identity(
                 format!("port/{}", port.identity),
                 PresentationRole::Port,
-                port.descriptor.port_id.as_str(),
                 format!(
                     "{} {:?} Port carrying {}",
                     port.descriptor.port_id.as_str(),
@@ -218,7 +214,6 @@ pub(super) fn append_exact_graph(
         let subject = content.subject_with_identity(
             format!("cord/{}", cord.identity),
             PresentationRole::Cord,
-            "Cord",
             format!("Cord from {} to {}", cord.source_port, cord.sink_port),
         );
         content.contains(form, &subject);

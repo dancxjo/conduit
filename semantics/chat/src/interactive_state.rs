@@ -187,7 +187,7 @@ impl ChatPresentationState {
                 identity: CHAT_SEND_ACTION.into(),
                 intent: CHAT_SEND_ACTION.into(),
                 target: CHAT_MESSAGE_TARGET.into(),
-                label: self.configuration.submit_label.clone(),
+                name: self.configuration.submit_label.clone(),
                 disclosure: PresentationDisclosureLevel::CurrentAction,
                 availability: match self.connection {
                     ChatConnectionState::Connected => PresentationActionAvailability::Available,
@@ -201,8 +201,7 @@ impl ChatPresentationState {
                 value_kind: UTF8_TEXT_VALUE_KIND.into(),
                 maximum_bytes: self.configuration.maximum_message_bytes,
                 allow_empty: false,
-                label: self.configuration.input_label.clone(),
-                accessibility_name: self.configuration.input_label.clone(),
+                name: self.configuration.input_label.clone(),
                 submit_action: CHAT_SEND_ACTION.into(),
             }],
             vec![PresentationDisclosure {
@@ -230,12 +229,11 @@ impl ChatPresentationState {
     }
 }
 
-fn subject(identity: &str, role: PresentationRole, label: &str) -> PresentationSubject {
+fn subject(identity: &str, role: PresentationRole, name: &str) -> PresentationSubject {
     PresentationSubject {
         identity: identity.into(),
         role,
-        label: label.into(),
-        accessibility_name: label.into(),
+        name: name.into(),
     }
 }
 

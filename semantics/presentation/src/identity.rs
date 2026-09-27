@@ -58,8 +58,7 @@ impl Presentation {
         for subject in &self.subjects {
             hash_string(&mut digest, &subject.identity);
             hash_role(&mut digest, &subject.role);
-            hash_string(&mut digest, &subject.label);
-            hash_string(&mut digest, &subject.accessibility_name);
+            hash_string(&mut digest, &subject.name);
         }
         for relationship in &self.relationships {
             hash_string(&mut digest, &relationship.source);

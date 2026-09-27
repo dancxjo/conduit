@@ -31,8 +31,7 @@ pub(super) fn append_contribution(
     subjects.push(PresentationSubject {
         identity: root.clone(),
         role: PresentationRole::Region,
-        label: contribution.role.token().into(),
-        accessibility_name: format!("{} application contribution", contribution.role.token()),
+        name: format!("{} application contribution", contribution.role.token()),
     });
     relationships.push(PresentationRelationship {
         source: context_subject.into(),
@@ -72,8 +71,7 @@ pub(super) fn append_contribution(
         subjects.push(PresentationSubject {
             identity: identity.clone(),
             role: node_role(node.component),
-            label: label.clone(),
-            accessibility_name: label.clone(),
+            name: label.clone(),
         });
         let parent = node.parent.map_or_else(
             || root.clone(),
@@ -126,7 +124,7 @@ pub(super) fn append_contribution(
                 identity: action_identity.clone(),
                 intent: event_intent(source.event).into(),
                 target: identity.clone(),
-                label: label.clone(),
+                name: label.clone(),
                 disclosure: contribution_disclosure(contribution.role),
                 availability: action_availability(node.state),
             });
@@ -152,8 +150,7 @@ pub(super) fn append_contribution(
                     value_kind: UTF8_TEXT_VALUE_KIND.into(),
                     maximum_bytes: node.value_capacity,
                     allow_empty: true,
-                    label,
-                    accessibility_name: node.key.clone(),
+                    name: label,
                     submit_action: action_identity,
                 });
             }

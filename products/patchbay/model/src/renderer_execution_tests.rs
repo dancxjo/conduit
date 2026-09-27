@@ -210,8 +210,7 @@ fn native_browser_and_linear_presenters_preserve_one_exact_semantic_specimen() {
     let records = linear.lines.join("\n");
     for subject in &presentation.subjects {
         assert!(records.contains(&format!("id={:?}", subject.identity)));
-        assert!(records.contains(&format!("label={:?}", subject.label)));
-        assert!(records.contains(&format!("accessibility={:?}", subject.accessibility_name)));
+        assert!(records.contains(&format!("name={:?}", subject.name)));
     }
     for relationship in &presentation.relationships {
         assert!(records.contains(&format!("source={:?}", relationship.source)));

@@ -155,9 +155,9 @@ export function projectFlowScene(snapshot, lens = "world", openedBacks = new Set
     type: "faceplate",
     data: {
       subjectIdentity: subject.identity,
-      label: subject.label,
+      label: subject.name,
       role: subject.role,
-      accessibilityName: subject.accessibility_name,
+      accessibilityName: subject.name,
       icon: subjectProperties.get(subject.identity)?.get("icon-token") || (subject.role === "Gear" ? "◆" : "◇"),
       iconName: subjectProperties.get(subject.identity)?.get("icon-name") || subject.role,
       clue: compactClue(subject.role, subjectProperties.get(subject.identity) || new Map(), lens),
@@ -174,7 +174,7 @@ export function projectFlowScene(snapshot, lens = "world", openedBacks = new Set
         return {
           id: port.identity,
           label: port.label,
-          accessibilityName: port.accessibility_name,
+          accessibilityName: port.name,
           direction: properties.get("direction"),
           valueKind: properties.get("value-kind") || "typed value",
           temporal: properties.get("temporal") || "",
@@ -186,7 +186,7 @@ export function projectFlowScene(snapshot, lens = "world", openedBacks = new Set
       semanticSelected: (snapshot.navigation?.cursor.focus ?? snapshot.interaction.selected_subject) === subject.identity,
     },
     className: `flow-subject flow-${subject.role.toLowerCase()}${subjectProperties.get(subject.identity)?.get("diagnostic-state") === "error" ? " diagnostic-error" : ""}${causalTrace.has(subject.identity) ? " causal-trace-exact" : tracing ? " causal-trace-unrelated" : ""}`,
-    ariaLabel: subject.accessibility_name,
+    ariaLabel: subject.name,
   })).sort(compareIdentity);
   const nodeIds = new Set(nodes.map((node) => node.id));
   const semanticSubjects = new Map();
@@ -231,7 +231,7 @@ export function projectFlowScene(snapshot, lens = "world", openedBacks = new Set
         lens,
         debugger: activity || null,
       },
-      ariaLabel: cord.accessibility_name,
+      ariaLabel: cord.name,
     });
   }
   edges.sort(compareIdentity);

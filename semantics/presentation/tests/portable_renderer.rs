@@ -225,7 +225,7 @@ fn presentation_rejects_unbounded_and_drifting_semantic_content() {
     assert!(valid.validate().is_ok());
 
     let mut drifting = valid.clone();
-    drifting.subjects[0].label = "Different".into();
+    drifting.subjects[0].name = "Different".into();
     assert_eq!(drifting.validate(), Err(PresentationError::InvalidIdentity));
 
     let mut duplicate = valid.basis.clone();

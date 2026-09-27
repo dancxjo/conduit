@@ -243,7 +243,7 @@ fn place(
     NavigationPlace {
         place,
         root_subject,
-        label: label.into(),
+        name: label.into(),
         aspects,
     }
 }

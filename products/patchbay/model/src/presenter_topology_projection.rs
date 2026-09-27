@@ -34,8 +34,7 @@ pub fn project_presenter_topology(
     subjects.push(PresentationSubject {
         identity: root.clone(),
         role: PresentationRole::Plan,
-        label: "Presenter topology".into(),
-        accessibility_name: "Exact current Presenter chains from immutable Plan truth".into(),
+        name: "Presenter topology".into(),
     });
     properties.push(PresentationProperty {
         subject: root.clone(),
@@ -58,16 +57,12 @@ pub fn project_presenter_topology(
         "Toggle parallel chains",
         true,
     ));
-    for (chain_order, chain) in topology.chains.iter().enumerate() {
+    for chain in &topology.chains {
         let chain_subject = format!("{root}/chain/{}", chain.chain_id);
         subjects.push(PresentationSubject {
             identity: chain_subject.clone(),
             role: PresentationRole::Manifestation,
-            label: format!("Presenter chain {}", chain.chain_id),
-            accessibility_name: format!(
-                "Presenter chain {} in order {}",
-                chain.chain_id, chain_order
-            ),
+            name: format!("Presenter chain {}", chain.chain_id),
         });
         relationships.push(PresentationRelationship {
             source: root.clone(),
@@ -102,13 +97,7 @@ pub fn project_presenter_topology(
             subjects.push(PresentationSubject {
                 identity: stage_subject.clone(),
                 role: PresentationRole::Capability,
-                label: stage.implementation_id.as_str().into(),
-                accessibility_name: format!(
-                    "Presenter stage {} on Host {} Boot {}",
-                    stage_order,
-                    stage.host_id.as_str(),
-                    stage.boot_id.as_str()
-                ),
+                name: stage.implementation_id.as_str().into(),
             });
             relationships.push(PresentationRelationship {
                 source: chain_subject.clone(),
@@ -170,7 +159,7 @@ fn topology_action(
         identity: format!("action/presenter-topology/{operation}/{target}"),
         intent: format!("conduit.intent/presenter-topology-{operation}@1"),
         target: target.into(),
-        label: label.into(),
+        name: label.into(),
         disclosure: PresentationDisclosureLevel::CurrentAction,
         availability: if available {
             PresentationActionAvailability::Available

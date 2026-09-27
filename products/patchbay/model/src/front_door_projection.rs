@@ -79,10 +79,6 @@ fn idle_body_projection(
     let body_subject = content.subject_with_identity(
         format!("body/{}", session.body.body_id.as_str()),
         PresentationRole::Body,
-        session
-            .birth_evidence
-            .as_ref()
-            .map_or("Current body", |evidence| evidence.friendly_name.as_str()),
         "Born Body with no installed forms",
     );
     content.property(

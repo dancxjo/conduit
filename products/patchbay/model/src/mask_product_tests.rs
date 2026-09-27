@@ -275,8 +275,7 @@ fn wardrobe_control_and_inspection_use_one_real_form_plan() {
         vec![PresentationSubject {
             identity: "mask/form".into(),
             role: PresentationRole::Form,
-            label: "Browser Mask Form".into(),
-            accessibility_name: "Browser Mask Form".into(),
+            name: "Browser Mask Form".into(),
         }],
         vec![],
         vec![],

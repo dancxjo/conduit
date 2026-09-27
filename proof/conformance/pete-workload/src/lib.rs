@@ -280,8 +280,7 @@ mod tests {
                 vec![PresentationSubject {
                     identity: subject.clone(),
                     role: PresentationRole::Info,
-                    label: "Homeostatic state".into(),
-                    accessibility_name: "Homeostatic state".into(),
+                    name: "Homeostatic state".into(),
                 }],
                 vec![],
                 vec![],

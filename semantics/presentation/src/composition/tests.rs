@@ -34,7 +34,7 @@ fn canonical_round_trip_and_exact_icon_policy() {
 fn finite_capacity_and_noncanonical_encodings_refuse() {
     let item = CompositionItem::new(
         CompositionItemKind::Badge,
-        AccessibilityRole::Status,
+        CompositionRole::Status,
         "ready",
         "ready",
     )
@@ -47,7 +47,7 @@ fn finite_capacity_and_noncanonical_encodings_refuse() {
     assert_eq!(
         CompositionItem::new(
             CompositionItemKind::Frame,
-            AccessibilityRole::Group,
+            CompositionRole::Group,
             "panel",
             &"x".repeat(MAX_COMPOSITION_NAME_BYTES + 1),
         ),
