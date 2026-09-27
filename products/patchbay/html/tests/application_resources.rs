@@ -95,7 +95,18 @@ fn every_admitted_resource_has_exact_staged_and_http_bytes_and_media_type() {
 fn invalid_dynamic_bytes_refuse_before_staging_resources() {
     let destination =
         std::env::temp_dir().join(format!("patchbay-registry-invalid-{}", std::process::id()));
-    for runtime in [Vec::new(), vec![0; 8 * 1024 * 1024 + 1]] {
+    let template: Value = serde_json::from_slice(include_bytes!(
+        "../assets/patchbay.application.template.json"
+    ))
+    .unwrap();
+    let maximum_runtime_bytes = template["resources"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .find(|resource| resource["source"] == "supplied:runtime")
+        .and_then(|resource| resource["maximum_bytes"].as_u64())
+        .unwrap() as usize;
+    for runtime in [Vec::new(), vec![0; maximum_runtime_bytes + 1]] {
         assert!(patchbay_html::application_resources::stage(&destination, &runtime).is_err());
         assert!(!destination.exists());
     }
