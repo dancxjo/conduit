@@ -225,10 +225,13 @@ pub enum VariabilityBehavior {
     AdmittedVariability,
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub enum ReplayBehavior {
     Exact,
     Ineligible,
+    Idempotent { operation_key_kind: KindId },
+    Transactional { transaction_contract: KindId },
+    Compensatable { compensation_contract: KindId },
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]

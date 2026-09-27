@@ -1,11 +1,11 @@
 //! Fail-closed derivation for semantic Kind use inside pure expressions.
 
 use crate::{
-    Back, ExternalEffectBehavior, Kind, KindSemanticLaw, ReplayBehavior, SemanticDependence,
-    SuspensionBehavior, TemporalStateBehavior, VariabilityBehavior,
+    Back, ExternalEffectBehavior, Kind, KindId, KindIdentity, KindSemanticLaw, ReplayBehavior,
+    SemanticDependence, SuspensionBehavior, TemporalStateBehavior, VariabilityBehavior,
 };
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub struct PureExpressionFacts {
     pub external_effects: ExternalEffectBehavior,
     pub temporal_state: TemporalStateBehavior,
@@ -15,6 +15,56 @@ pub struct PureExpressionFacts {
     pub suspension: SuspensionBehavior,
     pub variability: VariabilityBehavior,
     pub replay: ReplayBehavior,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum WorkTransformation {
+    Recompute,
+    Fusion,
+    Replay,
+    Retry,
+    Memoize,
+    Move,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum ReplayEvidence<'a> {
+    None,
+    OperationKey { value_kind: &'a KindId },
+    TransactionNotCommitted { contract: &'a KindId },
+    CompensationCompleted { contract: &'a KindId },
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct TransformationEligibility {
+    kind_id: KindId,
+    kind_contract_revision: KindIdentity,
+    implementation_id: crate::ImplementationId,
+    facts: PureExpressionFacts,
+    back_has_host_calls: bool,
+    back_has_resources: bool,
+    back_has_authority: bool,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum TransformationRefusal {
+    SemanticFacts(PureExpressionRefusal),
+    ExternalEffect,
+    TemporalState,
+    AmbientTime,
+    AmbientRandom,
+    AmbientResource,
+    Suspension,
+    Variability,
+    ReplayIneligible,
+    MissingEffectReplayLaw,
+    MissingOperationKey(KindId),
+    TransactionMayBeCommitted(KindId),
+    CompensationNotCompleted(KindId),
+    BackHostCall,
+    BackResource,
+    BackAuthority,
+    InvalidFiniteEnvelope,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -52,6 +102,14 @@ pub enum PureExpressionFact {
 /// carry the pure law; authored Form source cannot supply or strengthen these
 /// facts.
 pub fn pure_expression_facts(kind: &Kind) -> Result<PureExpressionFacts, PureExpressionRefusal> {
+    let facts = semantic_work_facts(kind)?;
+    require_recomputable_semantics(&facts)?;
+    Ok(facts)
+}
+
+/// Derives every independent transformation fact without deciding a policy.
+/// Missing and duplicate axes refuse; absence never implies purity or safety.
+pub fn semantic_work_facts(kind: &Kind) -> Result<PureExpressionFacts, PureExpressionRefusal> {
     let mut external_effects = None;
     let mut temporal_state = None;
     let mut time_dependence = None;
@@ -97,7 +155,7 @@ pub fn pure_expression_facts(kind: &Kind) -> Result<PureExpressionFacts, PureExp
                 set_once(&mut variability, *value, PureExpressionFact::Variability)?
             }
             KindSemanticLaw::Replay(value) => {
-                set_once(&mut replay, *value, PureExpressionFact::Replay)?
+                set_once(&mut replay, value.clone(), PureExpressionFact::Replay)?
             }
         }
     }
@@ -112,6 +170,12 @@ pub fn pure_expression_facts(kind: &Kind) -> Result<PureExpressionFacts, PureExp
         variability: required(variability, PureExpressionFact::Variability)?,
         replay: required(replay, PureExpressionFact::Replay)?,
     };
+    Ok(facts)
+}
+
+fn require_recomputable_semantics(
+    facts: &PureExpressionFacts,
+) -> Result<(), PureExpressionRefusal> {
     if facts.external_effects != ExternalEffectBehavior::None {
         return Err(PureExpressionRefusal::ExternalEffect);
     }
@@ -136,7 +200,7 @@ pub fn pure_expression_facts(kind: &Kind) -> Result<PureExpressionFacts, PureExp
     if facts.replay != ReplayBehavior::Exact {
         return Err(PureExpressionRefusal::ReplayIneligible);
     }
-    Ok(facts)
+    Ok(())
 }
 
 /// Checks the independently selected realization envelope.
@@ -156,7 +220,140 @@ pub fn check_pure_expression_back(back: &Back) -> Result<(), PureExpressionRefus
     Ok(())
 }
 
-fn set_once<T: Copy>(
+/// Seals transformation decisions to one exact semantic contract and Back.
+/// Consumers can inspect identity and ask exact questions, but cannot mint a
+/// stronger eligibility value from implementation names or annotations.
+pub fn derive_transformation_eligibility(
+    kind: &Kind,
+    back: &Back,
+) -> Result<TransformationEligibility, TransformationRefusal> {
+    let facts = semantic_work_facts(kind).map_err(TransformationRefusal::SemanticFacts)?;
+    if kind.limits.max_active_instances == 0
+        || kind.limits.max_queue_items == 0
+        || kind.limits.max_queue_bytes == 0
+    {
+        return Err(TransformationRefusal::InvalidFiniteEnvelope);
+    }
+    Ok(TransformationEligibility {
+        kind_id: kind.kind_id.clone(),
+        kind_contract_revision: kind.kind_contract_revision.clone(),
+        implementation_id: back.implementation_id.clone(),
+        facts,
+        back_has_host_calls: !back.host_calls.is_empty(),
+        back_has_resources: !back.resource_requirements.is_empty(),
+        back_has_authority: !back.authority_requirements.is_empty(),
+    })
+}
+
+impl TransformationEligibility {
+    pub fn kind_id(&self) -> &KindId {
+        &self.kind_id
+    }
+
+    pub fn kind_contract_revision(&self) -> &KindIdentity {
+        &self.kind_contract_revision
+    }
+
+    pub fn implementation_id(&self) -> &crate::ImplementationId {
+        &self.implementation_id
+    }
+
+    pub fn facts(&self) -> &PureExpressionFacts {
+        &self.facts
+    }
+
+    pub fn require(
+        &self,
+        transformation: WorkTransformation,
+        evidence: ReplayEvidence<'_>,
+    ) -> Result<(), TransformationRefusal> {
+        match transformation {
+            WorkTransformation::Recompute
+            | WorkTransformation::Fusion
+            | WorkTransformation::Memoize
+            | WorkTransformation::Move => self.require_recomputable(),
+            WorkTransformation::Replay | WorkTransformation::Retry => self.require_replay(evidence),
+        }
+    }
+
+    fn require_recomputable(&self) -> Result<(), TransformationRefusal> {
+        map_recomputable_refusal(require_recomputable_semantics(&self.facts))?;
+        if self.back_has_host_calls {
+            return Err(TransformationRefusal::BackHostCall);
+        }
+        if self.back_has_resources {
+            return Err(TransformationRefusal::BackResource);
+        }
+        if self.back_has_authority {
+            return Err(TransformationRefusal::BackAuthority);
+        }
+        Ok(())
+    }
+
+    fn require_replay(&self, evidence: ReplayEvidence<'_>) -> Result<(), TransformationRefusal> {
+        if self.facts.external_effects == ExternalEffectBehavior::None {
+            return self.require_recomputable();
+        }
+        match (&self.facts.replay, evidence) {
+            (
+                ReplayBehavior::Idempotent { operation_key_kind },
+                ReplayEvidence::OperationKey { value_kind },
+            ) if operation_key_kind == value_kind => Ok(()),
+            (ReplayBehavior::Idempotent { operation_key_kind }, _) => Err(
+                TransformationRefusal::MissingOperationKey(operation_key_kind.clone()),
+            ),
+            (
+                ReplayBehavior::Transactional {
+                    transaction_contract,
+                },
+                ReplayEvidence::TransactionNotCommitted { contract },
+            ) if transaction_contract == contract => Ok(()),
+            (
+                ReplayBehavior::Transactional {
+                    transaction_contract,
+                },
+                _,
+            ) => Err(TransformationRefusal::TransactionMayBeCommitted(
+                transaction_contract.clone(),
+            )),
+            (
+                ReplayBehavior::Compensatable {
+                    compensation_contract,
+                },
+                ReplayEvidence::CompensationCompleted { contract },
+            ) if compensation_contract == contract => Ok(()),
+            (
+                ReplayBehavior::Compensatable {
+                    compensation_contract,
+                },
+                _,
+            ) => Err(TransformationRefusal::CompensationNotCompleted(
+                compensation_contract.clone(),
+            )),
+            (ReplayBehavior::Ineligible | ReplayBehavior::Exact, _) => {
+                Err(TransformationRefusal::MissingEffectReplayLaw)
+            }
+        }
+    }
+}
+
+fn map_recomputable_refusal(
+    result: Result<(), PureExpressionRefusal>,
+) -> Result<(), TransformationRefusal> {
+    result.map_err(|refusal| match refusal {
+        PureExpressionRefusal::ExternalEffect => TransformationRefusal::ExternalEffect,
+        PureExpressionRefusal::TemporalState => TransformationRefusal::TemporalState,
+        PureExpressionRefusal::TimeDependence => TransformationRefusal::AmbientTime,
+        PureExpressionRefusal::RandomDependence => TransformationRefusal::AmbientRandom,
+        PureExpressionRefusal::ResourceDependence => TransformationRefusal::AmbientResource,
+        PureExpressionRefusal::Suspension => TransformationRefusal::Suspension,
+        PureExpressionRefusal::Variability => TransformationRefusal::Variability,
+        PureExpressionRefusal::ReplayIneligible => TransformationRefusal::ReplayIneligible,
+        other => TransformationRefusal::SemanticFacts(other),
+    })
+}
+
+fn set_once<T>(
     slot: &mut Option<T>,
     value: T,
     fact: PureExpressionFact,
@@ -168,9 +365,6 @@ fn set_once<T: Copy>(
     }
 }
 
-fn required<T: Copy>(
-    value: Option<T>,
-    fact: PureExpressionFact,
-) -> Result<T, PureExpressionRefusal> {
+fn required<T>(value: Option<T>, fact: PureExpressionFact) -> Result<T, PureExpressionRefusal> {
     value.ok_or(PureExpressionRefusal::MissingFact(fact))
 }

@@ -2,8 +2,9 @@ use conduit_core::{
     kind_id, ArtifactId, AuthorityContractId, AuthorityRequirement, Back, CapabilityId,
     CapabilityLimits, ExecutionProfileId, ExternalEffectBehavior, HostCallContractId,
     HostCallRequirement, ImplementationId, Kind, KindIdentity, KindSemanticLaw, PureExpressionFact,
-    PureExpressionRefusal, ReplayBehavior, ResourceClassId, ResourceRequirement,
-    SemanticDependence, SuspensionBehavior, TemporalStateBehavior, VariabilityBehavior,
+    PureExpressionRefusal, ReplayBehavior, ReplayEvidence, ResourceClassId, ResourceRequirement,
+    SemanticDependence, SuspensionBehavior, TemporalStateBehavior, TransformationRefusal,
+    VariabilityBehavior, WorkTransformation,
 };
 
 fn pure_laws() -> Vec<KindSemanticLaw> {
@@ -178,4 +179,94 @@ fn selected_back_cannot_hide_effect_authority_or_resource_envelopes() {
         conduit_core::check_pure_expression_back(&authority),
         Err(PureExpressionRefusal::BackAuthority)
     );
+}
+
+#[test]
+fn pure_bounded_work_is_eligible_for_every_observationally_exact_transformation() {
+    let eligibility =
+        conduit_core::derive_transformation_eligibility(&kind(pure_laws()), &back()).unwrap();
+    for transformation in [
+        WorkTransformation::Recompute,
+        WorkTransformation::Fusion,
+        WorkTransformation::Replay,
+        WorkTransformation::Retry,
+        WorkTransformation::Memoize,
+        WorkTransformation::Move,
+    ] {
+        assert_eq!(
+            eligibility.require(transformation, ReplayEvidence::None),
+            Ok(())
+        );
+    }
+
+    let mut effectful = pure_laws();
+    effectful[0] = KindSemanticLaw::ExternalEffects(ExternalEffectBehavior::Observable);
+    let effectful =
+        conduit_core::derive_transformation_eligibility(&kind(effectful), &back()).unwrap();
+    assert_eq!(
+        effectful.require(WorkTransformation::Memoize, ReplayEvidence::None),
+        Err(TransformationRefusal::ExternalEffect)
+    );
+    assert_eq!(
+        effectful.require(WorkTransformation::Retry, ReplayEvidence::None),
+        Err(TransformationRefusal::MissingEffectReplayLaw)
+    );
+}
+
+#[test]
+fn effectful_retry_requires_the_exact_stronger_law_and_observation() {
+    let operation_key = kind_id("payment/operation-key@1");
+    let transaction = kind_id("payment/transaction@1");
+    let compensation = kind_id("payment/compensation@1");
+    let wrong = kind_id("payment/wrong@1");
+
+    for (law, absent, exact) in [
+        (
+            ReplayBehavior::Idempotent {
+                operation_key_kind: operation_key.clone(),
+            },
+            TransformationRefusal::MissingOperationKey(operation_key.clone()),
+            ReplayEvidence::OperationKey {
+                value_kind: &operation_key,
+            },
+        ),
+        (
+            ReplayBehavior::Transactional {
+                transaction_contract: transaction.clone(),
+            },
+            TransformationRefusal::TransactionMayBeCommitted(transaction.clone()),
+            ReplayEvidence::TransactionNotCommitted {
+                contract: &transaction,
+            },
+        ),
+        (
+            ReplayBehavior::Compensatable {
+                compensation_contract: compensation.clone(),
+            },
+            TransformationRefusal::CompensationNotCompleted(compensation.clone()),
+            ReplayEvidence::CompensationCompleted {
+                contract: &compensation,
+            },
+        ),
+    ] {
+        let mut laws = pure_laws();
+        laws[0] = KindSemanticLaw::ExternalEffects(ExternalEffectBehavior::Observable);
+        laws[7] = KindSemanticLaw::Replay(law);
+        let eligibility =
+            conduit_core::derive_transformation_eligibility(&kind(laws), &back()).unwrap();
+        assert_eq!(
+            eligibility.require(WorkTransformation::Retry, ReplayEvidence::None),
+            Err(absent)
+        );
+        assert!(eligibility
+            .require(
+                WorkTransformation::Retry,
+                ReplayEvidence::OperationKey { value_kind: &wrong },
+            )
+            .is_err());
+        assert_eq!(
+            eligibility.require(WorkTransformation::Retry, exact),
+            Ok(())
+        );
+    }
 }
