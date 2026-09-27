@@ -9,6 +9,7 @@ use conduit_ai::{
     LlmDeterminismProfile, LlmWorkBounds, LocalModelCachePolicy, LocalModelComputeNeed,
     LocalModelIdentity, LocalModelLifecycleState, LocalModelLimits, LocalModelOffer,
 };
+use conduit_body::Body;
 use conduit_core::{
     BaseImplementationId, BootId, CheckedFormId, ComputeServiceGuarantee, ConnectionTrack,
     ExpandedFormId, HostId, OfferGeneration, PlanId, PlannedGear, PoolRealizationHealth,
@@ -130,15 +131,22 @@ impl TimerAdapter for NoopTimer {
 }
 
 fn presentation() -> Presentation {
+    let body = Body::born(
+        SourceDocumentId::from("source/presentation-fixture"),
+        CheckedFormId::from("checked/presentation-fixture"),
+        1,
+        SignId::from("sign/presentation-fixture/born"),
+    )
+    .unwrap();
     Presentation::new_with_semantics(
         1,
         PresentationBasis {
-            body_id: None,
+            body_id: Some(body.body_id),
             wake_id: None,
-            source_document_id: None,
-            checked_form_id: None,
-            expanded_form_id: None,
-            plan_id: None,
+            source_document_id: Some(SourceDocumentId::from("source/presentation-fixture")),
+            checked_form_id: Some(CheckedFormId::from("checked/presentation-fixture")),
+            expanded_form_id: Some(ExpandedFormId::from("expanded/presentation-fixture")),
+            plan_id: Some(PlanId::from("plan/presentation-fixture")),
             active_play_id: None,
             sign_ids: vec![],
         },
