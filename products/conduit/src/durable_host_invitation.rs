@@ -2,7 +2,7 @@
 
 use super::{
     bounded_read, current_time_millis, digest, read_installation, restrict_directory,
-    write_json_atomic, Installation, RuntimeStatus, RUNTIME_SCHEMA,
+    write_json_atomic, Installation, RuntimeStatus, MAXIMUM_BODY_ADMISSION_BYTES, RUNTIME_SCHEMA,
 };
 use conduit_body::{
     AdmissionManager, AdmissionSigns, BodyBiographyEvidence, MembershipCredential,
@@ -144,9 +144,9 @@ pub(crate) fn admit_body_request(
     let biography_path = std::path::PathBuf::from(&body.biography_path);
     recover_admission_transaction(state_dir, &biography_path)?;
     let request_bytes = if request_path == Path::new("-") {
-        bounded_stdin(256 * 1024)?
+        bounded_stdin(MAXIMUM_BODY_ADMISSION_BYTES)?
     } else {
-        bounded_read(request_path, 256 * 1024)?
+        bounded_read(request_path, MAXIMUM_BODY_ADMISSION_BYTES)?
     };
     let request: PortableSpawnAdmissionRequest = serde_json::from_slice(&request_bytes)
         .map_err(|error| format!("Body admission request: {error}"))?;

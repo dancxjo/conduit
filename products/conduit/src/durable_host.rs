@@ -18,6 +18,7 @@ const RUNTIME_SCHEMA: &str = "conduit.install/durable-host-runtime@1";
 const RELEASE_SCHEMA: &str = "conduit.release/host-bundle@1";
 const MAXIMUM_RELEASE_FILES: usize = 32;
 const MAXIMUM_RELEASE_FILE_BYTES: u64 = 64 * 1024 * 1024;
+const MAXIMUM_BODY_ADMISSION_BYTES: u64 = 512 * 1024;
 
 #[path = "durable_host_invitation.rs"]
 mod invitation;
@@ -1218,7 +1219,11 @@ mod tests {
         accept_body_invitation(&path, &state, true).unwrap();
 
         let pending: serde_json::Value = serde_json::from_slice(
-            &bounded_read(&state.join("body/pending-join.json"), 256 * 1024).unwrap(),
+            &bounded_read(
+                &state.join("body/pending-join.json"),
+                MAXIMUM_BODY_ADMISSION_BYTES,
+            )
+            .unwrap(),
         )
         .unwrap();
         assert_eq!(pending["invitation"]["claim"]["body_id"], body_id.as_str());
@@ -1296,7 +1301,11 @@ mod tests {
         .unwrap();
         accept_body_invitation(&invitation_path, &joining_state, true).unwrap();
         let pending: invitation::PendingBodyJoin = serde_json::from_slice(
-            &bounded_read(&joining_state.join("body/pending-join.json"), 256 * 1024).unwrap(),
+            &bounded_read(
+                &joining_state.join("body/pending-join.json"),
+                MAXIMUM_BODY_ADMISSION_BYTES,
+            )
+            .unwrap(),
         )
         .unwrap();
         let request_path = owner_body_dir.join("request.json");
