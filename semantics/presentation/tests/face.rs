@@ -1,13 +1,20 @@
 use conduit_body::{Body, BodyFulfillment, FulfillmentObligation, Wake};
 use conduit_core::{
-    bind_active_play, seal_plan, AuthorityGrantId, CheckedFormId, ExpandedFormId, FormIdentity,
-    SignId, SourceDocumentId,
+    bind_active_play, kind_id, seal_plan, AuthorityGrantId, CheckedFormId, ExpandedFormId,
+    FormIdentity, SignId, SourceDocumentId,
 };
 use conduit_presentation::{
-    ApplicationAction, ApplicationComponent, ApplicationEventKind, ApplicationNodeState,
-    ApplicationView, ApplicationViewNode, Face, FaceContext, FaceContribution,
-    FaceContributionRole, FaceFocus, FaceOperatorActionKind, FaceRefusal,
-    PresentationPropertyValue, PresentationRole,
+    render_linear_presentation, ApplicationAction, ApplicationComponent, ApplicationEventKind,
+    ApplicationNodeState, ApplicationView, ApplicationViewNode, Face, FaceContext,
+    FaceContribution, FaceContributionContent, FaceContributionRole, FaceFocus,
+    FaceOperatorActionKind, FaceRefusal, GenerativeNarratorRole, GenerativePresenterBounds,
+    GenerativePresenterPolicy, GenerativePresenterRequest, NavigationAspect, NavigationPlace,
+    PresentationAction, PresentationActionAvailability, PresentationAspect,
+    PresentationCompositionKind, PresentationCompositionRelation, PresentationContributionBasis,
+    PresentationCursor, PresentationDepth, PresentationDisclosure, PresentationDisclosureLevel,
+    PresentationFragment, PresentationInput, PresentationNavigation, PresentationPlace,
+    PresentationProjection, PresentationPropertyValue, PresentationRole, PresentationSubject,
+    ProjectionItem, ProjectionMembership, UTF8_TEXT_VALUE_KIND,
 };
 
 fn born_body() -> Body {
@@ -115,7 +122,7 @@ fn resident_view_joins_body_truth_only_for_its_current_play() {
         checked_form_id: CheckedFormId::from("checked/tutorial"),
         plan_id: plan_id.clone(),
         active_play_id: play_id.clone(),
-        view: tutorial_view(11),
+        content: FaceContributionContent::ApplicationView(tutorial_view(11)),
     };
     let surface = Face::project(
         &body,
@@ -216,7 +223,7 @@ fn presentation_only_navigation_does_not_change_body_or_running_work() {
         checked_form_id: CheckedFormId::from("checked/tutorial"),
         plan_id,
         active_play_id: play_id,
-        view: tutorial_view(4),
+        content: FaceContributionContent::ApplicationView(tutorial_view(4)),
     };
     let overview = Face::project(
         &body,
@@ -264,7 +271,7 @@ fn composition_is_finite_and_deterministic() {
         checked_form_id: CheckedFormId::from("checked/tutorial"),
         plan_id,
         active_play_id: play_id,
-        view: tutorial_view(8),
+        content: FaceContributionContent::ApplicationView(tutorial_view(8)),
     };
     let project = || {
         Face::project(
@@ -291,6 +298,228 @@ fn composition_is_finite_and_deterministic() {
         ),
         Err(FaceRefusal::DuplicateRole)
     );
+}
+
+fn minimal_fragment(
+    plan_id: conduit_core::PlanId,
+    play_id: conduit_core::ActivePlayId,
+    required_context: Option<&str>,
+    subject_identity: String,
+) -> PresentationFragment {
+    PresentationFragment {
+        basis: PresentationContributionBasis {
+            checked_form_id: CheckedFormId::from("checked/tutorial"),
+            plan_id,
+            active_play_id: play_id,
+            required_interaction_context: required_context.map(Into::into),
+        },
+        subjects: vec![PresentationSubject {
+            identity: subject_identity,
+            role: PresentationRole::Semantic(kind_id("education/concept")),
+            name: "Concept".into(),
+        }],
+        relationships: vec![],
+        composition: vec![],
+        properties: vec![],
+        text: vec![],
+        actions: vec![],
+        inputs: vec![],
+        disclosures: vec![],
+        temporal_references: vec![],
+        temporal_facts: vec![],
+    }
+}
+
+#[test]
+fn direct_contributions_cannot_replace_face_truth_or_privately_choose_context() {
+    let (body, wake, plan_id, play_id) = playing();
+    let project = |fragment| {
+        Face::project(
+            &body,
+            Some(&wake),
+            31,
+            FaceContext::Overview,
+            FaceFocus::Body,
+            vec![FaceContribution::from_presentation(
+                FaceContributionRole::Foreground,
+                fragment,
+            )],
+        )
+    };
+
+    let body_identity = format!("body/{}", body.body_id.as_str());
+    assert_eq!(
+        project(minimal_fragment(
+            plan_id.clone(),
+            play_id.clone(),
+            None,
+            body_identity.clone(),
+        )),
+        Err(FaceRefusal::FaceOwnedIdentity(body_identity))
+    );
+    assert_eq!(
+        project(minimal_fragment(
+            plan_id,
+            play_id,
+            Some("face/context/private-audience"),
+            "concept/private".into(),
+        )),
+        Err(FaceRefusal::IncompatibleInteractionContext)
+    );
+}
+
+#[test]
+fn ordinary_form_contributes_universal_truth_without_an_application_view() {
+    let (body, wake, plan_id, play_id) = playing();
+    let context_id = "face/context/tutorial/checked/tutorial/focus/contribution/tutorial/node/concept/mitochondrion";
+    let contribution = FaceContribution {
+        role: FaceContributionRole::Tutorial,
+        checked_form_id: CheckedFormId::from("checked/tutorial"),
+        plan_id: plan_id.clone(),
+        active_play_id: play_id.clone(),
+        content: FaceContributionContent::Presentation(Box::new(PresentationFragment {
+            basis: PresentationContributionBasis {
+                checked_form_id: CheckedFormId::from("checked/tutorial"),
+                plan_id,
+                active_play_id: play_id,
+                required_interaction_context: Some(context_id.into()),
+            },
+            subjects: vec![
+                PresentationSubject {
+                    identity: "lesson/cell".into(),
+                    role: PresentationRole::Semantic(kind_id("education/lesson")),
+                    name: "The cell".into(),
+                },
+                PresentationSubject {
+                    identity: "concept/mitochondrion".into(),
+                    role: PresentationRole::Semantic(kind_id("biology/cell/organelle")),
+                    name: "Mitochondrion".into(),
+                },
+            ],
+            relationships: vec![],
+            composition: vec![PresentationCompositionRelation {
+                identity: "composition/emphasize-mitochondrion".into(),
+                source: "concept/mitochondrion".into(),
+                target: "lesson/cell".into(),
+                kind: PresentationCompositionKind::Emphasize,
+            }],
+            properties: vec![],
+            text: vec![],
+            actions: vec![PresentationAction {
+                identity: "lesson/answer".into(),
+                intent: "education/answer@1".into(),
+                target: "concept/mitochondrion".into(),
+                name: "Answer".into(),
+                disclosure: PresentationDisclosureLevel::CurrentAction,
+                availability: PresentationActionAvailability::Available,
+            }],
+            inputs: vec![PresentationInput {
+                identity: "lesson/answer-text".into(),
+                target: "concept/mitochondrion".into(),
+                value_kind: UTF8_TEXT_VALUE_KIND.into(),
+                maximum_bytes: 128,
+                allow_empty: false,
+                name: "Answer".into(),
+                submit_action: "lesson/answer".into(),
+            }],
+            disclosures: vec![PresentationDisclosure {
+                subject: "concept/mitochondrion".into(),
+                level: PresentationDisclosureLevel::Primary,
+            }],
+            temporal_references: vec![],
+            temporal_facts: vec![],
+        })),
+    };
+    let face = Face::project(
+        &body,
+        Some(&wake),
+        30,
+        FaceContext::Tutorial(CheckedFormId::from("checked/tutorial")),
+        FaceFocus::Contribution {
+            role: FaceContributionRole::Tutorial,
+            node_key: Some("concept/mitochondrion".into()),
+        },
+        vec![contribution],
+    )
+    .unwrap();
+
+    assert_eq!(face.presentation.interaction_context.identity, context_id);
+    let navigation = PresentationNavigation::new(
+        &face.presentation,
+        vec![NavigationPlace {
+            place: PresentationPlace::Program,
+            root_subject: "concept/mitochondrion".into(),
+            name: "Lesson".into(),
+            aspects: vec![NavigationAspect {
+                aspect: PresentationAspect::Structure,
+                focusable_subjects: vec!["concept/mitochondrion".into()],
+            }],
+        }],
+        vec![],
+    )
+    .unwrap();
+    let projection = PresentationProjection::new(
+        &face.presentation,
+        &navigation,
+        vec![
+            ProjectionMembership {
+                place: PresentationPlace::Program,
+                aspect: PresentationAspect::Structure,
+                item: ProjectionItem::Subject("concept/mitochondrion".into()),
+                depth: PresentationDepth::Primary,
+            },
+            ProjectionMembership {
+                place: PresentationPlace::Program,
+                aspect: PresentationAspect::Structure,
+                item: ProjectionItem::Composition(0),
+                depth: PresentationDepth::Primary,
+            },
+        ],
+    )
+    .unwrap();
+    assert_eq!(
+        projection
+            .project(
+                &face.presentation,
+                &navigation,
+                &PresentationCursor {
+                    presentation: face.presentation.identity.clone(),
+                    navigation: navigation.identity.clone(),
+                    revision: face.presentation.revision,
+                    place: PresentationPlace::Program,
+                    aspect: PresentationAspect::Structure,
+                    focus: None,
+                    depth: PresentationDepth::Primary,
+                },
+            )
+            .unwrap()
+            .items
+            .len(),
+        2
+    );
+    assert!(render_linear_presentation(&face.presentation)
+        .unwrap()
+        .lines
+        .iter()
+        .any(|line| line.contains("biology/cell/organelle")));
+    assert!(render_linear_presentation(&face.presentation)
+        .unwrap()
+        .lines
+        .iter()
+        .any(|line| line.contains("kind=Emphasize")));
+    let generated = GenerativePresenterRequest::from_presentation(
+        "request/lesson".into(),
+        GenerativePresenterPolicy {
+            template_contract_revision: "mask/generative@1".into(),
+            narrator_role: GenerativeNarratorRole::TransientFirstPersonBodyNarrator,
+            instructions: "Use only supplied truth".into(),
+        },
+        face.presentation.clone(),
+        None,
+        GenerativePresenterBounds::reviewed_default(),
+    )
+    .unwrap();
+    assert_eq!(generated.semantic_data.presentation, face.presentation);
 }
 
 #[test]

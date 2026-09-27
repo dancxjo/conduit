@@ -6,16 +6,72 @@ use crate::{
     ApplicationComponent, ApplicationEventKind, ApplicationNodeState, PresentationAction,
     PresentationActionAvailability, PresentationDisclosure, PresentationDisclosureLevel,
     PresentationInput, PresentationProperty, PresentationPropertyValue, PresentationRelationship,
-    PresentationRelationshipKind, PresentationRole, PresentationSubject, PresentationText,
-    UTF8_TEXT_VALUE_KIND,
+    PresentationRelationshipKind, PresentationRole, PresentationSubject, PresentationTemporalFact,
+    PresentationText, TemporalReference, UTF8_TEXT_VALUE_KIND,
 };
 
-use super::{FaceApplicationAction, FaceContribution, FaceContributionRole};
+use super::{
+    FaceApplicationAction, FaceContribution, FaceContributionContent, FaceContributionRole,
+};
 
 #[allow(clippy::too_many_arguments)]
 pub(super) fn append_contribution(
     index: usize,
     contribution: &FaceContribution,
+    context_subject: &str,
+    subjects: &mut Vec<PresentationSubject>,
+    relationships: &mut Vec<PresentationRelationship>,
+    composition: &mut Vec<crate::PresentationCompositionRelation>,
+    properties: &mut Vec<PresentationProperty>,
+    text: &mut Vec<PresentationText>,
+    actions: &mut Vec<PresentationAction>,
+    inputs: &mut Vec<PresentationInput>,
+    disclosures: &mut Vec<PresentationDisclosure>,
+    temporal_references: &mut Vec<TemporalReference>,
+    temporal_facts: &mut Vec<PresentationTemporalFact>,
+    application_actions: &mut Vec<FaceApplicationAction>,
+) {
+    match &contribution.content {
+        FaceContributionContent::Presentation(fragment) => {
+            append_presentation_fragment(
+                index,
+                contribution,
+                fragment,
+                context_subject,
+                subjects,
+                relationships,
+                composition,
+                properties,
+                text,
+                actions,
+                inputs,
+                disclosures,
+                temporal_references,
+                temporal_facts,
+            );
+        }
+        FaceContributionContent::ApplicationView(view) => append_application_view(
+            index,
+            contribution,
+            view,
+            context_subject,
+            subjects,
+            relationships,
+            properties,
+            text,
+            actions,
+            inputs,
+            disclosures,
+            application_actions,
+        ),
+    }
+}
+
+#[allow(clippy::too_many_arguments)]
+fn append_application_view(
+    index: usize,
+    contribution: &FaceContribution,
+    view: &crate::ApplicationView,
     context_subject: &str,
     subjects: &mut Vec<PresentationSubject>,
     relationships: &mut Vec<PresentationRelationship>,
@@ -53,7 +109,7 @@ pub(super) fn append_contribution(
         PresentationProperty {
             subject: root.clone(),
             name: "application-view-revision".into(),
-            value: PresentationPropertyValue::Count(u64::from(contribution.view.revision)),
+            value: PresentationPropertyValue::Count(u64::from(view.revision)),
         },
     ]);
     disclosures.push(PresentationDisclosure {
@@ -61,7 +117,7 @@ pub(super) fn append_contribution(
         level: contribution_disclosure(contribution.role),
     });
 
-    for (node_index, node) in contribution.view.nodes.iter().enumerate() {
+    for (node_index, node) in view.nodes.iter().enumerate() {
         let identity = format!("{prefix}/node/{}", node.key);
         let label = if node.text.is_empty() {
             node.key.clone()
@@ -75,12 +131,7 @@ pub(super) fn append_contribution(
         });
         let parent = node.parent.map_or_else(
             || root.clone(),
-            |parent| {
-                format!(
-                    "{prefix}/node/{}",
-                    contribution.view.nodes[usize::from(parent)].key
-                )
-            },
+            |parent| format!("{prefix}/node/{}", view.nodes[usize::from(parent)].key),
         );
         relationships.push(PresentationRelationship {
             source: parent,
@@ -113,7 +164,7 @@ pub(super) fn append_contribution(
             });
         }
         if let Some(action_index) = node.action {
-            let source = &contribution.view.actions[usize::from(action_index)];
+            let source = &view.actions[usize::from(action_index)];
             let action_identity = format!("{prefix}/action/{}/node/{node_index}", source.id);
             properties.push(PresentationProperty {
                 subject: identity.clone(),
@@ -134,7 +185,7 @@ pub(super) fn append_contribution(
                 checked_form_id: contribution.checked_form_id.clone(),
                 plan_id: contribution.plan_id.clone(),
                 active_play_id: contribution.active_play_id.clone(),
-                application_view_revision: contribution.view.revision,
+                application_view_revision: view.revision,
                 application_action_id: source.id.clone(),
                 event: source.event,
             });
@@ -156,6 +207,90 @@ pub(super) fn append_contribution(
             }
         }
     }
+}
+
+#[allow(clippy::too_many_arguments)]
+fn append_presentation_fragment(
+    index: usize,
+    contribution: &FaceContribution,
+    fragment: &crate::PresentationFragment,
+    context_subject: &str,
+    subjects: &mut Vec<PresentationSubject>,
+    relationships: &mut Vec<PresentationRelationship>,
+    composition: &mut Vec<crate::PresentationCompositionRelation>,
+    properties: &mut Vec<PresentationProperty>,
+    text: &mut Vec<PresentationText>,
+    actions: &mut Vec<PresentationAction>,
+    inputs: &mut Vec<PresentationInput>,
+    disclosures: &mut Vec<PresentationDisclosure>,
+    temporal_references: &mut Vec<TemporalReference>,
+    temporal_facts: &mut Vec<PresentationTemporalFact>,
+) {
+    let provenance = format!("contribution/{}/{index}", contribution.role.token());
+    subjects.push(PresentationSubject {
+        identity: provenance.clone(),
+        role: PresentationRole::Form,
+        name: "Presentation contribution provenance".into(),
+    });
+    relationships.push(PresentationRelationship {
+        source: context_subject.into(),
+        target: provenance.clone(),
+        kind: PresentationRelationshipKind::Contains,
+    });
+    properties.extend([
+        identity_property(
+            &provenance,
+            "checked-form-id",
+            contribution.checked_form_id.as_str(),
+        ),
+        identity_property(&provenance, "plan-id", contribution.plan_id.as_str()),
+        identity_property(
+            &provenance,
+            "active-play-id",
+            contribution.active_play_id.as_str(),
+        ),
+    ]);
+    for subject in &fragment.subjects {
+        relationships.push(PresentationRelationship {
+            source: provenance.clone(),
+            target: subject.identity.clone(),
+            kind: PresentationRelationshipKind::Describes,
+        });
+    }
+    for (action_index, action) in fragment.actions.iter().enumerate() {
+        properties.push(PresentationProperty {
+            subject: provenance.clone(),
+            name: format!("action/{action_index}"),
+            value: PresentationPropertyValue::Identity(action.identity.clone()),
+        });
+    }
+    for (property_index, property) in fragment.properties.iter().enumerate() {
+        properties.push(PresentationProperty {
+            subject: provenance.clone(),
+            name: format!("property/{property_index}"),
+            value: PresentationPropertyValue::Identity(format!(
+                "{}/{}",
+                property.subject, property.name
+            )),
+        });
+    }
+    for (composition_index, relation) in fragment.composition.iter().enumerate() {
+        properties.push(PresentationProperty {
+            subject: provenance.clone(),
+            name: format!("composition/{composition_index}"),
+            value: PresentationPropertyValue::Identity(relation.identity.clone()),
+        });
+    }
+    subjects.extend(fragment.subjects.iter().cloned());
+    relationships.extend(fragment.relationships.iter().cloned());
+    composition.extend(fragment.composition.iter().cloned());
+    properties.extend(fragment.properties.iter().cloned());
+    text.extend(fragment.text.iter().cloned());
+    actions.extend(fragment.actions.iter().cloned());
+    inputs.extend(fragment.inputs.iter().cloned());
+    disclosures.extend(fragment.disclosures.iter().cloned());
+    temporal_references.extend(fragment.temporal_references.iter().cloned());
+    temporal_facts.extend(fragment.temporal_facts.iter().cloned());
 }
 
 fn identity_property(subject: &str, name: &str, value: &str) -> PresentationProperty {
