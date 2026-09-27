@@ -389,6 +389,18 @@ fn append_cord_plan(
             connection.item_capacity, connection.byte_capacity
         ),
     );
+    let (pressure_policy, pressure_effect) = match connection.pressure_policy {
+        conduit_core::DeliveryPressurePolicy::PreserveOrder => (
+            "preserve-order",
+            "pressure retains the pending value; a fan-out commits only when every branch admits it",
+        ),
+        conduit_core::DeliveryPressurePolicy::CoalesceLatest => (
+            "coalesce-latest",
+            "pressure may supersede one pending current value with the newest whole value",
+        ),
+    };
+    text(content, subject, "pressure-policy", pressure_policy);
+    text(content, subject, "pressure-effect", pressure_effect);
     if let Some(line) = &connection.selected_line {
         identity(content, subject, "line-id", line.line_id.as_str());
         text(
