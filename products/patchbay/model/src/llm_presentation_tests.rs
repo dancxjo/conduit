@@ -100,6 +100,7 @@ fn placement(contract: &LlmSemanticContract) -> PlannedGear {
         },
         inputs: contract.inputs.clone(),
         outputs: contract.outputs.clone(),
+        terminal_transduction: None,
         host_calls: vec![],
         resources: vec![],
         authority: vec![],

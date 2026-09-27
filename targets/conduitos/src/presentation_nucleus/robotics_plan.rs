@@ -140,6 +140,7 @@ fn discard_offer(kind: &str, value_kind: &str) -> CapabilityOffer {
             value_kind: kind_id(value_kind),
             direction: PortDirection::Input,
             temporal: PortTemporal::Current,
+            abnormal_kind: None,
         }],
         outputs: Vec::new(),
         host_calls: Vec::new(),

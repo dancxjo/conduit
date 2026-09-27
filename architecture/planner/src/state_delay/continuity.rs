@@ -85,6 +85,7 @@ pub fn seal_state_continuity(
         || retained.value_kind != prior.value_kind
         || next.gear_id != prior.gear_id
         || next.initial_value != prior.initial_value
+        || next.lifetime != prior.lifetime
         || next.continuation != prior.continuation
     {
         return Err(R::ContractMismatch);
@@ -99,7 +100,8 @@ pub fn seal_state_continuity(
         retained.generation < old.generation
             || (retained.generation == old.generation
                 && retained.current_value != old.current_value)
-    }) || (retained.generation == 0 && retained.current_value != prior.initial_value)
+    }) || (retained.generation == 0
+        && prior.initial_value.as_deref() != Some(retained.current_value.as_slice()))
     {
         return Err(R::GenerationMismatch);
     }

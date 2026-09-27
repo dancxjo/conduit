@@ -24,6 +24,7 @@ pub fn bool_presentation_contract() -> StandardKindContract {
             value_kind: kind_id(BOOL_INFO_ID),
             direction: PortDirection::Input,
             temporal: PortTemporal::Current,
+            abnormal_kind: None,
         }],
         outputs: Vec::new(),
         configuration: Default::default(),

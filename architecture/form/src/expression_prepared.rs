@@ -7,8 +7,9 @@ use crate::{
 use alloc::{boxed::Box, string::ToString, vec::Vec};
 use conduit_core::{
     decode_count, encode_count, primitive_info_kind, FixedInteger, InfoBool, PrimitiveInfoKind,
-    Quantity, QuantityUnit, Scalar, StructuredInfoTypeShape, BOOL_INFO_ID, COUNT_INFO_ID,
-    MAXIMUM_STRUCTURED_LEAF_BYTES, SCALAR_INFO_ID,
+    Quantity, QuantityUnit, Scalar, StructuredCanonicalSelection, StructuredInfoType,
+    StructuredInfoTypeShape, StructuredSelector, BOOL_INFO_ID, COUNT_INFO_ID,
+    MAXIMUM_STRUCTURED_CANONICAL_BYTES, MAXIMUM_STRUCTURED_LEAF_BYTES, SCALAR_INFO_ID,
 };
 use core::cmp::Ordering;
 
@@ -19,8 +20,13 @@ use structured::PreparedStructuredExpression;
 /// `evaluate` uses fixed stack values and one capacity-stable output buffer.
 pub struct PreparedPortableExpressionEvaluator {
     root: PreparedRoot,
-    input_kind: PrimitiveInfoKind,
+    input: PreparedInput,
     output: Vec<u8>,
+}
+
+enum PreparedInput {
+    Primitive(PrimitiveInfoKind),
+    Structured(Vec<u8>),
 }
 
 enum PreparedRoot {
@@ -50,6 +56,19 @@ enum PreparedOperation {
         when_true: Box<PreparedNode>,
         when_false: Box<PreparedNode>,
     },
+    Projection(PreparedProjection),
+}
+
+struct PreparedProjection {
+    steps: Vec<PreparedProjectionStep>,
+    first: Vec<u8>,
+    second: Vec<u8>,
+}
+
+struct PreparedProjectionStep {
+    selector: StructuredSelector,
+    input_type: Vec<u8>,
+    output_type: Vec<u8>,
 }
 
 struct PrimitiveValue {
@@ -79,7 +98,17 @@ impl PrimitiveValue {
 
 impl PreparedPortableExpressionEvaluator {
     pub fn new(program: &PortableExpressionProgram) -> Result<Self, Refusal> {
-        let input_kind = leaf_kind(&program.input_type)?;
+        let input = match program.input_type.shape() {
+            StructuredInfoTypeShape::Leaf(_) => {
+                PreparedInput::Primitive(leaf_kind(&program.input_type)?)
+            }
+            _ => PreparedInput::Structured(
+                program
+                    .input_type
+                    .canonical_bytes()
+                    .map_err(|_| Refusal::InvalidProgram)?,
+            ),
+        };
         let root = match program.output_type.shape() {
             StructuredInfoTypeShape::Leaf(_) => {
                 let root = prepare_node(&program.root)?;
@@ -92,18 +121,31 @@ impl PreparedPortableExpressionEvaluator {
         };
         Ok(Self {
             root,
-            input_kind,
+            input,
             output: Vec::with_capacity(conduit_core::MAXIMUM_STRUCTURED_CANONICAL_BYTES),
         })
     }
 
     pub fn evaluate(&mut self, input: &[u8]) -> Result<&[u8], Refusal> {
-        conduit_core::validate_primitive_info(kind_name(self.input_kind), input)
-            .map_err(|_| Refusal::InvalidInput)?;
+        let primitive_input = match &self.input {
+            PreparedInput::Primitive(kind) => {
+                conduit_core::validate_primitive_info(kind_name(*kind), input)
+                    .map_err(|_| Refusal::InvalidInput)?;
+                Some(*kind)
+            }
+            PreparedInput::Structured(expected) => {
+                let validated = conduit_core::validate_canonical_structured_value(input)
+                    .map_err(|_| Refusal::InvalidInput)?;
+                if validated.type_bytes() != expected {
+                    return Err(Refusal::InvalidInput);
+                }
+                None
+            }
+        };
         self.output.clear();
         match &mut self.root {
             PreparedRoot::Primitive(root) => {
-                let value = evaluate_node(root, input, self.input_kind)?;
+                let value = evaluate_node(root, input, primitive_input)?;
                 self.output.extend_from_slice(value.as_slice());
             }
             PreparedRoot::Structured(root) => root.evaluate(input, &mut self.output)?,
@@ -150,6 +192,9 @@ fn prepare_node(node: &PortableExpressionNode) -> Result<PreparedNode, Refusal> 
             when_true: Box::new(prepare_node(when_true)?),
             when_false: Box::new(prepare_node(when_false)?),
         },
+        PortableExpressionOperation::Projection { .. } => {
+            PreparedOperation::Projection(prepare_projection(node)?)
+        }
         _ => {
             return Err(Refusal::UnsupportedType(
                 "structured expression runtime".into(),
@@ -157,6 +202,99 @@ fn prepare_node(node: &PortableExpressionNode) -> Result<PreparedNode, Refusal> 
         }
     };
     Ok(PreparedNode { kind, operation })
+}
+
+fn prepare_projection(node: &PortableExpressionNode) -> Result<PreparedProjection, Refusal> {
+    fn collect(
+        node: &PortableExpressionNode,
+        steps: &mut Vec<PreparedProjectionStep>,
+    ) -> Result<StructuredInfoType, Refusal> {
+        match &node.operation {
+            PortableExpressionOperation::Input => Ok(node.value_type.clone()),
+            PortableExpressionOperation::Projection { value, member } => {
+                let input_type = collect(value, steps)?;
+                let selector = match member {
+                    crate::PortableExpressionProjection::Field(field) => {
+                        StructuredSelector::field(input_type.clone(), field.clone())
+                    }
+                    crate::PortableExpressionProjection::TupleIndex(index) => {
+                        StructuredSelector::field(
+                            input_type.clone(),
+                            alloc::format!("item-{index:05}"),
+                        )
+                    }
+                }
+                .map_err(|_| Refusal::InvalidProgram)?;
+                if selector.output_type() != &node.value_type {
+                    return Err(Refusal::InvalidProgram);
+                }
+                steps.push(PreparedProjectionStep {
+                    input_type: selector
+                        .input_type()
+                        .canonical_bytes()
+                        .map_err(|_| Refusal::InvalidProgram)?,
+                    output_type: selector
+                        .output_type()
+                        .canonical_bytes()
+                        .map_err(|_| Refusal::InvalidProgram)?,
+                    selector,
+                });
+                Ok(node.value_type.clone())
+            }
+            _ => Err(Refusal::UnsupportedType(
+                "projection must originate at the expression input".into(),
+            )),
+        }
+    }
+
+    let mut steps = Vec::new();
+    collect(node, &mut steps)?;
+    if steps.is_empty() {
+        return Err(Refusal::InvalidProgram);
+    }
+    Ok(PreparedProjection {
+        steps,
+        first: Vec::with_capacity(MAXIMUM_STRUCTURED_CANONICAL_BYTES),
+        second: Vec::with_capacity(MAXIMUM_STRUCTURED_CANONICAL_BYTES),
+    })
+}
+
+impl PreparedProjection {
+    fn evaluate<'a>(&'a mut self, input: &[u8]) -> Result<&'a [u8], Refusal> {
+        self.first.clear();
+        self.first.extend_from_slice(input);
+        for step in &self.steps {
+            self.second.clear();
+            let selection = step
+                .selector
+                .select_canonical_into(
+                    &self.first,
+                    &step.input_type,
+                    &step.output_type,
+                    &mut self.second,
+                )
+                .map_err(|_| Refusal::InvalidInput)?;
+            if selection != StructuredCanonicalSelection::Matched {
+                return Err(Refusal::InvalidInput);
+            }
+            core::mem::swap(&mut self.first, &mut self.second);
+        }
+        let value = conduit_core::validate_canonical_structured_value(&self.first)
+            .map_err(|_| Refusal::InvalidProgram)?
+            .value_node();
+        let [0, length @ ..] = value else {
+            return Err(Refusal::InvalidProgram);
+        };
+        if length.len() < 4 {
+            return Err(Refusal::InvalidProgram);
+        }
+        let encoded_length = u32::from_le_bytes(length[..4].try_into().unwrap()) as usize;
+        let encoded = length.get(4..).ok_or(Refusal::InvalidProgram)?;
+        if encoded.len() != encoded_length {
+            return Err(Refusal::InvalidProgram);
+        }
+        Ok(encoded)
+    }
 }
 
 // Literal evaluation ignores the program input, but the allocating conformance
@@ -180,21 +318,22 @@ fn canonical_zero(kind: PrimitiveInfoKind, literal: &str) -> Result<Vec<u8>, Ref
 }
 
 fn evaluate_node(
-    node: &PreparedNode,
+    node: &mut PreparedNode,
     input: &[u8],
-    input_kind: PrimitiveInfoKind,
+    input_kind: Option<PrimitiveInfoKind>,
 ) -> Result<PrimitiveValue, Refusal> {
-    let value = match &node.operation {
+    let expected = node.kind;
+    let value = match &mut node.operation {
         PreparedOperation::Input => {
-            if node.kind != input_kind {
+            if Some(expected) != input_kind {
                 return Err(Refusal::InvalidProgram);
             }
-            PrimitiveValue::new(node.kind, input)?
+            PrimitiveValue::new(expected, input)?
         }
-        PreparedOperation::Literal(encoded) => PrimitiveValue::new(node.kind, encoded)?,
+        PreparedOperation::Literal(encoded) => PrimitiveValue::new(expected, encoded)?,
         PreparedOperation::Unary { operator, operand } => {
             let operand = evaluate_node(operand, input, input_kind)?;
-            evaluate_unary(*operator, node.kind, &operand)?
+            evaluate_unary(*operator, expected, &operand)?
         }
         PreparedOperation::Binary {
             operator,
@@ -203,7 +342,7 @@ fn evaluate_node(
         } => {
             let left = evaluate_node(left, input, input_kind)?;
             let right = evaluate_node(right, input, input_kind)?;
-            evaluate_binary(*operator, node.kind, &left, &right)?
+            evaluate_binary(*operator, expected, &left, &right)?
         }
         PreparedOperation::Conditional {
             condition,
@@ -218,8 +357,11 @@ fn evaluate_node(
             };
             evaluate_node(selected, input, input_kind)?
         }
+        PreparedOperation::Projection(projection) => {
+            PrimitiveValue::new(expected, projection.evaluate(input)?)?
+        }
     };
-    if value.kind == node.kind {
+    if value.kind == expected {
         Ok(value)
     } else {
         Err(Refusal::InvalidProgram)

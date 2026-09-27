@@ -157,6 +157,7 @@ fn binding(
                 maximum_frame_bytes: endpoint.maximum_frame_bytes,
             },
         },
+        abnormal_kind: None,
     }
     .with_observed_boots(
         BootId::from(endpoint.peer_boot),

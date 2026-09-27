@@ -8,6 +8,7 @@ use crate::{
 };
 
 pub const UNIT_INFO_ID: &str = "value/unit";
+pub const CANCELLATION_REQUEST_INFO_ID: &str = "control/cancellation-request";
 pub const COUNT_INFO_ID: &str = "value/count";
 pub const TEXT_INFO_ID: &str = "value/text";
 pub const BYTES_INFO_ID: &str = "value/bytes";
@@ -16,6 +17,7 @@ pub const COUNT_ENCODED_LEN: usize = 8;
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum PrimitiveInfoKind {
     Unit,
+    CancellationRequest,
     Bool,
     Count,
     Scalar,
@@ -65,6 +67,7 @@ pub enum PrimitiveInfoRefusal {
 pub const fn primitive_info_kind(identity: &str) -> Option<PrimitiveInfoKind> {
     match identity.as_bytes() {
         b"value/unit" => Some(PrimitiveInfoKind::Unit),
+        b"control/cancellation-request" => Some(PrimitiveInfoKind::CancellationRequest),
         b"value/bool" => Some(PrimitiveInfoKind::Bool),
         b"value/count" => Some(PrimitiveInfoKind::Count),
         b"value/scalar" => Some(PrimitiveInfoKind::Scalar),
@@ -98,7 +101,15 @@ pub fn validate_primitive_info(identity: &str, encoded: &[u8]) -> Result<(), Pri
         Some(PrimitiveInfoKind::Unit) if !encoded.is_empty() => {
             Err(PrimitiveInfoRefusal::UnitNotEmpty)
         }
-        Some(PrimitiveInfoKind::Unit | PrimitiveInfoKind::Bytes) | None => Ok(()),
+        Some(PrimitiveInfoKind::CancellationRequest) if !encoded.is_empty() => {
+            Err(PrimitiveInfoRefusal::UnitNotEmpty)
+        }
+        Some(
+            PrimitiveInfoKind::Unit
+            | PrimitiveInfoKind::CancellationRequest
+            | PrimitiveInfoKind::Bytes,
+        )
+        | None => Ok(()),
         Some(PrimitiveInfoKind::Bool) => InfoBool::decode(encoded)
             .map(|_| ())
             .map_err(PrimitiveInfoRefusal::Bool),

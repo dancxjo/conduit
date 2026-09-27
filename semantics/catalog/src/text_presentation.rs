@@ -51,6 +51,7 @@ pub fn text_presentation_inputs() -> Vec<PortDescriptor> {
         value_kind: kind_id(TEXT_PRESENTATION_VALUE_KIND),
         direction: PortDirection::Input,
         temporal: conduit_core::PortTemporal::Value,
+        abnormal_kind: None,
     }]
 }
 

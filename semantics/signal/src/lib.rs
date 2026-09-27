@@ -187,6 +187,7 @@ pub fn pulse_outputs() -> Vec<PortDescriptor> {
         value_kind: signal_value_kind(),
         direction: PortDirection::Output,
         temporal: conduit_core::PortTemporal::Value,
+        abnormal_kind: None,
     }]
 }
 
@@ -197,6 +198,7 @@ pub fn show_inputs() -> Vec<PortDescriptor> {
         value_kind: signal_value_kind(),
         direction: PortDirection::Input,
         temporal: conduit_core::PortTemporal::Value,
+        abnormal_kind: None,
     }]
 }
 

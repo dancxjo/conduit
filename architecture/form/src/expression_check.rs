@@ -77,11 +77,23 @@ impl CheckedExpressionType {
     /// checked semantic members. Source location, spelling and target do not
     /// participate, so every Host plans the same Port type.
     pub fn structured_info_type(&self) -> Result<StructuredInfoType, StructuredInfoRefusal> {
+        self.structured_info_type_with(&BTreeMap::new())
+    }
+
+    pub(crate) fn structured_info_type_with(
+        &self,
+        semantic_structures: &BTreeMap<KindId, StructuredInfoType>,
+    ) -> Result<StructuredInfoType, StructuredInfoRefusal> {
         match self {
-            Self::Semantic(kind) => StructuredInfoType::leaf(kind.clone()),
-            Self::Collection { element, length } => {
-                StructuredInfoType::collection(element.structured_info_type()?, Some(*length))
-            }
+            Self::Semantic(kind) => semantic_structures
+                .get(kind)
+                .cloned()
+                .map(Ok)
+                .unwrap_or_else(|| StructuredInfoType::leaf(kind.clone())),
+            Self::Collection { element, length } => StructuredInfoType::collection(
+                element.structured_info_type_with(semantic_structures)?,
+                Some(*length),
+            ),
             Self::Tuple(values) => {
                 let fields = values
                     .iter()
@@ -89,7 +101,7 @@ impl CheckedExpressionType {
                     .map(|(index, value)| {
                         StructuredFieldType::new(
                             format!("item-{index:05}"),
-                            value.structured_info_type()?,
+                            value.structured_info_type_with(semantic_structures)?,
                         )
                     })
                     .collect::<Result<Vec<_>, _>>()?;
@@ -99,7 +111,10 @@ impl CheckedExpressionType {
                 let fields = values
                     .iter()
                     .map(|(name, value)| {
-                        StructuredFieldType::new(name.clone(), value.structured_info_type()?)
+                        StructuredFieldType::new(
+                            name.clone(),
+                            value.structured_info_type_with(semantic_structures)?,
+                        )
                     })
                     .collect::<Result<Vec<_>, _>>()?;
                 anonymous_record("record", fields)
@@ -158,6 +173,7 @@ pub struct CheckedExpression {
     pub input_type: CheckedExpressionType,
     pub value_type: CheckedExpressionType,
     pub node_types: Vec<CheckedExpressionNodeType>,
+    pub(crate) semantic_structures: BTreeMap<KindId, StructuredInfoType>,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -212,12 +228,40 @@ pub(crate) fn check_expression_as(
             false
         }
     });
+    let semantic_structures = context
+        .structured_types
+        .iter()
+        .filter(|(kind, _)| {
+            expression_mentions_kind(context.input, kind)
+                || expression_mentions_kind(&value_type, kind)
+                || node_types
+                    .iter()
+                    .any(|node| expression_mentions_kind(&node.value_type, kind))
+        })
+        .map(|(kind, value_type)| (kind.clone(), value_type.clone()))
+        .collect();
     Ok(CheckedExpression {
         syntax: syntax.clone(),
         input_type: context.input.clone(),
         value_type,
         node_types,
+        semantic_structures,
     })
+}
+
+fn expression_mentions_kind(value_type: &CheckedExpressionType, kind: &KindId) -> bool {
+    match value_type {
+        CheckedExpressionType::Semantic(candidate) => candidate == kind,
+        CheckedExpressionType::Tuple(values) => values
+            .iter()
+            .any(|value| expression_mentions_kind(value, kind)),
+        CheckedExpressionType::Record(fields) => fields
+            .iter()
+            .any(|(_, value)| expression_mentions_kind(value, kind)),
+        CheckedExpressionType::Collection { element, .. } => {
+            expression_mentions_kind(element, kind)
+        }
+    }
 }
 
 fn infer(

@@ -349,5 +349,6 @@ fn port(
             .clone(),
         direction,
         temporal: PortTemporal::Value,
+        abnormal_kind: None,
     })
 }

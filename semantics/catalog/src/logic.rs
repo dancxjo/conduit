@@ -163,6 +163,7 @@ fn value_port(name: &str, info: &str, direction: PortDirection) -> PortDescripto
         value_kind: kind_id(info),
         direction,
         temporal: PortTemporal::Value,
+        abnormal_kind: None,
     }
 }
 

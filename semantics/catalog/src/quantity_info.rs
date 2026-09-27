@@ -43,6 +43,7 @@ pub fn quantity_info_wrap_contract() -> StandardKindContract {
             value_kind: kind_id(QUANTITY_INFO_ID),
             direction: PortDirection::Input,
             temporal: PortTemporal::Value,
+            abnormal_kind: None,
         }],
         outputs: vec![PortDescriptor {
             port_id: port_id("out"),
@@ -53,6 +54,7 @@ pub fn quantity_info_wrap_contract() -> StandardKindContract {
                 .clone(),
             direction: PortDirection::Output,
             temporal: PortTemporal::Value,
+            abnormal_kind: None,
         }],
         configuration: Default::default(),
         limits: CapabilityLimits {
@@ -112,6 +114,7 @@ pub fn quantity_presentation_semantic_contract() -> Kind {
                 .clone(),
             direction: PortDirection::Input,
             temporal: PortTemporal::Value,
+            abnormal_kind: None,
         }],
         outputs: Vec::new(),
         configuration: Default::default(),

@@ -37,12 +37,17 @@ fn authored_initialization_has_an_exact_type_and_no_semantic_step_count() {
     assert_eq!(state.value_kind, *ty.profile().unwrap().value_kind());
     assert_eq!(
         state.initial_value,
-        StructuredInfoValue::leaf(ty, InfoBool::TRUE.encode().to_vec())
-            .unwrap()
-            .canonical_bytes()
-            .unwrap()
+        Some(
+            StructuredInfoValue::leaf(ty, InfoBool::TRUE.encode().to_vec())
+                .unwrap()
+                .canonical_bytes()
+                .unwrap()
+        )
     );
-    assert_ne!(state.initial_value, initial.canonical_bytes().unwrap());
+    assert_ne!(
+        state.initial_value,
+        Some(initial.canonical_bytes().unwrap())
+    );
     assert_eq!(state.continuation, StateContinuation::ExternallyBounded);
     assert_eq!(state.state_id.as_str(), state.gear_id.as_str());
     assert_eq!(state.maximum_value_bytes, 64);
@@ -81,17 +86,19 @@ fn the_same_kind_specializes_to_a_distinct_finite_record_profile() {
     assert_ne!(state.value_kind, *leaf.profile().unwrap().value_kind());
     assert_eq!(
         state.initial_value,
-        StructuredInfoValue::record(
-            ty,
-            vec![StructuredFieldValue::new(
-                "on",
-                StructuredInfoValue::leaf(leaf, InfoBool::TRUE.encode().to_vec()).unwrap()
+        Some(
+            StructuredInfoValue::record(
+                ty,
+                vec![StructuredFieldValue::new(
+                    "on",
+                    StructuredInfoValue::leaf(leaf, InfoBool::TRUE.encode().to_vec()).unwrap()
+                )
+                .unwrap(),]
             )
-            .unwrap(),]
+            .unwrap()
+            .canonical_bytes()
+            .unwrap()
         )
-        .unwrap()
-        .canonical_bytes()
-        .unwrap()
     );
 }
 

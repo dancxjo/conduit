@@ -24,6 +24,13 @@ pub struct Kind {
 }
 
 impl Kind {
+    pub fn terminal_transduction(&self) -> Option<&crate::TerminalTransductionProfile> {
+        self.semantic_laws.iter().find_map(|law| match law {
+            KindSemanticLaw::TerminalTransduction(profile) => Some(profile),
+            _ => None,
+        })
+    }
+
     pub fn checked_front(&self) -> CheckedFront {
         CheckedFront::new(
             self.startup_parameters.clone(),
@@ -39,6 +46,13 @@ impl Kind {
         }
         if self.kind_contract_revision.as_str().is_empty() {
             return Err(KindValidationError::EmptyIdentity);
+        }
+        if self.inputs.iter().chain(&self.outputs).any(|port| {
+            port.abnormal_kind
+                .as_ref()
+                .is_some_and(|kind| kind.as_str().is_empty())
+        }) {
+            return Err(KindValidationError::EmptyAbnormalTerminalKind);
         }
         let mut keys = BTreeSet::new();
         for field in &self.configuration {
@@ -65,8 +79,77 @@ impl Kind {
                 return Err(KindValidationError::ConfigurationFrontMismatch);
             }
         }
+        let mut terminal_transduction = None;
+        for law in &self.semantic_laws {
+            let KindSemanticLaw::TerminalTransduction(profile) = law else {
+                continue;
+            };
+            if terminal_transduction.replace(profile).is_some() {
+                return Err(KindValidationError::DuplicateTerminalTransduction);
+            }
+            validate_terminal_transduction(self, profile)?;
+        }
         Ok(())
     }
+}
+
+fn validate_terminal_transduction(
+    kind: &Kind,
+    profile: &crate::TerminalTransductionProfile,
+) -> Result<(), KindValidationError> {
+    validate_terminal_transduction_ports(&kind.inputs, &kind.outputs, profile)
+}
+
+pub(crate) fn validate_terminal_transduction_ports(
+    inputs: &[PortDescriptor],
+    outputs: &[PortDescriptor],
+    profile: &crate::TerminalTransductionProfile,
+) -> Result<(), KindValidationError> {
+    use crate::{AbnormalTerminalTransduction, CancellationTransduction, NormalCloseTransduction};
+    let close_bound = match &profile.normal_close {
+        NormalCloseTransduction::FlushThenPropagate(bound) => Some(bound),
+        _ => None,
+    };
+    let abnormal_bound = match &profile.abnormal {
+        AbnormalTerminalTransduction::FinalizeThenPropagate(bound) => Some(bound),
+        _ => None,
+    };
+    if close_bound
+        .into_iter()
+        .chain(abnormal_bound)
+        .any(|bound| bound.maximum_items == 0 || bound.maximum_bytes == 0)
+    {
+        return Err(KindValidationError::EmptyTerminalEmissionBound);
+    }
+    let law_is_empty = match &profile.normal_close {
+        NormalCloseTransduction::DomainSpecific { law } => law.as_str().is_empty(),
+        _ => false,
+    } || match &profile.abnormal {
+        AbnormalTerminalTransduction::DomainSpecific { law } => law.as_str().is_empty(),
+        _ => false,
+    } || match &profile.cancellation {
+        CancellationTransduction::DomainSpecific { law } => law.as_str().is_empty(),
+        _ => false,
+    };
+    if law_is_empty {
+        return Err(KindValidationError::EmptyTerminalLawIdentity);
+    }
+    if let CancellationTransduction::Request { disposition_kind } = &profile.cancellation {
+        let cancellation_inputs = inputs
+            .iter()
+            .filter(|port| port.value_kind.as_str() == crate::CANCELLATION_REQUEST_INFO_ID)
+            .count();
+        if cancellation_inputs != 1 {
+            return Err(KindValidationError::CancellationControlMismatch);
+        }
+        if !outputs
+            .iter()
+            .any(|port| port.abnormal_kind.as_ref() == Some(disposition_kind))
+        {
+            return Err(KindValidationError::CancellationDispositionMismatch);
+        }
+    }
+    Ok(())
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -76,6 +159,12 @@ pub enum KindValidationError {
     DuplicateConfigurationKey,
     ConfigurationMissingFromFront,
     ConfigurationFrontMismatch,
+    EmptyAbnormalTerminalKind,
+    DuplicateTerminalTransduction,
+    EmptyTerminalEmissionBound,
+    EmptyTerminalLawIdentity,
+    CancellationControlMismatch,
+    CancellationDispositionMismatch,
 }
 
 /// Host-owned identity and requirements for one semantic realization.
@@ -192,6 +281,7 @@ mod tests {
                 direction: PortDirection::Input,
                 value_kind: kind_id("value/count"),
                 temporal: PortTemporal::Value,
+                abnormal_kind: None,
             }],
             outputs: Vec::new(),
             configuration: Default::default(),
@@ -282,6 +372,67 @@ mod tests {
                 expected
             );
         }
+    }
+
+    #[test]
+    fn terminal_transduction_keeps_types_and_three_behaviors_independent() {
+        let mut contract = contract();
+        contract.inputs.push(PortDescriptor {
+            port_id: port_id("halt"),
+            direction: PortDirection::Input,
+            value_kind: kind_id(crate::CANCELLATION_REQUEST_INFO_ID),
+            temporal: PortTemporal::Value,
+            abnormal_kind: None,
+        });
+        contract.outputs.push(PortDescriptor {
+            port_id: port_id("result"),
+            direction: PortDirection::Output,
+            value_kind: kind_id("value/count"),
+            temporal: PortTemporal::Flow { closes: true },
+            abnormal_kind: Some(kind_id("test/work-terminal")),
+        });
+        contract
+            .semantic_laws
+            .push(KindSemanticLaw::TerminalTransduction(
+                crate::TerminalTransductionProfile {
+                    normal_close: crate::NormalCloseTransduction::FlushThenPropagate(
+                        crate::FiniteTerminalEmission {
+                            maximum_items: 1,
+                            maximum_bytes: 8,
+                        },
+                    ),
+                    abnormal: crate::AbnormalTerminalTransduction::PropagateAfterDrain,
+                    cancellation: crate::CancellationTransduction::Request {
+                        disposition_kind: kind_id("test/work-terminal"),
+                    },
+                },
+            ));
+        assert_eq!(contract.validate(), Ok(()));
+
+        let mut missing_control = contract.clone();
+        missing_control
+            .inputs
+            .retain(|port| port.port_id.as_str() != "halt");
+        assert_eq!(
+            missing_control.validate(),
+            Err(KindValidationError::CancellationControlMismatch)
+        );
+
+        let mut unbounded_flush = contract;
+        let KindSemanticLaw::TerminalTransduction(profile) =
+            unbounded_flush.semantic_laws.last_mut().unwrap()
+        else {
+            unreachable!()
+        };
+        profile.normal_close =
+            crate::NormalCloseTransduction::FlushThenPropagate(crate::FiniteTerminalEmission {
+                maximum_items: 0,
+                maximum_bytes: 8,
+            });
+        assert_eq!(
+            unbounded_flush.validate(),
+            Err(KindValidationError::EmptyTerminalEmissionBound)
+        );
     }
 
     #[test]

@@ -9,7 +9,7 @@ mod semantic_call;
 mod substitution;
 mod temporal;
 mod when_filter;
-use semantic_call::expand_semantic_call_graph;
+use semantic_call::{contains_semantic_call, expand_semantic_call_graph};
 use substitution::substitute_immutable_values;
 use temporal::{input_temporal, output_temporal};
 
@@ -33,6 +33,7 @@ pub fn structured_selector_definition(
                 .clone(),
             direction: PortDirection::Input,
             temporal,
+            abnormal_kind: None,
         }],
         outputs: vec![PortDescriptor {
             port_id: conduit_core::port_id("output"),
@@ -44,6 +45,7 @@ pub fn structured_selector_definition(
                 .clone(),
             direction: PortDirection::Output,
             temporal,
+            abnormal_kind: None,
         }],
         configuration: vec![KindConfigurationField {
             key: "selector".to_string(),
@@ -259,7 +261,7 @@ fn expand_expression(
         StageSource::Internal(endpoint) => {
             (endpoint.port.value_kind.clone(), endpoint.port.temporal)
         }
-        StageSource::FaceInput(_, kind, temporal) => (kind.clone(), *temporal),
+        StageSource::FaceInput(_, kind, temporal, _, _) => (kind.clone(), *temporal),
     };
     let right_stage = right.iter().find_map(|stage| match stage {
         PendingStage::Ready(stage) => Some(stage),
@@ -292,7 +294,7 @@ fn expand_expression(
         .and_then(|inputs| inputs.first())
         .map(|sink| match sink {
             StageSink::Internal(endpoint) => endpoint.port.value_kind.clone(),
-            StageSink::FaceOutput(_, kind, _) => kind.clone(),
+            StageSink::FaceOutput(_, kind, _, _, _) => kind.clone(),
         })
         .map(crate::CheckedExpressionType::Semantic);
     let checked = crate::expression_check::check_expression_as(
@@ -316,14 +318,15 @@ fn expand_expression(
             ),
         )
     })?;
-    if temporal == PortTemporal::Value
-        && matches!(expression, crate::ExpressionSyntax::SemanticCall { .. })
-    {
+    if temporal == PortTemporal::Value && contains_semantic_call(&expression) {
         return expand_semantic_call_graph(
             &expression,
             input_type
                 .value_kind()
                 .expect("Cord input has one exact semantic Kind"),
+            expected_output
+                .as_ref()
+                .and_then(crate::CheckedExpressionType::value_kind),
             source_span,
             source_form,
             structured_types,
@@ -377,6 +380,7 @@ fn expand_expression(
         shorthand: Some((input.port_id.clone(), output.port_id.clone())),
         inputs: vec![input.clone()],
         outputs: vec![output.clone()],
+        terminal_transduction: None,
         configuration,
         pool_references: Vec::new(),
     });
@@ -388,13 +392,15 @@ fn expand_expression(
         source_span,
     });
     Ok(Stage {
-        input: Some(vec![StageSink::Internal(Endpoint {
-            gear_id: gear_id.clone(),
-            port: input,
-        })]),
-        output: Some(StageSource::Internal(Endpoint {
+        input: Some(vec![StageSink::Internal(TrackedEndpoint::payload(
+            Endpoint {
+                gear_id: gear_id.clone(),
+                port: input,
+            },
+        ))]),
+        output: Some(StageSource::Internal(TrackedEndpoint::payload(Endpoint {
             gear_id,
             port: output,
-        })),
+        }))),
     })
 }

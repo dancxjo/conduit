@@ -54,6 +54,7 @@ fn contract(kind: &str, name: &str, summary: &str) -> StandardKindContract {
             value_kind: kind_id(PATCHBAY_PRESENTATION_VALUE_KIND),
             direction: PortDirection::Input,
             temporal: PortTemporal::Value,
+            abnormal_kind: None,
         }],
         outputs: Vec::new(),
         configuration: Default::default(),

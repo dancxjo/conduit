@@ -10,8 +10,8 @@ use conduit_core::{
 use crate::{WireError, MAX_ID_BYTES};
 
 const SESSION_MAGIC: [u8; 4] = *b"CNDS";
-const SESSION_WIRE_VERSION: u8 = 4;
-const COMMON_FIXED_BYTES: usize = 4 + 1 + 1 + 2 + 2 * 11 + 2 + 4 + 4;
+const SESSION_WIRE_VERSION: u8 = 5;
+const COMMON_FIXED_BYTES: usize = 4 + 1 + 1 + 2 + 2 * 12 + 2 + 4 + 4;
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct SessionBinding {
@@ -25,6 +25,7 @@ pub struct SessionBinding {
     pub source: SessionEndpointIdentity,
     pub sink: SessionEndpointIdentity,
     pub value_kind: KindId,
+    pub abnormal_kind: Option<KindId>,
     pub limits: SessionLimits,
     pub attachment: LineAttachment,
 }
@@ -103,6 +104,7 @@ impl SessionBinding {
             sink_fragment_id,
             connection.connection_id.clone(),
             connection.value_kind.clone(),
+            connection.abnormal_kind.clone(),
             SessionLimits {
                 maximum_in_flight_items: connection.item_capacity,
                 maximum_payload_bytes: connection.byte_capacity,
@@ -195,6 +197,7 @@ impl SessionBinding {
                 port_id,
             ),
             port.value_kind.clone(),
+            port.abnormal_kind.clone(),
             SessionLimits {
                 maximum_in_flight_items: pool.member_limits.queue_item_capacity,
                 maximum_payload_bytes: pool.member_limits.queue_byte_capacity,
@@ -211,6 +214,7 @@ impl SessionBinding {
         sink_fragment_id: FragmentId,
         connection_id: ConnectionId,
         value_kind: KindId,
+        abnormal_kind: Option<KindId>,
         limits: SessionLimits,
         line: &AdmittedLine,
     ) -> Result<Self, WireError> {
@@ -245,6 +249,7 @@ impl SessionBinding {
                 boot_id: link.sink.boot_id.clone(),
             },
             value_kind,
+            abnormal_kind,
             limits,
             attachment: LineAttachment {
                 line_id: line.line_id.clone(),
@@ -386,6 +391,7 @@ impl SessionBinding {
             sink_host_id: self.sink.host_id.as_str(),
             sink_boot_id: self.sink.boot_id.as_str(),
             value_kind: self.value_kind.as_str(),
+            abnormal_kind: self.abnormal_kind.as_ref().map(KindId::as_str),
             limits: self.limits,
         }
     }
@@ -487,6 +493,7 @@ pub struct SessionIdentity<'a> {
     pub sink_host_id: &'a str,
     pub sink_boot_id: &'a str,
     pub value_kind: &'a str,
+    pub abnormal_kind: Option<&'a str>,
     pub limits: SessionLimits,
 }
 
@@ -530,6 +537,12 @@ pub enum SessionMessage<'a> {
     },
     InputClosed {
         final_sequence: u64,
+    },
+    /// Semantic abnormal termination of the planned connection input.
+    /// Distinct from session/Line failure and from normal input closure.
+    InputAbnormal {
+        final_sequence: u64,
+        terminal: &'a [u8],
     },
     Cancelled {
         code: u16,
@@ -586,6 +599,7 @@ pub fn encode_session_frame_into(
         frame.identity.sink_host_id,
         frame.identity.sink_boot_id,
         frame.identity.value_kind,
+        frame.identity.abnormal_kind.unwrap_or(""),
     ] {
         writer.text(identity)?;
     }
@@ -621,6 +635,18 @@ pub fn encode_session_frame_into(
             writer.u64(sequence)?;
         }
         SessionMessage::InputClosed { final_sequence } => writer.u64(final_sequence)?,
+        SessionMessage::InputAbnormal {
+            final_sequence,
+            terminal,
+        } => {
+            if terminal.len()
+                > usize::try_from(maximum_payload_bytes).map_err(|_| WireError::OversizedPayload)?
+            {
+                return Err(WireError::OversizedPayload);
+            }
+            writer.u64(final_sequence)?;
+            writer.byte_field(terminal)?;
+        }
         SessionMessage::Cancelled { code } | SessionMessage::Failed { code } => writer.u16(code)?,
         SessionMessage::Terminal {
             disposition,
@@ -666,6 +692,10 @@ pub fn decode_session_frame(
         sink_host_id: cursor.text()?,
         sink_boot_id: cursor.text()?,
         value_kind: cursor.text()?,
+        abnormal_kind: match cursor.text()? {
+            "" => None,
+            kind => Some(kind),
+        },
         limits: SessionLimits {
             maximum_in_flight_items: cursor.u16()?,
             maximum_payload_bytes: cursor.u32()?,
@@ -711,6 +741,19 @@ pub fn decode_session_frame(
         6 => SessionMessage::InputClosed {
             final_sequence: cursor.u64()?,
         },
+        11 => {
+            let final_sequence = cursor.u64()?;
+            let terminal = cursor.byte_field()?;
+            if terminal.len()
+                > usize::try_from(maximum_payload_bytes).map_err(|_| WireError::OversizedPayload)?
+            {
+                return Err(WireError::OversizedPayload);
+            }
+            SessionMessage::InputAbnormal {
+                final_sequence,
+                terminal,
+            }
+        }
         7 => SessionMessage::Cancelled {
             code: cursor.u16()?,
         },
@@ -738,6 +781,7 @@ fn message_kind(message: SessionMessage<'_>) -> u8 {
         SessionMessage::Accepted { .. } => 4,
         SessionMessage::Delivered { .. } => 5,
         SessionMessage::InputClosed { .. } => 6,
+        SessionMessage::InputAbnormal { .. } => 11,
         SessionMessage::Cancelled { .. } => 7,
         SessionMessage::Failed { .. } => 8,
         SessionMessage::Terminal { .. } => 9,
@@ -874,6 +918,14 @@ fn common_encoded_len(binding: &SessionBinding) -> Result<usize, WireError> {
         .and_then(|value| value.checked_add(binding.sink.host_id.as_str().len()))
         .and_then(|value| value.checked_add(binding.sink.boot_id.as_str().len()))
         .and_then(|value| value.checked_add(binding.value_kind.as_str().len()))
+        .and_then(|value| {
+            value.checked_add(
+                binding
+                    .abnormal_kind
+                    .as_ref()
+                    .map_or(0, |kind| kind.as_str().len()),
+            )
+        })
         .ok_or(WireError::InvalidLimits)
 }
 

@@ -41,12 +41,14 @@ pub fn state_count_contract() -> StandardKindContract {
             value_kind: kind_id(conduit_time::TICK_VALUE_KIND),
             direction: PortDirection::Input,
             temporal: PortTemporal::Flow { closes: false },
+            abnormal_kind: None,
         }],
         outputs: vec![PortDescriptor {
             port_id: port_id("value"),
             value_kind: kind_id(STATE_COUNT_VALUE_KIND),
             direction: PortDirection::Output,
             temporal: PortTemporal::Current,
+            abnormal_kind: None,
         }],
         configuration: vec![KindConfigurationField {
             key: "start".to_string(),
@@ -97,6 +99,7 @@ pub fn count_presentation_contract() -> StandardKindContract {
             value_kind: kind_id(STATE_COUNT_VALUE_KIND),
             direction: PortDirection::Input,
             temporal: PortTemporal::Current,
+            abnormal_kind: None,
         }],
         outputs: Vec::new(),
         configuration: Default::default(),

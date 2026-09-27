@@ -142,12 +142,14 @@ fn outputs() -> Vec<PortDescriptor> {
             value_kind: kind_id(MUSIC_NOTE_INFO_ID),
             direction: PortDirection::Output,
             temporal: PortTemporal::Value,
+            abnormal_kind: None,
         },
         PortDescriptor {
             port_id: port_id("controls"),
             value_kind: kind_id(MUSIC_CONTROL_INFO_ID),
             direction: PortDirection::Output,
             temporal: PortTemporal::Value,
+            abnormal_kind: None,
         },
     ]
 }

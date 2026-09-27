@@ -82,8 +82,12 @@ impl PortableExpressionProgram {
         expression: &CheckedExpression,
     ) -> Result<Self, PortableExpressionProgramRefusal> {
         let value = Self {
-            input_type: expression.input_type.structured_info_type()?,
-            output_type: expression.value_type.structured_info_type()?,
+            input_type: expression
+                .input_type
+                .structured_info_type_with(&expression.semantic_structures)?,
+            output_type: expression
+                .value_type
+                .structured_info_type_with(&expression.semantic_structures)?,
             root: node(&expression.syntax, expression)?,
         };
         if value.canonical_bytes()?.len() > MAXIMUM_PURE_EXPRESSION_PROGRAM_BYTES {
@@ -126,7 +130,7 @@ fn node(
         .find(|node| same_span(node.span, syntax.span()))
         .ok_or(PortableExpressionProgramRefusal::MissingCheckedNodeType)?
         .value_type
-        .structured_info_type()?;
+        .structured_info_type_with(&checked.semantic_structures)?;
     let operation = match syntax {
         ExpressionSyntax::Input(_) => PortableExpressionOperation::Input,
         ExpressionSyntax::Atomic(value) => PortableExpressionOperation::Literal(value.text.clone()),

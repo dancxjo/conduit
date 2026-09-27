@@ -81,13 +81,14 @@ impl TypedStateBack {
         if state.retained.is_some() {
             return Err("retained State requires owned continuity admission".into());
         }
+        let initial = state
+            .initial_value
+            .as_deref()
+            .ok_or("installed State Back requires an initialized keep")?;
         let validator = Self::prepare_validator(placement, state)?;
-        let cell = StateDelay::externally_continued(
-            slot,
-            state.maximum_value_bytes as usize,
-            &state.initial_value,
-        )
-        .map_err(|error| format!("State storage: {error:?}"))?;
+        let cell =
+            StateDelay::externally_continued(slot, state.maximum_value_bytes as usize, initial)
+                .map_err(|error| format!("State storage: {error:?}"))?;
         let back = StateBack::new(cell, next, current)
             .map_err(|error| format!("State back: {error:?}"))?;
         Ok(Self {
@@ -115,7 +116,11 @@ impl TypedStateBack {
         {
             return Err("State placement differs from the installed finite implementation".into());
         }
-        let initial = StructuredInfoValue::from_canonical_bytes(&state.initial_value)
+        let initial_bytes = state
+            .initial_value
+            .as_deref()
+            .ok_or("installed State Back requires an initialized keep")?;
+        let initial = StructuredInfoValue::from_canonical_bytes(initial_bytes)
             .map_err(|error| format!("State initialization: {error:?}"))?;
         let validator = PreparedStructuredValueValidator::new(
             initial.value_type(),
@@ -123,7 +128,7 @@ impl TypedStateBack {
         )
         .map_err(|error| format!("State validator: {error:?}"))?;
         validator
-            .validate(&state.initial_value)
+            .validate(initial_bytes)
             .map_err(|error| format!("State initial shape: {error:?}"))?;
         Ok(validator)
     }

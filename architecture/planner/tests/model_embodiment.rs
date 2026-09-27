@@ -268,6 +268,7 @@ fn gear(id: &str, kind: &str) -> PlannedGear {
         },
         inputs: vec![],
         outputs: vec![],
+        terminal_transduction: None,
         host_calls: vec![],
         resources: vec![],
         authority: vec![],
@@ -281,6 +282,7 @@ fn port(id: &str, kind: &str, direction: PortDirection) -> PortDescriptor {
         value_kind: kind_id(kind),
         direction,
         temporal: PortTemporal::Value,
+        abnormal_kind: None,
     }
 }
 
@@ -299,11 +301,13 @@ fn connection(
         sink_placement_id: PlacementId::from(sink),
         sink_port_id: port_id(sink_port),
         value_kind: kind_id(kind),
+        track: Default::default(),
         temporal: PortTemporal::Value,
         pressure_policy: Default::default(),
         selected_line: None,
         admitted_lines: vec![],
         item_capacity: 1,
         byte_capacity: 1024,
+        abnormal_kind: None,
     }
 }

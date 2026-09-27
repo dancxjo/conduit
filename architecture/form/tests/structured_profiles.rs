@@ -99,6 +99,7 @@ fn canonical_expansion_checks_the_resolved_profile_not_the_alias() {
             value_kind,
             direction: PortDirection::Output,
             temporal: PortTemporal::Value,
+            abnormal_kind: None,
         }],
         configuration: vec![],
     };

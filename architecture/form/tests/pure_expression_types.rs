@@ -3,8 +3,9 @@ use std::collections::{BTreeMap, BTreeSet};
 use conduit_core::{
     kind_id, port_id, CapabilityLimits, ConfigurationValue, ExternalEffectBehavior, Kind, KindId,
     KindIdentity, KindSemanticLaw, PortDescriptor, PortDirection, PortTemporal, Quantity,
-    QuantityUnit, ReplayBehavior, SemanticDependence, StructuredFieldType, StructuredInfoType,
-    SuspensionBehavior, TemporalStateBehavior, VariabilityBehavior,
+    QuantityUnit, ReplayBehavior, SemanticDependence, StructuredFieldType, StructuredFieldValue,
+    StructuredInfoType, StructuredInfoValue, SuspensionBehavior, TemporalStateBehavior,
+    VariabilityBehavior,
 };
 use conduit_form::{
     check_expression, parse_syntax_document, pure_expression_definition, BackStatement,
@@ -59,12 +60,14 @@ fn pure_kind(name: &str) -> Kind {
             value_kind: kind_id("value/scalar"),
             direction: PortDirection::Input,
             temporal: PortTemporal::Value,
+            abnormal_kind: None,
         }],
         outputs: vec![PortDescriptor {
             port_id: port_id("result"),
             value_kind: kind_id("value/scalar"),
             direction: PortDirection::Output,
             temporal: PortTemporal::Value,
+            abnormal_kind: None,
         }],
         configuration: Vec::new(),
         semantic_laws: vec![
@@ -180,10 +183,9 @@ fn nominal_structured_input_projects_into_anonymous_structures() {
     let no_kinds = BTreeMap::new();
     let context = context(&input, &empty, &structured, &empty, &no_numeric, &no_kinds);
 
+    let checked = check_expression(&expression("(.label, { n: .samples })"), &context).unwrap();
     assert_eq!(
-        check_expression(&expression("(.label, { n: .samples })"), &context)
-            .unwrap()
-            .value_type,
+        checked.value_type,
         CheckedExpressionType::Tuple(vec![
             CheckedExpressionType::semantic("value/text"),
             CheckedExpressionType::Record(vec![(
@@ -191,6 +193,53 @@ fn nominal_structured_input_projects_into_anonymous_structures() {
                 CheckedExpressionType::semantic("value/count")
             )]),
         ])
+    );
+
+    let reading_type = structured[&KindId::from("weather/reading@1")].clone();
+    let reading = StructuredInfoValue::record(
+        reading_type,
+        vec![
+            StructuredFieldValue::new(
+                "label",
+                StructuredInfoValue::leaf(
+                    StructuredInfoType::leaf(KindId::from("value/text")).unwrap(),
+                    b"outside".to_vec(),
+                )
+                .unwrap(),
+            )
+            .unwrap(),
+            StructuredFieldValue::new(
+                "samples",
+                StructuredInfoValue::leaf(
+                    StructuredInfoType::leaf(KindId::from("value/count")).unwrap(),
+                    conduit_core::encode_count(4).to_vec(),
+                )
+                .unwrap(),
+            )
+            .unwrap(),
+        ],
+    )
+    .unwrap()
+    .canonical_bytes()
+    .unwrap();
+    let program = PortableExpressionProgram::from_checked(&checked).unwrap();
+    let mut prepared = PreparedPortableExpressionEvaluator::new(&program).unwrap();
+    let capacity = prepared.output_capacity();
+    let output = prepared.evaluate(&reading).unwrap();
+    assert_eq!(
+        StructuredInfoValue::from_canonical_bytes(output)
+            .unwrap()
+            .value_type(),
+        &program.output_type
+    );
+    assert_eq!(prepared.output_capacity(), capacity);
+
+    let arithmetic = check_expression(&expression(".samples + 1"), &context).unwrap();
+    let program = PortableExpressionProgram::from_checked(&arithmetic).unwrap();
+    let mut prepared = PreparedPortableExpressionEvaluator::new(&program).unwrap();
+    assert_eq!(
+        conduit_core::decode_count(prepared.evaluate(&reading).unwrap()).unwrap(),
+        5
     );
 }
 

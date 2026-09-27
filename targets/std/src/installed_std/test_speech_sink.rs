@@ -96,6 +96,7 @@ fn inputs() -> Vec<PortDescriptor> {
         value_kind: kind_id(conduit_audio::AUDIO_PCM_INFO_ID),
         direction: PortDirection::Input,
         temporal: PortTemporal::Value,
+        abnormal_kind: None,
     }]
 }
 

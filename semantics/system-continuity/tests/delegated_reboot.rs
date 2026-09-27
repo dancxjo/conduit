@@ -99,6 +99,7 @@ fn session(controller: &HostInstance, target: &HostInstance) -> SessionBinding {
                 maximum_frame_bytes: 1024,
             },
         },
+        abnormal_kind: None,
     }
 }
 

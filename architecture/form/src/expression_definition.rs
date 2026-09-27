@@ -82,12 +82,14 @@ pub fn portable_filter_definition(
             value_kind: value.clone(),
             direction: PortDirection::Input,
             temporal,
+            abnormal_kind: None,
         }],
         outputs: vec![PortDescriptor {
             port_id: port_id("output"),
             value_kind: output,
             direction: PortDirection::Output,
             temporal,
+            abnormal_kind: None,
         }],
         configuration: vec![KindConfigurationField {
             key: "program".into(),
@@ -124,12 +126,14 @@ pub fn portable_expression_definition(
             value_kind: input,
             direction: PortDirection::Input,
             temporal,
+            abnormal_kind: None,
         }],
         outputs: vec![PortDescriptor {
             port_id: port_id("output"),
             value_kind: output,
             direction: PortDirection::Output,
             temporal,
+            abnormal_kind: None,
         }],
         configuration: vec![KindConfigurationField {
             key: "program".into(),

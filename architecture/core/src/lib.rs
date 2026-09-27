@@ -62,10 +62,11 @@ pub use characteristic::*;
 pub use completion::*;
 pub use conduit_assigned_plan::*;
 pub use configuration::{
-    ConfigurationEntry, ConfigurationValue, ExternalEffectBehavior, KindConfigurationField,
-    KindConfigurationRule, KindSemanticLaw, KindTerminalBehavior, ReplayBehavior,
+    AbnormalTerminalTransduction, CancellationTransduction, ConfigurationEntry, ConfigurationValue,
+    ExternalEffectBehavior, FiniteTerminalEmission, KindConfigurationField, KindConfigurationRule,
+    KindSemanticLaw, KindTerminalBehavior, NormalCloseTransduction, ReplayBehavior,
     SemanticDependence, StructuredConfigurationValue, SuspensionBehavior, TemporalStateBehavior,
-    VariabilityBehavior,
+    TerminalTransductionProfile, VariabilityBehavior,
 };
 pub use consequential_effect::*;
 pub use control_loop::*;
@@ -527,6 +528,8 @@ pub struct PlannedGear {
     pub limits: CapabilityLimits,
     pub inputs: Vec<PortDescriptor>,
     pub outputs: Vec<PortDescriptor>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub terminal_transduction: Option<TerminalTransductionProfile>,
     pub host_calls: Vec<HostCallRequirement>,
     pub resources: Vec<ResourceBinding>,
     pub authority: Vec<AuthorityBinding>,
@@ -621,6 +624,12 @@ pub struct PlannedConnection {
     pub sink_placement_id: PlacementId,
     pub sink_port_id: PortId,
     pub value_kind: KindId,
+    /// Exact typed semantic abnormal truth promised by the source Fore port.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub abnormal_kind: Option<KindId>,
+    /// Exact semantic track carried by this Cord.
+    #[serde(default)]
+    pub track: ConnectionTrack,
     #[serde(default)]
     pub temporal: PortTemporal,
     #[serde(default)]
@@ -634,6 +643,25 @@ pub struct PlannedConnection {
     pub admitted_lines: Vec<AdmittedLine>,
     pub item_capacity: u16,
     pub byte_capacity: u32,
+}
+
+#[derive(Debug, Default, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]
+#[serde(rename_all = "kebab-case")]
+pub enum ConnectionTrack {
+    #[default]
+    Payload,
+    NormalClose,
+    AbnormalTerminal,
+}
+
+impl ConnectionTrack {
+    pub const fn as_str(self) -> &'static str {
+        match self {
+            Self::Payload => "payload",
+            Self::NormalClose => "normal-close",
+            Self::AbnormalTerminal => "abnormal-terminal",
+        }
+    }
 }
 
 impl PlannedConnection {
@@ -1035,6 +1063,19 @@ pub fn verify_plan_fragment(fragment: &PlanFragment) -> bool {
         .filter(|item| item.host_id == fragment.host_id && item.fragment_id == fragment.fragment_id)
         .count();
     own_matches == 1
+        && fragment.placements.iter().all(|placement| {
+            placement
+                .terminal_transduction
+                .as_ref()
+                .is_none_or(|profile| {
+                    capability_offer::validate_terminal_transduction_ports(
+                        &placement.inputs,
+                        &placement.outputs,
+                        profile,
+                    )
+                    .is_ok()
+                })
+        })
         && state_delay::verify_fragment_state(fragment)
         && execution::verify_execution_regions(fragment)
         && execution_fusion::verify(fragment)

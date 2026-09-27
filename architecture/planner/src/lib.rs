@@ -47,8 +47,9 @@ use conduit_core::{
     AuthorityGrant, BaseImplementationId, CancellationPolicy, CapabilityId, ConnectionId,
     DeliveryPressurePolicy, ExpectedSign, ExpectedTerminal, FragmentId, GearId, HostAdvertisement,
     HostId, LineAvailability, LineId, LineOffer, PlacementId, Plan, PlanFragment, PlanId,
-    PlannedConnection, PlannedGear, ResourcePoolId, StartupDependency, TerminalPolicy,
-    DEFAULT_CONNECTION_BYTE_CAPACITY, DEFAULT_CONNECTION_ITEM_CAPACITY,
+    PlannedConnection, PlannedGear, PlannedStateBoundary, ResourcePoolId, StartupDependency,
+    StateContinuation, StateId, StateLifetime, TerminalPolicy, DEFAULT_CONNECTION_BYTE_CAPACITY,
+    DEFAULT_CONNECTION_ITEM_CAPACITY,
 };
 use conduit_form::{CheckedForm, CheckedGear};
 use sha2::{Digest, Sha256};
@@ -554,6 +555,7 @@ pub(crate) fn plan_validated_form_with_connection_limits(
             limits: capability.limits.clone(),
             inputs: capability.inputs.clone(),
             outputs: capability.outputs.clone(),
+            terminal_transduction: gear.terminal_transduction.clone(),
             host_calls: capability.host_calls.clone(),
             resources: resource_bindings,
             authority: authority_bindings,
@@ -644,13 +646,14 @@ pub(crate) fn plan_validated_form_with_connection_limits(
         }
         planned_connections.push(PlannedConnection {
             connection_id: ConnectionId::from(hash_string(&format!(
-                "connection:{}:{}:{}:{}:{}:{}:{}",
+                "connection:{}:{}:{}:{}:{}:{}:{}:{}",
                 form.checked_form_id.as_str(),
                 connection.source_gear_id.as_str(),
                 connection.source_port_id.as_str(),
                 connection.sink_gear_id.as_str(),
                 connection.sink_port_id.as_str(),
                 connection.value_kind.as_str(),
+                connection.track.as_str(),
                 connection.temporal.as_str(),
             ))),
             source_placement_id: source_plan.placement_id.clone(),
@@ -658,6 +661,12 @@ pub(crate) fn plan_validated_form_with_connection_limits(
             sink_placement_id: sink_plan.placement_id.clone(),
             sink_port_id: connection.sink_port_id.clone(),
             value_kind: connection.value_kind.clone(),
+            abnormal_kind: source_capability
+                .outputs
+                .iter()
+                .find(|port| port.port_id == connection.source_port_id)
+                .and_then(|port| port.abnormal_kind.clone()),
+            track: connection.track,
             temporal: connection.temporal,
             pressure_policy: if source_plan.kind_id.as_str() == "flow/coalesce-latest" {
                 DeliveryPressurePolicy::CoalesceLatest
@@ -726,6 +735,13 @@ pub(crate) fn plan_validated_form_with_connection_limits(
                 }))
                 .chain(core::iter::once(ExpectedTerminal::PlanCompleted))
                 .collect();
+            let states = placements
+                .iter()
+                .map(planned_keep_state)
+                .collect::<Result<Vec<_>, _>>()?
+                .into_iter()
+                .flatten()
+                .collect::<Vec<_>>();
             let expected_sign = core::iter::once(ExpectedSign::PlanFragmentReceived)
                 .chain(placements.iter().map(|placement| {
                     ExpectedSign::PlacementPrepared(placement.placement_id.clone())
@@ -738,7 +754,25 @@ pub(crate) fn plan_validated_form_with_connection_limits(
                 }))
                 .chain(core::iter::once(ExpectedSign::PlanTerminal))
                 .collect::<Vec<_>>();
-            let sign_storage_budget = mandatory_sign_storage_requirement(&expected_sign)
+            let mut sign_storage_budget = mandatory_sign_storage_requirement(&expected_sign)
+                .ok_or_else(|| {
+                    PlannerError::SignBudgetOverflow(host.host_id.as_str().to_string())
+                })?;
+            let state_budget = conduit_core::state_resource_budget(&states).map_err(|error| {
+                PlannerError::InvalidStateContract(format!(
+                    "host '{}' retained State admission: {error:?}",
+                    host.host_id.as_str()
+                ))
+            })?;
+            sign_storage_budget.item_capacity = sign_storage_budget
+                .item_capacity
+                .checked_add(state_budget.sign_storage.item_capacity)
+                .ok_or_else(|| {
+                    PlannerError::SignBudgetOverflow(host.host_id.as_str().to_string())
+                })?;
+            sign_storage_budget.byte_capacity = sign_storage_budget
+                .byte_capacity
+                .checked_add(state_budget.sign_storage.byte_capacity)
                 .ok_or_else(|| {
                     PlannerError::SignBudgetOverflow(host.host_id.as_str().to_string())
                 })?;
@@ -756,7 +790,7 @@ pub(crate) fn plan_validated_form_with_connection_limits(
                 placements,
                 execution_regions: Vec::new(),
                 execution_fusions: Vec::new(),
-                states: Vec::new(),
+                states,
                 connections,
                 shared_pools: Vec::new(),
                 startup_dependencies,
@@ -779,6 +813,104 @@ pub(crate) fn plan_validated_form_with_connection_limits(
         plan_completion_policy(form.completion),
         fragments,
     ))
+}
+
+fn planned_keep_state(
+    placement: &PlannedGear,
+) -> Result<Option<PlannedStateBoundary>, PlannerError> {
+    let Some(duration) = placement
+        .configuration
+        .iter()
+        .find(|entry| entry.key == "retained-duration")
+    else {
+        return Ok(None);
+    };
+    if placement.kind_id.as_str() != "state/latest" {
+        return Err(PlannerError::InvalidStateContract(format!(
+            "gear '{}' attaches retained duration to non-State Kind '{}'",
+            placement.gear_id.as_str(),
+            placement.kind_id.as_str()
+        )));
+    }
+    let conduit_core::ConfigurationValue::Text(duration) = &duration.value else {
+        return Err(PlannerError::InvalidStateContract(format!(
+            "gear '{}' retained duration is not canonical text",
+            placement.gear_id.as_str()
+        )));
+    };
+    let lifetime = match duration.as_str() {
+        "step" => StateLifetime::Step,
+        "play" => StateLifetime::Play,
+        "wake" => StateLifetime::Wake,
+        "boot" => StateLifetime::Boot,
+        "body" => StateLifetime::Body,
+        _ => {
+            return Err(PlannerError::InvalidStateContract(format!(
+                "gear '{}' has unknown retained duration '{}'",
+                placement.gear_id.as_str(),
+                duration
+            )))
+        }
+    };
+    let maximum = placement
+        .configuration
+        .iter()
+        .find(|entry| entry.key == "maximum-bytes")
+        .and_then(|entry| match &entry.value {
+            conduit_core::ConfigurationValue::U64(value) => u32::try_from(*value).ok(),
+            _ => None,
+        })
+        .ok_or_else(|| {
+            PlannerError::InvalidStateContract(format!(
+                "gear '{}' has no exact retained value bound",
+                placement.gear_id.as_str()
+            ))
+        })?;
+    let [input] = placement.inputs.as_slice() else {
+        return Err(PlannerError::InvalidStateContract(format!(
+            "gear '{}' retained State must have one input",
+            placement.gear_id.as_str()
+        )));
+    };
+    let [output] = placement.outputs.as_slice() else {
+        return Err(PlannerError::InvalidStateContract(format!(
+            "gear '{}' retained State must have one output",
+            placement.gear_id.as_str()
+        )));
+    };
+    if input.value_kind != output.value_kind
+        || output.temporal != conduit_core::PortTemporal::Current
+    {
+        return Err(PlannerError::InvalidStateContract(format!(
+            "gear '{}' retained State Fore is inconsistent",
+            placement.gear_id.as_str()
+        )));
+    }
+    let initial_value = placement
+        .configuration
+        .iter()
+        .find(|entry| entry.key == "initial")
+        .map(|entry| match &entry.value {
+            conduit_core::ConfigurationValue::Quantity(value) => Ok(value.encode().to_vec()),
+            conduit_core::ConfigurationValue::Structured(value) => {
+                Ok(value.canonical_value().to_vec())
+            }
+            _ => Err(PlannerError::InvalidStateContract(format!(
+                "gear '{}' retained initializer has no canonical encoding",
+                placement.gear_id.as_str()
+            ))),
+        })
+        .transpose()?;
+    Ok(Some(PlannedStateBoundary {
+        state_id: StateId::from(placement.gear_id.as_str()),
+        gear_id: placement.gear_id.clone(),
+        value_kind: output.value_kind.clone(),
+        initial_value,
+        lifetime,
+        retained: None,
+        maximum_value_bytes: maximum,
+        continuation: StateContinuation::ExternallyBounded,
+    }))
 }
 
 fn connection_endpoints(connection: &conduit_form::CheckedConnection) -> ConnectionEndpoints {

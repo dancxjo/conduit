@@ -23,6 +23,9 @@ pub(super) fn validate_identity(
     if identity.value_kind != expected.value_kind {
         return Err(WireError::ValueContractMismatch);
     }
+    if identity.abnormal_kind != expected.abnormal_kind {
+        return Err(WireError::ValueContractMismatch);
+    }
     if identity.limits != expected.limits {
         return Err(WireError::InvalidLimits);
     }

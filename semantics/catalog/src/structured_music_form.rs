@@ -269,6 +269,7 @@ pub fn instrument_map_definition() -> Result<KindProjection, String> {
             value_kind: control_kind,
             direction: PortDirection::Input,
             temporal: PortTemporal::Flow { closes: true },
+            abnormal_kind: None,
         }],
         outputs: vec![
             flow_port("notes", MUSIC_NOTE_INFO_ID, PortDirection::Output),
@@ -357,6 +358,7 @@ fn flow_port(name: &str, value_kind: &str, direction: PortDirection) -> PortDesc
         value_kind: kind_id(value_kind),
         direction,
         temporal: PortTemporal::Flow { closes: true },
+        abnormal_kind: None,
     }
 }
 
@@ -370,5 +372,6 @@ fn structured_flow_port(
         value_kind: value_type.profile().unwrap().value_kind().clone(),
         direction,
         temporal: PortTemporal::Flow { closes: true },
+        abnormal_kind: None,
     }
 }

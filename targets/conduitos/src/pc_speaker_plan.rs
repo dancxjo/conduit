@@ -219,6 +219,7 @@ fn tone_source_offer(build_id: &str) -> CapabilityOffer {
             value_kind: kind_id(conduit_audio::SOUND_TONE_INFO_ID),
             direction: PortDirection::Output,
             temporal: conduit_core::PortTemporal::Value,
+            abnormal_kind: None,
         }],
         implementation: conduit_core::ImplementationOffer {
             execution_profile_id: ExecutionProfileId::from(TONE_SOURCE_PROFILE),

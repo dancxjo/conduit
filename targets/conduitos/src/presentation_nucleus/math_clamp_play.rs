@@ -248,6 +248,7 @@ fn source_offer(input: Scalar) -> CapabilityOffer {
             value_kind: kind_id(conduit_core::SCALAR_INFO_ID),
             direction: PortDirection::Output,
             temporal: PortTemporal::Value,
+            abnormal_kind: None,
         }],
         host_calls: Vec::new(),
         resource_requirements: Vec::new(),
@@ -279,6 +280,7 @@ fn sink_offer() -> CapabilityOffer {
             value_kind: kind_id(conduit_core::SCALAR_INFO_ID),
             direction: PortDirection::Input,
             temporal: PortTemporal::Value,
+            abnormal_kind: None,
         }],
         outputs: Vec::new(),
         host_calls: vec![HostCallRequirement {

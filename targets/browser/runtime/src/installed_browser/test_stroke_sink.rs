@@ -31,6 +31,7 @@ pub(crate) fn offer() -> CapabilityOffer {
                 .clone(),
             direction: PortDirection::Input,
             temporal: PortTemporal::Value,
+            abnormal_kind: None,
         }],
         outputs: Vec::new(),
         implementation: ImplementationOffer {

@@ -91,5 +91,6 @@ fn port(value: &str, direction: PortDirection) -> PortDescriptor {
         value_kind: kind_id(value),
         direction,
         temporal: PortTemporal::Value,
+        abnormal_kind: None,
     }
 }

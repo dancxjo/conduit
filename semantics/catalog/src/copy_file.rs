@@ -76,6 +76,7 @@ fn result_port(direction: PortDirection) -> PortDescriptor {
         value_kind: copy_result_type().profile().unwrap().value_kind().clone(),
         direction,
         temporal: PortTemporal::Value,
+        abnormal_kind: None,
     }
 }
 

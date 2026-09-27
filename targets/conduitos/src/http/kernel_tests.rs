@@ -213,6 +213,7 @@ fn fixture_offer(
         },
         direction,
         temporal: PortTemporal::Flow { closes: true },
+        abnormal_kind: None,
     };
     let observe = (direction == PortDirection::Input).then(|| HostCallRequirement {
         contract_id: HostCallContractId::from(OBSERVE_OPERATION),

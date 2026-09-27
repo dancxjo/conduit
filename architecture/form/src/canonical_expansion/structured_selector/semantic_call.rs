@@ -4,6 +4,7 @@ use super::*;
 pub(super) fn expand_semantic_call_graph(
     expression: &crate::ExpressionSyntax,
     input_kind: &conduit_core::KindId,
+    expected_kind: Option<&conduit_core::KindId>,
     source_span: crate::Span,
     source_form: &CheckedCanonicalForm,
     structured_types: &BTreeMap<conduit_core::KindId, conduit_core::StructuredInfoType>,
@@ -15,6 +16,29 @@ pub(super) fn expand_semantic_call_graph(
     gear_ids: &mut BTreeSet<GearId>,
     anonymous_counts: &mut BTreeMap<String, usize>,
 ) -> Result<Stage, CanonicalExpansionDiagnostic> {
+    if !matches!(expression, crate::ExpressionSyntax::SemanticCall { .. }) {
+        let expected_kind = expected_kind.ok_or_else(|| {
+            CanonicalExpansionDiagnostic::new(
+                "CND-FRM-046",
+                "nested semantic expression has no exact output Kind".into(),
+            )
+        })?;
+        return expand_argument_expression(
+            expression,
+            input_kind,
+            expected_kind,
+            source_span,
+            source_form,
+            structured_types,
+            catalog,
+            path,
+            gears,
+            connections,
+            provenance,
+            gear_ids,
+            anonymous_counts,
+        );
+    }
     let crate::ExpressionSyntax::SemanticCall {
         kind, arguments, ..
     } = expression
@@ -59,6 +83,7 @@ pub(super) fn expand_semantic_call_graph(
             expand_semantic_call_graph(
                 argument,
                 input_kind,
+                Some(&sink.port.value_kind),
                 source_span,
                 source_form,
                 structured_types,
@@ -81,6 +106,7 @@ pub(super) fn expand_semantic_call_graph(
                 catalog,
                 path,
                 gears,
+                connections,
                 provenance,
                 gear_ids,
                 anonymous_counts,
@@ -112,16 +138,62 @@ fn expand_argument_expression(
     catalog: &ProfileCatalog,
     path: &[String],
     gears: &mut Vec<CheckedGear>,
+    connections: &mut Vec<CheckedConnection>,
     provenance: &mut Vec<ExpandedGearProvenance>,
     gear_ids: &mut BTreeSet<GearId>,
     anonymous_counts: &mut BTreeMap<String, usize>,
 ) -> Result<Stage, CanonicalExpansionDiagnostic> {
     if contains_semantic_call(expression) {
-        return Err(CanonicalExpansionDiagnostic::new(
-            "CND-FRM-046",
-            "a semantic call nested inside an operator argument needs explicit graph decomposition"
-                .into(),
-        ));
+        let (outer_expression, nested_call) = isolate_nested_semantic_call(expression)?;
+        let nested = expand_semantic_call_graph(
+            &nested_call,
+            input_kind,
+            None,
+            source_span,
+            source_form,
+            structured_types,
+            catalog,
+            path,
+            gears,
+            connections,
+            provenance,
+            gear_ids,
+            anonymous_counts,
+        )?;
+        let StageSource::Internal(nested_output) = nested
+            .output
+            .clone()
+            .expect("nested semantic call has one output")
+        else {
+            unreachable!("nested semantic call output is internal")
+        };
+        let outer = expand_argument_expression(
+            &outer_expression,
+            &nested_output.endpoint.port.value_kind,
+            expected_kind,
+            source_span,
+            source_form,
+            structured_types,
+            catalog,
+            path,
+            gears,
+            connections,
+            provenance,
+            gear_ids,
+            anonymous_counts,
+        )?;
+        let [StageSink::Internal(outer_input)] = outer
+            .input
+            .as_deref()
+            .expect("pure expression has one input")
+        else {
+            unreachable!("pure expression has exactly one internal input")
+        };
+        connect(nested_output, outer_input.clone(), connections);
+        return Ok(Stage {
+            input: nested.input,
+            output: outer.output,
+        });
     }
     let input_type = crate::CheckedExpressionType::Semantic(input_kind.clone());
     let expected_type = crate::CheckedExpressionType::Semantic(expected_kind.clone());
@@ -186,6 +258,7 @@ fn expand_argument_expression(
         shorthand: Some((input.port_id.clone(), output.port_id.clone())),
         inputs: vec![input.clone()],
         outputs: vec![output.clone()],
+        terminal_transduction: None,
         configuration: definition
             .configuration
             .into_iter()
@@ -204,18 +277,132 @@ fn expand_argument_expression(
         source_span,
     });
     Ok(Stage {
-        input: Some(vec![StageSink::Internal(Endpoint {
-            gear_id: gear_id.clone(),
-            port: input,
-        })]),
-        output: Some(StageSource::Internal(Endpoint {
+        input: Some(vec![StageSink::Internal(TrackedEndpoint::payload(
+            Endpoint {
+                gear_id: gear_id.clone(),
+                port: input,
+            },
+        ))]),
+        output: Some(StageSource::Internal(TrackedEndpoint::payload(Endpoint {
             gear_id,
             port: output,
-        })),
+        }))),
     })
 }
 
-fn contains_semantic_call(expression: &crate::ExpressionSyntax) -> bool {
+/// Replaces the one dynamic semantic result in an outer pure expression with
+/// that expression's ordinary input. More than one call, or another use of the
+/// incoming value outside the call, would require synchronizing independent
+/// runtime values and therefore has no implicit lowering here.
+fn isolate_nested_semantic_call(
+    expression: &crate::ExpressionSyntax,
+) -> Result<(crate::ExpressionSyntax, crate::ExpressionSyntax), CanonicalExpansionDiagnostic> {
+    fn rewrite(
+        expression: &crate::ExpressionSyntax,
+        call: &mut Option<crate::ExpressionSyntax>,
+    ) -> Result<crate::ExpressionSyntax, CanonicalExpansionDiagnostic> {
+        use crate::ExpressionSyntax;
+        Ok(match expression {
+            ExpressionSyntax::SemanticCall { span, .. } => {
+                if call.replace(expression.clone()).is_some() {
+                    return Err(CanonicalExpansionDiagnostic::new(
+                        "CND-FRM-046",
+                        "one pure expression cannot implicitly synchronize multiple semantic call results"
+                            .into(),
+                    ));
+                }
+                ExpressionSyntax::Input(*span)
+            }
+            ExpressionSyntax::Input(_) => {
+                return Err(CanonicalExpansionDiagnostic::new(
+                    "CND-FRM-046",
+                    "an expression around a semantic call may depend only on that call result and constants"
+                        .into(),
+                ));
+            }
+            ExpressionSyntax::Atomic(_) => expression.clone(),
+            ExpressionSyntax::Projection {
+                value,
+                member,
+                span,
+            } => ExpressionSyntax::Projection {
+                value: Box::new(rewrite(value, call)?),
+                member: member.clone(),
+                span: *span,
+            },
+            ExpressionSyntax::Unary {
+                operator,
+                operand,
+                span,
+            } => ExpressionSyntax::Unary {
+                operator: *operator,
+                operand: Box::new(rewrite(operand, call)?),
+                span: *span,
+            },
+            ExpressionSyntax::Binary {
+                operator,
+                left,
+                right,
+                span,
+            } => ExpressionSyntax::Binary {
+                operator: *operator,
+                left: Box::new(rewrite(left, call)?),
+                right: Box::new(rewrite(right, call)?),
+                span: *span,
+            },
+            ExpressionSyntax::Conditional {
+                condition,
+                when_true,
+                when_false,
+                span,
+            } => ExpressionSyntax::Conditional {
+                condition: Box::new(rewrite(condition, call)?),
+                when_true: Box::new(rewrite(when_true, call)?),
+                when_false: Box::new(rewrite(when_false, call)?),
+                span: *span,
+            },
+            ExpressionSyntax::Tuple { values, span } => ExpressionSyntax::Tuple {
+                values: values
+                    .iter()
+                    .map(|value| rewrite(value, call))
+                    .collect::<Result<_, _>>()?,
+                span: *span,
+            },
+            ExpressionSyntax::Collection { values, span } => ExpressionSyntax::Collection {
+                values: values
+                    .iter()
+                    .map(|value| rewrite(value, call))
+                    .collect::<Result<_, _>>()?,
+                span: *span,
+            },
+            ExpressionSyntax::Record { fields, span } => ExpressionSyntax::Record {
+                fields: fields
+                    .iter()
+                    .map(|field| {
+                        let mut field = field.clone();
+                        field.value = rewrite(&field.value, call)?;
+                        Ok(field)
+                    })
+                    .collect::<Result<_, CanonicalExpansionDiagnostic>>()?,
+                span: *span,
+            },
+            ExpressionSyntax::Variant { tag, payload, span } => ExpressionSyntax::Variant {
+                tag: tag.clone(),
+                payload: Box::new(rewrite(payload, call)?),
+                span: *span,
+            },
+        })
+    }
+
+    let mut call = None;
+    let outer = rewrite(expression, &mut call)?;
+    Ok((
+        outer,
+        call.expect("caller established that a semantic call is present"),
+    ))
+}
+
+pub(super) fn contains_semantic_call(expression: &crate::ExpressionSyntax) -> bool {
     match expression {
         crate::ExpressionSyntax::SemanticCall { .. } => true,
         crate::ExpressionSyntax::Projection { value, .. }
@@ -245,14 +432,28 @@ fn contains_semantic_call(expression: &crate::ExpressionSyntax) -> bool {
     }
 }
 
-fn connect(source: Endpoint, sink: Endpoint, connections: &mut Vec<CheckedConnection>) {
+fn connect(
+    source: TrackedEndpoint,
+    sink: TrackedEndpoint,
+    connections: &mut Vec<CheckedConnection>,
+) {
+    let source_track = source.track;
+    let Endpoint {
+        gear_id: source_gear_id,
+        port: source_port,
+    } = source.endpoint;
+    let Endpoint {
+        gear_id: sink_gear_id,
+        port: sink_port,
+    } = sink.endpoint;
     connections.push(CheckedConnection {
-        source_gear_id: source.gear_id,
-        source_port_id: source.port.port_id,
-        sink_gear_id: sink.gear_id,
-        sink_port_id: sink.port.port_id,
-        value_kind: source.port.value_kind,
-        temporal: source.port.temporal,
+        source_gear_id,
+        source_port_id: source_port.port_id,
+        sink_gear_id,
+        sink_port_id: sink_port.port_id,
+        value_kind: source_port.value_kind,
+        track: source_track,
+        temporal: source_port.temporal,
     });
 }
 
@@ -305,6 +506,7 @@ fn expand_one(
         shorthand: kind.shorthand.clone(),
         inputs: kind.inputs.clone(),
         outputs: kind.outputs.clone(),
+        terminal_transduction: kind.terminal_transduction().cloned(),
         configuration: kind
             .configuration
             .iter()
@@ -328,16 +530,16 @@ fn expand_one(
                 .iter()
                 .cloned()
                 .map(|port| {
-                    StageSink::Internal(Endpoint {
+                    StageSink::Internal(TrackedEndpoint::payload(Endpoint {
                         gear_id: gear_id.clone(),
                         port,
-                    })
+                    }))
                 })
                 .collect(),
         ),
-        output: Some(StageSource::Internal(Endpoint {
+        output: Some(StageSource::Internal(TrackedEndpoint::payload(Endpoint {
             gear_id,
             port: output,
-        })),
+        }))),
     })
 }

@@ -150,6 +150,7 @@ fn inactive_cord() -> CordSpec {
         item_capacity: 0,
         byte_capacity: 0,
         pressure_policy: Default::default(),
+        track: Default::default(),
     }
 }
 

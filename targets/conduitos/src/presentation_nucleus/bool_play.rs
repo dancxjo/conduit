@@ -221,6 +221,7 @@ fn source_offer(value: InfoBool) -> CapabilityOffer {
             value_kind: kind_id(conduit_core::BOOL_INFO_ID),
             direction: PortDirection::Output,
             temporal: PortTemporal::Current,
+            abnormal_kind: None,
         }],
         host_calls: Vec::new(),
         resource_requirements: Vec::new(),

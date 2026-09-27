@@ -1,7 +1,7 @@
 use super::{
     default_placements, parse_placements, plan, plan_with_authority_grants,
-    plan_with_connection_limits, plan_with_line_offers, startup_order, PlacementChoice,
-    PlacementChoices, PlannerError,
+    plan_with_connection_limits, plan_with_line_offers, planned_keep_state, startup_order,
+    PlacementChoice, PlacementChoices, PlannerError,
 };
 use conduit_core::{
     authority_grant, kind_id, mandatory_sign_storage_requirement, present_authority_requirement,
@@ -90,6 +90,63 @@ fn host() -> HostAdvertisement {
             },
         ],
     }
+}
+
+#[test]
+fn retained_duration_derives_exact_state_plan_truth() {
+    let ordinary = plan(
+        &form(),
+        &[host()],
+        &default_placements(&form(), &[host()]).unwrap(),
+        &[BaseImplementationId::from("conduit.base/local@1")],
+    )
+    .unwrap();
+    let mut placement = ordinary.fragments[0].placements[0].clone();
+    placement.kind_id = kind_id("state/latest");
+    placement.inputs = vec![conduit_core::PortDescriptor {
+        port_id: conduit_core::port_id("in"),
+        value_kind: kind_id(conduit_core::DISTANCE_INFO_ID),
+        direction: conduit_core::PortDirection::Input,
+        temporal: conduit_core::PortTemporal::Value,
+        abnormal_kind: None,
+    }];
+    placement.outputs = vec![conduit_core::PortDescriptor {
+        port_id: conduit_core::port_id("out"),
+        value_kind: kind_id(conduit_core::DISTANCE_INFO_ID),
+        direction: conduit_core::PortDirection::Output,
+        temporal: conduit_core::PortTemporal::Current,
+        abnormal_kind: None,
+    }];
+    let initial = conduit_core::Quantity::new(3, conduit_core::QuantityUnit::Meter);
+    placement.configuration = vec![
+        conduit_core::ConfigurationEntry {
+            key: "retained-duration".into(),
+            value: conduit_core::ConfigurationValue::Text("wake".into()),
+        },
+        conduit_core::ConfigurationEntry {
+            key: "maximum-bytes".into(),
+            value: conduit_core::ConfigurationValue::U64(conduit_core::QUANTITY_ENCODED_LEN as u64),
+        },
+        conduit_core::ConfigurationEntry {
+            key: "initial".into(),
+            value: conduit_core::ConfigurationValue::Quantity(initial),
+        },
+    ];
+    let state = planned_keep_state(&placement).unwrap().unwrap();
+    assert_eq!(state.lifetime, conduit_core::StateLifetime::Wake);
+    assert_eq!(state.initial_value, Some(initial.encode().to_vec()));
+    assert_eq!(state.state_id.as_str(), placement.gear_id.as_str());
+
+    placement
+        .configuration
+        .retain(|entry| entry.key != "initial");
+    assert_eq!(
+        planned_keep_state(&placement)
+            .unwrap()
+            .unwrap()
+            .initial_value,
+        None
+    );
 }
 
 #[test]
@@ -222,6 +279,70 @@ fn planning_binds_exact_contract_profile_and_every_port() {
         mandatory_sign_storage_requirement(&fragment.expected_sign)
             .expect("focused sign fits public budget types")
     );
+}
+
+#[test]
+fn planning_seals_canonical_terminal_transduction_into_the_exact_placement() {
+    let profile = conduit_core::TerminalTransductionProfile {
+        normal_close: conduit_core::NormalCloseTransduction::PropagateAfterDrain,
+        abnormal: conduit_core::AbnormalTerminalTransduction::Recover,
+        cancellation: conduit_core::CancellationTransduction::NotCancellable,
+    };
+    let mut pulse = conduit_signal::pulse_semantic_contract();
+    pulse.configuration = vec![
+        conduit_core::KindConfigurationField {
+            key: "count".into(),
+            default_value: conduit_core::ConfigurationValue::U64(16),
+            rule: conduit_core::KindConfigurationRule::U64Range {
+                minimum: 0,
+                maximum: conduit_signal::MAX_SIGNAL_COUNT,
+            },
+        },
+        conduit_core::KindConfigurationField {
+            key: "period-ms".into(),
+            default_value: conduit_core::ConfigurationValue::U64(250),
+            rule: conduit_core::KindConfigurationRule::U64Range {
+                minimum: 0,
+                maximum: u64::MAX,
+            },
+        },
+        conduit_core::KindConfigurationField {
+            key: "initial".into(),
+            default_value: conduit_core::ConfigurationValue::Bool(false),
+            rule: conduit_core::KindConfigurationRule::Any,
+        },
+    ];
+    pulse
+        .semantic_laws
+        .push(conduit_core::KindSemanticLaw::TerminalTransduction(
+            profile.clone(),
+        ));
+    let mut catalog = conduit_form::ProfileCatalog::new();
+    catalog.insert_kind(pulse).unwrap();
+    catalog
+        .insert_kind(conduit_signal::show_semantic_contract())
+        .unwrap();
+    let form = conduit_form::parse(
+        "form signal-demo {\n pulse: flow/pulse\n show: presentation/show\n pulse >> show\n}\n",
+        &catalog,
+    )
+    .unwrap();
+    let host = host();
+    let placements = default_placements(&form, std::slice::from_ref(&host)).unwrap();
+    let planned = plan(
+        &form,
+        std::slice::from_ref(&host),
+        &placements,
+        &[BaseImplementationId::from("conduit.base/local@1")],
+    )
+    .unwrap();
+    let pulse = planned.fragments[0]
+        .placements
+        .iter()
+        .find(|placement| placement.kind_id.as_str() == PULSE_KIND)
+        .unwrap();
+    assert_eq!(pulse.terminal_transduction, Some(profile));
+    assert!(verify_plan(&planned));
 }
 
 #[test]
@@ -978,6 +1099,7 @@ fn planning_rejects_same_front_with_different_semantics_and_front_changes() {
             value_kind: kind_id("value/unexpected"),
             direction: conduit_core::PortDirection::Output,
             temporal: conduit_core::PortTemporal::Value,
+            abnormal_kind: None,
         });
     assert!(matches!(
         plan(

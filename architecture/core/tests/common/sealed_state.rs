@@ -6,7 +6,8 @@ pub fn fragment() -> PlanFragment {
         state_id: StateId::from("retained"),
         gear_id: GearId::from("cell"),
         value_kind: value_kind.clone(),
-        initial_value: vec![7],
+        initial_value: Some(vec![7]),
+        lifetime: StateLifetime::Step,
         retained: None,
         maximum_value_bytes: 1,
         continuation: StateContinuation::ExternallyBounded,
@@ -16,6 +17,7 @@ pub fn fragment() -> PlanFragment {
         value_kind: value_kind.clone(),
         direction,
         temporal: PortTemporal::Value,
+        abnormal_kind: None,
     };
     PlanFragment {
         completion_policy: conduit_core::PlanCompletionPolicy::Live,
@@ -50,6 +52,7 @@ pub fn fragment() -> PlanFragment {
             },
             inputs: vec![port("next", PortDirection::Input)],
             outputs: vec![port("current", PortDirection::Output)],
+            terminal_transduction: None,
             host_calls: vec![],
             resources: vec![],
             authority: vec![],

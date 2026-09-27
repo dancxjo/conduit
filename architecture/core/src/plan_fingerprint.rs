@@ -126,6 +126,10 @@ pub fn compute_fragment_id(fragment: &PlanFragment) -> FragmentId {
         push_u32(&mut canonical, gear.limits.max_queue_bytes);
         push_ports(&mut canonical, &gear.inputs);
         push_ports(&mut canonical, &gear.outputs);
+        if let Some(profile) = gear.terminal_transduction.as_ref() {
+            push_string(&mut canonical, "terminal-transduction@1");
+            push_terminal_transduction(&mut canonical, profile);
+        }
         push_u32(&mut canonical, gear.host_calls.len() as u32);
         for requirement in &gear.host_calls {
             push_string(&mut canonical, requirement.contract_id.as_str());
@@ -167,6 +171,18 @@ pub fn compute_fragment_id(fragment: &PlanFragment) -> FragmentId {
         push_string(&mut canonical, connection.sink_placement_id.as_str());
         push_string(&mut canonical, connection.sink_port_id.as_str());
         push_string(&mut canonical, connection.value_kind.as_str());
+        match &connection.abnormal_kind {
+            Some(kind) => {
+                canonical.push(1);
+                push_string(&mut canonical, kind.as_str());
+            }
+            None => canonical.push(0),
+        }
+        canonical.push(match connection.track {
+            crate::ConnectionTrack::Payload => 0,
+            crate::ConnectionTrack::NormalClose => 1,
+            crate::ConnectionTrack::AbnormalTerminal => 2,
+        });
         canonical.push(match connection.temporal {
             PortTemporal::Value => 0,
             PortTemporal::Flow { closes: false } => 1,
@@ -312,6 +328,55 @@ pub fn compute_fragment_id(fragment: &PlanFragment) -> FragmentId {
     FragmentId::from(hash_bytes(&canonical))
 }
 
+fn push_terminal_transduction(
+    canonical: &mut Vec<u8>,
+    profile: &crate::TerminalTransductionProfile,
+) {
+    use crate::{
+        AbnormalTerminalTransduction as Abnormal, CancellationTransduction as Cancellation,
+        NormalCloseTransduction as Normal,
+    };
+    match &profile.normal_close {
+        Normal::NotAccepted => canonical.push(0),
+        Normal::PropagateAfterDrain => canonical.push(1),
+        Normal::Consume => canonical.push(2),
+        Normal::FlushThenPropagate(bound) => {
+            canonical.push(3);
+            canonical.extend_from_slice(&bound.maximum_items.to_le_bytes());
+            push_u32(canonical, bound.maximum_bytes);
+        }
+        Normal::DomainSpecific { law } => {
+            canonical.push(4);
+            push_string(canonical, law.as_str());
+        }
+    }
+    match &profile.abnormal {
+        Abnormal::NotAccepted => canonical.push(0),
+        Abnormal::PropagateAfterDrain => canonical.push(1),
+        Abnormal::Recover => canonical.push(2),
+        Abnormal::FinalizeThenPropagate(bound) => {
+            canonical.push(3);
+            canonical.extend_from_slice(&bound.maximum_items.to_le_bytes());
+            push_u32(canonical, bound.maximum_bytes);
+        }
+        Abnormal::DomainSpecific { law } => {
+            canonical.push(4);
+            push_string(canonical, law.as_str());
+        }
+    }
+    match &profile.cancellation {
+        Cancellation::NotCancellable => canonical.push(0),
+        Cancellation::Request { disposition_kind } => {
+            canonical.push(1);
+            push_string(canonical, disposition_kind.as_str());
+        }
+        Cancellation::DomainSpecific { law } => {
+            canonical.push(2);
+            push_string(canonical, law.as_str());
+        }
+    }
+}
+
 fn push_checked_front(canonical: &mut Vec<u8>, front: &CheckedFront) {
     push_u32(canonical, front.startup_parameters().len() as u32);
     for parameter in front.startup_parameters() {
@@ -418,5 +483,12 @@ fn push_ports(canonical: &mut Vec<u8>, ports: &[PortDescriptor]) {
             PortTemporal::Flow { closes: true } => 2,
             PortTemporal::Current => 3,
         });
+        match &port.abnormal_kind {
+            Some(kind) => {
+                canonical.push(1);
+                push_string(canonical, kind.as_str());
+            }
+            None => canonical.push(0),
+        }
     }
 }

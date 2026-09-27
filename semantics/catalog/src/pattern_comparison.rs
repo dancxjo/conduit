@@ -61,6 +61,7 @@ pub fn compare_normalized_pattern_definition() -> KindProjection {
                 .clone(),
             direction: PortDirection::Output,
             temporal: PortTemporal::Value,
+            abnormal_kind: None,
         }],
         configuration: vec![
             KindConfigurationField {
@@ -252,6 +253,7 @@ fn value_port(name: &str, direction: PortDirection) -> PortDescriptor {
             .clone(),
         direction,
         temporal: PortTemporal::Value,
+        abnormal_kind: None,
     }
 }
 

@@ -31,6 +31,7 @@ impl SessionBinding {
                 boot_id: BootId::from(identity.sink_boot_id),
             },
             value_kind: KindId::from(identity.value_kind),
+            abnormal_kind: identity.abnormal_kind.map(KindId::from),
             limits: identity.limits,
             attachment: LineAttachment {
                 line_id: LineId::from(hello.line_id),

@@ -210,6 +210,7 @@ fn info_port(
         value_kind: kind_id(info),
         direction,
         temporal,
+        abnormal_kind: None,
     }
 }
 

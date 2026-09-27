@@ -80,6 +80,7 @@ pub fn encode_assigned_plan(
         u16_to(&mut value, cord.slot_start);
         u16_to(&mut value, cord.item_capacity);
         u32_to(&mut value, cord.byte_capacity);
+        value.push(cord.track as u8);
         record(ASSIGNED_CORD, value)?;
     }
     for route in &plan.routes {

@@ -121,6 +121,7 @@ fn port(
         value_kind,
         direction,
         temporal,
+        abnormal_kind: None,
     }
 }
 

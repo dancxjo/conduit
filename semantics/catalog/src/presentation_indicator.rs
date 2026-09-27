@@ -58,6 +58,7 @@ pub fn indicator_presentation_inputs() -> Vec<PortDescriptor> {
         value_kind: kind_id(conduit_text::MORSE_PATTERN_VALUE_KIND),
         direction: PortDirection::Input,
         temporal: PortTemporal::Value,
+        abnormal_kind: None,
     }]
 }
 

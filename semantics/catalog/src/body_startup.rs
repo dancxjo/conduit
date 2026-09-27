@@ -69,6 +69,7 @@ fn pulse_port(direction: PortDirection) -> PortDescriptor {
         value_kind: kind_id(BOOL_INFO_ID),
         direction,
         temporal: PortTemporal::Flow { closes: true },
+        abnormal_kind: None,
     }
 }
 fn limits() -> CapabilityLimits {

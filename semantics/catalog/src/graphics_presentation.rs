@@ -19,6 +19,7 @@ pub fn graphics_presentation_contract() -> StandardKindContract {
             value_kind: kind_id(conduit_presentation::GRAPHICS_SCENE_KIND),
             direction: PortDirection::Input,
             temporal: PortTemporal::Value,
+            abnormal_kind: None,
         }],
         outputs: Vec::new(),
         configuration: Default::default(),

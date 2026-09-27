@@ -166,5 +166,6 @@ fn port(identity: &str, value_kind: &str, direction: PortDirection) -> PortDescr
         value_kind: kind_id(value_kind),
         direction,
         temporal: PortTemporal::Value,
+        abnormal_kind: None,
     }
 }

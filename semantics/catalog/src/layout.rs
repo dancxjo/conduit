@@ -147,6 +147,7 @@ fn port(name: &str, direction: PortDirection) -> PortDescriptor {
         value_kind: kind_id(LAYOUT_FRAME_KIND),
         direction,
         temporal: PortTemporal::Value,
+        abnormal_kind: None,
     }
 }
 fn u16_field(key: &str, default: u64) -> KindConfigurationField {

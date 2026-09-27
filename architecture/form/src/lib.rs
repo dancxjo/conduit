@@ -106,6 +106,7 @@ pub struct CheckedGear {
     pub shorthand: Option<(PortId, PortId)>,
     pub inputs: Vec<PortDescriptor>,
     pub outputs: Vec<PortDescriptor>,
+    pub terminal_transduction: Option<conduit_core::TerminalTransductionProfile>,
     pub configuration: Vec<ConfigurationEntry>,
     pub pool_references: Vec<conduit_core::SharedPoolId>,
 }
@@ -117,6 +118,7 @@ pub struct CheckedConnection {
     pub sink_gear_id: GearId,
     pub sink_port_id: PortId,
     pub value_kind: KindId,
+    pub track: conduit_core::ConnectionTrack,
     pub temporal: conduit_core::PortTemporal,
 }
 
@@ -290,6 +292,7 @@ pub struct CheckedCompositeFront {
     pub external_port: PortDescriptor,
     pub internal_gear_id: GearId,
     pub internal_port_id: PortId,
+    pub track: conduit_core::ConnectionTrack,
     pub terminal: CompositeFrontTerminal,
 }
 
@@ -521,6 +524,7 @@ pub fn parse_with_startup(
                 .clone(),
             internal_gear_id: binding.gear_id.clone(),
             internal_port_id: binding.gear_port_id.clone(),
+            track: binding.track,
             terminal: CompositeFrontTerminal::Independent,
         })
         .collect::<Vec<_>>();
@@ -537,6 +541,7 @@ pub fn parse_with_startup(
                 .clone(),
             internal_gear_id: binding.gear_id.clone(),
             internal_port_id: binding.gear_port_id.clone(),
+            track: binding.track,
             terminal: CompositeFrontTerminal::Independent,
         })
         .collect::<Vec<_>>();
@@ -753,9 +758,24 @@ fn validate_export_fronts(export: &CheckedExport, gears: &[CheckedGear]) -> Resu
             .ok_or_else(|| {
                 FormError::InvalidExport("front names a missing or wrongly directed Port".into())
             })?;
-            if endpoint.value_kind != front.external_port.value_kind
-                || front.terminal != CompositeFrontTerminal::Independent
-            {
+            let contract_matches = match front.track {
+                conduit_core::ConnectionTrack::Payload => {
+                    endpoint.value_kind == front.external_port.value_kind
+                        && endpoint.abnormal_kind == front.external_port.abnormal_kind
+                }
+                conduit_core::ConnectionTrack::NormalClose => {
+                    matches!(
+                        endpoint.temporal,
+                        conduit_core::PortTemporal::Flow { closes: true }
+                    ) && front.external_port.value_kind.as_str() == conduit_core::UNIT_INFO_ID
+                        && front.external_port.temporal == conduit_core::PortTemporal::Value
+                }
+                conduit_core::ConnectionTrack::AbnormalTerminal => {
+                    endpoint.abnormal_kind.as_ref() == Some(&front.external_port.value_kind)
+                        && front.external_port.temporal == conduit_core::PortTemporal::Value
+                }
+            };
+            if !contract_matches || front.terminal != CompositeFrontTerminal::Independent {
                 return Err(FormError::InvalidExport(
                     "front contract differs from its internal endpoint".into(),
                 ));
@@ -790,13 +810,17 @@ fn canonical_form_text(
                 conduit_core::PortDirection::Output => "output",
             };
             text.push_str(&format!(
-                "port:{}:{}:{}:{}|",
+                "port:{}:{}:{}:{}:{}|",
                 port.port_id.as_str(),
                 port.value_kind.as_str(),
                 direction,
-                port.temporal.as_str()
+                port.temporal.as_str(),
+                port.abnormal_kind
+                    .as_ref()
+                    .map_or("none", conduit_core::KindId::as_str)
             ));
         }
+        push_terminal_transduction_text(&mut text, gear.terminal_transduction.as_ref());
         for entry in &gear.configuration {
             text.push_str(&format!(
                 "cfg:{}={}|",
@@ -807,11 +831,12 @@ fn canonical_form_text(
     }
     for connection in connections {
         text.push_str(&format!(
-            "conn:{}:{}->{}:{}:{}|",
+            "conn:{}:{}->{}:{}:{}:{}|",
             connection.source_gear_id.as_str(),
             connection.source_port_id.as_str(),
             connection.sink_gear_id.as_str(),
             connection.sink_port_id.as_str(),
+            connection.track.as_str(),
             connection.temporal.as_str()
         ));
     }
@@ -827,16 +852,69 @@ fn canonical_form_text(
                 PortDirection::Output => "output",
             };
             text.push_str(&format!(
-                "front:{direction}:{}:{}:{}={}:{}:terminal-independent|",
+                "front:{direction}:{}:{}:{}:{}={}:{}:terminal-independent|",
                 front.external_port.port_id.as_str(),
                 front.external_port.value_kind.as_str(),
                 front.external_port.temporal.as_str(),
+                front
+                    .external_port
+                    .abnormal_kind
+                    .as_ref()
+                    .map_or("none", conduit_core::KindId::as_str),
                 front.internal_gear_id.as_str(),
                 front.internal_port_id.as_str(),
             ));
         }
     }
     text
+}
+
+fn push_terminal_transduction_text(
+    text: &mut String,
+    profile: Option<&conduit_core::TerminalTransductionProfile>,
+) {
+    use conduit_core::{
+        AbnormalTerminalTransduction as Abnormal, CancellationTransduction as Cancellation,
+        NormalCloseTransduction as Normal,
+    };
+    let Some(profile) = profile else {
+        return;
+    };
+    text.push_str("terminal-transduction:");
+    match &profile.normal_close {
+        Normal::NotAccepted => text.push_str("close/not-accepted"),
+        Normal::PropagateAfterDrain => text.push_str("close/propagate-after-drain"),
+        Normal::Consume => text.push_str("close/consume"),
+        Normal::FlushThenPropagate(bound) => text.push_str(&format!(
+            "close/flush-then-propagate/{}/{}",
+            bound.maximum_items, bound.maximum_bytes
+        )),
+        Normal::DomainSpecific { law } => text.push_str(&format!("close/domain/{}", law.as_str())),
+    }
+    text.push(':');
+    match &profile.abnormal {
+        Abnormal::NotAccepted => text.push_str("abnormal/not-accepted"),
+        Abnormal::PropagateAfterDrain => text.push_str("abnormal/propagate-after-drain"),
+        Abnormal::Recover => text.push_str("abnormal/recover"),
+        Abnormal::FinalizeThenPropagate(bound) => text.push_str(&format!(
+            "abnormal/finalize-then-propagate/{}/{}",
+            bound.maximum_items, bound.maximum_bytes
+        )),
+        Abnormal::DomainSpecific { law } => {
+            text.push_str(&format!("abnormal/domain/{}", law.as_str()))
+        }
+    }
+    text.push(':');
+    match &profile.cancellation {
+        Cancellation::NotCancellable => text.push_str("cancel/not-cancellable"),
+        Cancellation::Request { disposition_kind } => {
+            text.push_str(&format!("cancel/request/{}", disposition_kind.as_str()))
+        }
+        Cancellation::DomainSpecific { law } => {
+            text.push_str(&format!("cancel/domain/{}", law.as_str()))
+        }
+    }
+    text.push('|');
 }
 
 fn checked_form_id(
@@ -882,6 +960,15 @@ fn exported_contract_revision(
             push_identity_field(&mut canonical, front.external_port.port_id.as_str());
             push_identity_field(&mut canonical, front.external_port.value_kind.as_str());
             push_identity_field(&mut canonical, front.external_port.temporal.as_str());
+            push_identity_field(
+                &mut canonical,
+                front
+                    .external_port
+                    .abnormal_kind
+                    .as_ref()
+                    .map_or("none", conduit_core::KindId::as_str),
+            );
+            push_identity_field(&mut canonical, front.track.as_str());
             push_identity_field(
                 &mut canonical,
                 match front.terminal {

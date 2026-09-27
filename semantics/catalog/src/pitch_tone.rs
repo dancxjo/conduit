@@ -23,6 +23,7 @@ pub fn pitch_tone_contract() -> StandardKindContract {
             value_kind: kind_id(QUANTITY_INFO_ID),
             direction: PortDirection::Input,
             temporal: PortTemporal::Value,
+            abnormal_kind: None,
         }],
         outputs: Vec::new(),
         configuration: Default::default(),

@@ -184,6 +184,7 @@ fn source_offer(kind: &str, value_kind: &str, identity: String) -> CapabilityOff
             value_kind: kind_id(value_kind),
             direction: PortDirection::Output,
             temporal: PortTemporal::Current,
+            abnormal_kind: None,
         }],
         host_calls: vec![conduit_core::HostCallRequirement {
             contract_id: conduit_core::HostCallContractId::from(SOURCE_ADVANCE_HOST_CALL),
@@ -211,6 +212,7 @@ fn sink_offer() -> CapabilityOffer {
             value_kind: kind_id(conduit_core::SCALAR_INFO_ID),
             direction: PortDirection::Input,
             temporal: PortTemporal::Current,
+            abnormal_kind: None,
         }],
         outputs: Vec::new(),
         host_calls: vec![conduit_core::HostCallRequirement {

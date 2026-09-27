@@ -229,6 +229,7 @@ fn empty_control_source_offer(build_id: &str) -> CapabilityOffer {
             value_kind: kind_id(conduit_audio::MUSIC_CONTROL_INFO_ID),
             direction: PortDirection::Output,
             temporal: conduit_core::PortTemporal::Value,
+            abnormal_kind: None,
         }],
         implementation: conduit_core::ImplementationOffer {
             execution_profile_id: ExecutionProfileId::from(NOTE_SOURCE_PROFILE),
@@ -260,6 +261,7 @@ fn note_source_offer(build_id: &str) -> CapabilityOffer {
             value_kind: kind_id(conduit_audio::MUSIC_NOTE_INFO_ID),
             direction: PortDirection::Output,
             temporal: conduit_core::PortTemporal::Value,
+            abnormal_kind: None,
         }],
         implementation: conduit_core::ImplementationOffer {
             execution_profile_id: ExecutionProfileId::from(NOTE_SOURCE_PROFILE),

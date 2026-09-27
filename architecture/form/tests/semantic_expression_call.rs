@@ -1,7 +1,8 @@
 use conduit_core::{
     kind_id, port_id, CapabilityLimits, ExternalEffectBehavior, Kind, KindIdentity,
     KindSemanticLaw, PortDescriptor, PortDirection, PortTemporal, ReplayBehavior,
-    SemanticDependence, SuspensionBehavior, TemporalStateBehavior, VariabilityBehavior,
+    SemanticDependence, StructuredInfoType, SuspensionBehavior, TemporalStateBehavior,
+    VariabilityBehavior,
 };
 use conduit_form::{
     check_syntax_document, expand_canonical_form, parse_syntax_document, KindProjection,
@@ -14,6 +15,7 @@ fn port(name: &str, direction: PortDirection) -> PortDescriptor {
         value_kind: kind_id(conduit_core::SCALAR_INFO_ID),
         direction,
         temporal: PortTemporal::Value,
+        abnormal_kind: None,
     }
 }
 
@@ -170,4 +172,93 @@ fn literal_call_argument_lowers_to_an_admitted_expression_gear() {
     );
     assert_eq!(expanded.connections.len(), 4);
     expanded.validate_expansion().unwrap();
+}
+
+#[test]
+fn semantic_call_beneath_operator_lowers_to_call_then_pure_expression() {
+    let (startup, profile) = catalogs(pure_kind());
+    let source = "form calculate {\n source: test/scalar-source\n sink: test/scalar-sink\n source >> (math/negate(.) + 1) >> sink\n}\n";
+    let checked = check_syntax_document(&parse_syntax_document(source), &startup).unwrap();
+    let expanded = expand_canonical_form(&checked, "calculate", &profile).unwrap();
+    assert_eq!(
+        expanded
+            .gears
+            .iter()
+            .filter(|gear| gear.kind_id.as_str() == "math/negate")
+            .count(),
+        1
+    );
+    assert_eq!(
+        expanded
+            .gears
+            .iter()
+            .filter(|gear| gear.kind_contract_revision.as_str() == PURE_EXPRESSION_REVISION)
+            .count(),
+        1
+    );
+    assert_eq!(expanded.connections.len(), 3);
+    expanded.validate_expansion().unwrap();
+}
+
+#[test]
+fn semantic_call_beneath_structure_lowers_to_call_then_pure_expression() {
+    let (mut startup, mut profile) = catalogs(pure_kind());
+    let pair = StructuredInfoType::collection(
+        StructuredInfoType::leaf(kind_id(conduit_core::SCALAR_INFO_ID)).unwrap(),
+        Some(2),
+    )
+    .unwrap();
+    let pair_kind = pair.profile().unwrap().value_kind().clone();
+    startup.insert_structured_type("ScalarPair", pair).unwrap();
+    profile
+        .insert(KindProjection {
+            kind_id: kind_id("test/pair-sink"),
+            kind_contract_revision: KindIdentity::from("test/pair-sink@1"),
+            inputs: vec![PortDescriptor {
+                value_kind: pair_kind,
+                ..port("in", PortDirection::Input)
+            }],
+            outputs: vec![],
+            configuration: vec![],
+        })
+        .unwrap();
+    startup
+        .insert(KindSignature {
+            kind: "test/pair-sink".into(),
+            startup_parameters: vec![],
+        })
+        .unwrap();
+    let source = "form calculate {\n source: test/scalar-source\n sink: test/pair-sink\n source >> ([math/negate(.), 1]) >> sink\n}\n";
+    let checked = check_syntax_document(&parse_syntax_document(source), &startup).unwrap();
+    let expanded = expand_canonical_form(&checked, "calculate", &profile).unwrap();
+    assert_eq!(
+        expanded
+            .gears
+            .iter()
+            .filter(|gear| gear.kind_contract_revision.as_str() == PURE_EXPRESSION_REVISION)
+            .count(),
+        1
+    );
+    assert_eq!(expanded.connections.len(), 3);
+    expanded.validate_expansion().unwrap();
+}
+
+#[test]
+fn outer_expression_cannot_implicitly_synchronize_two_call_results() {
+    let (startup, profile) = catalogs(pure_kind());
+    let source = "form calculate {\n source: test/scalar-source\n sink: test/scalar-sink\n source >> (math/negate(.) + math/negate(.)) >> sink\n}\n";
+    let checked = check_syntax_document(&parse_syntax_document(source), &startup).unwrap();
+    let refusal = expand_canonical_form(&checked, "calculate", &profile).unwrap_err();
+    assert!(refusal.message.contains("multiple semantic call results"));
+}
+
+#[test]
+fn outer_expression_cannot_reuse_independent_input_beside_call_result() {
+    let (startup, profile) = catalogs(pure_kind());
+    let source = "form calculate {\n source: test/scalar-source\n sink: test/scalar-sink\n source >> (math/negate(.) + .) >> sink\n}\n";
+    let checked = check_syntax_document(&parse_syntax_document(source), &startup).unwrap();
+    let refusal = expand_canonical_form(&checked, "calculate", &profile).unwrap_err();
+    assert!(refusal
+        .message
+        .contains("depend only on that call result and constants"));
 }

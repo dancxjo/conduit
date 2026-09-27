@@ -242,6 +242,7 @@ fn boolean_contract_projects_a_toggle_with_explicit_choices() {
         shorthand: None,
         inputs: Vec::new(),
         outputs: Vec::new(),
+        terminal_transduction: None,
         configuration: vec![conduit_core::ConfigurationEntry {
             key: "initial".into(),
             value: ConfigurationValue::Bool(true),

@@ -2,12 +2,13 @@ use crate::prelude::*;
 
 use crate::{
     check_syntax_document, expand_canonical_form, parse_syntax_document, ConfigurationValue,
-    KindConfigurationField, KindConfigurationRule, KindProjection, KindSignature, ProfileCatalog,
-    StartupCatalog, StartupParameterSignature,
+    ExpandedCanonicalForm, KindConfigurationField, KindConfigurationRule, KindProjection,
+    KindSignature, ProfileCatalog, StartupCatalog, StartupParameterSignature,
 };
 use conduit_core::{
-    kind_id, port_id, CapabilityLimits, FrontStartupParameter, Kind, KindIdentity, PortDescriptor,
-    PortDirection, Quantity, QuantityUnit,
+    kind_id, port_id, AbnormalTerminalTransduction, CancellationTransduction, CapabilityLimits,
+    FrontStartupParameter, Kind, KindIdentity, KindSemanticLaw, NormalCloseTransduction,
+    PortDescriptor, PortDirection, Quantity, QuantityUnit, TerminalTransductionProfile,
 };
 
 fn canonical_kind(projection: KindProjection) -> Kind {
@@ -78,7 +79,58 @@ fn port(name: &str, direction: PortDirection) -> PortDescriptor {
         value_kind: kind_id("test/value"),
         direction,
         temporal: conduit_core::PortTemporal::Value,
+        abnormal_kind: None,
     }
+}
+
+#[test]
+fn canonical_terminal_transduction_survives_expansion_and_changes_identity() {
+    fn expand(
+        abnormal: AbnormalTerminalTransduction,
+    ) -> (ExpandedCanonicalForm, conduit_core::CheckedFormId) {
+        let mut kind = canonical_kind(KindProjection {
+            kind_id: kind_id("test/terminal-transform"),
+            kind_contract_revision: KindIdentity::from("test/terminal-transform@1"),
+            inputs: vec![port("input", PortDirection::Input)],
+            outputs: vec![port("output", PortDirection::Output)],
+            configuration: vec![],
+        });
+        kind.semantic_laws
+            .push(KindSemanticLaw::TerminalTransduction(
+                TerminalTransductionProfile {
+                    normal_close: NormalCloseTransduction::PropagateAfterDrain,
+                    abnormal,
+                    cancellation: CancellationTransduction::NotCancellable,
+                },
+            ));
+        let mut profiles = ProfileCatalog::new();
+        profiles.insert_kind(kind).unwrap();
+        let startup = profiles.startup_catalog().unwrap();
+        let source = "form main {\n transform: test/terminal-transform\n}\n";
+        let checked = check_syntax_document(&parse_syntax_document(source), &startup).unwrap();
+        let expanded = expand_canonical_form(&checked, "main", &profiles).unwrap();
+        let planned_form = crate::parse(source, &profiles).unwrap();
+        planned_form.validate_identities().unwrap();
+        assert_eq!(
+            planned_form.gears[0].terminal_transduction,
+            expanded.gears[0].terminal_transduction
+        );
+        (expanded, planned_form.checked_form_id)
+    }
+
+    let (propagating, propagating_checked) =
+        expand(AbnormalTerminalTransduction::PropagateAfterDrain);
+    assert_eq!(
+        propagating.gears[0].terminal_transduction,
+        Some(TerminalTransductionProfile {
+            normal_close: NormalCloseTransduction::PropagateAfterDrain,
+            abnormal: AbnormalTerminalTransduction::PropagateAfterDrain,
+            cancellation: CancellationTransduction::NotCancellable,
+        })
+    );
+    let (recovering, recovering_checked) = expand(AbnormalTerminalTransduction::Recover);
+    assert_ne!(propagating_checked, recovering_checked);
+    assert_ne!(propagating.expanded_form_id, recovering.expanded_form_id);
 }
 
 #[test]
@@ -102,12 +154,14 @@ fn canonical_keep_uses_the_existing_retained_current_gear_and_direction_sugar() 
                 value_kind: kind_id("value/scalar"),
                 direction: PortDirection::Input,
                 temporal: conduit_core::PortTemporal::Flow { closes: true },
+                abnormal_kind: None,
             }],
             outputs: vec![PortDescriptor {
                 port_id: port_id("out"),
                 value_kind: kind_id("value/scalar"),
                 direction: PortDirection::Output,
                 temporal: conduit_core::PortTemporal::Current,
+                abnormal_kind: None,
             }],
             configuration: vec![],
         })
@@ -133,6 +187,7 @@ fn pure_expression_lowers_to_one_exact_ordinary_gear() {
         value_kind: kind_id("value/u8"),
         direction,
         temporal: conduit_core::PortTemporal::Value,
+        abnormal_kind: None,
     };
     let mut profile = ProfileCatalog::new();
     profile
@@ -402,6 +457,256 @@ fn expand(source: &str, root: &str) -> crate::ExpandedCanonicalForm {
     expand_canonical_form(&checked, root, &profile).expect("source expands")
 }
 
+fn terminal_catalogs() -> (StartupCatalog, ProfileCatalog) {
+    let mut startup = StartupCatalog::new();
+    let mut profile = ProfileCatalog::new();
+    let definitions = [
+        KindProjection {
+            kind_id: kind_id("test/closing-source"),
+            kind_contract_revision: KindIdentity::from("test/closing-source@1"),
+            inputs: vec![],
+            outputs: vec![PortDescriptor {
+                port_id: port_id("out"),
+                value_kind: kind_id("test/value"),
+                direction: PortDirection::Output,
+                temporal: conduit_core::PortTemporal::Flow { closes: true },
+                abnormal_kind: Some(kind_id("test/fault")),
+            }],
+            configuration: vec![],
+        },
+        KindProjection {
+            kind_id: kind_id("test/standing-source"),
+            kind_contract_revision: KindIdentity::from("test/standing-source@1"),
+            inputs: vec![],
+            outputs: vec![PortDescriptor {
+                port_id: port_id("out"),
+                value_kind: kind_id("test/value"),
+                direction: PortDirection::Output,
+                temporal: conduit_core::PortTemporal::Flow { closes: false },
+                abnormal_kind: None,
+            }],
+            configuration: vec![],
+        },
+        KindProjection {
+            kind_id: kind_id("test/unit-sink"),
+            kind_contract_revision: KindIdentity::from("test/unit-sink@1"),
+            inputs: vec![PortDescriptor {
+                port_id: port_id("in"),
+                value_kind: kind_id(conduit_core::UNIT_INFO_ID),
+                direction: PortDirection::Input,
+                temporal: conduit_core::PortTemporal::Value,
+                abnormal_kind: None,
+            }],
+            outputs: vec![],
+            configuration: vec![],
+        },
+        KindProjection {
+            kind_id: kind_id("test/fault-sink"),
+            kind_contract_revision: KindIdentity::from("test/fault-sink@1"),
+            inputs: vec![PortDescriptor {
+                port_id: port_id("in"),
+                value_kind: kind_id("test/fault"),
+                direction: PortDirection::Input,
+                temporal: conduit_core::PortTemporal::Value,
+                abnormal_kind: None,
+            }],
+            outputs: vec![],
+            configuration: vec![],
+        },
+        KindProjection {
+            kind_id: kind_id("test/deadline"),
+            kind_contract_revision: KindIdentity::from("test/deadline@1"),
+            inputs: vec![],
+            outputs: vec![PortDescriptor {
+                port_id: port_id("out"),
+                value_kind: kind_id(conduit_core::CANCELLATION_REQUEST_INFO_ID),
+                direction: PortDirection::Output,
+                temporal: conduit_core::PortTemporal::Value,
+                abnormal_kind: None,
+            }],
+            configuration: vec![],
+        },
+        KindProjection {
+            kind_id: kind_id("test/cancellable-work"),
+            kind_contract_revision: KindIdentity::from("test/cancellable-work@1"),
+            inputs: vec![PortDescriptor {
+                port_id: port_id("halt"),
+                value_kind: kind_id(conduit_core::CANCELLATION_REQUEST_INFO_ID),
+                direction: PortDirection::Input,
+                temporal: conduit_core::PortTemporal::Value,
+                abnormal_kind: None,
+            }],
+            outputs: vec![],
+            configuration: vec![],
+        },
+        KindProjection {
+            kind_id: kind_id("test/name-only-cancellable-work"),
+            kind_contract_revision: KindIdentity::from("test/name-only-cancellable-work@1"),
+            inputs: vec![PortDescriptor {
+                port_id: port_id("cancel"),
+                value_kind: kind_id(conduit_core::UNIT_INFO_ID),
+                direction: PortDirection::Input,
+                temporal: conduit_core::PortTemporal::Value,
+                abnormal_kind: None,
+            }],
+            outputs: vec![],
+            configuration: vec![],
+        },
+        KindProjection {
+            kind_id: kind_id("test/ambiguous-cancellable-work"),
+            kind_contract_revision: KindIdentity::from("test/ambiguous-cancellable-work@1"),
+            inputs: vec!["first", "second"]
+                .into_iter()
+                .map(|name| PortDescriptor {
+                    port_id: port_id(name),
+                    value_kind: kind_id(conduit_core::CANCELLATION_REQUEST_INFO_ID),
+                    direction: PortDirection::Input,
+                    temporal: conduit_core::PortTemporal::Value,
+                    abnormal_kind: None,
+                })
+                .collect(),
+            outputs: vec![],
+            configuration: vec![],
+        },
+        KindProjection {
+            kind_id: kind_id("test/unit-pass"),
+            kind_contract_revision: KindIdentity::from("test/unit-pass@1"),
+            inputs: vec![PortDescriptor {
+                port_id: port_id("in"),
+                value_kind: kind_id(conduit_core::UNIT_INFO_ID),
+                direction: PortDirection::Input,
+                temporal: conduit_core::PortTemporal::Value,
+                abnormal_kind: None,
+            }],
+            outputs: vec![PortDescriptor {
+                port_id: port_id("out"),
+                value_kind: kind_id(conduit_core::UNIT_INFO_ID),
+                direction: PortDirection::Output,
+                temporal: conduit_core::PortTemporal::Value,
+                abnormal_kind: None,
+            }],
+            configuration: vec![],
+        },
+    ];
+    for definition in definitions {
+        startup
+            .insert(KindSignature {
+                kind: definition.kind_id.as_str().into(),
+                startup_parameters: vec![],
+            })
+            .unwrap();
+        profile.insert(definition).unwrap();
+    }
+    (startup, profile)
+}
+
+#[test]
+fn terminal_projections_lower_to_distinct_typed_connection_tracks() {
+    let (startup, profile) = terminal_catalogs();
+    let source = "form main {\n source: test/closing-source\n finish: test/unit-sink\n explain: test/fault-sink\n source| >> finish\n source! >> explain\n}\n";
+    let checked = check_syntax_document(&parse_syntax_document(source), &startup).unwrap();
+    let expanded = expand_canonical_form(&checked, "main", &profile).unwrap();
+
+    assert_eq!(expanded.connections.len(), 2);
+    let normal = expanded
+        .connections
+        .iter()
+        .find(|connection| connection.track == conduit_core::ConnectionTrack::NormalClose)
+        .expect("normal close is an exact graph track");
+    assert_eq!(normal.value_kind.as_str(), conduit_core::UNIT_INFO_ID);
+    assert_eq!(normal.temporal, conduit_core::PortTemporal::Value);
+    let abnormal = expanded
+        .connections
+        .iter()
+        .find(|connection| connection.track == conduit_core::ConnectionTrack::AbnormalTerminal)
+        .expect("abnormal terminal truth is an exact graph track");
+    assert_eq!(abnormal.value_kind.as_str(), "test/fault");
+    assert_eq!(abnormal.temporal, conduit_core::PortTemporal::Value);
+    assert_ne!(normal, abnormal);
+}
+
+#[test]
+fn normal_close_projection_refuses_a_nonclosing_flow() {
+    let (startup, profile) = terminal_catalogs();
+    let source = "form main {\n source: test/standing-source\n finish: test/unit-sink\n source| >> finish\n}\n";
+    let checked = check_syntax_document(&parse_syntax_document(source), &startup).unwrap();
+    let error = expand_canonical_form(&checked, "main", &profile).unwrap_err();
+    assert_eq!(error.code, "CND-FRM-046");
+    assert!(error.message.contains("legal only for a closing Flow"));
+}
+
+#[test]
+fn abnormal_projection_requires_the_exact_source_fore_terminal_kind() {
+    let (startup, profile) = terminal_catalogs();
+    let undeclared = "form main {\n source: test/standing-source\n explain: test/fault-sink\n source! >> explain\n}\n";
+    let checked = check_syntax_document(&parse_syntax_document(undeclared), &startup).unwrap();
+    let error = expand_canonical_form(&checked, "main", &profile).unwrap_err();
+    assert_eq!(error.code, "CND-FRM-046");
+    assert!(error.message.contains("exact abnormal terminal type"));
+
+    let wrong_sink = "form main {\n source: test/closing-source\n finish: test/unit-sink\n source! >> finish\n}\n";
+    let checked = check_syntax_document(&parse_syntax_document(wrong_sink), &startup).unwrap();
+    let error = expand_canonical_form(&checked, "main", &profile).unwrap_err();
+    assert_eq!(error.code, "CND-FRM-045");
+    assert!(error
+        .message
+        .contains("incompatible abnormal-terminal contracts"));
+}
+
+#[test]
+fn semantic_cancellation_is_an_ordinary_cord_to_an_exact_declared_fore_control() {
+    let (startup, profile) = terminal_catalogs();
+    let source = "form main {\n deadline: test/deadline\n work: test/cancellable-work\n deadline >> work~\n}\n";
+    let checked = check_syntax_document(&parse_syntax_document(source), &startup).unwrap();
+    let expanded = expand_canonical_form(&checked, "main", &profile).unwrap();
+    assert_eq!(expanded.connections.len(), 1);
+    let cancellation = &expanded.connections[0];
+    assert_eq!(cancellation.track, conduit_core::ConnectionTrack::Payload);
+    assert_eq!(
+        cancellation.value_kind.as_str(),
+        conduit_core::CANCELLATION_REQUEST_INFO_ID
+    );
+    assert_eq!(cancellation.sink_gear_id.as_str(), "main/work");
+    assert_eq!(cancellation.sink_port_id.as_str(), "halt");
+
+    let unavailable =
+        "form main {\n deadline: test/deadline\n work: test/unit-sink\n deadline >> work~\n}\n";
+    let checked = check_syntax_document(&parse_syntax_document(unavailable), &startup).unwrap();
+    let error = expand_canonical_form(&checked, "main", &profile).unwrap_err();
+    assert_eq!(error.code, "CND-FRM-046");
+    assert!(error.message.contains("does not declare the canonical"));
+
+    let misleading_name = "form main {\n deadline: test/deadline\n work: test/name-only-cancellable-work\n deadline >> work~\n}\n";
+    let checked = check_syntax_document(&parse_syntax_document(misleading_name), &startup).unwrap();
+    let error = expand_canonical_form(&checked, "main", &profile).unwrap_err();
+    assert_eq!(error.code, "CND-FRM-046");
+    assert!(error.message.contains("does not declare the canonical"));
+
+    let ambiguous = "form main {\n deadline: test/deadline\n work: test/ambiguous-cancellable-work\n deadline >> work~\n}\n";
+    let checked = check_syntax_document(&parse_syntax_document(ambiguous), &startup).unwrap();
+    let error = expand_canonical_form(&checked, "main", &profile).unwrap_err();
+    assert_eq!(error.code, "CND-FRM-046");
+    assert!(error
+        .message
+        .contains("more than one semantic cancellation control"));
+}
+
+#[test]
+fn terminal_projection_survives_a_nested_form_input_boundary() {
+    let (startup, profile) = terminal_catalogs();
+    let source = "form relay (\n input: test/value...| >> closed: Unit\n) {\n finish: test/unit-pass\n input| >> finish >> closed\n}\n\nform main {\n source: test/closing-source\n relay: relay\n sink: test/unit-sink\n source >> relay.input\n relay.closed >> sink\n}\n";
+    let checked = check_syntax_document(&parse_syntax_document(source), &startup).unwrap();
+    let expanded = expand_canonical_form(&checked, "main", &profile).unwrap();
+    let terminal = expanded
+        .connections
+        .iter()
+        .find(|connection| connection.track == conduit_core::ConnectionTrack::NormalClose)
+        .expect("nested Form boundary retains the normal-close track");
+    assert_eq!(terminal.source_gear_id.as_str(), "main/source");
+    assert_eq!(terminal.sink_gear_id.as_str(), "main/relay/finish");
+    assert_eq!(terminal.value_kind.as_str(), conduit_core::UNIT_INFO_ID);
+}
+
 #[test]
 fn parameterized_form_flattens_to_ordinary_primitive_graph() {
     let source = "form relay (\n count: Count = 1\n input: test/value >> output: test/value\n) {\n pass: test/pass(count)\n input >> pass >> output\n}\n\nform main {\n source: test/source\n relay: relay(2)\n sink: test/sink\n source >> relay >> sink\n}\n";
@@ -629,12 +934,14 @@ fn front_binding_preserves_flow_closure_and_current_observation_contracts() {
                 value_kind: kind_id("value/tick@1"),
                 direction: PortDirection::Input,
                 temporal: conduit_core::PortTemporal::Flow { closes: true },
+                abnormal_kind: None,
             }],
             outputs: vec![PortDescriptor {
                 port_id: port_id("value"),
                 value_kind: kind_id("value/count"),
                 direction: PortDirection::Output,
                 temporal: conduit_core::PortTemporal::Current,
+                abnormal_kind: None,
             }],
             configuration: vec![],
         })
@@ -649,6 +956,7 @@ fn front_binding_preserves_flow_closure_and_current_observation_contracts() {
                 value_kind: kind_id("value/tick@1"),
                 direction: PortDirection::Output,
                 temporal: conduit_core::PortTemporal::Flow { closes: true },
+                abnormal_kind: None,
             }],
             configuration: vec![],
         })
@@ -662,6 +970,7 @@ fn front_binding_preserves_flow_closure_and_current_observation_contracts() {
                 value_kind: kind_id("value/count"),
                 direction: PortDirection::Input,
                 temporal: conduit_core::PortTemporal::Current,
+                abnormal_kind: None,
             }],
             outputs: vec![],
             configuration: vec![],

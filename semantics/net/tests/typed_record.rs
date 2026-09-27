@@ -30,6 +30,7 @@ fn install_gallery_input_test_catalogs(
                 value_kind: kind_id("input/key-event@1"),
                 direction: PortDirection::Output,
                 temporal: PortTemporal::Flow { closes: false },
+                abnormal_kind: None,
             }],
             configuration: vec![],
         })
@@ -54,12 +55,14 @@ fn install_gallery_input_test_catalogs(
                 value_kind: kind_id("input/key-event@1"),
                 direction: PortDirection::Input,
                 temporal: PortTemporal::Flow { closes: false },
+                abnormal_kind: None,
             }],
             outputs: vec![PortDescriptor {
                 port_id: port_id("text"),
                 value_kind: kind_id(TEXT_INFO_ID),
                 direction: PortDirection::Output,
                 temporal: PortTemporal::Flow { closes: false },
+                abnormal_kind: None,
             }],
             configuration: vec![KindConfigurationField {
                 key: "layout".into(),
@@ -90,12 +93,14 @@ fn install_gallery_input_test_catalogs(
                 value_kind: kind_id(TEXT_INFO_ID),
                 direction: PortDirection::Input,
                 temporal: PortTemporal::Flow { closes: false },
+                abnormal_kind: None,
             }],
             outputs: vec![PortDescriptor {
                 port_id: port_id("submitted"),
                 value_kind: kind_id(TEXT_INFO_ID),
                 direction: PortDirection::Output,
                 temporal: PortTemporal::Flow { closes: false },
+                abnormal_kind: None,
             }],
             configuration: vec![KindConfigurationField {
                 key: "maximum-bytes".into(),
@@ -404,6 +409,7 @@ fn desk_telegraph_uses_reusable_text_record_fronts_around_exact_framing() {
                 value_kind: kind_id(TEXT_INFO_ID),
                 direction: conduit_core::PortDirection::Input,
                 temporal: conduit_core::PortTemporal::Value,
+                abnormal_kind: None,
             }],
             outputs: vec![],
             configuration: vec![],
@@ -471,6 +477,7 @@ fn night_radio_composes_existing_framing_queue_and_presentation() {
                 value_kind: kind_id(TEXT_INFO_ID),
                 direction: conduit_core::PortDirection::Input,
                 temporal: conduit_core::PortTemporal::Value,
+                abnormal_kind: None,
             }],
             outputs: vec![],
             configuration: vec![],

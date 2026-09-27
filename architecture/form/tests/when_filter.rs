@@ -12,6 +12,7 @@ fn port(name: &str, direction: PortDirection, temporal: PortTemporal) -> PortDes
         value_kind: kind_id(SCALAR_INFO_ID),
         direction,
         temporal,
+        abnormal_kind: None,
     }
 }
 
@@ -86,6 +87,7 @@ fn one_value_when_outputs_the_canonical_finite_optional_profile() {
                 value_kind: optional.clone(),
                 direction: PortDirection::Input,
                 temporal: PortTemporal::Value,
+                abnormal_kind: None,
             }],
             outputs: vec![],
             configuration: vec![],

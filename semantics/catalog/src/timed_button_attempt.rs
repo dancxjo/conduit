@@ -34,6 +34,7 @@ pub fn timed_button_attempt_definition() -> KindProjection {
                 .clone(),
             direction: PortDirection::Input,
             temporal: PortTemporal::Flow { closes: false },
+            abnormal_kind: None,
         }],
         outputs: vec![PortDescriptor {
             port_id: port_id("events"),
@@ -44,6 +45,7 @@ pub fn timed_button_attempt_definition() -> KindProjection {
                 .clone(),
             direction: PortDirection::Output,
             temporal: PortTemporal::Value,
+            abnormal_kind: None,
         }],
         configuration: vec![
             KindConfigurationField {

@@ -12,14 +12,14 @@ pub(super) struct StateExecutionBinding {
     play: ActivePlayIdentity,
     state: conduit_core::StateId,
     value_kind: conduit_core::KindId,
-    initial_value: Vec<u8>,
+    initial_value: Option<Vec<u8>>,
 }
 
 /// Private owned cell, never a cloneable serialized checkpoint.
 pub struct RetainedTypedState {
     cell: StateDelay<64>,
     provenance: RetainedStateProvenance,
-    initial_value: Vec<u8>,
+    initial_value: Option<Vec<u8>>,
 }
 
 /// Refusal preserves ownership; the lifecycle owner decides what happens next.

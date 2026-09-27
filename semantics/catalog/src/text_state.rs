@@ -104,12 +104,14 @@ fn contract(kind: &str, revision: &str, output: &str, summary: &str) -> Standard
             value_kind: kind_id(TEXT_PRESENTATION_VALUE_KIND),
             direction: PortDirection::Input,
             temporal: PortTemporal::Flow { closes: false },
+            abnormal_kind: None,
         }],
         outputs: vec![PortDescriptor {
             port_id: port_id(output),
             value_kind: kind_id(TEXT_PRESENTATION_VALUE_KIND),
             direction: PortDirection::Output,
             temporal: PortTemporal::Flow { closes: false },
+            abnormal_kind: None,
         }],
         configuration: vec![KindConfigurationField {
             key: "maximum-bytes".to_string(),

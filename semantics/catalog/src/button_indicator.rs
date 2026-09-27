@@ -114,6 +114,7 @@ pub fn button_indicator_state_contract() -> StandardKindContract {
             value_kind: kind_id(BOOL_INFO_ID),
             direction: PortDirection::Output,
             temporal: PortTemporal::Current,
+            abnormal_kind: None,
         }],
         configuration: Default::default(),
         limits: button_limits(),
@@ -136,6 +137,7 @@ pub fn indicator_state_presentation_contract() -> StandardKindContract {
             value_kind: kind_id(BOOL_INFO_ID),
             direction: PortDirection::Input,
             temporal: PortTemporal::Current,
+            abnormal_kind: None,
         }],
         outputs: Vec::new(),
         configuration: Default::default(),
@@ -253,6 +255,7 @@ fn button_port(name: &str, direction: PortDirection) -> PortDescriptor {
             .clone(),
         direction,
         temporal: PortTemporal::Flow { closes: false },
+        abnormal_kind: None,
     }
 }
 

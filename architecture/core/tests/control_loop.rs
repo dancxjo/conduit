@@ -54,12 +54,14 @@ fn connection() -> PlannedConnection {
         sink_placement_id: conduit_core::PlacementId::from("sink"),
         sink_port_id: PortId::from("in"),
         value_kind: conduit_core::KindId::from("value/test"),
+        track: Default::default(),
         temporal: conduit_core::PortTemporal::Value,
         pressure_policy: Default::default(),
         selected_line: Some(line("line-a")),
         admitted_lines: vec![line("line-a"), line("line-b")],
         item_capacity: 1,
         byte_capacity: 64,
+        abnormal_kind: None,
     }
 }
 

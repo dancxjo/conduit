@@ -141,6 +141,7 @@ mod tests {
             sink_gear_id: GearId::from(sink),
             sink_port_id: PortId::from("next"),
             value_kind: KindId::from("number/u32@1"),
+            track: conduit_core::ConnectionTrack::Payload,
             temporal: PortTemporal::Value,
         }
     }

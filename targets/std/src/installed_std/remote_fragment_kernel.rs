@@ -663,16 +663,54 @@ impl InstalledRemoteFragment {
             .map_err(|error| format!("admit remote std value: {error:?}"))
     }
     pub fn close_ingress(&mut self, endpoint: RemoteEndpointId) -> Result<(), String> {
+        self.close_ingress_with_disposition(
+            endpoint,
+            conduit_kernel::RemoteTerminalDisposition::NormalClose,
+        )
+    }
+    pub fn close_ingress_with_disposition(
+        &mut self,
+        endpoint: RemoteEndpointId,
+        disposition: conduit_kernel::RemoteTerminalDisposition,
+    ) -> Result<(), String> {
         let cord = self.endpoint_cord(endpoint, RemoteCordDirection::Ingress)?;
         self.scheduler
-            .close_remote_input(endpoint, cord)
+            .close_remote_input_with_disposition(endpoint, cord, disposition)
             .map_err(|error| format!("close remote std input: {error:?}"))
     }
+    pub fn close_ingress_abnormal(
+        &mut self,
+        endpoint: RemoteEndpointId,
+        terminal: &[u8],
+    ) -> Result<(), String> {
+        let cord = self.endpoint_cord(endpoint, RemoteCordDirection::Ingress)?;
+        let terminal = conduit_kernel::CanonicalValue::new(terminal)
+            .map_err(|error| format!("bound remote std abnormal terminal: {error:?}"))?;
+        self.scheduler
+            .close_remote_input_abnormal(endpoint, cord, terminal)
+            .map_err(|error| format!("close remote std input abnormally: {error:?}"))
+    }
     pub fn egress_terminal(&mut self, endpoint: RemoteEndpointId) -> Result<bool, String> {
+        Ok(self.egress_terminal_disposition(endpoint)?.is_some())
+    }
+    pub fn egress_terminal_disposition(
+        &mut self,
+        endpoint: RemoteEndpointId,
+    ) -> Result<Option<conduit_kernel::RemoteTerminalDisposition>, String> {
         let cord = self.endpoint_cord(endpoint, RemoteCordDirection::Egress)?;
         self.scheduler
-            .remote_egress_terminal(endpoint, cord)
+            .remote_egress_terminal_disposition(endpoint, cord)
             .map_err(|error| format!("complete remote std output: {error:?}"))
+    }
+    pub fn egress_abnormal_terminal(
+        &self,
+        endpoint: RemoteEndpointId,
+    ) -> Result<Option<Vec<u8>>, String> {
+        let cord = self.endpoint_cord(endpoint, RemoteCordDirection::Egress)?;
+        self.scheduler
+            .remote_egress_abnormal_terminal(endpoint, cord)
+            .map(|terminal| terminal.map(|value| value.as_slice().to_vec()))
+            .map_err(|error| format!("read remote std abnormal terminal: {error:?}"))
     }
     pub fn cancel(&mut self) -> Result<(), String> {
         self.pending_body_context = None;

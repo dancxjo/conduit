@@ -24,6 +24,7 @@ fn immutable_quantity_local_is_captured_by_the_lowered_expression() {
         value_kind: kind_id(value_kind),
         direction,
         temporal: PortTemporal::Value,
+        abnormal_kind: None,
     };
     let mut profile = ProfileCatalog::new();
     profile

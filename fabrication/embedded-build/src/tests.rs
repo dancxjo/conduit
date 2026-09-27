@@ -51,6 +51,7 @@ fn current_fragment_lowers_into_one_deterministic_fixed_image() {
     assert!(first.contains(
         "pressure_policy: conduit_kernel::scheduler::AssignedPressurePolicy::PreserveOrder"
     ));
+    assert!(first.contains("track: conduit_kernel::scheduler::AssignedConnectionTrack::Payload"));
     assert!(!first.contains("pressure_policy: Default::default()"));
     assert!(first.contains("pub const GENERATED_PLACEMENT_IDS"));
     assert!(!first.contains("ExecutionPlan"));
@@ -313,12 +314,14 @@ fn sealed_current_fragment() -> PlanFragment {
         value_kind: value_kind.clone(),
         direction: PortDirection::Output,
         temporal: conduit_core::PortTemporal::Value,
+        abnormal_kind: None,
     };
     let input = PortDescriptor {
         port_id: PortId::from("in"),
         value_kind: value_kind.clone(),
         direction: PortDirection::Input,
         temporal: conduit_core::PortTemporal::Value,
+        abnormal_kind: None,
     };
     let expected_sign = vec![
         ExpectedSign::PlanFragmentReceived,
@@ -376,6 +379,7 @@ fn sealed_current_fragment() -> PlanFragment {
                 },
                 inputs: Vec::new(),
                 outputs: vec![output],
+                terminal_transduction: None,
                 host_calls: Vec::new(),
                 resources: Vec::new(),
                 authority: Vec::new(),
@@ -403,6 +407,7 @@ fn sealed_current_fragment() -> PlanFragment {
                 },
                 inputs: vec![input],
                 outputs: Vec::new(),
+                terminal_transduction: None,
                 host_calls: Vec::new(),
                 resources: Vec::new(),
                 authority: Vec::new(),
@@ -419,12 +424,14 @@ fn sealed_current_fragment() -> PlanFragment {
             sink_placement_id: sink.clone(),
             sink_port_id: PortId::from("in"),
             value_kind,
+            track: Default::default(),
             temporal: conduit_core::PortTemporal::Value,
             pressure_policy: Default::default(),
             selected_line: None,
             admitted_lines: vec![],
             item_capacity: 1,
             byte_capacity: 9,
+            abnormal_kind: None,
         }],
         shared_pools: Vec::new(),
         startup_dependencies: vec![StartupDependency {

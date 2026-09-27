@@ -262,6 +262,7 @@ fn message_name(message: SessionMessage<'_>) -> &'static str {
         SessionMessage::Accepted { .. } => "accepted",
         SessionMessage::Delivered { .. } => "delivered",
         SessionMessage::InputClosed { .. } => "input-closed",
+        SessionMessage::InputAbnormal { .. } => "input-abnormal",
         SessionMessage::Cancelled { .. } => "cancelled",
         SessionMessage::Failed { .. } => "failed",
         SessionMessage::Terminal { .. } => "terminal",
@@ -335,7 +336,20 @@ pub extern "C" fn conduit_browser_remote_exchange(length: u32) -> i32 {
                 {
                     return Err("browser remote input close names an egress endpoint".into());
                 }
-                state.execution.close_ingress(session.endpoint)?;
+                state.execution.close_ingress(
+                    session.endpoint,
+                    conduit_kernel::RemoteTerminalDisposition::NormalClose,
+                )?;
+            }
+            SessionMessage::InputAbnormal { terminal, .. } => {
+                if session.direction
+                    != conduit_plan_lowering::lowering::RemoteCordDirection::Ingress
+                {
+                    return Err("browser remote input abnormal names an egress endpoint".into());
+                }
+                state
+                    .execution
+                    .close_ingress_abnormal(session.endpoint, terminal)?;
             }
             SessionMessage::Terminal { .. } => {}
             SessionMessage::Cancelled { .. } | SessionMessage::Failed { .. } => {
@@ -576,11 +590,17 @@ pub extern "C" fn conduit_browser_remote_delivered(endpoint: u16, sequence: u64)
 #[no_mangle]
 pub extern "C" fn conduit_browser_remote_terminal(endpoint: u16) -> i32 {
     with_state(|state| {
-        Ok(if state.execution.terminal(RemoteEndpointId(endpoint))? {
-            TERMINAL
-        } else {
-            WAITING
-        })
+        Ok(
+            if state
+                .execution
+                .terminal(RemoteEndpointId(endpoint))?
+                .is_some()
+            {
+                TERMINAL
+            } else {
+                WAITING
+            },
+        )
     })
 }
 
@@ -592,7 +612,7 @@ pub extern "C" fn conduit_browser_remote_finish() -> i32 {
         }
         for session in &state.sessions {
             if session.direction == conduit_plan_lowering::lowering::RemoteCordDirection::Egress {
-                if !state.execution.terminal(session.endpoint)? {
+                if state.execution.terminal(session.endpoint)?.is_none() {
                     return Err("browser remote egress is not terminal".into());
                 }
             } else if !session.machine.checkpoint().input_closed {
@@ -603,9 +623,39 @@ pub extern "C" fn conduit_browser_remote_finish() -> i32 {
         for session in &mut state.sessions {
             let final_sequence = session.machine.next_sequence();
             if session.direction == conduit_plan_lowering::lowering::RemoteCordDirection::Egress {
-                let closed = session
-                    .binding
-                    .frame(SessionMessage::InputClosed { final_sequence });
+                let disposition = state
+                    .execution
+                    .terminal(session.endpoint)?
+                    .ok_or_else(|| "browser remote egress is not terminal".to_string())?;
+                let abnormal_terminal = if disposition
+                    == conduit_kernel::RemoteTerminalDisposition::Abnormal
+                {
+                    Some(
+                        state
+                            .execution
+                            .abnormal_terminal(session.endpoint)?
+                            .ok_or_else(|| {
+                                "browser remote abnormal egress lost its typed terminal".to_string()
+                            })?,
+                    )
+                } else {
+                    None
+                };
+                let message = match disposition {
+                    conduit_kernel::RemoteTerminalDisposition::NormalClose => {
+                        SessionMessage::InputClosed { final_sequence }
+                    }
+                    conduit_kernel::RemoteTerminalDisposition::Abnormal => {
+                        SessionMessage::InputAbnormal {
+                            final_sequence,
+                            terminal: abnormal_terminal
+                                .as_ref()
+                                .expect("abnormal disposition prepared exact terminal")
+                                .as_slice(),
+                        }
+                    }
+                };
+                let closed = session.binding.frame(message);
                 session
                     .machine
                     .admit_outbound(closed)

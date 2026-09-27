@@ -257,12 +257,14 @@ mod tests {
             value_kind: KindId::from("value/text"),
             direction: PortDirection::Input,
             temporal: PortTemporal::Value,
+            abnormal_kind: None,
         };
         let output = PortDescriptor {
             port_id: PortId::from("text"),
             value_kind: KindId::from("value/text"),
             direction: PortDirection::Output,
             temporal: PortTemporal::Value,
+            abnormal_kind: None,
         };
         let pool_id = SharedPoolId::from("pool/workers");
         let request = line(
@@ -325,6 +327,7 @@ mod tests {
             },
             inputs: vec![],
             outputs: vec![],
+            terminal_transduction: None,
             host_calls: vec![],
             resources: vec![],
             authority: vec![],

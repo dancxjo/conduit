@@ -172,6 +172,7 @@ mod tests {
             limits: offered.limits,
             inputs: offered.inputs,
             outputs: offered.outputs,
+            terminal_transduction: None,
             host_calls: offered.host_calls,
             resources: Vec::new(),
             authority: Vec::new(),

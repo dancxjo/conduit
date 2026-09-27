@@ -257,6 +257,7 @@ fn text_port(direction: PortDirection) -> PortDescriptor {
         value_kind: kind_id(super::TEXT_VALUE_KIND),
         direction,
         temporal: PortTemporal::Value,
+        abnormal_kind: None,
     }
 }
 
@@ -266,6 +267,7 @@ fn morse_port(direction: PortDirection) -> PortDescriptor {
         value_kind: kind_id(MORSE_PATTERN_VALUE_KIND),
         direction,
         temporal: PortTemporal::Value,
+        abnormal_kind: None,
     }
 }
 

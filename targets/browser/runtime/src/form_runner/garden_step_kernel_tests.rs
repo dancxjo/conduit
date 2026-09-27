@@ -22,6 +22,7 @@ fn source_offer(interactive: bool) -> CapabilityOffer {
         value_kind: input.value_kind.clone(),
         direction: PortDirection::Output,
         temporal: PortTemporal::Value,
+        abnormal_kind: None,
     };
     let mut offer = crate::installed_browser::advertisement(
         "fixture-template".into(),

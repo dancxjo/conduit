@@ -156,6 +156,7 @@ pub(crate) fn offer_named(
         value_kind: profile.value_kind().clone(),
         direction,
         temporal: PortTemporal::Flow { closes: true },
+        abnormal_kind: None,
     };
     CapabilityOffer {
         startup_parameters: vec![conduit_core::FrontStartupParameter {

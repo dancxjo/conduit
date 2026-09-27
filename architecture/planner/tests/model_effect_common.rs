@@ -11,6 +11,7 @@ fn port(name: &str, value_kind: &str, direction: PortDirection) -> PortDescripto
         value_kind: kind_id(value_kind),
         direction,
         temporal: PortTemporal::Value,
+        abnormal_kind: None,
     }
 }
 
@@ -42,6 +43,7 @@ fn placement(
         },
         inputs,
         outputs,
+        terminal_transduction: None,
         host_calls: vec![],
         resources: vec![],
         authority: vec![],
@@ -136,12 +138,14 @@ pub fn wired_plan() -> Plan {
                 sink_placement_id: effect_id,
                 sink_port_id: port_id("request"),
                 value_kind: kind_id(ARGUMENT_KIND),
+                track: Default::default(),
                 temporal: PortTemporal::Value,
                 pressure_policy: Default::default(),
                 selected_line: None,
                 admitted_lines: vec![],
                 item_capacity: 1,
                 byte_capacity: 512,
+                abnormal_kind: None,
             }],
             shared_pools: vec![],
             startup_dependencies: vec![StartupDependency {

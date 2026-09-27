@@ -138,6 +138,7 @@ pub(super) fn offer() -> CapabilityOffer {
             value_kind: kind_id(BOOL_INFO_ID),
             direction: PortDirection::Input,
             temporal: PortTemporal::Current,
+            abnormal_kind: None,
         }],
         outputs: Vec::new(),
         host_calls: Vec::new(),
@@ -169,6 +170,7 @@ pub(super) fn source_offer() -> CapabilityOffer {
             value_kind: kind_id(BOOL_INFO_ID),
             direction: PortDirection::Output,
             temporal: PortTemporal::Current,
+            abnormal_kind: None,
         }],
         host_calls: vec![conduit_core::wait_host_call_requirement()],
         resource_requirements: vec![conduit_core::resource_requirement(

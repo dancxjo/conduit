@@ -6,7 +6,8 @@ fn admitted(bytes: u32, continuation: StateContinuation) -> AdmittedStateGraph {
         state_id: StateId::from("retained"),
         gear_id: GearId::from("cell"),
         value_kind: KindId::from("fixture/bounded-bytes@1"),
-        initial_value: vec![0],
+        initial_value: Some(vec![0]),
+        lifetime: conduit_core::StateLifetime::Step,
         retained: None,
         maximum_value_bytes: bytes,
         continuation,
@@ -60,7 +61,10 @@ fn huge_finite_capacity_is_retained_without_materializing_or_enumerating_it() {
             maximum_representations: u64::MAX
         }
     );
-    assert_eq!(graph.states[0].initial_value, [0]);
+    assert_eq!(
+        graph.states[0].initial_value.as_deref(),
+        Some([0].as_slice())
+    );
 }
 
 #[test]

@@ -1,7 +1,7 @@
 use std::fmt::Write;
 
 use conduit_core::{CancellationPolicy, TerminalPolicy};
-use conduit_kernel::scheduler::AssignedPressurePolicy;
+use conduit_kernel::scheduler::{AssignedConnectionTrack, AssignedPressurePolicy};
 use conduit_plan_lowering::lowering::FIXED_KERNEL_STORAGE_PORTS_PER_NODE;
 
 use crate::model::{
@@ -264,16 +264,28 @@ fn render_cords(output: &mut String, plan: &GeneratedEmbeddedPlan) {
                 "conduit_kernel::scheduler::AssignedPressurePolicy::CoalesceLatest"
             }
         };
+        let track = match cord.track {
+            AssignedConnectionTrack::Payload => {
+                "conduit_kernel::scheduler::AssignedConnectionTrack::Payload"
+            }
+            AssignedConnectionTrack::NormalClose => {
+                "conduit_kernel::scheduler::AssignedConnectionTrack::NormalClose"
+            }
+            AssignedConnectionTrack::AbnormalTerminal => {
+                "conduit_kernel::scheduler::AssignedConnectionTrack::AbnormalTerminal"
+            }
+        };
         writeln!(
             output,
-            "    conduit_kernel::scheduler::CordSpec {{ cord: conduit_kernel::CordId({}), source: {}, sink: {}, slot_start: {}, item_capacity: {}, byte_capacity: {}, pressure_policy: {} }},",
+            "    conduit_kernel::scheduler::CordSpec {{ cord: conduit_kernel::CordId({}), source: {}, sink: {}, slot_start: {}, item_capacity: {}, byte_capacity: {}, pressure_policy: {}, track: {} }},",
             cord.cord,
             source,
             sink,
             cord.slot_start,
             cord.item_capacity,
             cord.byte_capacity,
-            pressure_policy
+            pressure_policy,
+            track
         )
         .expect("String writes cannot fail");
     }

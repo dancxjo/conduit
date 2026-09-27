@@ -149,6 +149,7 @@ pub(crate) fn checked_front(
                 RuntimePortDirection::Output => PortDirection::Output,
             },
             temporal: canonical_port_temporal(port.temporal),
+            abnormal_kind: None,
         };
         match descriptor.direction {
             PortDirection::Input => inputs.push(descriptor),

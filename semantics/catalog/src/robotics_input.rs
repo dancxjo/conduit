@@ -117,6 +117,7 @@ fn observation_contract(
             value_kind: kind_id(info),
             direction: PortDirection::Output,
             temporal: PortTemporal::Current,
+            abnormal_kind: None,
         }],
         configuration: Default::default(),
         limits: CapabilityLimits {

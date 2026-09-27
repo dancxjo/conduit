@@ -385,6 +385,7 @@ fn port(name: &str, info: &str, direction: PortDirection) -> PortDescriptor {
         value_kind: kind_id(info),
         direction,
         temporal: PortTemporal::Current,
+        abnormal_kind: None,
     }
 }
 
