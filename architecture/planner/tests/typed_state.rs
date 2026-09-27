@@ -22,6 +22,7 @@ fn authored_state_reaches_an_exact_plan_and_rejects_silent_initialization_or_cap
     source.inputs.clear();
     source.shorthand = None;
     source.outputs[0].temporal = PortTemporal::Flow { closes: true };
+    source.semantic_contract.configuration.clear();
     startup
         .insert(conduit_form::KindSignature {
             kind: "fixture/typed-flow".into(),
@@ -29,12 +30,16 @@ fn authored_state_reaches_an_exact_plan_and_rejects_silent_initialization_or_cap
         })
         .unwrap();
     profile
-        .insert(conduit_form::KindProjection {
+        .insert_kind(Kind {
+            startup_parameters: vec![],
+            shorthand: None,
             kind_id: source.kind_id.clone(),
             kind_contract_revision: source.kind_contract_revision.clone(),
             inputs: vec![],
             outputs: source.outputs.clone(),
             configuration: vec![],
+            semantic_laws: source.semantic_contract.laws.clone(),
+            limits: source.limits.clone(),
         })
         .unwrap();
     let form = conduit_form::parse_with_startup(
