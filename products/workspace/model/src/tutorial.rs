@@ -10,10 +10,10 @@ use conduit_presentation::{
     ActionAvailability, ApplicationEventKind, Face, FaceContext, FaceFocus, FaceRefusal,
     GenerativePresenterBounds, GenerativePresenterRefusal, GenerativePresenterRequest,
     OrifinaPresentationRefusal, Presentation, PresentationAction, PresentationActionAvailability,
-    PresentationDisclosureLevel, PresentationError, PresentationMechanism, PresentationProperty,
-    PresentationPropertyValue, PresentationText, SemanticAction, SemanticApplicationView,
-    SemanticPresentationNode, StatusKind, orifina_completion_presenter_policy,
-    project_orifina_purpose_presentation,
+    PresentationDisclosureLevel, PresentationError, PresentationInput, PresentationMechanism,
+    PresentationProperty, PresentationPropertyValue, PresentationText, SemanticAction,
+    SemanticApplicationView, SemanticPresentationNode, StatusKind,
+    orifina_completion_presenter_policy, project_orifina_purpose_presentation,
 };
 use serde::{Deserialize, Serialize};
 
@@ -162,10 +162,20 @@ fn tutorial_face(
     face.presentation.actions.push(PresentationAction {
         identity: identity.into(),
         intent: intent.into(),
-        target: body_subject,
+        target: body_subject.clone(),
         label: label.into(),
         disclosure: PresentationDisclosureLevel::CurrentAction,
         availability: PresentationActionAvailability::Available,
+    });
+    face.presentation.inputs.push(PresentationInput {
+        identity: "input/tutorial-action".into(),
+        target: body_subject.clone(),
+        value_kind: conduit_presentation::UTF8_TEXT_VALUE_KIND.into(),
+        maximum_bytes: 256,
+        allow_empty: true,
+        label: label.into(),
+        accessibility_name: label.into(),
+        submit_action: identity.into(),
     });
     face.presentation = Presentation::new_with_interactions(
         face.presentation.revision,

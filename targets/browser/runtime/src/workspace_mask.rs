@@ -24,10 +24,11 @@ use conduit_plan_lowering::lowering::{
 };
 use conduit_presentation::{
     install_mask_form_value_aliases, AdmittedMaskFormRoutes, BodyMaskWardrobe,
-    ManifestationLifecycle, MaskForm, MaskShow, MaskWardrobe, MaskWardrobeAction,
-    MaskWardrobeControl, MaskWardrobeControlEvidence, MaskWardrobeLifetime, PlannedMaskForm,
-    Presentation, SealedMaskFormRoute, PRESENTATION_INTERACTION_VALUE_KIND,
-    PRESENTATION_VALUE_KIND, SHOW_VALUE_KIND,
+    ManifestationLifecycle, MaskForm, MaskInteractionCorrelation, MaskShow, MaskWardrobe,
+    MaskWardrobeAction, MaskWardrobeControl, MaskWardrobeControlEvidence, MaskWardrobeLifetime,
+    PlannedMaskForm, Presentation, PresentationAction, PresentationInput, PresentationInteraction,
+    SealedMaskFormRoute, PRESENTATION_INTERACTION_VALUE_KIND, PRESENTATION_VALUE_KIND,
+    SHOW_VALUE_KIND,
 };
 use serde::{Deserialize, Serialize};
 use std::collections::BTreeMap;
@@ -37,8 +38,11 @@ const MASK_OPERATION: &str = "browser.host/dom-mask@1";
 const MASK_BYTES: u32 = 512 * 1024;
 #[path = "workspace_mask_execution.rs"]
 mod execution;
+#[path = "workspace_mask_interaction.rs"]
+mod interaction;
 #[path = "workspace_mask_plan.rs"]
 mod plan;
+pub use interaction::{BrowserMaskInteraction, BrowserMaskInteractionReceipt};
 
 #[derive(Debug, Clone, Serialize)]
 pub struct BrowserMaskEffect {
@@ -53,6 +57,7 @@ pub struct BrowserMaskEffect {
     pub presentation_revision: u64,
     pub text: Vec<conduit_presentation::PresentationText>,
     pub actions: Vec<conduit_presentation::PresentationAction>,
+    pub inputs: Vec<PresentationInput>,
 }
 
 #[derive(Debug, Clone, Deserialize)]
@@ -76,6 +81,7 @@ pub struct BrowserMaskObservation {
     pub presentation: Presentation,
     pub mask_show: MaskShow,
     pub execution: BrowserMaskExecutionReceipt,
+    pub interaction: Option<BrowserMaskInteractionReceipt>,
 }
 
 #[derive(Debug, Clone, Serialize)]
@@ -117,6 +123,9 @@ pub struct BrowserMaskRuntime {
     pending_node: conduit_kernel::NodeId,
     pending_request: RequestId,
     fore_receipt: Vec<BrowserMaskForeReceipt>,
+    pending_interaction_node: Option<conduit_kernel::NodeId>,
+    pending_interaction_request: Option<RequestId>,
+    interaction_receipt: Option<BrowserMaskInteractionReceipt>,
 }
 
 impl BrowserMaskRuntime {
@@ -257,6 +266,7 @@ impl BrowserMaskRuntime {
             presentation_revision: presentation.revision,
             text: presentation.text.clone(),
             actions: presentation.actions.clone(),
+            inputs: presentation.inputs.clone(),
         };
         Ok((
             Self {
@@ -272,6 +282,9 @@ impl BrowserMaskRuntime {
                 pending_node: pending.node,
                 pending_request: pending.request,
                 fore_receipt,
+                pending_interaction_node: None,
+                pending_interaction_request: None,
+                interaction_receipt: None,
             },
             effect,
         ))
@@ -345,10 +358,18 @@ impl BrowserMaskRuntime {
                 offer.sequence,
             )
             .map_err(|error| format!("deliver browser Mask Show: {error:?}"))?;
-        execution::drive_mask_to_terminal(
-            &mut self.scheduler,
-            [&self.show_boundary, &self.interaction_boundary],
-        )?;
+        let pending = self
+            .scheduler
+            .next_host_request()
+            .ok_or("browser Mask did not suspend for DOM interaction")?;
+        if pending.request != RequestId(1) {
+            return Err(format!(
+                "browser Mask exposed unexpected interaction request {:?}",
+                pending.request
+            ));
+        }
+        self.pending_interaction_node = Some(pending.node);
+        self.pending_interaction_request = Some(pending.request);
         self.show = self
             .show
             .transition(
@@ -394,6 +415,7 @@ impl BrowserMaskRuntime {
                     })
                     .collect(),
             },
+            interaction: self.interaction_receipt.clone(),
         }
     }
 }
