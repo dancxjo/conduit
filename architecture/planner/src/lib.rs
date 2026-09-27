@@ -540,7 +540,7 @@ pub(crate) fn plan_validated_form_with_connection_limits(
             capability.capability_id.as_str()
         )));
         placement_lookup.insert(gear.gear_id.clone(), placement_id.clone());
-        planned_gears.push(PlannedGear {
+        planned_gears.push(conduit_core::planned_gear_from_parts! {
             placement_id,
             gear_id: gear.gear_id.clone(),
             kind_id: capability.kind_id.clone(),
@@ -558,6 +558,7 @@ pub(crate) fn plan_validated_form_with_connection_limits(
             limits: capability.limits.clone(),
             inputs: capability.inputs.clone(),
             outputs: capability.outputs.clone(),
+            semantic_contract: capability.semantic_contract.clone(),
             terminal_transduction: gear.terminal_transduction.clone(),
             host_calls: capability.host_calls.clone(),
             resources: resource_bindings,
@@ -976,6 +977,13 @@ fn validate_operation_capability(
     if capability.checked_front() != gear.checked_front() {
         return Err(PlannerError::IncompatibleCheckedFront(format!(
             "gear '{}' front differs from capability '{}' front",
+            gear.gear_id.as_str(),
+            capability.capability_id.as_str()
+        )));
+    }
+    if !gear.accepts_semantic_contract(capability) {
+        return Err(PlannerError::WrongKindContractRevision(format!(
+            "gear '{}' semantic laws or configuration contract differ from capability '{}'",
             gear.gear_id.as_str(),
             capability.capability_id.as_str()
         )));

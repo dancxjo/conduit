@@ -3,8 +3,8 @@ mod button;
 pub use button::append_offers as append_button_offers;
 
 use conduit_core::{
-    resource_offer, resource_requirement, ArtifactId, CapabilityId, CapabilityOffer,
-    ExecutionProfileId, HostAdvertisement, ImplementationId, ResourceOffer, INPUT_RESOURCE_CLASS,
+    resource_offer, resource_requirement, ArtifactId, CapabilityId, ExecutionProfileId,
+    HostAdvertisement, ImplementationId, ResourceOffer, INPUT_RESOURCE_CLASS,
 };
 use conduit_human::{KeyEvent, KeyModifiers, KeyTransition};
 use std::sync::{Arc, Mutex};
@@ -259,7 +259,7 @@ pub fn append_offer(advertisement: &mut HostAdvertisement) -> Result<(), String>
         resource_offer(&format!("{base}/input"), INPUT_RESOURCE_CLASS, 1),
     ];
     append_resources(&mut advertisement.resources, resources)?;
-    let contract = conduit_semantic_catalog::keyboard_contract();
+    let contract = conduit_semantic_catalog::keyboard_semantic_contract();
     let mut requirements = vec![
         resource_requirement(INPUT_RESOURCE_CLASS, 1),
         resource_requirement(WINDOW_INPUT_RESOURCE, 1),
@@ -267,24 +267,27 @@ pub fn append_offer(advertisement: &mut HostAdvertisement) -> Result<(), String>
         resource_requirement(OPERATION_RESOURCE, 1),
     ];
     requirements.sort();
-    advertisement.capabilities.push(CapabilityOffer {
-        startup_parameters: Vec::new(),
-        shorthand: None,
-        capability_id: CapabilityId::from("patchbay-native/input-keyboard@1"),
-        kind_id: contract.kind_id,
-        kind_contract_revision: conduit_semantic_catalog::keyboard_contract_revision(),
-        implementation: conduit_core::ImplementationOffer {
-            execution_profile_id: ExecutionProfileId::from(NATIVE_KEYBOARD_PROFILE),
-            implementation_id: ImplementationId::from(NATIVE_KEYBOARD_IMPLEMENTATION),
-            artifact_id: ArtifactId::from(NATIVE_KEYBOARD_ARTIFACT),
-        },
-        inputs: contract.inputs,
-        outputs: contract.outputs,
-        host_calls: vec![conduit_std_offers::next_key_event_host_call_requirement()],
-        resource_requirements: requirements,
-        authority_requirements: Vec::new(),
-        limits: contract.limits,
-    });
+    advertisement
+        .capabilities
+        .push(conduit_core::capability_offer_from_parts! {
+            semantic_contract: contract.semantic_contract(),
+            startup_parameters: contract.startup_parameters.clone(),
+            shorthand: contract.shorthand.clone(),
+            capability_id: CapabilityId::from("patchbay-native/input-keyboard@1"),
+            kind_id: contract.kind_id,
+            kind_contract_revision: conduit_semantic_catalog::keyboard_contract_revision(),
+            implementation: conduit_core::ImplementationOffer {
+                execution_profile_id: ExecutionProfileId::from(NATIVE_KEYBOARD_PROFILE),
+                implementation_id: ImplementationId::from(NATIVE_KEYBOARD_IMPLEMENTATION),
+                artifact_id: ArtifactId::from(NATIVE_KEYBOARD_ARTIFACT),
+            },
+            inputs: contract.inputs,
+            outputs: contract.outputs,
+            host_calls: vec![conduit_std_offers::next_key_event_host_call_requirement()],
+            resource_requirements: requirements,
+            authority_requirements: Vec::new(),
+            limits: contract.limits,
+        });
     advertisement
         .capabilities
         .sort_by(|left, right| left.capability_id.cmp(&right.capability_id));

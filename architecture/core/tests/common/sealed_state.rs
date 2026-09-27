@@ -30,7 +30,8 @@ pub fn fragment() -> PlanFragment {
         host_id: HostId::from("host"),
         boot_id: BootId::from("boot"),
         offer_generation: OfferGeneration(1),
-        placements: vec![PlannedGear {
+        placements: vec![conduit_core::planned_gear_from_parts! {
+            semantic_contract: Default::default(),
             placement_id: PlacementId::from("placement"),
             gear_id: state.gear_id.clone(),
             kind_id: kind_id("fixture/state"),

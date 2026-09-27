@@ -106,6 +106,7 @@ pub struct CheckedGear {
     pub shorthand: Option<(PortId, PortId)>,
     pub inputs: Vec<PortDescriptor>,
     pub outputs: Vec<PortDescriptor>,
+    pub semantic_contract: conduit_core::KindSemanticContract,
     pub terminal_transduction: Option<conduit_core::TerminalTransductionProfile>,
     pub resource_ports: Vec<conduit_core::ResourcePortContract>,
     pub configuration: Vec<ConfigurationEntry>,

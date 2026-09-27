@@ -419,7 +419,12 @@ fn source_offer(
     implementation: &str,
     fields: &[&str],
 ) -> CapabilityOffer {
-    CapabilityOffer {
+    let semantic_contract = conduit_core::KindSemanticContract {
+        configuration: source_definition(kind).configuration,
+        laws: vec![],
+    };
+    conduit_core::capability_offer_from_parts! {
+        semantic_contract: semantic_contract,
         startup_parameters: fields
             .iter()
             .map(|name| FrontStartupParameter {
@@ -447,7 +452,8 @@ fn source_offer(
 }
 
 fn apply_offer() -> CapabilityOffer {
-    CapabilityOffer {
+    conduit_core::capability_offer_from_parts! {
+        semantic_contract: Default::default(),
         startup_parameters: vec![],
         shorthand: None,
         capability_id: CapabilityId::from("patchbay-apply"),

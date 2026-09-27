@@ -271,7 +271,8 @@ mod tests {
 
     fn placement() -> PlannedGear {
         let offered = offer();
-        PlannedGear {
+        conduit_core::planned_gear_from_parts! {
+            semantic_contract: Default::default(),
             placement_id: "capture-placement".into(),
             gear_id: "capture".into(),
             kind_id: offered.kind_id,

@@ -2,14 +2,13 @@ use std::collections::BTreeMap;
 
 use conduit_core::{
     kind_id, ArtifactId, AuthorityContractId, AuthorityGrant, AuthorityGrantId, BootId,
-    CapabilityId, CapabilityLimits, CapabilityOffer, ExecutionProfileId, HostAdvertisement,
-    HostCallContractId, HostId, HostProfileId, ImplementationId, KindIdentity, OfferGeneration,
-    PlannerCapabilityOffer, PlannerLimits, PlannerProfileId, PlanningRequestAuthority,
-    PlayUnsatisfiedReason, PoolMemberLimits, PoolOperationId, PoolRealizationHealth,
-    PoolRealizationObservation, PoolSelectionDisposition, PoolSelectionEvidence, ResourceHealth,
-    ResourceObservation, SharedPoolId, SignId, PROTOCOL_VERSION,
-    SHARED_POOL_ADMIT_AUTHORITY_CONTRACT, SHARED_POOL_ADMIT_HOST_CALL_CONTRACT,
-    SHARED_POOL_AUTHORITY_SUBJECT_KIND,
+    CapabilityId, CapabilityLimits, ExecutionProfileId, HostAdvertisement, HostCallContractId,
+    HostId, HostProfileId, ImplementationId, KindIdentity, OfferGeneration, PlannerCapabilityOffer,
+    PlannerLimits, PlannerProfileId, PlanningRequestAuthority, PlayUnsatisfiedReason,
+    PoolMemberLimits, PoolOperationId, PoolRealizationHealth, PoolRealizationObservation,
+    PoolSelectionDisposition, PoolSelectionEvidence, ResourceHealth, ResourceObservation,
+    SharedPoolId, SignId, PROTOCOL_VERSION, SHARED_POOL_ADMIT_AUTHORITY_CONTRACT,
+    SHARED_POOL_ADMIT_HOST_CALL_CONTRACT, SHARED_POOL_AUTHORITY_SUBJECT_KIND,
 };
 use conduit_form::{
     check_syntax_document, expand_canonical_form, parse_syntax_document, KindProjection,
@@ -90,7 +89,8 @@ fn consumer_host(front: &conduit_core::CheckedFront) -> HostAdvertisement {
         profile: HostProfileId::from("test/consumer@1"),
         bases: vec![],
         resources: vec![],
-        capabilities: vec![CapabilityOffer {
+        capabilities: vec![conduit_core::capability_offer_from_parts! {
+            semantic_contract: Default::default(),
             startup_parameters: front.startup_parameters().to_vec(),
             shorthand: front
                 .shorthand()

@@ -351,57 +351,19 @@ pub fn palette_contracts() -> Vec<StandardKindContract> {
 
 #[cfg(feature = "form-catalog")]
 pub fn standard_profile_catalog() -> conduit_form::ProfileCatalog {
-    use conduit_form::{
-        KindConfigurationField, KindConfigurationRule, KindProjection, ProfileCatalog,
-    };
+    use conduit_form::ProfileCatalog;
 
     let mut catalog = ProfileCatalog::new();
     for (contract, revision) in supported_nucleus_contracts_with_revisions() {
+        let kind = match contract.kind_id.as_str() {
+            MATH_CLAMP_KIND => math_clamp_semantic_contract(),
+            MATH_SCALE_KIND => math_scale_semantic_contract(),
+            MATH_DEADBAND_KIND => math_deadband_semantic_contract(),
+            AUDIO_TONE_KIND => audio_tone_semantic_contract(),
+            _ => contract.into_semantic_contract(revision),
+        };
         catalog
-            .insert(KindProjection {
-                kind_contract_revision: conduit_core::KindIdentity::from(revision),
-                kind_id: contract.kind_id,
-                inputs: contract.inputs,
-                outputs: contract.outputs,
-                configuration: contract
-                    .configuration
-                    .into_iter()
-                    .map(|field| KindConfigurationField {
-                        key: field.key,
-                        default_value: field.default_value,
-                        rule: match field.rule {
-                            KindConfigurationRule::Any => KindConfigurationRule::Any,
-                            KindConfigurationRule::U64Range { minimum, maximum } => {
-                                KindConfigurationRule::U64Range { minimum, maximum }
-                            }
-                            KindConfigurationRule::I64Range { minimum, maximum } => {
-                                KindConfigurationRule::I64Range { minimum, maximum }
-                            }
-                            KindConfigurationRule::DurationMillis { minimum, maximum } => {
-                                KindConfigurationRule::DurationMillis { minimum, maximum }
-                            }
-                            KindConfigurationRule::QuantityRange {
-                                minimum,
-                                maximum,
-                                canonical_unit,
-                            } => KindConfigurationRule::QuantityRange {
-                                minimum,
-                                maximum,
-                                canonical_unit,
-                            },
-                            KindConfigurationRule::TextBytes { maximum } => {
-                                KindConfigurationRule::TextBytes { maximum }
-                            }
-                            KindConfigurationRule::TextOneOf { values } => {
-                                KindConfigurationRule::TextOneOf { values }
-                            }
-                            KindConfigurationRule::Structured { profile } => {
-                                KindConfigurationRule::Structured { profile }
-                            }
-                        },
-                    })
-                    .collect(),
-            })
+            .insert_kind(kind)
             .expect("standard catalog kinds are unique");
     }
     catalog

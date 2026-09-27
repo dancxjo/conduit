@@ -45,20 +45,7 @@ pub fn tick_contract() -> StandardKindContract {
 }
 
 pub fn tick_semantic_contract() -> Kind {
-    let contract = tick_contract();
-    Kind {
-        startup_parameters: super::startup_front(&contract.configuration),
-        shorthand: None,
-        kind_id: contract.kind_id,
-        kind_contract_revision: conduit_time::TICK_CONTRACT_REVISION.into(),
-        inputs: contract.inputs,
-        outputs: contract.outputs,
-        configuration: contract.configuration,
-        semantic_laws: alloc::vec![conduit_core::KindSemanticLaw::Terminal(
-            contract.terminal_behavior
-        )],
-        limits: contract.limits,
-    }
+    conduit_time::tick_semantic_contract()
 }
 
 #[cfg(test)]

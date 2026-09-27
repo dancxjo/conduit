@@ -16,7 +16,8 @@ pub(super) static SINK: BrowserInstallation = BrowserInstallation {
 
 pub(crate) fn offer() -> CapabilityOffer {
     let definition = conduit_data::measurement_plot_kind_projection();
-    CapabilityOffer {
+    conduit_core::capability_offer_from_parts! {
+        semantic_contract: Default::default(),
         kind_id: KIND.into(),
         kind_contract_revision: "conduit-test/measurement-plot-sink@1".into(),
         capability_id: KIND.into(),

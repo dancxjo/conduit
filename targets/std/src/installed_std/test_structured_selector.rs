@@ -158,7 +158,8 @@ pub(crate) fn offer_named(
         temporal: PortTemporal::Flow { closes: true },
         abnormal_kind: None,
     };
-    CapabilityOffer {
+    conduit_core::capability_offer_from_parts! {
+        semantic_contract: Default::default(),
         startup_parameters: vec![conduit_core::FrontStartupParameter {
             name: "value".into(),
             value_type: conduit_core::kind_id("value/text"),
@@ -229,6 +230,19 @@ pub(crate) fn raw_configuration(value: &[u8]) -> Vec<ConfigurationEntry> {
         key: "value".into(),
         value: ConfigurationValue::Text(hex(value)),
     }]
+}
+
+pub(crate) fn bind_text_configuration(
+    offer: &mut CapabilityOffer,
+    key: &str,
+    default_value: String,
+    maximum: u32,
+) {
+    offer.semantic_contract.configuration = vec![conduit_core::KindConfigurationField {
+        key: key.into(),
+        default_value: ConfigurationValue::Text(default_value),
+        rule: conduit_core::KindConfigurationRule::TextBytes { maximum },
+    }];
 }
 
 fn budget(placement: &PlannedGear) -> Result<BackBudget, String> {

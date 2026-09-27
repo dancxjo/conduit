@@ -171,7 +171,8 @@ fn scalar_source_offer(kind: &str, values: [Option<Scalar>; 2]) -> CapabilityOff
 }
 
 fn source_offer(kind: &str, value_kind: &str, identity: String) -> CapabilityOffer {
-    CapabilityOffer {
+    conduit_core::capability_offer_from_parts! {
+        semantic_contract: Default::default(),
         startup_parameters: Vec::new(),
         shorthand: None,
         capability_id: CapabilityId::from(format!("{}-{identity}@1", kind.replace('/', "-"))),
@@ -200,7 +201,8 @@ fn source_offer(kind: &str, value_kind: &str, identity: String) -> CapabilityOff
 }
 
 fn sink_offer() -> CapabilityOffer {
-    CapabilityOffer {
+    conduit_core::capability_offer_from_parts! {
+        semantic_contract: Default::default(),
         startup_parameters: Vec::new(),
         shorthand: None,
         capability_id: CapabilityId::from("conduitos-state-select-sink@1"),

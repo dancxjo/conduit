@@ -5,8 +5,8 @@ use alloc::string::{String, ToString};
 use alloc::vec;
 use alloc::vec::Vec;
 use conduit_core::{
-    kind_id, port_id, CapabilityLimits, ConfigurationValue, KindIdentity, PortDescriptor,
-    PortDirection, PortTemporal, BOOL_INFO_ID, SCALAR_INFO_ID,
+    kind_id, port_id, CapabilityLimits, ConfigurationValue, PortDescriptor, PortDirection,
+    PortTemporal, BOOL_INFO_ID, SCALAR_INFO_ID,
 };
 
 pub const LOGIC_COMPARE_KIND: &str = "logic/compare";
@@ -187,9 +187,7 @@ pub fn install_logic_catalogs(
     startup: &mut conduit_form::StartupCatalog,
     profile: &mut conduit_form::ProfileCatalog,
 ) -> Result<(), String> {
-    use conduit_form::{
-        KindConfigurationField, KindConfigurationRule, KindProjection, KindSignature,
-    };
+    use conduit_form::KindSignature;
     for (contract, revision) in [
         (
             logic_compare_scalar_contract(),
@@ -216,28 +214,8 @@ pub fn install_logic_catalogs(
                 })
                 .collect(),
         })?;
-        let configuration = contract
-            .configuration
-            .into_iter()
-            .map(|field| KindConfigurationField {
-                key: field.key,
-                default_value: field.default_value,
-                rule: match field.rule {
-                    KindConfigurationRule::TextOneOf { values } => {
-                        KindConfigurationRule::TextOneOf { values }
-                    }
-                    _ => unreachable!("logic configuration is one finite text choice"),
-                },
-            })
-            .collect();
         profile
-            .insert(KindProjection {
-                kind_id: contract.kind_id,
-                kind_contract_revision: KindIdentity::from(revision),
-                inputs: contract.inputs,
-                outputs: contract.outputs,
-                configuration,
-            })
+            .insert_kind(contract.into_semantic_contract(revision))
             .map_err(|error| error.to_string())?;
     }
     Ok(())

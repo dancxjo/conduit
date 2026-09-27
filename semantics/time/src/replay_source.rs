@@ -140,7 +140,7 @@ pub fn replay_source_semantic_contract() -> conduit_core::Kind {
         kind_contract_revision: definition.kind_contract_revision,
         inputs: definition.inputs,
         outputs: definition.outputs,
-        configuration: Default::default(),
+        configuration: definition.configuration,
         semantic_laws: Default::default(),
         limits: conduit_core::CapabilityLimits {
             max_active_instances: 8,

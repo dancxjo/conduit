@@ -5,11 +5,11 @@ use conduit_core::{
     compute_resource_offer, compute_resource_requirement, kind_id, resource_offer,
     resource_requirement, stable_realization_boolean, stable_realization_quantity,
     ArchitectureBaseId, ArchitectureBaseKind, ArtifactId, AuthorityContractId,
-    AuthorityRequirement, BootId, CapabilityId, CapabilityLimits, CapabilityOffer,
-    CharacteristicUnit, ComputePoolContract, ComputeServiceGuarantee, ExecutionProfileId,
-    FrontStartupParameter, HostAdvertisement, HostCallContractId, HostCallRequirement, HostId,
-    HostProfileId, ImplementationId, ImplementationOffer, OfferGeneration,
-    RealizationAdvertisement, RealizationCharacteristic,
+    AuthorityRequirement, BootId, CapabilityId, CapabilityLimits, CharacteristicUnit,
+    ComputePoolContract, ComputeServiceGuarantee, ExecutionProfileId, FrontStartupParameter,
+    HostAdvertisement, HostCallContractId, HostCallRequirement, HostId, HostProfileId,
+    ImplementationId, ImplementationOffer, OfferGeneration, RealizationAdvertisement,
+    RealizationCharacteristic,
 };
 use serde::{Deserialize, Serialize};
 
@@ -200,6 +200,8 @@ fn base(
     benchmark_sign: &str,
     remote: bool,
 ) -> GenerateTextBaseFixture {
+    let kind = crate::generate_text_semantic_contract();
+    let semantic_contract = kind.semantic_contract();
     let contract = generate_text_contract();
     let host_call = HostCallRequirement {
         contract_id: HostCallContractId::from(GENERATE_TEXT_HOST_CALL),
@@ -269,7 +271,7 @@ fn base(
             profile: HostProfileId::from("conduit.host/fixture@1"),
             bases: vec![],
             resources: resource_offers,
-            capabilities: vec![CapabilityOffer {
+            capabilities: vec![conduit_core::capability_offer_from_parts! {
                 startup_parameters: startup_parameters(),
                 shorthand: None,
                 capability_id,
@@ -277,6 +279,7 @@ fn base(
                 kind_contract_revision: contract.kind_contract_revision,
                 inputs: contract.inputs,
                 outputs: contract.outputs,
+                semantic_contract,
                 implementation: ImplementationOffer {
                     execution_profile_id: ExecutionProfileId::from(
                         "conduit.ai/generate-text-hosted@1",

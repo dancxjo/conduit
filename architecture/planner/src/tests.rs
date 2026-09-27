@@ -6,9 +6,9 @@ use super::{
 use conduit_core::{
     authority_grant, kind_id, mandatory_sign_storage_requirement, present_authority_requirement,
     process_owned_line_offer, verify_plan, verify_plan_fragment, ArtifactId, BaseImplementationId,
-    CancellationPolicy, CapabilityLimits, CapabilityOffer, ExpandedFormId, GearId,
-    HostAdvertisement, HostId, HostProfileId, ImplementationId, OfferGeneration, SourceDocumentId,
-    StartupDependency, TerminalPolicy, PROTOCOL_VERSION,
+    CancellationPolicy, CapabilityLimits, ExpandedFormId, GearId, HostAdvertisement, HostId,
+    HostProfileId, ImplementationId, OfferGeneration, SourceDocumentId, StartupDependency,
+    TerminalPolicy, PROTOCOL_VERSION,
 };
 use conduit_form::parse_with_startup;
 use conduit_signal::{
@@ -44,7 +44,8 @@ fn host() -> HostAdvertisement {
         resources: signal_resource_offers("test/timer", "test/presentation", 4),
         planner_capabilities: vec![],
         capabilities: vec![
-            CapabilityOffer {
+            conduit_core::capability_offer_from_parts! {
+                semantic_contract: conduit_signal::pulse_semantic_contract().semantic_contract(),
                 startup_parameters: conduit_signal::pulse_front_startup_parameters(),
                 shorthand: None,
                 capability_id: conduit_core::CapabilityId::from("pulse-1"),
@@ -66,7 +67,8 @@ fn host() -> HostAdvertisement {
                     max_queue_bytes: 64,
                 },
             },
-            CapabilityOffer {
+            conduit_core::capability_offer_from_parts! {
+                semantic_contract: conduit_signal::show_semantic_contract().semantic_contract(),
                 startup_parameters: vec![],
                 shorthand: None,
                 capability_id: conduit_core::CapabilityId::from("stdout-show-1"),
@@ -441,6 +443,7 @@ fn planning_seals_canonical_terminal_transduction_into_the_exact_placement() {
     .unwrap();
     let mut host = host();
     host.capabilities[0].inputs = pulse.inputs.clone();
+    host.capabilities[0].semantic_contract = pulse.semantic_contract();
     let placements = default_placements(&form, std::slice::from_ref(&host)).unwrap();
     let planned = plan(
         &form,

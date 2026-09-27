@@ -101,7 +101,8 @@ pub(super) fn text_advertisement() -> HostAdvertisement {
 }
 
 fn text_source_offer() -> CapabilityOffer {
-    CapabilityOffer {
+    conduit_core::capability_offer_from_parts! {
+        semantic_contract: Default::default(),
         startup_parameters: Vec::new(),
         shorthand: None,
         capability_id: conduit_core::CapabilityId::from("browser-fixture-text-source@1"),
@@ -132,7 +133,8 @@ fn text_source_offer() -> CapabilityOffer {
 }
 
 fn fixture_offer(kind: &str, value_kind: &str, maximum_bytes: u32) -> CapabilityOffer {
-    CapabilityOffer {
+    conduit_core::capability_offer_from_parts! {
+        semantic_contract: Default::default(),
         startup_parameters: Vec::new(),
         shorthand: None,
         capability_id: conduit_core::CapabilityId::from(format!("{kind}-capability@1").as_str()),

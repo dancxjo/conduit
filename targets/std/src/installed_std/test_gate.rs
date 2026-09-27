@@ -206,7 +206,8 @@ fn offer(
     inputs: Vec<PortDescriptor>,
     outputs: Vec<PortDescriptor>,
 ) -> CapabilityOffer {
-    CapabilityOffer {
+    conduit_core::capability_offer_from_parts! {
+        semantic_contract: Default::default(),
         startup_parameters: Vec::new(),
         shorthand: None,
         capability_id: CapabilityId::from(implementation),
@@ -249,19 +250,6 @@ pub(super) fn install_catalog(catalog: &mut ProfileCatalog) {
     for (offer, configuration) in [
         (source_offer(), Vec::new()),
         (slow_sink_offer(), Vec::new()),
-        (
-            conduit_std_offers::flow_gate_scalar_offer(),
-            vec![conduit_form::KindConfigurationField {
-                key: "maximum-enable-updates".into(),
-                default_value: conduit_core::ConfigurationValue::U64(
-                    conduit_semantic_catalog::FLOW_STATE_MAXIMUM_VALUES.into(),
-                ),
-                rule: conduit_form::KindConfigurationRule::U64Range {
-                    minimum: 1,
-                    maximum: conduit_semantic_catalog::FLOW_STATE_MAXIMUM_VALUES.into(),
-                },
-            }],
-        ),
     ] {
         catalog
             .insert(KindProjection {
@@ -273,6 +261,9 @@ pub(super) fn install_catalog(catalog: &mut ProfileCatalog) {
             })
             .expect("gate fixture Kind is exact and unique");
     }
+    catalog
+        .insert_kind(conduit_semantic_catalog::flow_gate_scalar_semantic_contract())
+        .expect("gate fixture retains the canonical flow contract");
 }
 
 fn source_budget(placement: &PlannedGear) -> Result<BackBudget, String> {

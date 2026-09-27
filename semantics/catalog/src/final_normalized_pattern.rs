@@ -71,7 +71,7 @@ pub fn final_normalized_pattern_semantic_contract() -> Kind {
         kind_contract_revision: definition.kind_contract_revision,
         inputs: definition.inputs,
         outputs: definition.outputs,
-        configuration: Default::default(),
+        configuration: definition.configuration,
         semantic_laws: Default::default(),
         limits: final_normalized_pattern_limits(),
     }
@@ -92,7 +92,7 @@ pub fn install_final_normalized_pattern_catalogs(
         })
         .map_err(|error| error.to_string())?;
     profile
-        .insert(final_normalized_pattern_definition())
+        .insert_kind(final_normalized_pattern_semantic_contract())
         .map_err(|error| error.to_string())
 }
 

@@ -3,8 +3,9 @@
 use super::factory::{validate_placement, BrowserHostResult, BrowserInstallation};
 use super::BrowserBack;
 use conduit_core::{
-    kind_id, ConfigurationValue, HostCallContractId, HostCallRequirement, PlannedGear, Scalar,
-    SCALAR_ENCODED_LEN,
+    kind_id, ArtifactId, Back, BackOfferBuilder, CapabilityId, ConfigurationValue,
+    ExecutionProfileId, HostCallContractId, HostCallRequirement, ImplementationId, Kind,
+    PlannedGear, Scalar, SCALAR_ENCODED_LEN,
 };
 use conduit_kernel::HostedValueStore;
 
@@ -35,50 +36,43 @@ const fn installation(
 
 fn clamp_offer() -> conduit_core::CapabilityOffer {
     offer(
-        conduit_semantic_catalog::math_clamp_contract(),
-        conduit_semantic_catalog::MATH_CLAMP_CONTRACT_REVISION,
+        conduit_semantic_catalog::math_clamp_semantic_contract(),
         CLAMP_IMPLEMENTATION,
     )
 }
 fn scale_offer() -> conduit_core::CapabilityOffer {
     offer(
-        conduit_semantic_catalog::math_scale_contract(),
-        conduit_semantic_catalog::MATH_SCALE_CONTRACT_REVISION,
+        conduit_semantic_catalog::math_scale_semantic_contract(),
         SCALE_IMPLEMENTATION,
     )
 }
 fn deadband_offer() -> conduit_core::CapabilityOffer {
     offer(
-        conduit_semantic_catalog::math_deadband_contract(),
-        conduit_semantic_catalog::MATH_DEADBAND_CONTRACT_REVISION,
+        conduit_semantic_catalog::math_deadband_semantic_contract(),
         DEADBAND_IMPLEMENTATION,
     )
 }
 
-fn offer(
-    contract: conduit_semantic_catalog::StandardKindContract,
-    revision: &str,
-    implementation: &str,
-) -> conduit_core::CapabilityOffer {
-    conduit_semantic_catalog::realization_offer(
+fn offer(contract: Kind, implementation: &str) -> conduit_core::CapabilityOffer {
+    BackOfferBuilder::new(
         contract,
-        revision,
-        conduit_semantic_catalog::RealizationOfferIdentity {
-            capability: implementation,
-            execution_profile: implementation,
-            implementation,
-            artifact: ARTIFACT,
+        Back {
+            capability_id: CapabilityId::from(implementation),
+            execution_profile_id: ExecutionProfileId::from(implementation),
+            implementation_id: ImplementationId::from(implementation),
+            artifact_id: ArtifactId::from(ARTIFACT),
+            host_calls: vec![HostCallRequirement {
+                contract_id: HostCallContractId::from(implementation),
+                target_kind: Some(kind_id(implementation)),
+                maximum_in_flight: 1,
+                maximum_input_bytes: SCALAR_ENCODED_LEN as u32,
+                maximum_output_bytes: SCALAR_ENCODED_LEN as u32,
+            }],
+            resource_requirements: Vec::new(),
+            authority_requirements: Vec::new(),
         },
-        vec![HostCallRequirement {
-            contract_id: HostCallContractId::from(implementation),
-            target_kind: Some(kind_id(implementation)),
-            maximum_in_flight: 1,
-            maximum_input_bytes: SCALAR_ENCODED_LEN as u32,
-            maximum_output_bytes: SCALAR_ENCODED_LEN as u32,
-        }],
-        Vec::new(),
-        Vec::new(),
     )
+    .build()
 }
 
 fn prepare(placement: &PlannedGear, _values: &mut HostedValueStore) -> Result<BrowserBack, String> {

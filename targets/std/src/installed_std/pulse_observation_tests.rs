@@ -4,7 +4,8 @@ use conduit_kernel::scheduler::{StepBack, StepInputBytes, StepIo, StepOutcome};
 
 fn placement() -> PlannedGear {
     let offer = conduit_std_offers::pulse_observe_offer();
-    PlannedGear {
+    conduit_core::planned_gear_from_parts! {
+        semantic_contract: Default::default(),
         placement_id: "pulse-placement".into(),
         gear_id: "pulse".into(),
         kind_id: offer.kind_id,

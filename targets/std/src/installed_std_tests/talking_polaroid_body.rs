@@ -74,13 +74,13 @@ fn canonical_image_text_composition_coexists_in_one_body_play() {
         "conduit-test/body-frame-sink",
     );
     frame_sink.inputs[0].temporal = PortTemporal::Value;
-    let status_source = installed_std::test_structured_selector::offer_named(
+    let mut status_source = installed_std::test_structured_selector::offer_named(
         &text_type,
         PortDirection::Output,
         "conduit-test/body-status-source",
         "conduit-test/unused-status-sink",
     );
-    let status_sink = installed_std::test_structured_selector::offer_named(
+    let mut status_sink = installed_std::test_structured_selector::offer_named(
         &text_type,
         PortDirection::Input,
         "conduit-test/unused-status-source",
@@ -92,11 +92,11 @@ fn canonical_image_text_composition_coexists_in_one_body_play() {
     conduit_semantic_catalog::install_human_media_catalogs(&mut startup, &mut profile).unwrap();
     conduit_net::install_typed_record_catalogs(&mut startup, &mut profile).unwrap();
     for offer in [
-        &image_source,
-        &caption_source,
-        &frame_sink,
-        &status_source,
-        &status_sink,
+        &mut image_source,
+        &mut caption_source,
+        &mut frame_sink,
+        &mut status_source,
+        &mut status_sink,
     ] {
         install_fixture(&mut startup, &mut profile, offer);
     }
@@ -246,8 +246,14 @@ fn plan(
 fn install_fixture(
     startup: &mut StartupCatalog,
     profile: &mut ProfileCatalog,
-    offer: &conduit_core::CapabilityOffer,
+    offer: &mut conduit_core::CapabilityOffer,
 ) {
+    installed_std::test_structured_selector::bind_text_configuration(
+        offer,
+        "value",
+        String::new(),
+        conduit_core::MAXIMUM_STRUCTURED_CANONICAL_BYTES as u32 * 2,
+    );
     startup
         .insert(KindSignature {
             kind: offer.kind_id.as_str().into(),

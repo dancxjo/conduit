@@ -247,7 +247,8 @@ fn graph_plan(stage: usize) -> Plan {
 }
 
 fn gear(id: &str, kind: &str) -> PlannedGear {
-    PlannedGear {
+    conduit_core::planned_gear_from_parts! {
+        semantic_contract: Default::default(),
         placement_id: PlacementId::from(id),
         gear_id: GearId::from("gear/model"),
         kind_id: kind_id(kind),

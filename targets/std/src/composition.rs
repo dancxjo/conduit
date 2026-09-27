@@ -249,6 +249,15 @@ pub(super) fn build_advertisement(
         ]);
     }
     if composition.state {
+        let boolean_type = conduit_core::StructuredInfoType::leaf(conduit_core::kind_id(
+            conduit_core::BOOL_INFO_ID,
+        ))
+        .expect("Boolean is a finite canonical structured type");
+        let boolean_default = conduit_core::StructuredInfoValue::leaf(
+            boolean_type.clone(),
+            conduit_core::InfoBool::FALSE.encode().to_vec(),
+        )
+        .expect("false is canonical Boolean State initialization");
         capabilities.extend([
             conduit_std_offers::state_count_offer(),
             conduit_std_offers::state_toggle_offer(),
@@ -259,14 +268,8 @@ pub(super) fn build_advertisement(
             conduit_std_offers::state_select_scalar_offer(),
         ]);
         capabilities.push(
-            conduit_std_offers::state_value_std_offer(
-                "Boolean",
-                &conduit_core::StructuredInfoType::leaf(conduit_core::kind_id(
-                    conduit_core::BOOL_INFO_ID,
-                ))
-                .expect("Boolean is a finite canonical structured type"),
-            )
-            .expect("Boolean State has a finite canonical Front"),
+            conduit_std_offers::state_value_std_offer("Boolean", &boolean_type, &boolean_default)
+                .expect("Boolean State has a finite canonical Front"),
         );
     }
     if composition.logic {

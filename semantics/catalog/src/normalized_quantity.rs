@@ -43,19 +43,12 @@ pub fn install_normalized_quantity_catalog(
     startup: &mut conduit_form::StartupCatalog,
     profile: &mut conduit_form::ProfileCatalog,
 ) -> Result<(), alloc::string::String> {
-    let contract = normalized_quantity_contract();
     startup.insert(conduit_form::KindSignature {
         kind: NORMALIZED_QUANTITY_KIND.into(),
         startup_parameters: Vec::new(),
     })?;
     profile
-        .insert(conduit_form::KindProjection {
-            kind_id: contract.kind_id,
-            kind_contract_revision: NORMALIZED_QUANTITY_REVISION.into(),
-            inputs: contract.inputs,
-            outputs: contract.outputs,
-            configuration: Default::default(),
-        })
+        .insert_kind(normalized_quantity_semantic_contract())
         .map_err(|error| alloc::format!("{error}"))
 }
 

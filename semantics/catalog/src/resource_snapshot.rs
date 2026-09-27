@@ -2,7 +2,10 @@
 use crate::{KindConfigurationField, KindConfigurationRule, StandardKindContract};
 #[cfg(feature = "form-catalog")]
 use alloc::string::ToString;
-use conduit_core::{kind_id, ConfigurationValue, RESOURCE_REFERENCE_INFO_ID};
+use conduit_core::{
+    kind_id, ConfigurationValue, FrontStartupParameter, Kind, KindIdentity, KindSemanticLaw,
+    RESOURCE_REFERENCE_INFO_ID,
+};
 pub const SNAPSHOT_PUBLISH_KIND: &str = "resource/publish-json-snapshot";
 pub const SNAPSHOT_READ_KIND: &str = "resource/read-json-snapshot";
 pub const SNAPSHOT_REVISION: &str = "conduit.resource/json-snapshot@1";
@@ -43,13 +46,32 @@ pub fn resource_snapshot_contract(publish: bool) -> StandardKindContract {
     contract
 }
 
+pub fn resource_snapshot_semantic_contract(publish: bool) -> Kind {
+    let contract = resource_snapshot_contract(publish);
+    Kind {
+        startup_parameters: alloc::vec![FrontStartupParameter {
+            name: "reference".into(),
+            value_type: kind_id("value/text"),
+            has_default: false,
+        }],
+        shorthand: None,
+        kind_id: contract.kind_id,
+        kind_contract_revision: KindIdentity::from(SNAPSHOT_REVISION),
+        inputs: contract.inputs,
+        outputs: contract.outputs,
+        configuration: contract.configuration,
+        semantic_laws: alloc::vec![KindSemanticLaw::Terminal(contract.terminal_behavior)],
+        limits: contract.limits,
+    }
+}
+
 #[cfg(feature = "form-catalog")]
 pub fn install_resource_snapshot_catalogs(
     startup: &mut conduit_form::StartupCatalog,
     profile: &mut conduit_form::ProfileCatalog,
 ) -> Result<(), alloc::string::String> {
     for publish in [true, false] {
-        let contract = resource_snapshot_contract(publish);
+        let contract = resource_snapshot_semantic_contract(publish);
         startup.insert(conduit_form::KindSignature {
             kind: contract.kind_id.as_str().into(),
             startup_parameters: alloc::vec![conduit_form::StartupParameterSignature {
@@ -59,17 +81,7 @@ pub fn install_resource_snapshot_catalogs(
             }],
         })?;
         profile
-            .insert(conduit_form::KindProjection {
-                kind_id: contract.kind_id,
-                kind_contract_revision: SNAPSHOT_REVISION.into(),
-                inputs: contract.inputs,
-                outputs: contract.outputs,
-                configuration: alloc::vec![conduit_form::KindConfigurationField {
-                    key: "reference".into(),
-                    default_value: ConfigurationValue::Text("".into()),
-                    rule: conduit_form::KindConfigurationRule::TextBytes { maximum: 1024 },
-                }],
-            })
+            .insert_kind(contract)
             .map_err(|error| error.to_string())?;
     }
     Ok(())

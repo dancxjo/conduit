@@ -37,6 +37,27 @@ fn larger_state_capacity_requires_a_new_plan_but_not_new_form_identity() {
 }
 
 #[test]
+fn exact_kind_semantics_are_an_immutable_plan_commitment() {
+    let original = seal(fragment());
+    let mut changed_fragment = fragment();
+    changed_fragment.placements[0]
+        .semantic_contract
+        .laws
+        .push(KindSemanticLaw::ExternalEffects(
+            ExternalEffectBehavior::Observable,
+        ));
+    let changed = seal(changed_fragment);
+
+    assert!(verify_plan(&original));
+    assert!(verify_plan(&changed));
+    assert_ne!(original.plan_id, changed.plan_id);
+    assert_ne!(
+        original.fragments[0].fragment_id,
+        changed.fragments[0].fragment_id
+    );
+}
+
+#[test]
 fn resealing_cannot_admit_invalid_state_placement_type_or_evidence_capacity() {
     let changes: [fn(&mut PlanFragment); 6] = [
         |fragment| fragment.states[0].maximum_value_bytes = 0,

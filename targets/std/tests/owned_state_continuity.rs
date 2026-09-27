@@ -33,7 +33,7 @@ fn planned() -> (Plan, Vec<u8>) {
         bases: vec![],
         resources: vec![],
         planner_capabilities: vec![],
-        capabilities: vec![conduit_std_offers::state_value_std_offer("Cell", &ty).unwrap()],
+        capabilities: vec![conduit_std_offers::state_value_std_offer("Cell", &ty, &value).unwrap()],
     }];
     let placements = conduit_planner::default_placements(&form, &hosts).unwrap();
     let ordinary = conduit_planner::plan(&form, &hosts, &placements, &[]).unwrap();

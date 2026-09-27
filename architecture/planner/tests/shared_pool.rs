@@ -71,7 +71,8 @@ fn offer_from_front(
     front: &conduit_core::CheckedFront,
     maximum: u16,
 ) -> CapabilityOffer {
-    CapabilityOffer {
+    conduit_core::capability_offer_from_parts! {
+        semantic_contract: Default::default(),
         startup_parameters: front.startup_parameters().to_vec(),
         shorthand: front
             .shorthand()

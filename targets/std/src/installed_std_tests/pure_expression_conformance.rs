@@ -201,12 +201,12 @@ fn assert_pipeline_plans_and_plays(
         sink_offer.inputs[0].temporal = conduit_core::PortTemporal::Value;
     }
     let mut profile = ProfileCatalog::new();
-    profile
-        .insert(fixture_definition(&source_offer, input))
-        .unwrap();
-    profile
-        .insert(fixture_definition(&sink_offer, expected))
-        .unwrap();
+    let source_definition = fixture_definition(&source_offer, input);
+    source_offer.semantic_contract.configuration = source_definition.configuration.clone();
+    profile.insert(source_definition).unwrap();
+    let sink_definition = fixture_definition(&sink_offer, expected);
+    sink_offer.semantic_contract.configuration = sink_definition.configuration.clone();
+    profile.insert(sink_definition).unwrap();
     if math_call {
         let mut unused_startup = StartupCatalog::new();
         conduit_semantic_catalog::install_math_catalogs(&mut unused_startup, &mut profile).unwrap();

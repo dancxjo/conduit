@@ -228,7 +228,8 @@ fn fixture_offer(
         maximum_input_bytes: RESPONSE_BYTES as u32,
         maximum_output_bytes: 0,
     });
-    CapabilityOffer {
+    conduit_core::capability_offer_from_parts! {
+        semantic_contract: Default::default(),
         startup_parameters: Vec::new(),
         shorthand: None,
         capability_id: CapabilityId::from(kind),

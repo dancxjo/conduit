@@ -126,6 +126,7 @@ pub fn compute_fragment_id(fragment: &PlanFragment) -> FragmentId {
         push_u32(&mut canonical, gear.limits.max_queue_bytes);
         push_ports(&mut canonical, &gear.inputs);
         push_ports(&mut canonical, &gear.outputs);
+        push_semantic_contract(&mut canonical, &gear.semantic_contract);
         if let Some(profile) = gear.terminal_transduction.as_ref() {
             push_string(&mut canonical, "terminal-transduction@1");
             push_terminal_transduction(&mut canonical, profile);
@@ -365,6 +366,206 @@ pub fn compute_fragment_id(fragment: &PlanFragment) -> FragmentId {
     push_u32(&mut canonical, fragment.sign_storage_budget.byte_capacity);
     crate::state_delay::push_canonical_state(&mut canonical, &fragment.states);
     FragmentId::from(hash_bytes(&canonical))
+}
+
+fn push_semantic_contract(canonical: &mut Vec<u8>, contract: &crate::KindSemanticContract) {
+    use crate::{KindConfigurationRule as Rule, KindSemanticLaw as Law};
+
+    push_string(canonical, "kind-semantic-contract@1");
+    push_u32(canonical, contract.configuration.len() as u32);
+    for field in &contract.configuration {
+        push_string(canonical, &field.key);
+        push_configuration_value(canonical, &field.default_value);
+        match &field.rule {
+            Rule::Any => canonical.push(0),
+            Rule::U64Range { minimum, maximum } => {
+                canonical.push(1);
+                push_u64(canonical, *minimum);
+                push_u64(canonical, *maximum);
+            }
+            Rule::I64Range { minimum, maximum } => {
+                canonical.push(2);
+                canonical.extend_from_slice(&minimum.to_le_bytes());
+                canonical.extend_from_slice(&maximum.to_le_bytes());
+            }
+            Rule::DurationMillis { minimum, maximum } => {
+                canonical.push(3);
+                push_u64(canonical, *minimum);
+                push_u64(canonical, *maximum);
+            }
+            Rule::QuantityRange {
+                minimum,
+                maximum,
+                canonical_unit,
+            } => {
+                canonical.push(4);
+                canonical.extend_from_slice(&minimum.to_le_bytes());
+                canonical.extend_from_slice(&maximum.to_le_bytes());
+                push_string(canonical, canonical_unit.semantic_id());
+            }
+            Rule::TextBytes { maximum } => {
+                canonical.push(5);
+                push_u32(canonical, *maximum);
+            }
+            Rule::TextOneOf { values } => {
+                canonical.push(6);
+                push_u32(canonical, values.len() as u32);
+                for value in values {
+                    push_string(canonical, value);
+                }
+            }
+            Rule::Structured { profile } => {
+                canonical.push(7);
+                push_string(canonical, profile.as_str());
+            }
+        }
+    }
+    push_u32(canonical, contract.laws.len() as u32);
+    for law in &contract.laws {
+        match law {
+            Law::Terminal(value) => {
+                use crate::KindTerminalBehavior as Terminal;
+                canonical.push(0);
+                match value {
+                    Terminal::EmitsOnce => canonical.push(0),
+                    Terminal::EmitsOnceWhenScopeIsEligible => canonical.push(1),
+                    Terminal::CompletesAfterConfiguredCount => canonical.push(2),
+                    Terminal::CompletesAfterFixedCount { count } => {
+                        canonical.push(3);
+                        push_u64(canonical, *count);
+                    }
+                    Terminal::CompletesWhenInputsClose => canonical.push(4),
+                    Terminal::MirrorsInputTerminal => canonical.push(5),
+                    Terminal::RetainsLatestUntilReleased => canonical.push(6),
+                    Terminal::EmitsCurrentAndCompletesWhenInputCloses => canonical.push(7),
+                    Terminal::CoupledAtomicFanoutAndMirrorsInputTerminal => canonical.push(8),
+                    Terminal::CurrentBooleanGateDefaultsClosedAndCompletesWhenInputsClose => {
+                        canonical.push(9)
+                    }
+                    Terminal::CurrentScalarSelectorCompletesWhenInputsClose => canonical.push(10),
+                    Terminal::EmitsOneDecisionOrCompletesWhenDecisionBecomesImpossible => {
+                        canonical.push(11)
+                    }
+                    Terminal::TrailingDebounceFlushesPendingValueThenCompletesWhenInputCloses => {
+                        canonical.push(12)
+                    }
+                    Terminal::InactivityStateCancelsDeadlineAndCompletesWhenInputCloses => {
+                        canonical.push(13)
+                    }
+                    Terminal::DelaysEachValueInOrderAndDrainsOnInputClosure => canonical.push(14),
+                    Terminal::LeadingThrottleDropsValuesDuringIntervalAndCompletesWhenInputCloses => {
+                        canonical.push(15)
+                    }
+                    Terminal::SimulatedCurrentObservationEmitsOnce => canonical.push(16),
+                    Terminal::HostInputEndsOrFailsSource => canonical.push(17),
+                    Terminal::HostObservationEndsOrFailsSource => canonical.push(18),
+                    Terminal::EmitsInitialAndTogglesUntilInputCloses => canonical.push(19),
+                    Terminal::EmitsOneField => canonical.push(20),
+                    Terminal::EvolvesAfterTicksAndCompletesWhenTickCloses => canonical.push(21),
+                    Terminal::PresentsEachFieldAndCompletesWhenInputCloses => canonical.push(22),
+                    Terminal::CompletesAfterDockedRefusedOrDeadline => canonical.push(23),
+                }
+            }
+            Law::TerminalTransduction(value) => {
+                canonical.push(1);
+                push_terminal_transduction(canonical, value);
+            }
+            Law::ExternalEffects(value) => {
+                canonical.push(2);
+                canonical.push(*value as u8);
+            }
+            Law::TemporalState(value) => {
+                canonical.push(3);
+                canonical.push(*value as u8);
+            }
+            Law::TimeDependence(value) => {
+                canonical.push(4);
+                canonical.push(*value as u8);
+            }
+            Law::RandomDependence(value) => {
+                canonical.push(5);
+                canonical.push(*value as u8);
+            }
+            Law::ResourceDependence(value) => {
+                canonical.push(6);
+                canonical.push(*value as u8);
+            }
+            Law::Suspension(value) => {
+                canonical.push(7);
+                canonical.push(*value as u8);
+            }
+            Law::Variability(value) => {
+                canonical.push(8);
+                canonical.push(*value as u8);
+            }
+            Law::Replay(value) => {
+                use crate::ReplayBehavior as Replay;
+                canonical.push(9);
+                match value {
+                    Replay::Exact => canonical.push(0),
+                    Replay::Ineligible => canonical.push(1),
+                    Replay::Idempotent { operation_key_kind } => {
+                        canonical.push(2);
+                        push_string(canonical, operation_key_kind.as_str());
+                    }
+                    Replay::Transactional {
+                        transaction_contract,
+                    } => {
+                        canonical.push(3);
+                        push_string(canonical, transaction_contract.as_str());
+                    }
+                    Replay::Compensatable {
+                        compensation_contract,
+                    } => {
+                        canonical.push(4);
+                        push_string(canonical, compensation_contract.as_str());
+                    }
+                }
+            }
+            Law::ResourcePorts(ports) => {
+                canonical.push(10);
+                push_u32(canonical, ports.len() as u32);
+                for port in ports {
+                    push_string(canonical, port.port_id.as_str());
+                    push_string(canonical, port.class_id.as_str());
+                    canonical.push(port.ownership as u8);
+                    canonical.push(port.lifecycle as u8);
+                    canonical.push(port.mobility as u8);
+                }
+            }
+        }
+    }
+}
+
+fn push_configuration_value(canonical: &mut Vec<u8>, value: &ConfigurationValue) {
+    match value {
+        ConfigurationValue::Bool(value) => {
+            canonical.push(0);
+            canonical.push(u8::from(*value));
+        }
+        ConfigurationValue::U64(value) => {
+            canonical.push(1);
+            push_u64(canonical, *value);
+        }
+        ConfigurationValue::Text(value) => {
+            canonical.push(2);
+            push_string(canonical, value);
+        }
+        ConfigurationValue::I64(value) => {
+            canonical.push(3);
+            canonical.extend_from_slice(&value.to_le_bytes());
+        }
+        ConfigurationValue::Structured(value) => {
+            canonical.push(4);
+            push_string(canonical, value.profile().as_str());
+            push_u32(canonical, value.canonical_value().len() as u32);
+            canonical.extend_from_slice(value.canonical_value());
+        }
+        ConfigurationValue::Quantity(value) => {
+            canonical.push(5);
+            canonical.extend_from_slice(&value.encode());
+        }
+    }
 }
 
 fn push_terminal_transduction(

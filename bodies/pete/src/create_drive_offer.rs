@@ -3,10 +3,10 @@
 use crate::{IndependentWatchdogObservation, LocalHazard, OiMode, SafetyObservation};
 use conduit_core::{
     kind_id, resource_offer, resource_requirement, ArtifactId, AuthorityContractId,
-    AuthorityRequirement, BootId, CapabilityId, CapabilityLimits, CapabilityOffer,
-    ExecutionProfileId, FrontStartupParameter, HostAdvertisement, HostCallContractId,
-    HostCallRequirement, HostId, ImplementationId, ImplementationOffer, KindIdentity,
-    OfferGeneration, PROTOCOL_VERSION, SCALAR_ENCODED_LEN, SCALAR_INFO_ID,
+    AuthorityRequirement, BootId, CapabilityId, CapabilityLimits, ExecutionProfileId,
+    FrontStartupParameter, HostAdvertisement, HostCallContractId, HostCallRequirement, HostId,
+    ImplementationId, ImplementationOffer, KindIdentity, OfferGeneration, PROTOCOL_VERSION,
+    SCALAR_ENCODED_LEN, SCALAR_INFO_ID,
 };
 
 pub const CREATE_DRIVE_PROFILE: &str = "pete/create1-differential-drive@1";
@@ -105,7 +105,12 @@ pub fn live_create_drive_advertisement(
         profile: conduit_core::HostProfileId::from(profile),
         bases: vec![],
         resources,
-        capabilities: vec![CapabilityOffer {
+        capabilities: vec![conduit_core::capability_offer_from_parts! {
+            semantic_contract: conduit_semantic_catalog::robotics_semantic_contract(
+                conduit_semantic_catalog::ROBOTICS_DRIVE_DIFFERENTIAL_KIND,
+            )
+            .expect("differential drive is a registered robotics contract")
+            .semantic_contract(),
             startup_parameters: vec![FrontStartupParameter {
                 name: "ttl-ms".into(),
                 value_type: conduit_core::kind_id("value/count"),

@@ -753,3 +753,143 @@ fn migrated_production_offers_cannot_restate_capability_truth() {
         violations.join("\n")
     );
 }
+
+#[test]
+fn portable_capability_offers_cannot_bypass_the_checked_construction_boundary() {
+    let repository = Path::new(env!("CARGO_MANIFEST_DIR"))
+        .parent()
+        .and_then(Path::parent)
+        .expect("xtask is beneath repository tools");
+    let permitted = [
+        ("architecture/core/src/capability_offer.rs", 2usize),
+        // This is ConduitOS's separate allocation-free machine record, not
+        // conduit_core::CapabilityOffer.
+        ("targets/conduitos/src/offer.rs", 2),
+        ("targets/conduitos/src/text_offer.rs", 6),
+        ("targets/conduitos/src/tour_timer_offer.rs", 3),
+    ];
+    let mut files = Vec::new();
+    collect_rust_files(repository, &mut files);
+    let mut violations = Vec::new();
+    for path in files {
+        let relative = path.strip_prefix(repository).unwrap();
+        let source = fs::read_to_string(&path)
+            .unwrap_or_else(|error| panic!("read {}: {error}", relative.display()));
+        let lines = source.lines().collect::<Vec<_>>();
+        let actual = lines
+            .iter()
+            .enumerate()
+            .filter(|(index, line)| {
+                let exact_name = line.match_indices("CapabilityOffer {").any(|(offset, _)| {
+                    offset == 0
+                        || !line.as_bytes()[offset - 1].is_ascii_alphanumeric()
+                            && line.as_bytes()[offset - 1] != b'_'
+                });
+                if !exact_name
+                    || line.contains("struct CapabilityOffer {")
+                    || line.contains("impl CapabilityOffer {")
+                {
+                    return false;
+                }
+                let first_body_line = lines[index + 1..]
+                    .iter()
+                    .find(|candidate| !candidate.trim().is_empty())
+                    .map(|candidate| candidate.trim())
+                    .unwrap_or_default();
+                [
+                    "startup_parameters:",
+                    "semantic_contract:",
+                    "capability_id:",
+                    "kind:",
+                ]
+                .iter()
+                .any(|field| first_body_line.starts_with(field))
+                    || line.contains("$($fields)*")
+            })
+            .count();
+        let expected = permitted
+            .iter()
+            .find_map(|(name, count)| (relative == Path::new(name)).then_some(*count))
+            .unwrap_or(0);
+        if actual != expected {
+            violations.push(format!(
+                "{}: expected {expected} raw literal(s), found {actual}",
+                relative.display()
+            ));
+        }
+    }
+    assert!(
+        violations.is_empty(),
+        "portable capability construction escaped its reviewed boundary:\n{}",
+        violations.join("\n")
+    );
+}
+
+#[test]
+fn checked_and_planned_gears_cannot_bypass_their_construction_boundaries() {
+    let repository = Path::new(env!("CARGO_MANIFEST_DIR"))
+        .parent()
+        .and_then(Path::parent)
+        .expect("xtask is beneath repository tools");
+    let mut files = Vec::new();
+    collect_rust_files(repository, &mut files);
+    for (type_name, owner) in [
+        ("PlannedGear", "architecture/core/src/planned_gear.rs"),
+        ("CheckedGear", "architecture/form/src/functional_front.rs"),
+    ] {
+        let mut raw = Vec::new();
+        for path in &files {
+            let relative = path.strip_prefix(repository).unwrap();
+            let source = fs::read_to_string(path)
+                .unwrap_or_else(|error| panic!("read {}: {error}", relative.display()));
+            let lines = source.lines().collect::<Vec<_>>();
+            for (line_number, line) in lines.iter().enumerate() {
+                let needle = format!("{type_name} {{");
+                let exact_name = line.match_indices(&needle).any(|(offset, _)| {
+                    offset == 0
+                        || !line.as_bytes()[offset - 1].is_ascii_alphanumeric()
+                            && line.as_bytes()[offset - 1] != b'_'
+                });
+                let first_body_line = lines[line_number + 1..]
+                    .iter()
+                    .find(|candidate| !candidate.trim().is_empty())
+                    .map(|candidate| candidate.trim())
+                    .unwrap_or_default();
+                let begins_record = ["semantic_contract:", "placement_id:", "gear_id:"]
+                    .iter()
+                    .any(|field| first_body_line.starts_with(field));
+                if exact_name
+                    && (begins_record || line.contains("$crate::"))
+                    && !line.contains(&format!("struct {type_name} {{"))
+                    && !line.contains(&format!("impl {type_name} {{"))
+                    && !line.contains(&format!("-> {type_name} {{"))
+                    && !(relative == Path::new(owner) && line.contains("$crate::"))
+                {
+                    raw.push(format!("{}:{}", relative.display(), line_number + 1));
+                }
+            }
+        }
+        assert!(
+            raw.is_empty(),
+            "{type_name} construction escaped its reviewed boundary:\n{}",
+            raw.join("\n")
+        );
+    }
+}
+
+fn collect_rust_files(directory: &Path, output: &mut Vec<std::path::PathBuf>) {
+    for entry in fs::read_dir(directory).unwrap() {
+        let entry = entry.unwrap();
+        let path = entry.path();
+        if path.is_dir() {
+            if !matches!(
+                path.file_name().and_then(|name| name.to_str()),
+                Some("target" | ".git")
+            ) {
+                collect_rust_files(&path, output);
+            }
+        } else if path.extension().and_then(|extension| extension.to_str()) == Some("rs") {
+            output.push(path);
+        }
+    }
+}

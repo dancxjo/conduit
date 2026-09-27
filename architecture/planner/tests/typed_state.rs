@@ -11,7 +11,7 @@ fn authored_state_reaches_an_exact_plan_and_rejects_silent_initialization_or_cap
     startup.insert_structured_type("Cell", ty.clone()).unwrap();
     install_state_value_kind("Cell", &ty, &seed, &mut startup, &mut profile).unwrap();
     // Planning-only external Flow; runtime production is outside this proof.
-    let mut source = conduit_std_offers::state_value_std_offer("Cell", &ty).unwrap();
+    let mut source = conduit_std_offers::state_value_std_offer("Cell", &ty, &seed).unwrap();
     source.kind_id = kind_id("fixture/typed-flow");
     source.kind_contract_revision = KindIdentity::from("fixture/typed-flow@1");
     source.capability_id = CapabilityId::from("fixture/typed-flow");
@@ -22,6 +22,7 @@ fn authored_state_reaches_an_exact_plan_and_rejects_silent_initialization_or_cap
     source.inputs.clear();
     source.shorthand = None;
     source.outputs[0].temporal = PortTemporal::Flow { closes: true };
+    source.semantic_contract.configuration.clear();
     startup
         .insert(conduit_form::KindSignature {
             kind: "fixture/typed-flow".into(),
@@ -29,12 +30,16 @@ fn authored_state_reaches_an_exact_plan_and_rejects_silent_initialization_or_cap
         })
         .unwrap();
     profile
-        .insert(conduit_form::KindProjection {
+        .insert_kind(Kind {
+            startup_parameters: vec![],
+            shorthand: None,
             kind_id: source.kind_id.clone(),
             kind_contract_revision: source.kind_contract_revision.clone(),
             inputs: vec![],
             outputs: source.outputs.clone(),
             configuration: vec![],
+            semantic_laws: source.semantic_contract.laws.clone(),
+            limits: source.limits.clone(),
         })
         .unwrap();
     let form = conduit_form::parse_with_startup(
@@ -44,10 +49,15 @@ fn authored_state_reaches_an_exact_plan_and_rejects_silent_initialization_or_cap
     )
     .unwrap();
     let mut host = common::standard_planning_fixture("state-host", "state-boot");
-    host.capabilities = vec![
-        conduit_std_offers::state_value_std_offer("Cell", &ty).unwrap(),
-        source,
-    ];
+    let mut state_offer = conduit_std_offers::state_value_std_offer("Cell", &ty, &seed).unwrap();
+    state_offer.semantic_contract = form
+        .gears
+        .iter()
+        .find(|gear| gear.kind_id.as_str() == STATE_VALUE_KIND)
+        .unwrap()
+        .semantic_contract
+        .clone();
+    host.capabilities = vec![state_offer, source];
     let hosts = [host];
     let placements = conduit_planner::default_placements(&form, &hosts).unwrap();
     let plan = conduit_planner::plan_with_connection_limits(

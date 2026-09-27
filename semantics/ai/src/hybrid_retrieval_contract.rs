@@ -3,8 +3,9 @@
 use alloc::{vec, vec::Vec};
 use conduit_core::{
     kind_id, port_id, ArtifactId, CapabilityId, CapabilityLimits, CapabilityOffer,
-    ExecutionProfileId, FrontStartupParameter, ImplementationId, ImplementationOffer, KindId,
-    KindIdentity, PortDescriptor, PortDirection, PortTemporal,
+    ExecutionProfileId, FrontStartupParameter, ImplementationId, ImplementationOffer, Kind,
+    KindConfigurationField, KindConfigurationRule, KindId, KindIdentity, PortDescriptor,
+    PortDirection, PortTemporal,
 };
 
 pub const HYBRID_RETRIEVAL_KIND: &str = "retrieval/hybrid-fuse";
@@ -99,7 +100,7 @@ pub fn deterministic_hybrid_retrieval_offer(
         return Err(HybridRetrievalOfferInvalidity::ProcessIdentityTooLarge);
     }
     let contract = hybrid_retrieval_contract();
-    Ok(CapabilityOffer {
+    Ok(conduit_core::capability_offer_from_parts! {
         startup_parameters: hybrid_retrieval_startup_parameters(),
         shorthand: None,
         capability_id: CapabilityId::from(alloc::format!(
@@ -109,6 +110,7 @@ pub fn deterministic_hybrid_retrieval_offer(
         kind_contract_revision: contract.kind_contract_revision,
         inputs: contract.inputs,
         outputs: contract.outputs,
+        semantic_contract: hybrid_retrieval_semantic_contract().semantic_contract(),
         implementation: ImplementationOffer {
             execution_profile_id: ExecutionProfileId::from(DETERMINISTIC_HYBRID_EXECUTION_PROFILE),
             implementation_id: ImplementationId::from(DETERMINISTIC_HYBRID_IMPLEMENTATION),
@@ -119,6 +121,52 @@ pub fn deterministic_hybrid_retrieval_offer(
         authority_requirements: vec![],
         limits: contract.limits,
     })
+}
+
+fn hybrid_retrieval_semantic_contract() -> Kind {
+    let contract = hybrid_retrieval_contract();
+    Kind {
+        startup_parameters: hybrid_retrieval_startup_parameters(),
+        shorthand: None,
+        kind_id: contract.kind_id,
+        kind_contract_revision: contract.kind_contract_revision,
+        inputs: contract.inputs,
+        outputs: contract.outputs,
+        configuration: vec![
+            text_choice(
+                "policy",
+                "fusion/reciprocal-rank@1",
+                &[
+                    "fusion/reciprocal-rank@1",
+                    "fusion/reciprocal-rank-origin@1",
+                ],
+            ),
+            text_choice("strategy", "reciprocal-rank", &["reciprocal-rank"]),
+            count_field("rank-constant", 1, u64::from(u16::MAX)),
+            text_choice(
+                "temporal-hard-filter",
+                "none",
+                &["none", "earliest", "latest", "created-duration"],
+            ),
+            count_field(
+                "maximum-candidates-per-stage",
+                1,
+                u64::from(contract.maximum_candidates_per_stage),
+            ),
+            count_field(
+                "maximum-output-candidates",
+                1,
+                u64::from(contract.maximum_output_candidates),
+            ),
+            count_field(
+                "maximum-work-units",
+                1,
+                u64::from(contract.maximum_work_units),
+            ),
+        ],
+        semantic_laws: Vec::new(),
+        limits: contract.limits,
+    }
 }
 
 fn port(name: &str, value_kind: &str, direction: PortDirection) -> PortDescriptor {
@@ -137,7 +185,7 @@ pub fn install_hybrid_retrieval_catalog(
     profile: &mut conduit_form::ProfileCatalog,
 ) -> Result<(), alloc::string::String> {
     use alloc::string::ToString;
-    use conduit_form::{KindProjection, KindSignature};
+    use conduit_form::KindSignature;
 
     let contract = hybrid_retrieval_contract();
     startup.insert(KindSignature {
@@ -159,44 +207,7 @@ pub fn install_hybrid_retrieval_catalog(
         ],
     })?;
     profile
-        .insert(KindProjection {
-            kind_id: contract.kind_id,
-            kind_contract_revision: contract.kind_contract_revision,
-            inputs: contract.inputs,
-            outputs: contract.outputs,
-            configuration: vec![
-                text_choice(
-                    "policy",
-                    "fusion/reciprocal-rank@1",
-                    &[
-                        "fusion/reciprocal-rank@1",
-                        "fusion/reciprocal-rank-origin@1",
-                    ],
-                ),
-                text_choice("strategy", "reciprocal-rank", &["reciprocal-rank"]),
-                count_field("rank-constant", 1, u64::from(u16::MAX)),
-                text_choice(
-                    "temporal-hard-filter",
-                    "none",
-                    &["none", "earliest", "latest", "created-duration"],
-                ),
-                count_field(
-                    "maximum-candidates-per-stage",
-                    1,
-                    u64::from(contract.maximum_candidates_per_stage),
-                ),
-                count_field(
-                    "maximum-output-candidates",
-                    1,
-                    u64::from(contract.maximum_output_candidates),
-                ),
-                count_field(
-                    "maximum-work-units",
-                    1,
-                    u64::from(contract.maximum_work_units),
-                ),
-            ],
-        })
+        .insert_kind(hybrid_retrieval_semantic_contract())
         .map_err(|error| error.to_string())
 }
 
@@ -219,22 +230,20 @@ fn count_parameter(name: &str, default: u32) -> conduit_form::StartupParameterSi
     }
 }
 
-#[cfg(feature = "form-catalog")]
-fn text_choice(key: &str, default: &str, values: &[&str]) -> conduit_form::KindConfigurationField {
-    conduit_form::KindConfigurationField {
+fn text_choice(key: &str, default: &str, values: &[&str]) -> KindConfigurationField {
+    KindConfigurationField {
         key: key.into(),
         default_value: conduit_core::ConfigurationValue::Text(default.into()),
-        rule: conduit_form::KindConfigurationRule::TextOneOf {
+        rule: KindConfigurationRule::TextOneOf {
             values: values.iter().map(|value| (*value).into()).collect(),
         },
     }
 }
 
-#[cfg(feature = "form-catalog")]
-fn count_field(key: &str, minimum: u64, maximum: u64) -> conduit_form::KindConfigurationField {
-    conduit_form::KindConfigurationField {
+fn count_field(key: &str, minimum: u64, maximum: u64) -> KindConfigurationField {
+    KindConfigurationField {
         key: key.into(),
         default_value: conduit_core::ConfigurationValue::U64(maximum),
-        rule: conduit_form::KindConfigurationRule::U64Range { minimum, maximum },
+        rule: KindConfigurationRule::U64Range { minimum, maximum },
     }
 }

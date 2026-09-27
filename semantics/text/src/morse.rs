@@ -5,7 +5,8 @@ use alloc::string::ToString;
 use alloc::{string::String, vec, vec::Vec};
 use conduit_core::{
     kind_id, port_id, CapabilityLimits, ConfigurationValue, FrontStartupParameter, Kind,
-    KindIdentity, PortDescriptor, PortDirection, PortTemporal,
+    KindConfigurationField, KindConfigurationRule, KindIdentity, PortDescriptor, PortDirection,
+    PortTemporal,
 };
 
 pub const MORSE_PATTERN_VALUE_KIND: &str = "value/morse-pattern@1";
@@ -84,6 +85,18 @@ pub struct MorseKindContract {
 
 impl MorseKindContract {
     pub fn into_semantic_contract(self) -> Kind {
+        let configuration = self
+            .configuration
+            .iter()
+            .map(|(key, value)| KindConfigurationField {
+                key: (*key).into(),
+                default_value: value.clone(),
+                rule: KindConfigurationRule::U64Range {
+                    minimum: u64::from(MINIMUM_MORSE_UNIT_MILLIS),
+                    maximum: u64::from(MAXIMUM_MORSE_UNIT_MILLIS),
+                },
+            })
+            .collect();
         Kind {
             startup_parameters: self
                 .configuration
@@ -102,7 +115,7 @@ impl MorseKindContract {
             kind_contract_revision: self.kind_contract_revision,
             inputs: self.inputs,
             outputs: self.outputs,
-            configuration: Default::default(),
+            configuration,
             semantic_laws: Default::default(),
             limits: self.limits,
         }

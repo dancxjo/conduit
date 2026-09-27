@@ -67,19 +67,13 @@ pub fn install_indicator_presentation_catalog(
     startup: &mut conduit_form::StartupCatalog,
     profile: &mut conduit_form::ProfileCatalog,
 ) -> Result<(), alloc::string::String> {
-    use conduit_form::{KindProjection, KindSignature};
+    use conduit_form::KindSignature;
     startup.insert(KindSignature {
         kind: INDICATOR_PRESENTATION_KIND.into(),
         startup_parameters: Vec::new(),
     })?;
     profile
-        .insert(KindProjection {
-            kind_id: kind_id(INDICATOR_PRESENTATION_KIND),
-            kind_contract_revision: KindIdentity::from(INDICATOR_PRESENTATION_CONTRACT_REVISION),
-            inputs: indicator_presentation_inputs(),
-            outputs: Vec::new(),
-            configuration: Default::default(),
-        })
+        .insert_kind(indicator_presentation_semantic_contract())
         .map_err(|error| error.to_string())
 }
 

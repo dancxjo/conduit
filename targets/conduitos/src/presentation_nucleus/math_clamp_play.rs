@@ -226,7 +226,8 @@ fn advertisement(host: &str, boot: &str, input: Scalar) -> HostAdvertisement {
 }
 
 fn source_offer(input: Scalar) -> CapabilityOffer {
-    CapabilityOffer {
+    conduit_core::capability_offer_from_parts! {
+        semantic_contract: Default::default(),
         startup_parameters: Vec::new(),
         shorthand: None,
         capability_id: CapabilityId::from(alloc::format!(
@@ -262,7 +263,8 @@ fn source_offer(input: Scalar) -> CapabilityOffer {
 }
 
 fn sink_offer() -> CapabilityOffer {
-    CapabilityOffer {
+    conduit_core::capability_offer_from_parts! {
+        semantic_contract: Default::default(),
         startup_parameters: Vec::new(),
         shorthand: None,
         capability_id: CapabilityId::from("conduitos-fixture-clamp-sink@1"),

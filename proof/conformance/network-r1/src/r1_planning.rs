@@ -7,8 +7,8 @@ use alloc::vec;
 use alloc::vec::Vec;
 
 use conduit_core::{
-    ArtifactId, BaseImplementationId, BootId, CapabilityId, CapabilityLimits, CapabilityOffer,
-    GearId, HostAdvertisement, HostProfileId, ImplementationId, LineOffer, OfferGeneration, Plan,
+    ArtifactId, BaseImplementationId, BootId, CapabilityId, CapabilityLimits, GearId,
+    HostAdvertisement, HostProfileId, ImplementationId, LineOffer, OfferGeneration, Plan,
     PROTOCOL_VERSION,
 };
 use conduit_planner::{plan_with_options, PlacementChoice, PlacementChoices, PlanningOptions};
@@ -53,7 +53,8 @@ pub fn r1_signal_source_advertisement() -> HostAdvertisement {
             .filter(|resource| resource.class_id.as_str() == conduit_core::TIMER_RESOURCE_CLASS)
             .collect(),
         planner_capabilities: vec![],
-        capabilities: vec![CapabilityOffer {
+        capabilities: vec![conduit_core::capability_offer_from_parts! {
+            semantic_contract: conduit_signal::pulse_semantic_contract().semantic_contract(),
             startup_parameters: conduit_signal::pulse_front_startup_parameters(),
             shorthand: None,
             capability_id: CapabilityId::from(R1_PULSE_CAPABILITY_ID),
@@ -93,7 +94,8 @@ pub fn r1_signal_pico_advertisement(boot_id: BootId) -> HostAdvertisement {
             })
             .collect(),
         planner_capabilities: vec![],
-        capabilities: vec![CapabilityOffer {
+        capabilities: vec![conduit_core::capability_offer_from_parts! {
+            semantic_contract: conduit_signal::show_semantic_contract().semantic_contract(),
             startup_parameters: vec![],
             shorthand: None,
             capability_id: CapabilityId::from(R1_LED_CAPABILITY_ID),

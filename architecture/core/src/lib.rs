@@ -39,6 +39,7 @@ mod resource_content;
 mod resource_port;
 use resource_canonical::push_resource_binding;
 mod plan_fingerprint;
+mod planned_gear;
 mod resource_acquisition;
 mod resource_admission;
 mod resource_collection;
@@ -66,9 +67,9 @@ pub use conduit_assigned_plan::*;
 pub use configuration::{
     AbnormalTerminalTransduction, CancellationTransduction, ConfigurationEntry, ConfigurationValue,
     ExternalEffectBehavior, FiniteTerminalEmission, KindConfigurationField, KindConfigurationRule,
-    KindSemanticLaw, KindTerminalBehavior, NormalCloseTransduction, ReplayBehavior,
-    SemanticDependence, StructuredConfigurationValue, SuspensionBehavior, TemporalStateBehavior,
-    TerminalTransductionProfile, VariabilityBehavior,
+    KindSemanticContract, KindSemanticLaw, KindTerminalBehavior, NormalCloseTransduction,
+    ReplayBehavior, SemanticDependence, StructuredConfigurationValue, SuspensionBehavior,
+    TemporalStateBehavior, TerminalTransductionProfile, VariabilityBehavior,
 };
 pub use consequential_effect::*;
 pub use control_loop::*;
@@ -425,6 +426,7 @@ pub struct CapabilityOffer {
     pub kind_contract_revision: KindIdentity,
     pub inputs: Vec<PortDescriptor>,
     pub outputs: Vec<PortDescriptor>,
+    pub semantic_contract: KindSemanticContract,
     #[serde(flatten)]
     pub implementation: ImplementationOffer,
     pub host_calls: Vec<HostCallRequirement>,
@@ -532,6 +534,7 @@ pub struct PlannedGear {
     pub limits: CapabilityLimits,
     pub inputs: Vec<PortDescriptor>,
     pub outputs: Vec<PortDescriptor>,
+    pub semantic_contract: KindSemanticContract,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub terminal_transduction: Option<TerminalTransductionProfile>,
     pub host_calls: Vec<HostCallRequirement>,

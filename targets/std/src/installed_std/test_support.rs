@@ -18,7 +18,8 @@ const TEST_OBSERVER_PROFILE: &str = "conduit-test/tick-observer-kernel@1";
 const TEST_OBSERVER_ARTIFACT: &str = "conduit-std-host/test-tick-observer@1";
 
 pub(crate) fn test_observer_offer() -> CapabilityOffer {
-    CapabilityOffer {
+    conduit_core::capability_offer_from_parts! {
+        semantic_contract: Default::default(),
         startup_parameters: vec![],
         shorthand: None,
         capability_id: CapabilityId::from("test-tick-observer"),
@@ -146,7 +147,8 @@ pub(crate) fn test_catalog() -> conduit_form::ProfileCatalog {
 }
 
 pub(crate) fn test_layout_sink_offer() -> CapabilityOffer {
-    CapabilityOffer {
+    conduit_core::capability_offer_from_parts! {
+        semantic_contract: Default::default(),
         startup_parameters: vec![],
         shorthand: None,
         capability_id: CapabilityId::from("test-layout-sink"),
@@ -179,7 +181,8 @@ pub(crate) fn test_layout_sink_offer() -> CapabilityOffer {
 }
 
 pub(crate) fn test_presentation_sink_offer() -> CapabilityOffer {
-    CapabilityOffer {
+    conduit_core::capability_offer_from_parts! {
+        semantic_contract: Default::default(),
         startup_parameters: vec![],
         shorthand: None,
         capability_id: CapabilityId::from("test-presentation-sink"),
@@ -214,7 +217,8 @@ pub(crate) fn test_presentation_sink_offer() -> CapabilityOffer {
 }
 
 pub(crate) fn test_graphics_sink_offer() -> CapabilityOffer {
-    CapabilityOffer {
+    conduit_core::capability_offer_from_parts! {
+        semantic_contract: Default::default(),
         startup_parameters: vec![],
         shorthand: None,
         capability_id: CapabilityId::from("test-graphics-sink"),

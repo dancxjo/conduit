@@ -276,14 +276,11 @@ fn host(
 }
 
 fn text_literal_fixture_offer(implementation: &str) -> conduit_core::CapabilityOffer {
-    let contract = conduit_text::text_literal_semantics();
-    conduit_core::CapabilityOffer {
-        startup_parameters: vec![conduit_core::FrontStartupParameter {
-            name: "value".into(),
-            value_type: conduit_core::kind_id("value/text"),
-            has_default: false,
-        }],
-        shorthand: None,
+    let contract = conduit_text::text_literal_semantics().into_semantic_contract();
+    conduit_core::capability_offer_from_parts! {
+        semantic_contract: contract.semantic_contract(),
+        startup_parameters: contract.startup_parameters.clone(),
+        shorthand: contract.shorthand.clone(),
         capability_id: conduit_core::CapabilityId::from(implementation),
         kind_id: contract.kind_id,
         kind_contract_revision: contract.kind_contract_revision,

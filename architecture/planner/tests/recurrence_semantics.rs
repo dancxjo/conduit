@@ -1,8 +1,8 @@
 use conduit_core::{
-    ArtifactId, BootId, CapabilityId, CapabilityLimits, CapabilityOffer, ConfigurationValue,
-    ExecutionProfileId, HostAdvertisement, HostId, HostProfileId, ImplementationId, KindId,
-    KindIdentity, OfferGeneration, StructuredConfigurationValue, StructuredFieldType,
-    StructuredInfoType, StructuredInfoValue, PROTOCOL_VERSION,
+    ArtifactId, BootId, CapabilityId, CapabilityLimits, ConfigurationValue, ExecutionProfileId,
+    HostAdvertisement, HostId, HostProfileId, ImplementationId, KindId, KindIdentity,
+    OfferGeneration, StructuredConfigurationValue, StructuredFieldType, StructuredInfoType,
+    StructuredInfoValue, PROTOCOL_VERSION,
 };
 use conduit_form::{
     check_syntax_document, expand_canonical_form, parse_syntax_document, CanonicalStartupValue,
@@ -101,7 +101,11 @@ fn advertisement(
         profile: HostProfileId::from("test/time-host"),
         bases: vec![],
         resources: vec![],
-        capabilities: vec![CapabilityOffer {
+        capabilities: vec![conduit_core::capability_offer_from_parts! {
+            semantic_contract: conduit_core::KindSemanticContract {
+                configuration: definition.configuration.clone(),
+                laws: Vec::new(),
+            },
             startup_parameters,
             shorthand: None,
             capability_id: CapabilityId::from("time-recurrence"),

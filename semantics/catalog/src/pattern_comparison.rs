@@ -103,7 +103,7 @@ pub fn compare_normalized_pattern_semantic_contract() -> Kind {
         kind_contract_revision: definition.kind_contract_revision,
         inputs: definition.inputs,
         outputs: definition.outputs,
-        configuration: Default::default(),
+        configuration: definition.configuration,
         semantic_laws: Default::default(),
         limits: CapabilityLimits {
             max_active_instances: 8,
@@ -138,7 +138,7 @@ pub fn install_pattern_comparison_catalogs(
         })
         .map_err(|error| error.to_string())?;
     profile
-        .insert(compare_normalized_pattern_definition())
+        .insert_kind(compare_normalized_pattern_semantic_contract())
         .map_err(|error| error.to_string())
 }
 

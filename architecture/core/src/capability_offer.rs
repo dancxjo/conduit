@@ -34,6 +34,13 @@ impl Kind {
             .unwrap_or_default()
     }
 
+    pub fn semantic_contract(&self) -> crate::KindSemanticContract {
+        crate::KindSemanticContract {
+            configuration: self.configuration.clone(),
+            laws: self.semantic_laws.clone(),
+        }
+    }
+
     pub fn terminal_transduction(&self) -> Option<&crate::TerminalTransductionProfile> {
         self.semantic_laws.iter().find_map(|law| match law {
             KindSemanticLaw::TerminalTransduction(profile) => Some(profile),
@@ -80,10 +87,15 @@ impl Kind {
             // Configuration owns the canonical value and rule. The callable
             // Front independently owns whether authors may omit it.
             let semantic_kind = match (&field.rule, &field.default_value) {
+                (crate::KindConfigurationRule::Any, _) => front.value_type.clone(),
                 (
                     crate::KindConfigurationRule::QuantityRange { canonical_unit, .. },
                     crate::ConfigurationValue::Quantity(_),
                 ) => crate::kind_id(canonical_unit.dimension().info_id()),
+                (
+                    crate::KindConfigurationRule::DurationMillis { .. },
+                    crate::ConfigurationValue::U64(_),
+                ) => crate::kind_id(crate::DURATION_INFO_ID),
                 _ => field.default_value.semantic_kind(),
             };
             if front.value_type != semantic_kind {
@@ -319,6 +331,7 @@ impl BackOfferBuilder {
     }
 
     pub fn build(self) -> CapabilityOffer {
+        let semantic_contract = self.contract.semantic_contract();
         CapabilityOffer {
             startup_parameters: self.contract.startup_parameters,
             shorthand: self.contract.shorthand,
@@ -327,6 +340,7 @@ impl BackOfferBuilder {
             kind_contract_revision: self.contract.kind_contract_revision,
             inputs: self.contract.inputs,
             outputs: self.contract.outputs,
+            semantic_contract,
             implementation: ImplementationOffer {
                 execution_profile_id: self.realization.execution_profile_id,
                 implementation_id: self.realization.implementation_id,
@@ -340,11 +354,53 @@ impl BackOfferBuilder {
     }
 }
 
+impl CapabilityOffer {
+    /// Revalidates the semantic half of an already assembled offer.
+    ///
+    /// Canonical production offers should use [`BackOfferBuilder`]. This is
+    /// the checked boundary used by finite fixtures and composition code that
+    /// must spell all wire fields explicitly: it prevents those callers from
+    /// bypassing the same Kind validation merely because they do not own a
+    /// reusable catalog value.
+    #[doc(hidden)]
+    pub fn validate_constructed_semantic_contract(&self) -> Result<(), KindValidationError> {
+        Kind {
+            startup_parameters: self.startup_parameters.clone(),
+            shorthand: self.shorthand.clone(),
+            kind_id: self.kind_id.clone(),
+            kind_contract_revision: self.kind_contract_revision.clone(),
+            inputs: self.inputs.clone(),
+            outputs: self.outputs.clone(),
+            configuration: self.semantic_contract.configuration.clone(),
+            semantic_laws: self.semantic_contract.laws.clone(),
+            limits: self.limits.clone(),
+        }
+        .validate()
+    }
+}
+
+/// Checked named-field construction for finite fixtures and composition code.
+///
+/// Production Host catalogs should prefer [`BackOfferBuilder`], which derives
+/// every semantic field directly from one canonical [`Kind`]. This macro is a
+/// migration-safe boundary for callers that must spell the complete portable
+/// record: unlike a raw literal, it always applies Kind validation.
+#[macro_export]
+macro_rules! capability_offer_from_parts {
+    ($($fields:tt)*) => {{
+        let offer = $crate::CapabilityOffer { $($fields)* };
+        if let Err(error) = offer.validate_constructed_semantic_contract() {
+            panic!("CapabilityOffer requires a valid semantic contract: {:?}", error);
+        }
+        offer
+    }};
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
     use crate::{kind_id, port_id, PortDirection, PortTemporal};
-    use alloc::vec;
+    use alloc::{format, string::ToString, vec};
 
     fn contract() -> Kind {
         Kind {
@@ -617,6 +673,18 @@ mod tests {
         kind.startup_parameters[0].has_default = false;
         assert_eq!(kind.validate(), Ok(()));
 
+        kind.startup_parameters[0].value_type = kind_id(crate::DURATION_INFO_ID);
+        kind.configuration[0].rule = crate::KindConfigurationRule::DurationMillis {
+            minimum: 1,
+            maximum: 8,
+        };
+        assert_eq!(kind.validate(), Ok(()));
+        kind.startup_parameters[0].value_type = kind_id(crate::COUNT_INFO_ID);
+        kind.configuration[0].rule = crate::KindConfigurationRule::U64Range {
+            minimum: 1,
+            maximum: 8,
+        };
+
         kind.configuration.push(kind.configuration[0].clone());
         assert_eq!(
             kind.validate(),
@@ -631,6 +699,84 @@ mod tests {
         assert_eq!(
             kind.validate(),
             Err(KindValidationError::ConfigurationFrontMismatch)
+        );
+    }
+
+    #[test]
+    fn semantic_contract_is_required_in_json_and_breaks_legacy_positional_frames_closed() {
+        #[derive(serde::Serialize, serde::Deserialize)]
+        struct LegacyCapabilityOffer {
+            startup_parameters: Vec<FrontStartupParameter>,
+            shorthand: Option<(PortId, PortId)>,
+            capability_id: CapabilityId,
+            kind_id: KindId,
+            kind_contract_revision: KindIdentity,
+            inputs: Vec<PortDescriptor>,
+            outputs: Vec<PortDescriptor>,
+            implementation: ImplementationOffer,
+            host_calls: Vec<HostCallRequirement>,
+            resource_requirements: Vec<ResourceRequirement>,
+            authority_requirements: Vec<AuthorityRequirement>,
+            limits: CapabilityLimits,
+        }
+
+        let offer = BackOfferBuilder::new(contract(), realization("wire-proof")).build();
+        let mut json = serde_json::to_value(&offer).unwrap();
+        json.as_object_mut().unwrap().remove("semantic_contract");
+        assert!(serde_json::from_value::<CapabilityOffer>(json).is_err());
+
+        let legacy = LegacyCapabilityOffer {
+            startup_parameters: offer.startup_parameters.clone(),
+            shorthand: offer.shorthand.clone(),
+            capability_id: offer.capability_id.clone(),
+            kind_id: offer.kind_id.clone(),
+            kind_contract_revision: offer.kind_contract_revision.clone(),
+            inputs: offer.inputs.clone(),
+            outputs: offer.outputs.clone(),
+            implementation: offer.implementation.clone(),
+            host_calls: offer.host_calls.clone(),
+            resource_requirements: offer.resource_requirements.clone(),
+            authority_requirements: offer.authority_requirements.clone(),
+            limits: offer.limits.clone(),
+        };
+        let legacy_bytes = postcard::to_allocvec(&legacy).unwrap();
+        assert!(postcard::from_bytes::<CapabilityOffer>(&legacy_bytes).is_err());
+
+        // CapabilityOffer is a named-field JSON contract. Its flattened
+        // implementation fields deliberately make positional serializers
+        // refuse rather than silently assign a newly inserted field to an
+        // older position. A future positional carrier needs its own versioned
+        // envelope and cannot inherit this record layout.
+        assert!(postcard::to_allocvec(&offer).is_err());
+    }
+
+    #[test]
+    fn semantic_contract_integers_remain_exact_across_json_and_positional_carriers() {
+        let contract = crate::KindSemanticContract {
+            configuration: vec![KindConfigurationField {
+                key: "range".into(),
+                default_value: crate::ConfigurationValue::U64(u64::MAX),
+                rule: crate::KindConfigurationRule::U64Range {
+                    minimum: 0,
+                    maximum: u64::MAX,
+                },
+            }],
+            laws: vec![],
+        };
+        let json = serde_json::to_string(&contract).unwrap();
+        assert!(json.contains(&format!("\"{}\"", u64::MAX)));
+        assert_eq!(
+            serde_json::from_str::<crate::KindSemanticContract>(&json).unwrap(),
+            contract
+        );
+
+        let unsafe_number = json.replace(&format!("\"{}\"", u64::MAX), &u64::MAX.to_string());
+        assert!(serde_json::from_str::<crate::KindSemanticContract>(&unsafe_number).is_err());
+
+        let positional = postcard::to_allocvec(&contract).unwrap();
+        assert_eq!(
+            postcard::from_bytes::<crate::KindSemanticContract>(&positional).unwrap(),
+            contract
         );
     }
 }

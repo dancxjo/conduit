@@ -17,11 +17,11 @@ fn checked_civil_recurrence_executes_through_the_production_kernel() {
   expand.occurrences >> sink.occurrences
 }
 "#;
-    let sink_offer = installed_std::test_recurrence_sink_offer();
+    let mut sink_offer = installed_std::test_recurrence_sink_offer();
     let mut startup = StartupCatalog::new();
     let mut profile = ProfileCatalog::new();
     conduit_semantic_catalog::install_recurrence_catalogs(&mut startup, &mut profile).unwrap();
-    install_sink(&mut startup, &mut profile, &sink_offer);
+    install_sink(&mut startup, &mut profile, &mut sink_offer);
     let parsed = parse_syntax_document(source);
     assert!(parsed.diagnostics.is_empty(), "{:?}", parsed.diagnostics);
     let checked = check_syntax_document(&parsed, &startup).unwrap();
@@ -90,8 +90,16 @@ fn checked_civil_recurrence_executes_through_the_production_kernel() {
 fn install_sink(
     startup: &mut StartupCatalog,
     profile: &mut ProfileCatalog,
-    offer: &conduit_core::CapabilityOffer,
+    offer: &mut conduit_core::CapabilityOffer,
 ) {
+    offer.semantic_contract.configuration = vec![KindConfigurationField {
+        key: "expected".into(),
+        default_value: ConfigurationValue::U64(1),
+        rule: KindConfigurationRule::U64Range {
+            minimum: 0,
+            maximum: u64::from(conduit_semantic_catalog::RECURRENCE_MAXIMUM_RESULTS),
+        },
+    }];
     startup
         .insert(KindSignature {
             kind: SINK.into(),

@@ -3,7 +3,7 @@
 use conduit_core::{
     kind_id, present_host_call_requirement, resource_requirement, ArtifactId, Back,
     BackOfferBuilder, CapabilityId, CapabilityOffer, ExecutionProfileId, ImplementationId,
-    StructuredInfoType, PRESENTATION_RESOURCE_CLASS,
+    StructuredInfoType, StructuredInfoValue, PRESENTATION_RESOURCE_CLASS,
 };
 
 pub(crate) struct BrowserOfferIdentity<'a> {
@@ -16,10 +16,16 @@ pub(crate) struct BrowserOfferIdentity<'a> {
 pub(crate) fn structured_literal_offer(
     type_name: &str,
     value_type: &StructuredInfoType,
+    default_value: &StructuredInfoValue,
     identity: BrowserOfferIdentity<'_>,
 ) -> CapabilityOffer {
-    offer(
-        conduit_semantic_catalog::structured_literal_contract(type_name, value_type),
+    exact_offer(
+        conduit_semantic_catalog::structured_literal_semantic_contract(
+            type_name,
+            value_type,
+            default_value,
+        )
+        .expect("checked structured literal has one exact semantic contract"),
         identity,
         false,
     )
@@ -30,20 +36,20 @@ pub(crate) fn structured_presentation_offer(
     value_type: &StructuredInfoType,
     identity: BrowserOfferIdentity<'_>,
 ) -> CapabilityOffer {
-    offer(
-        conduit_semantic_catalog::structured_presentation_contract(type_name, value_type),
+    exact_offer(
+        conduit_semantic_catalog::structured_presentation_semantic_contract(type_name, value_type),
         identity,
         true,
     )
 }
 
-fn offer(
-    contract: conduit_semantic_catalog::StructuredValueContract,
+fn exact_offer(
+    contract: conduit_core::Kind,
     identity: BrowserOfferIdentity<'_>,
     presentation: bool,
 ) -> CapabilityOffer {
     BackOfferBuilder::new(
-        contract.into(),
+        contract,
         Back {
             capability_id: CapabilityId::from(identity.capability),
             execution_profile_id: ExecutionProfileId::from(identity.profile),

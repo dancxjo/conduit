@@ -100,8 +100,9 @@ pub use provider::*;
 use alloc::vec;
 use alloc::vec::Vec;
 use conduit_core::{
-    kind_id, port_id, CapabilityLimits, FrontStartupParameter, Kind, KindId, KindIdentity,
-    PortDescriptor, PortDirection, PortTemporal,
+    kind_id, port_id, CapabilityLimits, ConfigurationValue, FrontStartupParameter, Kind,
+    KindConfigurationField, KindConfigurationRule, KindId, KindIdentity, PortDescriptor,
+    PortDirection, PortTemporal,
 };
 use serde::{Deserialize, Serialize};
 
@@ -176,6 +177,37 @@ pub fn generate_text_contract() -> GenerateTextContract {
     }
 }
 
+pub fn generate_text_semantic_contract() -> Kind {
+    let contract = generate_text_contract();
+    let configuration = vec![
+        count_field("maximum-input-bytes", 4096, 1, MAXIMUM_INPUT_BYTES),
+        count_field("maximum-context-tokens", 4096, 1, MAXIMUM_CONTEXT_TOKENS),
+        count_field("maximum-output-tokens", 512, 1, MAXIMUM_OUTPUT_TOKENS),
+        count_field("temperature-milli", 0, 0, MAXIMUM_TEMPERATURE_MILLI),
+    ];
+    Kind {
+        startup_parameters: configuration
+            .iter()
+            .map(|field| FrontStartupParameter {
+                name: field.key.clone(),
+                value_type: field.default_value.semantic_kind(),
+                has_default: true,
+            })
+            .collect(),
+        shorthand: Some((
+            contract.inputs[0].port_id.clone(),
+            contract.outputs[0].port_id.clone(),
+        )),
+        kind_id: contract.kind_id,
+        kind_contract_revision: contract.kind_contract_revision,
+        inputs: contract.inputs,
+        outputs: contract.outputs,
+        configuration,
+        semantic_laws: Vec::new(),
+        limits: contract.limits,
+    }
+}
+
 fn text_port(name: &str, direction: PortDirection) -> PortDescriptor {
     PortDescriptor {
         port_id: port_id(name),
@@ -203,35 +235,9 @@ pub fn install_generate_text_catalog(
             parameter("temperature-milli", "Count", "0"),
         ],
     })?;
-    let contract = generate_text_contract();
-    let configuration = vec![
-        count_field("maximum-input-bytes", 4096, 1, MAXIMUM_INPUT_BYTES),
-        count_field("maximum-context-tokens", 4096, 1, MAXIMUM_CONTEXT_TOKENS),
-        count_field("maximum-output-tokens", 512, 1, MAXIMUM_OUTPUT_TOKENS),
-        count_field("temperature-milli", 0, 0, MAXIMUM_TEMPERATURE_MILLI),
-    ];
-    let kind = Kind {
-        startup_parameters: configuration
-            .iter()
-            .map(|field| FrontStartupParameter {
-                name: field.key.clone(),
-                value_type: field.default_value.semantic_kind(),
-                has_default: true,
-            })
-            .collect(),
-        shorthand: Some((
-            contract.inputs[0].port_id.clone(),
-            contract.outputs[0].port_id.clone(),
-        )),
-        kind_id: contract.kind_id,
-        kind_contract_revision: contract.kind_contract_revision,
-        inputs: contract.inputs,
-        outputs: contract.outputs,
-        configuration,
-        semantic_laws: Vec::new(),
-        limits: contract.limits,
-    };
-    profile.insert_kind(kind).map_err(|error| error.to_string())
+    profile
+        .insert_kind(generate_text_semantic_contract())
+        .map_err(|error| error.to_string())
 }
 
 #[cfg(feature = "form-catalog")]
@@ -248,18 +254,12 @@ fn parameter(
     }
 }
 
-#[cfg(feature = "form-catalog")]
-fn count_field(
-    key: &str,
-    default: u64,
-    minimum: u64,
-    maximum: u64,
-) -> conduit_form::KindConfigurationField {
+fn count_field(key: &str, default: u64, minimum: u64, maximum: u64) -> KindConfigurationField {
     use alloc::string::ToString;
-    conduit_form::KindConfigurationField {
+    KindConfigurationField {
         key: key.to_string(),
-        default_value: conduit_core::ConfigurationValue::U64(default),
-        rule: conduit_form::KindConfigurationRule::U64Range { minimum, maximum },
+        default_value: ConfigurationValue::U64(default),
+        rule: KindConfigurationRule::U64Range { minimum, maximum },
     }
 }
 

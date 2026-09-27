@@ -54,9 +54,9 @@ impl<'de> Deserialize<'de> for StructuredConfigurationValue {
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub enum ConfigurationValue {
     Bool(bool),
-    U64(u64),
+    U64(#[serde(with = "human_u64")] u64),
     /// Signed fixed-point scalar microunits, matching `value/scalar`.
-    I64(i64),
+    I64(#[serde(with = "human_i64")] i64),
     Text(String),
     /// Exact dimensional startup value; the unit remains part of configuration truth.
     Quantity(crate::Quantity),
@@ -91,24 +91,48 @@ pub struct KindConfigurationField {
     pub rule: KindConfigurationRule,
 }
 
+/// Exact portable semantic contract shared by every Back for one Kind.
+///
+/// The callable Fore is intentionally separate: equal port shape does not
+/// permit a realization to change configuration or behavioral law.
+#[derive(Debug, Clone, Default, PartialEq, Eq, Serialize, Deserialize)]
+pub struct KindSemanticContract {
+    pub configuration: Vec<KindConfigurationField>,
+    pub laws: Vec<KindSemanticLaw>,
+}
+
+impl KindSemanticContract {
+    pub fn is_empty(&self) -> bool {
+        self.configuration.is_empty() && self.laws.is_empty()
+    }
+}
+
 /// Finite validation law for one Kind configuration field.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub enum KindConfigurationRule {
     Any,
     U64Range {
+        #[serde(with = "human_u64")]
         minimum: u64,
+        #[serde(with = "human_u64")]
         maximum: u64,
     },
     I64Range {
+        #[serde(with = "human_i64")]
         minimum: i64,
+        #[serde(with = "human_i64")]
         maximum: i64,
     },
     DurationMillis {
+        #[serde(with = "human_u64")]
         minimum: u64,
+        #[serde(with = "human_u64")]
         maximum: u64,
     },
     QuantityRange {
+        #[serde(with = "human_i64")]
         minimum: i64,
+        #[serde(with = "human_i64")]
         maximum: i64,
         canonical_unit: crate::QuantityUnit,
     },
@@ -121,6 +145,110 @@ pub enum KindConfigurationRule {
     Structured {
         profile: KindId,
     },
+}
+
+const MAXIMUM_EXACT_JAVASCRIPT_INTEGER: u64 = 9_007_199_254_740_991;
+
+mod human_u64 {
+    use alloc::{
+        format,
+        string::{String, ToString},
+    };
+    use serde::{de::Error as _, Deserialize, Deserializer, Serializer};
+
+    use super::MAXIMUM_EXACT_JAVASCRIPT_INTEGER;
+
+    pub fn serialize<S>(value: &u64, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: Serializer,
+    {
+        if serializer.is_human_readable() && *value > MAXIMUM_EXACT_JAVASCRIPT_INTEGER {
+            serializer.serialize_str(&value.to_string())
+        } else {
+            serializer.serialize_u64(*value)
+        }
+    }
+
+    pub fn deserialize<'de, D>(deserializer: D) -> Result<u64, D::Error>
+    where
+        D: Deserializer<'de>,
+    {
+        if !deserializer.is_human_readable() {
+            return u64::deserialize(deserializer);
+        }
+        #[derive(Deserialize)]
+        #[serde(untagged)]
+        enum HumanInteger {
+            Number(u64),
+            Decimal(String),
+        }
+        match HumanInteger::deserialize(deserializer)? {
+            HumanInteger::Number(value) if value <= MAXIMUM_EXACT_JAVASCRIPT_INTEGER => Ok(value),
+            HumanInteger::Number(value) => Err(D::Error::custom(format!(
+                "JSON integer {value} exceeds JavaScript's exact integer range; encode it as a decimal string"
+            ))),
+            HumanInteger::Decimal(value) => value
+                .parse()
+                .map_err(|_| D::Error::custom("invalid exact u64 decimal string")),
+        }
+    }
+}
+
+mod human_i64 {
+    use alloc::{
+        format,
+        string::{String, ToString},
+    };
+    use serde::{de::Error as _, Deserialize, Deserializer, Serializer};
+
+    use super::MAXIMUM_EXACT_JAVASCRIPT_INTEGER;
+
+    const MINIMUM_EXACT_JAVASCRIPT_INTEGER: i64 = -(MAXIMUM_EXACT_JAVASCRIPT_INTEGER as i64);
+    const MAXIMUM_EXACT_JAVASCRIPT_SIGNED_INTEGER: i64 = MAXIMUM_EXACT_JAVASCRIPT_INTEGER as i64;
+
+    pub fn serialize<S>(value: &i64, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: Serializer,
+    {
+        if serializer.is_human_readable()
+            && !(MINIMUM_EXACT_JAVASCRIPT_INTEGER..=MAXIMUM_EXACT_JAVASCRIPT_SIGNED_INTEGER)
+                .contains(value)
+        {
+            serializer.serialize_str(&value.to_string())
+        } else {
+            serializer.serialize_i64(*value)
+        }
+    }
+
+    pub fn deserialize<'de, D>(deserializer: D) -> Result<i64, D::Error>
+    where
+        D: Deserializer<'de>,
+    {
+        if !deserializer.is_human_readable() {
+            return i64::deserialize(deserializer);
+        }
+        #[derive(Deserialize)]
+        #[serde(untagged)]
+        enum HumanInteger {
+            Number(i64),
+            Decimal(String),
+        }
+        match HumanInteger::deserialize(deserializer)? {
+            HumanInteger::Number(value)
+                if (MINIMUM_EXACT_JAVASCRIPT_INTEGER
+                    ..=MAXIMUM_EXACT_JAVASCRIPT_SIGNED_INTEGER)
+                    .contains(&value) =>
+            {
+                Ok(value)
+            }
+            HumanInteger::Number(value) => Err(D::Error::custom(format!(
+                "JSON integer {value} exceeds JavaScript's exact integer range; encode it as a decimal string"
+            ))),
+            HumanInteger::Decimal(value) => value
+                .parse()
+                .map_err(|_| D::Error::custom("invalid exact i64 decimal string")),
+        }
+    }
 }
 
 /// A machine-readable semantic law owned by a Kind.

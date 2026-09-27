@@ -6,9 +6,10 @@
 use super::StructuredValueContract;
 use alloc::vec;
 use conduit_core::{
-    kind_id, port_id, CapabilityLimits, FrontStartupParameter, KindIdentity, PortDescriptor,
-    PortDirection, PortTemporal, StructuredInfoRefusal, StructuredInfoType,
-    MAXIMUM_STRUCTURED_CANONICAL_BYTES,
+    kind_id, port_id, CapabilityLimits, ConfigurationValue, FrontStartupParameter, Kind,
+    KindConfigurationField, KindConfigurationRule, KindIdentity, PortDescriptor, PortDirection,
+    PortTemporal, StructuredConfigurationValue, StructuredInfoRefusal, StructuredInfoType,
+    StructuredInfoValue, MAXIMUM_STRUCTURED_CANONICAL_BYTES,
 };
 
 pub use conduit_core::{STATE_VALUE_KIND, STATE_VALUE_REVISION};
@@ -52,6 +53,37 @@ pub fn state_value_contract(
             max_queue_bytes: MAXIMUM_STRUCTURED_CANONICAL_BYTES as u32,
         },
     })
+}
+
+pub fn state_value_semantic_contract(
+    type_name: &str,
+    value_type: &StructuredInfoType,
+    default_value: &StructuredInfoValue,
+) -> Result<Kind, alloc::string::String> {
+    if default_value.value_type() != value_type {
+        return Err("State initialization has the wrong exact structured type".into());
+    }
+    let mut kind: Kind = state_value_contract(type_name, value_type)
+        .map_err(|error| alloc::format!("{error:?}"))?
+        .into();
+    let profile = value_type
+        .profile()
+        .map_err(|error| alloc::format!("{error:?}"))?;
+    let initial = StructuredConfigurationValue::new(
+        profile.value_kind().clone(),
+        default_value
+            .canonical_bytes()
+            .map_err(|error| alloc::format!("{error:?}"))?,
+    )
+    .ok_or_else(|| alloc::string::String::from("invalid finite State initialization"))?;
+    kind.configuration = vec![KindConfigurationField {
+        key: "initial".into(),
+        rule: KindConfigurationRule::Structured {
+            profile: initial.profile().clone(),
+        },
+        default_value: ConfigurationValue::Structured(initial),
+    }];
+    Ok(kind)
 }
 
 #[cfg(feature = "form-catalog")]

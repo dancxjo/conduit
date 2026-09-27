@@ -89,9 +89,8 @@ pub fn logic_select_scalar_offer() -> CapabilityOffer {
 
 pub fn math_clamp_offer() -> CapabilityOffer {
     with_operation(
-        realize_contract(
-            conduit_semantic_catalog::math_clamp_contract(),
-            conduit_semantic_catalog::MATH_CLAMP_CONTRACT_REVISION,
+        realize_kind(
+            conduit_semantic_catalog::math_clamp_semantic_contract(),
             "conduitos/math-clamp-scalar@1",
             MATH_CLAMP_IMPLEMENTATION,
         ),
@@ -104,9 +103,8 @@ pub fn math_clamp_offer() -> CapabilityOffer {
 
 pub fn math_scale_offer() -> CapabilityOffer {
     with_operation(
-        realize_contract(
-            conduit_semantic_catalog::math_scale_contract(),
-            conduit_semantic_catalog::MATH_SCALE_CONTRACT_REVISION,
+        realize_kind(
+            conduit_semantic_catalog::math_scale_semantic_contract(),
             "conduitos-math-scale-scalar-v1",
             "conduitos/kernel-math-scale-scalar@1",
         ),
@@ -119,9 +117,8 @@ pub fn math_scale_offer() -> CapabilityOffer {
 
 pub fn math_deadband_offer() -> CapabilityOffer {
     with_operation(
-        realize_contract(
-            conduit_semantic_catalog::math_deadband_contract(),
-            conduit_semantic_catalog::MATH_DEADBAND_CONTRACT_REVISION,
+        realize_kind(
+            conduit_semantic_catalog::math_deadband_semantic_contract(),
             "conduitos-math-deadband-scalar-v1",
             "conduitos/kernel-math-deadband-scalar@1",
         ),
@@ -723,6 +720,26 @@ fn realize_contract(
         Vec::new(),
         Vec::new(),
     )
+}
+
+fn realize_kind(
+    contract: conduit_core::Kind,
+    capability: &str,
+    implementation: &str,
+) -> CapabilityOffer {
+    BackOfferBuilder::new(
+        contract,
+        Back {
+            capability_id: CapabilityId::from(capability),
+            execution_profile_id: ExecutionProfileId::from(FUNCTIONAL_KERNEL_PROFILE),
+            implementation_id: ImplementationId::from(implementation),
+            artifact_id: ArtifactId::from(FUNCTIONAL_KERNEL_ARTIFACT),
+            host_calls: Vec::new(),
+            resource_requirements: Vec::new(),
+            authority_requirements: Vec::new(),
+        },
+    )
+    .build()
 }
 
 fn realize_flow_contract(

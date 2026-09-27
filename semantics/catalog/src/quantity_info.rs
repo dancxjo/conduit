@@ -132,26 +132,19 @@ pub fn install_quantity_info_catalog(
     startup: &mut conduit_form::StartupCatalog,
     profile: &mut conduit_form::ProfileCatalog,
 ) -> Result<(), String> {
-    let contract = quantity_info_wrap_contract();
     startup.insert(conduit_form::KindSignature {
         kind: QUANTITY_INFO_WRAP_KIND.into(),
         startup_parameters: Vec::new(),
     })?;
     profile
-        .insert(conduit_form::KindProjection {
-            kind_id: contract.kind_id,
-            kind_contract_revision: conduit_core::KindIdentity::from(QUANTITY_INFO_WRAP_REVISION),
-            inputs: contract.inputs,
-            outputs: contract.outputs,
-            configuration: Default::default(),
-        })
+        .insert_kind(quantity_info_wrap_semantic_contract())
         .map_err(|error| alloc::format!("{error}"))?;
     startup.insert(conduit_form::KindSignature {
         kind: QUANTITY_PRESENTATION_KIND.into(),
         startup_parameters: Vec::new(),
     })?;
     profile
-        .insert(quantity_presentation_definition())
+        .insert_kind(quantity_presentation_semantic_contract())
         .map_err(|error| alloc::format!("{error}"))
 }
 

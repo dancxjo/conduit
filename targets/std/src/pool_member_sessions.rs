@@ -306,7 +306,8 @@ mod tests {
             admission_authority: AuthorityGrantId::from("grant/workers"),
             consumers: vec![consumer_id.clone()],
         };
-        let consumer = PlannedGear {
+        let consumer = conduit_core::planned_gear_from_parts! {
+            semantic_contract: Default::default(),
             placement_id: consumer_id.clone(),
             gear_id: GearId::from("client"),
             kind_id: KindId::from("flow/pool-observe"),

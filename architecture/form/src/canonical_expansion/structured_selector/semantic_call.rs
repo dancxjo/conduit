@@ -246,7 +246,7 @@ fn expand_argument_expression(
     }
     let input = definition.inputs[0].clone();
     let output = definition.outputs[0].clone();
-    gears.push(CheckedGear {
+    gears.push(crate::checked_gear_from_parts! {
         gear_id: gear_id.clone(),
         kind_id: definition.kind_id,
         kind_contract_revision: definition.kind_contract_revision,
@@ -258,6 +258,10 @@ fn expand_argument_expression(
         shorthand: Some((input.port_id.clone(), output.port_id.clone())),
         inputs: vec![input.clone()],
         outputs: vec![output.clone()],
+        semantic_contract: conduit_core::KindSemanticContract {
+            configuration: definition.configuration.clone(),
+            laws: crate::pure_expression_semantic_laws(),
+        },
         terminal_transduction: None,
         resource_ports: Vec::new(),
         configuration: definition
@@ -499,7 +503,7 @@ fn expand_one(
         ));
     }
     let output = kind.outputs[0].clone();
-    gears.push(CheckedGear {
+    gears.push(crate::checked_gear_from_parts! {
         gear_id: gear_id.clone(),
         kind_id: kind.kind_id.clone(),
         kind_contract_revision: kind.kind_contract_revision.clone(),
@@ -507,6 +511,7 @@ fn expand_one(
         shorthand: kind.shorthand.clone(),
         inputs: kind.inputs.clone(),
         outputs: kind.outputs.clone(),
+        semantic_contract: kind.semantic_contract(),
         terminal_transduction: kind.terminal_transduction().cloned(),
         resource_ports: kind.resource_ports().to_vec(),
         configuration: kind

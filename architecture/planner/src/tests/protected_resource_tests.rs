@@ -3,7 +3,8 @@ use crate::{
     default_placements, plan_with_options, PlacementChoices, PlannerError, PlanningOptions,
 };
 use conduit_core::{
-    verify_plan, BaseImplementationId, HostAdvertisement, HostId, ProtectedResourceAccess,
+    seal_plan_with_realization_backs_and_completion, verify_plan, BaseImplementationId,
+    FormIdentity, HostAdvertisement, HostId, ProtectedResourceAccess,
     ProtectedResourceCommitPolicy, ProtectedResourceGrant, ResourceBindingRoleId, ResourceHandleId,
 };
 use std::collections::BTreeMap;
@@ -91,6 +92,27 @@ fn choices_are_exact_boot_scoped_plan_bindings() {
     )
     .expect("other exact handle plans");
     assert_ne!(plan.plan_id, changed.plan_id);
+
+    let mut changed_contract = plan.clone();
+    changed_contract.fragments[0].placements[0]
+        .semantic_contract
+        .laws
+        .push(conduit_core::KindSemanticLaw::ExternalEffects(
+            conduit_core::ExternalEffectBehavior::Observable,
+        ));
+    assert!(!verify_plan(&changed_contract));
+    let resealed_contract = seal_plan_with_realization_backs_and_completion(
+        FormIdentity {
+            source_document_id: plan.source_document_id.clone(),
+            checked_form_id: plan.checked_form_id.clone(),
+            expanded_form_id: plan.expanded_form_id.clone(),
+        },
+        plan.completion_policy,
+        plan.realization_backs.clone(),
+        changed_contract.fragments,
+    );
+    assert!(verify_plan(&resealed_contract));
+    assert_ne!(plan.plan_id, resealed_contract.plan_id);
 
     let mut mutated = plan;
     mutated.fragments[0].placements[0].resources[0]

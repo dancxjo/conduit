@@ -25,9 +25,9 @@ pub use canonical::{primary_signal_startup_catalog, signal_startup_catalog};
 use conduit_core::{
     kind_id, port_id, present_host_call_requirement, resource_offer, resource_requirement,
     wait_host_call_requirement, CapabilityLimits, ConfigurationEntry, ConfigurationValue,
-    ExecutionProfileId, HostCallRequirement, Kind, KindId, KindIdentity, PortDescriptor,
-    PortDirection, ResourceOffer, ResourceRequirement, ValuePayload, PRESENTATION_RESOURCE_CLASS,
-    TIMER_RESOURCE_CLASS,
+    ExecutionProfileId, HostCallRequirement, Kind, KindConfigurationField, KindConfigurationRule,
+    KindId, KindIdentity, PortDescriptor, PortDirection, ResourceOffer, ResourceRequirement,
+    ValuePayload, PRESENTATION_RESOURCE_CLASS, TIMER_RESOURCE_CLASS,
 };
 use serde::{Deserialize, Serialize};
 
@@ -212,7 +212,29 @@ pub fn pulse_semantic_contract() -> Kind {
         kind_contract_revision: pulse_contract_revision(),
         inputs: Vec::new(),
         outputs: pulse_outputs(),
-        configuration: Default::default(),
+        configuration: vec![
+            KindConfigurationField {
+                key: "count".into(),
+                default_value: ConfigurationValue::U64(16),
+                rule: KindConfigurationRule::U64Range {
+                    minimum: 0,
+                    maximum: MAX_SIGNAL_COUNT,
+                },
+            },
+            KindConfigurationField {
+                key: "period-ms".into(),
+                default_value: ConfigurationValue::U64(250),
+                rule: KindConfigurationRule::U64Range {
+                    minimum: 0,
+                    maximum: u64::MAX,
+                },
+            },
+            KindConfigurationField {
+                key: "initial".into(),
+                default_value: ConfigurationValue::Bool(false),
+                rule: KindConfigurationRule::Any,
+            },
+        ],
         semantic_laws: Default::default(),
         limits: CapabilityLimits {
             max_active_instances: 16,

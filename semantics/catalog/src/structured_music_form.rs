@@ -39,7 +39,7 @@ pub fn rhythm_compare_semantic_contract() -> Kind {
         kind_contract_revision: definition.kind_contract_revision,
         inputs: definition.inputs,
         outputs: definition.outputs,
-        configuration: Default::default(),
+        configuration: definition.configuration,
         semantic_laws: Default::default(),
         limits: CapabilityLimits {
             max_active_instances: 8,
@@ -65,7 +65,7 @@ pub fn instrument_map_semantic_contract() -> Result<Kind, String> {
         kind_contract_revision: definition.kind_contract_revision,
         inputs: definition.inputs,
         outputs: definition.outputs,
-        configuration: Default::default(),
+        configuration: definition.configuration,
         semantic_laws: Default::default(),
         limits: CapabilityLimits {
             max_active_instances: 8,
@@ -208,10 +208,10 @@ pub fn install_structured_music_form_catalogs(
         .map_err(|error| error.to_string())?;
 
     profile
-        .insert(instrument_map_definition()?)
+        .insert_kind(instrument_map_semantic_contract()?)
         .map_err(|error| error.to_string())?;
     profile
-        .insert(rhythm_compare_definition())
+        .insert_kind(rhythm_compare_semantic_contract())
         .map_err(|error| error.to_string())?;
     Ok(())
 }

@@ -122,7 +122,8 @@ impl TestTimingSinkBack {}
 impl TestTimingSourceBack {}
 
 pub(super) fn offer() -> CapabilityOffer {
-    CapabilityOffer {
+    conduit_core::capability_offer_from_parts! {
+        semantic_contract: Default::default(),
         startup_parameters: Vec::new(),
         shorthand: None,
         capability_id: CapabilityId::from("test-timing-bool-sink-v1"),
@@ -153,7 +154,8 @@ pub(super) fn offer() -> CapabilityOffer {
 }
 
 pub(super) fn source_offer() -> CapabilityOffer {
-    CapabilityOffer {
+    conduit_core::capability_offer_from_parts! {
+        semantic_contract: Default::default(),
         startup_parameters: Vec::new(),
         shorthand: None,
         capability_id: CapabilityId::from("test-timing-bool-source-v1"),

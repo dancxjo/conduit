@@ -101,7 +101,7 @@ pub fn timed_button_attempt_semantic_contract() -> Kind {
         kind_contract_revision: definition.kind_contract_revision,
         inputs: definition.inputs,
         outputs: definition.outputs,
-        configuration: Default::default(),
+        configuration: definition.configuration,
         semantic_laws: Default::default(),
         limits: CapabilityLimits {
             max_active_instances: 8,
@@ -139,7 +139,7 @@ pub fn install_timed_button_attempt_catalogs(
         })
         .map_err(|error| error.to_string())?;
     profile
-        .insert(timed_button_attempt_definition())
+        .insert_kind(timed_button_attempt_semantic_contract())
         .map_err(|error| error.to_string())
 }
 

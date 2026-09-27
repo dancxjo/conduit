@@ -83,7 +83,7 @@ pub(super) fn expand_when_filter(
     }
     let input = definition.inputs[0].clone();
     let output = definition.outputs[0].clone();
-    gears.push(CheckedGear {
+    gears.push(crate::checked_gear_from_parts! {
         gear_id: gear_id.clone(),
         kind_id: definition.kind_id,
         kind_contract_revision: definition.kind_contract_revision,
@@ -95,6 +95,10 @@ pub(super) fn expand_when_filter(
         shorthand: Some((input.port_id.clone(), output.port_id.clone())),
         inputs: vec![input.clone()],
         outputs: vec![output.clone()],
+        semantic_contract: conduit_core::KindSemanticContract {
+            configuration: definition.configuration.clone(),
+            laws: crate::pure_expression_semantic_laws(),
+        },
         terminal_transduction: None,
         resource_ports: Vec::new(),
         configuration: definition

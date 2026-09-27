@@ -115,7 +115,11 @@ fn text_field(key: &str) -> KindConfigurationField {
 }
 
 pub(super) fn edit_offer() -> CapabilityOffer {
-    CapabilityOffer {
+    conduit_core::capability_offer_from_parts! {
+        semantic_contract: conduit_core::KindSemanticContract {
+            configuration: edit_configuration(),
+            laws: vec![],
+        },
         startup_parameters: edit_signature()
             .startup_parameters
             .into_iter()

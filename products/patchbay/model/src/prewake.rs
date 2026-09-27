@@ -446,10 +446,11 @@ pub fn simulated_advertisements(
 }
 
 fn simulated_keyboard_offer() -> conduit_core::CapabilityOffer {
-    let contract = conduit_semantic_catalog::keyboard_contract();
-    conduit_core::CapabilityOffer {
-        startup_parameters: Vec::new(),
-        shorthand: None,
+    let contract = conduit_semantic_catalog::keyboard_semantic_contract();
+    conduit_core::capability_offer_from_parts! {
+        semantic_contract: contract.semantic_contract(),
+        startup_parameters: contract.startup_parameters.clone(),
+        shorthand: contract.shorthand.clone(),
         capability_id: "prewake/simulated-keyboard@1".into(),
         kind_id: contract.kind_id,
         kind_contract_revision: conduit_semantic_catalog::keyboard_contract_revision(),

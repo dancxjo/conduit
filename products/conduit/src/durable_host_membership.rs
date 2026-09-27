@@ -3,7 +3,7 @@
 use super::invitation::{PendingBodyJoin, PortableAdmissionReceipt};
 use super::{
     bounded_read, digest, observe_current_runtime, read_installation, restrict_directory,
-    write_json_atomic, Installation, RuntimeStatus, RUNTIME_SCHEMA,
+    write_json_atomic, Installation, RuntimeStatus, MAXIMUM_BODY_ADMISSION_BYTES, RUNTIME_SCHEMA,
 };
 use conduit_body::MembershipCredential;
 use conduit_core::HostAdvertisement;
@@ -33,13 +33,13 @@ pub(crate) fn complete_body_join(
     }
     let pending_path = state_dir.join("body/pending-join.json");
     let pending: PendingBodyJoin =
-        serde_json::from_slice(&bounded_read(&pending_path, 256 * 1024)?)
+        serde_json::from_slice(&bounded_read(&pending_path, MAXIMUM_BODY_ADMISSION_BYTES)?)
             .map_err(|error| format!("pending Body join: {error}"))?;
     if pending.schema != "conduit.body/pending-join@1" {
         return Err("pending Body join has an unsupported schema".into());
     }
     let receipt: PortableAdmissionReceipt =
-        serde_json::from_slice(&bounded_read(receipt_path, 256 * 1024)?)
+        serde_json::from_slice(&bounded_read(receipt_path, MAXIMUM_BODY_ADMISSION_BYTES)?)
             .map_err(|error| format!("Body admission receipt: {error}"))?;
     let request = &pending.request;
     if receipt.schema != "conduit.body/spawn-admission-receipt@1"

@@ -5,8 +5,8 @@ use super::{
 };
 use alloc::{string::ToString, vec, vec::Vec};
 use conduit_core::{
-    kind_id, port_id, CapabilityLimits, ConfigurationValue, KindIdentity, PortDescriptor,
-    PortDirection, PortTemporal,
+    kind_id, port_id, CapabilityLimits, ConfigurationValue, PortDescriptor, PortDirection,
+    PortTemporal,
 };
 use conduit_presentation::{
     PresentationIconKey, GRAPHICS_SCENE_KIND, MAX_GRAPHICS_SCENE_BYTES, MAX_GRAPHICS_TEXT_BYTES,
@@ -196,10 +196,7 @@ pub fn install_graphics_catalogs(
     startup: &mut conduit_form::StartupCatalog,
     profile: &mut conduit_form::ProfileCatalog,
 ) -> Result<(), alloc::string::String> {
-    use conduit_form::{
-        KindConfigurationField, KindConfigurationRule, KindProjection, KindSignature,
-        StartupParameterSignature,
-    };
+    use conduit_form::{KindSignature, StartupParameterSignature};
     for contract in [
         graphics_rect_contract(),
         graphics_text_contract(),
@@ -225,34 +222,8 @@ pub fn install_graphics_catalogs(
                 })
                 .collect(),
         })?;
-        let configuration = contract
-            .configuration
-            .into_iter()
-            .map(|field| KindConfigurationField {
-                key: field.key,
-                default_value: field.default_value,
-                rule: match field.rule {
-                    KindConfigurationRule::U64Range { minimum, maximum } => {
-                        KindConfigurationRule::U64Range { minimum, maximum }
-                    }
-                    KindConfigurationRule::TextBytes { maximum } => {
-                        KindConfigurationRule::TextBytes { maximum }
-                    }
-                    KindConfigurationRule::TextOneOf { values } => {
-                        KindConfigurationRule::TextOneOf { values }
-                    }
-                    _ => unreachable!(),
-                },
-            })
-            .collect();
         profile
-            .insert(KindProjection {
-                kind_id: contract.kind_id,
-                kind_contract_revision: KindIdentity::from(GRAPHICS_SCENE_CONTRACT_REVISION),
-                inputs: contract.inputs,
-                outputs: contract.outputs,
-                configuration,
-            })
+            .insert_kind(contract.into_semantic_contract(GRAPHICS_SCENE_CONTRACT_REVISION))
             .map_err(|error| error.to_string())?;
     }
     Ok(())
