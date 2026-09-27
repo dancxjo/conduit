@@ -122,6 +122,9 @@ pub enum LoweringError {
     InvalidTerminalTransduction(PlacementId),
     UnsupportedHostCallConcurrency(PlacementId),
     ResourceBindingInvalid(PlacementId),
+    /// Resource authority cannot enter the byte-valued Cord store. A future
+    /// executable path must bind an already-issued local handle slot.
+    ResourceAuthorityTransferUnsupported(ConnectionId),
     SignBudgetInvalid,
     SignReferenceMissing,
     SharedPoolInvalid(SharedPoolId),
@@ -817,6 +820,11 @@ pub fn lower_plan_fragment_for_profile(
     for (cord_index, connection) in fragment.connections.iter().enumerate() {
         if !connection_ids.insert(connection.connection_id.clone()) {
             return Err(LoweringError::DuplicateConnection(
+                connection.connection_id.clone(),
+            ));
+        }
+        if connection.resource.is_some() {
+            return Err(LoweringError::ResourceAuthorityTransferUnsupported(
                 connection.connection_id.clone(),
             ));
         }

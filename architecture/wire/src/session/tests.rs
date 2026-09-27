@@ -112,6 +112,7 @@ fn planned_connection(expected: &SessionBinding, base: BaseImplementationId) -> 
         sink_placement_id: PlacementId::from("test/sink-placement"),
         sink_port_id: conduit_core::PortId::from("in"),
         value_kind: expected.value_kind.clone(),
+        resource: None,
         track: Default::default(),
         temporal: conduit_core::PortTemporal::Value,
         pressure_policy: Default::default(),

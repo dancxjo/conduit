@@ -1,4 +1,4 @@
-use crate::{CapabilityOffer, KindId, PortDescriptor, PortId};
+use crate::{CapabilityOffer, KindId, PortDescriptor, PortId, ResourcePortContract};
 use alloc::string::String;
 use alloc::vec::Vec;
 use serde::{Deserialize, Serialize};
@@ -17,6 +17,8 @@ pub struct CheckedFront {
     inputs: Vec<PortDescriptor>,
     outputs: Vec<PortDescriptor>,
     shorthand: Option<(PortId, PortId)>,
+    #[serde(default)]
+    resource_ports: Vec<ResourcePortContract>,
 }
 
 impl CheckedFront {
@@ -33,7 +35,14 @@ impl CheckedFront {
             inputs,
             outputs,
             shorthand,
+            resource_ports: Vec::new(),
         }
+    }
+
+    pub fn with_resource_ports(mut self, mut resource_ports: Vec<ResourcePortContract>) -> Self {
+        resource_ports.sort_by(|left, right| left.port_id.cmp(&right.port_id));
+        self.resource_ports = resource_ports;
+        self
     }
 
     pub fn startup_parameters(&self) -> &[FrontStartupParameter] {
@@ -52,6 +61,10 @@ impl CheckedFront {
         self.shorthand
             .as_ref()
             .map(|(input, output)| (input, output))
+    }
+
+    pub fn resource_ports(&self) -> &[ResourcePortContract] {
+        &self.resource_ports
     }
 }
 

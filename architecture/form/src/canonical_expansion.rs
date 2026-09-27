@@ -565,6 +565,7 @@ fn instantiate_gear(
                 inputs: vec![input.clone()],
                 outputs: vec![output.clone()],
                 terminal_transduction: None,
+                resource_ports: Vec::new(),
                 configuration,
                 pool_references: Vec::new(),
             });
@@ -662,6 +663,11 @@ fn instantiate_gear(
         inputs: definition.inputs.clone(),
         outputs: definition.outputs.clone(),
         terminal_transduction: terminal_transduction.clone(),
+        resource_ports: catalog
+            .canonical_kind(&kind_id)
+            .map(conduit_core::Kind::resource_ports)
+            .unwrap_or_default()
+            .to_vec(),
         configuration,
         pool_references,
     });

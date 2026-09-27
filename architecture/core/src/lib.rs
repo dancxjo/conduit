@@ -36,6 +36,7 @@ mod quantity;
 mod resource;
 mod resource_canonical;
 mod resource_content;
+mod resource_port;
 use resource_canonical::push_resource_binding;
 mod plan_fingerprint;
 mod resource_acquisition;
@@ -94,6 +95,7 @@ pub use resource_acquisition::*;
 pub use resource_admission::*;
 pub use resource_collection::*;
 pub use resource_content::*;
+pub use resource_port::*;
 pub use resource_reference::*;
 pub use resource_reference_access::*;
 pub use route::*;
@@ -626,6 +628,10 @@ pub struct PlannedConnection {
     pub sink_placement_id: PlacementId,
     pub sink_port_id: PortId,
     pub value_kind: KindId,
+    /// Resource authority contract and exact admitted source binding. The
+    /// opaque bearer remains local to the issuing capability table.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub resource: Option<PlannedResourceConnection>,
     /// Exact typed semantic abnormal truth promised by the source Fore port.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub abnormal_kind: Option<KindId>,
@@ -645,6 +651,15 @@ pub struct PlannedConnection {
     pub admitted_lines: Vec<AdmittedLine>,
     pub item_capacity: u16,
     pub byte_capacity: u32,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct PlannedResourceConnection {
+    pub contract: ResourcePortContract,
+    /// Exact placement owning the admitted possession before Cord acceptance.
+    pub owner_placement_id: PlacementId,
+    /// Serializable inspection/provenance only; never the bearer authority.
+    pub source_binding: ResourceBinding,
 }
 
 #[derive(Debug, Default, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]

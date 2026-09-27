@@ -424,6 +424,7 @@ fn sealed_current_fragment() -> PlanFragment {
             sink_placement_id: sink.clone(),
             sink_port_id: PortId::from("in"),
             value_kind,
+            resource: None,
             track: Default::default(),
             temporal: conduit_core::PortTemporal::Value,
             pressure_policy: Default::default(),

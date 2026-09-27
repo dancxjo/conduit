@@ -312,6 +312,7 @@ fn remote_session_claim_and_disclosure_keep_exact_truth() {
         sink_placement_id: PlacementId::from("placement/browser"),
         sink_port_id: PortId::from("in"),
         value_kind: KindId::from("text/utf8"),
+        resource: None,
         track: Default::default(),
         temporal: PortTemporal::Flow { closes: true },
         pressure_policy: Default::default(),

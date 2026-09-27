@@ -202,6 +202,13 @@ pub(super) fn expanded_identity(
             );
         }
         crate::push_terminal_transduction_text(&mut canonical, gear.terminal_transduction.as_ref());
+        for resource in &gear.resource_ports {
+            push(&mut canonical, resource.port_id.as_str());
+            push(&mut canonical, resource.class_id.as_str());
+            push(&mut canonical, &format!("{:?}", resource.ownership));
+            push(&mut canonical, &format!("{:?}", resource.lifecycle));
+            push(&mut canonical, &format!("{:?}", resource.mobility));
+        }
         for entry in &gear.configuration {
             push(&mut canonical, &entry.key);
             match entry.value {

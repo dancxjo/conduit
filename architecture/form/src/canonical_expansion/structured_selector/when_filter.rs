@@ -96,6 +96,7 @@ pub(super) fn expand_when_filter(
         inputs: vec![input.clone()],
         outputs: vec![output.clone()],
         terminal_transduction: None,
+        resource_ports: Vec::new(),
         configuration: definition
             .configuration
             .iter()

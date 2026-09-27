@@ -138,6 +138,7 @@ pub fn wired_plan() -> Plan {
                 sink_placement_id: effect_id,
                 sink_port_id: port_id("request"),
                 value_kind: kind_id(ARGUMENT_KIND),
+                resource: None,
                 track: Default::default(),
                 temporal: PortTemporal::Value,
                 pressure_policy: Default::default(),

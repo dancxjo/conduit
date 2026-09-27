@@ -99,6 +99,7 @@ pub fn prepare(
         sink_placement_id: PlacementId::from("placement/harness/usb-line-sink"),
         sink_port_id: PortId::from("value"),
         value_kind: KindId::from("info/text@1"),
+        resource: None,
         track: conduit_core::ConnectionTrack::Payload,
         temporal: PortTemporal::Value,
         pressure_policy: Default::default(),

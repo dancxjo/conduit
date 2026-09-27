@@ -107,6 +107,7 @@ pub struct CheckedGear {
     pub inputs: Vec<PortDescriptor>,
     pub outputs: Vec<PortDescriptor>,
     pub terminal_transduction: Option<conduit_core::TerminalTransductionProfile>,
+    pub resource_ports: Vec<conduit_core::ResourcePortContract>,
     pub configuration: Vec<ConfigurationEntry>,
     pub pool_references: Vec<conduit_core::SharedPoolId>,
 }
@@ -821,6 +822,16 @@ fn canonical_form_text(
             ));
         }
         push_terminal_transduction_text(&mut text, gear.terminal_transduction.as_ref());
+        for resource in &gear.resource_ports {
+            text.push_str(&format!(
+                "resource-port:{}:{}:{:?}:{:?}:{:?}|",
+                resource.port_id.as_str(),
+                resource.class_id.as_str(),
+                resource.ownership,
+                resource.lifecycle,
+                resource.mobility
+            ));
+        }
         for entry in &gear.configuration {
             text.push_str(&format!(
                 "cfg:{}={}|",
