@@ -4,7 +4,7 @@ use alloc::{string::String, vec::Vec};
 use conduit_core::PlanId;
 use serde::{Deserialize, Serialize};
 
-use crate::MaskSpecificationId;
+use crate::{MaskSpecificationId, MaskStageId, MAX_MASK_STAGES};
 
 pub const MAX_WORN_MASKS: usize = 16;
 pub const MAX_SEALED_MASK_ROUTES: usize = 32;
@@ -31,6 +31,8 @@ pub struct SealedMaskRoute {
     pub route_id: String,
     pub specification_id: MaskSpecificationId,
     pub plan_id: PlanId,
+    /// Ordered stage path already sealed into the immutable Plan.
+    pub stage_ids: Vec<MaskStageId>,
     pub currently_available: bool,
 }
 
@@ -245,6 +247,13 @@ fn validate_routes(
         if route.plan_id != *active_plan_id
             || route.route_id.is_empty()
             || route.route_id.len() > MAX_MASK_ROUTE_IDENTITY_BYTES
+            || route.stage_ids.is_empty()
+            || route.stage_ids.len() > MAX_MASK_STAGES
+            || route
+                .stage_ids
+                .iter()
+                .enumerate()
+                .any(|(stage_index, stage)| route.stage_ids[stage_index + 1..].contains(stage))
         {
             return Err(MaskWardrobeError::InvalidRoute);
         }

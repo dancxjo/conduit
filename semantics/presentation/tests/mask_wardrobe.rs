@@ -52,6 +52,7 @@ fn route(mask: &MaskSpecificationId, name: &str, available: bool) -> SealedMaskR
         route_id: name.into(),
         specification_id: mask.clone(),
         plan_id: PlanId::from("plan/current"),
+        stage_ids: vec![MaskStageId::new("show").unwrap()],
         currently_available: available,
     }
 }
