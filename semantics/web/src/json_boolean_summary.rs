@@ -2,7 +2,10 @@
 
 use crate::{JsonRefusal, JsonValue, PortableKindContract};
 use alloc::{string::ToString, vec};
-use conduit_core::{kind_id, KindIdentity, Scalar};
+use conduit_core::{
+    kind_id, ConfigurationValue, FrontStartupParameter, Kind, KindConfigurationField,
+    KindConfigurationRule, KindIdentity, Scalar,
+};
 
 pub const JSON_BOOLEAN_SUMMARY_KIND: &str = "json/boolean-summary";
 pub const JSON_BOOLEAN_SUMMARY_REVISION: &str = "conduit.json/boolean-summary@1";
@@ -75,17 +78,29 @@ pub fn json_boolean_summary_semantics() -> PortableKindContract {
     contract
 }
 
+pub fn json_boolean_summary_semantic_contract() -> Kind {
+    let mut kind = crate::json_semantic_contract(json_boolean_summary_semantics());
+    kind.startup_parameters = vec![FrontStartupParameter {
+        name: "field".into(),
+        value_type: kind_id("value/text"),
+        has_default: true,
+    }];
+    kind.configuration = vec![KindConfigurationField {
+        key: "field".into(),
+        default_value: ConfigurationValue::Text("enabled".into()),
+        rule: KindConfigurationRule::TextBytes {
+            maximum: crate::JSON_MAXIMUM_KEY_BYTES as u32,
+        },
+    }];
+    kind
+}
+
 #[cfg(feature = "form-catalog")]
 pub fn install_json_boolean_summary_catalog(
     startup: &mut conduit_form::StartupCatalog,
     profile: &mut conduit_form::ProfileCatalog,
 ) -> Result<(), alloc::string::String> {
-    use conduit_core::ConfigurationValue;
-    use conduit_form::{
-        KindConfigurationField, KindConfigurationRule, KindProjection, KindSignature,
-        StartupParameterSignature,
-    };
-    let contract = json_boolean_summary_semantics();
+    use conduit_form::{KindSignature, StartupParameterSignature};
     startup.insert(KindSignature {
         kind: JSON_BOOLEAN_SUMMARY_KIND.into(),
         startup_parameters: vec![StartupParameterSignature {
@@ -95,18 +110,6 @@ pub fn install_json_boolean_summary_catalog(
         }],
     })?;
     profile
-        .insert(KindProjection {
-            kind_id: contract.kind_id,
-            kind_contract_revision: contract.kind_contract_revision,
-            inputs: contract.inputs,
-            outputs: contract.outputs,
-            configuration: vec![KindConfigurationField {
-                key: "field".into(),
-                default_value: ConfigurationValue::Text("enabled".into()),
-                rule: KindConfigurationRule::TextBytes {
-                    maximum: crate::JSON_MAXIMUM_KEY_BYTES as u32,
-                },
-            }],
-        })
+        .insert_kind(json_boolean_summary_semantic_contract())
         .map_err(|error| error.to_string())
 }

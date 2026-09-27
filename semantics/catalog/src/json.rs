@@ -58,14 +58,7 @@ pub fn json_collection_step_semantic_contract() -> Kind {
 }
 
 pub fn json_boolean_summary_semantic_contract() -> Kind {
-    semantic_contract(
-        conduit_web::json_boolean_summary_semantics(),
-        alloc::vec![FrontStartupParameter {
-            name: "field".into(),
-            value_type: conduit_core::kind_id("value/text"),
-            has_default: true,
-        }],
-    )
+    conduit_web::json_boolean_summary_semantic_contract()
 }
 
 fn semantic_contract(
