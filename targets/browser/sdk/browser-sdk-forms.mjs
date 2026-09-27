@@ -6,10 +6,8 @@ const FORM_SCHEMA = "conduit.browser/checked-form@1";
 const BODY_SCHEMA = "conduit.browser/body@1";
 const BODY_KEY = Symbol("Conduit BrowserBody");
 let sdkErrors;
-let acquireBodyHost;
 
 export function setBrowserSdkErrors(errors) { sdkErrors = errors; }
-export function setBrowserBodyHostAcquisition(acquire) { acquireBodyHost = acquire; }
 
 export class BrowserForm {
   #source;
@@ -70,14 +68,16 @@ export class BrowserBody {
   #api;
   #root;
   #createPlay;
+  #acquireBodyHost;
   #play = null;
   #opened = false;
   #eventSubscriptions = 0;
-  constructor(key, { bridge, host, boot, api, root, createPlay, advertisement, source, receipt, sequence }) {
+  constructor(key, { bridge, host, boot, api, root, createPlay, acquireBodyHost, advertisement, source, receipt, sequence }) {
     if (key !== BODY_KEY) throw new TypeError("BrowserBody values come from an admitted Host BIRTH");
     this.#bridge = bridge; this.#host = host; this.#boot = boot;
     this.#api = api; this.#root = root;
     this.#createPlay = createPlay;
+    this.#acquireBodyHost = acquireBodyHost;
     this.#advertisement = advertisement; this.#source = source;
     this.#receipt = receipt; this.#sequence = sequence;
   }
@@ -120,7 +120,7 @@ export class BrowserBody {
     let adapter;
     let playStarted = false;
     try {
-      adapter = acquireBodyHost({
+      adapter = this.#acquireBodyHost({
         api: this.#api, hostId: this.#host, bootId: this.#boot, proposal,
         inputTarget: this.#root, outputRoot: this.#root,
         foregroundForm: () => proposal.plan.forms[0]?.form?.checked_form_id ?? proposal.plan.forms[0]?.plan.checked_form_id,
@@ -187,7 +187,7 @@ export class BrowserBody {
   }
 }
 
-export async function birthBrowserBody({ bridge, host, boot, api, root, createPlay, membership, name, forms, sequence }) {
+export async function birthBrowserBody({ bridge, host, boot, api, root, createPlay, acquireBodyHost, membership, name, forms, sequence }) {
   if (!Array.isArray(forms) || forms.length === 0) throw new TypeError("BIRTH requires at least one checked Form");
   const checked = await Promise.all(forms.map((form) => checkedFormValue(form, bridge)));
   const source = checked[0].documentSource;
@@ -204,7 +204,7 @@ export async function birthBrowserBody({ bridge, host, boot, api, root, createPl
   if (receipt.status < 0) throw sdkRefusal("Body.birth", receipt.outputJson, host);
   const attached = bridge.crecheAttachHere(new TextEncoder().encode(host), new TextEncoder().encode(boot), BigInt(sequence()));
   if (attached.status < 0) throw sdkRefusal("Body.attach", attached.outputJson, receipt.outputJson.body_id);
-  return new BrowserBody(BODY_KEY, { bridge, host, boot, api, root, createPlay, advertisement: membership.advertisement(), source, receipt: attached.outputJson, sequence });
+  return new BrowserBody(BODY_KEY, { bridge, host, boot, api, root, createPlay, acquireBodyHost, advertisement: membership.advertisement(), source, receipt: attached.outputJson, sequence });
 }
 
 export async function reviewBrowserForms({ bridge, host, boot, forms }) {

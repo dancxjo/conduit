@@ -29,9 +29,19 @@ test("an external page births, wakes, inspects, and lulls the canonical Clock th
   const lulled = await page.evaluate(() => ({
     snapshot: __conduitFieldStation.lullSnapshot,
     playState: __conduitFieldStation.play.state,
+    receipts: __conduitFieldStation.play.receipts,
   }));
   expect(lulled.playState).toBe("terminal");
+  expect(lulled.receipts).toHaveLength(1);
+  expect(lulled.receipts[0].active_play_id).toBe(running.identities.playId);
+  expect(lulled.receipts[0].disposition).toBe("cancelled");
   expect(lulled.snapshot.evidence.body_id).toBe(running.identities.bodyId);
   expect(lulled.snapshot.evidence.body.state).toBe("Lulled");
+  const wake = lulled.snapshot.evidence.wakes.find(({ wake_id }) => wake_id === running.identities.wakeId);
+  expect(wake?.lifecycle).toBe("Lulled");
+  expect(wake?.plans).toContainEqual(expect.objectContaining({
+    plan_id: running.identities.planId,
+    active_play_id: running.identities.playId,
+  }));
   expect(pageErrors).toEqual([]);
 });

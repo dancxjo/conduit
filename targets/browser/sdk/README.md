@@ -42,7 +42,7 @@ clock {
   every: time/every(1s)
   tick: presentation/tick
   every >> tick
-}.
+}
 `);
 
 const checked = await clock.check();

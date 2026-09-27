@@ -10,7 +10,7 @@ const encoder = new TextEncoder();
 const decoder = new TextDecoder("utf-8", { fatal: true });
 const mounted = new WeakMap();
 const BROWSER_HOST_KEY = Symbol("Conduit BrowserHost");
-import { BrowserForm, birthBrowserBody, reviewBrowserForms, sdkRefusal, setBrowserBodyHostAcquisition, setBrowserSdkErrors } from "./browser-sdk-forms.mjs";
+import { BrowserForm, birthBrowserBody, reviewBrowserForms, sdkRefusal, setBrowserSdkErrors } from "./browser-sdk-forms.mjs";
 import { acquireBrowserBodyHost } from "../host/assets/browser-body-host.mjs";
 export { BrowserForm, BrowserBody } from "./browser-sdk-forms.mjs";
 
@@ -43,7 +43,6 @@ export class IncompatibleRuntimeAbiError extends ConduitSdkError {
 }
 
 setBrowserSdkErrors({ PlanRefusalError, ResourceLossError, InvalidLifecycleError, PermissionDeniedError, IncompatibleRuntimeAbiError });
-setBrowserBodyHostAcquisition(acquireBrowserBodyHost);
 
 /** Exact Host + Boot incarnation. Its mutable projection is refreshed from Boot evidence. */
 export class BrowserHost {
@@ -98,6 +97,7 @@ export class BrowserHost {
       root: this.#state.root,
       membership: this.#state.membership,
       createPlay: (options) => new BrowserPlay(BROWSER_HOST_KEY, options),
+      acquireBodyHost: acquireBrowserBodyHost,
       name,
       forms,
       sequence: () => {

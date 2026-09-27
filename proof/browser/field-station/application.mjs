@@ -1,4 +1,4 @@
-import { Conduit } from "/targets/browser/sdk/browser-sdk.mjs";
+import { Conduit } from "/target/field-station-sdk/browser-sdk.mjs";
 
 const root = document.querySelector("#conduit");
 const status = document.querySelector("#status");
@@ -10,7 +10,6 @@ try {
   if (!sourceResponse.ok) throw new Error("canonical Clock Form is unavailable");
   const host = await Conduit.browser({
     root,
-    bundleRoot: new URL("/target/field-station-sdk/bundle/", location.href),
     durable: false,
   });
   const checked = await host.form(await sourceResponse.text()).check();
