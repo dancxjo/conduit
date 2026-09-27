@@ -10,10 +10,135 @@ use conduit_kernel::{
     BoundedValueRef, Failure, FailureCode, HostCallDisposition, HostCallId, PortId, RequestId,
     ValueRef,
 };
+use conduit_presentation::{
+    ArtifactAcknowledgedSpokenShow, GeneratedManifestation, GenerativePresenterRequest,
+    ManifestationLifecycle, MaskShow, PlannedMaskForm, Presentation, SpokenMaskArtifactReceipt,
+};
 
 pub const PRESENTATION_TO_REQUEST_CALL: HostCallId = HostCallId(0);
 pub const REGISTER_GENERATED_MANIFESTATION_CALL: HostCallId = HostCallId(0);
 pub const ACKNOWLEDGE_ARTIFACT_AND_BUILD_SHOW_CALL: HostCallId = HostCallId(1);
+
+/// Prepared host-side semantic adapter for one exact spoken Mask Play.
+///
+/// Provider, TTS, and artifact effects remain outside this adapter. It accepts
+/// only their bounded semantic results and refuses to mint an Available Show
+/// until the exact artifact receipt has been validated.
+pub struct SpokenMaskSemanticSession {
+    request: GenerativePresenterRequest,
+    presentation: Presentation,
+    planned_mask: PlannedMaskForm,
+    active_play: conduit_core::ActivePlayIdentity,
+    front_subject: String,
+    target_subject: String,
+    prepared_sign: conduit_core::SignId,
+    available_sign: conduit_core::SignId,
+    generated: Option<GeneratedManifestation>,
+}
+
+impl SpokenMaskSemanticSession {
+    #[allow(clippy::too_many_arguments)]
+    pub fn prepare(
+        request: GenerativePresenterRequest,
+        presentation: Presentation,
+        planned_mask: PlannedMaskForm,
+        active_play: conduit_core::ActivePlayIdentity,
+        front_subject: String,
+        target_subject: String,
+        prepared_sign: conduit_core::SignId,
+        available_sign: conduit_core::SignId,
+    ) -> Result<Self, String> {
+        request
+            .validate()
+            .map_err(|error| format!("invalid spoken Mask request: {error:?}"))?;
+        if request.semantic_data.presentation != presentation
+            || active_play.plan_id != planned_mask.plan.plan_id
+            || prepared_sign == available_sign
+        {
+            return Err("spoken Mask preparation identities do not correlate".into());
+        }
+        Ok(Self {
+            request,
+            presentation,
+            planned_mask,
+            active_play,
+            front_subject,
+            target_subject,
+            prepared_sign,
+            available_sign,
+            generated: None,
+        })
+    }
+
+    pub fn adapt_presentation(&self, encoded: &[u8]) -> Result<Vec<u8>, String> {
+        if encoded.len() > self.request.bounds.maximum_input_bytes as usize {
+            return Err("spoken Mask Presentation exceeds its admitted bound".into());
+        }
+        let presentation: Presentation = serde_json::from_slice(encoded)
+            .map_err(|error| format!("decode spoken Mask Presentation: {error}"))?;
+        if presentation != self.presentation {
+            return Err("spoken Mask received a stale Presentation".into());
+        }
+        let encoded = serde_json::to_vec(&self.request)
+            .map_err(|error| format!("encode generative Presenter request: {error}"))?;
+        if encoded.len() > conduit_presentation::MAX_GENERATIVE_PRESENTER_INPUT_BYTES {
+            return Err("generative Presenter request exceeds its portable bound".into());
+        }
+        Ok(encoded)
+    }
+
+    pub fn register_generated_manifestation(&mut self, encoded: &[u8]) -> Result<(), String> {
+        if encoded.len() > self.request.bounds.maximum_output_bytes as usize {
+            return Err("generated manifestation exceeds its admitted bound".into());
+        }
+        let generated: GeneratedManifestation = serde_json::from_slice(encoded)
+            .map_err(|error| format!("decode generated manifestation: {error}"))?;
+        self.request
+            .validate_manifestation(&generated)
+            .map_err(|error| format!("invalid generated manifestation: {error:?}"))?;
+        if self.generated.is_some() {
+            return Err("spoken Mask already registered one generated manifestation".into());
+        }
+        self.generated = Some(generated);
+        Ok(())
+    }
+
+    pub fn acknowledge_artifact_and_build_show(&self, encoded: &[u8]) -> Result<Vec<u8>, String> {
+        if encoded.len() > 4_096 {
+            return Err("spoken Mask artifact receipt exceeds its admitted bound".into());
+        }
+        let artifact: SpokenMaskArtifactReceipt = serde_json::from_slice(encoded)
+            .map_err(|error| format!("decode spoken Mask artifact receipt: {error}"))?;
+        let generated = self
+            .generated
+            .as_ref()
+            .ok_or_else(|| "spoken Mask artifact preceded generated manifestation".to_string())?;
+        let prepared = MaskShow::prepared(
+            &self.planned_mask,
+            &self.presentation,
+            self.active_play.clone(),
+            self.front_subject.clone(),
+            self.target_subject.clone(),
+            self.prepared_sign.clone(),
+        )
+        .map_err(|error| format!("prepare spoken Show: {error:?}"))?;
+        let available = prepared
+            .transition(
+                ManifestationLifecycle::Available,
+                self.available_sign.clone(),
+            )
+            .map_err(|error| format!("make spoken Show available: {error:?}"))?;
+        let result = ArtifactAcknowledgedSpokenShow {
+            show: available,
+            generated_manifestation_identity: generated.manifestation_identity.clone(),
+            artifact,
+        };
+        result
+            .validate(&self.presentation, generated)
+            .map_err(|error| format!("invalid artifact-acknowledged spoken Show: {error:?}"))?;
+        serde_json::to_vec(&result).map_err(|error| format!("encode spoken Show: {error}"))
+    }
+}
 
 pub struct PresentationToGenerativeRequestBack {
     pending_input: Option<ValueRef>,
