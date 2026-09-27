@@ -108,7 +108,7 @@ export async function startApplication(application) {
     let saving = Promise.resolve();
     let selected = session.foreground()?.checked_form_id;
     let playback = { state: 'Lulled', detail: 'Its forms can wake here.' };
-    let play = null;
+    let play = null, currentMask = null;
     let library = null, membership = null, editing = false;
     const tutorialInstalled = () => session.current()?.initial_forms.some(form => form.checked_form_id === tutorialForm.checked_form_id) ?? false;
     const handleTutorialEvent = (event, resident = false) => {
@@ -121,6 +121,23 @@ export async function startApplication(application) {
       else if (event.action === 'body.use-current') { surface.hidden = false; inspection.hidden = true; library?.hide(); if (!input.disabled) input.focus(); }
       else fail(new Error('Unknown tutorial action'));
     };
+    const submitMaskInteraction = event => {
+      const mask = currentMask;
+      const input = mask?.inputs.find(candidate => candidate.submit_action === event.action);
+      if (!input) throw new Error('The Mask did not expose an input for this action');
+      return session.interactWithTutorialMask({
+        show_id: mask.show_id,
+        manifestation_id: mask.manifestation_id,
+        presentation_id: mask.presentation_id,
+        presentation_revision: mask.presentation_revision,
+        input_id: input.identity,
+        action_id: event.action,
+        target: input.target,
+        value_kind: input.value_kind,
+        value: Array.from(event.value ?? []),
+        sequence: Number(event.sequence ?? 1),
+      });
+    };
     const renderTutorial = () => {
       if (!session.current() || !tutorialInstalled()) {
         tutorial.hidden = true;
@@ -132,6 +149,7 @@ export async function startApplication(application) {
       tutorialResident.hidden = !resident;
       const revision = ++tutorialRevision;
       const mask = session.presentTutorialMask(revision, playback.state);
+      currentMask = mask;
       const applyMask = () => {
         tutorial.dataset.maskShowId = mask.show_id;
         tutorial.dataset.maskManifestationId = mask.manifestation_id;
@@ -153,6 +171,12 @@ export async function startApplication(application) {
       if (resident) { applyMask(); return; }
       tutorialPresentation.present('body-tutorial', session.tutorialView(revision, playback.state), { onEvent(event) {
         tutorialPresentation.nextEvent('body-tutorial');
+        try {
+          submitMaskInteraction(event);
+        } catch (error) {
+          fail(error);
+          return;
+        }
         handleTutorialEvent(event);
       } });
       applyMask();
@@ -304,7 +328,11 @@ export async function startApplication(application) {
       if (!play) play = openWorkspacePlay({ host, session, source, planningLines: () => membership?.planningLines() ?? [], foregroundForm: () => selected, inputTarget: input, outputRoot: root.querySelector('[data-form-output]'),
         presentationRootFor: ({ checkedFormId }) => checkedFormId === tutorialForm.checked_form_id ? tutorialResident : null,
         onApplicationEvent: ({ checkedFormId, event }) => {
-          if (checkedFormId === tutorialForm.checked_form_id) handleTutorialEvent(event, true);
+          if (checkedFormId === tutorialForm.checked_form_id) {
+            try { submitMaskInteraction(event); }
+            catch (error) { fail(error); return; }
+            handleTutorialEvent(event, true);
+          }
         },
         onTutorialPresenterRequest: effect => session.tutorialPresenterRequest(
           `tutorial-presenter/${effect.active_play_id}/${effect.request_sequence}`,

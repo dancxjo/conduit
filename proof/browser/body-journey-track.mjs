@@ -46,6 +46,13 @@ export async function writeBrowserBodyJourneyTrack(source, screenshotPath, outpu
       || inspectedMask.execution.fore?.length !== 3) {
     throw new Error("browser track lacks the Mask kernel Fore execution receipt");
   }
+  const interaction = inspectedMask.interaction;
+  if (interaction?.schema !== "conduit.browser/mask-interaction@1"
+      || interaction.correlation?.interaction?.presentation_id !== inspectedMask.presentation?.identity
+      || interaction.correlation?.interaction?.presentation_revision !== inspectedMask.presentation?.revision
+      || interaction.correlation?.interaction?.manifestation_id !== inspectedMask.mask_show?.show?.manifestation_id) {
+    throw new Error("browser track lacks exact Presentation/Show-correlated Mask interaction");
+  }
   const kernelSigns = new Set(inspectedMask.execution.remote_signs?.map(sign => sign.kind));
   for (const requiredSign of ["RemoteInputAdmitted", "RemoteInputClosed", "RemoteValueOffered",
     "RemoteValueAccepted", "RemoteValueDelivered", "RemoteOutputClosed"]) {

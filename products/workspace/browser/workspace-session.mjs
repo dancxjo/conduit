@@ -83,6 +83,9 @@ export function openWorkspaceSession({ host, storage }) {
     acknowledgeTutorialMask(acknowledgement) {
       return request('AcknowledgeTutorialMask', { acknowledgement });
     },
+    interactWithTutorialMask(interaction) {
+      return request('InteractWithTutorialMask', { interaction });
+    },
     tutorialMaskObservation() { return request('TutorialMaskObservation'); },
     invitationView(fields) { return request('InvitationView', fields, true); },
     invitationQr(transfer_uri) { return request('InvitationQr', { transfer_uri }); },
