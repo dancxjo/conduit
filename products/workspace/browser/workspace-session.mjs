@@ -77,6 +77,13 @@ export function openWorkspaceSession({ host, storage }) {
     tutorialPresenterRequest(request_identity, presentation_revision, playback) {
       return request('TutorialPresenterInput', { request_identity, presentation_revision, playback }, true);
     },
+    presentTutorialMask(revision, playback) {
+      return request('PresentTutorialMask', { ...here, revision, playback });
+    },
+    acknowledgeTutorialMask(acknowledgement) {
+      return request('AcknowledgeTutorialMask', { acknowledgement });
+    },
+    tutorialMaskObservation() { return request('TutorialMaskObservation'); },
     invitationView(fields) { return request('InvitationView', fields, true); },
     invitationQr(transfer_uri) { return request('InvitationQr', { transfer_uri }); },
     async changeWorkset(edit, form, source, expected_revision) {
