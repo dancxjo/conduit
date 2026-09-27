@@ -825,7 +825,10 @@ fn planned_keep_state(
     else {
         return Ok(None);
     };
-    if placement.kind_id.as_str() != "state/latest" {
+    if !matches!(
+        placement.kind_id.as_str(),
+        "state/latest" | conduit_core::STATE_VALUE_KIND
+    ) {
         return Err(PlannerError::InvalidStateContract(format!(
             "gear '{}' attaches retained duration to non-State Kind '{}'",
             placement.gear_id.as_str(),
@@ -893,7 +896,22 @@ fn planned_keep_state(
         .map(|entry| match &entry.value {
             conduit_core::ConfigurationValue::Quantity(value) => Ok(value.encode().to_vec()),
             conduit_core::ConfigurationValue::Structured(value) => {
-                Ok(value.canonical_value().to_vec())
+                let structured = conduit_core::StructuredInfoValue::from_canonical_bytes(
+                    value.canonical_value(),
+                )
+                .map_err(|_| {
+                    PlannerError::InvalidStateContract(format!(
+                        "gear '{}' retained initializer is malformed",
+                        placement.gear_id.as_str()
+                    ))
+                })?;
+                match (structured.value_type().shape(), structured.shape()) {
+                    (
+                        conduit_core::StructuredInfoTypeShape::Leaf(kind),
+                        conduit_core::StructuredInfoValueShape::Leaf(bytes),
+                    ) if output.value_kind == *kind => Ok(bytes.to_vec()),
+                    _ => Ok(value.canonical_value().to_vec()),
+                }
             }
             _ => Err(PlannerError::InvalidStateContract(format!(
                 "gear '{}' retained initializer has no canonical encoding",

@@ -1,6 +1,7 @@
 //! Typed finite State adapter for the ordinary kernel Step scheduler.
 use conduit_core::{
-    PlannedGear, PlannedStateBoundary, PreparedStructuredValueValidator, StructuredInfoValue,
+    KindId, PlannedGear, PlannedStateBoundary, PreparedStructuredValueValidator,
+    StructuredInfoTypeShape, StructuredInfoValue,
 };
 use conduit_kernel::{
     scheduler::{StepBack, StepInputBytes, StepIo, StepOutcome},
@@ -65,7 +66,22 @@ impl<const PORTS: usize> StepBack<PORTS> for TypedStateBack {
 pub struct TypedStateBack {
     binding: Option<continuity::StateExecutionBinding>,
     back: StateBack<64>,
-    validator: PreparedStructuredValueValidator,
+    validator: StateValueValidator,
+}
+
+enum StateValueValidator {
+    Primitive(KindId),
+    Structured(PreparedStructuredValueValidator),
+}
+
+impl StateValueValidator {
+    fn validate(&self, value: &[u8]) -> Result<(), conduit_core::StructuredInfoRefusal> {
+        match self {
+            Self::Primitive(kind) => conduit_core::validate_primitive_info(kind.as_str(), value)
+                .map_err(conduit_core::StructuredInfoRefusal::InvalidPrimitiveLeaf),
+            Self::Structured(validator) => validator.validate(value),
+        }
+    }
 }
 
 impl TypedStateBack {
@@ -101,7 +117,7 @@ impl TypedStateBack {
     fn prepare_validator(
         placement: &PlannedGear,
         state: &PlannedStateBoundary,
-    ) -> Result<PreparedStructuredValueValidator, String> {
+    ) -> Result<StateValueValidator, String> {
         conduit_semantic_catalog::state_value::validate_state_placement(placement, state)
             .map_err(|error| format!("State semantic admission: {error:?}"))?;
         if placement.execution_profile_id.as_str() != conduit_std_offers::STATE_VALUE_STD_PROFILE
@@ -120,8 +136,22 @@ impl TypedStateBack {
             .initial_value
             .as_deref()
             .ok_or("installed State Back requires an initialized keep")?;
-        let initial = StructuredInfoValue::from_canonical_bytes(initial_bytes)
+        let configured = placement
+            .configuration
+            .iter()
+            .find(|entry| entry.key == "initial")
+            .and_then(|entry| match &entry.value {
+                conduit_core::ConfigurationValue::Structured(value) => Some(value),
+                _ => None,
+            })
+            .ok_or("installed State Back requires exact typed initialization")?;
+        let initial = StructuredInfoValue::from_canonical_bytes(configured.canonical_value())
             .map_err(|error| format!("State initialization: {error:?}"))?;
+        if let StructuredInfoTypeShape::Leaf(kind) = initial.value_type().shape() {
+            conduit_core::validate_primitive_info(kind.as_str(), initial_bytes)
+                .map_err(|error| format!("State initial leaf: {error:?}"))?;
+            return Ok(StateValueValidator::Primitive(kind.clone()));
+        }
         let validator = PreparedStructuredValueValidator::new(
             initial.value_type(),
             state.maximum_value_bytes as usize,
@@ -130,7 +160,7 @@ impl TypedStateBack {
         validator
             .validate(initial_bytes)
             .map_err(|error| format!("State initial shape: {error:?}"))?;
-        Ok(validator)
+        Ok(StateValueValidator::Structured(validator))
     }
 
     pub fn current(&self) -> &[u8] {

@@ -175,8 +175,23 @@ pub struct CheckedCanonicalGear {
     pub kind: String,
     pub startup_parameters: Vec<conduit_core::FrontStartupParameter>,
     pub startup_bindings: Vec<CheckedStartupBinding>,
-    pub retained: Option<Box<crate::RetainedValue>>,
+    pub retained: Option<Box<CheckedRetainedValue>>,
     pub source_span: Span,
+}
+
+/// Canonical checked meaning of one authored `keep` declaration.
+///
+/// The source type spelling is deliberately gone at this layer. Retained State
+/// planning and realization consume the exact structured type and initializer,
+/// not an alias or an unchecked expression string.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct CheckedRetainedValue {
+    pub value_type: conduit_core::StructuredInfoType,
+    pub value_kind: conduit_core::KindId,
+    pub optional: bool,
+    pub maximum_bytes: Option<u64>,
+    pub initial: Option<CanonicalStartupValue>,
+    pub duration: crate::RetainedDuration,
 }
 
 impl PartialEq for CheckedCanonicalGear {

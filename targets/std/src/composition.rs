@@ -258,6 +258,16 @@ pub(super) fn build_advertisement(
             conduit_std_offers::flow_gate_scalar_offer(),
             conduit_std_offers::state_select_scalar_offer(),
         ]);
+        capabilities.push(
+            conduit_std_offers::state_value_std_offer(
+                "Boolean",
+                &conduit_core::StructuredInfoType::leaf(conduit_core::kind_id(
+                    conduit_core::BOOL_INFO_ID,
+                ))
+                .expect("Boolean is a finite canonical structured type"),
+            )
+            .expect("Boolean State has a finite canonical Front"),
+        );
     }
     if composition.logic {
         capabilities.extend([

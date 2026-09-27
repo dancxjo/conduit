@@ -1,5 +1,5 @@
 use super::{state_value_contract, STATE_VALUE_KIND, STATE_VALUE_REVISION};
-use alloc::{string::String, vec};
+use alloc::{string::String, vec, vec::Vec};
 use conduit_core::{
     ConfigurationValue, GearId, PlannedStateBoundary, StateContinuation, StateId,
     StructuredConfigurationValue, StructuredInfoType, StructuredInfoValue,
@@ -126,8 +126,8 @@ pub fn derive_state_boundary(
     Ok(PlannedStateBoundary {
         state_id: StateId::from(gear_id.as_str()),
         gear_id: gear_id.clone(),
-        value_kind: initial.profile().clone(),
-        initial_value: Some(initial.canonical_value().to_vec()),
+        value_kind: contract.outputs[0].value_kind.clone(),
+        initial_value: Some(state_payload(&value)?),
         lifetime: conduit_core::StateLifetime::Play,
         retained: None,
         maximum_value_bytes,
@@ -147,11 +147,14 @@ pub fn validate_state_placement(
         || placement.gear_id != state.gear_id
         || state.state_id.as_str() != state.gear_id.as_str()
         || state.continuation != StateContinuation::ExternallyBounded
-        || state.lifetime != conduit_core::StateLifetime::Play
     {
         return Err(StateValueAdmissionError::WrongContract);
     }
-    let [entry] = placement.configuration.as_slice() else {
+    let Some(entry) = placement
+        .configuration
+        .iter()
+        .find(|entry| entry.key == "initial")
+    else {
         return Err(StateValueAdmissionError::InvalidInitialization);
     };
     let ConfigurationValue::Structured(initial) = &entry.value else {
@@ -161,14 +164,52 @@ pub fn validate_state_placement(
         .map_err(|_| StateValueAdmissionError::InvalidInitialization)?;
     let contract = state_value_contract("", value.value_type())
         .map_err(|_| StateValueAdmissionError::InvalidInitialization)?;
-    if entry.key != "initial"
-        || initial.profile() != &state.value_kind
-        || initial.profile() != &contract.outputs[0].value_kind
-        || state.initial_value.as_deref() != Some(initial.canonical_value())
+    let initial_profile = value
+        .value_type()
+        .profile()
+        .map_err(|_| StateValueAdmissionError::InvalidInitialization)?;
+    let expected_initial = state_payload(&value)?;
+    if initial.profile() != initial_profile.value_kind()
+        || state.value_kind != contract.outputs[0].value_kind
+        || state.initial_value.as_deref() != Some(expected_initial.as_slice())
         || placement.inputs != contract.inputs
         || placement.outputs != contract.outputs
     {
         return Err(StateValueAdmissionError::InvalidInitialization);
+    }
+    let retained_duration = placement
+        .configuration
+        .iter()
+        .find(|entry| entry.key == "retained-duration");
+    let maximum = placement
+        .configuration
+        .iter()
+        .find(|entry| entry.key == "maximum-bytes");
+    if retained_duration.is_some() != maximum.is_some()
+        || placement.configuration.len() != if retained_duration.is_some() { 3 } else { 1 }
+    {
+        return Err(StateValueAdmissionError::WrongContract);
+    }
+    if let (Some(duration), Some(maximum)) = (retained_duration, maximum) {
+        let ConfigurationValue::Text(duration) = &duration.value else {
+            return Err(StateValueAdmissionError::WrongContract);
+        };
+        let expected_lifetime = match duration.as_str() {
+            "step" => conduit_core::StateLifetime::Step,
+            "play" => conduit_core::StateLifetime::Play,
+            "wake" => conduit_core::StateLifetime::Wake,
+            "boot" => conduit_core::StateLifetime::Boot,
+            "body" => conduit_core::StateLifetime::Body,
+            _ => return Err(StateValueAdmissionError::WrongContract),
+        };
+        let ConfigurationValue::U64(maximum) = maximum.value else {
+            return Err(StateValueAdmissionError::WrongContract);
+        };
+        if state.lifetime != expected_lifetime || u64::from(state.maximum_value_bytes) != maximum {
+            return Err(StateValueAdmissionError::WrongContract);
+        }
+    } else if state.lifetime != conduit_core::StateLifetime::Play {
+        return Err(StateValueAdmissionError::WrongContract);
     }
     if state.maximum_value_bytes == 0
         || state.maximum_value_bytes > placement.limits.max_queue_bytes
@@ -184,4 +225,13 @@ pub fn validate_state_placement(
         return Err(StateValueAdmissionError::InitialValueExceedsCapacity);
     }
     Ok(())
+}
+
+fn state_payload(value: &StructuredInfoValue) -> Result<Vec<u8>, StateValueAdmissionError> {
+    match value.shape() {
+        conduit_core::StructuredInfoValueShape::Leaf(bytes) => Ok(bytes.to_vec()),
+        _ => value
+            .canonical_bytes()
+            .map_err(|_| StateValueAdmissionError::InvalidInitialization),
+    }
 }

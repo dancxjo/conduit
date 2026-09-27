@@ -1,5 +1,5 @@
 //! Consuming handoff of typed State between exact prepared executions.
-use super::TypedStateBack;
+use super::{StateValueValidator, TypedStateBack};
 use conduit_core::{
     bind_active_play, verify_plan_fragment, ActivePlayIdentity, FormIdentity, PlanFragment,
     PlannedGear, RetainedStateProvenance,
@@ -94,13 +94,7 @@ impl TypedStateBack {
         state: &LoweredState,
         play: &ActivePlayIdentity,
         source: &RetainedTypedState,
-    ) -> Result<
-        (
-            StateExecutionBinding,
-            conduit_core::PreparedStructuredValueValidator,
-        ),
-        String,
-    > {
+    ) -> Result<(StateExecutionBinding, StateValueValidator), String> {
         let (placement, binding) = bind(fragment, state, play)?;
         if binding.form != source.provenance.source_form
             || state.contract.initial_value != source.initial_value

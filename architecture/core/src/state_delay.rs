@@ -5,6 +5,10 @@ use alloc::vec::Vec;
 
 use crate::{GearId, KindId, SignStorageBudget};
 
+/// Canonical semantic Kind used by typed retained State.
+pub const STATE_VALUE_KIND: &str = "state/value";
+pub const STATE_VALUE_REVISION: &str = "conduit.state/value@1";
+
 mod continuity;
 pub use continuity::RetainedStateProvenance;
 
