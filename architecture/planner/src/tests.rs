@@ -296,7 +296,7 @@ fn planning_seals_canonical_terminal_transduction_into_the_exact_placement() {
         value_kind: conduit_core::kind_id("test/terminal-input"),
         direction: conduit_core::PortDirection::Input,
         temporal: conduit_core::PortTemporal::Value,
-        abnormal_kind: None,
+        abnormal_kind: Some(conduit_core::kind_id("test/terminal-input-abnormal")),
     });
     pulse.configuration = vec![
         conduit_core::KindConfigurationField {
