@@ -249,19 +249,85 @@ admission, and effect authorization remain separate inspection facts.
 
 ### Execution and presentation
 
-The DOM, stdout, LEDs, dashboards, and workbench canvases are manifestations or projections. They do not own semantic truth, lifecycle truth, plan identity, authority, or sign.
+The Body's face speaks one bounded, immutable `Presentation`. This is the
+universal operator-facing grammar: exact basis and provenance, subjects,
+relationships, properties, typed content, wording, actions, inputs, semantic
+order, rhetorical composition, time, interaction context, and portable
+projection/navigation. It says
+what is humanly relevant about the current semantic world and what a human may
+currently do. It is not a universal widget set or scene graph.
 
-A presentation may summarize or arrange runtime facts. It may not manufacture them.
+Ordinary forms may contribute finite fragments of this grammar. Face
+composition preserves their exact source provenance and combines them with
+authoritative body, plan, play, host, and sign truth. A contribution may not
+forge or overwrite that authoritative truth.
 
-Web manifestations use the native HTML control whose semantics match the
+A mask is an ordinary planned form that consumes one exact Presentation and
+produces one finite Show. Graphical, deterministic-linear, spoken, generative,
+tactile, and future masks all receive the same semantic grammar. A mask may
+project disclosure, navigation, wording, layout, or medium-specific form, but
+it may not redefine the Presentation's facts or authority.
+
+Projection chooses which truth matters now. Semantic composition says how
+those truths are meant to stand together: grouped, contrasted, juxtaposed,
+emphasized, subordinate, associated, or revealed in relation. Projection
+already states co-presence; composition says why the meanings belong together.
+A mask chooses how that rhetoric is physically realized. Composition therefore
+contains no panes, slides, windows, coordinates, typography, CSS, or widgets.
+
+The DOM, stdout, LEDs, spoken sentences, dashboards, slides, panels, buttons,
+and workbench canvases are downstream realizations. They do not own semantic
+truth, lifecycle truth, plan identity, authority, or sign.
+`PresentationMechanism`, `SemanticApplicationView`, and `ApplicationView` are
+historical/downstream adapters, not the face contract.
+
+A presentation may summarize or arrange runtime facts. It may not manufacture
+them. Semantic order is explicit when order is meaning; serialization order,
+geometry, DOM order, and spoken order do not silently become semantic order.
+Typed content is exact finite semantic data, never a DOM node, filesystem path,
+provider URL, framebuffer, or mask-owned cache.
+
+Domain roles and relationships use validated extensible semantic identities.
+The universal grammar must not require a new central enum variant for every
+lesson, room, organelle, calendar event, song, robot joint, or future domain.
+Generic masks preserve unfamiliar valid identities and fall back to ordinary
+human names, wording, and disclosure rather than discarding truth.
+
+Accessibility is a requirement of every presentation, not a separate semantic
+channel. The grammar supplies ordinary human names and descriptions; each mask
+maps them to visible text, speech, braille, native accessibility metadata, or
+another medium as appropriate.
+
+One face may compose different Presentations for different exact interaction
+contexts without creating several sovereign faces. Each Presentation binds the
+finite context for which it was composed; the domain meaning of that context
+remains ordinary semantic truth. A mask or host may not carry hidden audience,
+participant, authority, exploration, or disclosure state outside this binding.
+Actions, inputs, navigation, and Shows correlate back to the exact Presentation
+revision and interaction context that offered them.
+
+Portable navigation is richer than disclosure depth:
+
+```text
+Navigation = Place x Aspect x Focus x Depth
+```
+
+Place selects a semantic domain, Aspect selects which truth matters, Focus
+anchors attention on one subject, and Depth controls progressive disclosure.
+`ENTER`, `SHOW`, `FOCUS`, `FOLLOW`, `DISCLOSE`, and `BACK` navigate;
+`INVOKE` requests a semantic action. Pointer movement, canvas pan/zoom, DOM
+position, scroll state, and spoken turn order are mask-local mechanics unless
+they resolve to one of those exact correlated navigation operations.
+
+Web masks use the native HTML control whose semantics match the
 operation: checkboxes for independent choices, radio buttons for one choice
 among alternatives, selects for bounded lists, buttons for actions, anchors
 for navigation, and fieldsets with legends for grouped choices. presentation
 may alter their appearance, but does not recreate native interaction semantics
 when the platform control already expresses the operation.
 
-An already-resolved bounded graphics scene may cross one terminal presentation
-front to request manifestation. That front names no framebuffer, DOM, window,
+An already-resolved bounded graphics scene may cross one terminal mask front
+to request a Show. That front names no framebuffer, DOM, window,
 pixel format, or toolkit object: the selected implementation, admitted host
 operation, finite presentation resource, and exact display base remain plan and
 host truth. Transform kinds do not acquire hidden manifestation side effects.
