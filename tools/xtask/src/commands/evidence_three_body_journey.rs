@@ -6,7 +6,7 @@ use std::collections::{BTreeMap, BTreeSet};
 use std::path::{Path, PathBuf};
 
 const CONTRACT_SCHEMA: &str = "conduit.evidence/semantic-journey-contract@3";
-const TRACK_SCHEMA: &str = "conduit.evidence/body-journey-track@3";
+const TRACK_SCHEMA: &str = "conduit.evidence/body-journey-track@4";
 const INDEX_SCHEMA: &str = "conduit.evidence/three-body-journey-index@5";
 const MAXIMUM_DOCUMENT_BYTES: usize = 1024 * 1024;
 const MAXIMUM_MEDIA_BYTES: u64 = 64 * 1024 * 1024;
@@ -133,6 +133,8 @@ struct BodyTrack {
     distributed_plan_ids: Vec<String>,
     receipts: Vec<TrackStep>,
     actions: Vec<TrackActionObservation>,
+    #[serde(default)]
+    mask_actions: Vec<MaskActionObservation>,
 }
 
 #[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
@@ -140,6 +142,19 @@ struct BodyTrack {
 struct TrackActionObservation {
     action_id: String,
     concrete_event: String,
+    receipt_ids: Vec<String>,
+}
+
+#[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
+#[serde(deny_unknown_fields)]
+struct MaskActionObservation {
+    action_id: String,
+    concrete_event: String,
+    presentation_id: String,
+    selected_mask_form_id: Option<String>,
+    plan_id: String,
+    selected_route_id: Option<String>,
+    show_id: Option<String>,
     receipt_ids: Vec<String>,
 }
 
@@ -546,6 +561,7 @@ fn validate_index(
             distributed_plan_ids: basis.distributed_plan_ids.clone(),
             receipts,
             actions,
+            mask_actions: Vec::new(),
         });
         if !recorded_actions.is_empty() {
             let recorded = basis
@@ -568,6 +584,7 @@ fn validate_index(
                 distributed_plan_ids: basis.distributed_plan_ids.clone(),
                 receipts: recorded_receipts,
                 actions: recorded_actions,
+                mask_actions: Vec::new(),
             });
         }
     }
@@ -666,6 +683,7 @@ fn validate(
             || track.receipts.is_empty()
             || track.receipts.len() > MAXIMUM_STEPS
             || track.actions.len() != contract.actions.len()
+            || track.mask_actions.len() != conduit_presentation::MASK_JOURNEY_ACTIONS.len()
         {
             return Err(format!("invalid Body track '{}'", track.track_id));
         }
@@ -716,6 +734,7 @@ fn validate(
             has_distributed_body = true;
         }
         let actions = ordered_actions(track)?;
+        validate_mask_journey(track)?;
         let expected_action_ids = contract
             .actions
             .iter()
@@ -808,6 +827,123 @@ fn validate(
         return Err(
             "at least one body must retain multi-host, Line, and distributed Plan truth".into(),
         );
+    }
+    Ok(())
+}
+
+fn validate_mask_journey(track: &BodyTrack) -> Result<(), String> {
+    use conduit_presentation::MaskJourneyAction;
+
+    for (expected, observed) in conduit_presentation::MASK_JOURNEY_ACTIONS
+        .iter()
+        .zip(&track.mask_actions)
+    {
+        if observed.action_id != expected.id()
+            || !valid_narrative(&observed.concrete_event)
+            || !valid_identity(&observed.presentation_id)
+            || !valid_identity(&observed.plan_id)
+            || observed
+                .selected_mask_form_id
+                .as_deref()
+                .is_some_and(|identity| !valid_identity(identity))
+            || observed
+                .selected_route_id
+                .as_deref()
+                .is_some_and(|identity| !valid_identity(identity))
+            || observed
+                .show_id
+                .as_deref()
+                .is_some_and(|identity| !valid_identity(identity))
+            || observed.receipt_ids.is_empty()
+            || observed.receipt_ids.iter().collect::<BTreeSet<_>>().len()
+                != observed.receipt_ids.len()
+            || observed.receipt_ids.iter().any(|receipt_id| {
+                !track
+                    .receipts
+                    .iter()
+                    .any(|receipt| receipt.step_id == receipt_id.as_str())
+            })
+        {
+            return Err(format!(
+                "{} has invalid or reordered Mask action {}",
+                track.track_id, observed.action_id
+            ));
+        }
+    }
+
+    let first = &track.mask_actions[0];
+    if track
+        .mask_actions
+        .iter()
+        .any(|action| action.presentation_id != first.presentation_id)
+    {
+        return Err(format!(
+            "{} changes Presentation identity during its Mask journey",
+            track.track_id
+        ));
+    }
+    let preferred = &track.mask_actions[2];
+    if first.show_id.is_none()
+        || first.selected_route_id.is_none()
+        || first.selected_mask_form_id.is_none()
+        || preferred.plan_id != first.plan_id
+        || preferred.show_id.is_none()
+        || preferred.selected_route_id.is_none()
+        || preferred.selected_route_id == first.selected_route_id
+        || preferred.selected_mask_form_id.is_none()
+        || preferred.selected_mask_form_id == first.selected_mask_form_id
+    {
+        return Err(format!(
+            "{} does not prove sealed same-Plan Mask selection",
+            track.track_id
+        ));
+    }
+    for index in [3_usize, 4, 5, 6] {
+        if track.mask_actions[index].show_id.is_some() {
+            return Err(format!(
+                "{} invents a Show while its selected Mask route is unavailable",
+                track.track_id
+            ));
+        }
+    }
+    for index in [3_usize, 4, 5] {
+        if track.mask_actions[index].plan_id != first.plan_id {
+            return Err(format!(
+                "{} mutates the active Plan before replacement planning",
+                track.track_id
+            ));
+        }
+    }
+    let replacement = &track.mask_actions[6];
+    let replanned = &track.mask_actions[7];
+    if replacement.plan_id == first.plan_id
+        || replanned.plan_id != replacement.plan_id
+        || replanned.show_id.is_none()
+        || replanned.selected_route_id.is_none()
+    {
+        return Err(format!(
+            "{} does not prove a genuine replacement Plan and Show",
+            track.track_id
+        ));
+    }
+    let restored = &track.mask_actions[9];
+    if restored.plan_id != replacement.plan_id
+        || restored.show_id.is_none()
+        || restored.selected_route_id.is_none()
+        || restored.selected_mask_form_id != first.selected_mask_form_id
+    {
+        return Err(format!(
+            "{} does not restore its original worn Mask through sealed replacement truth",
+            track.track_id
+        ));
+    }
+    if track.mask_actions[3].action_id != MaskJourneyAction::WithdrawSelectedRoute.id()
+        || track.mask_actions[6].action_id != MaskJourneyAction::AdmitReplacementPlan.id()
+    {
+        return Err(format!(
+            "{} does not retain the canonical Mask recovery boundary",
+            track.track_id
+        ));
     }
     Ok(())
 }

@@ -27,6 +27,52 @@ fn receipt(track: usize, step_id: &str, assertion: &str) -> TrackStep {
     }
 }
 
+fn mask_actions(track: usize) -> Vec<MaskActionObservation> {
+    let presentation_id = format!("mask-presentation-{track}");
+    let first_plan = format!("mask-plan-{track}-initial");
+    let replacement_plan = format!("mask-plan-{track}-replacement");
+    let primary_mask = format!("mask-{track}-primary");
+    let alternate_mask = format!("mask-{track}-alternate");
+    conduit_presentation::MASK_JOURNEY_ACTIONS
+        .iter()
+        .enumerate()
+        .map(|(position, action)| {
+            let replacement = position >= 6;
+            let unavailable = (3..=6).contains(&position);
+            let restored = position >= 8;
+            MaskActionObservation {
+                action_id: action.id().into(),
+                concrete_event: format!(
+                    "Embodiment {track} enacted shared Mask action {}.",
+                    action.id()
+                ),
+                presentation_id: presentation_id.clone(),
+                selected_mask_form_id: Some(if position < 2 || restored {
+                    primary_mask.clone()
+                } else {
+                    alternate_mask.clone()
+                }),
+                plan_id: if replacement {
+                    replacement_plan.clone()
+                } else {
+                    first_plan.clone()
+                },
+                selected_route_id: (!unavailable).then(|| {
+                    if restored {
+                        format!("mask-route-{track}-replacement-primary")
+                    } else if position >= 2 {
+                        format!("mask-route-{track}-alternate")
+                    } else {
+                        format!("mask-route-{track}-primary")
+                    }
+                }),
+                show_id: (!unavailable).then(|| format!("mask-show-{track}-{position}")),
+                receipt_ids: vec![format!("mask.action-{position}")],
+            }
+        })
+        .collect()
+}
+
 fn track(index: usize) -> BodyTrack {
     let details = [
         ("body.absent", "body-absent"),
@@ -40,6 +86,22 @@ fn track(index: usize) -> BodyTrack {
         ("body.lulled", "body-lulled"),
         ("body.fulfilled", "body-fulfilled"),
     ];
+    let mut receipts = details
+        .iter()
+        .map(|(id, assertion)| receipt(index, id, assertion))
+        .collect::<Vec<_>>();
+    receipts.extend(
+        conduit_presentation::MASK_JOURNEY_ACTIONS
+            .iter()
+            .enumerate()
+            .map(|(position, action)| {
+                receipt(
+                    index,
+                    &format!("mask.action-{position}"),
+                    &format!("mask-{}", action.id()),
+                )
+            }),
+    );
     BodyTrack {
         schema: TRACK_SCHEMA.into(),
         journey_id: "orifina/tutorial@1".into(),
@@ -75,10 +137,7 @@ fn track(index: usize) -> BodyTrack {
         } else {
             Vec::new()
         },
-        receipts: details
-            .iter()
-            .map(|(id, assertion)| receipt(index, id, assertion))
-            .collect(),
+        receipts,
         actions: vec![
             TrackActionObservation {
                 action_id: "journey.bootstrap".into(),
@@ -110,6 +169,7 @@ fn track(index: usize) -> BodyTrack {
                 receipt_ids: vec!["body.lulled".into(), "body.fulfilled".into()],
             },
         ],
+        mask_actions: mask_actions(index),
     }
 }
 
@@ -152,6 +212,42 @@ fn action_order_and_required_semantics_fail_closed() {
     assert!(validate(&contract, &tracks, &contract.git_commit)
         .unwrap_err()
         .contains("required semantic receipts"));
+}
+
+#[test]
+fn mask_journey_refuses_staged_or_invented_transition_truth() {
+    let contract = contract::canonical(&"a".repeat(40));
+
+    let mut tracks = complete();
+    tracks[0].mask_actions.swap(2, 3);
+    assert!(validate(&contract, &tracks, &contract.git_commit)
+        .unwrap_err()
+        .contains("reordered Mask action"));
+
+    let mut tracks = complete();
+    tracks[0].mask_actions[4].show_id = Some("invented-show".into());
+    assert!(validate(&contract, &tracks, &contract.git_commit)
+        .unwrap_err()
+        .contains("invents a Show"));
+
+    let mut tracks = complete();
+    tracks[1].mask_actions[2].plan_id = "different-plan-too-early".into();
+    assert!(validate(&contract, &tracks, &contract.git_commit)
+        .unwrap_err()
+        .contains("sealed same-Plan Mask selection"));
+
+    let mut tracks = complete();
+    tracks[1].mask_actions[6].plan_id = tracks[1].mask_actions[0].plan_id.clone();
+    tracks[1].mask_actions[7].plan_id = tracks[1].mask_actions[0].plan_id.clone();
+    assert!(validate(&contract, &tracks, &contract.git_commit)
+        .unwrap_err()
+        .contains("genuine replacement Plan"));
+
+    let mut tracks = complete();
+    tracks[2].mask_actions[9].selected_mask_form_id = Some("wrong-mask".into());
+    assert!(validate(&contract, &tracks, &contract.git_commit)
+        .unwrap_err()
+        .contains("restore its original worn Mask"));
 }
 
 #[test]
