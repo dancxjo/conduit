@@ -17,7 +17,7 @@ use conduit_kernel::scheduler::{
 };
 use conduit_kernel::{
     BoundedValueRef, FixedHostCallBindings, FixedRoutes, HostCallDisposition, HostCallId,
-    HostCallOutcome, HostedSignLog, HostedValueStore, PortId as KernelPortId, RequestId,
+    HostCallOutcome, HostedSignLog, HostedValueStore, PortId as KernelPortId, RequestId, SignQuery,
 };
 use conduit_plan_lowering::lowering::{
     lower_plan_fragment, LoweredForePort, FIXED_KERNEL_STORAGE_PORTS_PER_NODE,
@@ -136,6 +136,33 @@ pub struct BrowserMaskObservation {
     pub mask_play: ActivePlayIdentity,
     pub presentation: Presentation,
     pub mask_show: MaskShow,
+    pub execution: BrowserMaskExecutionReceipt,
+}
+
+#[derive(Debug, Clone, Serialize)]
+pub struct BrowserMaskExecutionReceipt {
+    pub schema: &'static str,
+    pub fore: Vec<BrowserMaskForeReceipt>,
+    pub remote_signs: Vec<BrowserMaskRemoteSignReceipt>,
+}
+
+#[derive(Debug, Clone, Serialize)]
+pub struct BrowserMaskForeReceipt {
+    pub front_port_id: String,
+    pub direction: PortDirection,
+    pub track: conduit_core::ConnectionTrack,
+    pub value_kind: String,
+    pub endpoint: u16,
+    pub cord: u16,
+}
+
+#[derive(Debug, Clone, Serialize)]
+pub struct BrowserMaskRemoteSignReceipt {
+    pub event_sequence: u32,
+    pub kind: String,
+    pub endpoint: u16,
+    pub cord: u16,
+    pub sequence: u64,
 }
 
 pub struct BrowserMaskRuntime {
@@ -150,6 +177,7 @@ pub struct BrowserMaskRuntime {
     interaction_boundary: LoweredForePort,
     pending_node: conduit_kernel::NodeId,
     pending_request: RequestId,
+    fore_receipt: Vec<BrowserMaskForeReceipt>,
 }
 
 impl BrowserMaskRuntime {
@@ -265,6 +293,18 @@ impl BrowserMaskRuntime {
         if presented != presentation_bytes.as_slice() {
             return Err("browser Mask Back did not receive the exact Presentation".into());
         }
+        let fore_receipt = lowered
+            .fore_ports
+            .iter()
+            .map(|port| BrowserMaskForeReceipt {
+                front_port_id: port.front_port_id.as_str().into(),
+                direction: port.direction,
+                track: port.track,
+                value_kind: port.value_kind.as_str().into(),
+                endpoint: port.endpoint.0,
+                cord: port.cord.0,
+            })
+            .collect();
         let effect = BrowserMaskEffect {
             schema: "conduit.browser/mask-effect@1",
             mask_form: mask.form_identity,
@@ -291,6 +331,7 @@ impl BrowserMaskRuntime {
                 interaction_boundary,
                 pending_node: pending.node,
                 pending_request: pending.request,
+                fore_receipt,
             },
             effect,
         ))
@@ -392,6 +433,27 @@ impl BrowserMaskRuntime {
             mask_play: self.play.clone(),
             presentation: self.presentation.clone(),
             mask_show: self.show.clone(),
+            execution: BrowserMaskExecutionReceipt {
+                schema: "conduit.browser/mask-kernel-execution@1",
+                fore: self.fore_receipt.clone(),
+                remote_signs: self
+                    .scheduler
+                    .signs()
+                    .events()
+                    .filter_map(|event| {
+                        self.scheduler
+                            .signs()
+                            .remote_identity(event.sequence)
+                            .map(|remote| BrowserMaskRemoteSignReceipt {
+                                event_sequence: event.sequence,
+                                kind: format!("{:?}", event.kind),
+                                endpoint: remote.endpoint.0,
+                                cord: remote.cord.0,
+                                sequence: remote.sequence,
+                            })
+                    })
+                    .collect(),
+            },
         }
     }
 }
@@ -790,5 +852,23 @@ mod tests {
             runtime.wardrobe_action.resulting_wardrobe.worn,
             vec![runtime.planned.mask.form_identity.clone()]
         );
+        let observation = runtime.observation();
+        assert_eq!(observation.execution.fore.len(), 3);
+        let kinds = observation
+            .execution
+            .remote_signs
+            .iter()
+            .map(|sign| sign.kind.as_str())
+            .collect::<Vec<_>>();
+        for required in [
+            "RemoteInputAdmitted",
+            "RemoteInputClosed",
+            "RemoteValueOffered",
+            "RemoteValueAccepted",
+            "RemoteValueDelivered",
+            "RemoteOutputClosed",
+        ] {
+            assert!(kinds.contains(&required), "missing {required}: {kinds:?}");
+        }
     }
 }
