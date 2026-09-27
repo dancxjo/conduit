@@ -4,6 +4,7 @@
 //! ordinary Form fores stable authored names for the three presentation-role
 //! values whose exact semantic identities are owned by this crate.
 
+use alloc::string::{String, ToString};
 use conduit_core::kind_id;
 use conduit_form::StartupCatalog;
 
@@ -18,6 +19,33 @@ pub fn install_mask_form_value_aliases(
         kind_id(PRESENTATION_INTERACTION_VALUE_KIND),
     )?;
     startup.insert_value_kind_alias("Show", kind_id(SHOW_VALUE_KIND))
+}
+
+/// Install the ordinary semantic Kinds needed by a production Mask Form.
+/// Hosts remain responsible for offering exact renderer and interaction backs.
+pub fn install_mask_form_catalogs(
+    startup: &mut conduit_form::StartupCatalog,
+    profile: &mut conduit_form::ProfileCatalog,
+) -> Result<(), String> {
+    use conduit_form::KindSignature;
+
+    install_mask_form_value_aliases(startup)?;
+    for (kind, projection) in [
+        (crate::RENDERER_KIND, crate::renderer_kind_projection()),
+        (
+            crate::INTERACTION_KIND,
+            crate::interaction_kind_projection(),
+        ),
+    ] {
+        startup.insert(KindSignature {
+            kind: kind.into(),
+            startup_parameters: alloc::vec::Vec::new(),
+        })?;
+        profile
+            .insert(projection)
+            .map_err(|error| error.to_string())?;
+    }
+    Ok(())
 }
 
 #[cfg(test)]

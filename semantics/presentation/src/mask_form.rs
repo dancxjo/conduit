@@ -5,7 +5,7 @@
 //! semantics. This module only validates the narrow Presentation/interaction/
 //! Show boundary and retains its exact ordinary Form identity.
 
-use alloc::string::String;
+use alloc::{string::String, vec::Vec};
 use conduit_core::{
     FormIdentity, GearId, Plan, PortDescriptor, PortDirection, PortId, PortTemporal,
 };
@@ -18,7 +18,9 @@ use crate::{PRESENTATION_INTERACTION_VALUE_KIND, PRESENTATION_VALUE_KIND, SHOW_V
 pub struct MaskForm {
     pub form_identity: FormIdentity,
     pub form_name: String,
-    pub presentation_input: MaskFormBoundary,
+    /// Every exact internal sink bound to the public Presentation input.
+    /// Ordinary Form fan-out is retained rather than collapsed to one gear.
+    pub presentation_inputs: Vec<MaskFormBoundary>,
     pub interaction_output: MaskFormBoundary,
     pub show_output: MaskFormBoundary,
 }
@@ -66,7 +68,7 @@ impl MaskForm {
             .map_err(|_| MaskFormError::InvalidForm)?;
         if form.front.inputs().len() != 1
             || form.front.outputs().len() != 2
-            || form.input_bindings.len() != 1
+            || form.input_bindings.is_empty()
             || form.output_bindings.len() != 2
         {
             return Err(MaskFormError::InvalidFront);
@@ -102,7 +104,7 @@ impl MaskForm {
                 expanded_form_id: form.expanded.expanded_form_id.clone(),
             },
             form_name: form.expanded.name.clone(),
-            presentation_input: boundary(&form.input_bindings, &presentation.port_id)
+            presentation_inputs: boundaries(&form.input_bindings, &presentation.port_id)
                 .ok_or(MaskFormError::MissingPresentationInput)?,
             interaction_output: boundary(&form.output_bindings, &interaction.port_id)
                 .ok_or(MaskFormError::MissingInteractionOutput)?,
@@ -121,11 +123,11 @@ impl PlannedMaskForm {
         {
             return Err(MaskFormError::StalePlan);
         }
-        for boundary in [
-            &mask.presentation_input,
-            &mask.interaction_output,
-            &mask.show_output,
-        ] {
+        for boundary in mask
+            .presentation_inputs
+            .iter()
+            .chain([&mask.interaction_output, &mask.show_output])
+        {
             if !plan
                 .fragments
                 .iter()
@@ -179,4 +181,21 @@ fn boundary(
             gear_id: binding.gear_id.clone(),
             gear_port_id: binding.gear_port_id.clone(),
         })
+}
+
+#[cfg(feature = "form-catalog")]
+fn boundaries(
+    bindings: &[conduit_form::AuthoringFrontBinding],
+    port_id: &PortId,
+) -> Option<Vec<MaskFormBoundary>> {
+    let boundaries = bindings
+        .iter()
+        .filter(|binding| &binding.front_port_id == port_id)
+        .map(|binding| MaskFormBoundary {
+            front_port_id: binding.front_port_id.clone(),
+            gear_id: binding.gear_id.clone(),
+            gear_port_id: binding.gear_port_id.clone(),
+        })
+        .collect::<Vec<_>>();
+    (!boundaries.is_empty()).then_some(boundaries)
 }

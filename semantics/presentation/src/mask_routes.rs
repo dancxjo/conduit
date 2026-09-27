@@ -49,11 +49,11 @@ impl AdmittedMaskFormRoutes {
             }) {
                 return Err(MaskRouteAdmissionError::MissingPlacement);
             }
-            for boundary in [
-                &mask.presentation_input,
-                &mask.interaction_output,
-                &mask.show_output,
-            ] {
+            for boundary in mask
+                .presentation_inputs
+                .iter()
+                .chain([&mask.interaction_output, &mask.show_output])
+            {
                 let admitted = placements.iter().any(|placement| {
                     placement.gear_id == boundary.gear_id
                         && route.placement_ids.contains(&placement.placement_id)

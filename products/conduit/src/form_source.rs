@@ -87,7 +87,7 @@ impl CanonicalSource {
 fn standard_catalogs() -> Result<(StartupCatalog, ProfileCatalog), String> {
     let mut startup = conduit_signal::primary_signal_startup_catalog();
     let mut profiles = conduit_signal::primary_signal_profile_catalog();
-    conduit_presentation::install_mask_form_value_aliases(&mut startup)?;
+    conduit_presentation::install_mask_form_catalogs(&mut startup, &mut profiles)?;
     conduit_semantic_catalog::install_text_pipeline_catalogs(&mut startup, &mut profiles)?;
     conduit_text::install_morse_catalogs(&mut startup, &mut profiles)?;
     conduit_semantic_catalog::install_indicator_presentation_catalog(&mut startup, &mut profiles)?;
@@ -161,5 +161,32 @@ mod tests {
             front.outputs()[1].value_kind.as_str(),
             conduit_presentation::SHOW_VALUE_KIND
         );
+    }
+
+    #[test]
+    fn product_compiler_admits_all_three_repository_mask_forms() {
+        let (startup, profiles) = standard_catalogs().unwrap();
+        for (source, name) in [
+            (
+                include_str!("../../../forms/native-graphical-mask/main.conduit"),
+                "native-graphical",
+            ),
+            (
+                include_str!("../../../forms/browser-graphical-mask/main.conduit"),
+                "browser-graphical",
+            ),
+            (
+                include_str!("../../../forms/spoken-mask/main.conduit"),
+                "spoken",
+            ),
+        ] {
+            let syntax = conduit_form::parse_syntax_document(source);
+            let checked = conduit_form::check_syntax_document(&syntax, &startup).unwrap();
+            let expanded =
+                conduit_form::expand_canonical_form_for_authoring(&checked, name, &profiles)
+                    .unwrap();
+            let mask = conduit_presentation::MaskForm::admit(&expanded).unwrap();
+            assert_eq!(mask.form_name, name);
+        }
     }
 }

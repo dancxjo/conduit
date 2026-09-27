@@ -281,7 +281,7 @@ fn graphical_browser_and_spoken_masks_are_ordinary_forms_with_one_role_boundary(
     );
     for mask in [native, browser, spoken] {
         assert_eq!(
-            mask.presentation_input.front_port_id.as_str(),
+            mask.presentation_inputs[0].front_port_id.as_str(),
             "presentation"
         );
         assert_eq!(
