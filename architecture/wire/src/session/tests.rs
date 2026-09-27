@@ -331,6 +331,18 @@ fn typed_abnormal_terminal_is_distinct_bounded_session_truth() {
         undeclared.admit_outbound(undeclared_abnormal),
         Err(WireError::ValueContractMismatch)
     );
+
+    let mut count_binding = binding();
+    count_binding.abnormal_kind = Some(KindId::from(conduit_core::COUNT_INFO_ID));
+    let mut count = SessionMachine::new(count_binding.clone(), SessionRole::Source).unwrap();
+    trigger(&mut count);
+    assert_eq!(
+        count.admit_outbound(count_binding.frame(SessionMessage::InputAbnormal {
+            final_sequence: 0,
+            terminal: &[1],
+        })),
+        Err(WireError::ValueContractMismatch)
+    );
 }
 
 #[test]

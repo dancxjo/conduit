@@ -251,15 +251,17 @@ impl SessionMachine {
                 terminal,
             } => {
                 self.require_active()?;
-                if self.binding.abnormal_kind.is_none() {
+                let Some(abnormal_kind) = self.binding.abnormal_kind.as_ref() else {
                     return Err(WireError::ValueContractMismatch);
-                }
+                };
                 if terminal.len()
                     > usize::try_from(self.binding.limits.maximum_payload_bytes)
                         .map_err(|_| WireError::InvalidLimits)?
                 {
                     return Err(WireError::OversizedPayload);
                 }
+                conduit_core::validate_primitive_info(abnormal_kind.as_str(), terminal)
+                    .map_err(|_| WireError::ValueContractMismatch)?;
                 if self.input_closed && final_sequence == self.next_sequence {
                     return Err(WireError::DuplicateFrame);
                 }
