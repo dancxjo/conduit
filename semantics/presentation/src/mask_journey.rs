@@ -51,6 +51,49 @@ pub const MASK_JOURNEY_ACTIONS: [MaskJourneyAction; 10] = [
     MaskJourneyAction::InspectRestoredShow,
 ];
 
+/// One embodiment supplies material behavior for an action; it does not own
+/// ordering or decide which actions belong to the Journey.
+pub trait MaskJourneyEmbodiment {
+    type Outcome;
+    type Error;
+
+    fn perform(&mut self, action: MaskJourneyAction) -> Result<Self::Outcome, Self::Error>;
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct MaskJourneyRunError<E> {
+    pub action: MaskJourneyAction,
+    pub source: E,
+}
+
+/// Actualize the canonical Journey once through one embodiment.
+///
+/// `retain` receives producer-owned evidence only after the action succeeds.
+/// A semantic refusal is therefore an ordinary successful outcome; transport,
+/// harness, or execution failure belongs in `Error` and stops the Journey.
+pub fn actualize_mask_journey<E, R>(
+    embodiment: &mut E,
+    mut retain: R,
+) -> Result<(), MaskJourneyRunError<E::Error>>
+where
+    E: MaskJourneyEmbodiment,
+    R: FnMut(MaskJourneyAction, &E::Outcome),
+{
+    let mut cursor = MaskJourneyCursor::new();
+    for action in MASK_JOURNEY_ACTIONS {
+        debug_assert_eq!(cursor.next_action(), Some(action));
+        let outcome = embodiment
+            .perform(action)
+            .map_err(|source| MaskJourneyRunError { action, source })?;
+        cursor
+            .advance(action)
+            .expect("canonical Mask Journey advances its own exact order");
+        retain(action, &outcome);
+    }
+    debug_assert!(cursor.is_complete());
+    Ok(())
+}
+
 #[derive(Debug, Clone, PartialEq, Eq, Default)]
 pub struct MaskJourneyCursor {
     next: usize,
