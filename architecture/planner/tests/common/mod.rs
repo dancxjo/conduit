@@ -3,6 +3,8 @@ use conduit_form::parse_with_startup;
 use conduit_signal::{signal_profile_catalog, PULSE_KIND};
 use conduit_signal_conformance::pico_local_advertisement;
 
+pub mod local_model;
+
 #[allow(dead_code)]
 pub fn standard_planning_fixture(
     host_id: impl Into<conduit_core::HostId>,
