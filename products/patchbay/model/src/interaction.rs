@@ -419,8 +419,12 @@ fn source_offer(
     implementation: &str,
     fields: &[&str],
 ) -> CapabilityOffer {
+    let semantic_contract = conduit_core::KindSemanticContract {
+        configuration: source_definition(kind).configuration,
+        laws: vec![],
+    };
     conduit_core::capability_offer_from_parts! {
-        semantic_contract: Default::default(),
+        semantic_contract: semantic_contract,
         startup_parameters: fields
             .iter()
             .map(|name| FrontStartupParameter {
