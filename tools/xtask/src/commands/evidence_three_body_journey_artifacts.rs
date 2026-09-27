@@ -5,28 +5,21 @@ pub(super) fn require_documentary(
     tracks: &[BodyTrack],
     recording: Option<&BodyTrack>,
 ) -> Result<(), String> {
-    for track in tracks {
-        if matches!(
-            track.track_id.as_str(),
-            "native-graphical" | "browser-graphical"
-        ) {
-            for step in &track.steps {
-                if !step
-                    .evidence
-                    .iter()
-                    .any(|item| item.evidence_class == "screenshot")
-                {
-                    return Err(format!(
-                        "{} lacks a screenshot at {}",
-                        track.track_id, step.step_id
-                    ));
-                }
-            }
-        } else if track.track_id == "hosted-generative" && recording.is_none() {
-            return Err(
-                "human-facing publication requires retained live conversational media".into(),
-            );
-        }
+    let Some(recording) = recording else {
+        return Ok(());
+    };
+    let Some(current) = tracks
+        .iter()
+        .find(|track| track.track_id == "hosted-generative")
+    else {
+        return Err("live documentary lacks its current generative Body track".into());
+    };
+    if recording.track_id != current.track_id
+        || recording.body_id != current.body_id
+        || recording.journey_id != current.journey_id
+        || recording.steps.len() != current.steps.len()
+    {
+        return Err("live documentary has a different journey, Body or step set".into());
     }
     Ok(())
 }
