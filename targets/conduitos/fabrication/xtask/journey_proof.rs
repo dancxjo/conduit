@@ -972,6 +972,13 @@ fn text(record: &Value, field: &str) -> Result<String, ConduitosError> {
         .ok_or_else(|| ConduitosError::refusal("product-journey-identity-missing", field))
 }
 
+fn number(record: &Value, field: &str) -> Result<u64, ConduitosError> {
+    record
+        .get(field)
+        .and_then(Value::as_u64)
+        .ok_or_else(|| ConduitosError::refusal("product-journey-number-missing", field))
+}
+
 fn strings(record: &Value, field: &str) -> Result<Vec<String>, ConduitosError> {
     record
         .get(field)
