@@ -139,6 +139,7 @@ pub(super) fn pool_references(
         .filter_map(|value| match value {
             CanonicalStartupValue::PoolReference(pool) => Some(pool),
             CanonicalStartupValue::Literal(_)
+            | CanonicalStartupValue::Quantity(_)
             | CanonicalStartupValue::FormParameter(_)
             | CanonicalStartupValue::Structured(_) => None,
         })
@@ -194,22 +195,52 @@ fn parse_configuration_value(
                 })?;
         return Ok(ConfigurationValue::Structured(structured));
     }
+    if matches!(rule, KindConfigurationRule::QuantityRange { .. }) {
+        return match value {
+            CanonicalStartupValue::Quantity(quantity) => Ok(ConfigurationValue::Quantity(quantity)),
+            CanonicalStartupValue::Literal(literal) => {
+                conduit_core::Quantity::parse_form_literal(&literal)
+                    .map(ConfigurationValue::Quantity)
+                    .map_err(|_| {
+                        CanonicalExpansionDiagnostic::new(
+                            "CND-FRM-041",
+                            format!("primitive startup quantity '{name}' is invalid"),
+                        )
+                    })
+            }
+            _ => Err(CanonicalExpansionDiagnostic::new(
+                "CND-FRM-039",
+                format!("startup value '{name}' remains unresolved"),
+            )),
+        };
+    }
+    if matches!(rule, KindConfigurationRule::DurationMillis { .. }) {
+        if let CanonicalStartupValue::Quantity(quantity) = value {
+            let milliseconds = quantity
+                .convert(conduit_core::QuantityUnit::Millisecond)
+                .map_err(|_| {
+                    CanonicalExpansionDiagnostic::new(
+                        "CND-FRM-041",
+                        format!("primitive startup duration '{name}' is invalid or inexact"),
+                    )
+                })?;
+            return u64::try_from(milliseconds.value())
+                .map(ConfigurationValue::U64)
+                .map_err(|_| {
+                    CanonicalExpansionDiagnostic::new(
+                        "CND-FRM-041",
+                        format!("primitive startup duration '{name}' is negative or overflows"),
+                    )
+                });
+        }
+    }
     let CanonicalStartupValue::Literal(literal) = value else {
         return Err(CanonicalExpansionDiagnostic::new(
             "CND-FRM-039",
             format!("startup value '{name}' remains unresolved"),
         ));
     };
-    if matches!(rule, KindConfigurationRule::QuantityRange { .. }) {
-        conduit_core::Quantity::parse_form_literal(&literal)
-            .map(ConfigurationValue::Quantity)
-            .map_err(|_| {
-                CanonicalExpansionDiagnostic::new(
-                    "CND-FRM-041",
-                    format!("primitive startup quantity '{name}' is invalid"),
-                )
-            })
-    } else if matches!(rule, KindConfigurationRule::DurationMillis { .. }) {
+    if matches!(rule, KindConfigurationRule::DurationMillis { .. }) {
         parse_duration_millis(&literal)
             .map(ConfigurationValue::U64)
             .ok_or_else(|| {

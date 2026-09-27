@@ -211,6 +211,9 @@ fn push_field(target: &mut String, value: &str) {
 fn canonical_value(value: &CanonicalStartupValue) -> String {
     match value {
         CanonicalStartupValue::Literal(value) => format!("literal:{value}"),
+        CanonicalStartupValue::Quantity(value) => {
+            format!("quantity:{}:{}", value.unit().semantic_id(), value.value())
+        }
         CanonicalStartupValue::FormParameter(name) => format!("parameter:{name}"),
         CanonicalStartupValue::PoolReference(pool) => {
             format!("pool-reference:{}", pool.as_str())

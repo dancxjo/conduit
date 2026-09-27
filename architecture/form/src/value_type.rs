@@ -21,7 +21,12 @@ pub(crate) fn canonical_value_kind(source_type: &str) -> KindId {
         "Quantity" => kind_id("value/quantity"),
         "Distance" => kind_id(conduit_core::DISTANCE_INFO_ID),
         "Frequency" => kind_id(conduit_core::FREQUENCY_INFO_ID),
-        "Duration" => kind_id(conduit_core::QUANTITY_INFO_ID),
+        "Duration" => kind_id(conduit_core::DURATION_INFO_ID),
+        "Voltage" => kind_id(conduit_core::VOLTAGE_INFO_ID),
+        "Temperature" => kind_id(conduit_core::TEMPERATURE_INFO_ID),
+        "Angle" => kind_id(conduit_core::ANGLE_INFO_ID),
+        "Ratio" => kind_id(conduit_core::RATIO_INFO_ID),
+        "PixelCount" => kind_id(conduit_core::PIXEL_COUNT_INFO_ID),
         "Pool" => kind_id("value/pool-reference"),
         exact => kind_id(exact),
     }
@@ -165,7 +170,7 @@ mod tests {
         );
         assert_eq!(
             canonical_value_kind("Duration").as_str(),
-            conduit_core::QUANTITY_INFO_ID
+            conduit_core::DURATION_INFO_ID
         );
         assert_eq!(
             canonical_value_kind("Pool").as_str(),

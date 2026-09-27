@@ -392,7 +392,7 @@ fn malformed_quantity_literals_refuse_at_the_owned_source_span() {
     for (literal, refusal) in [
         ("17", "MissingUnit"),
         ("17fortnight", "UnknownUnit"),
-        ("1.5s", "UnknownUnit"),
+        ("0.1ns", "Inexact"),
         ("9223372036854775808ms", "InvalidValue"),
     ] {
         let source = format!(

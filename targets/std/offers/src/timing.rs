@@ -183,12 +183,12 @@ mod tests {
             assert_eq!(offer.resource_requirements.len(), 1);
             assert_eq!(
                 offer.startup_parameters[0].value_type.as_str(),
-                conduit_core::QUANTITY_INFO_ID
+                conduit_core::DURATION_INFO_ID
             );
         }
         assert_eq!(
             time_every_offer().startup_parameters[0].value_type.as_str(),
-            conduit_core::QUANTITY_INFO_ID
+            conduit_core::DURATION_INFO_ID
         );
         assert!(!time_every_offer().startup_parameters[0].has_default);
         assert_eq!(tick_capability_offer().host_calls.len(), 1);

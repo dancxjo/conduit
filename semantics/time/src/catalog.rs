@@ -99,7 +99,7 @@ pub fn install_time_every_catalog(
         kind: TIME_EVERY_KIND.to_string(),
         startup_parameters: vec![StartupParameterSignature {
             name: "freq".to_string(),
-            value_type: "Quantity".to_string(),
+            value_type: "Duration".to_string(),
             default: None,
         }],
     })?;

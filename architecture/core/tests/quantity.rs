@@ -1,6 +1,7 @@
 use conduit_core::{
     Quantity, QuantityConversionRefusal, QuantityDimension, QuantityLiteralRefusal, QuantityUnit,
 };
+use core::cmp::Ordering;
 
 #[test]
 fn reviewed_families_have_exact_distinct_dimensions() {
@@ -59,6 +60,18 @@ fn affine_temperature_conversion_is_explicit_and_exact_only() {
     );
     assert_eq!(
         Quantity::new(273_151, QuantityUnit::Millikelvin).convert(QuantityUnit::Celsius),
+        Err(QuantityConversionRefusal::Inexact)
+    );
+    assert_eq!(
+        Quantity::new(32, QuantityUnit::Fahrenheit).convert(QuantityUnit::Celsius),
+        Ok(Quantity::new(0, QuantityUnit::Celsius))
+    );
+    assert_eq!(
+        Quantity::new(21, QuantityUnit::Celsius).convert(QuantityUnit::MilliFahrenheit),
+        Ok(Quantity::new(69_800, QuantityUnit::MilliFahrenheit))
+    );
+    assert_eq!(
+        Quantity::new(1, QuantityUnit::Fahrenheit).convert(QuantityUnit::Millikelvin),
         Err(QuantityConversionRefusal::Inexact)
     );
 }
@@ -145,6 +158,9 @@ fn every_reviewed_unit_has_one_round_tripping_form_suffix() {
         QuantityUnit::Byte,
         QuantityUnit::Kibibyte,
         QuantityUnit::Mebibyte,
+        QuantityUnit::MilliFahrenheit,
+        QuantityUnit::Fahrenheit,
+        QuantityUnit::Pixel,
     ];
     for unit in units {
         let literal = format!("-17{}", unit.form_suffix());
@@ -156,7 +172,48 @@ fn every_reviewed_unit_has_one_round_tripping_form_suffix() {
 }
 
 #[test]
-fn form_literals_refuse_missing_unknown_fractional_and_overflowing_parts() {
+fn scientific_form_literals_preserve_reviewed_units_and_exact_decimals() {
+    assert_eq!(
+        Quantity::parse_form_literal("21°C"),
+        Ok(Quantity::new(21, QuantityUnit::Celsius))
+    );
+    assert_eq!(
+        Quantity::parse_form_literal("3.2m"),
+        Ok(Quantity::new(3_200_000, QuantityUnit::Micrometer))
+    );
+    assert_eq!(
+        Quantity::parse_form_literal("90°"),
+        Ok(Quantity::new(90, QuantityUnit::Degree))
+    );
+    assert_eq!(
+        Quantity::parse_form_literal("640px"),
+        Ok(Quantity::new(640, QuantityUnit::Pixel))
+    );
+    assert_eq!(
+        Quantity::parse_form_literal("69.8°F"),
+        Ok(Quantity::new(69_800, QuantityUnit::MilliFahrenheit))
+    );
+}
+
+#[test]
+fn compatible_units_compare_through_the_shared_exact_dimension_law() {
+    assert_eq!(
+        Quantity::new(30, QuantityUnit::Celsius)
+            .compare(Quantity::new(86, QuantityUnit::Fahrenheit)),
+        Ok(Ordering::Equal)
+    );
+    assert_eq!(
+        Quantity::new(21, QuantityUnit::Celsius).compare(Quantity::new(300, QuantityUnit::Kelvin)),
+        Ok(Ordering::Less)
+    );
+    assert_eq!(
+        Quantity::new(640, QuantityUnit::Pixel).compare(Quantity::new(1, QuantityUnit::Meter)),
+        Err(QuantityConversionRefusal::IncompatibleDimensions)
+    );
+}
+
+#[test]
+fn form_literals_refuse_missing_unknown_inexact_and_overflowing_parts() {
     assert_eq!(
         Quantity::parse_form_literal("ms"),
         Err(QuantityLiteralRefusal::MissingValue)
@@ -170,8 +227,12 @@ fn form_literals_refuse_missing_unknown_fractional_and_overflowing_parts() {
         Err(QuantityLiteralRefusal::UnknownUnit)
     );
     assert_eq!(
-        Quantity::parse_form_literal("1.5s"),
-        Err(QuantityLiteralRefusal::UnknownUnit)
+        Quantity::parse_form_literal("0.1ns"),
+        Err(QuantityLiteralRefusal::Inexact)
+    );
+    assert_eq!(
+        Quantity::parse_form_literal("21C"),
+        Err(QuantityLiteralRefusal::NonCanonicalUnit { canonical: "°C" })
     );
     assert_eq!(
         Quantity::parse_form_literal("9223372036854775808ms"),

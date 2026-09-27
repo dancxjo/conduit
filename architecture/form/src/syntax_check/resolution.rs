@@ -112,7 +112,15 @@ impl<'a> Resolver<'a> {
                 conduit_core::SharedPoolId::from(expression),
             ))
         } else if is_atomic_literal(expression) {
-            Ok(CanonicalStartupValue::Literal(expression.to_string()))
+            match conduit_core::Quantity::parse_form_literal(expression) {
+                Ok(value) => Ok(CanonicalStartupValue::Quantity(value)),
+                Err(conduit_core::QuantityLiteralRefusal::NonCanonicalUnit { canonical }) => {
+                    Err(SyntaxCheckError::QuantityLiteral(format!(
+                        "non-canonical quantity unit in '{expression}'; use '{canonical}'"
+                    )))
+                }
+                Err(_) => Ok(CanonicalStartupValue::Literal(expression.to_string())),
+            }
         } else if let Some(runtime) = self
             .runtime_ports
             .iter()

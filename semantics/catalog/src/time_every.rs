@@ -45,7 +45,7 @@ pub fn time_every_semantic_contract() -> Kind {
     Kind {
         startup_parameters: vec![FrontStartupParameter {
             name: "freq".into(),
-            value_type: kind_id(conduit_core::QUANTITY_INFO_ID),
+            value_type: kind_id(conduit_core::DURATION_INFO_ID),
             has_default: false,
         }],
         shorthand: None,
@@ -85,7 +85,7 @@ mod tests {
         let semantics = time_every_semantic_contract();
         assert_eq!(
             semantics.startup_parameters[0].value_type.as_str(),
-            conduit_core::QUANTITY_INFO_ID
+            conduit_core::DURATION_INFO_ID
         );
         assert!(!semantics.startup_parameters[0].has_default);
     }

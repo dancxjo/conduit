@@ -90,7 +90,7 @@ pub fn timed_button_attempt_semantic_contract() -> Kind {
             },
             FrontStartupParameter {
                 name: "timeout-ms".into(),
-                value_type: kind_id(conduit_core::QUANTITY_INFO_ID),
+                value_type: kind_id(conduit_core::DURATION_INFO_ID),
                 has_default: true,
             },
         ],
@@ -168,7 +168,7 @@ mod tests {
         assert_eq!(contract.startup_parameters[1].name, "maximum-presses");
         assert_eq!(
             contract.startup_parameters[2].value_type.as_str(),
-            conduit_core::QUANTITY_INFO_ID
+            conduit_core::DURATION_INFO_ID
         );
         assert!(contract
             .startup_parameters

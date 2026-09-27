@@ -7,7 +7,7 @@ use crate::{
 };
 use conduit_core::{
     kind_id, port_id, CapabilityLimits, FrontStartupParameter, Kind, KindIdentity, PortDescriptor,
-    PortDirection,
+    PortDirection, Quantity, QuantityUnit,
 };
 
 fn canonical_kind(projection: KindProjection) -> Kind {
@@ -39,6 +39,37 @@ fn canonical_kind(projection: KindProjection) -> Kind {
             max_queue_bytes: 1,
         },
     }
+}
+
+#[test]
+fn profile_startup_catalog_preserves_quantity_dimensions() {
+    let mut profile = ProfileCatalog::new();
+    profile
+        .insert(KindProjection {
+            kind_id: kind_id("test/range"),
+            kind_contract_revision: KindIdentity::from("test/range@1"),
+            inputs: vec![],
+            outputs: vec![],
+            configuration: vec![KindConfigurationField {
+                key: "distance".into(),
+                default_value: ConfigurationValue::Quantity(Quantity::new(
+                    500,
+                    QuantityUnit::Millimeter,
+                )),
+                rule: KindConfigurationRule::QuantityRange {
+                    minimum: 0,
+                    maximum: 10_000,
+                    canonical_unit: QuantityUnit::Millimeter,
+                },
+            }],
+        })
+        .unwrap();
+
+    let startup = profile.startup_catalog().unwrap();
+    assert_eq!(
+        startup.signature("test/range").unwrap().startup_parameters[0].value_type,
+        conduit_core::DISTANCE_INFO_ID
+    );
 }
 
 fn port(name: &str, direction: PortDirection) -> PortDescriptor {
