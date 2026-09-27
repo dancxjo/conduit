@@ -171,6 +171,7 @@ impl PresenterControl {
 
     pub(super) fn activate(
         &mut self,
+        wake: &conduit_body::Wake,
         body_plan: &BodyPlan,
         play: &BodyPlayIdentity,
     ) -> Result<PatchbayPresenterTopology, ()> {
@@ -353,7 +354,8 @@ impl PresenterControl {
             wake_id: body_plan.wake_id.as_str().into(),
             actions,
             mask_actions: crate::native_mask_journey::actualize(
-                &body_plan.body_id,
+                wake,
+                body_plan,
                 &self.host_id,
                 &self.boot_id,
                 &presentation,

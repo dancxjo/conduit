@@ -212,7 +212,12 @@ fn resident_patchbay_replans_its_own_graphical_and_speech_presenters() {
     let initial_show = &mask.mask_actions[0];
     let preferred = &mask.mask_actions[2];
     assert_eq!(preferred.plan_id, initial_show.plan_id);
-    assert_eq!(preferred.show_id, initial_show.show_id);
+    assert_ne!(preferred.show_id, initial_show.show_id);
+    assert_ne!(preferred.selected_route_id, initial_show.selected_route_id);
+    assert_ne!(
+        preferred.selected_mask_form_id,
+        initial_show.selected_mask_form_id
+    );
     for unavailable in &mask.mask_actions[3..6] {
         assert_eq!(unavailable.plan_id, initial_show.plan_id);
         assert!(unavailable.show_id.is_none());
@@ -223,7 +228,7 @@ fn resident_patchbay_replans_its_own_graphical_and_speech_presenters() {
     assert_eq!(mask.mask_actions[7].plan_id, replacement.plan_id);
     let restored = &mask.mask_actions[9];
     assert!(restored.show_id.is_some());
-    assert_ne!(restored.plan_id, replacement.plan_id);
+    assert_eq!(restored.plan_id, replacement.plan_id);
     assert_eq!(
         restored.selected_mask_form_id,
         initial_show.selected_mask_form_id
