@@ -35,12 +35,22 @@ export async function writeBrowserBodyJourneyTrack(source, screenshotPath, outpu
   const fault = required(refusedWake.sign_ids.at(-1), "fault sign");
   const repaired = required(repairedWake.sign_ids.at(-1), "repair sign");
   const lull = required(events.findLast(event => event.LullRetained)?.LullRetained?.sign_id, "Lull sign");
-  const manifestation = digest(await readFile(screenshotPath));
+  const inspectedMask = captures["body.inspected"]?.mask;
+  if (inspectedMask?.schema !== "conduit.browser/mask-observation@1") {
+    throw new Error("browser track lacks the Rust-owned Mask observation for body.inspected");
+  }
+  if (inspectedMask.mask_show?.show?.lifecycle !== "Available") {
+    throw new Error("browser track refuses a Show that was not made Available by exact DOM acknowledgement");
+  }
   const ids = { body: required(current.body_id, "Body identity"), host: required(current.host_id, "Host identity"),
     boot: required(current.boot_id, "Boot identity"), peerHost: required(peer?.host_id, "peer Host identity"),
     peerBoot: required(peer?.boot_id, "peer Boot identity"), plan: required(plan.plan_id, "Plan identity"),
     play: required(plan.active_play_id, "Play identity"),
-    presentation: required(source.state.terminal.presentation_id, "Presentation identity"), manifestation };
+    presentation: required(inspectedMask.presentation?.identity, "Presentation identity"),
+    manifestation: required(inspectedMask.mask_show?.show?.manifestation_id, "Mask Show manifestation identity"),
+    maskForm: required(inspectedMask.planned_mask?.mask?.form_identity?.checked_form_id, "Mask Form identity"),
+    maskPlan: required(inspectedMask.planned_mask?.plan?.plan_id, "Mask Plan identity"),
+    maskPlay: required(inspectedMask.mask_play?.active_play_id, "Mask Play identity") };
   const facts = [
     { initial_body: null, host_id: ids.host, boot_id: ids.boot }, { host_id: ids.host, boot_id: ids.boot },
     { event: events[0] }, { wake: evidence.wakes[0] }, { plan_id: ids.plan, active_play_id: ids.play },
@@ -86,6 +96,14 @@ export async function writeBrowserBodyJourneyTrack(source, screenshotPath, outpu
     step.evidence.push({ artifact_id: `browser-graphical/${stepId}/screen`,
       evidence_class: "screenshot", assertion_rung: "deterministic-observation",
       documentary_description: capture.caption, path: relative, sha256: digest(bytes) });
+    if (capture.mask) {
+      const observationRelative = `artifacts/${stepId}-mask.json`;
+      const observationBytes = Buffer.from(`${JSON.stringify(capture.mask, null, 2)}\n`);
+      await writeFile(join(output, observationRelative), observationBytes, { flag: "wx" });
+      step.evidence.push({ artifact_id: `browser-graphical/${stepId}/mask`, evidence_class: "semantic-receipt",
+        assertion_rung: "semantic-presentation", documentary_description: "Rust-owned ordinary Mask Form, wardrobe, Plan, Play, Presentation and acknowledged Show observation for this action.",
+        path: observationRelative, sha256: digest(observationBytes) });
+    }
   }
   if (videoPath) {
     const bytes = await readFile(videoPath);
@@ -99,7 +117,7 @@ export async function writeBrowserBodyJourneyTrack(source, screenshotPath, outpu
   await writeFile(join(output, "track.json"), `${JSON.stringify({
     schema: "conduit.evidence/body-journey-track@2", journey_id: "orifina/tutorial@1", git_commit: commit,
     track_id: "browser-graphical", embodiment: "browser-wasm-body", body_id: ids.body,
-    presenter_id: "presenter/browser-dom@1", hosts: [
+    presenter_id: ids.maskForm, hosts: [
       { host_id: ids.host, boot_id: ids.boot }, { host_id: ids.peerHost, boot_id: ids.peerBoot },
     ], line_ids: [], distributed_plan_ids: [], steps,
   }, null, 2)}\n`, { flag: "wx" });

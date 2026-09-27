@@ -17,7 +17,11 @@ test("the ordinary face binds and admits one compiler-free reviewed browser Host
   const capture = async (step, caption) => {
     const path = testInfo.outputPath(`journey-${step}.png`);
     await page.screenshot({ path, fullPage: true });
-    captures[step] = { path, caption };
+    const mask = await page.evaluate(() => {
+      try { return globalThis.__conduitWorkspace?.maskObservation?.() ?? null; }
+      catch { return null; }
+    });
+    captures[step] = { path, caption, mask };
   };
   await page.goto(entrance.url);
   await expect(page.getByRole("button", { name: "Birth Body", exact: true })).toBeVisible();
