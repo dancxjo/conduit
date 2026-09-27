@@ -210,6 +210,9 @@ fn catalogs() -> (StartupCatalog, ProfileCatalog) {
     startup
         .insert_value_kind_alias("Show", kind_id(MANIFESTATION_VALUE_KIND))
         .unwrap();
+    startup
+        .insert_value_kind_alias("Text", kind_id("text/text@1"))
+        .unwrap();
     (startup, profiles)
 }
 
@@ -272,7 +275,7 @@ fn graphical_browser_and_spoken_masks_are_ordinary_forms_with_one_role_boundary(
         "browser-graphical",
     );
     let spoken = admit(
-        "form spoken (\n >> presentation: Presentation\n interaction: FaceInteraction...| >>\n show: Show >>\n) {\n language: presentation/aural\n voice: speech/synthesize\n output: audio/play\n input: audio/listen\n presentation >> language.presentation\n language.text >> voice.text\n voice.audio >> output.audio\n output.show >> show\n input.interaction >> interaction\n}\n",
+        "form spoken (\n voice-name: Text = \"calm\"\n >> presentation: Presentation\n interaction: FaceInteraction...| >>\n show: Show >>\n) {\n language: presentation/aural\n voice: speech/synthesize\n output: audio/play\n input: audio/listen\n presentation >> language.presentation\n language.text >> voice.text\n voice.audio >> output.audio\n output.show >> show\n input.interaction >> interaction\n}\n",
         "spoken",
     );
 

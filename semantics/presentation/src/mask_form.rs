@@ -66,8 +66,7 @@ impl MaskForm {
         form.expanded
             .validate_expansion()
             .map_err(|_| MaskFormError::InvalidForm)?;
-        if !form.front.startup_parameters().is_empty()
-            || form.front.inputs().len() != 1
+        if form.front.inputs().len() != 1
             || form.front.outputs().len() != 2
             || form.input_bindings.len() != 1
             || form.output_bindings.len() != 2
