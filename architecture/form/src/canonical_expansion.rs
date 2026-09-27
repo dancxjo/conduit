@@ -61,6 +61,7 @@ struct Fragment {
     provenance: Vec<ExpandedGearProvenance>,
     inputs: BTreeMap<String, Vec<TrackedEndpoint>>,
     outputs: BTreeMap<String, TrackedEndpoint>,
+    abnormal: Option<TrackedEndpoint>,
     shorthand: Option<(String, String)>,
 }
 
@@ -68,6 +69,7 @@ struct Fragment {
 struct Instance {
     inputs: BTreeMap<String, Vec<TrackedEndpoint>>,
     outputs: BTreeMap<String, TrackedEndpoint>,
+    abnormal: Option<TrackedEndpoint>,
     bare_ports: Option<(Option<String>, Option<String>)>,
     terminal_transduction: Option<conduit_core::TerminalTransductionProfile>,
 }
@@ -208,7 +210,7 @@ fn expand_instance_inner(
                     terminal,
                     source_span,
                 } => structured_selector::PendingStage::Ready(project_terminal(
-                    resolve_reference(endpoint, &instances, &front_ports)?,
+                    resolve_terminal_reference(endpoint, *terminal, &instances, &front_ports)?,
                     *terminal,
                     *source_span,
                 )?),
@@ -347,6 +349,7 @@ fn expand_instance_inner(
             ));
         }
     }
+    let abnormal = infer_abnormal_export(&gears, &connections)?;
     Ok(Fragment {
         gears,
         connections,
@@ -354,6 +357,7 @@ fn expand_instance_inner(
         provenance,
         inputs,
         outputs,
+        abnormal,
         shorthand: form.shorthand.clone(),
     })
 }
@@ -395,6 +399,7 @@ fn instantiate_gear(
             depth + 1,
         )?;
         gear_ids.extend(fragment.gears.iter().map(|op| op.gear_id.clone()));
+        let abnormal = fragment.abnormal;
         gears.extend(fragment.gears);
         connections.extend(fragment.connections);
         shared_pools.extend(fragment.shared_pools);
@@ -402,6 +407,7 @@ fn instantiate_gear(
         return Ok(Instance {
             inputs: fragment.inputs,
             outputs: fragment.outputs,
+            abnormal,
             bare_ports: fragment
                 .shorthand
                 .map(|(input, output)| (Some(input), Some(output))),
@@ -547,6 +553,7 @@ fn instantiate_gear(
                         port: output,
                     }),
                 )]),
+                abnormal: None,
                 bare_ports: Some((Some("in".into()), Some("out".into()))),
                 terminal_transduction: None,
             });
@@ -582,6 +589,7 @@ fn instantiate_gear(
             depth + 1,
         )?;
         gear_ids.extend(fragment.gears.iter().map(|op| op.gear_id.clone()));
+        let abnormal = fragment.abnormal;
         gears.extend(fragment.gears);
         connections.extend(fragment.connections);
         shared_pools.extend(fragment.shared_pools);
@@ -589,6 +597,7 @@ fn instantiate_gear(
         return Ok(Instance {
             inputs: fragment.inputs,
             outputs: fragment.outputs,
+            abnormal,
             bare_ports: fragment
                 .shorthand
                 .map(|(input, output)| (Some(input), Some(output))),
@@ -626,6 +635,18 @@ fn instantiate_gear(
         source_gear: instance_name.to_string(),
         source_span: gear.source_span,
     });
+    let abnormal = definition
+        .outputs
+        .iter()
+        .filter(|port| port.abnormal_kind.is_some())
+        .map(|port| TrackedEndpoint {
+            endpoint: Endpoint {
+                gear_id: gear_id.clone(),
+                port: port.clone(),
+            },
+            track: conduit_core::ConnectionTrack::AbnormalTerminal,
+        })
+        .collect::<Vec<_>>();
     Ok(Instance {
         inputs: definition
             .inputs
@@ -653,6 +674,7 @@ fn instantiate_gear(
                 )
             })
             .collect(),
+        abnormal: (abnormal.len() == 1).then(|| abnormal[0].clone()),
         bare_ports: if definition.inputs.len() <= 1 && definition.outputs.len() <= 1 {
             Some((
                 definition

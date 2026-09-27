@@ -947,6 +947,7 @@ name = "conduit-form"
 version = "0.1.0"
 dependencies = [
  "conduit-core",
+ "conduit-kernel",
  "serde",
  "serde_json",
  "sha2 0.10.9",

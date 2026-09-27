@@ -105,6 +105,19 @@ pub fn expand_canonical_form_for_authoring_with_backs(
             track: endpoint.track,
         })
         .collect();
+    let abnormal_export =
+        fragment
+            .abnormal
+            .as_ref()
+            .map(|endpoint| crate::CheckedFormAbnormalExport {
+                value_kind: endpoint
+                    .port
+                    .abnormal_kind
+                    .clone()
+                    .expect("inferred abnormal export has an exact terminal Kind"),
+                gear_id: endpoint.gear_id.clone(),
+                gear_port_id: endpoint.port.port_id.clone(),
+            });
     let mut gears = fragment.gears;
     let mut connections = fragment.connections;
     let mut shared_pools = fragment.shared_pools;
@@ -153,5 +166,6 @@ pub fn expand_canonical_form_for_authoring_with_backs(
         front,
         input_bindings,
         output_bindings,
+        abnormal_export,
     })
 }
