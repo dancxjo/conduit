@@ -400,7 +400,7 @@ macro_rules! capability_offer_from_parts {
 mod tests {
     use super::*;
     use crate::{kind_id, port_id, PortDirection, PortTemporal};
-    use alloc::vec;
+    use alloc::{format, string::ToString, vec};
 
     fn contract() -> Kind {
         Kind {
@@ -748,5 +748,35 @@ mod tests {
         // older position. A future positional carrier needs its own versioned
         // envelope and cannot inherit this record layout.
         assert!(postcard::to_allocvec(&offer).is_err());
+    }
+
+    #[test]
+    fn semantic_contract_integers_remain_exact_across_json_and_positional_carriers() {
+        let contract = crate::KindSemanticContract {
+            configuration: vec![KindConfigurationField {
+                key: "range".into(),
+                default_value: crate::ConfigurationValue::U64(u64::MAX),
+                rule: crate::KindConfigurationRule::U64Range {
+                    minimum: 0,
+                    maximum: u64::MAX,
+                },
+            }],
+            laws: vec![],
+        };
+        let json = serde_json::to_string(&contract).unwrap();
+        assert!(json.contains(&format!("\"{}\"", u64::MAX)));
+        assert_eq!(
+            serde_json::from_str::<crate::KindSemanticContract>(&json).unwrap(),
+            contract
+        );
+
+        let unsafe_number = json.replace(&format!("\"{}\"", u64::MAX), &u64::MAX.to_string());
+        assert!(serde_json::from_str::<crate::KindSemanticContract>(&unsafe_number).is_err());
+
+        let positional = postcard::to_allocvec(&contract).unwrap();
+        assert_eq!(
+            postcard::from_bytes::<crate::KindSemanticContract>(&positional).unwrap(),
+            contract
+        );
     }
 }
