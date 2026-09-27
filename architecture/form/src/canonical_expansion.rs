@@ -69,6 +69,7 @@ struct Instance {
     inputs: BTreeMap<String, Vec<TrackedEndpoint>>,
     outputs: BTreeMap<String, TrackedEndpoint>,
     bare_ports: Option<(Option<String>, Option<String>)>,
+    terminal_transduction: Option<conduit_core::TerminalTransductionProfile>,
 }
 
 #[derive(Debug, Clone)]
@@ -404,6 +405,7 @@ fn instantiate_gear(
             bare_ports: fragment
                 .shorthand
                 .map(|(input, output)| (Some(input), Some(output))),
+            terminal_transduction: None,
         });
     }
 
@@ -546,6 +548,7 @@ fn instantiate_gear(
                     }),
                 )]),
                 bare_ports: Some((Some("in".into()), Some("out".into()))),
+                terminal_transduction: None,
             });
         }
     }
@@ -557,6 +560,10 @@ fn instantiate_gear(
             format!("primitive gear '{}' has no planning contract", gear.kind),
         )
     })?;
+    let terminal_transduction = catalog
+        .canonical_kind(&kind_id)
+        .and_then(conduit_core::Kind::terminal_transduction)
+        .cloned();
     if let Some(back) = backs.get(&kind_id) {
         let mut selected = back.realization.clone();
         selected.invocation_path = child_path.join("/");
@@ -585,6 +592,7 @@ fn instantiate_gear(
             bare_ports: fragment
                 .shorthand
                 .map(|(input, output)| (Some(input), Some(output))),
+            terminal_transduction,
         });
     }
     let gear_id = GearId::from(child_path.join("/"));
@@ -607,10 +615,7 @@ fn instantiate_gear(
         },
         inputs: definition.inputs.clone(),
         outputs: definition.outputs.clone(),
-        terminal_transduction: catalog
-            .canonical_kind(&kind_id)
-            .and_then(conduit_core::Kind::terminal_transduction)
-            .cloned(),
+        terminal_transduction: terminal_transduction.clone(),
         configuration,
         pool_references,
     });
@@ -662,6 +667,7 @@ fn instantiate_gear(
         } else {
             None
         },
+        terminal_transduction,
     })
 }
 
