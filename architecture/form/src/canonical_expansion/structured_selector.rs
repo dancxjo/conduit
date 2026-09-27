@@ -261,12 +261,13 @@ fn expand_expression(
         }
         StageSource::FaceInput(_, kind, temporal) => (kind.clone(), *temporal),
     };
-    if let Some(right_temporal) = right.iter().find_map(|stage| match stage {
-        PendingStage::Ready(stage) => input_temporal(stage),
+    let right_stage = right.iter().find_map(|stage| match stage {
+        PendingStage::Ready(stage) => Some(stage),
         PendingStage::Selector { .. }
         | PendingStage::Expression { .. }
         | PendingStage::When { .. } => None,
-    }) {
+    });
+    if let Some(right_temporal) = right_stage.and_then(input_temporal) {
         if right_temporal != temporal {
             return Err(CanonicalExpansionDiagnostic::new(
                 "CND-FRM-046",
@@ -286,8 +287,17 @@ fn expand_expression(
         .cloned()
         .map(|kind| (kind.kind_id.as_str().to_string(), kind))
         .collect::<BTreeMap<_, _>>();
-    let checked = crate::check_expression(
+    let expected_output = right_stage
+        .and_then(|stage| stage.input.as_ref())
+        .and_then(|inputs| inputs.first())
+        .map(|sink| match sink {
+            StageSink::Internal(endpoint) => endpoint.port.value_kind.clone(),
+            StageSink::FaceOutput(_, kind, _) => kind.clone(),
+        })
+        .map(crate::CheckedExpressionType::Semantic);
+    let checked = crate::expression_check::check_expression_as(
         &expression,
+        expected_output.as_ref(),
         &crate::ExpressionTypeContext {
             input: &input_type,
             immutable_values: &immutable_values,

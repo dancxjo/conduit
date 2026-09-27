@@ -24,6 +24,17 @@ fn scientific_quantity_comparison_plans_and_plays_through_the_std_host() {
 }
 
 #[test]
+fn ternary_selects_one_exact_branch_through_the_std_host() {
+    assert_expression_plans_and_plays(
+        &conduit_core::Scalar::from_raw_microunits(2_000_000).encode(),
+        &conduit_core::Scalar::from_raw_microunits(1_000_000).encode(),
+        conduit_core::SCALAR_INFO_ID,
+        conduit_core::SCALAR_INFO_ID,
+        ". > 0 ? 1 : (1 / 0)",
+    );
+}
+
+#[test]
 fn semantic_call_with_literal_argument_plans_and_plays_as_real_gears() {
     assert_pipeline_plans_and_plays(
         &conduit_core::Scalar::from_raw_microunits(2_000_000).encode(),
