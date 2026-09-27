@@ -151,5 +151,6 @@ pub(crate) fn supported_nucleus_contracts_with_revisions(
         (copy_file_contract(), "conduit.std/file-copy@1"),
         (json_encode_contract(), "conduit.std/json-encode@1"),
         (json_decode_contract(), "conduit.std/json-decode@1"),
+        (audio_tone_contract(), AUDIO_TONE_REVISION),
     ]
 }
