@@ -4,8 +4,8 @@ use alloc::{vec, vec::Vec};
 use conduit_core::{
     kind_id, port_id, resource_requirement, ArtifactId, CapabilityId, CapabilityLimits,
     CapabilityOffer, ExecutionProfileId, FrontStartupParameter, HostCallContractId,
-    HostCallRequirement, ImplementationId, ImplementationOffer, KindId, KindIdentity,
-    PortDescriptor, PortDirection, PortTemporal,
+    HostCallRequirement, ImplementationId, ImplementationOffer, Kind, KindConfigurationField,
+    KindConfigurationRule, KindId, KindIdentity, PortDescriptor, PortDirection, PortTemporal,
 };
 use serde::{Deserialize, Serialize};
 
@@ -115,7 +115,7 @@ pub fn exact_vector_search_offer(
         kind_contract_revision: contract.kind_contract_revision.clone(),
         inputs: contract.inputs.clone(),
         outputs: contract.outputs.clone(),
-        semantic_contract: conduit_core::KindSemanticContract::default(),
+        semantic_contract: vector_search_semantic_contract().semantic_contract(),
         implementation: ImplementationOffer {
             execution_profile_id: ExecutionProfileId::from(EXACT_VECTOR_SEARCH_EXECUTION_PROFILE),
             implementation_id: ImplementationId::from(EXACT_VECTOR_SEARCH_IMPLEMENTATION),
@@ -129,6 +129,45 @@ pub fn exact_vector_search_offer(
         authority_requirements: Vec::new(),
         limits: contract.limits,
     })
+}
+
+fn vector_search_semantic_contract() -> Kind {
+    let contract = vector_search_contract();
+    Kind {
+        startup_parameters: vector_search_startup_parameters(),
+        shorthand: None,
+        kind_id: contract.kind_id,
+        kind_contract_revision: contract.kind_contract_revision,
+        inputs: contract.inputs,
+        outputs: contract.outputs,
+        configuration: [
+            (
+                "maximum-input-bytes",
+                u64::from(contract.maximum_input_bytes),
+            ),
+            (
+                "maximum-output-bytes",
+                u64::from(contract.maximum_output_bytes),
+            ),
+            (
+                "maximum-query-work-units",
+                u64::from(contract.maximum_query_work_units),
+            ),
+            ("maximum-results", u64::from(contract.maximum_results)),
+        ]
+        .into_iter()
+        .map(|(key, maximum)| KindConfigurationField {
+            key: key.into(),
+            default_value: conduit_core::ConfigurationValue::U64(maximum),
+            rule: KindConfigurationRule::U64Range {
+                minimum: 1,
+                maximum,
+            },
+        })
+        .collect(),
+        semantic_laws: Vec::new(),
+        limits: contract.limits,
+    }
 }
 
 pub fn vector_search_back(contract: &VectorSearchContract) -> HostCallRequirement {
@@ -169,10 +208,7 @@ pub fn install_vector_search_catalog(
     profile: &mut conduit_form::ProfileCatalog,
 ) -> Result<(), alloc::string::String> {
     use alloc::string::ToString;
-    use conduit_form::{
-        KindConfigurationField, KindConfigurationRule, KindProjection, KindSignature,
-        StartupParameterSignature,
-    };
+    use conduit_form::{KindSignature, StartupParameterSignature};
 
     let contract = vector_search_contract();
     let parameters = [
@@ -202,23 +238,7 @@ pub fn install_vector_search_catalog(
             .collect(),
     })?;
     profile
-        .insert(KindProjection {
-            kind_id: contract.kind_id,
-            kind_contract_revision: contract.kind_contract_revision,
-            inputs: contract.inputs,
-            outputs: contract.outputs,
-            configuration: parameters
-                .into_iter()
-                .map(|(key, maximum)| KindConfigurationField {
-                    key: key.to_string(),
-                    default_value: conduit_core::ConfigurationValue::U64(maximum),
-                    rule: KindConfigurationRule::U64Range {
-                        minimum: 1,
-                        maximum,
-                    },
-                })
-                .collect(),
-        })
+        .insert_kind(vector_search_semantic_contract())
         .map_err(|error| error.to_string())
 }
 
