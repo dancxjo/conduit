@@ -187,6 +187,20 @@ fn resident_patchbay_replans_its_own_graphical_and_speech_presenters() {
     let speech = journey.projection();
     assert_eq!(speech.body_id, initial.body_id);
     assert_ne!(speech.plan_id, parallel.plan_id);
+    let mask = speech
+        .mask
+        .as_ref()
+        .expect("replacement retains Mask truth");
+    assert!(mask.actions.contains(&"doff"));
+    assert_eq!(mask.route_disposition, "no-current-show");
+    assert_eq!(mask.planning_disposition, "replacement-required");
+    assert!(mask.show_id.is_none() && mask.manifestation_id.is_none());
+    assert!(
+        mask.mask_plan_ids
+            .iter()
+            .all(|plan| Some(plan) != speech.plan_id.as_ref()),
+        "application and Mask Plan identities remain distinct"
+    );
     let speech_view = journey.foreground_application_view().unwrap();
     assert_eq!(
         speech_view
