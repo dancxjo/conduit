@@ -3,13 +3,24 @@
 use conduit_body::BodyId;
 use conduit_core::{
     bind_active_play, kind_id, port_id, ActivePlayIdentity, ArtifactId, Back, BackOfferBuilder,
-    BootId, CapabilityId, CapabilityLimits, ExecutionProfileId, HostAdvertisement, HostId,
-    HostProfileId, ImplementationId, Kind, KindIdentity, OfferGeneration, PortDescriptor,
-    PortDirection, PortTemporal, SignId, PROTOCOL_VERSION,
+    BootId, CapabilityId, CapabilityLimits, ExecutionProfileId, HostAdvertisement,
+    HostCallContractId, HostCallRequirement, HostId, HostProfileId, ImplementationId, Kind,
+    KindIdentity, OfferGeneration, PortDescriptor, PortDirection, PortTemporal, SignId,
+    PROTOCOL_VERSION,
 };
 use conduit_form::{
     check_syntax_document, expand_canonical_form_for_authoring, parse_syntax_document,
     KindSignature, ProfileCatalog, StartupCatalog,
+};
+use conduit_kernel::scheduler::{
+    FixedScheduler, SchedulerStatus, StepBack, StepInputBytes, StepIo, StepOutcome,
+};
+use conduit_kernel::{
+    BoundedValueRef, FixedHostCallBindings, FixedRoutes, HostCallDisposition, HostCallId,
+    HostCallOutcome, HostedSignLog, HostedValueStore, PortId as KernelPortId, RequestId,
+};
+use conduit_plan_lowering::lowering::{
+    lower_plan_fragment, LoweredFrontPort, FIXED_KERNEL_STORAGE_PORTS_PER_NODE,
 };
 use conduit_presentation::{
     install_mask_form_value_aliases, AdmittedMaskFormRoutes, BodyMaskWardrobe,
@@ -22,6 +33,73 @@ use serde::{Deserialize, Serialize};
 use std::collections::BTreeMap;
 
 const MASK_SOURCE: &str = "form browser-graphical (\n >> presentation: Presentation\n interaction: FaceInteraction...| >>\n show: Show >>\n) {\n mask: presentation/browser-dom-mask\n presentation >> mask.presentation\n mask.interaction >> interaction\n mask.show >> show\n}\n";
+const MASK_OPERATION: &str = "browser.host/dom-mask@1";
+const MASK_BYTES: u32 = 512 * 1024;
+const MASK_PORTS: usize = FIXED_KERNEL_STORAGE_PORTS_PER_NODE;
+type MaskScheduler =
+    FixedScheduler<MaskBack, HostedValueStore, HostedSignLog, 1, 3, MASK_PORTS, 12, 48, 3, 1, 1>;
+
+struct MaskBack {
+    pending: bool,
+    complete: bool,
+}
+
+impl StepBack<MASK_PORTS> for MaskBack {
+    fn step(
+        &mut self,
+        io: &mut StepIo<MASK_PORTS>,
+        _inputs: &StepInputBytes<'_, MASK_PORTS>,
+    ) -> StepOutcome {
+        if self.complete {
+            return StepOutcome::Complete;
+        }
+        if self.pending {
+            let Some((RequestId(0), outcome)) = io.host_completion() else {
+                return StepOutcome::Await;
+            };
+            if outcome.disposition != HostCallDisposition::Completed || outcome.failure.is_some() {
+                return mask_back_failure(1);
+            }
+            let Some(output) = outcome.output else {
+                return mask_back_failure(2);
+            };
+            if !io.output_ready(KernelPortId(1)) {
+                return StepOutcome::Await;
+            }
+            if io.consume_host_completion().is_err()
+                || io.send(KernelPortId(1), output.value).is_err()
+            {
+                return mask_back_failure(3);
+            }
+            self.pending = false;
+            self.complete = true;
+            return StepOutcome::Complete;
+        }
+        if let Some(value) = io.input(KernelPortId(0)) {
+            let input = match BoundedValueRef::new(value, MASK_BYTES) {
+                Ok(input) => input,
+                Err(_) => return mask_back_failure(4),
+            };
+            if io.consume(KernelPortId(0)).is_err()
+                || io
+                    .request_host_call(RequestId(0), HostCallId(0), input)
+                    .is_err()
+            {
+                return mask_back_failure(5);
+            }
+            self.pending = true;
+            return StepOutcome::Progress;
+        }
+        StepOutcome::Await
+    }
+}
+
+fn mask_back_failure(detail: u16) -> StepOutcome {
+    StepOutcome::Fail(conduit_kernel::Failure {
+        code: conduit_kernel::FailureCode::InvalidLifecycle,
+        detail,
+    })
+}
 
 #[derive(Debug, Clone, Serialize)]
 pub struct BrowserMaskEffect {
@@ -67,6 +145,11 @@ pub struct BrowserMaskRuntime {
     play: ActivePlayIdentity,
     presentation: Presentation,
     show: MaskShow,
+    scheduler: MaskScheduler,
+    show_boundary: LoweredFrontPort,
+    interaction_boundary: LoweredFrontPort,
+    pending_node: conduit_kernel::NodeId,
+    pending_request: RequestId,
 }
 
 impl BrowserMaskRuntime {
@@ -122,6 +205,66 @@ impl BrowserMaskRuntime {
             )),
         )
         .map_err(|error| format!("{error:?}"))?;
+        let fragment = planned
+            .plan
+            .fragments
+            .first()
+            .ok_or("browser Mask Plan has no fragment")?;
+        let lowered = lower_plan_fragment(fragment)
+            .map_err(|error| format!("lower browser Mask: {error:?}"))?;
+        let presentation_boundary =
+            exact_boundary(&lowered.front_ports, "presentation", PortDirection::Input)?;
+        let show_boundary =
+            exact_boundary(&lowered.front_ports, "show", PortDirection::Output)?.clone();
+        let interaction_boundary =
+            exact_boundary(&lowered.front_ports, "interaction", PortDirection::Output)?.clone();
+        let mut scheduler = mask_scheduler(fragment, &lowered)?;
+        let presentation_bytes =
+            serde_json::to_vec(&presentation).map_err(|error| error.to_string())?;
+        if presentation_bytes.len() > presentation_boundary.byte_capacity as usize {
+            return Err("browser Mask Presentation exceeds its sealed Fore bound".into());
+        }
+        match scheduler
+            .admit_remote_input(
+                presentation_boundary.endpoint,
+                presentation_boundary.cord,
+                0,
+                &presentation_bytes,
+            )
+            .map_err(|error| format!("inject browser Mask Presentation: {error:?}"))?
+        {
+            conduit_kernel::scheduler::RemoteIngressOutcome::Accepted { sequence: 0 } => {}
+            outcome => {
+                return Err(format!(
+                    "browser Mask Presentation was not admitted exactly: {outcome:?}"
+                ))
+            }
+        }
+        scheduler
+            .close_remote_input(presentation_boundary.endpoint, presentation_boundary.cord)
+            .map_err(|error| format!("close browser Mask Presentation: {error:?}"))?;
+        let pending = loop {
+            if let Some(request) = scheduler.next_host_request() {
+                break request;
+            }
+            match scheduler
+                .step()
+                .map_err(|error| format!("start browser Mask Play: {error:?}"))?
+            {
+                SchedulerStatus::Progress { .. } => {}
+                other => {
+                    return Err(format!(
+                        "browser Mask did not suspend on its DOM effect: {other:?}"
+                    ))
+                }
+            }
+        };
+        let presented = scheduler
+            .host_value(pending.input.value)
+            .map_err(|error| format!("read browser Mask effect input: {error:?}"))?;
+        if presented != presentation_bytes.as_slice() {
+            return Err("browser Mask Back did not receive the exact Presentation".into());
+        }
         let effect = BrowserMaskEffect {
             schema: "conduit.browser/mask-effect@1",
             mask_form: mask.form_identity,
@@ -143,6 +286,11 @@ impl BrowserMaskRuntime {
                 play,
                 presentation,
                 show,
+                scheduler,
+                show_boundary,
+                interaction_boundary,
+                pending_node: pending.node,
+                pending_request: pending.request,
             },
             effect,
         ))
@@ -159,6 +307,67 @@ impl BrowserMaskRuntime {
         if !exact {
             return Err("browser Mask acknowledgement is stale or mismatched".into());
         }
+        let show_bytes = serde_json::to_vec(&self.show.show).map_err(|error| error.to_string())?;
+        let output = self
+            .scheduler
+            .store_host_value(&show_bytes)
+            .map_err(|error| format!("store browser Mask Show: {error:?}"))?;
+        self.scheduler
+            .complete_host_call(
+                self.pending_node,
+                self.pending_request,
+                HostCallOutcome {
+                    disposition: HostCallDisposition::Completed,
+                    output: Some(
+                        BoundedValueRef::new(output, MASK_BYTES)
+                            .map_err(|_| "browser Mask Show bound")?,
+                    ),
+                    failure: None,
+                },
+            )
+            .map_err(|error| format!("acknowledge browser DOM effect: {error:?}"))?;
+        let offer = loop {
+            if let Some(offer) = self
+                .scheduler
+                .remote_egress_offer(self.show_boundary.endpoint, self.show_boundary.cord)
+                .map_err(|error| format!("offer browser Mask Show: {error:?}"))?
+            {
+                break offer;
+            }
+            match self
+                .scheduler
+                .step()
+                .map_err(|error| format!("finish browser Mask Play: {error:?}"))?
+            {
+                SchedulerStatus::Progress { .. } => {}
+                other => return Err(format!("browser Mask ended without its Show: {other:?}")),
+            }
+        };
+        let observed = self
+            .scheduler
+            .host_value(offer.value)
+            .map_err(|error| format!("read browser Mask Show: {error:?}"))?;
+        if observed != show_bytes.as_slice() {
+            return Err("browser Mask emitted a different Show".into());
+        }
+        self.scheduler
+            .remote_egress_accept(
+                self.show_boundary.endpoint,
+                self.show_boundary.cord,
+                offer.sequence,
+            )
+            .map_err(|error| format!("accept browser Mask Show: {error:?}"))?;
+        self.scheduler
+            .remote_egress_delivered(
+                self.show_boundary.endpoint,
+                self.show_boundary.cord,
+                offer.sequence,
+            )
+            .map_err(|error| format!("deliver browser Mask Show: {error:?}"))?;
+        drive_mask_to_terminal(
+            &mut self.scheduler,
+            [&self.show_boundary, &self.interaction_boundary],
+        )?;
         self.show = self
             .show
             .transition(
@@ -200,6 +409,130 @@ fn port(
         temporal,
         abnormal_kind: None,
     }
+}
+
+fn exact_boundary<'a>(
+    ports: &'a [LoweredFrontPort],
+    name: &str,
+    direction: PortDirection,
+) -> Result<&'a LoweredFrontPort, String> {
+    let mut matches = ports
+        .iter()
+        .filter(|port| port.front_port_id.as_str() == name && port.direction == direction);
+    let port = matches
+        .next()
+        .ok_or_else(|| format!("browser Mask lacks sealed Fore port '{name}'"))?;
+    if matches.next().is_some() {
+        return Err(format!("browser Mask Fore port '{name}' is ambiguous"));
+    }
+    Ok(port)
+}
+
+fn mask_scheduler(
+    fragment: &conduit_core::PlanFragment,
+    lowered: &conduit_plan_lowering::lowering::LoweredPlanFragment,
+) -> Result<MaskScheduler, String> {
+    if fragment.placements.len() != 1 || lowered.cords.len() != 3 {
+        return Err("browser Mask Plan has an unexpected finite shape".into());
+    }
+    let nodes = lowered
+        .node_specs
+        .as_slice()
+        .try_into()
+        .map_err(|_| "browser Mask nodes")?;
+    let cords = lowered
+        .cords
+        .iter()
+        .map(|cord| cord.spec)
+        .collect::<Vec<_>>()
+        .try_into()
+        .map_err(|_| "browser Mask cords")?;
+    let mut routes = FixedRoutes::<48, 3>::new(MASK_PORTS as u16);
+    for route in &lowered.routes {
+        routes
+            .install(
+                route.source_node,
+                route.source_port,
+                route.range,
+                &route.targets,
+            )
+            .map_err(|error| format!("install browser Mask route: {error:?}"))?;
+    }
+    routes
+        .seal()
+        .map_err(|error| format!("seal browser Mask routes: {error:?}"))?;
+    let mut bindings = FixedHostCallBindings::<1>::new(1);
+    for operation in &lowered.host_calls {
+        bindings
+            .install(operation.node, operation.binding)
+            .map_err(|error| format!("install browser Mask host call: {error:?}"))?;
+    }
+    bindings
+        .seal()
+        .map_err(|error| format!("seal browser Mask host calls: {error:?}"))?;
+    let values = HostedValueStore::new(12, MASK_BYTES, MASK_BYTES * 4)
+        .map_err(|error| format!("prepare browser Mask values: {error:?}"))?;
+    const MASK_SIGN_ITEMS: u16 = 256;
+    let sign_bytes = u32::from(MASK_SIGN_ITEMS)
+        .checked_mul(core::mem::size_of::<conduit_kernel::KernelEvent>() as u32)
+        .ok_or("browser Mask Sign budget overflow")?;
+    const MASK_REMOTE_SIGN_ITEMS: u16 = 64;
+    let remote_sign_bytes = conduit_kernel::remote_sign_storage_bytes(MASK_REMOTE_SIGN_ITEMS)
+        .ok_or("browser Mask remote Sign budget overflow")?;
+    let signs = HostedSignLog::new_with_remote_storage(
+        MASK_SIGN_ITEMS,
+        sign_bytes,
+        MASK_REMOTE_SIGN_ITEMS,
+        remote_sign_bytes,
+    )
+    .map_err(|error| format!("prepare browser Mask signs: {error:?}"))?;
+    MaskScheduler::new_with_host_calls(
+        nodes,
+        cords,
+        routes,
+        bindings,
+        [MaskBack {
+            pending: false,
+            complete: false,
+        }],
+        values,
+        signs,
+    )
+    .map_err(|error| format!("prepare browser Mask scheduler: {error:?}"))
+}
+
+fn drive_mask_to_terminal(
+    scheduler: &mut MaskScheduler,
+    boundaries: [&LoweredFrontPort; 2],
+) -> Result<(), String> {
+    for _ in 0..32 {
+        if boundaries.iter().all(|port| {
+            scheduler
+                .remote_egress_terminal(port.endpoint, port.cord)
+                .unwrap_or(false)
+        }) {
+            return Ok(());
+        }
+        for port in boundaries {
+            if scheduler
+                .remote_egress_offer(port.endpoint, port.cord)
+                .map_err(|error| format!("inspect browser Mask Fore output: {error:?}"))?
+                .is_some()
+                && port.front_port_id.as_str() != "show"
+            {
+                return Err("browser Mask emitted an unexpected interaction".into());
+            }
+        }
+        match scheduler
+            .step()
+            .map_err(|error| format!("drain browser Mask Play: {error:?}"))?
+        {
+            SchedulerStatus::Progress { .. } | SchedulerStatus::Drained | SchedulerStatus::Idle => {
+            }
+            SchedulerStatus::Cancelled => return Err("browser Mask Play was cancelled".into()),
+        }
+    }
+    Err("browser Mask Fore outputs did not become terminal".into())
 }
 
 fn planned_mask(
@@ -266,7 +599,13 @@ fn planned_mask(
             execution_profile_id: ExecutionProfileId::from("browser/mask@1"),
             implementation_id: ImplementationId::from("implementation/browser-dom-mask"),
             artifact_id: ArtifactId::from("artifact/browser-runtime"),
-            host_calls: vec![],
+            host_calls: vec![HostCallRequirement {
+                contract_id: HostCallContractId::from(MASK_OPERATION),
+                target_kind: Some(kind_id("presentation/browser-dom-mask")),
+                maximum_in_flight: 1,
+                maximum_input_bytes: MASK_BYTES,
+                maximum_output_bytes: MASK_BYTES,
+            }],
             resource_requirements: vec![],
             authority_requirements: vec![],
         },
