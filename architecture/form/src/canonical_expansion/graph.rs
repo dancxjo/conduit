@@ -491,6 +491,20 @@ pub(super) fn cancellation_sink(
             ),
         )
     })?;
+    if !matches!(
+        instance
+            .terminal_transduction
+            .as_ref()
+            .map(|profile| &profile.cancellation),
+        Some(conduit_core::CancellationTransduction::Request { .. })
+    ) {
+        return Err(CanonicalExpansionDiagnostic::new(
+            "CND-FRM-046",
+            format!(
+                "Gear '{gear}' does not declare CancellationTransduction::Request in its exact Kind contract"
+            ),
+        ));
+    }
     let mut cancellation_inputs = instance.inputs.iter().filter(|(_, endpoints)| {
         endpoints.iter().all(|endpoint| {
             endpoint.port.value_kind.as_str() == conduit_core::CANCELLATION_REQUEST_INFO_ID

@@ -544,7 +544,32 @@ fn terminal_catalogs() -> (StartupCatalog, ProfileCatalog) {
                 temporal: conduit_core::PortTemporal::Value,
                 abnormal_kind: None,
             }],
-            outputs: vec![],
+            outputs: vec![PortDescriptor {
+                port_id: port_id("result"),
+                value_kind: kind_id("test/value"),
+                direction: PortDirection::Output,
+                temporal: conduit_core::PortTemporal::Value,
+                abnormal_kind: Some(kind_id("test/cancelled")),
+            }],
+            configuration: vec![],
+        },
+        KindProjection {
+            kind_id: kind_id("test/typed-but-not-cancellable-work"),
+            kind_contract_revision: KindIdentity::from("test/typed-but-not-cancellable-work@1"),
+            inputs: vec![PortDescriptor {
+                port_id: port_id("halt"),
+                value_kind: kind_id(conduit_core::CANCELLATION_REQUEST_INFO_ID),
+                direction: PortDirection::Input,
+                temporal: conduit_core::PortTemporal::Value,
+                abnormal_kind: None,
+            }],
+            outputs: vec![PortDescriptor {
+                port_id: port_id("result"),
+                value_kind: kind_id("test/value"),
+                direction: PortDirection::Output,
+                temporal: conduit_core::PortTemporal::Value,
+                abnormal_kind: Some(kind_id("test/cancelled")),
+            }],
             configuration: vec![],
         },
         KindProjection {
@@ -603,7 +628,33 @@ fn terminal_catalogs() -> (StartupCatalog, ProfileCatalog) {
                 startup_parameters: vec![],
             })
             .unwrap();
-        profile.insert(definition).unwrap();
+        let mut kind = canonical_kind(definition);
+        if kind.kind_id.as_str() == "test/cancellable-work" {
+            kind.semantic_laws
+                .push(KindSemanticLaw::TerminalTransduction(
+                    TerminalTransductionProfile {
+                        input_port_id: port_id("halt"),
+                        output_port_id: port_id("result"),
+                        normal_close: NormalCloseTransduction::NotAccepted,
+                        abnormal: AbnormalTerminalTransduction::NotAccepted,
+                        cancellation: CancellationTransduction::Request {
+                            disposition_kind: kind_id("test/cancelled"),
+                        },
+                    },
+                ));
+        } else if kind.kind_id.as_str() == "test/typed-but-not-cancellable-work" {
+            kind.semantic_laws
+                .push(KindSemanticLaw::TerminalTransduction(
+                    TerminalTransductionProfile {
+                        input_port_id: port_id("halt"),
+                        output_port_id: port_id("result"),
+                        normal_close: NormalCloseTransduction::NotAccepted,
+                        abnormal: AbnormalTerminalTransduction::NotAccepted,
+                        cancellation: CancellationTransduction::NotCancellable,
+                    },
+                ));
+        }
+        profile.insert_kind(kind).unwrap();
     }
     (startup, profile)
 }
@@ -682,13 +733,25 @@ fn semantic_cancellation_is_an_ordinary_cord_to_an_exact_declared_fore_control()
     let checked = check_syntax_document(&parse_syntax_document(unavailable), &startup).unwrap();
     let error = expand_canonical_form(&checked, "main", &profile).unwrap_err();
     assert_eq!(error.code, "CND-FRM-046");
-    assert!(error.message.contains("does not declare the canonical"));
+    assert!(error
+        .message
+        .contains("does not declare CancellationTransduction::Request"));
 
     let misleading_name = "form main {\n deadline: test/deadline\n work: test/name-only-cancellable-work\n deadline >> work~\n}\n";
     let checked = check_syntax_document(&parse_syntax_document(misleading_name), &startup).unwrap();
     let error = expand_canonical_form(&checked, "main", &profile).unwrap_err();
     assert_eq!(error.code, "CND-FRM-046");
-    assert!(error.message.contains("does not declare the canonical"));
+    assert!(error
+        .message
+        .contains("does not declare CancellationTransduction::Request"));
+
+    let typed_only = "form main {\n deadline: test/deadline\n work: test/typed-but-not-cancellable-work\n deadline >> work~\n}\n";
+    let checked = check_syntax_document(&parse_syntax_document(typed_only), &startup).unwrap();
+    let error = expand_canonical_form(&checked, "main", &profile).unwrap_err();
+    assert_eq!(error.code, "CND-FRM-046");
+    assert!(error
+        .message
+        .contains("does not declare CancellationTransduction::Request"));
 
     let ambiguous = "form main {\n deadline: test/deadline\n work: test/ambiguous-cancellable-work\n deadline >> work~\n}\n";
     let checked = check_syntax_document(&parse_syntax_document(ambiguous), &startup).unwrap();
@@ -696,7 +759,7 @@ fn semantic_cancellation_is_an_ordinary_cord_to_an_exact_declared_fore_control()
     assert_eq!(error.code, "CND-FRM-046");
     assert!(error
         .message
-        .contains("more than one semantic cancellation control"));
+        .contains("does not declare CancellationTransduction::Request"));
 }
 
 #[test]
