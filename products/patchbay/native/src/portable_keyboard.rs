@@ -259,7 +259,7 @@ pub fn append_offer(advertisement: &mut HostAdvertisement) -> Result<(), String>
         resource_offer(&format!("{base}/input"), INPUT_RESOURCE_CLASS, 1),
     ];
     append_resources(&mut advertisement.resources, resources)?;
-    let contract = conduit_semantic_catalog::keyboard_contract();
+    let contract = conduit_semantic_catalog::keyboard_semantic_contract();
     let mut requirements = vec![
         resource_requirement(INPUT_RESOURCE_CLASS, 1),
         resource_requirement(WINDOW_INPUT_RESOURCE, 1),
@@ -270,9 +270,9 @@ pub fn append_offer(advertisement: &mut HostAdvertisement) -> Result<(), String>
     advertisement
         .capabilities
         .push(conduit_core::capability_offer_from_parts! {
-            semantic_contract: Default::default(),
-            startup_parameters: Vec::new(),
-            shorthand: None,
+            semantic_contract: contract.semantic_contract(),
+            startup_parameters: contract.startup_parameters.clone(),
+            shorthand: contract.shorthand.clone(),
             capability_id: CapabilityId::from("patchbay-native/input-keyboard@1"),
             kind_id: contract.kind_id,
             kind_contract_revision: conduit_semantic_catalog::keyboard_contract_revision(),
