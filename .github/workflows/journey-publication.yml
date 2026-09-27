@@ -27,6 +27,8 @@ jobs:
       url: ${{ steps.deployment.outputs.page_url }}
     env:
       PAGES_RUN_ID: ${{ inputs.pages_run_id }}
+      NPM_CONFIG_AUDIT: "false"
+      NPM_CONFIG_FUND: "false"
     steps:
       - name: Check out trusted accepted workflow machinery
         uses: actions/checkout@v7
@@ -92,6 +94,10 @@ jobs:
         with:
           cache-on-failure: false
           shared-key: three-body-journey
+      - name: Install the pinned documentary browser dependency
+        run: |
+          npm --prefix proof/browser ci --ignore-scripts
+          npm --prefix proof/browser exec -- playwright install --with-deps chromium
       - name: Receive the accepted software carrier
         uses: actions/download-artifact@v8
         with:
@@ -116,22 +122,22 @@ jobs:
           repository: ${{ github.repository }}
           run-id: ${{ steps.context.outputs.promotion_run_id }}
           github-token: ${{ github.token }}
-      - name: Receive the exact One Form, Two Fronts evidence
-        uses: actions/download-artifact@v8
-        with:
-          name: conduit-journey-one-form-two-fronts-${{ steps.context.outputs.source_commit }}
-          path: target/journey-inputs/one-form-two-fronts
-          repository: ${{ github.repository }}
-          run-id: ${{ steps.context.outputs.promotion_run_id }}
-          github-token: ${{ github.token }}
-      - name: Receive the exact Little Life evidence
-        uses: actions/download-artifact@v8
-        with:
-          name: conduit-journey-little-life-${{ steps.context.outputs.source_commit }}
-          path: target/journey-inputs/little-life
-          repository: ${{ github.repository }}
-          run-id: ${{ steps.context.outputs.promotion_run_id }}
-          github-token: ${{ github.token }}
+      - name: Produce gallery-only evidence for the accepted commit
+        env:
+          CONDUIT_CHECKOUT_SHA: ${{ steps.context.outputs.source_commit }}
+        run: |
+          cargo xtask evidence one-form-two-fronts --locked \
+            --output target/journey-inputs/one-form-two-fronts
+          cargo xtask evidence verify --locked \
+            --root target/journey-inputs/one-form-two-fronts \
+            --commit "$CONDUIT_CHECKOUT_SHA" --result complete \
+            --proof journey-one-form-two-fronts --suite journey-gallery
+          cargo xtask evidence little-life --locked \
+            --output target/journey-inputs/little-life
+          cargo xtask evidence verify --locked \
+            --root target/journey-inputs/little-life \
+            --commit "$CONDUIT_CHECKOUT_SHA" --result complete \
+            --proof journey-little-life --suite journey-gallery
       - name: Run the structured-Face generative Body journey through real HTTP
         run: |
           node proof/fixtures/ollama-http-service.mjs >"$RUNNER_TEMP/ollama-fixture.log" 2>&1 &

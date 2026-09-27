@@ -108,12 +108,14 @@ relationship and turns the routine return merge into a large false conflict.
 
 ## Documentary publication is downstream
 
-Promotion does not generate or require a complete Three Bodies documentary.
+Promotion does not generate or require a complete Three Bodies documentary or
+the gallery-only One Form, Two Fronts and Little Life evidence.
 The first Pages deployment publishes the exact accepted software carrier and
 retains a bounded context linking its main commit, release source, promotion
 run, carrier, and source tree. Only after that deployment succeeds does
-`journey-publication.yml` consume immutable producer evidence and attempt the
-human documentary as a separate workflow.
+`journey-publication.yml` consumes immutable claim-specific producer evidence,
+creates gallery-only evidence against that exact accepted source, and attempts
+the human documentary as a separate workflow.
 
 A documentary failure cannot fail, mutate, or revoke the accepted release. A
 successful documentary run reseals a new publication carrier over the same

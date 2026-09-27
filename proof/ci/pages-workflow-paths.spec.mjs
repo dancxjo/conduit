@@ -125,7 +125,8 @@ test("product jobs build the immutable PR head and deployments queue", () => {
   assert.match(productWorkflow, /Restore an identical admitted ConduitOS image/);
   assert.match(productWorkflow, /if: steps\.image-cache\.outputs\.cache-hit != 'true'/);
   assert.match(productWorkflow, /conduitos-releases:\n    needs: conduitos-release-images/);
-  assert.match(productWorkflow, /products-proof:\n    needs: \[plan, tour-patchbay-proof, browser-admission-proof, products-stage, browser-proof, journey-evidence, little-life-evidence, pages-carrier, proof-receipts\]/);
+  assert.match(productWorkflow, /products-proof:\n    needs: \[plan, tour-patchbay-proof, browser-admission-proof, products-stage, browser-proof, pages-carrier, proof-receipts\]/);
+  assert.doesNotMatch(productWorkflow, /^  (?:journey|little-life)-evidence:/m);
   assert.doesNotMatch(productWorkflow, /^  journey-gallery:/m);
   assert.match(productWorkflow, /if test "\$PRODUCT_REQUIRED" != true/);
   assert.match(productWorkflow, /test "\$STAGE_RESULT" = success/);
@@ -158,8 +159,9 @@ test("product jobs build the immutable PR head and deployments queue", () => {
   assert.match(journeyWorkflow, /name: conduit-pages-carrier/);
   assert.match(journeyWorkflow, /conduit-browser-body-journey-/);
   assert.match(journeyWorkflow, /name: conduitos-x86-batch-/);
-  assert.match(journeyWorkflow, /conduit-journey-one-form-two-fronts-/);
-  assert.match(journeyWorkflow, /conduit-journey-little-life-/);
+  assert.match(journeyWorkflow, /cargo xtask evidence one-form-two-fronts --locked/);
+  assert.match(journeyWorkflow, /cargo xtask evidence little-life --locked/);
+  assert.match(journeyWorkflow, /CONDUIT_CHECKOUT_SHA: \$\{\{ steps\.context\.outputs\.source_commit \}\}/);
   assert.match(journeyWorkflow, /cargo xtask evidence gallery/);
   assert.match(journeyWorkflow, /proof\/fixtures\/ollama-http-service\.mjs/);
   assert.match(journeyWorkflow, /three-body-journey-contract/);

@@ -487,66 +487,28 @@ fn product_descendants_use_explicit_direct_result_admission() {
 }
 
 #[test]
-fn two_fronts_evidence_is_pinned_exact_bounded_and_admitted() {
+fn gallery_only_evidence_is_pinned_to_the_accepted_commit_downstream() {
     let root = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../..");
-    let workflow = fs::read_to_string(root.join(".github/workflows/tour-products.yml"))
+    let products = fs::read_to_string(root.join(".github/workflows/tour-products.yml"))
         .expect("read product workflow");
-    let evidence = workflow
-        .split("\n  journey-evidence:\n")
-        .nth(1)
-        .and_then(|tail| tail.split("\n  pages-carrier:\n").next())
-        .expect("locate sibling journey evidence job");
-    let gate = workflow
-        .split("\n  products-proof:\n")
-        .nth(1)
-        .expect("locate stable product gate");
+    let journey = fs::read_to_string(root.join(".github/workflows/journey-publication.yml"))
+        .expect("read downstream Journey workflow");
 
-    assert!(evidence.contains("mcr.microsoft.com/playwright:v1.62.0-noble"));
-    assert!(evidence.contains(
-        "CONDUIT_CHECKOUT_SHA: ${{ inputs.candidate_sha || github.event.pull_request.head.sha }}"
-    ));
-    assert!(evidence.contains(
-        "cargo xtask evidence one-form-two-fronts --locked --output \"$RUNNER_TEMP/one-form-two-fronts\""
-    ));
-    assert!(evidence.contains("--root \"$RUNNER_TEMP/one-form-two-fronts\""));
-    assert!(evidence.contains("--commit \"$CONDUIT_CANDIDATE_SHA\""));
-    assert!(evidence.contains("--proof journey-one-form-two-fronts"));
-    assert!(evidence.contains("--suite journey-gallery"));
-    assert!(evidence.contains("retention-days: 14"));
-    assert!(gate.contains("JOURNEY_REQUIRED: ${{ needs.plan.outputs.browser_runtime_required }}"));
-    assert!(gate.contains("JOURNEY_RESULT: ${{ needs.journey-evidence.result }}"));
-    assert!(gate.contains("test \"$JOURNEY_RESULT\" = success"));
-}
-
-#[test]
-fn little_life_evidence_is_exact_bounded_and_part_of_carrier_admission() {
-    let root = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../..");
-    let workflow = fs::read_to_string(root.join(".github/workflows/tour-products.yml"))
-        .expect("read product workflow");
-    let evidence = workflow
-        .split("\n  little-life-evidence:\n")
-        .nth(1)
-        .and_then(|tail| tail.split("\n  pages-carrier:\n").next())
-        .expect("locate Little Life evidence job");
-    let gate = workflow
-        .split("\n  products-proof:\n")
-        .nth(1)
-        .expect("locate stable product gate");
-
-    assert!(evidence.contains("if: needs.plan.outputs.pages_carrier_required == 'true'"));
-    assert!(evidence.contains(
-        "CONDUIT_CHECKOUT_SHA: ${{ inputs.candidate_sha || github.event.pull_request.head.sha }}"
-    ));
-    assert!(evidence.contains(
-        "cargo xtask evidence little-life --locked --output \"$RUNNER_TEMP/little-life\""
-    ));
-    assert!(evidence.contains("--root \"$RUNNER_TEMP/little-life\""));
-    assert!(evidence.contains("--commit \"$CONDUIT_CANDIDATE_SHA\""));
-    assert!(evidence.contains("--proof journey-little-life"));
-    assert!(evidence.contains("--suite journey-gallery"));
-    assert!(evidence.contains("retention-days: 14"));
-    assert!(gate.contains("LITTLE_LIFE_RESULT: ${{ needs.little-life-evidence.result }}"));
-    assert!(gate.contains("test \"$LITTLE_LIFE_RESULT\" = success"));
+    assert!(!products.contains("\n  journey-evidence:\n"));
+    assert!(!products.contains("\n  little-life-evidence:\n"));
+    assert!(!products.contains("JOURNEY_RESULT"));
+    assert!(!products.contains("LITTLE_LIFE_RESULT"));
+    assert!(journey.contains("CONDUIT_CHECKOUT_SHA: ${{ steps.context.outputs.source_commit }}"));
+    assert!(journey.contains("cargo xtask evidence one-form-two-fronts --locked"));
+    assert!(journey.contains("--proof journey-one-form-two-fronts --suite journey-gallery"));
+    assert!(journey.contains("cargo xtask evidence little-life --locked"));
+    assert!(journey.contains("--proof journey-little-life --suite journey-gallery"));
+    assert!(
+        journey
+            .matches("--commit \"$CONDUIT_CHECKOUT_SHA\"")
+            .count()
+            >= 2
+    );
 }
 
 #[test]
@@ -559,8 +521,8 @@ fn sibling_gallery_is_rendered_only_after_release_admission() {
 
     assert!(!products.contains("\n  journey-gallery:\n"));
     assert!(!products.contains("JOURNEY_GALLERY_RESULT"));
-    assert!(gallery.contains("conduit-journey-one-form-two-fronts-"));
-    assert!(gallery.contains("conduit-journey-little-life-"));
+    assert!(gallery.contains("cargo xtask evidence one-form-two-fronts --locked"));
+    assert!(gallery.contains("cargo xtask evidence little-life --locked"));
     assert!(gallery.contains("--two-fronts-evidence-root"));
     assert!(gallery.contains("--little-life-evidence-root"));
     assert!(gallery.contains("target/journey-gallery-site"));
