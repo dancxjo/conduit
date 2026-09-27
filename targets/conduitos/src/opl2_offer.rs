@@ -142,7 +142,8 @@ pub fn append_to_advertisement(
     advertisement
         .resources
         .sort_by(|left, right| left.pool_id.cmp(&right.pool_id));
-    let contract = conduit_semantic_catalog::music_play_contract();
+    let contract = conduit_semantic_catalog::music_play_contract()
+        .into_semantic_contract(conduit_semantic_catalog::MUSIC_PLAY_REVISION);
     let mut requirements = vec![
         conduit_core::resource_requirement(
             conduit_core::RUNTIME_MEMORY_RESOURCE_CLASS,
@@ -158,9 +159,9 @@ pub fn append_to_advertisement(
     ];
     requirements.sort();
     advertisement.capabilities.push(conduit_core::capability_offer_from_parts! {
-        semantic_contract: Default::default(),
-        startup_parameters: Vec::new(),
-        shorthand: None,
+        semantic_contract: contract.semantic_contract(),
+        startup_parameters: contract.startup_parameters.clone(),
+        shorthand: contract.shorthand.clone(),
         capability_id: CapabilityId::from(OPL2_CAPABILITY),
         kind_id: contract.kind_id,
         kind_contract_revision: KindIdentity::from(conduit_semantic_catalog::MUSIC_PLAY_REVISION),
