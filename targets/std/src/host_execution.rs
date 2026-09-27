@@ -16,6 +16,7 @@ struct HostRunInputs<'a> {
     retained: Option<&'a mut Vec<state_value::RetainedTypedState>>,
     attach_live: bool,
     external_fore: Option<ExternalForeRun<'a>>,
+    spoken_mask: Option<crate::spoken_mask_runtime::SpokenMaskPreparation>,
 }
 
 pub struct ExternalForeRun<'a> {
@@ -82,6 +83,7 @@ impl StdHost {
                 retained: None,
                 attach_live: false,
                 external_fore: None,
+                spoken_mask: None,
             },
         )
         .map(|run| run.report)
@@ -106,6 +108,7 @@ impl StdHost {
                 retained: None,
                 attach_live: false,
                 external_fore: None,
+                spoken_mask: None,
             },
         )
     }
@@ -129,6 +132,7 @@ impl StdHost {
                 retained: None,
                 attach_live: true,
                 external_fore: None,
+                spoken_mask: None,
             },
         )
         .map(|run| run.report)
@@ -156,6 +160,36 @@ impl StdHost {
                     inputs,
                     output: output_adapter,
                 }),
+                spoken_mask: None,
+            },
+        )
+        .map(|run| run.report)
+    }
+
+    pub fn run_spoken_mask_form_to<W: Write, T: TimerAdapter>(
+        &mut self,
+        fragment: PlanFragment,
+        preparation: crate::spoken_mask_runtime::SpokenMaskPreparation,
+        inputs: &[ExternalForeInput],
+        output_adapter: &mut dyn ExternalForeOutputAdapter,
+        output: &mut W,
+        timer: &mut T,
+    ) -> Result<StdRunReport, String> {
+        self.run_fragment_owned_with_keyboard_to(
+            fragment,
+            output,
+            timer,
+            &RunControl::default(),
+            HostRunInputs {
+                keyboard: None,
+                indicator: None,
+                retained: None,
+                attach_live: false,
+                external_fore: Some(ExternalForeRun {
+                    inputs,
+                    output: output_adapter,
+                }),
+                spoken_mask: Some(preparation),
             },
         )
         .map(|run| run.report)
@@ -175,6 +209,7 @@ impl StdHost {
             retained,
             attach_live,
             external_fore,
+            spoken_mask,
         } = inputs;
         write_operator_report(output, self.advertisement(), &fragment.plan_id, &fragment)?;
 
@@ -231,6 +266,7 @@ impl StdHost {
                         wav_artifact: self.wav_artifact.as_ref(),
                         vision: self.vision.as_mut(),
                         external_fore,
+                        spoken_mask,
                     },
                 )
             } else {

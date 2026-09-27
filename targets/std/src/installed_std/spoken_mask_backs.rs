@@ -265,3 +265,77 @@ const fn fail(detail: u16) -> StepOutcome {
         detail,
     })
 }
+
+pub(super) struct SpokenArtifactHost {
+    session: crate::hosted_wav_artifact::WavArtifactSession,
+    plan_id: conduit_core::PlanId,
+    active_play_id: conduit_core::ActivePlayId,
+    placement_id: conduit_core::PlacementId,
+}
+
+pub(super) fn prepare_artifact_hosts(
+    fragment: &conduit_core::PlanFragment,
+    active_play: &conduit_core::ActivePlayIdentity,
+    selection: Option<&crate::hosted_wav_artifact::WavArtifactSelection>,
+) -> Result<Vec<Option<SpokenArtifactHost>>, String> {
+    fragment
+        .placements
+        .iter()
+        .map(|placement| {
+            if placement.implementation_id.as_str()
+                != conduit_std_offers::SPOKEN_ARTIFACT_IMPLEMENTATION
+            {
+                return Ok(None);
+            }
+            validate(
+                placement,
+                conduit_std_offers::SPOKEN_ARTIFACT_IMPLEMENTATION,
+            )?;
+            let selection = selection
+                .ok_or_else(|| "spoken Mask has no selected artifact destination".to_string())?;
+            if selection.boot_id != placement.boot_id
+                || selection.offer_generation != placement.offer_generation
+            {
+                return Err("spoken Mask artifact destination is stale".into());
+            }
+            Ok(Some(SpokenArtifactHost {
+                session: crate::hosted_wav_artifact::WavArtifactSession::prepare(selection.clone()),
+                plan_id: fragment.plan_id.clone(),
+                active_play_id: active_play.active_play_id.clone(),
+                placement_id: placement.placement_id.clone(),
+            }))
+        })
+        .collect()
+}
+
+pub(super) fn execute_artifact(
+    host: &mut SpokenArtifactHost,
+    input: &[u8],
+    completion_sign_id: conduit_core::SignId,
+) -> Result<Option<Vec<u8>>, String> {
+    if input == [0] {
+        host.session.finish()?;
+        let report = host.session.report();
+        let content_sha256 = host
+            .session
+            .content_sha256()
+            .ok_or_else(|| "completed spoken artifact has no digest".to_string())?;
+        let receipt = conduit_presentation::SpokenMaskArtifactReceipt {
+            artifact_identity: format!("artifact/wav/{content_sha256}"),
+            content_sha256,
+            pcm_bytes: report.pcm_bytes,
+            frames: report.frames,
+            blocks: report.blocks,
+            plan_id: host.plan_id.clone(),
+            active_play_id: host.active_play_id.clone(),
+            placement_id: host.placement_id.clone(),
+            completion_sign_id,
+        };
+        serde_json::to_vec(&receipt)
+            .map(Some)
+            .map_err(|error| format!("encode spoken artifact receipt: {error}"))
+    } else {
+        host.session.write_frame(input)?;
+        Ok(None)
+    }
+}

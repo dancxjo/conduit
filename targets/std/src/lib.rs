@@ -1547,6 +1547,43 @@ impl StdHost {
         })
     }
 
+    pub fn spoken_mask_artifact_authority_grant(
+        &self,
+        grant_id: &str,
+    ) -> Result<conduit_core::AuthorityGrant, String> {
+        let artifact = self
+            .wav_artifact
+            .as_ref()
+            .ok_or_else(|| "std Host has no selected WAV artifact destination".to_string())?;
+        if artifact.boot_id != self.advertisement.boot_id
+            || artifact.offer_generation != self.advertisement.offer_generation
+        {
+            return Err("selected spoken artifact destination is stale for this host".into());
+        }
+        let capability = self
+            .advertisement
+            .capabilities
+            .iter()
+            .find(|offer| {
+                offer.implementation.implementation_id.as_str()
+                    == conduit_std_offers::SPOKEN_ARTIFACT_IMPLEMENTATION
+            })
+            .ok_or_else(|| "spoken artifact capability is not advertised".to_string())?;
+        let requirement = capability
+            .authority_requirements
+            .first()
+            .ok_or_else(|| "spoken artifact capability has no authority contract".to_string())?;
+        Ok(conduit_core::AuthorityGrant {
+            grant_id: conduit_core::AuthorityGrantId::from(grant_id),
+            contract_id: requirement.contract_id.clone(),
+            host_call_contract_id: requirement.host_call_contract_id.clone(),
+            subject_kind: requirement.subject_kind.clone(),
+            host_id: self.advertisement.host_id.clone(),
+            boot_id: self.advertisement.boot_id.clone(),
+            capability_id: capability.capability_id.clone(),
+        })
+    }
+
     /// Constructs the two independently typed grants for an exact selected
     /// MIDI output. Discovery and Host construction never imply these grants.
     pub fn midi_output_authority_grants(
