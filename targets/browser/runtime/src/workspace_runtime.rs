@@ -23,6 +23,7 @@ thread_local! {
     static ADMISSIONS: RefCell<Option<AdmissionManager>> = const { RefCell::new(None) };
     static HOST_OFFERS: RefCell<CurrentHostOffers> = RefCell::new(CurrentHostOffers::new());
     static BROWSER_MASK: RefCell<Option<crate::workspace_mask::BrowserMaskRuntime>> = const { RefCell::new(None) };
+    static MASK_JOURNEY_INITIAL: RefCell<Option<crate::workspace_mask::BrowserMaskObservation>> = const { RefCell::new(None) };
 }
 
 #[derive(Deserialize)]
@@ -131,6 +132,8 @@ enum Request {
     },
     TutorialMaskObservation,
     TutorialMaskJourney,
+    BeginTutorialMaskJourney,
+    PrepareTutorialMaskReplacement,
     InvitationView {
         invitation_id: String,
         body_id: String,
@@ -622,10 +625,35 @@ fn dispatch(request: Request) -> Result<Vec<u8>, Refusal> {
                 return BROWSER_MASK.with(|slot| {
                     let slot = slot.borrow();
                     let runtime = slot.as_ref().ok_or("Browser Mask has not been prepared")?;
-                    let outcomes = runtime.actualize_journey()
+                    let initial = MASK_JOURNEY_INITIAL.with(|initial| initial.borrow().clone())
+                        .ok_or("Browser Mask journey has no retained initial realization")?;
+                    let outcomes = runtime.actualize_journey(&initial)
                         .map_err(|error| Refusal::new("TutorialMaskJourney", error))?;
                     encode(&outcomes)
                 });
+            }
+            Request::BeginTutorialMaskJourney => {
+                return BROWSER_MASK.with(|slot| {
+                    let slot = slot.borrow();
+                    let runtime = slot.as_ref().ok_or("Browser Mask has not been prepared")?;
+                    let observation = runtime.observation();
+                    if observation.mask_show.show.lifecycle != conduit_presentation::ManifestationLifecycle::Available
+                        || observation.interaction.is_none() {
+                        return Err(Refusal::new("TutorialMaskJourney", "initial browser Mask lacks DOM acknowledgement or interaction"));
+                    }
+                    MASK_JOURNEY_INITIAL.with(|initial| *initial.borrow_mut() = Some(observation));
+                    encode(&serde_json::json!({"status":"retained"}))
+                });
+            }
+            Request::PrepareTutorialMaskReplacement => {
+                let (runtime, effect) = BROWSER_MASK.with(|slot| {
+                    let slot = slot.borrow();
+                    let runtime = slot.as_ref().ok_or("Browser Mask has not been prepared")?;
+                    runtime.replacement(current.evidence().body_id.clone())
+                        .map_err(|error| Refusal::new("TutorialMaskReplacement", error))
+                })?;
+                BROWSER_MASK.with(|slot| *slot.borrow_mut() = Some(runtime));
+                return encode(&effect);
             }
             Request::InvitationView { invitation_id, body_id, body_name, expires_at_millis,
                 transfer_uri, revision, clipboard_available, share_available } => {

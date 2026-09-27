@@ -64,14 +64,11 @@ pub(super) fn planned_mask(
     profiles
         .insert_kind(definition.clone())
         .map_err(|error| format!("{error:?}"))?;
+    let (mask, authoring) = mask_form(MASK_SOURCE, "browser-graphical", &startup, &profiles)?;
     let syntax = parse_syntax_document(MASK_SOURCE);
     if !syntax.diagnostics.is_empty() {
         return Err(format!("{:?}", syntax.diagnostics));
     }
-    let checked = check_syntax_document(&syntax, &startup).map_err(|error| format!("{error:?}"))?;
-    let authoring = expand_canonical_form_for_authoring(&checked, "browser-graphical", &profiles)
-        .map_err(|error| format!("{error:?}"))?;
-    let mask = MaskForm::admit(&authoring).map_err(|error| format!("{error:?}"))?;
     let offer = BackOfferBuilder::new(
         definition,
         Back {
@@ -159,4 +156,112 @@ pub(super) fn planned_mask(
     let routes = AdmittedMaskFormRoutes::new(&plan, core::slice::from_ref(&mask), vec![route])
         .map_err(|error| format!("{error:?}"))?;
     Ok((mask, planned, routes))
+}
+
+pub(super) fn alternate_mask() -> Result<MaskForm, String> {
+    let definition = Kind {
+        startup_parameters: vec![],
+        shorthand: None,
+        kind_id: kind_id("presentation/browser-dom-mask"),
+        kind_contract_revision: KindIdentity::from("conduit.browser/presentation-dom-mask@1"),
+        inputs: vec![port(
+            "presentation",
+            PRESENTATION_VALUE_KIND,
+            PortDirection::Input,
+            PortTemporal::Value,
+        )],
+        outputs: vec![
+            port(
+                "interaction",
+                PRESENTATION_INTERACTION_VALUE_KIND,
+                PortDirection::Output,
+                PortTemporal::Flow { closes: true },
+            ),
+            port(
+                "show",
+                SHOW_VALUE_KIND,
+                PortDirection::Output,
+                PortTemporal::Value,
+            ),
+        ],
+        configuration: vec![],
+        semantic_laws: Default::default(),
+        limits: CapabilityLimits {
+            max_active_instances: 1,
+            max_queue_items: 4,
+            max_queue_bytes: MASK_BYTES,
+        },
+    };
+    let mut startup = StartupCatalog::new();
+    install_mask_form_value_aliases(&mut startup).map_err(|error| format!("{error:?}"))?;
+    startup
+        .insert(KindSignature {
+            kind: definition.kind_id.as_str().into(),
+            startup_parameters: vec![],
+        })
+        .map_err(|error| format!("{error:?}"))?;
+    let mut profiles = ProfileCatalog::new();
+    profiles
+        .insert_kind(definition)
+        .map_err(|error| format!("{error:?}"))?;
+    mask_form(
+        ALTERNATE_MASK_SOURCE,
+        "browser-graphical-alternate",
+        &startup,
+        &profiles,
+    )
+    .map(|value| value.0)
+}
+
+fn mask_form(
+    source: &str,
+    name: &str,
+    startup: &StartupCatalog,
+    profiles: &ProfileCatalog,
+) -> Result<(MaskForm, conduit_form::ExpandedAuthoringForm), String> {
+    let syntax = parse_syntax_document(source);
+    if !syntax.diagnostics.is_empty() {
+        return Err(format!("{:?}", syntax.diagnostics));
+    }
+    let checked = check_syntax_document(&syntax, startup).map_err(|error| format!("{error:?}"))?;
+    let authoring = expand_canonical_form_for_authoring(&checked, name, profiles)
+        .map_err(|error| format!("{error:?}"))?;
+    let mask = MaskForm::admit(&authoring).map_err(|error| format!("{error:?}"))?;
+    Ok((mask, authoring))
+}
+
+pub(super) fn admitted_routes(
+    plan: &conduit_core::Plan,
+    mask: &MaskForm,
+    alternate: &MaskForm,
+    initial_available: bool,
+    alternate_available: bool,
+) -> Result<AdmittedMaskFormRoutes, String> {
+    let placement_ids = plan
+        .fragments
+        .iter()
+        .flat_map(|fragment| &fragment.placements)
+        .map(|placement| placement.placement_id.clone())
+        .collect::<Vec<_>>();
+    AdmittedMaskFormRoutes::new(
+        plan,
+        &[mask.clone(), alternate.clone()],
+        vec![
+            SealedMaskFormRoute {
+                route_id: "route/browser-graphical".into(),
+                mask_form: mask.form_identity.clone(),
+                plan_id: plan.plan_id.clone(),
+                placement_ids: placement_ids.clone(),
+                currently_available: initial_available,
+            },
+            SealedMaskFormRoute {
+                route_id: "route/browser-graphical-fallback".into(),
+                mask_form: alternate.form_identity.clone(),
+                plan_id: plan.plan_id.clone(),
+                placement_ids,
+                currently_available: alternate_available,
+            },
+        ],
+    )
+    .map_err(|error| format!("admit browser Mask routes: {error:?}"))
 }

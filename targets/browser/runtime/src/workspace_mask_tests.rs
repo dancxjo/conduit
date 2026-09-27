@@ -163,7 +163,12 @@ fn show_becomes_available_only_after_exact_browser_acknowledgement() {
         assert!(kinds.contains(&required), "missing {required}: {kinds:?}");
     }
 
-    let journey = runtime.actualize_journey().unwrap();
+    let initial = runtime.observation();
+    let (mut replacement, replacement_effect) = runtime.replacement(body_id()).unwrap();
+    replacement
+        .acknowledge(&acknowledgement(&replacement_effect))
+        .unwrap();
+    let journey = replacement.actualize_journey(&initial).unwrap();
     assert_eq!(journey.len(), 10);
     assert_eq!(
         journey

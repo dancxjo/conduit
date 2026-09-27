@@ -1,10 +1,13 @@
 use super::*;
-use conduit_presentation::{actualize_mask_journey, MaskJourneyAction, MaskJourneyEmbodiment};
+use conduit_presentation::{
+    actualize_mask_journey, MaskJourneyAction, MaskJourneyEmbodiment, MaskPlanningDisposition,
+    MaskShowDisposition, SelectedMaskFormRoute,
+};
 
 #[derive(Debug, Clone, Serialize)]
 pub struct BrowserMaskJourneyOutcome {
     pub action_id: &'static str,
-    pub concrete_event: &'static str,
+    pub concrete_event: String,
     pub presentation_id: String,
     pub selected_mask_form_id: Option<String>,
     pub plan_id: conduit_core::PlanId,
@@ -14,160 +17,301 @@ pub struct BrowserMaskJourneyOutcome {
 }
 
 struct BrowserJourney<'a> {
-    runtime: &'a BrowserMaskRuntime,
-    replacement_plan_id: conduit_core::PlanId,
+    initial: &'a BrowserMaskObservation,
+    replacement: &'a BrowserMaskRuntime,
+    alternate: MaskForm,
+    initial_routes: AdmittedMaskFormRoutes,
+    unavailable_routes: AdmittedMaskFormRoutes,
+    replacement_routes: AdmittedMaskFormRoutes,
+    control: MaskWardrobeControl,
+    current_show: Option<String>,
 }
 
 impl BrowserJourney<'_> {
-    fn outcome(
+    fn retain(
         &self,
         action: MaskJourneyAction,
-        concrete_event: &'static str,
-        replacement: bool,
-        route: Option<&'static str>,
-        show: bool,
+        event: impl Into<String>,
+        receipt_ids: Vec<String>,
     ) -> BrowserMaskJourneyOutcome {
-        let plan_id = if replacement {
-            self.replacement_plan_id.clone()
-        } else {
-            self.runtime.planned.plan.plan_id.clone()
-        };
-        let selected_mask_form_id = route.map(|_| {
-            self.runtime
-                .planned
-                .mask
-                .form_identity
-                .checked_form_id
-                .as_str()
-                .to_string()
-        });
-        let mut receipt_ids = vec![format!(
-            "wardrobe-revision/{}",
-            self.runtime.wardrobe_action.resulting_wardrobe.revision
-        )];
-        if show {
-            receipt_ids.push(self.runtime.show.show.manifestation_id.as_str().into());
-            if let Some(sign) = self.runtime.show.show.signs.last() {
-                receipt_ids.push(sign.sign_id.as_str().into());
-            }
-            if let Some(interaction) = &self.runtime.interaction_receipt {
-                receipt_ids.push(interaction.correlation.interaction.identity.as_str().into());
-            }
-        }
         BrowserMaskJourneyOutcome {
             action_id: action.id(),
-            concrete_event,
-            presentation_id: self.runtime.presentation.identity.as_str().into(),
-            selected_mask_form_id,
-            plan_id,
-            selected_route_id: route.map(str::to_string),
-            show_id: show.then(|| self.runtime.show.show_id.as_str().into()),
+            concrete_event: event.into(),
+            presentation_id: self.initial.presentation.identity.as_str().into(),
+            selected_mask_form_id: self
+                .control
+                .selected
+                .as_ref()
+                .map(|v| v.mask_form.checked_form_id.as_str().into()),
+            plan_id: self.control.active_plan_id.clone(),
+            selected_route_id: self.control.selected.as_ref().map(|v| v.route_id.clone()),
+            show_id: self.current_show.clone(),
             receipt_ids,
         }
+    }
+    fn apply(
+        &mut self,
+        action: MaskWardrobeAction,
+        routes: &AdmittedMaskFormRoutes,
+    ) -> Result<MaskWardrobeControlEvidence, String> {
+        self.control
+            .apply(
+                self.control.scoped_wardrobe.wardrobe.revision,
+                action,
+                routes,
+            )
+            .map_err(|e| format!("browser Mask wardrobe action: {e:?}"))
     }
 }
 
 impl MaskJourneyEmbodiment for BrowserJourney<'_> {
     type Outcome = BrowserMaskJourneyOutcome;
     type Error = String;
-
-    fn perform(&mut self, action: MaskJourneyAction) -> Result<Self::Outcome, Self::Error> {
-        if self.runtime.show.show.lifecycle != ManifestationLifecycle::Available {
-            return Err("browser Mask journey requires exact DOM acknowledgement".into());
-        }
-        if self.runtime.interaction_receipt.is_none() {
-            return Err("browser Mask journey requires correlated local interaction".into());
-        }
+    fn perform(&mut self, action: MaskJourneyAction) -> Result<Self::Outcome, String> {
         Ok(match action {
-            MaskJourneyAction::InspectInitialShow => self.outcome(
-                action,
-                "dom-show-inspected",
-                false,
-                Some("route/browser-graphical"),
-                true,
-            ),
-            MaskJourneyAction::WearAlternateMask => self.outcome(
-                action,
-                "wardrobe-wear-admitted",
-                false,
-                Some("route/browser-graphical"),
-                true,
-            ),
-            MaskJourneyAction::PreferAlternateMask => self.outcome(
-                action,
-                "sealed-route-selected-without-plan-mutation",
-                false,
-                Some("route/browser-graphical-fallback"),
-                true,
-            ),
+            MaskJourneyAction::InspectInitialShow => {
+                let interaction = self
+                    .initial
+                    .interaction
+                    .as_ref()
+                    .ok_or("initial browser Mask lacks correlated interaction")?;
+                self.retain(
+                    action,
+                    "available DOM Show and interaction inspected",
+                    vec![
+                        self.initial.mask_show.show.manifestation_id.as_str().into(),
+                        interaction.correlation.interaction.identity.as_str().into(),
+                    ],
+                )
+            }
+            MaskJourneyAction::WearAlternateMask => {
+                let routes = self.initial_routes.clone();
+                let e = self.apply(
+                    MaskWardrobeAction::Wear(self.alternate.form_identity.clone()),
+                    &routes,
+                )?;
+                self.retain(
+                    action,
+                    format!(
+                        "wardrobe revision {} wore alternate Mask",
+                        e.resulting_wardrobe.revision
+                    ),
+                    vec![format!(
+                        "wardrobe-revision/{}",
+                        e.resulting_wardrobe.revision
+                    )],
+                )
+            }
+            MaskJourneyAction::PreferAlternateMask => {
+                let routes = self.initial_routes.clone();
+                let e = self.apply(
+                    MaskWardrobeAction::Prefer(vec![self.alternate.form_identity.clone()]),
+                    &routes,
+                )?;
+                self.control = MaskWardrobeControl::new(
+                    &e.body_id,
+                    self.control.scoped_wardrobe.clone(),
+                    self.control.active_plan_id.clone(),
+                    &self.initial_routes,
+                    None,
+                )
+                .map_err(|x| format!("select sealed fallback: {x:?}"))?;
+                if self.control.selected.as_ref().map(|v| v.route_id.as_str())
+                    != Some("route/browser-graphical-fallback")
+                {
+                    return Err("preference selected an unsealed route".into());
+                }
+                self.retain(
+                    action,
+                    "sealed fallback selected without Plan mutation",
+                    vec![format!(
+                        "wardrobe-revision/{}",
+                        e.resulting_wardrobe.revision
+                    )],
+                )
+            }
             MaskJourneyAction::WithdrawSelectedRoute => {
-                self.outcome(action, "selected-route-withdrawn", false, None, false)
+                self.control = MaskWardrobeControl::new(
+                    &self.initial.wardrobe_action.body_id,
+                    self.control.scoped_wardrobe.clone(),
+                    self.control.active_plan_id.clone(),
+                    &self.unavailable_routes,
+                    self.control.selected.clone(),
+                )
+                .map_err(|e| format!("withdraw route: {e:?}"))?;
+                if self.control.selected.is_some() {
+                    return Err("withdrawn route remained selected".into());
+                }
+                self.current_show = None;
+                self.retain(
+                    action,
+                    "selected sealed route became unavailable",
+                    vec!["route-observation/withdrawn".into()],
+                )
             }
             MaskJourneyAction::InspectUnavailableShow => {
-                self.outcome(action, "no-current-show-inspected", false, None, false)
+                let r = self
+                    .control
+                    .scoped_wardrobe
+                    .wardrobe
+                    .reconcile(
+                        &self.control.active_plan_id,
+                        self.unavailable_routes.routes(),
+                        None,
+                    )
+                    .map_err(|e| format!("inspect unavailable: {e:?}"))?;
+                if !matches!(r.show, MaskShowDisposition::NoCurrentShow { .. })
+                    || r.planning != MaskPlanningDisposition::ReplacementRequired
+                {
+                    return Err("unavailable route did not require replacement".into());
+                }
+                self.retain(
+                    action,
+                    "NoShow with replacement planning required",
+                    vec!["show/no-current".into()],
+                )
             }
-            MaskJourneyAction::AddPresentationHost => self.outcome(
+            MaskJourneyAction::AddPresentationHost => self.retain(
                 action,
-                "presentation-host-offer-observed",
-                false,
-                None,
-                false,
+                format!(
+                    "Host {} Boot {} offered replacement realization",
+                    self.replacement.play.host_id.as_str(),
+                    self.replacement.play.boot_id.as_str()
+                ),
+                vec![self.replacement.play.boot_id.as_str().into()],
             ),
             MaskJourneyAction::AdmitReplacementPlan => {
-                self.outcome(action, "replacement-plan-admitted", true, None, false)
+                let old = self.control.active_plan_id.clone();
+                self.control
+                    .admit_replacement_plan(&old, &self.replacement_routes)
+                    .map_err(|e| format!("admit replacement: {e:?}"))?;
+                if self.control.active_plan_id == old {
+                    return Err("replacement reused Plan".into());
+                }
+                self.current_show = None;
+                self.retain(
+                    action,
+                    "fresh replacement Plan admitted",
+                    vec![old.as_str().into()],
+                )
             }
-            MaskJourneyAction::InspectReplannedShow => self.outcome(
+            MaskJourneyAction::InspectReplannedShow => {
+                if self.replacement.show.show.lifecycle != ManifestationLifecycle::Available {
+                    return Err("replacement Show lacks DOM acknowledgement".into());
+                }
+                self.current_show = Some(self.replacement.show.show_id.as_str().into());
+                self.retain(
+                    action,
+                    "replacement DOM Show inspected",
+                    vec![self.replacement.show.show.manifestation_id.as_str().into()],
+                )
+            }
+            MaskJourneyAction::DoffAlternateMask => {
+                let routes = self.replacement_routes.clone();
+                let e = self.apply(
+                    MaskWardrobeAction::Doff(self.alternate.form_identity.clone()),
+                    &routes,
+                )?;
+                self.current_show = Some(self.replacement.show.show_id.as_str().into());
+                self.retain(
+                    action,
+                    "alternate Mask doffed; sealed initial route restored",
+                    vec![format!(
+                        "wardrobe-revision/{}",
+                        e.resulting_wardrobe.revision
+                    )],
+                )
+            }
+            MaskJourneyAction::InspectRestoredShow => self.retain(
                 action,
-                "replacement-dom-show-inspected",
-                true,
-                Some("route/browser-graphical-replacement"),
-                true,
-            ),
-            MaskJourneyAction::DoffAlternateMask => self.outcome(
-                action,
-                "wardrobe-doff-admitted",
-                true,
-                Some("route/browser-graphical-restored"),
-                true,
-            ),
-            MaskJourneyAction::InspectRestoredShow => self.outcome(
-                action,
-                "restored-dom-show-inspected",
-                true,
-                Some("route/browser-graphical-restored"),
-                true,
+                "restored acknowledged DOM Show inspected",
+                vec![self.replacement.show.show.manifestation_id.as_str().into()],
             ),
         })
     }
 }
 
 pub(super) fn actualize(
-    runtime: &BrowserMaskRuntime,
+    initial: &BrowserMaskObservation,
+    replacement: &BrowserMaskRuntime,
 ) -> Result<Vec<BrowserMaskJourneyOutcome>, String> {
-    let replacement_plan_id = plan::planned_mask(
-        runtime.play.host_id.clone(),
-        BootId::from(format!("{}/replacement", runtime.play.boot_id.as_str())),
-    )?
-    .1
-    .plan
-    .plan_id;
-    if replacement_plan_id == runtime.planned.plan.plan_id {
-        return Err("replacement planning reused the immutable browser Mask Plan".into());
+    if initial.presentation.identity != replacement.presentation.identity
+        || initial.presentation.revision != replacement.presentation.revision
+    {
+        return Err("replacement changed Presentation truth".into());
     }
+    if initial.planned_mask.plan.plan_id == replacement.planned.plan.plan_id {
+        return Err("replacement reused Plan".into());
+    }
+    let initial_mask = initial.planned_mask.mask.clone();
+    let mut alternate = plan::alternate_mask()?;
+    // Both ordinary Forms use the same admitted DOM Mask gear contract. The
+    // active Plan seals that shared placement once, while retaining each
+    // Form's distinct source/checked/expanded identity as wardrobe truth.
+    alternate.presentation_input = initial_mask.presentation_input.clone();
+    alternate.interaction_output = initial_mask.interaction_output.clone();
+    alternate.show_output = initial_mask.show_output.clone();
+    let initial_routes = plan::admitted_routes(
+        &initial.planned_mask.plan,
+        &initial_mask,
+        &alternate,
+        true,
+        true,
+    )?;
+    let unavailable_routes = plan::admitted_routes(
+        &initial.planned_mask.plan,
+        &initial_mask,
+        &alternate,
+        false,
+        false,
+    )?;
+    let replacement_routes = plan::admitted_routes(
+        &replacement.planned.plan,
+        &initial_mask,
+        &alternate,
+        true,
+        true,
+    )?;
+    let wardrobe = MaskWardrobe::new(
+        MaskWardrobeLifetime::Body,
+        vec![initial_mask.form_identity.clone()],
+        vec![],
+    )
+    .map_err(|e| format!("initial wardrobe: {e:?}"))?;
+    let scoped = BodyMaskWardrobe::new(initial.wardrobe_action.body_id.clone(), None, wardrobe)
+        .map_err(|e| format!("scope wardrobe: {e:?}"))?;
+    let selected = SelectedMaskFormRoute {
+        route_id: "route/browser-graphical".into(),
+        mask_form: initial_mask.form_identity.clone(),
+        plan_id: initial.planned_mask.plan.plan_id.clone(),
+    };
+    let control = MaskWardrobeControl::new(
+        &initial.wardrobe_action.body_id,
+        scoped,
+        initial.planned_mask.plan.plan_id.clone(),
+        &initial_routes,
+        Some(selected),
+    )
+    .map_err(|e| format!("start control: {e:?}"))?;
     let mut embodiment = BrowserJourney {
-        runtime,
-        replacement_plan_id,
+        initial,
+        replacement,
+        alternate,
+        initial_routes,
+        unavailable_routes,
+        replacement_routes,
+        control,
+        current_show: Some(initial.mask_show.show_id.as_str().into()),
     };
     let mut outcomes = Vec::with_capacity(10);
-    actualize_mask_journey(&mut embodiment, |_action, outcome| {
-        outcomes.push(outcome.clone())
-    })
-    .map_err(|error| {
-        format!(
-            "browser Mask journey failed at {}: {}",
-            error.action.id(),
-            error.source
-        )
-    })?;
+    actualize_mask_journey(&mut embodiment, |_, outcome| outcomes.push(outcome.clone())).map_err(
+        |e| {
+            format!(
+                "browser Mask journey failed at {}: {}",
+                e.action.id(),
+                e.source
+            )
+        },
+    )?;
     Ok(outcomes)
 }

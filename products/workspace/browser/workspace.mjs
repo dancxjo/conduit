@@ -416,7 +416,23 @@ export async function startApplication(application) {
       onClose() { library.hide(); render(); root.querySelector('[data-open-library]')?.focus(); },
     });
     globalThis.__conduitWorkspace = Object.freeze({ host, presentationFor: application.presentationFor, current: session.current, evidence: session.evidence,
-      maskObservation: session.tutorialMaskObservation, maskJourney: session.tutorialMaskJourney,
+      maskObservation: session.tutorialMaskObservation,
+      maskJourney() {
+        session.beginTutorialMaskJourney();
+        const mask = session.prepareTutorialMaskReplacement();
+        tutorial.dataset.maskShowId = mask.show_id;
+        tutorial.dataset.maskManifestationId = mask.manifestation_id;
+        tutorial.dataset.maskPlanId = mask.mask_plan_id;
+        tutorial.dataset.maskPlayId = mask.mask_play.active_play_id;
+        tutorial.dataset.maskPlacementId = mask.placement_id;
+        tutorial.dataset.presentationId = mask.presentation_id;
+        tutorial.dataset.presentationRevision = String(mask.presentation_revision);
+        session.acknowledgeTutorialMask({ show_id: mask.show_id, manifestation_id: mask.manifestation_id,
+          mask_plan_id: mask.mask_plan_id, active_play_id: mask.mask_play.active_play_id,
+          placement_id: mask.placement_id, presentation_id: mask.presentation_id,
+          presentation_revision: mask.presentation_revision });
+        return session.tutorialMaskJourney();
+      },
       state: () => structuredClone(playback), settled: () => saving.then(session.settled) });
     membership = openWorkspaceMembership({ root, session, host, hostCalls, invitation, presentationFor: application.presentationFor,
       invitationLabel: () => catalog.forms.find(form => form.checked_form_id === selected)?.name === 'firefly-choir'
