@@ -5,9 +5,9 @@ use conduit_body::{
 use conduit_core::{CheckedFormId, SignId, SourceDocumentId};
 use conduit_presentation::{
     orifina_completion_presenter_policy, project_orifina_purpose_presentation, Face, FaceContext,
-    FaceFocus, GeneratedContentRole, GeneratedContentSegment, GeneratedManifestation,
-    GeneratedManifestationDisposition, GenerativeNarratorRole, GenerativePresenterBounds,
-    GenerativePresenterPolicy, GenerativePresenterRequest,
+    FaceFocus, GeneratedContentRole, GeneratedContentSegment, GeneratedManifestationCandidate,
+    GeneratedManifestationDisposition, GeneratedSemanticCorrelation, GenerativeNarratorRole,
+    GenerativePresenterBounds, GenerativePresenterPolicy, GenerativePresenterRequest,
 };
 
 fn body_id() -> BodyId {
@@ -95,9 +95,9 @@ fn manifestation(
     identity: &str,
     provider: &str,
     prose: &str,
-) -> GeneratedManifestation {
-    GeneratedManifestation {
-        manifestation_identity: identity.into(),
+) -> GeneratedManifestationCandidate {
+    let mut candidate = GeneratedManifestationCandidate {
+        candidate_identity: String::new(),
         request_identity: request.request_identity.clone(),
         source_presentation_identity: request.semantic_data.source_presentation_identity.clone(),
         source_presentation_revision: request.semantic_data.source_presentation_revision,
@@ -105,6 +105,7 @@ fn manifestation(
         provider_identity: provider.into(),
         model_identity: "model/fixture@1".into(),
         template_contract_revision: request.policy.template_contract_revision.clone(),
+        mask_contract_revision: "mask/orifina@1".into(),
         generation_run_identity: format!("run/{identity}"),
         disposition: GeneratedManifestationDisposition::Produced,
         content: vec![GeneratedContentSegment {
@@ -112,7 +113,15 @@ fn manifestation(
             bytes: prose.as_bytes().to_vec(),
         }],
         affordances: vec![],
-    }
+        correlations: vec![GeneratedSemanticCorrelation::Subject {
+            index: 0,
+            identity: request.semantic_data.presentation.subjects[0]
+                .identity
+                .clone(),
+        }],
+    };
+    candidate.candidate_identity = candidate.digest();
+    candidate
 }
 
 #[test]
@@ -188,6 +197,7 @@ fn policy_experiment_changes_only_manifestation_not_authoritative_state() {
         role: GeneratedContentRole::PresentedThought,
         bytes: b"I won't call this complete until the repair is verified.".to_vec(),
     });
+    intended_output.candidate_identity = intended_output.digest();
     let outputs = [
         intended_output,
         manifestation(

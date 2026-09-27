@@ -72,9 +72,9 @@ impl ArtifactAcknowledgedSpokenShow {
         if self.artifact.pcm_bytes == 0 || self.artifact.frames == 0 || self.artifact.blocks == 0 {
             return Err(SpokenMaskShowError::EmptyArtifact);
         }
-        if self.generated_manifestation_identity != generated.manifestation_identity
-            || generated.source_presentation_identity != presentation.identity.as_str()
-            || generated.source_presentation_revision != presentation.revision
+        if self.generated_manifestation_identity != generated.manifestation_identity()
+            || generated.source_presentation_identity() != presentation.identity.as_str()
+            || generated.source_presentation_revision() != presentation.revision
         {
             return Err(SpokenMaskShowError::StaleGeneration);
         }
