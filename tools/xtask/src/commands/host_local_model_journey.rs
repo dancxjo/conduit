@@ -1,4 +1,4 @@
-use std::{path::Path, process::Command};
+use std::{collections::BTreeMap, path::Path, process::Command};
 
 use conduit_body::{BodyLifecycleEvent, WakeLifecycleEvent};
 
@@ -57,7 +57,7 @@ pub(super) fn write(
         .iter()
         .find(|candidate| candidate.request_identity == journey.requests[0].request_identity)
         .ok_or("Orifina live proof lacks its Presenter manifestation")?;
-    let facts = [
+    let facts = vec![
         serde_json::json!({"initial_body": null, "host_id": journey.receipt.host_ids[0], "boot_id": journey.receipt.boot_ids[0]}),
         serde_json::json!({"provider": manifestation.manifestation.provider_identity, "model": manifestation.manifestation.model_identity}),
         serde_json::json!({"body_id": journey.receipt.body_id, "born_sign_id": born}),
@@ -111,23 +111,27 @@ pub(super) fn write(
                 presentation: manifestation.source_presentation_identity.clone(),
                 manifestation: manifestation.manifestation.manifestation_identity.clone(),
                 line: None,
-                signs: [
-                    None,
-                    None,
-                    Some(born),
-                    Some(wake),
-                    Some(repaired.clone()),
-                    None,
-                    Some(workload),
-                    Some("sign/orifina-companion/joined".into()),
-                    Some(failed),
-                    Some(repaired.clone()),
-                    Some(repaired),
-                    Some(lulled),
-                    Some(fulfilled),
-                ],
+                signs: BTreeMap::from([
+                    ("body.born", born),
+                    ("body.awake", wake),
+                    ("form.used", repaired.clone()),
+                    ("workload.revised", workload),
+                    ("host.added", "sign/orifina-companion/joined".into()),
+                    ("fault.observed", failed),
+                    ("body.repaired", repaired.clone()),
+                    ("body.long-running", repaired),
+                    ("body.lulled", lulled),
+                    ("body.fulfilled", fulfilled),
+                ]),
             },
             facts,
+            action_events: BTreeMap::from([
+                ("journey.bootstrap", "The std Host began Orifina's bounded bootstrap before any Body identity existed.".into()),
+                ("journey.birth", "The accepted birth and wake receipts created and activated Orifina's independent Body.".into()),
+                ("journey.useful-work", "The admitted model Form handled a later Presenter request through the retained Plan and Play.".into()),
+                ("journey.break-recover", "A retained model-provider failure was followed by a new admitted repair receipt.".into()),
+                ("journey.rest-finish", "Explicit lull and fulfillment signs ended Orifina's wake and biography in order.".into()),
+            ]),
         },
         Path::new("target/journeys/three-bodies/hosted-generative"),
     )

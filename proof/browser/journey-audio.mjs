@@ -18,7 +18,7 @@ const file = async relative => {
   return path;
 };
 const track = JSON.parse(await bounded(trackPath));
-if (track.track_id !== "hosted-generative" || track.steps.length !== 13) throw new Error("expected bounded generative track");
+if (track.track_id !== "hosted-generative" || !Array.isArray(track.receipts) || track.receipts.length > 32) throw new Error("expected bounded generative track");
 const run = (command, args, input) => execFileSync(command, args, { input, timeout: 60_000, maxBuffer: 2 * 1024 * 1024 });
 const tool = {
   schema: "conduit.evidence/documentary-voicing@1",
@@ -29,7 +29,7 @@ const tool = {
   ffmpeg_version: run("ffmpeg", ["-version"]).toString().split("\n")[0],
 };
 const cache = new Map();
-for (const step of track.steps) {
+for (const step of track.receipts) {
   const transcript = step.evidence.find(item => item.evidence_class === "transcript");
   if (!transcript) continue;
   if (!/^[a-z.-]+$/.test(step.step_id)) throw new Error("invalid step id");

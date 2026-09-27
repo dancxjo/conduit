@@ -44,36 +44,39 @@ pub(super) fn render(index: &ThreeBodyJourneyIndex) -> String {
                 html.push_str(
                     "<p class=\"proof-mode\">Recorded live Gemma · voiced with Piper</p>",
                 );
-                render_media(&mut html, body, &recording.observed, "live-conformance");
-                render_evidence(
+                render_receipts(
                     &mut html,
                     body,
-                    &recording.observed,
+                    &recording.receipts,
                     "live-conformance",
                     &recording.git_commit,
                     &recording.presenter_id,
                 );
                 html.push_str("<details><summary>Current release contract check</summary>");
-                render_evidence(
+                render_receipts(
                     &mut html,
                     body,
-                    observed,
+                    &body.receipts,
                     &body.track_id,
                     &index.git_commit,
                     &body.presenter_id,
                 );
                 html.push_str("</details>");
             } else {
-                render_media(&mut html, body, observed, &body.track_id);
-                render_evidence(
+                render_receipts(
                     &mut html,
                     body,
-                    observed,
+                    &body.receipts,
                     &body.track_id,
                     &index.git_commit,
                     &body.presenter_id,
                 );
             }
+            let _ = write!(
+                html,
+                "<p class=\"concrete-event\">{}</p>",
+                escape(&observed.concrete_event)
+            );
             html.push_str("<details><summary>What this does—and does not—prove</summary><ul>");
             for claim in &contract.non_claims {
                 let _ = write!(html, "<li>{}</li>", escape(claim));
@@ -95,6 +98,20 @@ fn label(body: &JourneyBodyCell) -> &'static str {
         "native-graphical" => "ConduitOS",
         "browser-graphical" => "Browser",
         _ => "Conversational",
+    }
+}
+
+fn render_receipts(
+    html: &mut String,
+    body: &JourneyBodyCell,
+    receipts: &[TrackStep],
+    root: &str,
+    git_commit: &str,
+    presenter_id: &str,
+) {
+    for receipt in receipts {
+        render_media(html, body, receipt, root);
+        render_evidence(html, body, receipt, root, git_commit, presenter_id);
     }
 }
 

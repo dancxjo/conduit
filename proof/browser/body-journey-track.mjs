@@ -80,7 +80,7 @@ export async function writeBrowserBodyJourneyTrack(source, screenshotPath, outpu
     required(source.checkpoints.joined.evidence.membership.events.at(-1)?.sign_id, "join sign"),
     fault, repaired, repaired, lull, fulfilled];
   await mkdir(join(output, "artifacts"), { recursive: true });
-  const steps = [];
+  const receipts = [];
   for (let index = 0; index < STEPS.length; index += 1) {
     const [stepId, assertion, rung] = STEPS[index];
     const relative = `artifacts/${String(index + 1).padStart(2, "0")}-${stepId}.json`;
@@ -89,7 +89,7 @@ export async function writeBrowserBodyJourneyTrack(source, screenshotPath, outpu
       source_facts: facts[index] }, null, 2)}\n`);
     await writeFile(join(output, relative), bytes, { flag: "wx" });
     const hostAdded = stepId === "host.added";
-    steps.push({ step_id: stepId, assertion, disposition: "established", provenance: {
+    receipts.push({ step_id: stepId, assertion, disposition: "established", provenance: {
       body_id: index >= 2 ? ids.body : null, host_id: index < 3 ? ids.host : hostAdded ? ids.peerHost : null,
       boot_id: index < 3 ? ids.boot : hostAdded ? ids.peerBoot : null,
       plan_id: ["form.used", "workload.revised", "host.added", "body.repaired"].includes(stepId) ? ids.plan : null,
@@ -101,7 +101,7 @@ export async function writeBrowserBodyJourneyTrack(source, screenshotPath, outpu
       path: relative, sha256: digest(bytes) }] });
   }
   for (const [stepId, capture] of Object.entries(captures)) {
-    const step = steps.find(candidate => candidate.step_id === stepId);
+    const step = receipts.find(candidate => candidate.step_id === stepId);
     if (!step) throw new Error(`unknown captured journey step: ${stepId}`);
     const bytes = await readFile(capture.path);
     if (!bytes.subarray(0, 8).equals(Buffer.from([137, 80, 78, 71, 13, 10, 26, 10]))) {
@@ -125,16 +125,22 @@ export async function writeBrowserBodyJourneyTrack(source, screenshotPath, outpu
     const bytes = await readFile(videoPath);
     const relative = "artifacts/browser-body-session.webm";
     await writeFile(join(output, relative), bytes, { flag: "wx" });
-    steps.at(-1).evidence.push({ artifact_id: "browser-graphical/session-video",
+    receipts.at(-1).evidence.push({ artifact_id: "browser-graphical/session-video",
       evidence_class: "video", assertion_rung: "deterministic-observation",
       documentary_description: "Watch the complete uncut browser session, including birth, host admission, refusal, recovery and fulfillment.",
       path: relative, sha256: digest(bytes) });
   }
   await writeFile(join(output, "track.json"), `${JSON.stringify({
-    schema: "conduit.evidence/body-journey-track@2", journey_id: "orifina/tutorial@1", git_commit: commit,
+    schema: "conduit.evidence/body-journey-track@3", journey_id: "orifina/tutorial@1", git_commit: commit,
     track_id: "browser-graphical", embodiment: "browser-wasm-body", body_id: ids.body,
     presenter_id: ids.maskForm, hosts: [
       { host_id: ids.host, boot_id: ids.boot }, { host_id: ids.peerHost, boot_id: ids.peerBoot },
-    ], line_ids: [], distributed_plan_ids: [], steps,
+    ], line_ids: [], distributed_plan_ids: [], receipts, actions: [
+      { action_id: "journey.bootstrap", concrete_event: "The browser Host started with no Body, then accepted the bounded bootstrap through the live DOM entrance.", receipt_ids: ["body.absent", "bootstrap.started"] },
+      { action_id: "journey.birth", concrete_event: "The browser birth action created this independent Body and admitted its first wake.", receipt_ids: ["body.born", "body.awake"] },
+      { action_id: "journey.useful-work", concrete_event: "A browser interaction exercised the standing Form through its retained Plan and Play.", receipt_ids: ["form.used"] },
+      { action_id: "journey.break-recover", concrete_event: "A refused browser wake remained a fault until a later admitted wake established repair.", receipt_ids: ["fault.observed", "body.repaired"] },
+      { action_id: "journey.rest-finish", concrete_event: "Explicit browser actions lulled the Body and then fulfilled its biography.", receipt_ids: ["body.lulled", "body.fulfilled"] },
+    ],
   }, null, 2)}\n`, { flag: "wx" });
 }
