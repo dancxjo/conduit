@@ -177,7 +177,10 @@ pub(crate) fn offers_for_expanded_pure_expressions(
 ) -> Result<Vec<CapabilityOffer>, String> {
     let mut offers = Vec::new();
     for gear in &expanded.gears {
-        if gear.kind_contract_revision.as_str() != conduit_form::PURE_EXPRESSION_REVISION {
+        if !matches!(
+            gear.kind_contract_revision.as_str(),
+            conduit_form::PURE_EXPRESSION_REVISION | conduit_form::PURE_FILTER_REVISION
+        ) {
             continue;
         }
         let program = super::pure_expression::program_from_configuration(&gear.configuration)?;
@@ -186,7 +189,11 @@ pub(crate) fn offers_for_expanded_pure_expressions(
             .first()
             .map(|port| port.temporal)
             .ok_or("expanded pure expression input is absent")?;
-        let offer = super::pure_expression::offer(&program, temporal)?;
+        let offer = if gear.kind_contract_revision.as_str() == conduit_form::PURE_FILTER_REVISION {
+            super::pure_expression::filter_offer(&program, temporal)?
+        } else {
+            super::pure_expression::offer(&program, temporal)?
+        };
         if !offers
             .iter()
             .any(|current: &CapabilityOffer| current.kind_id == offer.kind_id)

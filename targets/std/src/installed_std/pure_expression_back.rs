@@ -8,6 +8,11 @@ pub(super) static FACTORY: BackFactory = BackFactory {
     budget,
     prepare,
 };
+pub(super) static FILTER_FACTORY: BackFactory = BackFactory {
+    implementation_id: conduit_std_offers::PURE_FILTER_STD_IMPLEMENTATION,
+    budget,
+    prepare,
+};
 
 pub(super) use conduit_semantic_catalog::PureExpressionBack;
 
@@ -22,9 +27,11 @@ pub(super) fn prepare_hosts(
         .placements
         .iter()
         .map(|placement| {
-            if placement.implementation_id.as_str()
-                == conduit_std_offers::PURE_EXPRESSION_STD_IMPLEMENTATION
-            {
+            if matches!(
+                placement.implementation_id.as_str(),
+                conduit_std_offers::PURE_EXPRESSION_STD_IMPLEMENTATION
+                    | conduit_std_offers::PURE_FILTER_STD_IMPLEMENTATION
+            ) {
                 PureExpressionHost::from_placement(placement).map(Some)
             } else {
                 Ok(None)
@@ -48,6 +55,16 @@ impl PureExpressionHost {
         input: &[u8],
     ) -> Result<&[u8], conduit_form::PortableExpressionEvaluationRefusal> {
         self.evaluator.evaluate(input)
+    }
+
+    pub(super) fn execute_filter(
+        &mut self,
+        input: &[u8],
+    ) -> Result<bool, conduit_form::PortableExpressionEvaluationRefusal> {
+        let predicate = self.evaluator.evaluate(input)?;
+        Ok(conduit_core::InfoBool::decode(predicate)
+            .map_err(|_| conduit_form::PortableExpressionEvaluationRefusal::InvalidProgram)?
+            .get())
     }
 }
 
@@ -73,7 +90,12 @@ fn validate_placement(
         .first()
         .map(|port| port.temporal)
         .ok_or("pure expression input is absent")?;
-    let offer = conduit_std_offers::pure_expression_std_offer(program, temporal)
+    let offer =
+        if placement.kind_contract_revision.as_str() == conduit_form::PURE_FILTER_REVISION {
+            conduit_std_offers::pure_filter_std_offer(program, temporal)
+        } else {
+            conduit_std_offers::pure_expression_std_offer(program, temporal)
+        }
         .map_err(|error| format!("pure expression offer refusal: {error:?}"))?;
     if placement.kind_id != offer.kind_id
         || placement.kind_contract_revision != offer.kind_contract_revision
@@ -107,9 +129,17 @@ fn prepare(
     _values: &mut conduit_kernel::HostedValueStore,
 ) -> Result<InstalledBack, String> {
     budget(placement)?;
-    Ok(InstalledBack::PureExpression(PureExpressionBack::new(
-        MAXIMUM_STRUCTURED_CANONICAL_BYTES as u32,
-    )))
+    if placement.kind_contract_revision.as_str() == conduit_form::PURE_FILTER_REVISION {
+        Ok(InstalledBack::PureFilter(
+            conduit_semantic_catalog::StructuredSelectorBack::new(
+                MAXIMUM_STRUCTURED_CANONICAL_BYTES as u32,
+            ),
+        ))
+    } else {
+        Ok(InstalledBack::PureExpression(PureExpressionBack::new(
+            MAXIMUM_STRUCTURED_CANONICAL_BYTES as u32,
+        )))
+    }
 }
 
 pub(super) fn refusal_detail(refusal: &conduit_form::PortableExpressionEvaluationRefusal) -> u16 {

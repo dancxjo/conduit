@@ -185,15 +185,13 @@ fn expand_instance_inner(
                         ),
                     ));
                 }
-                CheckedCordStage::When { source_span, .. } => {
-                    return Err(CanonicalExpansionDiagnostic::new(
-                        "CND-FRM-046",
-                        format!(
-                            "when filter at {}:{} has not yet been lowered",
-                            source_span.line, source_span.column
-                        ),
-                    ));
-                }
+                CheckedCordStage::When {
+                    expression,
+                    source_span,
+                } => structured_selector::PendingStage::When {
+                    expression: expression.clone(),
+                    source_span: *source_span,
+                },
                 CheckedCordStage::PureExpression {
                     expression,
                     source_span,

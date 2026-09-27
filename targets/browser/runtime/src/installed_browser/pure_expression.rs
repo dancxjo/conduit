@@ -11,9 +11,17 @@ use conduit_kernel::{Failure, FailureCode, HostedValueStore};
 
 pub(crate) const IMPLEMENTATION: &str = "browser/kernel-pure-expression@1";
 pub(crate) const HOST_CALL: &str = "conduit.host/browser-pure-expression@1";
+pub(crate) const FILTER_IMPLEMENTATION: &str = "browser/kernel-pure-filter@1";
+pub(crate) const FILTER_HOST_CALL: &str = "conduit.host/browser-pure-filter@1";
 
 pub(super) static INSTALLATION: BrowserInstallation = BrowserInstallation {
     implementation_id: IMPLEMENTATION,
+    offer: unreachable_offer,
+    prepare,
+    perform: Some(unreachable_perform),
+};
+pub(super) static FILTER_INSTALLATION: BrowserInstallation = BrowserInstallation {
+    implementation_id: FILTER_IMPLEMENTATION,
     offer: unreachable_offer,
     prepare,
     perform: Some(unreachable_perform),
@@ -25,7 +33,10 @@ pub(crate) struct PreparedExpression {
 
 impl PreparedExpression {
     pub(crate) fn for_placement(placement: &PlannedGear) -> Result<Option<Self>, String> {
-        if placement.implementation_id.as_str() != IMPLEMENTATION {
+        if !matches!(
+            placement.implementation_id.as_str(),
+            IMPLEMENTATION | FILTER_IMPLEMENTATION
+        ) {
             return Ok(None);
         }
         let program = program_from_placement(placement)?;
@@ -38,6 +49,15 @@ impl PreparedExpression {
 
     pub(crate) fn execute(&mut self, input: &[u8]) -> Result<&[u8], Failure> {
         self.evaluator.evaluate(input).map_err(failure)
+    }
+
+    pub(crate) fn execute_filter(&mut self, input: &[u8]) -> Result<bool, Failure> {
+        conduit_core::InfoBool::decode(self.evaluator.evaluate(input).map_err(failure)?)
+            .map(conduit_core::InfoBool::get)
+            .map_err(|_| Failure {
+                code: FailureCode::InvalidInput,
+                detail: 7,
+            })
     }
 }
 
@@ -71,15 +91,50 @@ pub(crate) fn offer(
     .build())
 }
 
+pub(crate) fn filter_offer(
+    program: &conduit_form::PortableExpressionProgram,
+    temporal: PortTemporal,
+) -> Result<CapabilityOffer, String> {
+    let contract = conduit_semantic_catalog::pure_filter_contract(program, temporal)
+        .map_err(|error| format!("pure filter contract: {error:?}"))?;
+    let target = contract.kind_id.clone();
+    Ok(BackOfferBuilder::new(
+        contract,
+        Back {
+            capability_id: CapabilityId::from(format!("browser/{}", target.as_str())),
+            execution_profile_id: ExecutionProfileId::from("browser/pure-filter-kernel-hosted@1"),
+            implementation_id: ImplementationId::from(FILTER_IMPLEMENTATION),
+            artifact_id: ArtifactId::from("conduit-form/pure-filter@1"),
+            host_calls: vec![HostCallRequirement {
+                contract_id: HostCallContractId::from(FILTER_HOST_CALL),
+                target_kind: Some(target),
+                maximum_in_flight: 1,
+                maximum_input_bytes: MAXIMUM_STRUCTURED_CANONICAL_BYTES as u32,
+                maximum_output_bytes: MAXIMUM_STRUCTURED_CANONICAL_BYTES as u32,
+            }],
+            resource_requirements: Vec::new(),
+            authority_requirements: Vec::new(),
+        },
+    )
+    .build())
+}
+
 pub(crate) fn offer_for_placement(
     placement: &PlannedGear,
 ) -> Result<Option<CapabilityOffer>, String> {
-    if placement.implementation_id.as_str() != IMPLEMENTATION {
+    if !matches!(
+        placement.implementation_id.as_str(),
+        IMPLEMENTATION | FILTER_IMPLEMENTATION
+    ) {
         return Ok(None);
     }
     let program = program_from_placement(placement)?;
     validate(placement, &program)?;
-    let exact = offer(&program, placement.inputs[0].temporal)?;
+    let exact = if placement.kind_contract_revision.as_str() == conduit_form::PURE_FILTER_REVISION {
+        filter_offer(&program, placement.inputs[0].temporal)?
+    } else {
+        offer(&program, placement.inputs[0].temporal)?
+    };
     if placement.capability_id != exact.capability_id {
         return Err("planned pure expression capability differs from its exact contract".into());
     }
@@ -114,7 +169,11 @@ fn validate(
         .first()
         .map(|port| port.temporal)
         .ok_or("pure expression input is absent")?;
-    let exact = offer(program, temporal)?;
+    let exact = if placement.kind_contract_revision.as_str() == conduit_form::PURE_FILTER_REVISION {
+        filter_offer(program, temporal)?
+    } else {
+        offer(program, temporal)?
+    };
     if placement.kind_id != exact.kind_id
         || placement.kind_contract_revision != exact.kind_contract_revision
         || placement.execution_profile_id != exact.implementation.execution_profile_id
@@ -132,11 +191,19 @@ fn validate(
 fn prepare(placement: &PlannedGear, _: &mut HostedValueStore) -> Result<BrowserBack, String> {
     let program = program_from_placement(placement)?;
     validate(placement, &program)?;
-    Ok(BrowserBack::installed_step(
-        conduit_semantic_catalog::PureExpressionBack::new(
-            MAXIMUM_STRUCTURED_CANONICAL_BYTES as u32,
-        ),
-    ))
+    if placement.kind_contract_revision.as_str() == conduit_form::PURE_FILTER_REVISION {
+        Ok(BrowserBack::installed_step(
+            conduit_semantic_catalog::StructuredSelectorBack::new(
+                MAXIMUM_STRUCTURED_CANONICAL_BYTES as u32,
+            ),
+        ))
+    } else {
+        Ok(BrowserBack::installed_step(
+            conduit_semantic_catalog::PureExpressionBack::new(
+                MAXIMUM_STRUCTURED_CANONICAL_BYTES as u32,
+            ),
+        ))
+    }
 }
 
 fn failure(refusal: conduit_form::PortableExpressionEvaluationRefusal) -> Failure {

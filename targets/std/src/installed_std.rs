@@ -1353,6 +1353,56 @@ pub(super) fn run_fragment_retaining<W: Write, T: TimerAdapter>(
                     })?;
                 continue;
             }
+            if contract.as_str() == conduit_std_offers::PURE_FILTER_HOST_CALL {
+                let completion = pure_expression_hosts
+                    .get_mut(usize::from(request.node.0))
+                    .and_then(Option::as_mut)
+                    .ok_or_else(|| "pure filter request has no admitted host".to_string())?
+                    .execute_filter(input);
+                let (disposition, output, failure) = match completion {
+                    Ok(true) => {
+                        let encoded = input.to_vec();
+                        let value = scheduler.store_host_value(&encoded).map_err(|error| {
+                            format!("store bounded pure filter output: {error:?}")
+                        })?;
+                        (
+                            HostCallDisposition::Completed,
+                            Some(
+                                BoundedValueRef::new(
+                                    value,
+                                    lowered_operation.binding.maximum_output_bytes,
+                                )
+                                .map_err(|error| format!("bound pure filter output: {error:?}"))?,
+                            ),
+                            None,
+                        )
+                    }
+                    Ok(false) => (HostCallDisposition::Completed, None, None),
+                    Err(refusal) => (
+                        HostCallDisposition::Failed,
+                        None,
+                        Some(conduit_kernel::Failure {
+                            code: conduit_kernel::FailureCode::HostCallFailed,
+                            detail: pure_expression_back::refusal_detail(&refusal),
+                        }),
+                    ),
+                };
+                record_request(&mut requests, request);
+                scheduler
+                    .complete_host_call(
+                        request.node,
+                        request.request,
+                        HostCallOutcome {
+                            disposition,
+                            output,
+                            failure,
+                        },
+                    )
+                    .map_err(|error| {
+                        format!("complete bounded pure filter operation: {error:?}")
+                    })?;
+                continue;
+            }
             if contract.as_str() == conduit_std_offers::TEXT_STATE_HOST_CALL {
                 let completion = text_state_hosts
                     .get_mut(usize::from(request.node.0))

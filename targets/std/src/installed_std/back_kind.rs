@@ -182,6 +182,7 @@ pub(super) enum InstalledBack {
     RecordDeliveryStatus(RecordDeliveryStatusBack),
     RecordTranscript(RecordTranscriptBack),
     StructuredSelector(StructuredSelectorBack),
+    PureFilter(StructuredSelectorBack),
     PureExpression(PureExpressionBack),
     StructuredLiteral(StructuredLiteralBack),
     StructuredPresentation(StructuredPresentationBack),
