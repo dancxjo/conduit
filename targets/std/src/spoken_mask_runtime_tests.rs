@@ -10,8 +10,9 @@ use conduit_ai::{
     LocalModelIdentity, LocalModelLifecycleState, LocalModelLimits, LocalModelOffer,
 };
 use conduit_core::{
-    BaseImplementationId, BootId, ComputeServiceGuarantee, ConnectionTrack, HostId,
-    OfferGeneration, PlannedGear, PoolRealizationHealth, PortDirection, SignId,
+    BaseImplementationId, BootId, CheckedFormId, ComputeServiceGuarantee, ConnectionTrack,
+    ExpandedFormId, HostId, OfferGeneration, PlanId, PlannedGear, PoolRealizationHealth,
+    PortDirection, SignId, SourceDocumentId,
 };
 use conduit_form::{
     check_syntax_document, expand_canonical_form_for_authoring, parse_syntax_document,
@@ -166,31 +167,7 @@ fn registered_spoken_mask_executes_to_an_artifact_acknowledged_show() {
     conduit_ai::install_llm_semantic_catalog(&mut startup, &mut profiles).unwrap();
     conduit_tongues::install_speech_synthesis_catalog(&mut startup, &mut profiles).unwrap();
     conduit_semantic_catalog::install_sound_catalogs(&mut startup, &mut profiles).unwrap();
-    let source = r#"form spoken-generative (
- >> presentation: Presentation
- interaction: FaceInteraction...| >>
- show: Show >>
-) {
- request: presentation/adapt-generative-request
- language: llm/present
- speech: presentation/generated-manifestation-speech
- voice: speech/synthesize(maximum-output-bytes = 32768)
- convert: audio/convert-pcm-profile(output-sample-rate-hz = 48000, output-channel-layout = "stereo-left-right")
- artifact: presentation/spoken-artifact
- shown: presentation/artifact-acknowledged-show
- no-input: presentation/no-interaction
- presentation >> request.presentation
- request.request >> language.request
- language.result >> speech.manifestation
- language.result >> shown.manifestation
- speech.speech >> voice.text
- voice.audio >> convert.audio
- convert.converted >> artifact.audio
- artifact.receipt >> shown.artifact
- shown.show >> show
- no-input.interaction >> interaction
-}
-"#;
+    let source = include_str!("../../../forms/spoken-generative-mask/main.conduit");
     let checked = check_syntax_document(&parse_syntax_document(source), &startup).unwrap();
     let authoring =
         expand_canonical_form_for_authoring(&checked, "spoken-generative", &profiles).unwrap();
@@ -247,15 +224,24 @@ fn registered_spoken_mask_executes_to_an_artifact_acknowledged_show() {
     .unwrap();
     let planned = PlannedMaskForm::admit(&mask, &plan).unwrap();
 
+    let application_source = SourceDocumentId::from("application/face-source");
+    let application_checked = CheckedFormId::from("application/face-checked");
+    let body = conduit_body::Body::born(
+        application_source.clone(),
+        application_checked.clone(),
+        1,
+        SignId::from("sign/body-born"),
+    )
+    .unwrap();
     let presentation = Presentation::new_with_semantics(
         1,
         PresentationBasis {
-            body_id: None,
+            body_id: Some(body.body_id),
             wake_id: None,
-            source_document_id: None,
-            checked_form_id: None,
-            expanded_form_id: None,
-            plan_id: None,
+            source_document_id: Some(application_source),
+            checked_form_id: Some(application_checked),
+            expanded_form_id: Some(ExpandedFormId::from("application/face-expanded")),
+            plan_id: Some(PlanId::from("application/face-plan")),
             active_play_id: None,
             sign_ids: vec![],
         },

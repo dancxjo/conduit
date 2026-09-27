@@ -704,4 +704,39 @@ mod tests {
         assert!(control.evidence.is_none());
         assert!(control.shows.is_empty());
     }
+
+    #[test]
+    fn spoken_presenter_is_the_exact_ordinary_mask_form_and_keeps_its_branched_plan() {
+        let host = HostId::from("conduitos/test-host");
+        let boot = conduit_core::BootId::from("conduitos/test-boot");
+        let mut control = PresenterControl::graphical(host, boot).unwrap();
+        control.request(PatchbayPresenterMode::Speech).unwrap();
+        let stage = control.speech.as_ref().unwrap();
+
+        assert!(control.graphical.is_none());
+        assert_eq!(stage.planned_mask.mask.form_name, "spoken");
+        assert_eq!(
+            stage.planned_mask.plan.source_document_id,
+            stage.planned_mask.mask.form_identity.source_document_id
+        );
+        assert_eq!(
+            stage.planned_mask.plan.checked_form_id,
+            stage.planned_mask.mask.form_identity.checked_form_id
+        );
+        assert_eq!(
+            stage.planned_mask.plan.expanded_form_id,
+            stage.planned_mask.mask.form_identity.expanded_form_id
+        );
+        assert_eq!(
+            stage
+                .planned_mask
+                .plan
+                .fragments
+                .iter()
+                .map(|fragment| fragment.connections.len())
+                .sum::<usize>(),
+            3,
+            "the planned spoken Mask retains both Presentation branches and its Show correlation"
+        );
+    }
 }

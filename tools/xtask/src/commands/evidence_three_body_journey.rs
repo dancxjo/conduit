@@ -355,7 +355,7 @@ pub(super) fn stage(
         .find(end_marker)
         .map(|offset| start + offset + end_marker.len())
         .ok_or("journeys gallery entrance lacks its flagship end marker")?;
-    html.replace_range(start..end, &insertion);
+    html.replace_range(start..end, insertion);
     let history_marker = format!("<li><code>{expected_git_commit}</code>");
     let history_position = html
         .find(&history_marker)

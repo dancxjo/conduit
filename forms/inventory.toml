@@ -1,5 +1,5 @@
 schema = "conduit.reviewed-form-inventory/v1"
-maximum_forms = 113
+maximum_forms = 116
 maximum_combined_workloads = 4
 
 # Membership is explicit: repository path discovery validates this list but never creates it.
@@ -247,6 +247,12 @@ title = "Money Quote"
 entry = "money-quote"
 deterministic = { package = "conduit-std-host", test = "finance_forms", case = "deterministic_fixture_keeps_quote_age_transaction_variants_and_types_visible" }
 [[forms]]
+slug = "native-graphical-mask"
+title = "Native Graphical Mask"
+entry = "native-graphical"
+deterministic = { package = "conduitos", test = "lib", case = "presenter_control::tests::native_presenter_is_the_exact_ordinary_mask_form_and_keeps_its_branched_plan", plan_play_evidence = true }
+browser_safe_not_applicable = "the ordinary Mask is realized by the ConduitOS graphical Host, not a browser Host"
+[[forms]]
 slug = "morse-network"
 title = "Morse Network"
 entry = "morse_network"
@@ -404,6 +410,18 @@ title = "Socket Client"
 entry = "echo-client-demo"
 reusable_entries = [{ entry = "echo-client", title = "Echo Client", composition = { parent = "echo-client-demo", occurrences = ["client"] } }]
 deterministic = { package = "conduit-net", test = "external_websocket", case = "canonical_duplex_source_checks_and_expands_to_the_external_client_leaf" }
+[[forms]]
+slug = "spoken-generative-mask"
+title = "Generative Spoken Mask"
+entry = "spoken-generative"
+deterministic = { package = "conduit-std-host", test = "lib", case = "spoken_mask_runtime_tests::registered_spoken_mask_executes_to_an_artifact_acknowledged_show", plan_play_evidence = true }
+browser_safe_not_applicable = "the reviewed path requires admitted language, speech, audio conversion, and artifact authority on a hosted speech-capable Host"
+[[forms]]
+slug = "spoken-mask"
+title = "Spoken Mask"
+entry = "spoken"
+deterministic = { package = "conduitos", test = "lib", case = "presenter_control::tests::spoken_presenter_is_the_exact_ordinary_mask_form_and_keeps_its_branched_plan", plan_play_evidence = true }
+browser_safe_not_applicable = "the ordinary Mask is realized by the ConduitOS speech Host, not a browser Host"
 [[forms]]
 slug = "tabular-query"
 title = "Tabular Query"
