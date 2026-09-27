@@ -102,6 +102,8 @@ pub enum PlannerError {
     LineOfferAmbiguous(String),
     UnavailableBaseImplementationId(String),
     InvalidConnectionBudget(String),
+    InvalidResourcePort(String),
+    UnsupportedResourcePortTransfer(String),
     QueueRequirementAboveHostLimit(String),
     CapabilityInstanceLimitExceeded(String),
     CyclicStartupDependencies(String),
@@ -196,6 +198,10 @@ impl core::fmt::Display for PlannerError {
             }
             Self::InvalidConnectionBudget(value) => {
                 write!(f, "invalid connection budget: {value}")
+            }
+            Self::InvalidResourcePort(value) => write!(f, "invalid resource port: {value}"),
+            Self::UnsupportedResourcePortTransfer(value) => {
+                write!(f, "unsupported resource port transfer: {value}")
             }
             Self::QueueRequirementAboveHostLimit(value) => {
                 write!(f, "queue requirement above host limit: {value}")

@@ -89,6 +89,7 @@ mod recursive_recovery;
 mod replanning;
 mod requirements;
 mod resource_binding;
+mod resource_port;
 mod selected_plan_sealing;
 mod startup;
 pub mod state_delay;
@@ -603,6 +604,23 @@ pub(crate) fn plan_validated_form_with_connection_limits(
             .iter()
             .find(|item| &item.placement_id == sink_placement)
             .expect("sink placement must exist");
+        let source_gear = form
+            .gears
+            .iter()
+            .find(|gear| gear.gear_id == connection.source_gear_id)
+            .expect("checked source gear must exist");
+        let sink_gear = form
+            .gears
+            .iter()
+            .find(|gear| gear.gear_id == connection.sink_gear_id)
+            .expect("checked sink gear must exist");
+        let resource = resource_port::plan_resource_connection(
+            connection,
+            source_gear,
+            sink_gear,
+            source_plan,
+            sink_plan,
+        )?;
         let (selected_line, admitted_lines) = select_line(LineSelection {
             source: source_plan,
             sink: sink_plan,
@@ -661,6 +679,7 @@ pub(crate) fn plan_validated_form_with_connection_limits(
             sink_placement_id: sink_plan.placement_id.clone(),
             sink_port_id: connection.sink_port_id.clone(),
             value_kind: connection.value_kind.clone(),
+            resource,
             abnormal_kind: source_capability
                 .outputs
                 .iter()

@@ -24,6 +24,16 @@ pub struct Kind {
 }
 
 impl Kind {
+    pub fn resource_ports(&self) -> &[crate::ResourcePortContract] {
+        self.semantic_laws
+            .iter()
+            .find_map(|law| match law {
+                KindSemanticLaw::ResourcePorts(ports) => Some(ports.as_slice()),
+                _ => None,
+            })
+            .unwrap_or_default()
+    }
+
     pub fn terminal_transduction(&self) -> Option<&crate::TerminalTransductionProfile> {
         self.semantic_laws.iter().find_map(|law| match law {
             KindSemanticLaw::TerminalTransduction(profile) => Some(profile),
@@ -38,6 +48,7 @@ impl Kind {
             self.outputs.clone(),
             self.shorthand.clone(),
         )
+        .with_resource_ports(self.resource_ports().to_vec())
     }
 
     pub fn validate(&self) -> Result<(), KindValidationError> {
@@ -80,17 +91,50 @@ impl Kind {
             }
         }
         let mut terminal_transduction = None;
+        let mut resource_ports = None;
         for law in &self.semantic_laws {
-            let KindSemanticLaw::TerminalTransduction(profile) = law else {
-                continue;
-            };
-            if terminal_transduction.replace(profile).is_some() {
-                return Err(KindValidationError::DuplicateTerminalTransduction);
+            match law {
+                KindSemanticLaw::TerminalTransduction(profile) => {
+                    if terminal_transduction.replace(profile).is_some() {
+                        return Err(KindValidationError::DuplicateTerminalTransduction);
+                    }
+                    validate_terminal_transduction(self, profile)?;
+                }
+                KindSemanticLaw::ResourcePorts(ports) => {
+                    if resource_ports.replace(ports).is_some() {
+                        return Err(KindValidationError::DuplicateResourcePorts);
+                    }
+                    validate_resource_ports(self, ports)?;
+                }
+                _ => {}
             }
-            validate_terminal_transduction(self, profile)?;
         }
         Ok(())
     }
+}
+
+fn validate_resource_ports(
+    kind: &Kind,
+    contracts: &[crate::ResourcePortContract],
+) -> Result<(), KindValidationError> {
+    let mut ids = BTreeSet::new();
+    for contract in contracts {
+        if contract.class_id.as_str().is_empty() {
+            return Err(KindValidationError::EmptyResourcePortClass);
+        }
+        if !ids.insert(contract.port_id.as_str()) {
+            return Err(KindValidationError::DuplicateResourcePort);
+        }
+        if !kind
+            .inputs
+            .iter()
+            .chain(&kind.outputs)
+            .any(|port| port.port_id == contract.port_id)
+        {
+            return Err(KindValidationError::UnknownResourcePort);
+        }
+    }
+    Ok(())
 }
 
 fn validate_terminal_transduction(
@@ -193,6 +237,10 @@ pub enum KindValidationError {
     TerminalAbnormalKindMismatch,
     CancellationControlMismatch,
     CancellationDispositionMismatch,
+    DuplicateResourcePorts,
+    DuplicateResourcePort,
+    EmptyResourcePortClass,
+    UnknownResourcePort,
 }
 
 /// Host-owned identity and requirements for one semantic realization.
@@ -352,6 +400,49 @@ mod tests {
         assert_eq!(offer.kind_contract_revision, other.kind_contract_revision);
         assert_eq!(offer.inputs, other.inputs);
         assert_ne!(offer.implementation, other.implementation);
+    }
+
+    #[test]
+    fn resource_ports_are_checked_fore_identity_without_bearer_material() {
+        let mut resource = contract();
+        resource
+            .semantic_laws
+            .push(KindSemanticLaw::ResourcePorts(vec![
+                crate::ResourcePortContract {
+                    port_id: port_id("in"),
+                    class_id: crate::ResourceClassId::from("device/mmio-region"),
+                    ownership: crate::ResourcePortOwnership::Move,
+                    lifecycle: crate::ResourcePortLifecycle::Play,
+                    mobility: Default::default(),
+                },
+            ]));
+        resource.validate().unwrap();
+
+        assert_eq!(resource.checked_front().resource_ports().len(), 1);
+        assert_ne!(
+            crate::compute_checked_front_fingerprint(&contract().checked_front()),
+            crate::compute_checked_front_fingerprint(&resource.checked_front())
+        );
+    }
+
+    #[test]
+    fn resource_port_must_name_one_real_fore_port() {
+        let mut resource = contract();
+        resource
+            .semantic_laws
+            .push(KindSemanticLaw::ResourcePorts(vec![
+                crate::ResourcePortContract {
+                    port_id: port_id("missing"),
+                    class_id: crate::ResourceClassId::from("device/mmio-region"),
+                    ownership: crate::ResourcePortOwnership::Move,
+                    lifecycle: crate::ResourcePortLifecycle::Play,
+                    mobility: Default::default(),
+                },
+            ]));
+        assert_eq!(
+            resource.validate(),
+            Err(KindValidationError::UnknownResourcePort)
+        );
     }
 
     #[test]

@@ -381,6 +381,7 @@ fn expand_expression(
         inputs: vec![input.clone()],
         outputs: vec![output.clone()],
         terminal_transduction: None,
+        resource_ports: Vec::new(),
         configuration,
         pool_references: Vec::new(),
     });

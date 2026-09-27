@@ -190,6 +190,7 @@ mod tests {
             sink_placement_id: PlacementId::from("sink-placement"),
             sink_port_id: PortId::from("in"),
             value_kind: KindId::from("value/test@1"),
+            resource: None,
             track: Default::default(),
             temporal: PortTemporal::Value,
             pressure_policy: Default::default(),

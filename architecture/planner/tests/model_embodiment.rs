@@ -301,6 +301,7 @@ fn connection(
         sink_placement_id: PlacementId::from(sink),
         sink_port_id: port_id(sink_port),
         value_kind: kind_id(kind),
+        resource: None,
         track: Default::default(),
         temporal: PortTemporal::Value,
         pressure_policy: Default::default(),

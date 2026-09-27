@@ -138,6 +138,9 @@ pub enum KindSemanticLaw {
     Suspension(SuspensionBehavior),
     Variability(VariabilityBehavior),
     Replay(ReplayBehavior),
+    /// Exact Fore ports whose values are unforgeable resource authority rather
+    /// than serializable info.
+    ResourcePorts(Vec<crate::ResourcePortContract>),
 }
 
 /// Independent terminal behaviors owned by a Kind's checked Fore.

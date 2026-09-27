@@ -65,6 +65,7 @@ pub fn pure_expression_facts(kind: &Kind) -> Result<PureExpressionFacts, PureExp
         match law {
             KindSemanticLaw::Terminal(_) => {}
             KindSemanticLaw::TerminalTransduction(_) => {}
+            KindSemanticLaw::ResourcePorts(_) => {}
             KindSemanticLaw::ExternalEffects(value) => set_once(
                 &mut external_effects,
                 *value,

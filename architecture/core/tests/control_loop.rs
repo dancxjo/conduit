@@ -54,6 +54,7 @@ fn connection() -> PlannedConnection {
         sink_placement_id: conduit_core::PlacementId::from("sink"),
         sink_port_id: PortId::from("in"),
         value_kind: conduit_core::KindId::from("value/test"),
+        resource: None,
         track: Default::default(),
         temporal: conduit_core::PortTemporal::Value,
         pressure_policy: Default::default(),

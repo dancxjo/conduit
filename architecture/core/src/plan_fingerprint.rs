@@ -171,6 +171,19 @@ pub fn compute_fragment_id(fragment: &PlanFragment) -> FragmentId {
         push_string(&mut canonical, connection.sink_placement_id.as_str());
         push_string(&mut canonical, connection.sink_port_id.as_str());
         push_string(&mut canonical, connection.value_kind.as_str());
+        match &connection.resource {
+            Some(resource) => {
+                canonical.push(1);
+                push_string(&mut canonical, resource.contract.port_id.as_str());
+                push_string(&mut canonical, resource.contract.class_id.as_str());
+                canonical.push(resource.contract.ownership as u8);
+                canonical.push(resource.contract.lifecycle as u8);
+                canonical.push(resource.contract.mobility as u8);
+                push_string(&mut canonical, resource.owner_placement_id.as_str());
+                push_resource_binding(&mut canonical, &resource.source_binding);
+            }
+            None => canonical.push(0),
+        }
         match &connection.abnormal_kind {
             Some(kind) => {
                 canonical.push(1);
@@ -388,6 +401,14 @@ fn push_checked_front(canonical: &mut Vec<u8>, front: &CheckedFront) {
     }
     push_ports(canonical, front.inputs());
     push_ports(canonical, front.outputs());
+    push_u32(canonical, front.resource_ports().len() as u32);
+    for resource in front.resource_ports() {
+        push_string(canonical, resource.port_id.as_str());
+        push_string(canonical, resource.class_id.as_str());
+        canonical.push(resource.ownership as u8);
+        canonical.push(resource.lifecycle as u8);
+        canonical.push(resource.mobility as u8);
+    }
     match front.shorthand() {
         Some((input, output)) => {
             canonical.push(1);

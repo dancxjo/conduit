@@ -259,6 +259,7 @@ fn expand_argument_expression(
         inputs: vec![input.clone()],
         outputs: vec![output.clone()],
         terminal_transduction: None,
+        resource_ports: Vec::new(),
         configuration: definition
             .configuration
             .into_iter()
@@ -507,6 +508,7 @@ fn expand_one(
         inputs: kind.inputs.clone(),
         outputs: kind.outputs.clone(),
         terminal_transduction: kind.terminal_transduction().cloned(),
+        resource_ports: kind.resource_ports().to_vec(),
         configuration: kind
             .configuration
             .iter()
