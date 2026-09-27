@@ -2,8 +2,8 @@
 
 use super::back::{BackBudget, BackFactory, InstalledBack};
 use crate::spoken_mask_runtime::{
-    ArtifactAcknowledgedShowBack, ClosingNoInteractionBack,
-    GeneratedManifestationToSpeechBack, PresentationToGenerativeRequestBack,
+    ArtifactAcknowledgedShowBack, ClosingNoInteractionBack, GeneratedManifestationToSpeechBack,
+    PresentationToGenerativeRequestBack,
 };
 use conduit_core::PlannedGear;
 use conduit_kernel::{
@@ -53,7 +53,8 @@ impl<const PORTS: usize> StepBack<PORTS> for SpokenArtifactBack {
             }
             match (self.closing, outcome.disposition, outcome.output) {
                 (false, HostCallDisposition::Completed, None) => {
-                    io.consume_host_completion().expect("written spoken PCM block");
+                    io.consume_host_completion()
+                        .expect("written spoken PCM block");
                     self.pending = None;
                     StepOutcome::Progress
                 }
@@ -122,7 +123,10 @@ fn prepare_presentation_request(
     placement: &PlannedGear,
     _: &mut HostedValueStore,
 ) -> Result<InstalledBack, String> {
-    validate(placement, conduit_std_offers::PRESENTATION_REQUEST_IMPLEMENTATION)?;
+    validate(
+        placement,
+        conduit_std_offers::PRESENTATION_REQUEST_IMPLEMENTATION,
+    )?;
     Ok(InstalledBack::SpokenPresentationRequest(
         PresentationToGenerativeRequestBack::new(
             conduit_presentation::MAX_GENERATIVE_PRESENTER_INPUT_BYTES as u32,
@@ -135,7 +139,10 @@ fn prepare_generated_speech(
     placement: &PlannedGear,
     _: &mut HostedValueStore,
 ) -> Result<InstalledBack, String> {
-    validate(placement, conduit_std_offers::GENERATED_SPEECH_IMPLEMENTATION)?;
+    validate(
+        placement,
+        conduit_std_offers::GENERATED_SPEECH_IMPLEMENTATION,
+    )?;
     Ok(InstalledBack::SpokenGeneratedSpeech(
         GeneratedManifestationToSpeechBack::new(
             conduit_presentation::MAX_GENERATIVE_PRESENTER_OUTPUT_BYTES as u32,
@@ -148,7 +155,10 @@ fn prepare_artifact(
     placement: &PlannedGear,
     values: &mut HostedValueStore,
 ) -> Result<InstalledBack, String> {
-    validate(placement, conduit_std_offers::SPOKEN_ARTIFACT_IMPLEMENTATION)?;
+    validate(
+        placement,
+        conduit_std_offers::SPOKEN_ARTIFACT_IMPLEMENTATION,
+    )?;
     let drain_marker = values
         .store(&[0])
         .map_err(|error| format!("store spoken artifact drain marker: {error:?}"))?;
@@ -179,9 +189,7 @@ fn prepare_no_interaction(
     _: &mut HostedValueStore,
 ) -> Result<InstalledBack, String> {
     validate(placement, conduit_std_offers::NO_INTERACTION_IMPLEMENTATION)?;
-    Ok(InstalledBack::SpokenNoInteraction(
-        ClosingNoInteractionBack,
-    ))
+    Ok(InstalledBack::SpokenNoInteraction(ClosingNoInteractionBack))
 }
 
 fn validate(placement: &PlannedGear, implementation: &str) -> Result<(), String> {
@@ -216,7 +224,10 @@ fn adapter_budget(placement: &PlannedGear) -> Result<BackBudget, String> {
 }
 
 fn artifact_budget(placement: &PlannedGear) -> Result<BackBudget, String> {
-    validate(placement, conduit_std_offers::SPOKEN_ARTIFACT_IMPLEMENTATION)?;
+    validate(
+        placement,
+        conduit_std_offers::SPOKEN_ARTIFACT_IMPLEMENTATION,
+    )?;
     Ok(BackBudget {
         value_items: 2,
         value_bytes: 4_097,
