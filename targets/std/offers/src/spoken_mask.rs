@@ -47,10 +47,11 @@ pub fn spoken_mask_offers() -> Vec<CapabilityOffer> {
             conduit_presentation::SPOKEN_ARTIFACT_KIND,
             "spoken-mask-wav-artifact",
             SPOKEN_ARTIFACT_IMPLEMENTATION,
-            vec![call(
+            vec![targeted_call(
                 SPOKEN_ARTIFACT_OPERATION,
                 crate::AUDIO_CONVERT_PCM_MAXIMUM_OUTPUT_BYTES,
                 4_096,
+                conduit_audio::AUDIO_PCM_INFO_ID,
             )],
             vec![resource_requirement(
                 crate::AUDIO_WAV_ARTIFACT_RESOURCE_CLASS,
@@ -128,5 +129,12 @@ fn call(id: &str, input: u32, output: u32) -> HostCallRequirement {
         maximum_in_flight: 1,
         maximum_input_bytes: input,
         maximum_output_bytes: output,
+    }
+}
+
+fn targeted_call(id: &str, input: u32, output: u32, target: &str) -> HostCallRequirement {
+    HostCallRequirement {
+        target_kind: Some(kind_id(target)),
+        ..call(id, input, output)
     }
 }

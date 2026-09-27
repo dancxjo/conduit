@@ -185,7 +185,7 @@ pub fn spoken_mask_kinds() -> alloc::vec::Vec<conduit_core::Kind> {
                 "audio",
                 "audio/pcm-frames@1",
                 PortDirection::Input,
-                PortTemporal::Flow { closes: true },
+                PortTemporal::Value,
             )],
             alloc::vec![port(
                 "receipt",
