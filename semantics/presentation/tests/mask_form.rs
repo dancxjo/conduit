@@ -454,6 +454,11 @@ fn the_ordinary_planner_seals_the_mask_form_without_a_mask_planner() {
     .unwrap();
     show.validate(&presentation).unwrap();
     assert_eq!(show.mask_form, mask.form_identity);
+    assert_eq!(
+        show.presentation_plan_id,
+        PlanId::from("plan/application-face-source")
+    );
+    assert_ne!(show.presentation_plan_id, show.planned_mask.plan.plan_id);
     assert_eq!(show.planned_mask.plan.plan_id, plan.plan_id);
     assert_eq!(
         presentation.basis.plan_id.as_ref().unwrap().as_str(),
