@@ -282,7 +282,7 @@ impl ProductJourney {
             .map_err(JourneyError::Play)?;
         if let Some(control) = self.presenter_control.as_mut() {
             let topology = control
-                .activate(plan, play)
+                .activate(&wake, plan, play)
                 .map_err(|_| JourneyError::Kernel)?;
             self.kernel
                 .as_mut()
@@ -363,7 +363,7 @@ impl ProductJourney {
         );
         kernel.start().map_err(JourneyError::Play)?;
         let topology = control
-            .activate(&plan, &play)
+            .activate(&wake, &plan, &play)
             .map_err(|_| JourneyError::Kernel)?;
         if let Err(error) = kernel.set_presenter_topology(&topology) {
             let _ = kernel.cancel();
