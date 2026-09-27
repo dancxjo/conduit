@@ -156,7 +156,7 @@ pub struct LoweredRemoteEndpoint {
 
 /// Numeric kernel binding for one plan-sealed external Fore port.
 #[derive(Debug, Clone, PartialEq, Eq)]
-pub struct LoweredFrontPort {
+pub struct LoweredForePort {
     pub front_port_id: PlanPortId,
     pub direction: PortDirection,
     pub track: conduit_core::ConnectionTrack,
@@ -216,8 +216,19 @@ pub struct KernelIdentityMap {
     pub ports: Vec<KernelPortIdentity>,
     pub connections: Vec<(CordId, ConnectionId)>,
     pub remote_endpoints: Vec<(RemoteEndpointId, ConnectionId)>,
+    pub fore_endpoints: Vec<KernelForeEndpointIdentity>,
     pub host_calls: Vec<(NodeId, HostCallId, HostCallContractId)>,
     pub resources: Vec<(NodeId, ResourceId, PlanResourceBinding)>,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct KernelForeEndpointIdentity {
+    pub endpoint: RemoteEndpointId,
+    pub cord: CordId,
+    pub front_port_id: PlanPortId,
+    pub direction: PortDirection,
+    pub track: conduit_core::ConnectionTrack,
+    pub value_kind: KindId,
 }
 
 impl KernelIdentityMap {
@@ -583,7 +594,7 @@ pub struct LoweredPlanFragment {
     pub cords: Vec<LoweredCord>,
     pub fusions: Vec<LoweredFusion>,
     pub remote_endpoints: Vec<LoweredRemoteEndpoint>,
-    pub front_ports: Vec<LoweredFrontPort>,
+    pub fore_ports: Vec<LoweredForePort>,
     pub routes: Vec<LoweredRoute>,
     pub host_calls: Vec<LoweredHostCall>,
     pub resources: Vec<LoweredResource>,
@@ -835,8 +846,8 @@ pub fn lower_plan_fragment_for_profile(
         });
     }
 
-    let mut front_ports = Vec::with_capacity(fragment.front_ports.len());
-    for planned in &fragment.front_ports {
+    let mut fore_ports = Vec::with_capacity(fragment.fore_ports.len());
+    for planned in &fragment.fore_ports {
         if planned.item_capacity == 0 || planned.byte_capacity == 0 {
             return Err(LoweringError::InvalidConnectionBudget(ConnectionId::from(
                 planned.front_port_id.as_str(),
@@ -864,7 +875,7 @@ pub fn lower_plan_fragment_for_profile(
             ));
         }
         let cord = CordId(as_u16(cords.len())?);
-        let endpoint = RemoteEndpointId(as_u16(remote_endpoints.len() + front_ports.len())?);
+        let endpoint = RemoteEndpointId(as_u16(remote_endpoints.len() + fore_ports.len())?);
         let capacity = CordCapacity {
             slot_start: value_slots,
             item_capacity: planned.item_capacity,
@@ -901,7 +912,7 @@ pub fn lower_plan_fragment_for_profile(
             )),
             spec,
         });
-        front_ports.push(LoweredFrontPort {
+        fore_ports.push(LoweredForePort {
             front_port_id: planned.front_port_id.clone(),
             direction: planned.direction,
             track: planned.track,
@@ -1005,6 +1016,17 @@ pub fn lower_plan_fragment_for_profile(
                 .iter()
                 .map(|item| (item.endpoint, item.connection_id.clone()))
                 .collect(),
+            fore_endpoints: fore_ports
+                .iter()
+                .map(|item| KernelForeEndpointIdentity {
+                    endpoint: item.endpoint,
+                    cord: item.cord,
+                    front_port_id: item.front_port_id.clone(),
+                    direction: item.direction,
+                    track: item.track,
+                    value_kind: item.value_kind.clone(),
+                })
+                .collect(),
             host_calls: host_calls
                 .iter()
                 .map(|item| (item.node, item.call, item.contract_id.clone()))
@@ -1026,7 +1048,7 @@ pub fn lower_plan_fragment_for_profile(
         cords,
         fusions,
         remote_endpoints,
-        front_ports,
+        fore_ports,
         routes,
         host_calls,
         resources,

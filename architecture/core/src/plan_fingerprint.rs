@@ -204,8 +204,8 @@ pub fn compute_fragment_id(fragment: &PlanFragment) -> FragmentId {
         push_u32(&mut canonical, connection.byte_capacity);
         canonical.push(connection.pressure_policy as u8);
     }
-    push_u32(&mut canonical, fragment.front_ports.len() as u32);
-    for port in &fragment.front_ports {
+    push_u32(&mut canonical, fragment.fore_ports.len() as u32);
+    for port in &fragment.fore_ports {
         push_string(&mut canonical, port.front_port_id.as_str());
         canonical.push(port.direction as u8);
         push_string(&mut canonical, port.placement_id.as_str());
