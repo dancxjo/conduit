@@ -54,7 +54,7 @@ export async function writeBrowserBodyJourneyTrack(source, screenshotPath, outpu
   const facts = [
     { initial_body: null, host_id: ids.host, boot_id: ids.boot }, { host_id: ids.host, boot_id: ids.boot },
     { event: events[0] }, { wake: evidence.wakes[0] }, { plan_id: ids.plan, active_play_id: ids.play },
-    { presentation_id: ids.presentation, manifestation_id: manifestation },
+    { presentation_id: ids.presentation, manifestation_id: ids.manifestation },
     { workload_revision: current.workload_revision, forms: evidence.body.workset.forms },
     { peer, membership_revision: source.checkpoints.joined.evidence.membership.revision },
     { refusal: source.checkpoints.refused.playback.refusal, wake: refusedWake }, { wake: repairedWake },
