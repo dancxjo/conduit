@@ -1084,7 +1084,7 @@ fn build_advertisement(host_id: &str, boot_id: &str) -> HostAdvertisement {
         }],
         capabilities: vec![
             conduit_core::capability_offer_from_parts! {
-                semantic_contract: Default::default(),
+                semantic_contract: conduit_signal::pulse_semantic_contract().semantic_contract(),
                 startup_parameters: conduit_signal::pulse_front_startup_parameters(),
                 shorthand: None,
                 capability_id: CapabilityId::from("pulse-1"),
@@ -1107,7 +1107,7 @@ fn build_advertisement(host_id: &str, boot_id: &str) -> HostAdvertisement {
                 },
             },
             conduit_core::capability_offer_from_parts! {
-                semantic_contract: Default::default(),
+                semantic_contract: conduit_signal::show_semantic_contract().semantic_contract(),
                 startup_parameters: vec![],
                 shorthand: None,
                 capability_id: CapabilityId::from("dom-show-1"),

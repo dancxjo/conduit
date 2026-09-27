@@ -5,8 +5,8 @@ use super::{
 };
 use alloc::{string::ToString, vec, vec::Vec};
 use conduit_core::{
-    kind_id, port_id, CapabilityLimits, ConfigurationValue, KindIdentity, PortDescriptor,
-    PortDirection, PortTemporal,
+    kind_id, port_id, CapabilityLimits, ConfigurationValue, Kind, KindIdentity, KindSemanticLaw,
+    PortDescriptor, PortDirection, PortTemporal,
 };
 use conduit_presentation::{
     APPLICATION_EVENT_INFO_ID, APPLICATION_VIEW_INFO_ID, MAX_APPLICATION_EVENT_ENCODED_BYTES,
@@ -35,6 +35,20 @@ pub fn application_contracts() -> Vec<StandardKindContract> {
         retained_application_contract(),
         view_presentation_contract(),
     ]
+}
+
+pub fn application_semantic_contract(contract: StandardKindContract) -> Kind {
+    Kind {
+        startup_parameters: crate::startup_front(&contract.configuration),
+        shorthand: None,
+        kind_id: contract.kind_id,
+        kind_contract_revision: KindIdentity::from(APPLICATION_CONTRACT_REVISION),
+        inputs: contract.inputs,
+        outputs: contract.outputs,
+        configuration: contract.configuration,
+        semantic_laws: vec![KindSemanticLaw::Terminal(contract.terminal_behavior)],
+        limits: contract.limits,
+    }
 }
 
 pub fn event_source_contract() -> StandardKindContract {
@@ -115,10 +129,7 @@ pub fn install_application_catalogs(
     startup: &mut conduit_form::StartupCatalog,
     profile: &mut conduit_form::ProfileCatalog,
 ) -> Result<(), alloc::string::String> {
-    use conduit_form::{
-        KindConfigurationField, KindConfigurationRule, KindProjection, KindSignature,
-        StartupParameterSignature,
-    };
+    use conduit_form::{KindSignature, StartupParameterSignature};
     for contract in application_contracts() {
         startup.insert(KindSignature {
             kind: contract.kind_id.as_str().to_string(),
@@ -136,30 +147,7 @@ pub fn install_application_catalogs(
                 .collect(),
         })?;
         profile
-            .insert(KindProjection {
-                kind_id: contract.kind_id,
-                kind_contract_revision: KindIdentity::from(APPLICATION_CONTRACT_REVISION),
-                inputs: contract.inputs,
-                outputs: contract.outputs,
-                configuration: contract
-                    .configuration
-                    .into_iter()
-                    .map(|field| KindConfigurationField {
-                        key: field.key,
-                        default_value: field.default_value,
-                        rule: match field.rule {
-                            KindConfigurationRule::Any => KindConfigurationRule::Any,
-                            KindConfigurationRule::U64Range { minimum, maximum } => {
-                                KindConfigurationRule::U64Range { minimum, maximum }
-                            }
-                            KindConfigurationRule::TextBytes { maximum } => {
-                                KindConfigurationRule::TextBytes { maximum }
-                            }
-                            _ => KindConfigurationRule::Any,
-                        },
-                    })
-                    .collect(),
-            })
+            .insert_kind(application_semantic_contract(contract))
             .map_err(|error| error.to_string())?;
     }
     Ok(())

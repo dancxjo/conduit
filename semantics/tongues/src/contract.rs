@@ -110,7 +110,16 @@ pub fn install_speech_catalogs(
 ) -> Result<(), String> {
     install_speech_synthesis_catalog(startup, profile)?;
     install_speech_commit_catalog(startup, profile)?;
-    install_contract(startup, profile, audio_play_contract(), false)?;
+    startup.insert(KindSignature {
+        kind: AUDIO_PLAY_KIND.into(),
+        startup_parameters: vec![],
+    })?;
+    profile
+        .insert_kind(
+            conduit_semantic_catalog::audio_play_contract()
+                .into_semantic_contract(AUDIO_PLAY_REVISION),
+        )
+        .map_err(|error| error.to_string())?;
     Ok(())
 }
 
