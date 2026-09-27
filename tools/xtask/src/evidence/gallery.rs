@@ -471,7 +471,7 @@ fn write_root_index(root: &Path, index: &GalleryIndex, has_conduitos: bool) -> R
     );
     let body = body.replace(
         "<ol class=\"semantic-spine\"><li>Birth</li><li>Wake</li><li>Use</li><li>Inspect</li><li>Change</li><li>Replan</li><li>Add Host</li><li>Fault</li><li>Repair</li><li>Continue</li><li>Lull</li><li>Fulfill</li></ol>",
-        "<ol class=\"semantic-spine\"><li>Before</li><li>Bootstrap</li><li>Birth</li><li>Wake</li><li>Use</li><li>Inspect</li><li>Change / replan</li><li>Add Host</li><li>Fault</li><li>Repair</li><li>Continue</li><li>Lull</li><li>Fulfill</li></ol>",
+        "<ol class=\"semantic-spine\"><li>Bootstrap</li><li>Birth</li><li>Useful work</li><li>Break / recover</li><li>Rest / finish</li></ol>",
     );
     write_html(&root.join("index.html"), "Conduit evidence gallery", &body)
 }
@@ -573,7 +573,7 @@ pub(super) fn write_html(path: &Path, title: &str, body: &str) -> Result<(), Str
     )
     .replace(
         "grid-template-columns:repeat(12,minmax(4.4rem,1fr))",
-        "grid-template-columns:repeat(13,minmax(4.4rem,1fr))",
+        "grid-template-columns:repeat(5,minmax(7rem,1fr))",
     );
     fs::write(path, document).map_err(|error| format!("cannot write gallery page: {error}"))
 }

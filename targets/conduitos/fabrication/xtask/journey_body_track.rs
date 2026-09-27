@@ -1,11 +1,11 @@
 //! Producer-owned semantic and visual evidence for the native body journey.
 
 use super::{ConduitosError, JourneyProof};
-use std::path::Path;
+use std::{collections::BTreeMap, path::Path};
 
 pub(super) fn write(target: &Path, proof: &JourneyProof) -> Result<(), ConduitosError> {
     use crate::commands::body_journey_track::{self, TrackIdentities, TrackSource};
-    let facts = [
+    let facts = vec![
         serde_json::json!({"open_effects": proof.open_effects, "host_id": proof.host_id, "boot_id": proof.boot_id}),
         serde_json::json!({"profile_id": proof.profile_id, "build_id": proof.build_id, "image_id": proof.image_id}),
         serde_json::json!({"body_id": proof.body_id, "born_sign_id": proof.born_sign_id, "part_id": proof.part_id}),
@@ -38,23 +38,27 @@ pub(super) fn write(target: &Path, proof: &JourneyProof) -> Result<(), Conduitos
                 presentation: proof.inspector_presentation_id.clone(),
                 manifestation: proof.inspector_manifestation_id.clone(),
                 line: Some(proof.usb_line_id.clone()),
-                signs: [
-                    None,
-                    None,
-                    Some(proof.born_sign_id.clone()),
-                    Some(proof.wake_sign_id.clone()),
-                    Some(proof.result_sign_id.clone()),
-                    None,
-                    Some(proof.workload_sign_id.clone()),
-                    Some(proof.play_sign_id.clone()),
-                    Some(proof.loss_sign_id.clone()),
-                    Some(proof.play_sign_id.clone()),
-                    Some(proof.result_sign_id.clone()),
-                    Some(proof.lull_sign_id.clone()),
-                    Some(proof.fulfilled_sign_id.clone()),
-                ],
+                signs: BTreeMap::from([
+                    ("body.born", proof.born_sign_id.clone()),
+                    ("body.awake", proof.wake_sign_id.clone()),
+                    ("form.used", proof.result_sign_id.clone()),
+                    ("workload.revised", proof.workload_sign_id.clone()),
+                    ("host.added", proof.play_sign_id.clone()),
+                    ("fault.observed", proof.loss_sign_id.clone()),
+                    ("body.repaired", proof.play_sign_id.clone()),
+                    ("body.long-running", proof.result_sign_id.clone()),
+                    ("body.lulled", proof.lull_sign_id.clone()),
+                    ("body.fulfilled", proof.fulfilled_sign_id.clone()),
+                ]),
             },
             facts,
+            action_events: BTreeMap::from([
+                ("journey.bootstrap", "The exact ConduitOS Host boot displayed Crèche before a Body existed and accepted the bounded bootstrap action.".into()),
+                ("journey.birth", "Crèche created the native Body and its first admitted wake; the next frame showed that Body's home.".into()),
+                ("journey.useful-work", "Keyboard input traversed the standing Form and produced the retained HELLO result.".into()),
+                ("journey.break-recover", "USB Line loss remained lost; a separately invalidated native Presentation was rebuilt and became usable later in the same run.".into()),
+                ("journey.rest-finish", "The native Body was explicitly lulled, retained, and then irreversibly fulfilled.".into()),
+            ]),
         },
         &target.join("body-journey-track"),
     )

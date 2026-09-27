@@ -50,7 +50,7 @@ pub(super) fn read_recording(
         .parent()
         .ok_or("current track lacks parent")?;
     let release_steps = step_map(current)?;
-    for recorded in &recording.steps {
+    for recorded in &recording.receipts {
         let release = release_steps
             .get(recorded.step_id.as_str())
             .ok_or("live documentary step does not match release semantics")?;
@@ -99,14 +99,14 @@ pub(super) fn read_recording(
 
 fn step_id_sequence(track: &BodyTrack) -> Result<Vec<&str>, String> {
     let by_id = step_map(track)?;
-    if by_id.len() != track.steps.len() {
+    if by_id.len() != track.receipts.len() {
         return Err(format!(
             "{} has duplicate documentary steps",
             track.track_id
         ));
     }
     Ok(track
-        .steps
+        .receipts
         .iter()
         .map(|step| step.step_id.as_str())
         .collect())
@@ -114,7 +114,7 @@ fn step_id_sequence(track: &BodyTrack) -> Result<Vec<&str>, String> {
 
 fn step_map(track: &BodyTrack) -> Result<BTreeMap<&str, &TrackStep>, String> {
     let mut steps = BTreeMap::new();
-    for step in &track.steps {
+    for step in &track.receipts {
         if steps.insert(step.step_id.as_str(), step).is_some() {
             return Err(format!(
                 "{} has duplicate documentary steps",
@@ -133,7 +133,7 @@ pub(super) fn verify_artifacts(track: &BodyTrack, source: &Path) -> Result<(), S
         .map_err(|error| format!("resolve Body track root: {error}"))?;
     let mut artifact_ids = BTreeSet::new();
     let mut artifact_paths = BTreeSet::new();
-    for evidence in track.steps.iter().flat_map(|step| &step.evidence) {
+    for evidence in track.receipts.iter().flat_map(|step| &step.evidence) {
         validate_relative_path(&evidence.path)?;
         if !artifact_ids.insert(evidence.artifact_id.as_str())
             || !artifact_paths.insert(&evidence.path)
