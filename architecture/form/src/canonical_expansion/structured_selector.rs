@@ -9,9 +9,7 @@ mod semantic_call;
 mod substitution;
 mod temporal;
 mod when_filter;
-use semantic_call::{
-    direct_call_kind, expand_direct_semantic_call, expand_semantic_call_chain, semantic_call_chain,
-};
+use semantic_call::expand_semantic_call_graph;
 use substitution::substitute_immutable_values;
 use temporal::{input_temporal, output_temporal};
 
@@ -308,36 +306,25 @@ fn expand_expression(
             ),
         )
     })?;
-    if temporal == PortTemporal::Value {
-        if let Some(calls) = semantic_call_chain(&expression) {
-            if !calls.is_empty() {
-                return expand_semantic_call_chain(
-                    &calls,
-                    source_span,
-                    source_form,
-                    catalog,
-                    path,
-                    gears,
-                    connections,
-                    provenance,
-                    gear_ids,
-                    anonymous_counts,
-                );
-            }
-        }
-        if let Some(kind) = direct_call_kind(&expression) {
-            return expand_direct_semantic_call(
-                kind,
-                source_span,
-                source_form,
-                catalog,
-                path,
-                gears,
-                provenance,
-                gear_ids,
-                anonymous_counts,
-            );
-        }
+    if temporal == PortTemporal::Value
+        && matches!(expression, crate::ExpressionSyntax::SemanticCall { .. })
+    {
+        return expand_semantic_call_graph(
+            &expression,
+            input_type
+                .value_kind()
+                .expect("Cord input has one exact semantic Kind"),
+            source_span,
+            source_form,
+            structured_types,
+            catalog,
+            path,
+            gears,
+            connections,
+            provenance,
+            gear_ids,
+            anonymous_counts,
+        );
     }
     let definition = crate::pure_expression_definition(&checked, temporal).map_err(|_| {
         CanonicalExpansionDiagnostic::new(

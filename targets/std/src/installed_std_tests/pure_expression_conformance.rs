@@ -24,6 +24,19 @@ fn scientific_quantity_comparison_plans_and_plays_through_the_std_host() {
 }
 
 #[test]
+fn semantic_call_with_literal_argument_plans_and_plays_as_real_gears() {
+    assert_pipeline_plans_and_plays(
+        &conduit_core::Scalar::from_raw_microunits(2_000_000).encode(),
+        &conduit_core::Scalar::from_raw_microunits(1_000_000).encode(),
+        conduit_core::SCALAR_INFO_ID,
+        conduit_core::SCALAR_INFO_ID,
+        "(math/clamp(1))",
+        false,
+        true,
+    );
+}
+
+#[test]
 fn one_value_when_plans_and_plays_as_exact_some_or_none_through_the_std_host() {
     let scalar_type =
         conduit_core::StructuredInfoType::leaf(conduit_core::kind_id(conduit_core::SCALAR_INFO_ID))
@@ -52,6 +65,7 @@ fn one_value_when_plans_and_plays_as_exact_some_or_none_through_the_std_host() {
             optional_kind.as_str(),
             "when(. > 1)",
             true,
+            false,
         );
     }
 }
@@ -70,6 +84,7 @@ fn assert_expression_plans_and_plays(
         output_kind,
         &format!("({expression_source})"),
         false,
+        false,
     );
 }
 
@@ -80,6 +95,7 @@ fn assert_pipeline_plans_and_plays(
     output_kind: &str,
     stage_source: &str,
     filter: bool,
+    math_call: bool,
 ) {
     let mut startup = StartupCatalog::new();
     for (kind, value) in [
@@ -104,6 +120,10 @@ fn assert_pipeline_plans_and_plays(
             })
             .unwrap();
     }
+    if math_call {
+        conduit_semantic_catalog::install_math_catalogs(&mut startup, &mut ProfileCatalog::new())
+            .unwrap();
+    }
     let source = format!(
         "form pipeline {{\n source: {}\n sink: {}\n source >> {stage_source} >> sink\n}}\n",
         installed_std::test_structured_selector::SOURCE_KIND,
@@ -121,7 +141,7 @@ fn assert_pipeline_plans_and_plays(
         installed_std::test_structured_selector::SINK_KIND,
         output_kind,
     );
-    if filter {
+    if filter || math_call {
         source_offer.outputs[0].temporal = conduit_core::PortTemporal::Value;
         sink_offer.inputs[0].temporal = conduit_core::PortTemporal::Value;
     }
@@ -132,6 +152,10 @@ fn assert_pipeline_plans_and_plays(
     profile
         .insert(fixture_definition(&sink_offer, expected))
         .unwrap();
+    if math_call {
+        let mut unused_startup = StartupCatalog::new();
+        conduit_semantic_catalog::install_math_catalogs(&mut unused_startup, &mut profile).unwrap();
+    }
     let expanded = expand_canonical_form(&checked, "pipeline", &profile)
         .expect("pure expression expands to an ordinary gear");
     let expression = expanded
@@ -156,11 +180,30 @@ fn assert_pipeline_plans_and_plays(
         conduit_std_offers::pure_expression_std_offer(&program, expression.inputs[0].temporal)
             .unwrap()
     };
+    if math_call {
+        let gear = expanded
+            .gears
+            .iter()
+            .find(|gear| gear.kind_id.as_str() == conduit_semantic_catalog::MATH_CLAMP_KIND)
+            .unwrap();
+        let offer = conduit_std_offers::math_clamp_offer();
+        assert!(
+            gear.accepts_realization(&offer),
+            "called math Gear front {:?} differs from offer {:?}",
+            gear.checked_front(),
+            offer.checked_front()
+        );
+    }
 
     let mut advertisement = host("pure-expression-host").advertisement().clone();
     advertisement
         .capabilities
         .extend([source_offer, expression_offer.clone(), sink_offer]);
+    if math_call {
+        advertisement
+            .capabilities
+            .push(conduit_std_offers::math_clamp_offer());
+    }
     advertisement
         .capabilities
         .sort_by(|left, right| left.capability_id.cmp(&right.capability_id));
@@ -175,8 +218,12 @@ fn assert_pipeline_plans_and_plays(
         conduit_planner::PlanningOptions {
             connection_bases: &BTreeMap::new(),
             line_candidates: &BTreeMap::new(),
-            connection_item_capacity: 4,
-            connection_byte_capacity: conduit_core::MAXIMUM_STRUCTURED_CANONICAL_BYTES as u32,
+            connection_item_capacity: 1,
+            connection_byte_capacity: if math_call {
+                conduit_core::SCALAR_ENCODED_LEN as u32
+            } else {
+                conduit_core::MAXIMUM_STRUCTURED_CANONICAL_BYTES as u32
+            },
             authority_grants: &[],
             protected_resource_grants: &[],
             line_offers: &[],

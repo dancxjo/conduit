@@ -1,50 +1,30 @@
 use super::*;
 
-pub(super) fn semantic_call_chain(
-    expression: &crate::ExpressionSyntax,
-) -> Option<Vec<crate::SpannedText>> {
-    match expression {
-        crate::ExpressionSyntax::Input(_) => Some(Vec::new()),
-        crate::ExpressionSyntax::SemanticCall {
-            kind, arguments, ..
-        } if arguments.len() == 1 => {
-            let mut calls = semantic_call_chain(&arguments[0])?;
-            calls.push(kind.clone());
-            Some(calls)
-        }
-        _ => None,
-    }
-}
-
-pub(super) fn direct_call_kind(
-    expression: &crate::ExpressionSyntax,
-) -> Option<&crate::SpannedText> {
-    let crate::ExpressionSyntax::SemanticCall {
-        kind, arguments, ..
-    } = expression
-    else {
-        return None;
-    };
-    (!arguments.is_empty()
-        && arguments
-            .iter()
-            .all(|argument| matches!(argument, crate::ExpressionSyntax::Input(_))))
-    .then_some(kind)
-}
-
 #[allow(clippy::too_many_arguments)]
-pub(super) fn expand_direct_semantic_call(
-    kind: &crate::SpannedText,
+pub(super) fn expand_semantic_call_graph(
+    expression: &crate::ExpressionSyntax,
+    input_kind: &conduit_core::KindId,
     source_span: crate::Span,
     source_form: &CheckedCanonicalForm,
+    structured_types: &BTreeMap<conduit_core::KindId, conduit_core::StructuredInfoType>,
     catalog: &ProfileCatalog,
     path: &[String],
     gears: &mut Vec<CheckedGear>,
+    connections: &mut Vec<CheckedConnection>,
     provenance: &mut Vec<ExpandedGearProvenance>,
     gear_ids: &mut BTreeSet<GearId>,
     anonymous_counts: &mut BTreeMap<String, usize>,
 ) -> Result<Stage, CanonicalExpansionDiagnostic> {
-    expand_one(
+    let crate::ExpressionSyntax::SemanticCall {
+        kind, arguments, ..
+    } = expression
+    else {
+        return Err(CanonicalExpansionDiagnostic::new(
+            "CND-FRM-046",
+            "semantic call graph must be rooted at a semantic Kind call".into(),
+        ));
+    };
+    let root = expand_one(
         kind,
         source_span,
         source_form,
@@ -54,68 +34,182 @@ pub(super) fn expand_direct_semantic_call(
         provenance,
         gear_ids,
         anonymous_counts,
-    )
-}
-
-#[allow(clippy::too_many_arguments)]
-pub(super) fn expand_semantic_call_chain(
-    calls: &[crate::SpannedText],
-    source_span: crate::Span,
-    source_form: &CheckedCanonicalForm,
-    catalog: &ProfileCatalog,
-    path: &[String],
-    gears: &mut Vec<CheckedGear>,
-    connections: &mut Vec<CheckedConnection>,
-    provenance: &mut Vec<ExpandedGearProvenance>,
-    gear_ids: &mut BTreeSet<GearId>,
-    anonymous_counts: &mut BTreeMap<String, usize>,
-) -> Result<Stage, CanonicalExpansionDiagnostic> {
-    let mut stages = calls
-        .iter()
-        .map(|kind| {
-            expand_one(
-                kind,
+    )?;
+    let sinks = root
+        .input
+        .clone()
+        .expect("checked semantic call has at least one input");
+    let mut exposed_inputs = Vec::new();
+    for (argument, sink) in arguments.iter().zip(sinks) {
+        let StageSink::Internal(sink) = sink else {
+            unreachable!("semantic call inputs are internal ports")
+        };
+        if matches!(argument, crate::ExpressionSyntax::Input(_)) {
+            exposed_inputs.push(StageSink::Internal(sink));
+            continue;
+        }
+        let argument_stage = if matches!(argument, crate::ExpressionSyntax::SemanticCall { .. }) {
+            expand_semantic_call_graph(
+                argument,
+                input_kind,
                 source_span,
                 source_form,
+                structured_types,
+                catalog,
+                path,
+                gears,
+                connections,
+                provenance,
+                gear_ids,
+                anonymous_counts,
+            )?
+        } else {
+            expand_argument_expression(
+                argument,
+                input_kind,
+                &sink.port.value_kind,
+                source_span,
+                source_form,
+                structured_types,
                 catalog,
                 path,
                 gears,
                 provenance,
                 gear_ids,
                 anonymous_counts,
-            )
-        })
-        .collect::<Result<Vec<_>, _>>()?;
-    for pair in stages.windows(2) {
-        let (StageSource::Internal(source), StageSink::Internal(sink)) = (
-            pair[0]
-                .output
-                .clone()
-                .expect("semantic call stage has one output"),
-            pair[1]
-                .input
-                .as_ref()
-                .and_then(|inputs| inputs.first())
-                .cloned()
-                .expect("semantic call stage has one input"),
-        ) else {
-            unreachable!("semantic call chain uses internal ports")
+            )?
         };
-        connections.push(CheckedConnection {
-            source_gear_id: source.gear_id,
-            source_port_id: source.port.port_id,
-            sink_gear_id: sink.gear_id,
-            sink_port_id: sink.port.port_id,
-            value_kind: source.port.value_kind,
-            temporal: source.port.temporal,
-        });
+        let StageSource::Internal(source) = argument_stage
+            .output
+            .expect("semantic call argument has one output")
+        else {
+            unreachable!("semantic call argument output is internal")
+        };
+        connect(source, sink, connections);
+        exposed_inputs.extend(argument_stage.input.unwrap_or_default());
     }
-    let first = stages.remove(0);
-    let last = stages.pop().unwrap_or_else(|| first.clone());
     Ok(Stage {
-        input: first.input,
-        output: last.output,
+        input: Some(exposed_inputs),
+        output: root.output,
     })
+}
+
+#[allow(clippy::too_many_arguments)]
+fn expand_argument_expression(
+    expression: &crate::ExpressionSyntax,
+    input_kind: &conduit_core::KindId,
+    expected_kind: &conduit_core::KindId,
+    source_span: crate::Span,
+    source_form: &CheckedCanonicalForm,
+    structured_types: &BTreeMap<conduit_core::KindId, conduit_core::StructuredInfoType>,
+    catalog: &ProfileCatalog,
+    path: &[String],
+    gears: &mut Vec<CheckedGear>,
+    provenance: &mut Vec<ExpandedGearProvenance>,
+    gear_ids: &mut BTreeSet<GearId>,
+    anonymous_counts: &mut BTreeMap<String, usize>,
+) -> Result<Stage, CanonicalExpansionDiagnostic> {
+    let input_type = crate::CheckedExpressionType::Semantic(input_kind.clone());
+    let expected_type = crate::CheckedExpressionType::Semantic(expected_kind.clone());
+    let semantic_kinds = catalog
+        .canonical_kinds()
+        .values()
+        .cloned()
+        .map(|kind| (kind.kind_id.as_str().to_string(), kind))
+        .collect::<BTreeMap<_, _>>();
+    let checked = crate::expression_check::check_expression_as(
+        expression,
+        Some(&expected_type),
+        &crate::ExpressionTypeContext {
+            input: &input_type,
+            immutable_values: &BTreeMap::new(),
+            structured_types,
+            literal_types: &BTreeMap::new(),
+            numeric_types: &BTreeSet::new(),
+            semantic_kinds: &semantic_kinds,
+        },
+    )
+    .map_err(|diagnostic| {
+        CanonicalExpansionDiagnostic::new(
+            "CND-FRM-046",
+            format!(
+                "semantic call argument at {}:{} is not well typed: {}",
+                diagnostic.span.line, diagnostic.span.column, diagnostic.message
+            ),
+        )
+    })?;
+    let definition =
+        crate::pure_expression_definition(&checked, PortTemporal::Value).map_err(|_| {
+            CanonicalExpansionDiagnostic::new(
+                "CND-FRM-046",
+                "semantic call argument has no finite exact Port identity".into(),
+            )
+        })?;
+    let key = definition.kind_id.as_str().to_string();
+    let count = anonymous_counts.entry(key.clone()).or_default();
+    let name = format!("expression-{}-{count}", &hash_string(&key)[..12]);
+    *count += 1;
+    let mut child_path = path.to_vec();
+    child_path.push(name.clone());
+    let gear_id = GearId::from(child_path.join("/"));
+    if !gear_ids.insert(gear_id.clone()) {
+        return Err(CanonicalExpansionDiagnostic::new(
+            "CND-FRM-038",
+            format!("expanded gear path '{}' is not unique", gear_id.as_str()),
+        ));
+    }
+    let input = definition.inputs[0].clone();
+    let output = definition.outputs[0].clone();
+    gears.push(CheckedGear {
+        gear_id: gear_id.clone(),
+        kind_id: definition.kind_id,
+        kind_contract_revision: definition.kind_contract_revision,
+        startup_parameters: vec![conduit_core::FrontStartupParameter {
+            name: "program".into(),
+            value_type: conduit_core::kind_id("value/text"),
+            has_default: false,
+        }],
+        shorthand: Some((input.port_id.clone(), output.port_id.clone())),
+        inputs: vec![input.clone()],
+        outputs: vec![output.clone()],
+        configuration: definition
+            .configuration
+            .into_iter()
+            .map(|field| conduit_core::ConfigurationEntry {
+                key: field.key,
+                value: field.default_value,
+            })
+            .collect(),
+        pool_references: Vec::new(),
+    });
+    provenance.push(ExpandedGearProvenance {
+        gear_id: gear_id.as_str().to_string(),
+        form_path: path.to_vec(),
+        source_form: source_form.name.clone(),
+        source_gear: name,
+        source_span,
+    });
+    Ok(Stage {
+        input: Some(vec![StageSink::Internal(Endpoint {
+            gear_id: gear_id.clone(),
+            port: input,
+        })]),
+        output: Some(StageSource::Internal(Endpoint {
+            gear_id,
+            port: output,
+        })),
+    })
+}
+
+fn connect(source: Endpoint, sink: Endpoint, connections: &mut Vec<CheckedConnection>) {
+    connections.push(CheckedConnection {
+        source_gear_id: source.gear_id,
+        source_port_id: source.port.port_id,
+        sink_gear_id: sink.gear_id,
+        sink_port_id: sink.port.port_id,
+        value_kind: source.port.value_kind,
+        temporal: source.port.temporal,
+    });
 }
 
 #[allow(clippy::too_many_arguments)]
