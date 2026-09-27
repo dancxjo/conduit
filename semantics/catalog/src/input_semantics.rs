@@ -8,7 +8,6 @@ use super::{
 use alloc::string::String;
 use alloc::string::ToString;
 use alloc::vec;
-#[cfg(feature = "form-catalog")]
 use conduit_core::{
     kind_id, port_id, CapabilityLimits, ConfigurationValue, Kind, PortDescriptor, PortDirection,
     PortTemporal,

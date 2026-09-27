@@ -2,9 +2,7 @@
 
 pub mod state_value;
 
-#[cfg(feature = "form-catalog")]
 use alloc::format;
-#[cfg(feature = "form-catalog")]
 use alloc::string::ToString;
 use alloc::{vec, vec::Vec};
 use conduit_core::{
