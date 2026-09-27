@@ -16,6 +16,7 @@ use conduit_presentation::{
 };
 
 pub const PRESENTATION_TO_REQUEST_CALL: HostCallId = HostCallId(0);
+pub const GENERATED_MANIFESTATION_TO_SPEECH_CALL: HostCallId = HostCallId(0);
 pub const REGISTER_GENERATED_MANIFESTATION_CALL: HostCallId = HostCallId(0);
 pub const ACKNOWLEDGE_ARTIFACT_AND_BUILD_SHOW_CALL: HostCallId = HostCallId(1);
 
@@ -101,6 +102,33 @@ impl SpokenMaskSemanticSession {
         }
         self.generated = Some(generated);
         Ok(())
+    }
+
+    pub fn validate_and_extract_speech(&self, encoded: &[u8]) -> Result<Vec<u8>, String> {
+        if encoded.len() > self.request.bounds.maximum_output_bytes as usize {
+            return Err("generated manifestation exceeds its admitted bound".into());
+        }
+        let generated: GeneratedManifestation = serde_json::from_slice(encoded)
+            .map_err(|error| format!("decode generated manifestation: {error}"))?;
+        self.request
+            .validate_manifestation(&generated)
+            .map_err(|error| format!("invalid generated manifestation: {error:?}"))?;
+        let mut speech_segments = generated
+            .content
+            .iter()
+            .filter(|segment| segment.role == conduit_presentation::GeneratedContentRole::Speech);
+        let speech = speech_segments
+            .next()
+            .ok_or_else(|| "generated manifestation has no outward Speech".to_string())?;
+        if speech_segments.next().is_some() {
+            return Err("generated manifestation has more than one outward Speech".into());
+        }
+        core::str::from_utf8(&speech.bytes)
+            .map_err(|_| "generated outward Speech is not UTF-8".to_string())?;
+        if speech.bytes.len() > conduit_tongues::MAXIMUM_TEXT_BYTES as usize {
+            return Err("generated outward Speech exceeds the TTS Fore bound".into());
+        }
+        Ok(speech.bytes.clone())
     }
 
     pub fn acknowledge_artifact_and_build_show(&self, encoded: &[u8]) -> Result<Vec<u8>, String> {
@@ -217,6 +245,42 @@ impl<const PORTS: usize> StepBack<PORTS> for PresentationToGenerativeRequestBack
     fn cancel(&mut self) {
         self.pending = false;
         self.complete = true;
+    }
+}
+
+pub struct GeneratedManifestationToSpeechBack {
+    inner: PresentationToGenerativeRequestBack,
+}
+
+impl GeneratedManifestationToSpeechBack {
+    pub fn new(maximum_manifestation_bytes: u32) -> Result<Self, &'static str> {
+        if maximum_manifestation_bytes == 0
+            || maximum_manifestation_bytes
+                > conduit_presentation::MAX_GENERATIVE_PRESENTER_OUTPUT_BYTES as u32
+        {
+            return Err("invalid generated manifestation adapter bound");
+        }
+        Ok(Self {
+            inner: PresentationToGenerativeRequestBack::new(maximum_manifestation_bytes)?,
+        })
+    }
+}
+
+impl<const PORTS: usize> StepBack<PORTS> for GeneratedManifestationToSpeechBack {
+    fn step(&mut self, io: &mut StepIo<PORTS>, inputs: &StepInputBytes<'_, PORTS>) -> StepOutcome {
+        self.inner.step(io, inputs)
+    }
+
+    fn retains_host_call_input(&self, request: RequestId, value: ValueRef) -> bool {
+        <PresentationToGenerativeRequestBack as StepBack<PORTS>>::retains_host_call_input(
+            &self.inner,
+            request,
+            value,
+        )
+    }
+
+    fn cancel(&mut self) {
+        <PresentationToGenerativeRequestBack as StepBack<PORTS>>::cancel(&mut self.inner);
     }
 }
 
