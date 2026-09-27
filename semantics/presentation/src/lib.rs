@@ -30,6 +30,7 @@ mod manifestation_set;
 #[cfg(feature = "form-catalog")]
 mod mask_catalog;
 mod mask_form;
+mod mask_journey;
 mod mask_routes;
 mod mask_show;
 mod mask_wardrobe;
@@ -76,6 +77,7 @@ pub use manifestation_set::*;
 #[cfg(feature = "form-catalog")]
 pub use mask_catalog::*;
 pub use mask_form::*;
+pub use mask_journey::*;
 pub use mask_routes::*;
 pub use mask_show::*;
 pub use mask_wardrobe::*;
