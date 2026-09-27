@@ -24,7 +24,11 @@ mod relay;
 pub(crate) use relay::validate_endpoint_descriptor as validate_relay_endpoint_descriptor;
 
 const PROTOCOL: u16 = 1;
-const MAXIMUM_FRAME_BYTES: usize = 96 * 1024;
+// One control frame must hold the exact bounded standard Host advertisement
+// both before and after invitation admission. Keep this synchronized with the
+// browser peer; 128 KiB admits the current canonical catalog without making
+// the retained Line or its ordinary data frames unbounded.
+const MAXIMUM_FRAME_BYTES: usize = 128 * 1024;
 const MAXIMUM_ID_BYTES: usize = 192;
 const CODE_PREFIX: &str = "C1-WS";
 const SERIAL_CODE_PREFIX: &str = "C1-SERIAL";
