@@ -1,7 +1,7 @@
 use super::{
     default_placements, parse_placements, plan, plan_with_authority_grants,
-    plan_with_connection_limits, plan_with_line_offers, startup_order, PlacementChoice,
-    PlacementChoices, PlannerError,
+    plan_with_connection_limits, plan_with_line_offers, planned_keep_state, startup_order,
+    PlacementChoice, PlacementChoices, PlannerError,
 };
 use conduit_core::{
     authority_grant, kind_id, mandatory_sign_storage_requirement, present_authority_requirement,
@@ -90,6 +90,63 @@ fn host() -> HostAdvertisement {
             },
         ],
     }
+}
+
+#[test]
+fn retained_duration_derives_exact_state_plan_truth() {
+    let ordinary = plan(
+        &form(),
+        &[host()],
+        &default_placements(&form(), &[host()]).unwrap(),
+        &[BaseImplementationId::from("conduit.base/local@1")],
+    )
+    .unwrap();
+    let mut placement = ordinary.fragments[0].placements[0].clone();
+    placement.kind_id = kind_id("state/latest");
+    placement.inputs = vec![conduit_core::PortDescriptor {
+        port_id: conduit_core::port_id("in"),
+        value_kind: kind_id(conduit_core::DISTANCE_INFO_ID),
+        direction: conduit_core::PortDirection::Input,
+        temporal: conduit_core::PortTemporal::Value,
+        abnormal_kind: None,
+    }];
+    placement.outputs = vec![conduit_core::PortDescriptor {
+        port_id: conduit_core::port_id("out"),
+        value_kind: kind_id(conduit_core::DISTANCE_INFO_ID),
+        direction: conduit_core::PortDirection::Output,
+        temporal: conduit_core::PortTemporal::Current,
+        abnormal_kind: None,
+    }];
+    let initial = conduit_core::Quantity::new(3, conduit_core::QuantityUnit::Meter);
+    placement.configuration = vec![
+        conduit_core::ConfigurationEntry {
+            key: "retained-duration".into(),
+            value: conduit_core::ConfigurationValue::Text("wake".into()),
+        },
+        conduit_core::ConfigurationEntry {
+            key: "maximum-bytes".into(),
+            value: conduit_core::ConfigurationValue::U64(conduit_core::QUANTITY_ENCODED_LEN as u64),
+        },
+        conduit_core::ConfigurationEntry {
+            key: "initial".into(),
+            value: conduit_core::ConfigurationValue::Quantity(initial),
+        },
+    ];
+    let state = planned_keep_state(&placement).unwrap().unwrap();
+    assert_eq!(state.lifetime, conduit_core::StateLifetime::Wake);
+    assert_eq!(state.initial_value, Some(initial.encode().to_vec()));
+    assert_eq!(state.state_id.as_str(), placement.gear_id.as_str());
+
+    placement
+        .configuration
+        .retain(|entry| entry.key != "initial");
+    assert_eq!(
+        planned_keep_state(&placement)
+            .unwrap()
+            .unwrap()
+            .initial_value,
+        None
+    );
 }
 
 #[test]

@@ -127,7 +127,8 @@ pub fn derive_state_boundary(
         state_id: StateId::from(gear_id.as_str()),
         gear_id: gear_id.clone(),
         value_kind: initial.profile().clone(),
-        initial_value: initial.canonical_value().to_vec(),
+        initial_value: Some(initial.canonical_value().to_vec()),
+        lifetime: conduit_core::StateLifetime::Play,
         retained: None,
         maximum_value_bytes,
         continuation: StateContinuation::ExternallyBounded,
@@ -146,6 +147,7 @@ pub fn validate_state_placement(
         || placement.gear_id != state.gear_id
         || state.state_id.as_str() != state.gear_id.as_str()
         || state.continuation != StateContinuation::ExternallyBounded
+        || state.lifetime != conduit_core::StateLifetime::Play
     {
         return Err(StateValueAdmissionError::WrongContract);
     }
@@ -162,7 +164,7 @@ pub fn validate_state_placement(
     if entry.key != "initial"
         || initial.profile() != &state.value_kind
         || initial.profile() != &contract.outputs[0].value_kind
-        || initial.canonical_value() != state.initial_value
+        || state.initial_value.as_deref() != Some(initial.canonical_value())
         || placement.inputs != contract.inputs
         || placement.outputs != contract.outputs
     {
@@ -174,7 +176,11 @@ pub fn validate_state_placement(
     {
         return Err(StateValueAdmissionError::InvalidCapacity);
     }
-    if state.initial_value.len() > state.maximum_value_bytes as usize {
+    if state
+        .initial_value
+        .as_ref()
+        .is_some_and(|value| value.len() > state.maximum_value_bytes as usize)
+    {
         return Err(StateValueAdmissionError::InitialValueExceedsCapacity);
     }
     Ok(())

@@ -14,7 +14,7 @@ fn current_profiles_refuse_state_instead_of_ignoring_its_sealed_contract() {
 #[test]
 fn altered_state_refuses_as_invalid_before_profile_admission() {
     let mut plan = common::seal(common::fragment());
-    plan.fragments[0].states[0].initial_value = vec![8];
+    plan.fragments[0].states[0].initial_value = Some(vec![8]);
     assert!(matches!(
         lower_plan_fragment(&plan.fragments[0]),
         Err(LoweringError::InvalidFragment)

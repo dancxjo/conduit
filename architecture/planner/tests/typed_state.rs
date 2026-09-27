@@ -69,7 +69,7 @@ fn authored_state_reaches_an_exact_plan_and_rejects_silent_initialization_or_cap
     assert_ne!(sealed.plan_id, plan.plan_id);
     let placement = &sealed.fragments[0].placements[0];
     let mut altered = state.clone();
-    altered.initial_value = seed.canonical_bytes().unwrap();
+    altered.initial_value = Some(seed.canonical_bytes().unwrap());
     assert_eq!(
         validate_state_placement(placement, &altered),
         Err(StateValueAdmissionError::InvalidInitialization)

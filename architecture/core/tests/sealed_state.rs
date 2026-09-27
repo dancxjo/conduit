@@ -11,7 +11,7 @@ fn every_state_contract_field_is_an_immutable_plan_commitment() {
         |state| state.state_id = StateId::from("other"),
         |state| state.gear_id = GearId::from("other"),
         |state| state.value_kind = KindId::from("other@1"),
-        |state| state.initial_value = vec![8],
+        |state| state.initial_value = Some(vec![8]),
         |state| state.maximum_value_bytes = 2,
         |state| state.continuation = StateContinuation::MaximumTransitions(3),
     ];
@@ -83,7 +83,10 @@ fn retained_provenance_changes_plan_without_replacing_authored_initialization() 
     assert!(verify_plan(&continued));
     assert_ne!(fresh.plan_id, continued.plan_id);
     assert_eq!(fresh.checked_form_id, continued.checked_form_id);
-    assert_eq!(continued.fragments[0].states[0].initial_value, vec![7]);
+    assert_eq!(
+        continued.fragments[0].states[0].initial_value,
+        Some(vec![7])
+    );
     let retained = continued.fragments[0].states[0].retained.as_ref().unwrap();
     assert_eq!(retained.current_value, vec![9]);
     assert_eq!(retained.generation, 17);
