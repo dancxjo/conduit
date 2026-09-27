@@ -13,7 +13,11 @@ pub const INTERACTION_KIND: &str = "presentation/interaction";
 pub const PRESENTATION_TEE_KIND: &str = "presentation/tee";
 pub const PRESENTER_STAGE_KIND: &str = "presentation/presenter-stage";
 pub const PRESENTATION_VALUE_KIND: &str = "presentation/presentation@1";
-pub const MANIFESTATION_VALUE_KIND: &str = "presentation/manifestation@1";
+pub const SHOW_VALUE_KIND: &str = "presentation/show@1";
+/// Compatibility name for Rust callers while the internal Manifestation type
+/// is migrated to the canonical Show vocabulary. It names the Show semantic
+/// value and does not preserve the superseded authored identity.
+pub const MANIFESTATION_VALUE_KIND: &str = SHOW_VALUE_KIND;
 pub const RENDERER_CONTRACT_REVISION: &str = "conduit.presentation/renderer@1";
 pub const INTERACTION_CONTRACT_REVISION: &str = "conduit.presentation/interaction@1";
 pub const PRESENTATION_TEE_CONTRACT_REVISION: &str = "conduit.presentation/tee@1";
@@ -33,8 +37,8 @@ pub fn renderer_inputs() -> alloc::vec::Vec<PortDescriptor> {
 
 pub fn renderer_outputs() -> alloc::vec::Vec<PortDescriptor> {
     vec![PortDescriptor {
-        port_id: port_id("manifestation"),
-        value_kind: kind_id(MANIFESTATION_VALUE_KIND),
+        port_id: port_id("show"),
+        value_kind: kind_id(SHOW_VALUE_KIND),
         direction: PortDirection::Output,
         temporal: PortTemporal::Value,
     }]
@@ -49,8 +53,8 @@ pub fn interaction_inputs() -> alloc::vec::Vec<PortDescriptor> {
             temporal: PortTemporal::Value,
         },
         PortDescriptor {
-            port_id: port_id("manifestation"),
-            value_kind: kind_id(MANIFESTATION_VALUE_KIND),
+            port_id: port_id("show"),
+            value_kind: kind_id(SHOW_VALUE_KIND),
             direction: PortDirection::Input,
             temporal: PortTemporal::Value,
         },

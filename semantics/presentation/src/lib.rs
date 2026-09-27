@@ -27,6 +27,13 @@ mod linear;
 mod linear_navigation;
 mod manifestation;
 mod manifestation_set;
+#[cfg(feature = "form-catalog")]
+mod mask_catalog;
+mod mask_form;
+mod mask_routes;
+mod mask_show;
+mod mask_wardrobe;
+mod mask_wardrobe_control;
 mod navigation;
 mod navigation_journey;
 mod navigation_observation;
@@ -65,6 +72,13 @@ pub use linear::*;
 pub use linear_navigation::*;
 pub use manifestation::*;
 pub use manifestation_set::*;
+#[cfg(feature = "form-catalog")]
+pub use mask_catalog::*;
+pub use mask_form::*;
+pub use mask_routes::*;
+pub use mask_show::*;
+pub use mask_wardrobe::*;
+pub use mask_wardrobe_control::*;
 pub use navigation::*;
 pub use navigation_journey::*;
 pub use navigation_observation::*;
