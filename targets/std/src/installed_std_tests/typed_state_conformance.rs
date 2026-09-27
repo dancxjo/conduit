@@ -83,17 +83,19 @@ fn fixture(
             }],
         })
         .unwrap();
+    let source_contract = KindConfigurationField {
+        key: entry.key.clone(),
+        default_value: entry.value.clone(),
+        rule: KindConfigurationRule::TextBytes { maximum: 256 },
+    };
+    source.semantic_contract.configuration = vec![source_contract.clone()];
     profile
         .insert(KindProjection {
             kind_id: source.kind_id.clone(),
             kind_contract_revision: source.kind_contract_revision.clone(),
             inputs: source.inputs.clone(),
             outputs: source.outputs.clone(),
-            configuration: vec![KindConfigurationField {
-                key: entry.key,
-                default_value: entry.value,
-                rule: KindConfigurationRule::TextBytes { maximum: 256 },
-            }],
+            configuration: vec![source_contract],
         })
         .unwrap();
     let initial_payload =
@@ -148,17 +150,19 @@ fn fixture(
             }],
         })
         .unwrap();
+    let sink_contract = KindConfigurationField {
+        key: expectation_key.into(),
+        default_value: ConfigurationValue::Text(expected.clone()),
+        rule: KindConfigurationRule::TextBytes { maximum: 256 },
+    };
+    sink.semantic_contract.configuration = vec![sink_contract.clone()];
     profile
         .insert(KindProjection {
             kind_id: sink.kind_id.clone(),
             kind_contract_revision: sink.kind_contract_revision.clone(),
             inputs: sink.inputs.clone(),
             outputs: vec![],
-            configuration: vec![KindConfigurationField {
-                key: expectation_key.into(),
-                default_value: ConfigurationValue::Text(expected),
-                rule: KindConfigurationRule::TextBytes { maximum: 256 },
-            }],
+            configuration: vec![sink_contract],
         })
         .unwrap();
     let cell = if optional_keep {
@@ -183,7 +187,7 @@ fn fixture(
             .retain(|offer| offer.kind_id.as_str() != STATE_VALUE_KIND);
         advertisement
             .capabilities
-            .push(conduit_std_offers::state_value_std_offer("Cell", &ty).unwrap());
+            .push(conduit_std_offers::state_value_std_offer("Cell", &ty, &next).unwrap());
     }
     advertisement.capabilities.extend([source, sink]);
     (form, advertisement, next)
@@ -291,6 +295,7 @@ fn initialized_keep_plans_and_runs_as_installed_typed_state() {
         .find(|offer| offer.kind_id.as_str() == STATE_VALUE_KIND)
         .unwrap();
     assert_eq!(state_gear.checked_front(), state_offer.checked_front());
+    assert!(state_gear.accepts_semantic_contract(state_offer));
     let hosts = [advertisement.clone()];
     let placements = conduit_planner::default_placements(&form, &hosts).unwrap();
     let plan = conduit_planner::plan_with_connection_limits(

@@ -11,7 +11,7 @@ fn authored_state_reaches_an_exact_plan_and_rejects_silent_initialization_or_cap
     startup.insert_structured_type("Cell", ty.clone()).unwrap();
     install_state_value_kind("Cell", &ty, &seed, &mut startup, &mut profile).unwrap();
     // Planning-only external Flow; runtime production is outside this proof.
-    let mut source = conduit_std_offers::state_value_std_offer("Cell", &ty).unwrap();
+    let mut source = conduit_std_offers::state_value_std_offer("Cell", &ty, &seed).unwrap();
     source.kind_id = kind_id("fixture/typed-flow");
     source.kind_contract_revision = KindIdentity::from("fixture/typed-flow@1");
     source.capability_id = CapabilityId::from("fixture/typed-flow");
@@ -44,7 +44,7 @@ fn authored_state_reaches_an_exact_plan_and_rejects_silent_initialization_or_cap
     )
     .unwrap();
     let mut host = common::standard_planning_fixture("state-host", "state-boot");
-    let mut state_offer = conduit_std_offers::state_value_std_offer("Cell", &ty).unwrap();
+    let mut state_offer = conduit_std_offers::state_value_std_offer("Cell", &ty, &seed).unwrap();
     state_offer.semantic_contract = form
         .gears
         .iter()

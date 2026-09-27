@@ -981,7 +981,7 @@ fn validate_operation_capability(
             capability.capability_id.as_str()
         )));
     }
-    if capability.semantic_contract != gear.semantic_contract {
+    if !gear.accepts_semantic_contract(capability) {
         return Err(PlannerError::WrongKindContractRevision(format!(
             "gear '{}' semantic laws or configuration contract differ from capability '{}'",
             gear.gear_id.as_str(),

@@ -116,7 +116,6 @@ mod vision;
 pub use vision::*;
 
 use conduit_core::{CapabilityOffer, HostCallContractId, HostCallRequirement, SCALAR_ENCODED_LEN};
-use conduit_semantic_catalog::{realization_offer, RealizationOfferIdentity};
 
 pub const LOGIC_COMPARE_SCALAR_IMPLEMENTATION: &str = "std/kernel-logic-compare-scalar@1";
 pub const LOGIC_NOT_IMPLEMENTATION: &str = "std/kernel-logic-not@1";
@@ -130,8 +129,9 @@ pub const MATH_DEADBAND_HOST_CALL: &str = "conduit.host/math-deadband-scalar@1";
 
 pub fn logic_compare_scalar_offer() -> CapabilityOffer {
     functional_offer(
-        conduit_semantic_catalog::logic_compare_scalar_contract(),
-        conduit_semantic_catalog::LOGIC_COMPARE_SCALAR_CONTRACT_REVISION,
+        conduit_semantic_catalog::logic_compare_scalar_contract().into_semantic_contract(
+            conduit_semantic_catalog::LOGIC_COMPARE_SCALAR_CONTRACT_REVISION,
+        ),
         "logic-compare-scalar-v1",
         "conduit.std/logic-compare-scalar-kernel@1",
         LOGIC_COMPARE_SCALAR_IMPLEMENTATION,
@@ -142,8 +142,8 @@ pub fn logic_compare_scalar_offer() -> CapabilityOffer {
 
 pub fn logic_not_offer() -> CapabilityOffer {
     functional_offer(
-        conduit_semantic_catalog::logic_not_contract(),
-        conduit_semantic_catalog::LOGIC_NOT_CONTRACT_REVISION,
+        conduit_semantic_catalog::logic_not_contract()
+            .into_semantic_contract(conduit_semantic_catalog::LOGIC_NOT_CONTRACT_REVISION),
         "logic-not-v1",
         "conduit.std/logic-not-kernel@1",
         LOGIC_NOT_IMPLEMENTATION,
@@ -154,8 +154,9 @@ pub fn logic_not_offer() -> CapabilityOffer {
 
 pub fn logic_select_scalar_offer() -> CapabilityOffer {
     functional_offer(
-        conduit_semantic_catalog::logic_select_scalar_contract(),
-        conduit_semantic_catalog::LOGIC_SELECT_SCALAR_CONTRACT_REVISION,
+        conduit_semantic_catalog::logic_select_scalar_contract().into_semantic_contract(
+            conduit_semantic_catalog::LOGIC_SELECT_SCALAR_CONTRACT_REVISION,
+        ),
         "logic-select-scalar-v1",
         "conduit.std/logic-select-scalar-kernel@1",
         LOGIC_SELECT_SCALAR_IMPLEMENTATION,
@@ -166,8 +167,7 @@ pub fn logic_select_scalar_offer() -> CapabilityOffer {
 
 pub fn math_clamp_offer() -> CapabilityOffer {
     functional_offer(
-        conduit_semantic_catalog::math_clamp_contract(),
-        conduit_semantic_catalog::MATH_CLAMP_CONTRACT_REVISION,
+        conduit_semantic_catalog::math_clamp_semantic_contract(),
         "math-clamp-scalar-v1",
         "conduit.std/math-clamp-scalar-kernel@1",
         MATH_CLAMP_IMPLEMENTATION,
@@ -178,8 +178,7 @@ pub fn math_clamp_offer() -> CapabilityOffer {
 
 pub fn math_scale_offer() -> CapabilityOffer {
     functional_offer(
-        conduit_semantic_catalog::math_scale_contract(),
-        conduit_semantic_catalog::MATH_SCALE_CONTRACT_REVISION,
+        conduit_semantic_catalog::math_scale_semantic_contract(),
         "math-scale-scalar-v1",
         "conduit.std/math-scale-scalar-kernel@1",
         MATH_SCALE_IMPLEMENTATION,
@@ -190,8 +189,7 @@ pub fn math_scale_offer() -> CapabilityOffer {
 
 pub fn math_deadband_offer() -> CapabilityOffer {
     functional_offer(
-        conduit_semantic_catalog::math_deadband_contract(),
-        conduit_semantic_catalog::MATH_DEADBAND_CONTRACT_REVISION,
+        conduit_semantic_catalog::math_deadband_semantic_contract(),
         "math-deadband-scalar-v1",
         "conduit.std/math-deadband-scalar-kernel@1",
         MATH_DEADBAND_IMPLEMENTATION,
@@ -202,8 +200,7 @@ pub fn math_deadband_offer() -> CapabilityOffer {
 
 #[allow(clippy::too_many_arguments)]
 fn functional_offer(
-    contract: conduit_semantic_catalog::StandardKindContract,
-    revision: &str,
+    contract: conduit_core::Kind,
     capability: &str,
     execution_profile: &str,
     implementation: &str,
@@ -221,19 +218,19 @@ fn functional_offer(
         })
         .into_iter()
         .collect();
-    realization_offer(
+    conduit_core::BackOfferBuilder::new(
         contract,
-        revision,
-        RealizationOfferIdentity {
-            capability,
-            execution_profile,
-            implementation,
-            artifact,
+        conduit_core::Back {
+            capability_id: capability.into(),
+            execution_profile_id: execution_profile.into(),
+            implementation_id: implementation.into(),
+            artifact_id: artifact.into(),
+            host_calls,
+            resource_requirements: Vec::new(),
+            authority_requirements: Vec::new(),
         },
-        host_calls,
-        Vec::new(),
-        Vec::new(),
     )
+    .build()
 }
 
 /// Exact accepted std realization corresponding to every portable nucleus contract.

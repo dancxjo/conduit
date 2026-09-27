@@ -21,10 +21,37 @@ impl CheckedGear {
     pub fn accepts_realization(&self, offer: &conduit_core::CapabilityOffer) -> bool {
         self.kind_id == offer.kind_id
             && self.checked_front() == offer.checked_front()
-            && self.semantic_contract == offer.semantic_contract
+            && self.accepts_semantic_contract(offer)
             && (self.kind_contract_revision == offer.kind_contract_revision
                 || self.kind_contract_revision.as_str()
                     == conduit_core::STRUCTURAL_POLYMORPHIC_CONTRACT)
+    }
+
+    /// Exact Kind law and configuration-schema equality, excluding the finite
+    /// checker placeholder carried by a mandatory startup field. Mandatory
+    /// authored values belong to this Gear's `configuration`; only actual Kind
+    /// defaults (`has_default = true`) are part of realization identity.
+    pub fn accepts_semantic_contract(&self, offer: &conduit_core::CapabilityOffer) -> bool {
+        self.semantic_contract.laws == offer.semantic_contract.laws
+            && self.semantic_contract.configuration.len()
+                == offer.semantic_contract.configuration.len()
+            && self
+                .semantic_contract
+                .configuration
+                .iter()
+                .zip(&offer.semantic_contract.configuration)
+                .all(|(gear, offered)| {
+                    gear.key == offered.key
+                        && gear.rule == offered.rule
+                        && self
+                            .startup_parameters
+                            .iter()
+                            .find(|parameter| parameter.name == gear.key)
+                            .is_some_and(|parameter| {
+                                !parameter.has_default
+                                    || gear.default_value == offered.default_value
+                            })
+                })
     }
 
     #[doc(hidden)]

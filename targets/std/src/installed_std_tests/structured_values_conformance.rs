@@ -72,7 +72,7 @@ fn catalogs() -> (
 
 #[test]
 fn authored_quantities_survive_plan_play_sign_and_typed_presentation() {
-    let (startup, profile, value_type, _) = catalogs();
+    let (startup, profile, value_type, default) = catalogs();
     let source = "form quantity-proof {\n    value: structured-info/literal(value = {elapsed: 17ms, frequency: 440Hz})\n    show: presentation/structured-info\n    value >> show\n}\n";
     let syntax = parse_syntax_document(source);
     assert!(syntax.diagnostics.is_empty(), "{:?}", syntax.diagnostics);
@@ -80,7 +80,8 @@ fn authored_quantities_survive_plan_play_sign_and_typed_presentation() {
     let expanded =
         expand_canonical_form(&checked, "quantity-proof", &profile).expect("quantity Form expands");
 
-    let literal = conduit_std_offers::structured_literal_std_offer("TimedTone", &value_type);
+    let literal =
+        conduit_std_offers::structured_literal_std_offer("TimedTone", &value_type, &default);
     let presenter = conduit_std_offers::structured_presentation_std_offer("TimedTone", &value_type);
     let mut advertisement = host("structured-quantity-host").advertisement().clone();
     advertisement.capabilities.extend([literal, presenter]);

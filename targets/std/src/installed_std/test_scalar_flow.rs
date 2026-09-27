@@ -295,29 +295,17 @@ pub(super) fn install_catalog(catalog: &mut ProfileCatalog) {
                 },
             }],
         },
-        KindProjection {
-            kind_id: kind_id(conduit_semantic_catalog::LATEST_KIND),
-            kind_contract_revision: KindIdentity::from(
-                conduit_semantic_catalog::STATE_LATEST_SCALAR_CONTRACT_REVISION,
-            ),
-            inputs: conduit_semantic_catalog::state_latest_scalar_contract().inputs,
-            outputs: conduit_semantic_catalog::state_latest_scalar_contract().outputs,
-            configuration: Default::default(),
-        },
-        KindProjection {
-            kind_id: kind_id(conduit_semantic_catalog::TEE_KIND),
-            kind_contract_revision: KindIdentity::from(
-                conduit_semantic_catalog::FLOW_TEE_SCALAR_CONTRACT_REVISION,
-            ),
-            inputs: conduit_semantic_catalog::flow_tee_scalar_contract().inputs,
-            outputs: conduit_semantic_catalog::flow_tee_scalar_contract().outputs,
-            configuration: Default::default(),
-        },
     ] {
         catalog
             .insert(definition)
             .expect("scalar flow fixture kind is exact and unique");
     }
+    catalog
+        .insert_kind(conduit_semantic_catalog::state_latest_scalar_semantic_contract())
+        .expect("latest scalar fixture retains the canonical contract");
+    catalog
+        .insert_kind(conduit_semantic_catalog::flow_tee_scalar_semantic_contract())
+        .expect("scalar tee fixture retains the canonical contract");
 }
 
 fn scalar_port(name: &str, direction: PortDirection, temporal: PortTemporal) -> PortDescriptor {

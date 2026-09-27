@@ -15,12 +15,17 @@ pub const STATE_VALUE_STD_MAXIMUM_BYTES: u32 = 100;
 pub fn state_value_std_offer(
     type_name: &str,
     value_type: &StructuredInfoType,
+    default_value: &conduit_core::StructuredInfoValue,
 ) -> Result<CapabilityOffer, StructuredInfoRefusal> {
-    let mut contract =
-        conduit_semantic_catalog::state_value::state_value_contract(type_name, value_type)?;
+    let mut contract = conduit_semantic_catalog::state_value::state_value_semantic_contract(
+        type_name,
+        value_type,
+        default_value,
+    )
+    .map_err(|_| StructuredInfoRefusal::WrongType)?;
     contract.limits.max_queue_bytes = STATE_VALUE_STD_MAXIMUM_BYTES;
     let value_kind = contract.outputs[0].value_kind.as_str();
-    let semantic_contract = conduit_core::KindSemanticContract::default();
+    let semantic_contract = contract.semantic_contract();
     Ok(conduit_core::capability_offer_from_parts! {
         capability_id: CapabilityId::from(format!("std-state-value-{value_kind}")),
         kind_id: contract.kind_id,
@@ -54,7 +59,12 @@ mod tests {
             StructuredInfoType::leaf(conduit_core::kind_id(conduit_core::BOOL_INFO_ID)).unwrap();
         let contract =
             conduit_semantic_catalog::state_value::state_value_contract("Cell", &ty).unwrap();
-        let offer = state_value_std_offer("Cell", &ty).unwrap();
+        let default = conduit_core::StructuredInfoValue::leaf(
+            ty.clone(),
+            conduit_core::InfoBool::FALSE.encode().to_vec(),
+        )
+        .unwrap();
+        let offer = state_value_std_offer("Cell", &ty, &default).unwrap();
         assert_eq!(offer.inputs, contract.inputs);
         assert_eq!(offer.outputs, contract.outputs);
         assert_eq!(offer.startup_parameters, contract.startup_parameters);

@@ -1,13 +1,13 @@
-use super::{state_value_contract, STATE_VALUE_KIND, STATE_VALUE_REVISION};
+use super::{
+    state_value_contract, state_value_semantic_contract, STATE_VALUE_KIND, STATE_VALUE_REVISION,
+};
 use alloc::{string::String, vec, vec::Vec};
 use conduit_core::{
     ConfigurationValue, GearId, PlannedStateBoundary, StateContinuation, StateId,
-    StructuredConfigurationValue, StructuredInfoType, StructuredInfoValue,
-    MAXIMUM_STRUCTURED_CANONICAL_BYTES,
+    StructuredInfoType, StructuredInfoValue, MAXIMUM_STRUCTURED_CANONICAL_BYTES,
 };
 use conduit_form::{
-    CheckedForm, KindConfigurationField, KindConfigurationRule, KindProjection, KindSignature,
-    ProfileCatalog, StartupCatalog, StartupParameterSignature,
+    CheckedForm, KindSignature, ProfileCatalog, StartupCatalog, StartupParameterSignature,
 };
 
 /// Install the kind for a structured type already registered by the caller.
@@ -24,19 +24,7 @@ pub fn install_state_value_kind(
     if default_value.value_type() != value_type {
         return Err("State initialization has the wrong exact structured type".into());
     }
-    let contract =
-        state_value_contract(type_name, value_type).map_err(|e| alloc::format!("{e:?}"))?;
-    let initial = StructuredConfigurationValue::new(
-        value_type
-            .profile()
-            .map_err(|e| alloc::format!("{e:?}"))?
-            .value_kind()
-            .clone(),
-        default_value
-            .canonical_bytes()
-            .map_err(|e| alloc::format!("{e:?}"))?,
-    )
-    .ok_or_else(|| String::from("invalid finite State initialization"))?;
+    let contract = state_value_semantic_contract(type_name, value_type, default_value)?;
     startup.insert(KindSignature {
         kind: STATE_VALUE_KIND.into(),
         startup_parameters: vec![StartupParameterSignature {
@@ -46,19 +34,7 @@ pub fn install_state_value_kind(
         }],
     })?;
     profile
-        .insert(KindProjection {
-            kind_id: contract.kind_id,
-            kind_contract_revision: contract.kind_contract_revision,
-            inputs: contract.inputs,
-            outputs: contract.outputs,
-            configuration: vec![KindConfigurationField {
-                key: "initial".into(),
-                rule: KindConfigurationRule::Structured {
-                    profile: initial.profile().clone(),
-                },
-                default_value: ConfigurationValue::Structured(initial),
-            }],
-        })
+        .insert_kind(contract)
         .map_err(|e| alloc::format!("{e:?}"))
 }
 
