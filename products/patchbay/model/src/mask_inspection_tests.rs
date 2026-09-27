@@ -6,7 +6,8 @@ use conduit_presentation::{
     MaskBoundaryPort, MaskBoundaryRole, MaskCordSpecification, MaskPlanningDisposition,
     MaskReconciliation, MaskShowDisposition, MaskSpecification, MaskStageId,
     MaskStageSpecification, MaskWardrobe, MaskWardrobeLifetime, PlannedMask, PlannedMaskCord,
-    PlannedMaskStage, SealedMaskRoute,
+    PlannedMaskStage, Presentation, PresentationBasis, PresentationRole, PresentationSubject,
+    SealedMaskRoute,
 };
 
 use crate::{project_mask_inspection, MaskInspectionError};
@@ -80,6 +81,29 @@ fn mask_specification(name: &str) -> MaskSpecification {
 }
 
 fn planned(specification: &MaskSpecification) -> PlannedMask {
+    let presentation = Presentation::new(
+        1,
+        PresentationBasis {
+            body_id: None,
+            wake_id: None,
+            source_document_id: None,
+            checked_form_id: None,
+            expanded_form_id: None,
+            plan_id: None,
+            active_play_id: None,
+            sign_ids: vec![],
+        },
+        vec![PresentationSubject {
+            identity: "face/root".into(),
+            role: PresentationRole::Document,
+            label: "Face".into(),
+            accessibility_name: "Face".into(),
+        }],
+        vec![],
+        vec![],
+        vec![],
+    )
+    .unwrap();
     let stages = specification
         .stages
         .iter()
@@ -100,6 +124,8 @@ fn planned(specification: &MaskSpecification) -> PlannedMask {
     PlannedMask {
         specification_id: specification.specification_id.clone(),
         specification_revision: specification.revision,
+        presentation_id: presentation.identity,
+        presentation_revision: presentation.revision,
         plan_id: PlanId::from("plan/current"),
         stage_placements: vec![],
         stages,

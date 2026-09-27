@@ -335,8 +335,10 @@ fn one_mask_chain_preserves_heterogeneous_language_text_and_pcm_stages() {
             .placement_id
             .clone()
     };
+    let presentation = common::presentation(&form, &sealed);
     let admitted = specification
         .admit_plan(
+            &presentation,
             &sealed,
             vec![
                 MaskStagePlacement {
@@ -364,7 +366,6 @@ fn one_mask_chain_preserves_heterogeneous_language_text_and_pcm_stages() {
     assert_eq!(admitted.cords.len(), 2);
     assert_eq!(admitted.stages[2].implementation_id.as_str(), "output@1");
 
-    let presentation = common::presentation(&form, &sealed);
     let terminal = admitted
         .stages
         .iter()

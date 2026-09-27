@@ -8,7 +8,7 @@ use conduit_presentation::{
     AdmittedMaskRoutes, BodyMaskWardrobe, MaskBoundaryPort, MaskBoundaryRole,
     MaskPlanningDisposition, MaskShowDisposition, MaskSpecification, MaskStageId,
     MaskStageSpecification, MaskWardrobe, MaskWardrobeLifetime, PlannedMask, PlannedMaskStage,
-    SealedMaskRoute,
+    Presentation, PresentationBasis, PresentationRole, PresentationSubject, SealedMaskRoute,
 };
 
 use crate::{MaskWardrobeAction, MaskWardrobeControl, MaskWardrobeControlError};
@@ -67,11 +67,14 @@ fn admitted(
     specifications: &[MaskSpecification],
     routes: Vec<SealedMaskRoute>,
 ) -> AdmittedMaskRoutes {
+    let presentation = presentation(plan);
     let planned = specifications
         .iter()
         .map(|specification| PlannedMask {
             specification_id: specification.specification_id.clone(),
             specification_revision: specification.revision,
+            presentation_id: presentation.identity.clone(),
+            presentation_revision: presentation.revision,
             plan_id: PlanId::from(plan),
             stage_placements: vec![],
             stages: vec![PlannedMaskStage {
@@ -88,6 +91,32 @@ fn admitted(
         })
         .collect::<Vec<_>>();
     AdmittedMaskRoutes::new(PlanId::from(plan), specifications, &planned, routes).unwrap()
+}
+
+fn presentation(_plan: &str) -> Presentation {
+    Presentation::new(
+        1,
+        PresentationBasis {
+            body_id: None,
+            wake_id: None,
+            source_document_id: None,
+            checked_form_id: None,
+            expanded_form_id: None,
+            plan_id: None,
+            active_play_id: None,
+            sign_ids: vec![],
+        },
+        vec![PresentationSubject {
+            identity: "face/root".into(),
+            role: PresentationRole::Document,
+            label: "Face".into(),
+            accessibility_name: "Face".into(),
+        }],
+        vec![],
+        vec![],
+        vec![],
+    )
+    .unwrap()
 }
 
 fn body() -> Body {
@@ -239,6 +268,8 @@ fn fabricated_route_stage_is_refused_before_runtime_selection() {
     let planned = PlannedMask {
         specification_id: spoken.specification_id.clone(),
         specification_revision: spoken.revision,
+        presentation_id: presentation("plan/a").identity,
+        presentation_revision: 1,
         plan_id: PlanId::from("plan/a"),
         stage_placements: vec![],
         stages: vec![],

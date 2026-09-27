@@ -43,6 +43,7 @@ pub struct MaskInteractionCorrelation {
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum MaskShowError {
     StaleSpecification,
+    StalePresentation,
     StalePlan,
     MissingShowBoundary,
     MissingTerminalStage,
@@ -64,7 +65,7 @@ impl MaskShow {
         target_subject: String,
         sign_id: SignId,
     ) -> Result<Self, MaskShowError> {
-        validate_basis(specification, planned_mask, plan)?;
+        validate_basis(specification, planned_mask, presentation, plan)?;
         let terminal = terminal_placement(specification, planned_mask)?;
         let manifestation = Manifestation::prepared_at_mask_terminal(
             presentation,
@@ -120,7 +121,7 @@ impl MaskShow {
         presentation: &Presentation,
         plan: &Plan,
     ) -> Result<(), MaskShowError> {
-        validate_basis(specification, &self.planned_mask, plan)?;
+        validate_basis(specification, &self.planned_mask, presentation, plan)?;
         let terminal = terminal_placement(specification, &self.planned_mask)?;
         if self.specification_id != specification.specification_id
             || self.specification_revision != specification.revision
@@ -172,6 +173,7 @@ impl MaskShow {
 fn validate_basis(
     specification: &MaskSpecification,
     planned_mask: &PlannedMask,
+    presentation: &Presentation,
     plan: &Plan,
 ) -> Result<(), MaskShowError> {
     if planned_mask.specification_id != specification.specification_id
@@ -181,6 +183,11 @@ fn validate_basis(
     }
     if planned_mask.plan_id != plan.plan_id {
         return Err(MaskShowError::StalePlan);
+    }
+    if planned_mask.presentation_id != presentation.identity
+        || planned_mask.presentation_revision != presentation.revision
+    {
+        return Err(MaskShowError::StalePresentation);
     }
     Ok(())
 }

@@ -7,8 +7,8 @@
 use alloc::{collections::BTreeMap, string::String, vec::Vec};
 use conduit_core::{
     verify_plan, AdmittedLine, ArtifactId, BootId, CapabilityId, ConnectionId, HostId,
-    ImplementationId, KindId, KindIdentity, PlacementId, Plan, PlanId, PortDescriptor,
-    PortDirection, PortId, ResourceBinding,
+    ImplementationId, KindId, KindIdentity, PlacementId, Plan, PlanId, PortDescriptor, PortId,
+    ResourceBinding,
 };
 use serde::{Deserialize, Serialize};
 
@@ -16,9 +16,11 @@ use serde::{Deserialize, Serialize};
 mod identity;
 use identity::{bind_specification, validate_identity};
 
-use crate::{
-    MANIFESTATION_VALUE_KIND, PRESENTATION_INTERACTION_VALUE_KIND, PRESENTATION_VALUE_KIND,
-};
+#[path = "mask_specification/topology.rs"]
+mod topology;
+use topology::{validate_boundaries, validate_cords, validate_stages, validate_topology};
+
+use crate::{Presentation, PresentationContentId};
 
 pub const MAX_MASK_STAGES: usize = 16;
 pub const MAX_MASK_CORDS: usize = 32;
@@ -102,6 +104,8 @@ pub struct MaskStagePlacement {
 pub struct PlannedMask {
     pub specification_id: MaskSpecificationId,
     pub specification_revision: u64,
+    pub presentation_id: PresentationContentId,
+    pub presentation_revision: u64,
     pub plan_id: PlanId,
     pub stage_placements: Vec<MaskStagePlacement>,
     pub stages: Vec<PlannedMaskStage>,
@@ -159,6 +163,7 @@ pub enum MaskSpecificationError {
     MissingPlannedCord,
     UnexpectedPlannedStage,
     UnexpectedPlannedCord,
+    InvalidPresentation,
 }
 
 impl MaskSpecification {
@@ -197,11 +202,18 @@ impl MaskSpecification {
 
     pub fn admit_plan(
         &self,
+        presentation: &Presentation,
         plan: &Plan,
         mut stage_placements: Vec<MaskStagePlacement>,
     ) -> Result<PlannedMask, MaskSpecificationError> {
         if !verify_plan(plan) {
             return Err(MaskSpecificationError::InvalidPlan);
+        }
+        presentation
+            .validate()
+            .map_err(|_| MaskSpecificationError::InvalidPresentation)?;
+        if presentation.basis.plan_id.as_ref() != Some(&plan.plan_id) {
+            return Err(MaskSpecificationError::InvalidPresentation);
         }
         if stage_placements.len() != self.stages.len() {
             return Err(MaskSpecificationError::IncompleteStagePlacement);
@@ -300,200 +312,12 @@ impl MaskSpecification {
         Ok(PlannedMask {
             specification_id: self.specification_id.clone(),
             specification_revision: self.revision,
+            presentation_id: presentation.identity.clone(),
+            presentation_revision: presentation.revision,
             plan_id: plan.plan_id.clone(),
             stage_placements,
             stages: admitted_stages,
             cords: admitted_cords,
         })
     }
-}
-
-fn validate_stages(stages: &[MaskStageSpecification]) -> Result<(), MaskSpecificationError> {
-    for (index, stage) in stages.iter().enumerate() {
-        validate_identity(stage.stage_id.as_str())?;
-        if stages[index + 1..]
-            .iter()
-            .any(|other| other.stage_id == stage.stage_id)
-        {
-            return Err(MaskSpecificationError::DuplicateStage);
-        }
-        if stage
-            .inputs
-            .iter()
-            .any(|port| port.direction != PortDirection::Input)
-            || stage
-                .outputs
-                .iter()
-                .any(|port| port.direction != PortDirection::Output)
-        {
-            return Err(MaskSpecificationError::WrongPortDirection);
-        }
-    }
-    Ok(())
-}
-
-fn validate_cords(
-    stages: &[MaskStageSpecification],
-    cords: &[MaskCordSpecification],
-) -> Result<(), MaskSpecificationError> {
-    for (index, cord) in cords.iter().enumerate() {
-        if cords[index + 1..].contains(cord) {
-            return Err(MaskSpecificationError::DuplicateCord);
-        }
-        let source = stage(stages, &cord.source_stage_id)?;
-        let sink = stage(stages, &cord.sink_stage_id)?;
-        let output = source
-            .outputs
-            .iter()
-            .find(|port| port.port_id == cord.source_port_id)
-            .ok_or(MaskSpecificationError::UnknownPort)?;
-        let input = sink
-            .inputs
-            .iter()
-            .find(|port| port.port_id == cord.sink_port_id)
-            .ok_or(MaskSpecificationError::UnknownPort)?;
-        if output.value_kind != cord.value_kind || input.value_kind != cord.value_kind {
-            return Err(MaskSpecificationError::IncompatibleCord);
-        }
-    }
-    Ok(())
-}
-
-fn validate_topology(
-    stages: &[MaskStageSpecification],
-    cords: &[MaskCordSpecification],
-    boundaries: &[MaskBoundaryPort],
-) -> Result<(), MaskSpecificationError> {
-    let mut incoming = stages
-        .iter()
-        .map(|stage| (stage.stage_id.clone(), 0usize))
-        .collect::<BTreeMap<_, _>>();
-    let mut outgoing = BTreeMap::<MaskStageId, Vec<MaskStageId>>::new();
-    for cord in cords {
-        *incoming
-            .get_mut(&cord.sink_stage_id)
-            .ok_or(MaskSpecificationError::UnknownStage)? += 1;
-        outgoing
-            .entry(cord.source_stage_id.clone())
-            .or_default()
-            .push(cord.sink_stage_id.clone());
-    }
-    if stages.iter().any(|stage| {
-        incoming[&stage.stage_id] == 0
-            && !outgoing.contains_key(&stage.stage_id)
-            && !boundaries
-                .iter()
-                .any(|boundary| boundary.stage_id == stage.stage_id)
-    }) {
-        return Err(MaskSpecificationError::OrphanStage);
-    }
-    let mut ready = incoming
-        .iter()
-        .filter_map(|(stage, count)| (*count == 0).then_some(stage.clone()))
-        .collect::<Vec<_>>();
-    let mut visited = 0usize;
-    while let Some(stage) = ready.pop() {
-        visited += 1;
-        if let Some(successors) = outgoing.get(&stage) {
-            for successor in successors {
-                let count = incoming
-                    .get_mut(successor)
-                    .ok_or(MaskSpecificationError::UnknownStage)?;
-                *count -= 1;
-                if *count == 0 {
-                    ready.push(successor.clone());
-                }
-            }
-        }
-    }
-    if visited != stages.len() {
-        return Err(MaskSpecificationError::CyclicTopology);
-    }
-    Ok(())
-}
-
-fn validate_boundaries(
-    stages: &[MaskStageSpecification],
-    boundaries: &[MaskBoundaryPort],
-) -> Result<(), MaskSpecificationError> {
-    if boundaries.iter().enumerate().any(|(index, boundary)| {
-        boundaries[index + 1..].iter().any(|other| {
-            other.role == boundary.role
-                && other.stage_id == boundary.stage_id
-                && other.port_id == boundary.port_id
-        })
-    }) {
-        return Err(MaskSpecificationError::DuplicateBoundary);
-    }
-    let mut presentations = 0;
-    let mut shows = 0;
-    let mut local_interactions = 0;
-    let mut face_interactions = 0;
-    for boundary in boundaries {
-        let stage = stage(stages, &boundary.stage_id)?;
-        let (ports, expected_direction, expected_kind) = match boundary.role {
-            MaskBoundaryRole::PresentationInput => {
-                presentations += 1;
-                (
-                    &stage.inputs,
-                    PortDirection::Input,
-                    Some(PRESENTATION_VALUE_KIND),
-                )
-            }
-            MaskBoundaryRole::ShowOutput => {
-                shows += 1;
-                (
-                    &stage.outputs,
-                    PortDirection::Output,
-                    Some(MANIFESTATION_VALUE_KIND),
-                )
-            }
-            MaskBoundaryRole::LocalInteractionInput => {
-                local_interactions += 1;
-                (&stage.inputs, PortDirection::Input, None)
-            }
-            MaskBoundaryRole::FaceInteractionOutput => {
-                face_interactions += 1;
-                (
-                    &stage.outputs,
-                    PortDirection::Output,
-                    Some(PRESENTATION_INTERACTION_VALUE_KIND),
-                )
-            }
-        };
-        let port = ports
-            .iter()
-            .find(|port| port.port_id == boundary.port_id)
-            .ok_or(MaskSpecificationError::UnknownPort)?;
-        if port.direction != expected_direction {
-            return Err(MaskSpecificationError::WrongPortDirection);
-        }
-        if expected_kind.is_some_and(|kind| port.value_kind.as_str() != kind) {
-            return Err(MaskSpecificationError::IncompatibleCord);
-        }
-    }
-    match presentations {
-        0 => return Err(MaskSpecificationError::MissingPresentationInput),
-        1 => {}
-        _ => return Err(MaskSpecificationError::MultiplePresentationInputs),
-    }
-    match shows {
-        0 => return Err(MaskSpecificationError::MissingShowOutput),
-        1 => {}
-        _ => return Err(MaskSpecificationError::MultipleShowOutputs),
-    }
-    if (local_interactions == 0) != (face_interactions == 0) {
-        return Err(MaskSpecificationError::IncompleteInteractionBoundary);
-    }
-    Ok(())
-}
-
-fn stage<'a>(
-    stages: &'a [MaskStageSpecification],
-    id: &MaskStageId,
-) -> Result<&'a MaskStageSpecification, MaskSpecificationError> {
-    stages
-        .iter()
-        .find(|stage| &stage.stage_id == id)
-        .ok_or(MaskSpecificationError::UnknownStage)
 }

@@ -247,6 +247,7 @@ fn mask_local_input_is_correlated_to_one_exact_show_before_face_delivery() {
     .unwrap();
     let planned = specification
         .admit_plan(
+            &presentation,
             &plan,
             vec![MaskStagePlacement {
                 stage_id,
