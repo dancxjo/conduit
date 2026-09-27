@@ -22,6 +22,7 @@ mod model;
 mod package_contract;
 mod release_catalog;
 mod runtime;
+mod source_package;
 mod validation;
 
 #[cfg(test)]
@@ -46,6 +47,7 @@ pub use model::*;
 pub use package_contract::*;
 pub use release_catalog::*;
 pub use runtime::*;
+pub use source_package::*;
 pub use validation::{validate_profile, ProfileDiagnostic, ValidatedHostProfile};
 
 #[cfg(test)]
