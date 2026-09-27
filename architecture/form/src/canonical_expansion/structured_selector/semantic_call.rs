@@ -24,6 +24,13 @@ pub(super) fn expand_semantic_call_graph(
             "semantic call graph must be rooted at a semantic Kind call".into(),
         ));
     };
+    if arguments.is_empty() {
+        return Err(CanonicalExpansionDiagnostic::new(
+            "CND-FRM-046",
+            "zero-input semantic calls need an explicit activation law before they can appear in a one-input expression"
+                .into(),
+        ));
+    }
     let root = expand_one(
         kind,
         source_span,
@@ -109,6 +116,13 @@ fn expand_argument_expression(
     gear_ids: &mut BTreeSet<GearId>,
     anonymous_counts: &mut BTreeMap<String, usize>,
 ) -> Result<Stage, CanonicalExpansionDiagnostic> {
+    if contains_semantic_call(expression) {
+        return Err(CanonicalExpansionDiagnostic::new(
+            "CND-FRM-046",
+            "a semantic call nested inside an operator argument needs explicit graph decomposition"
+                .into(),
+        ));
+    }
     let input_type = crate::CheckedExpressionType::Semantic(input_kind.clone());
     let expected_type = crate::CheckedExpressionType::Semantic(expected_kind.clone());
     let semantic_kinds = catalog
@@ -199,6 +213,36 @@ fn expand_argument_expression(
             port: output,
         })),
     })
+}
+
+fn contains_semantic_call(expression: &crate::ExpressionSyntax) -> bool {
+    match expression {
+        crate::ExpressionSyntax::SemanticCall { .. } => true,
+        crate::ExpressionSyntax::Projection { value, .. }
+        | crate::ExpressionSyntax::Unary { operand: value, .. } => contains_semantic_call(value),
+        crate::ExpressionSyntax::Binary { left, right, .. } => {
+            contains_semantic_call(left) || contains_semantic_call(right)
+        }
+        crate::ExpressionSyntax::Conditional {
+            condition,
+            when_true,
+            when_false,
+            ..
+        } => {
+            contains_semantic_call(condition)
+                || contains_semantic_call(when_true)
+                || contains_semantic_call(when_false)
+        }
+        crate::ExpressionSyntax::Tuple { values, .. }
+        | crate::ExpressionSyntax::Collection { values, .. } => {
+            values.iter().any(contains_semantic_call)
+        }
+        crate::ExpressionSyntax::Record { fields, .. } => fields
+            .iter()
+            .any(|field| contains_semantic_call(&field.value)),
+        crate::ExpressionSyntax::Variant { payload, .. } => contains_semantic_call(payload),
+        crate::ExpressionSyntax::Input(_) | crate::ExpressionSyntax::Atomic(_) => false,
+    }
 }
 
 fn connect(source: Endpoint, sink: Endpoint, connections: &mut Vec<CheckedConnection>) {
