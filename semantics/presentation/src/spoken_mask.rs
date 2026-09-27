@@ -12,6 +12,13 @@ use crate::{GeneratedManifestation, MaskShow, MaskShowError, Presentation};
 pub const SPOKEN_MASK_ARTIFACT_RECEIPT_KIND: &str =
     "conduit.presentation/spoken-mask-artifact-receipt@1";
 pub const MAX_SPOKEN_MASK_ARTIFACT_IDENTITY_BYTES: usize = 256;
+pub const PRESENTATION_TO_GENERATIVE_REQUEST_KIND: &str = "presentation/adapt-generative-request";
+pub const GENERATED_MANIFESTATION_TO_SPEECH_KIND: &str =
+    "presentation/generated-manifestation-speech";
+pub const SPOKEN_ARTIFACT_KIND: &str = "presentation/spoken-artifact";
+pub const ARTIFACT_ACKNOWLEDGED_SHOW_KIND: &str = "presentation/artifact-acknowledged-show";
+pub const CLOSING_NO_INTERACTION_KIND: &str = "presentation/no-interaction";
+pub const SPOKEN_MASK_CONTRACT_REVISION: &str = "conduit.presentation/spoken-mask-stage@1";
 
 #[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
 #[serde(deny_unknown_fields)]
@@ -88,4 +95,134 @@ impl ArtifactAcknowledgedSpokenShow {
             .validate(presentation)
             .map_err(SpokenMaskShowError::InvalidShow)
     }
+}
+
+#[cfg(feature = "form-catalog")]
+pub fn install_spoken_mask_catalog(
+    startup: &mut conduit_form::StartupCatalog,
+    profiles: &mut conduit_form::ProfileCatalog,
+) -> Result<(), alloc::string::String> {
+    for kind in spoken_mask_kinds() {
+        startup
+            .insert(conduit_form::KindSignature {
+                kind: kind.kind_id.as_str().into(),
+                startup_parameters: alloc::vec::Vec::new(),
+            })
+            .map_err(|error| alloc::format!("install spoken Mask signature: {error:?}"))?;
+        profiles
+            .insert_kind(kind)
+            .map_err(|error| alloc::format!("install spoken Mask profile: {error:?}"))?;
+    }
+    Ok(())
+}
+
+pub fn spoken_mask_kinds() -> alloc::vec::Vec<conduit_core::Kind> {
+    use conduit_core::{
+        kind_id, port_id, CapabilityLimits, Kind, KindIdentity, PortDescriptor, PortDirection,
+        PortTemporal,
+    };
+    let port = |name: &str, value_kind: &str, direction: PortDirection, temporal: PortTemporal| {
+        PortDescriptor {
+            port_id: port_id(name),
+            value_kind: kind_id(value_kind),
+            direction,
+            temporal,
+            abnormal_kind: None,
+        }
+    };
+    let kind = |identity: &str, inputs: alloc::vec::Vec<_>, outputs: alloc::vec::Vec<_>| Kind {
+        startup_parameters: alloc::vec::Vec::new(),
+        shorthand: None,
+        kind_id: kind_id(identity),
+        kind_contract_revision: KindIdentity::from(SPOKEN_MASK_CONTRACT_REVISION),
+        inputs,
+        outputs,
+        configuration: Default::default(),
+        semantic_laws: Default::default(),
+        limits: CapabilityLimits {
+            max_active_instances: 4,
+            max_queue_items: 2,
+            max_queue_bytes: (crate::MAX_GENERATIVE_PRESENTER_INPUT_BYTES * 2) as u32,
+        },
+    };
+    alloc::vec![
+        kind(
+            PRESENTATION_TO_GENERATIVE_REQUEST_KIND,
+            alloc::vec![port(
+                "presentation",
+                crate::PRESENTATION_VALUE_KIND,
+                PortDirection::Input,
+                PortTemporal::Value,
+            )],
+            alloc::vec![port(
+                "request",
+                crate::GENERATIVE_PRESENTER_INPUT_KIND,
+                PortDirection::Output,
+                PortTemporal::Value,
+            )],
+        ),
+        kind(
+            GENERATED_MANIFESTATION_TO_SPEECH_KIND,
+            alloc::vec![port(
+                "manifestation",
+                crate::GENERATED_MANIFESTATION_KIND,
+                PortDirection::Input,
+                PortTemporal::Value,
+            )],
+            alloc::vec![port(
+                "speech",
+                "value/text",
+                PortDirection::Output,
+                PortTemporal::Value,
+            )],
+        ),
+        kind(
+            SPOKEN_ARTIFACT_KIND,
+            alloc::vec![port(
+                "audio",
+                "audio/pcm-frames@1",
+                PortDirection::Input,
+                PortTemporal::Flow { closes: true },
+            )],
+            alloc::vec![port(
+                "receipt",
+                SPOKEN_MASK_ARTIFACT_RECEIPT_KIND,
+                PortDirection::Output,
+                PortTemporal::Value,
+            )],
+        ),
+        kind(
+            ARTIFACT_ACKNOWLEDGED_SHOW_KIND,
+            alloc::vec![
+                port(
+                    "manifestation",
+                    crate::GENERATED_MANIFESTATION_KIND,
+                    PortDirection::Input,
+                    PortTemporal::Value,
+                ),
+                port(
+                    "artifact",
+                    SPOKEN_MASK_ARTIFACT_RECEIPT_KIND,
+                    PortDirection::Input,
+                    PortTemporal::Value,
+                ),
+            ],
+            alloc::vec![port(
+                "show",
+                crate::SHOW_VALUE_KIND,
+                PortDirection::Output,
+                PortTemporal::Value,
+            )],
+        ),
+        kind(
+            CLOSING_NO_INTERACTION_KIND,
+            alloc::vec![],
+            alloc::vec![port(
+                "interaction",
+                crate::PRESENTATION_INTERACTION_VALUE_KIND,
+                PortDirection::Output,
+                PortTemporal::Flow { closes: true },
+            )],
+        ),
+    ]
 }
