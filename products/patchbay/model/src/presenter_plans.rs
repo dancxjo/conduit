@@ -105,8 +105,7 @@ pub fn recursive_form_demonstration() -> Result<conduit_presentation::Presentati
     subjects.push(conduit_presentation::PresentationSubject {
         identity: body_subject,
         role: conduit_presentation::PresentationRole::Body,
-        label: "Recursive Form demonstration Body".into(),
-        accessibility_name: "Body containing one recursively realized Form".into(),
+        name: "Recursive Form demonstration Body".into(),
     });
     conduit_presentation::Presentation::new_with_semantics(
         presentation.revision,

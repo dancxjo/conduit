@@ -27,8 +27,7 @@ pub(crate) fn append(
     subjects.push(PresentationSubject {
         identity: TOUR_LESSON_SUBJECT.into(),
         role: PresentationRole::Document,
-        accessibility_name: "Tour lesson".into(),
-        label: "Tour lesson".into(),
+        name: "Tour lesson".into(),
     });
     relationships.push(PresentationRelationship {
         source: crate::TOUR_WORKSPACE_SUBJECT.into(),
@@ -40,8 +39,7 @@ pub(crate) fn append(
         subjects.push(PresentationSubject {
             identity: identity.clone(),
             role: PresentationRole::Info,
-            accessibility_name: if heading { "Heading" } else { "Paragraph" }.into(),
-            label: if heading { "Heading" } else { "Paragraph" }.into(),
+            name: if heading { "Heading" } else { "Paragraph" }.into(),
         });
         relationships.push(PresentationRelationship {
             source: TOUR_LESSON_SUBJECT.into(),

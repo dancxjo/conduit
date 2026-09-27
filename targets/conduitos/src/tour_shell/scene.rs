@@ -212,7 +212,7 @@ pub(super) fn status_scene(
                 .map_err(|_| TourShellError::Scene)?,
             )
             .map_err(|_| TourShellError::Scene)?;
-        let text = alloc::format!("{}\n{}", subject.label, item.text);
+        let text = alloc::format!("{}\n{}", subject.name, item.text);
         scene
             .push(
                 GraphicsCommand::text(text_bounds, cell, GraphicsPaintRole::Foreground, &text)
@@ -243,7 +243,7 @@ pub(super) fn inspector_scene(
             &mut scene,
             button,
             button,
-            &action.label,
+            &action.name,
             Some(PresentationIconKey::Close),
         )
         .map_err(|_| TourShellError::Scene)?;
@@ -298,7 +298,7 @@ fn dialog_scene(
         width: bounds.width,
         height: bounds.height,
     };
-    let mut scene = panel_scene(bounds, &diagnostic.label, "")?;
+    let mut scene = panel_scene(bounds, &diagnostic.name, "")?;
     let inset = crate::display::SPACE_MD;
     let detail_y = crate::display::SPACE_XL + crate::display::SPACE_SM;
     let close_bounds = super::controls::transient_close_bounds(bounds.width, bounds.height);
@@ -326,7 +326,7 @@ fn dialog_scene(
         &mut scene,
         close_bounds,
         local,
-        &close.label,
+        &close.name,
         Some(PresentationIconKey::Close),
     )
     .map_err(|_| TourShellError::Scene)?;
@@ -351,7 +351,7 @@ fn chooser_scene(
             &mut scene,
             button,
             button,
-            &action.label,
+            &action.name,
             Some(PresentationIconKey::Close),
         )
         .map_err(|_| TourShellError::Scene)?;

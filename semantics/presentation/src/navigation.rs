@@ -6,8 +6,9 @@ use serde::{Deserialize, Serialize};
 use sha2::{Digest, Sha256};
 
 use crate::{
-    identity::hash_string, Presentation, PresentationContentId, PresentationRelationshipKind,
-    MAX_PRESENTATION_ID_BYTES, MAX_PRESENTATION_TEXT_BYTES,
+    identity::{hash_relationship, hash_string},
+    Presentation, PresentationContentId, PresentationRelationshipKind, MAX_PRESENTATION_ID_BYTES,
+    MAX_PRESENTATION_TEXT_BYTES,
 };
 
 pub const MAX_NAVIGATION_PLACES: usize = 3;
@@ -75,7 +76,7 @@ pub struct NavigationAspect {
 pub struct NavigationPlace {
     pub place: PresentationPlace,
     pub root_subject: String,
-    pub label: String,
+    pub name: String,
     pub aspects: Vec<NavigationAspect>,
 }
 
@@ -172,7 +173,7 @@ impl PresentationNavigation {
                 .iter()
                 .any(|candidate| candidate.place == place.place)
                 || !valid_id(&place.root_subject)
-                || !valid_text(&place.label)
+                || !valid_text(&place.name)
                 || !presentation.has_subject(&place.root_subject)
                 || place.aspects.is_empty()
                 || place.aspects.len() > MAX_NAVIGATION_ASPECTS_PER_PLACE
@@ -239,7 +240,7 @@ impl PresentationNavigation {
         for place in &self.places {
             digest.update([place.place as u8]);
             hash_string(&mut digest, &place.root_subject);
-            hash_string(&mut digest, &place.label);
+            hash_string(&mut digest, &place.name);
             for aspect in &place.aspects {
                 digest.update([aspect.aspect as u8]);
                 for subject in &aspect.focusable_subjects {
@@ -250,7 +251,7 @@ impl PresentationNavigation {
         for follow in &self.follows {
             hash_string(&mut digest, &follow.identity);
             hash_string(&mut digest, &follow.source_subject);
-            digest.update([follow.relationship as u8]);
+            hash_relationship(&mut digest, &follow.relationship);
             hash_string(&mut digest, &follow.target_subject);
             digest.update([follow.target_place as u8, follow.target_aspect as u8]);
         }

@@ -20,8 +20,7 @@ pub(crate) fn presentation(revision: u64) -> Presentation {
         vec![PresentationSubject {
             identity: "host/pico".into(),
             role: PresentationRole::Host,
-            label: "Pete Host".into(),
-            accessibility_name: "Pete Pico W Host".into(),
+            name: "Pete Pico W Host".into(),
         }],
         Vec::new(),
         Vec::new(),

@@ -22,8 +22,8 @@ pub struct PresentationInput {
     pub value_kind: String,
     pub maximum_bytes: u32,
     pub allow_empty: bool,
-    pub label: String,
-    pub accessibility_name: String,
+    /// The one ordinary bounded human name for this semantic input.
+    pub name: String,
     pub submit_action: String,
 }
 
@@ -113,8 +113,7 @@ impl Presentation {
             ] {
                 validate_id(value)?;
             }
-            crate::presentation::validate_text(&input.label)?;
-            crate::presentation::validate_text(&input.accessibility_name)?;
+            crate::presentation::validate_text(&input.name)?;
             if input.maximum_bytes == 0 || input.maximum_bytes > MAX_PRESENTATION_INPUT_VALUE_BYTES
             {
                 return Err(PresentationError::InvalidInputLimit);
@@ -147,8 +146,7 @@ impl Presentation {
                 input.identity.len()
                     + input.target.len()
                     + input.value_kind.len()
-                    + input.label.len()
-                    + input.accessibility_name.len()
+                    + input.name.len()
                     + input.submit_action.len()
                     + 5
             })
@@ -162,8 +160,7 @@ impl Presentation {
             hash_string(digest, &input.value_kind);
             digest.update(input.maximum_bytes.to_le_bytes());
             digest.update([u8::from(input.allow_empty)]);
-            hash_string(digest, &input.label);
-            hash_string(digest, &input.accessibility_name);
+            hash_string(digest, &input.name);
             hash_string(digest, &input.submit_action);
         }
     }
@@ -345,14 +342,13 @@ impl PresentationInteraction {
 
 pub(crate) fn linear_input(input: &PresentationInput) -> String {
     alloc::format!(
-        "INPUT id={:?} target={:?} kind={:?} maximum_bytes={} allow_empty={} label={:?} accessibility={:?} submit_action={:?}",
+        "INPUT id={:?} target={:?} kind={:?} maximum_bytes={} allow_empty={} name={:?} submit_action={:?}",
         input.identity,
         input.target,
         input.value_kind,
         input.maximum_bytes,
         input.allow_empty,
-        input.label,
-        input.accessibility_name,
+        input.name,
         input.submit_action,
     )
 }

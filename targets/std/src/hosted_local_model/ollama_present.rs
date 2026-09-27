@@ -180,8 +180,7 @@ pub(crate) fn proof_request() -> Result<GenerativePresenterRequest, String> {
         vec![PresentationSubject {
             identity: "body/current".into(),
             role: PresentationRole::Body,
-            label: "Current body".into(),
-            accessibility_name: "Current body".into(),
+            name: "Current body".into(),
         }],
         vec![],
         vec![],
@@ -190,7 +189,7 @@ pub(crate) fn proof_request() -> Result<GenerativePresenterRequest, String> {
             identity: "body.inspect".into(),
             intent: "conduit.intent/inspect@1".into(),
             target: "body/current".into(),
-            label: "Inspect Body".into(),
+            name: "Inspect Body".into(),
             disclosure: PresentationDisclosureLevel::CurrentAction,
             availability: PresentationActionAvailability::Available,
         }],

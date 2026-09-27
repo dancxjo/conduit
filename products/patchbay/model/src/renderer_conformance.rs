@@ -67,11 +67,7 @@ pub fn compare_entrances(
     subjects.sort_by(|left, right| left.identity.cmp(&right.identity));
     let mut relationships = presentation.relationships.clone();
     relationships.sort_by(|left, right| {
-        (&left.source, &left.target, left.kind as u8).cmp(&(
-            &right.source,
-            &right.target,
-            right.kind as u8,
-        ))
+        (&left.source, &left.target, &left.kind).cmp(&(&right.source, &right.target, &right.kind))
     });
     let mut properties = presentation.properties.clone();
     properties

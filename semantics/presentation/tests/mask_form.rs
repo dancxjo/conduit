@@ -616,8 +616,7 @@ fn the_ordinary_planner_seals_the_mask_form_without_a_mask_planner() {
         vec![PresentationSubject {
             identity: "mask/form".into(),
             role: PresentationRole::Form,
-            label: "Browser graphical Mask Form".into(),
-            accessibility_name: "Browser graphical Mask Form".into(),
+            name: "Browser graphical Mask Form".into(),
         }],
         vec![],
         vec![],

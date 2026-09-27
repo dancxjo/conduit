@@ -33,7 +33,7 @@ pub(super) fn project(
             .iter()
             .find(|subject| subject.identity == item.subject)
             .ok_or(TourShellError::Identity)?;
-        let text = alloc::format!("{}\n{}", subject.label, item.text);
+        let text = alloc::format!("{}\n{}", subject.name, item.text);
         #[cfg(not(feature = "native-compositor"))]
         let height =
             crate::display::text_height(&text, width).map_err(|_| TourShellError::Scene)?;

@@ -36,22 +36,16 @@ impl ContentBuilder {
         }
     }
 
-    pub(super) fn subject(
-        &mut self,
-        role: PresentationRole,
-        label: impl Into<String>,
-        accessibility_name: impl Into<String>,
-    ) -> String {
+    pub(super) fn subject(&mut self, role: PresentationRole, name: impl Into<String>) -> String {
         let identity = format!("patchbay/subject/{}", self.subjects.len());
-        self.subject_with_identity(identity, role, label, accessibility_name)
+        self.subject_with_identity(identity, role, name)
     }
 
     pub(super) fn subject_with_identity(
         &mut self,
         identity: impl Into<String>,
         role: PresentationRole,
-        label: impl Into<String>,
-        accessibility_name: impl Into<String>,
+        name: impl Into<String>,
     ) -> String {
         let identity = identity.into();
         if let Some(existing) = self
@@ -65,8 +59,7 @@ impl ContentBuilder {
         self.subjects.push(PresentationSubject {
             identity: identity.clone(),
             role,
-            label: nonempty(label.into()),
-            accessibility_name: nonempty(accessibility_name.into()),
+            name: nonempty(name.into()),
         });
         identity
     }

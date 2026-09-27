@@ -183,7 +183,7 @@ fn follows(
         follows.push(NavigationFollow {
             identity: format!("follow/{index}/forward"),
             source_subject: relationship.source.clone(),
-            relationship: relationship.kind,
+            relationship: relationship.kind.clone(),
             target_subject: relationship.target.clone(),
             target_place,
             target_aspect,
@@ -191,7 +191,7 @@ fn follows(
         follows.push(NavigationFollow {
             identity: format!("follow/{index}/reverse"),
             source_subject: relationship.target.clone(),
-            relationship: relationship.kind,
+            relationship: relationship.kind.clone(),
             target_subject: relationship.source.clone(),
             target_place: source_place,
             target_aspect: source_aspect,
@@ -243,7 +243,7 @@ fn place(
     NavigationPlace {
         place,
         root_subject,
-        label: label.into(),
+        name: label.into(),
         aspects,
     }
 }
@@ -273,7 +273,7 @@ fn subject_in_place(
     place: PresentationPlace,
     aspect: PresentationAspect,
 ) -> bool {
-    let role = subject.role;
+    let role = subject.role.clone();
     let has_body = presentation
         .subjects
         .iter()
@@ -306,7 +306,8 @@ fn subject_in_place(
         | PresentationRole::Item
         | PresentationRole::TextEntry
         | PresentationRole::Status
-        | PresentationRole::Action => Some(PresentationPlace::Program),
+        | PresentationRole::Action
+        | PresentationRole::Semantic(_) => Some(PresentationPlace::Program),
         PresentationRole::Body
         | PresentationRole::Part
         | PresentationRole::Candidate
@@ -390,7 +391,7 @@ fn memberships(
                                 .subjects
                                 .iter()
                                 .find(|candidate| candidate.identity == *subject)
-                                .map(|candidate| candidate.role),
+                                .map(|candidate| candidate.role.clone()),
                         )
                     {
                         push(

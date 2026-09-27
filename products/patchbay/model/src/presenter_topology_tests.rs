@@ -4,7 +4,9 @@ use conduit_core::{
     bind_active_play, ActivePlayId, BootId, CapabilityId, CheckedFormId, ExpandedFormId,
     ImplementationId, PlacementId, PlanId, SignId, SourceDocumentId,
 };
-use conduit_presentation::{PresentationBasis, PresentationRole, PresentationSubject};
+use conduit_presentation::{
+    PresentationBasis, PresentationPropertyValue, PresentationRole, PresentationSubject,
+};
 
 fn stage(id: &str, implementation: &str, input: &str, output: Option<&str>) -> PresenterStage {
     PresenterStage {
@@ -278,8 +280,7 @@ fn browser_and_native_receive_one_portable_exact_topology_and_visible_controls()
         vec![PresentationSubject {
             identity: "patchbay".into(),
             role: PresentationRole::Document,
-            label: "Patchbay".into(),
-            accessibility_name: "Patchbay".into(),
+            name: "Patchbay".into(),
         }],
         vec![],
         vec![],
@@ -298,9 +299,18 @@ fn browser_and_native_receive_one_portable_exact_topology_and_visible_controls()
             .unwrap()
             .identity
     );
-    assert!(portable.subjects.iter().any(|subject| subject
-        .accessibility_name
-        .contains("Host host/graphical Boot boot/graphical")));
+    let graphical_stage = portable
+        .subjects
+        .iter()
+        .find(|subject| subject.name == "conduit.presenter/native-graphical@1")
+        .expect("graphical Presenter stage");
+    for (name, value) in [("host", "host/graphical"), ("boot", "boot/graphical")] {
+        assert!(portable.properties.iter().any(|property| {
+            property.subject == graphical_stage.identity
+                && property.name == name
+                && property.value == PresentationPropertyValue::Text(value.into())
+        }));
+    }
     for operation in ["add", "remove", "replace", "reorder", "toggle-parallel"] {
         assert!(portable
             .actions

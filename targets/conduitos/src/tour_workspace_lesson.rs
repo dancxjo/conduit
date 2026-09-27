@@ -52,7 +52,7 @@ pub(super) fn append(
             .iter()
             .find(|subject| subject.identity == item.subject)
             .ok_or(TourWorkspaceSceneRefusal::MissingRegion)?;
-        let paint = if subject.label == "Heading" {
+        let paint = if subject.name == "Heading" {
             GraphicsPaintRole::Accent
         } else {
             GraphicsPaintRole::Foreground

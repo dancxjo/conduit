@@ -13,8 +13,7 @@ impl Arrival {
         let mut subjects = vec![PresentationSubject {
             identity: host.clone(),
             role: PresentationRole::Host,
-            label: "Crèche".into(),
-            accessibility_name: "A body of your own".into(),
+            name: "Crèche — a body of your own".into(),
         }];
         let mut properties = vec![
             property(
@@ -45,8 +44,7 @@ impl Arrival {
             subjects.push(PresentationSubject {
                 identity: id.clone(),
                 role: PresentationRole::Form,
-                label: choice.title.clone(),
-                accessibility_name: choice.title.clone(),
+                name: choice.title.clone(),
             });
             properties.extend([
                 property(
@@ -126,7 +124,7 @@ fn project_actions(
             identity: action.identity.clone(),
             intent: format!("conduit.intent/{}@1", action.identity),
             target: target.into(),
-            label: action.label.clone(),
+            name: action.label.clone(),
             disclosure: PresentationDisclosureLevel::CurrentAction,
             availability: match &action.availability {
                 ActionAvailability::Available => PresentationActionAvailability::Available,

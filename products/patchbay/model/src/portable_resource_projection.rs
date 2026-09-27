@@ -62,7 +62,6 @@ mod tests {
         let form = content.subject_with_identity(
             "form/frames",
             conduit_presentation::PresentationRole::Form,
-            "Frames",
             "Frame Resource proof",
         );
         crate::portable_graph_projection::append_exact_graph(

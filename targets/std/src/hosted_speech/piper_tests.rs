@@ -144,8 +144,7 @@ fn generated_speech_retains_presenter_and_voice_provenance() {
         vec![PresentationSubject {
             identity: "body/current".into(),
             role: PresentationRole::Body,
-            label: "Current body".into(),
-            accessibility_name: "Current body".into(),
+            name: "Current body".into(),
         }],
         vec![],
         vec![],

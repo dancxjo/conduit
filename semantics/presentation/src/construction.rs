@@ -9,6 +9,31 @@ use crate::{
 };
 
 impl Presentation {
+    pub fn with_composition(
+        mut self,
+        composition: Vec<crate::PresentationCompositionRelation>,
+    ) -> Result<Self, PresentationError> {
+        self.composition = composition;
+        self.validate_content()?;
+        self.identity = PresentationContentId(self.content_digest());
+        Ok(self)
+    }
+
+    /// Bind this immutable semantic content to one exact interaction context.
+    ///
+    /// Context changes produce a new Presentation identity, so navigation,
+    /// actions, inputs, Shows, and Manifestations correlated to the old
+    /// identity become stale without a separate audience-state channel.
+    pub fn with_interaction_context(
+        mut self,
+        context: crate::PresentationInteractionContext,
+    ) -> Result<Self, PresentationError> {
+        self.interaction_context = context;
+        self.validate_content()?;
+        self.identity = PresentationContentId(self.content_digest());
+        Ok(self)
+    }
+
     pub fn new(
         revision: u64,
         basis: PresentationBasis,

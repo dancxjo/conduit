@@ -218,7 +218,7 @@ fn actions_for(presentation: &Presentation, identity: Option<&str>) -> Vec<Entra
             .subjects
             .iter()
             .find(|subject| subject.identity == identity)
-            .map(|subject| subject.role)
+            .map(|subject| subject.role.clone())
     });
     let actions = match role {
         Some(PresentationRole::Body)

@@ -16,7 +16,7 @@ export function compactPatchbaySnapshot(projection, options = {}) {
   const portIdentity = (gearId, direction, portId) => `${gearId}.${direction}:${portId}`;
   const diagnosticSubjects = new Set(projection.diagnostics.flatMap((diagnostic) => diagnostic.subjects));
   for (const gear of gears) {
-    subjects.push({ identity: gear.gear_id, role: "Gear", label: gear.gear_id, accessibility_name: `Gear ${gear.gear_id}` });
+    subjects.push({ identity: gear.gear_id, role: "Gear", name: gear.gear_id });
     addProperty(gear.gear_id, "kind-id", gear.kind_id);
     if (diagnosticSubjects.has(gear.gear_id)) addProperty(gear.gear_id, "diagnostic-state", "error");
     if (options.reviewedBack && gear.kind_id === "text/morse") {
@@ -26,7 +26,7 @@ export function compactPatchbaySnapshot(projection, options = {}) {
     for (const [direction, ports] of [["receiving", gear.inputs], ["emitting", gear.outputs]]) {
       for (const port of ports) {
         const identity = portIdentity(gear.gear_id, direction, port.port_id);
-        subjects.push({ identity, role: "Port", label: port.port_id, accessibility_name: `${direction} Port ${identity}` });
+        subjects.push({ identity, role: "Port", name: port.port_id });
         relationships.push({ source: gear.gear_id, target: identity, kind: "Contains" });
         addProperty(identity, "semantic-id", identity);
         addProperty(identity, "direction", direction);
@@ -38,7 +38,7 @@ export function compactPatchbaySnapshot(projection, options = {}) {
   }
   for (const [index, cord] of cords.entries()) {
     const identity = `cord:${index}:${cord.source_gear_id}.${cord.source_port_id}->${cord.sink_gear_id}.${cord.sink_port_id}`;
-    subjects.push({ identity, role: "Cord", label: `Cord ${index + 1}`, accessibility_name: `Cord from ${cord.source_gear_id}.${cord.source_port_id} to ${cord.sink_gear_id}.${cord.sink_port_id}` });
+    subjects.push({ identity, role: "Cord", name: `Cord ${index + 1}` });
     addProperty(identity, "source-port", portIdentity(cord.source_gear_id, "emitting", cord.source_port_id));
     addProperty(identity, "sink-port", portIdentity(cord.sink_gear_id, "receiving", cord.sink_port_id));
     addProperty(identity, "value-kind", cord.info_kind);

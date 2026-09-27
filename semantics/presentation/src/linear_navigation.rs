@@ -53,7 +53,7 @@ pub fn render_linear_navigation(
     for place in &observation.available_places {
         builder.push(format!(
             "AVAILABLE PLACE {:?} root={:?} label={:?}",
-            place.place, place.root_subject, place.label
+            place.place, place.root_subject, place.name
         ))?;
     }
     for aspect in &observation.available_aspects {
@@ -85,6 +85,10 @@ pub fn render_linear_navigation(
                 .relationships
                 .get(usize::from(*index))
                 .map(linear_relationship),
+            ProjectionItem::Composition(index) => presentation
+                .composition
+                .get(usize::from(*index))
+                .map(crate::linear_composition),
             ProjectionItem::Property(index) => presentation
                 .properties
                 .get(usize::from(*index))

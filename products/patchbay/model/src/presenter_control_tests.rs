@@ -55,8 +55,7 @@ fn touch_my_own_patchbay_replans_graphical_parallel_speech_and_back() {
         vec![PresentationSubject {
             identity: "patchbay/self".into(),
             role: PresentationRole::Document,
-            label: "Patchbay".into(),
-            accessibility_name: "Patchbay controlling its own Presenter topology".into(),
+            name: "Patchbay controlling its own Presenter topology".into(),
         }],
         vec![],
         vec![],
