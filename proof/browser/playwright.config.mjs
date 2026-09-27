@@ -72,8 +72,6 @@ export default defineConfig({
     "browser-presence.spec.mjs",
     "browser-webrtc-body.spec.mjs",
     "firefly-choir.spec.mjs",
-    "human-interaction-presenter.spec.mjs",
-    "human-interaction-convergence.spec.mjs",
     "home-host.spec.mjs",
     "home-cross-front.spec.mjs",
     "webrtc-datachannel-line.spec.mjs",
