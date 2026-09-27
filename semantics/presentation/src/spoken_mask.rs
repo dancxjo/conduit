@@ -4,7 +4,7 @@
 //! claim that a speaker played it nor evidence that a human heard it.
 
 use alloc::string::String;
-use conduit_core::{ActivePlayId, PlanId, SignId};
+use conduit_core::{ActivePlayId, PlacementId, PlanId, SignId};
 use serde::{Deserialize, Serialize};
 
 use crate::{GeneratedManifestation, MaskShow, MaskShowError, Presentation};
@@ -30,9 +30,7 @@ pub struct SpokenMaskArtifactReceipt {
     pub blocks: u16,
     pub plan_id: PlanId,
     pub active_play_id: ActivePlayId,
-    pub source_presentation_identity: String,
-    pub source_presentation_revision: u64,
-    pub generated_manifestation_identity: String,
+    pub placement_id: PlacementId,
     pub completion_sign_id: SignId,
 }
 
@@ -74,13 +72,7 @@ impl ArtifactAcknowledgedSpokenShow {
         if self.artifact.pcm_bytes == 0 || self.artifact.frames == 0 || self.artifact.blocks == 0 {
             return Err(SpokenMaskShowError::EmptyArtifact);
         }
-        if self.artifact.source_presentation_identity != presentation.identity.as_str()
-            || self.artifact.source_presentation_revision != presentation.revision
-        {
-            return Err(SpokenMaskShowError::StalePresentation);
-        }
         if self.generated_manifestation_identity != generated.manifestation_identity
-            || self.artifact.generated_manifestation_identity != generated.manifestation_identity
             || generated.source_presentation_identity != presentation.identity.as_str()
             || generated.source_presentation_revision != presentation.revision
         {
@@ -88,6 +80,17 @@ impl ArtifactAcknowledgedSpokenShow {
         }
         if self.artifact.plan_id != self.show.planned_mask.plan.plan_id
             || self.artifact.active_play_id != self.show.show.active_play_id
+            || !self
+                .show
+                .planned_mask
+                .plan
+                .fragments
+                .iter()
+                .flat_map(|fragment| &fragment.placements)
+                .any(|placement| {
+                    placement.placement_id == self.artifact.placement_id
+                        && placement.kind_id.as_str() == SPOKEN_ARTIFACT_KIND
+                })
         {
             return Err(SpokenMaskShowError::StalePlan);
         }
