@@ -49,7 +49,7 @@ form chat/browser-client (
     state.presentation >> spread.presentation
     spread.presentation >> render.presentation
     spread.presentation >> human.presentation
-    render.manifestation >> human.manifestation
+    render.show >> human.show
     human.interaction >> submit.interaction
     submit.message >> outgoing.value
     outgoing.value >> socket.send
@@ -79,7 +79,7 @@ form chat/browser-client-label-oracle (
     state.presentation >> spread.presentation
     spread.presentation >> render.presentation
     spread.presentation >> human.presentation
-    render.manifestation >> human.manifestation
+    render.show >> human.show
     human.interaction >> submit.interaction
     submit.message >> outgoing.value
     outgoing.value >> socket.send
