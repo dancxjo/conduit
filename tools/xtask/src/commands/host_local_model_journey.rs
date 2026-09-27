@@ -125,6 +125,9 @@ pub(super) fn write(
                 ]),
             },
             facts,
+            // The writer refuses this until the hosted producer supplies its
+            // actual shared Mask journey outcomes.
+            mask_actions: serde_json::Value::Null,
             action_events: BTreeMap::from([
                 ("journey.bootstrap", "The std Host began Orifina's bounded bootstrap before any Body identity existed.".into()),
                 ("journey.birth", "The accepted birth and wake receipts created and activated Orifina's independent Body.".into()),

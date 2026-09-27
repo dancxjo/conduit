@@ -131,7 +131,7 @@ export async function writeBrowserBodyJourneyTrack(source, screenshotPath, outpu
       path: relative, sha256: digest(bytes) });
   }
   await writeFile(join(output, "track.json"), `${JSON.stringify({
-    schema: "conduit.evidence/body-journey-track@3", journey_id: "orifina/tutorial@1", git_commit: commit,
+    schema: "conduit.evidence/body-journey-track@4", journey_id: "orifina/tutorial@1", git_commit: commit,
     track_id: "browser-graphical", embodiment: "browser-wasm-body", body_id: ids.body,
     presenter_id: ids.maskForm, hosts: [
       { host_id: ids.host, boot_id: ids.boot }, { host_id: ids.peerHost, boot_id: ids.peerBoot },
@@ -141,6 +141,6 @@ export async function writeBrowserBodyJourneyTrack(source, screenshotPath, outpu
       { action_id: "journey.useful-work", concrete_event: "A browser interaction exercised the standing Form through its retained Plan and Play.", receipt_ids: ["form.used"] },
       { action_id: "journey.break-recover", concrete_event: "A refused browser wake remained a fault until a later admitted wake established repair.", receipt_ids: ["fault.observed", "body.repaired"] },
       { action_id: "journey.rest-finish", concrete_event: "Explicit browser actions lulled the Body and then fulfilled its biography.", receipt_ids: ["body.lulled", "body.fulfilled"] },
-    ],
+    ], mask_actions: captures["body.inspected"]?.maskActions,
   }, null, 2)}\n`, { flag: "wx" });
 }

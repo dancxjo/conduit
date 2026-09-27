@@ -43,6 +43,8 @@ pub(crate) struct TrackSource {
     pub presenter_id: &'static str,
     pub identities: TrackIdentities,
     pub facts: Vec<Value>,
+    /// Exact producer-owned outcomes from the shared ordered Mask journey.
+    pub mask_actions: Value,
     /// Producer-owned descriptions of the concrete event that realized each public action.
     pub action_events: BTreeMap<&'static str, String>,
 }
@@ -66,6 +68,11 @@ pub(crate) fn write(source: TrackSource, output: &Path) -> Result<(), String> {
         .map_err(|error| format!("create Body track artifacts: {error}"))?;
     if source.facts.len() != STEPS.len() {
         return Err("Body track facts must cover every retained detailed receipt".into());
+    }
+    if source.mask_actions.as_array().map(Vec::len)
+        != Some(conduit_presentation::MASK_JOURNEY_ACTIONS.len())
+    {
+        return Err("Body track requires every producer-owned Mask action".into());
     }
     let mut receipts = Vec::with_capacity(STEPS.len());
     for (index, ((step_id, assertion, rung), facts)) in
@@ -170,7 +177,7 @@ pub(crate) fn write(source: TrackSource, output: &Path) -> Result<(), String> {
         "boot_id": source.identities.peer_boot,
     }));
     let document = serde_json::json!({
-        "schema": "conduit.evidence/body-journey-track@3",
+        "schema": "conduit.evidence/body-journey-track@4",
         "journey_id": "orifina/tutorial@1",
         "git_commit": source.commit,
         "track_id": source.track_id,
@@ -182,6 +189,7 @@ pub(crate) fn write(source: TrackSource, output: &Path) -> Result<(), String> {
         "distributed_plan_ids": source.identities.distributed_plan.into_iter().collect::<Vec<_>>(),
         "receipts": receipts,
         "actions": actions,
+        "mask_actions": source.mask_actions,
     });
     let bytes = serde_json::to_vec_pretty(&document)
         .map_err(|error| format!("encode Body track: {error}"))?;

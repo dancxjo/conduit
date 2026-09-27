@@ -52,6 +52,7 @@ pub(super) fn write(target: &Path, proof: &JourneyProof) -> Result<(), Conduitos
                 ]),
             },
             facts,
+            mask_actions: proof.native_mask["mask_actions"].clone(),
             action_events: BTreeMap::from([
                 ("journey.bootstrap", "The exact ConduitOS Host boot displayed Crèche before a Body existed and accepted the bounded bootstrap action.".into()),
                 ("journey.birth", "Crèche created the native Body and its first admitted wake; the next frame showed that Body's home.".into()),
