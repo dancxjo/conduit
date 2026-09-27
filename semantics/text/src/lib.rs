@@ -177,10 +177,7 @@ pub fn install_text_catalogs(
     profile: &mut conduit_form::ProfileCatalog,
 ) -> Result<(), alloc::string::String> {
     use alloc::string::ToString;
-    use conduit_form::{
-        KindConfigurationField, KindConfigurationRule, KindProjection, KindSignature,
-        StartupParameterSignature,
-    };
+    use conduit_form::{KindSignature, StartupParameterSignature};
 
     startup.insert_value_kind_alias("AddressSet", kind_id(ADDRESS_SET_VALUE_KIND))?;
     startup.insert_value_kind_alias("AddressDetection", kind_id(ADDRESS_DETECTION_VALUE_KIND))?;
@@ -210,23 +207,7 @@ pub fn install_text_catalogs(
         address_detect_semantics(),
     ] {
         profile
-            .insert(KindProjection {
-                kind_id: contract.kind_id,
-                kind_contract_revision: contract.kind_contract_revision,
-                inputs: contract.inputs,
-                outputs: contract.outputs,
-                configuration: contract
-                    .configuration
-                    .into_iter()
-                    .map(|field| KindConfigurationField {
-                        key: field.key.to_string(),
-                        default_value: field.default_value,
-                        rule: KindConfigurationRule::TextBytes {
-                            maximum: field.maximum_text_bytes,
-                        },
-                    })
-                    .collect(),
-            })
+            .insert_kind(contract.into_semantic_contract())
             .map_err(|error| error.to_string())?;
     }
     Ok(())

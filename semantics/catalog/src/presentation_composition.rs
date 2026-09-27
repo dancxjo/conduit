@@ -5,8 +5,8 @@ use super::{
 };
 use alloc::{string::ToString, vec, vec::Vec};
 use conduit_core::{
-    kind_id, port_id, CapabilityLimits, ConfigurationValue, KindIdentity, PortDescriptor,
-    PortDirection, PortTemporal,
+    kind_id, port_id, CapabilityLimits, ConfigurationValue, PortDescriptor, PortDirection,
+    PortTemporal,
 };
 use conduit_presentation::{
     PresentationIconKey, MAX_COMPOSITION_NAME_BYTES, MAX_PRESENTATION_COMPOSITION_BYTES,
@@ -144,10 +144,7 @@ pub fn install_presentation_composition_catalogs(
     startup: &mut conduit_form::StartupCatalog,
     profile: &mut conduit_form::ProfileCatalog,
 ) -> Result<(), alloc::string::String> {
-    use conduit_form::{
-        KindConfigurationField, KindConfigurationRule, KindProjection, KindSignature,
-        StartupParameterSignature,
-    };
+    use conduit_form::{KindSignature, StartupParameterSignature};
     for contract in [
         presentation_icon_contract(),
         presentation_frame_contract(),
@@ -169,31 +166,9 @@ pub fn install_presentation_composition_catalogs(
                 .collect(),
         })?;
         profile
-            .insert(KindProjection {
-                kind_id: contract.kind_id,
-                kind_contract_revision: KindIdentity::from(
-                    PRESENTATION_COMPOSITION_CONTRACT_REVISION,
-                ),
-                inputs: contract.inputs,
-                outputs: contract.outputs,
-                configuration: contract
-                    .configuration
-                    .into_iter()
-                    .map(|field| KindConfigurationField {
-                        key: field.key,
-                        default_value: field.default_value,
-                        rule: match field.rule {
-                            KindConfigurationRule::TextBytes { maximum } => {
-                                KindConfigurationRule::TextBytes { maximum }
-                            }
-                            KindConfigurationRule::TextOneOf { values } => {
-                                KindConfigurationRule::TextOneOf { values }
-                            }
-                            _ => unreachable!(),
-                        },
-                    })
-                    .collect(),
-            })
+            .insert_kind(
+                contract.into_semantic_contract(PRESENTATION_COMPOSITION_CONTRACT_REVISION),
+            )
             .map_err(|error| error.to_string())?;
     }
     Ok(())

@@ -42,7 +42,7 @@ pub fn install_record_transcript_catalog(
         ],
     })?;
     profile
-        .insert(record_transcript_kind_projection())
+        .insert_kind(record_transcript_semantic_contract())
         .map_err(|error| error.to_string())
 }
 

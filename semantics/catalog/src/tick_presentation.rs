@@ -3,7 +3,7 @@ use alloc::string::ToString;
 use alloc::vec;
 use alloc::vec::Vec;
 use conduit_core::{
-    kind_id, port_id, CapabilityLimits, KindIdentity, PortDescriptor, PortDirection,
+    kind_id, port_id, CapabilityLimits, Kind, KindIdentity, PortDescriptor, PortDirection,
 };
 
 pub const TICK_PRESENTATION_KIND: &str = "presentation/tick";
@@ -36,6 +36,10 @@ pub fn tick_presentation_contract() -> StandardKindContract {
     }
 }
 
+pub fn tick_presentation_semantic_contract() -> Kind {
+    tick_presentation_contract().into_semantic_contract(TICK_PRESENTATION_CONTRACT_REVISION)
+}
+
 #[cfg(feature = "form-catalog")]
 pub fn tick_presentation_kind_projection() -> conduit_form::KindProjection {
     use conduit_form::KindProjection;
@@ -60,6 +64,6 @@ pub fn install_tick_presentation_catalog(
         startup_parameters: Vec::new(),
     })?;
     profile
-        .insert(tick_presentation_kind_projection())
+        .insert_kind(tick_presentation_semantic_contract())
         .map_err(|error| error.to_string())
 }

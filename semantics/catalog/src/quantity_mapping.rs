@@ -2,9 +2,9 @@
 
 use alloc::{format, string::ToString, vec, vec::Vec};
 use conduit_core::{
-    kind_id, port_id, CapabilityLimits, ConfigurationValue, Kind, KindIdentity, PortDescriptor,
-    PortDirection, PortTemporal, Quantity, QuantityDimension, QuantityUnit, Scalar,
-    DISTANCE_INFO_ID, FREQUENCY_INFO_ID, QUANTITY_ENCODED_LEN, QUANTITY_INFO_ID, SCALAR_INFO_ID,
+    kind_id, port_id, CapabilityLimits, ConfigurationValue, Kind, PortDescriptor, PortDirection,
+    PortTemporal, Quantity, QuantityDimension, QuantityUnit, Scalar, DISTANCE_INFO_ID,
+    FREQUENCY_INFO_ID, QUANTITY_ENCODED_LEN, QUANTITY_INFO_ID, SCALAR_INFO_ID,
 };
 
 use crate::{
@@ -202,10 +202,7 @@ fn install_mapping_contract(
     contract: StandardKindContract,
     revision: &'static str,
 ) -> Result<(), alloc::string::String> {
-    use conduit_form::{
-        KindConfigurationField, KindConfigurationRule, KindProjection, KindSignature,
-        StartupParameterSignature,
-    };
+    use conduit_form::{KindSignature, StartupParameterSignature};
     startup.insert(KindSignature {
         kind: contract.kind_id.as_str().into(),
         startup_parameters: contract
@@ -236,40 +233,7 @@ fn install_mapping_contract(
             .collect(),
     })?;
     profile
-        .insert(KindProjection {
-            kind_id: contract.kind_id,
-            kind_contract_revision: KindIdentity::from(revision),
-            inputs: contract.inputs,
-            outputs: contract.outputs,
-            configuration: contract
-                .configuration
-                .into_iter()
-                .map(|field| KindConfigurationField {
-                    key: field.key,
-                    default_value: field.default_value,
-                    rule: match field.rule {
-                        KindConfigurationRule::I64Range { minimum, maximum } => {
-                            KindConfigurationRule::I64Range { minimum, maximum }
-                        }
-                        KindConfigurationRule::TextOneOf { values } => {
-                            KindConfigurationRule::TextOneOf { values }
-                        }
-                        KindConfigurationRule::QuantityRange {
-                            minimum,
-                            maximum,
-                            canonical_unit,
-                        } => KindConfigurationRule::QuantityRange {
-                            minimum,
-                            maximum,
-                            canonical_unit,
-                        },
-                        _ => {
-                            unreachable!("quantity mapping uses exact scalar/text/quantity fields")
-                        }
-                    },
-                })
-                .collect(),
-        })
+        .insert_kind(contract.into_semantic_contract(revision))
         .map_err(|error| error.to_string())
 }
 

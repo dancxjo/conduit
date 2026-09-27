@@ -104,7 +104,7 @@ pub fn install_time_every_catalog(
         }],
     })?;
     profile
-        .insert(time_every_kind_projection())
+        .insert_kind(crate::time_every_semantic_contract())
         .map_err(|error| error.to_string())
 }
 

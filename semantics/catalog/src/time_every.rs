@@ -4,10 +4,7 @@ use super::{
 use alloc::string::ToString;
 use alloc::vec;
 use alloc::vec::Vec;
-use conduit_core::{
-    kind_id, CapabilityLimits, ConfigurationValue, FrontStartupParameter, Kind, Quantity,
-    QuantityUnit,
-};
+use conduit_core::{kind_id, CapabilityLimits, ConfigurationValue, Kind, Quantity, QuantityUnit};
 
 pub fn time_every_contract() -> StandardKindContract {
     StandardKindContract {
@@ -41,24 +38,7 @@ pub fn time_every_contract() -> StandardKindContract {
 }
 
 pub fn time_every_semantic_contract() -> Kind {
-    let contract = time_every_contract();
-    Kind {
-        startup_parameters: vec![FrontStartupParameter {
-            name: "freq".into(),
-            value_type: kind_id(conduit_core::DURATION_INFO_ID),
-            has_default: false,
-        }],
-        shorthand: None,
-        kind_id: contract.kind_id,
-        kind_contract_revision: conduit_time::TIME_EVERY_CONTRACT_REVISION.into(),
-        inputs: contract.inputs,
-        outputs: contract.outputs,
-        configuration: contract.configuration,
-        semantic_laws: alloc::vec![conduit_core::KindSemanticLaw::Terminal(
-            contract.terminal_behavior
-        )],
-        limits: contract.limits,
-    }
+    conduit_time::time_every_semantic_contract()
 }
 
 #[cfg(test)]
