@@ -835,6 +835,12 @@ struct CordState {
     remote_accepted: bool,
 }
 
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+struct UnresolvedAbnormal {
+    port: PortId,
+    terminal: CanonicalValue,
+}
+
 impl CordState {
     const EMPTY: Self = Self {
         head: 0,
@@ -870,6 +876,9 @@ pub struct FixedScheduler<
     terminal_transductions: [Option<AssignedTerminalTransduction>; NODES],
     terminal_phases: [Option<ActiveTerminalPhase>; NODES],
     terminal_cancellation_pending: [bool; NODES],
+    unresolved_abnormal: [Option<UnresolvedAbnormal>; NODES],
+    projected_recovery_source: [Option<NodeId>; NODES],
+    recovery_for_cord: [Option<NodeId>; CORDS],
     cord_specs: [CordSpec; CORDS],
     active_nodes: usize,
     active_cords: usize,
@@ -968,6 +977,9 @@ where
             terminal_transductions: [None; NODES],
             terminal_phases: [None; NODES],
             terminal_cancellation_pending: [false; NODES],
+            unresolved_abnormal: [None; NODES],
+            projected_recovery_source: [None; NODES],
+            recovery_for_cord: [None; CORDS],
             cord_specs,
             active_nodes,
             active_cords,
@@ -1063,7 +1075,7 @@ where
                     .iter()
                     .all(|cord| cord.len == 0)
             {
-                Ok(SchedulerStatus::Drained)
+                self.drained_status()
             } else {
                 Ok(SchedulerStatus::Idle)
             };
@@ -1126,7 +1138,7 @@ where
                 .iter()
                 .all(|cord| cord.len == 0)
         {
-            Ok(SchedulerStatus::Drained)
+            self.drained_status()
         } else {
             Ok(SchedulerStatus::Progress {
                 node: NodeId(as_u16(node)?),
@@ -1150,7 +1162,60 @@ where
             }
         }
         self.terminal_transductions = contracts;
+        self.bind_projected_recoveries()?;
         Ok(())
+    }
+
+    fn bind_projected_recoveries(&mut self) -> Result<(), SchedulerError> {
+        self.recovery_for_cord = [None; CORDS];
+        for cord in 0..self.active_cords {
+            let spec = self.cord_specs[cord];
+            if spec.track != AssignedConnectionTrack::AbnormalTerminal {
+                continue;
+            }
+            let CordEndpoint::Local {
+                node: sink,
+                port: sink_port,
+            } = spec.sink
+            else {
+                continue;
+            };
+            let Some(contract) = self.terminal_transductions[usize::from(sink.0)] else {
+                continue;
+            };
+            if contract.input == sink_port
+                && matches!(contract.abnormal, AssignedAbnormalTransduction::Recover)
+            {
+                if self.recovery_for_cord[..cord]
+                    .iter()
+                    .enumerate()
+                    .any(|(other, recovery)| {
+                        *recovery == Some(sink)
+                            || (*recovery).is_some() && self.cord_specs[other].source == spec.source
+                    })
+                {
+                    return Err(SchedulerError::InvalidPlan);
+                }
+                self.recovery_for_cord[cord] = Some(sink);
+            }
+        }
+        Ok(())
+    }
+
+    fn drained_status(&self) -> Result<SchedulerStatus, SchedulerError> {
+        if let Some((node, unresolved)) = self.unresolved_abnormal[..self.active_nodes]
+            .iter()
+            .copied()
+            .enumerate()
+            .find_map(|(node, value)| value.map(|value| (node, value)))
+        {
+            return Err(SchedulerError::SemanticAbnormal {
+                node: NodeId(as_u16(node)?),
+                port: unresolved.port,
+                terminal: unresolved.terminal,
+            });
+        }
+        Ok(SchedulerStatus::Drained)
     }
 
     pub fn run(&mut self, maximum_decisions: u32) -> Result<(), SchedulerError> {
@@ -1914,6 +1979,7 @@ where
         let staged = io.staged();
         let terminal_phase = self.validate_terminal_transduction(node, outcome, &io)?;
         let cancellation_pending = self.validate_terminal_cancellation(node, outcome, &io)?;
+        let projected_recovery = self.projected_recovery_for_step(node, &io)?;
         match outcome {
             StepOutcome::Progress if !staged => return Err(SchedulerError::FalseProgress),
             StepOutcome::Await if staged => return Err(SchedulerError::FalseProgress),
@@ -1978,6 +2044,13 @@ where
                 }
                 self.output_route_count(node)?
                     .checked_add(1)
+                    .and_then(|count| {
+                        count.checked_add(usize::from(
+                            outcome == StepOutcome::Complete
+                                && (projected_recovery.is_some()
+                                    || self.projected_recovery_source[node].is_some()),
+                        ))
+                    })
                     .ok_or(SchedulerError::InvalidPlan)?
             } else {
                 0
@@ -2021,6 +2094,9 @@ where
                 return Err(error);
             }
             self.drivers[node].step_committed();
+            if let Some(source) = projected_recovery {
+                self.projected_recovery_source[node] = Some(source);
+            }
         }
         match outcome {
             StepOutcome::Progress => {
@@ -2040,6 +2116,15 @@ where
                 self.completed[node] = true;
                 self.ready[node] = false;
                 self.close_outputs(node)?;
+                if let Some(source) = self.projected_recovery_source[node].take() {
+                    self.unresolved_abnormal[usize::from(source.0)] = None;
+                    self.signs.record(
+                        NodeId(as_u16(node)?),
+                        self.terminal_transductions[node].map(|contract| contract.input),
+                        None,
+                        KernelEventKind::SemanticAbnormalRecovered,
+                    )?;
+                }
                 self.signs.record(
                     NodeId(as_u16(node)?),
                     None,
@@ -2078,6 +2163,48 @@ where
         self.terminal_phases[node] = terminal_phase;
         self.terminal_cancellation_pending[node] = cancellation_pending;
         Ok(())
+    }
+
+    fn projected_recovery_for_step(
+        &self,
+        node: usize,
+        io: &StepIo<PORTS>,
+    ) -> Result<Option<NodeId>, SchedulerError> {
+        let mut source = None;
+        for (port, consumed) in io.consumed.iter().copied().enumerate() {
+            if !consumed {
+                continue;
+            }
+            let Some(cord) = self.node_specs[node].input_cords[port] else {
+                continue;
+            };
+            let cord = usize::from(cord.0);
+            if self.recovery_for_cord[cord] != Some(NodeId(as_u16(node)?)) {
+                continue;
+            }
+            let CordEndpoint::Local {
+                node: origin,
+                port: origin_port,
+            } = self.cord_specs[cord].source
+            else {
+                return Err(SchedulerError::InvalidPlan);
+            };
+            let unresolved = self.unresolved_abnormal[usize::from(origin.0)]
+                .ok_or(SchedulerError::InvalidPlan)?;
+            if unresolved.port != origin_port {
+                return Err(SchedulerError::InvalidPlan);
+            }
+            let input = io.inputs[port].ok_or(SchedulerError::InvalidPlan)?;
+            if self.values.get(input)? != unresolved.terminal.as_slice() {
+                return Err(SchedulerError::InvalidPlan);
+            }
+            if source.replace(origin).is_some_and(|other| other != origin)
+                || self.projected_recovery_source[node].is_some_and(|other| other != origin)
+            {
+                return Err(SchedulerError::InvalidPlan);
+            }
+        }
+        Ok(source)
     }
 
     fn step_begins_abnormal_finalization(&self, node: usize, io: &StepIo<PORTS>) -> bool {
@@ -3108,6 +3235,13 @@ where
                 )?;
             }
         }
+        if self.unresolved_abnormal[node].is_some() {
+            return Err(SchedulerError::InvalidPlan);
+        }
+        self.unresolved_abnormal[node] = Some(UnresolvedAbnormal {
+            port: output,
+            terminal,
+        });
         Ok(true)
     }
 

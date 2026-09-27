@@ -58,6 +58,10 @@ enum Driver {
     TerminalSink {
         observed_bytes: Option<usize>,
     },
+    ProjectedRecovery {
+        observed_bytes: Option<usize>,
+        phase: u8,
+    },
 }
 
 impl StepBack<PORTS> for Driver {
@@ -114,6 +118,13 @@ impl StepBack<PORTS> for Driver {
                     },
                 ),
                 abnormal: AssignedAbnormalTransduction::NotAccepted,
+                cancellation: AssignedCancellationTransduction::NotCancellable,
+            }),
+            Self::ProjectedRecovery { .. } => Some(AssignedTerminalTransduction {
+                input: PortId(0),
+                output: PortId(0),
+                normal_close: AssignedNormalCloseTransduction::NotAccepted,
+                abnormal: AssignedAbnormalTransduction::Recover,
                 cancellation: AssignedCancellationTransduction::NotCancellable,
             }),
             _ => None,
@@ -321,6 +332,26 @@ impl StepBack<PORTS> for Driver {
                     StepOutcome::Await
                 }
             }
+            Self::ProjectedRecovery {
+                observed_bytes,
+                phase,
+            } => match *phase {
+                0 => {
+                    let Some(_) = io.input(PortId(0)) else {
+                        return StepOutcome::Await;
+                    };
+                    *observed_bytes = Some(
+                        _input_bytes
+                            .input(PortId(0))
+                            .expect("projected terminal has canonical bytes")
+                            .len(),
+                    );
+                    io.consume(PortId(0)).unwrap();
+                    *phase = 1;
+                    StepOutcome::Progress
+                }
+                _ => StepOutcome::Complete,
+            },
         }
     }
 
@@ -432,12 +463,21 @@ fn abnormal_track_transduces_semantic_terminal_without_manufacturing_back_failur
     )
     .unwrap();
 
+    let mut unresolved = None;
     for _ in 0..6 {
-        if scheduler.step().unwrap() == SchedulerStatus::Drained {
+        if let Err(error) = scheduler.step() {
+            unresolved = Some(error);
             break;
         }
     }
-    assert_eq!(scheduler.step().unwrap(), SchedulerStatus::Drained);
+    assert!(matches!(
+        unresolved,
+        Some(SchedulerError::SemanticAbnormal {
+            node: NodeId(0),
+            port: PortId(0),
+            ..
+        })
+    ));
     let Driver::TerminalSink { observed_bytes } = scheduler.drivers()[1] else {
         panic!("terminal sink")
     };
@@ -446,6 +486,82 @@ fn abnormal_track_transduces_semantic_terminal_without_manufacturing_back_failur
         .signs()
         .contains_kind(KernelEventKind::SemanticAbnormal));
     assert!(!scheduler.signs().contains_kind(KernelEventKind::BackFailed));
+}
+
+#[test]
+fn only_a_plan_bound_recovery_contract_resolves_projected_abnormal_truth() {
+    let mut routes = FixedRoutes::<2, 1>::new(PORTS as u16);
+    routes
+        .install(
+            NodeId(0),
+            PortId(0),
+            RouteRange { start: 0, len: 1 },
+            &[RouteTarget {
+                cord: CordId(0),
+                sink: crate::CordEndpoint::local(NodeId(1), PortId(0)),
+            }],
+        )
+        .unwrap();
+    routes.seal().unwrap();
+    let signs =
+        FixedSignLog::<16>::new((16 * core::mem::size_of::<crate::KernelEvent>()) as u32).unwrap();
+    let mut scheduler = FixedScheduler::<_, _, _, 2, 1, PORTS, 1, 2, 1>::new(
+        [node([None, None]), node([Some(CordId(0)), None])],
+        [CordSpec::local(
+            CordId(0),
+            (NodeId(0), PortId(0)),
+            (NodeId(1), PortId(0)),
+            CordCapacity {
+                slot_start: 0,
+                item_capacity: 1,
+                byte_capacity: 4,
+                pressure_policy: Default::default(),
+            },
+        )
+        .with_track(AssignedConnectionTrack::AbnormalTerminal)],
+        routes,
+        [
+            Driver::SemanticAbnormal,
+            Driver::ProjectedRecovery {
+                observed_bytes: None,
+                phase: 0,
+            },
+        ],
+        FixedValueStore::<2, 4>::new(4).unwrap(),
+        signs,
+    )
+    .unwrap();
+    scheduler
+        .bind_terminal_transductions([
+            None,
+            Some(AssignedTerminalTransduction {
+                input: PortId(0),
+                output: PortId(0),
+                normal_close: AssignedNormalCloseTransduction::NotAccepted,
+                abnormal: AssignedAbnormalTransduction::Recover,
+                cancellation: AssignedCancellationTransduction::NotCancellable,
+            }),
+        ])
+        .unwrap();
+
+    for _ in 0..6 {
+        if scheduler.step().unwrap() == SchedulerStatus::Drained {
+            break;
+        }
+    }
+    assert_eq!(scheduler.step().unwrap(), SchedulerStatus::Drained);
+    let Driver::ProjectedRecovery {
+        observed_bytes,
+        phase,
+    } = scheduler.drivers()[1]
+    else {
+        panic!("projected recovery")
+    };
+    assert_eq!(observed_bytes, Some(4));
+    assert_eq!(phase, 1);
+    assert!(scheduler
+        .signs()
+        .contains_kind(KernelEventKind::SemanticAbnormalRecovered));
 }
 
 #[test]
@@ -518,12 +634,21 @@ fn abnormal_terminal_fanout_is_atomic_across_every_explicit_track() {
     )
     .unwrap();
 
+    let mut unresolved = None;
     for _ in 0..8 {
-        if scheduler.step().unwrap() == SchedulerStatus::Drained {
+        if let Err(error) = scheduler.step() {
+            unresolved = Some(error);
             break;
         }
     }
-    assert_eq!(scheduler.step().unwrap(), SchedulerStatus::Drained);
+    assert!(matches!(
+        unresolved,
+        Some(SchedulerError::SemanticAbnormal {
+            node: NodeId(0),
+            port: PortId(0),
+            ..
+        })
+    ));
     for driver in &scheduler.drivers()[1..] {
         let Driver::TerminalSink { observed_bytes } = driver else {
             panic!("terminal sink")
@@ -747,12 +872,21 @@ fn a_back_observes_and_transduces_exact_abnormal_input_truth() {
     scheduler
         .close_remote_input_abnormal(remote, CordId(0), terminal)
         .unwrap();
+    let mut unresolved = None;
     for _ in 0..6 {
-        if scheduler.step().unwrap() == SchedulerStatus::Drained {
+        if let Err(error) = scheduler.step() {
+            unresolved = Some(error);
             break;
         }
     }
-    assert_eq!(scheduler.step().unwrap(), SchedulerStatus::Drained);
+    assert!(matches!(
+        unresolved,
+        Some(SchedulerError::SemanticAbnormal {
+            node: NodeId(0),
+            port: PortId(0),
+            ..
+        })
+    ));
     let Driver::TerminalPropagator { observed } = scheduler.drivers()[0] else {
         panic!("terminal propagator")
     };
