@@ -443,6 +443,7 @@ fn planning_seals_canonical_terminal_transduction_into_the_exact_placement() {
     .unwrap();
     let mut host = host();
     host.capabilities[0].inputs = pulse.inputs.clone();
+    host.capabilities[0].semantic_contract = pulse.semantic_contract();
     let placements = default_placements(&form, std::slice::from_ref(&host)).unwrap();
     let planned = plan(
         &form,
