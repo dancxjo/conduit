@@ -11,9 +11,9 @@ use conduit_form::{parse, KindProjection, ProfileCatalog};
 use conduit_planner::{plan, PlacementChoice, PlacementChoices};
 use conduit_presentation::{
     presenter_stage_kind_projection, presenter_stage_offer, renderer_kind_projection,
-    ManifestationLifecycle, MaskBoundaryPort, MaskBoundaryRole, MaskCordSpecification, MaskShow,
-    MaskSpecification, MaskStageId, MaskStagePlacement, MaskStageSpecification,
-    MaskTopologyAdmission, MAX_RENDERER_VALUE_BYTES,
+    ManifestationFailure, ManifestationLifecycle, MaskBoundaryPort, MaskBoundaryRole,
+    MaskCordSpecification, MaskShow, MaskSpecification, MaskStageId, MaskStagePlacement,
+    MaskStageSpecification, MaskTopologyAdmission, MAX_RENDERER_VALUE_BYTES,
 };
 use std::collections::BTreeMap;
 
@@ -393,4 +393,19 @@ fn one_mask_chain_preserves_heterogeneous_language_text_and_pcm_stages() {
         .unwrap();
     assert_eq!(available.show_id, show.show_id);
     assert_eq!(available.presentation_id, presentation.identity);
+    let failed = available
+        .fail(
+            ManifestationFailure::DeliveryFailed,
+            SignId::from("mask/show/failed"),
+        )
+        .unwrap();
+    failed
+        .validate(&specification, &presentation, &sealed)
+        .unwrap();
+    assert_eq!(failed.presentation_id, presentation.identity);
+    assert_eq!(failed.presentation_revision, presentation.revision);
+    assert_eq!(
+        failed.manifestation.lifecycle,
+        ManifestationLifecycle::Failed
+    );
 }
