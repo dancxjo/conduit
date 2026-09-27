@@ -1,20 +1,16 @@
 use alloc::vec::Vec;
 
 use crate::{FormSyntax, RuntimePortDirection, RuntimePortTemporal, SyntaxCheckDiagnostic};
-use alloc::format;
 use conduit_core::{
-    kind_id, CheckedFront, FrontStartupParameter, KindId, PortDescriptor, PortDirection,
-    StructuredInfoRefusal,
+    data_reference_kind, kind_id, CheckedFront, FrontStartupParameter, KindId, PortDescriptor,
+    PortDirection, StructuredInfoRefusal,
 };
 
 use crate::StartupCatalog;
 
 pub(crate) fn canonical_value_kind(source_type: &str) -> KindId {
     if let Some(value_type) = source_type.strip_prefix('&') {
-        return kind_id(&format!(
-            "data/generation-reference<{}>",
-            canonical_value_kind(value_type).as_str()
-        ));
+        return data_reference_kind(&canonical_value_kind(value_type));
     }
     match source_type {
         "Text" => kind_id("value/text"),
@@ -56,10 +52,9 @@ pub(crate) fn checked_value_kind(
         if value_type.is_empty() || value_type.starts_with('&') {
             return Err(StructuredInfoRefusal::WrongType);
         }
-        return Ok(kind_id(&format!(
-            "data/generation-reference<{}>",
-            checked_value_kind(value_type, catalog)?.as_str()
-        )));
+        return Ok(data_reference_kind(&checked_value_kind(
+            value_type, catalog,
+        )?));
     }
     if let Some(value_kind) = catalog.value_kind_alias(source_type) {
         return Ok(value_kind.clone());
