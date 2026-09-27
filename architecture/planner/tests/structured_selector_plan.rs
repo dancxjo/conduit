@@ -89,7 +89,10 @@ fn primitive(kind: &str, direction: PortDirection, value_kind: KindId) -> KindPr
 fn offer(definition: &KindProjection) -> CapabilityOffer {
     let slug = definition.kind_id.as_str().replace('/', "-");
     conduit_core::capability_offer_from_parts! {
-        semantic_contract: Default::default(),
+        semantic_contract: conduit_core::KindSemanticContract {
+            configuration: definition.configuration.clone(),
+            laws: Vec::new(),
+        },
         startup_parameters: definition
             .configuration
             .iter()

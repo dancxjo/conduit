@@ -102,7 +102,10 @@ fn advertisement(
         bases: vec![],
         resources: vec![],
         capabilities: vec![conduit_core::capability_offer_from_parts! {
-            semantic_contract: Default::default(),
+            semantic_contract: conduit_core::KindSemanticContract {
+                configuration: definition.configuration.clone(),
+                laws: Vec::new(),
+            },
             startup_parameters,
             shorthand: None,
             capability_id: CapabilityId::from("time-recurrence"),

@@ -44,10 +44,15 @@ fn authored_state_reaches_an_exact_plan_and_rejects_silent_initialization_or_cap
     )
     .unwrap();
     let mut host = common::standard_planning_fixture("state-host", "state-boot");
-    host.capabilities = vec![
-        conduit_std_offers::state_value_std_offer("Cell", &ty).unwrap(),
-        source,
-    ];
+    let mut state_offer = conduit_std_offers::state_value_std_offer("Cell", &ty).unwrap();
+    state_offer.semantic_contract = form
+        .gears
+        .iter()
+        .find(|gear| gear.kind_id.as_str() == STATE_VALUE_KIND)
+        .unwrap()
+        .semantic_contract
+        .clone();
+    host.capabilities = vec![state_offer, source];
     let hosts = [host];
     let placements = conduit_planner::default_placements(&form, &hosts).unwrap();
     let plan = conduit_planner::plan_with_connection_limits(

@@ -19,13 +19,11 @@ fn checked_state_is_sealed_into_a_fresh_plan_with_exact_evidence_capacity() {
     source.terminal_behavior =
         conduit_semantic_catalog::KindTerminalBehavior::HostInputEndsOrFailsSource;
     profile
-        .insert(conduit_form::KindProjection {
-            kind_id: source.kind_id.clone(),
-            kind_contract_revision: conduit_core::KindIdentity::from("fixture/scalar-flow@1"),
-            inputs: source.inputs.clone(),
-            outputs: source.outputs.clone(),
-            configuration: vec![],
-        })
+        .insert_kind(
+            source
+                .clone()
+                .into_semantic_contract("fixture/scalar-flow@1"),
+        )
         .unwrap();
     let startup = profile.startup_catalog().unwrap();
     let form = conduit_form::parse_with_startup(
