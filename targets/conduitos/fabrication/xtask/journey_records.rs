@@ -7,6 +7,7 @@ const POINTER_PREFIX: &str = "CONDUIT_POINTER_SIGN ";
 const TRANSIENT_PREFIX: &str = "CONDUIT_TRANSIENT_SIGN ";
 const RESIZE_PREFIX: &str = "CONDUIT_RESIZE_SIGN ";
 const USB_LINE_PREFIX: &str = "CONDUIT_USB_LINE_SIGN ";
+const MASK_PREFIX: &str = "CONDUIT_MASK_SIGN ";
 pub(super) fn decode(serial: &str) -> Result<Vec<Value>, ConduitosError> {
     serial
         .split_inclusive('\n')
@@ -40,6 +41,10 @@ pub(super) fn usb_line(serial: &str) -> Result<Vec<Value>, ConduitosError> {
     decode_prefix(serial, USB_LINE_PREFIX, "conduitos-usb-line-sign-invalid")
 }
 
+pub(super) fn mask(serial: &str) -> Result<Vec<Value>, ConduitosError> {
+    decode_prefix(serial, MASK_PREFIX, "conduitos-mask-sign-invalid")
+}
+
 pub(super) fn latest_checkpoint(serial: &str) -> Result<Option<Value>, ConduitosError> {
     serial
         .split_inclusive('\n')
@@ -66,6 +71,10 @@ pub(super) fn latest_checkpoint(serial: &str) -> Result<Option<Value>, Conduitos
                 .or_else(|| {
                     line.strip_prefix(USB_LINE_PREFIX)
                         .map(|json| (json, "conduitos-usb-line-sign-invalid"))
+                })
+                .or_else(|| {
+                    line.strip_prefix(MASK_PREFIX)
+                        .map(|json| (json, "conduitos-mask-sign-invalid"))
                 })
         })
         .map(|(json, reason)| {
@@ -156,6 +165,22 @@ mod tests {
         assert_eq!(
             latest_checkpoint(serial).unwrap().unwrap()["status"],
             "line-lost"
+        );
+    }
+
+    #[test]
+    fn mask_receipts_are_bounded_complete_records() {
+        let serial = concat!(
+            "CONDUIT_PRODUCT_JOURNEY {\"status\":\"planned\"}\n",
+            "CONDUIT_MASK_SIGN {\"schema\":\"conduit.conduitos/native-mask-control@1\",\"route_disposition\":\"no-current-show\"}\n",
+            "CONDUIT_MASK_SIGN {\"schema\":\"partial"
+        );
+        let records = mask(serial).unwrap();
+        assert_eq!(records.len(), 1);
+        assert_eq!(records[0]["route_disposition"], "no-current-show");
+        assert_eq!(
+            latest_checkpoint(serial).unwrap().unwrap()["route_disposition"],
+            "no-current-show"
         );
     }
 }
