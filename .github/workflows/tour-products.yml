@@ -1038,20 +1038,14 @@ jobs:
       - name: Seal the already-proven Pages carrier
         run: |
           rm -rf target/pages-site target/pages-carrier
-          mkdir -p target/pages-site/tour target/pages-site/book target/pages-site/creche target/pages-site/workspace target/pages-site/patchbay target/pages-site/home
+          mkdir -p target/pages-site/creche target/pages-site/workspace target/pages-site/patchbay target/pages-site/home
           cp -a target/pages-root/. target/pages-site/
-          cp -a target/tour-product/. target/pages-site/tour/
           cp -a target/creche-product/. target/pages-site/creche/
           cp -a target/workspace-product/. target/pages-site/workspace/
           cp -a target/patchbay-product/. target/pages-site/patchbay/
           cp -a target/home-product/. target/pages-site/home/
-          node products/tour/tools/stage-legacy-routes.mjs target/pages-site
           node products/creche/tools/stage-legacy-routes.mjs target/pages-site
           echo 'conduit.pages/nojekyll@1' > target/pages-site/.nojekyll
-          test -f target/pages-site/tour/tour.application.json
-          grep -Fq 'Redirecting to your body' target/pages-site/tour/index.html
-          grep -Fq '../../workspace/' target/pages-site/tour/meet-one-gear/index.html
-          test -f target/pages-site/book/index.html
           test -f target/pages-site/creche/index.html
           grep -Fq 'Redirecting to your body' target/pages-site/creche/index.html
           test -f target/pages-site/creche/creche.application.json

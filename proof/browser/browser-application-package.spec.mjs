@@ -39,7 +39,7 @@ test("Tour drafts and an open reviewed Back endure a same-browser reload", async
   }));
   expect(admission.packageDigest).toMatch(/^sha256:[0-9a-f]{64}$/);
   expect(admission.applicationId).toBe("conduit.application/tour");
-  expect(admission.stateIdentity).toBe("conduit.application/book-reading-state");
+  expect(admission.stateIdentity).toBe("conduit.application/tour-reading-state");
   expect(admission.storagePackageDigest).toBe(admission.packageDigest);
   expect(admission.storageIdentity).toBe(admission.stateIdentity);
   const membershipClient = await page.evaluate(() => {
@@ -95,27 +95,6 @@ test("Tour drafts and an open reviewed Back endure a same-browser reload", async
     const pathname = new URL(admission.resourceUrls[index]).pathname;
     expect(requests.filter((request) => request === pathname), path).toHaveLength(2);
   }
-});
-
-test.skip("Tour migrates the finite legacy Book reading state without changing its compatibility identity", async ({ page }) => {
-  await page.goto(entrance.url);
-  await expect(page.locator("#host-state")).toHaveText("Browser Host ready");
-  const legacy = {
-    schema: "conduit.book/reading-state@1",
-    drafts: [["runner-0", "legacy draft"]],
-    expandedBacks: ["same-morse-caller/morse"],
-  };
-  await page.evaluate((state) => globalThis.__conduitBrowserApplication.storage.writeJson("reading-state", state), legacy);
-
-  await page.reload();
-  await expect(page.locator("#host-state")).toHaveText("Browser Host ready");
-  await page.evaluate(() => globalThis.__conduitTourPersistence.flush());
-  const migrated = await page.evaluate(async () => ({
-    applicationIdentity: globalThis.__conduitBrowserApplication.storage.applicationIdentity,
-    state: await globalThis.__conduitBrowserApplication.storage.readJson("reading-state"),
-  }));
-  expect(migrated.applicationIdentity).toBe("conduit.application/book-reading-state");
-  expect(migrated.state).toEqual({ ...legacy, schema: "conduit.tour/reading-state@1" });
 });
 
 test("Crèche compatibility entrance redirects to the Workspace route", async ({ page }) => {

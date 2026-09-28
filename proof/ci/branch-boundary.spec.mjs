@@ -189,7 +189,6 @@ test("workflow topology keeps fast development separate from stable promotion", 
   assert.match(monitor, /checks: write/);
   assert.match(monitor, /GITHUB_EVENT_PATH="\$event_path" node tools\/ci\/pr-closing-intent\.mjs/);
   assert.match(monitor, /cargo test --locked --package conduit-xtask-dispatch/);
-  assert.match(monitor, /proof\/ci\/tour-compatibility\.test\.mjs/);
   assert.match(monitor, /proof\/ci\/release-lane-controller\.spec\.mjs/);
   assert.match(monitor, /repos\/\$GITHUB_REPOSITORY\/check-runs/);
   assert.match(monitor, /-f name=candidate/);

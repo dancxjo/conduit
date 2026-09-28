@@ -1,7 +1,6 @@
 import AxeBuilder from "@axe-core/playwright";
 import { cp, mkdir, rm } from "node:fs/promises";
 import { expect, test } from "@playwright/test";
-import { stageLegacyTourRoutes } from "../../products/tour/tools/stage-legacy-routes.mjs";
 import { stageLegacyCrecheRoute } from "../../products/creche/tools/stage-legacy-routes.mjs";
 import { startStaticProduct } from "./tour-test-server.mjs";
 
@@ -12,12 +11,10 @@ test.beforeAll(async () => {
   await rm(pagesRoot, { recursive: true, force: true });
   await mkdir(pagesRoot, { recursive: true });
   await cp("target/pages-root", pagesRoot, { recursive: true });
-  await cp("target/tour-product", `${pagesRoot}/tour`, { recursive: true });
   await cp("target/creche-product", `${pagesRoot}/creche`, { recursive: true });
   await cp("target/workspace-product", `${pagesRoot}/workspace`, { recursive: true });
   await cp("target/patchbay-product", `${pagesRoot}/patchbay`, { recursive: true });
   await cp("target/home-product", `${pagesRoot}/home`, { recursive: true });
-  await stageLegacyTourRoutes(pagesRoot);
   await stageLegacyCrecheRoute(pagesRoot);
   entrance = await startStaticProduct(pagesRoot, "/conduit/");
 });

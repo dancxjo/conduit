@@ -48,7 +48,6 @@ jobs:
           proof/ci/product-truth.spec.mjs
           proof/ci/release-lane-controller.spec.mjs
           proof/ci/release-request.spec.mjs
-          proof/ci/tour-compatibility.test.mjs
 
   check:
     needs: admission
