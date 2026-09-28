@@ -421,7 +421,6 @@ fn suite_roots() -> BTreeMap<&'static str, BTreeSet<&'static str>> {
                 "patchbay-hosted",
                 "patchbay-control",
                 "patchbay-model",
-                "patchbay-native",
             ]),
         ),
         (
@@ -440,7 +439,7 @@ fn direct_prefixes(suite: &str) -> &'static [&'static str] {
         "esp32" => &["targets/esp32/"],
         "browser" => &[
             "targets/browser/",
-            "products/patchbay/",
+            "products/patchbay/html/",
             "proof/browser/",
             "assets/",
         ],

@@ -26,7 +26,6 @@ pub(super) const PRODUCT_PROOFS: &[ProductProofSpec] = &[ProductProofSpec {
     exact_inputs: &[
         ".github/workflows/tour-products.yml",
         ".github/workflows/tour-pages-deploy.yml",
-        "Cargo.lock",
         "proof/browser/package.json",
         "proof/browser/package-lock.json",
         "targets/browser/tools/build-browser-application-package.mjs",
@@ -59,7 +58,9 @@ pub(super) const PRODUCT_PROOFS: &[ProductProofSpec] = &[ProductProofSpec {
         "products/tour/",
         "products/creche/",
         "products/workspace/",
-        "products/patchbay/",
+        "products/patchbay/html/",
+        "products/patchbay/model/",
+        "products/patchbay/tools/",
         "products/home/browser/",
         "products/home/model/",
         "products/shared/browser/",
@@ -245,6 +246,20 @@ mod product_source_tests {
             "products/patchbay/html/tests/server.rs",
         ] {
             assert!(proofs_for_paths(&[path.to_owned()]).is_empty(), "{path}");
+        }
+    }
+
+    #[test]
+    fn native_patchbay_sources_do_not_select_the_browser_carrier() {
+        for path in [
+            "products/patchbay/native/Cargo.toml",
+            "products/patchbay/native/src/gui.rs",
+        ] {
+            assert!(proofs_for_paths(&[path.to_owned()]).is_empty(), "{path}");
+            assert!(
+                browser_presentation_proofs_for_path(path).is_empty(),
+                "{path}"
+            );
         }
     }
 
