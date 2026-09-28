@@ -14,9 +14,9 @@ The [project introduction](../../README.md) explains the motivation. Each lesson
 before asking architectural precision or evidence to carry the explanation:
 problem or desire, Conduit idea, executable demonstration, then payoff.
 
-`docs/journeys/tour/` owns the lessons and `model/` owns the portable semantic
-model. Keep canonical Form identities and stage declarations aligned when
-changing a lesson.
+`docs/journeys/tour/` owns the lessons; this Form directory owns the portable
+semantic model and canonical source. Keep Form identities and stage
+declarations aligned when changing a lesson.
 
 The native ConduitOS Tour consumes the seven-page semantic port, chapter/stage
 catalog, Form source identities, and semantic actions. Focus the left pane and

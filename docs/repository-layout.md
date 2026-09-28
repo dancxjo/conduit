@@ -25,15 +25,15 @@ Root Cargo metadata, toolchain/configuration files, licensing and contributor gu
 
 `products/conduit` owns the installed CLI entrance and `products/workspace` owns
 the primary body-centered product surface, including zero-body bootstrap and
-reviewed initial-workset selection. `products/tour` owns authored tutorial
-content and its retained standalone compatibility entrance;
+reviewed initial-workset selection. `forms/tour` owns the resident tutorial
+meaning while `docs/journeys/tour` owns its authored journey;
 `products/creche` owns target preparation and its retained compatibility route,
 not another bootstrap state model; `products/patchbay` owns specialized
 inspection/editing implementations and compatibility entrances while Patchbay
 also runs as a resident form. These package boundaries do not create separate
 body, scheduler, lifecycle, or authority truths. There is no reserved empty
-`products/book`: historical Book routes and saved-state compatibility are
-explicit Tour migration boundaries.
+`products/book` or `products/tour`: their historical routes and saved-state
+compatibility are retired pre-v1 application architecture.
 
 `bodies/pete` is a concrete robot body, with its own composition and configurations. The unfinished embodied-house specimen in #2293 belongs under `bodies/<specimen>` when its concrete composition is added; its existing semantic work does not establish a persistent live House.
 

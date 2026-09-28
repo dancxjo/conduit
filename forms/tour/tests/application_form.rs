@@ -1,4 +1,4 @@
-const FORM_SOURCE: &str = include_str!("../../../../forms/tour/main.conduit");
+const FORM_SOURCE: &str = include_str!("../main.conduit");
 
 #[test]
 fn tour_is_a_checked_host_neutral_form_over_the_application_seam() {
