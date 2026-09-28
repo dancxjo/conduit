@@ -53,7 +53,7 @@ members = [
 	"products/conduit",
 	"products/creche/model",
 	"forms/birth",
-	"products/home/model",
+	"semantics/home",
 	"products/workspace/model",
 	"products/tour/model",
 	"targets/std/patchbay-workbench",
