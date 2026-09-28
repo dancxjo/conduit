@@ -51,11 +51,17 @@ for (const product of ["tour", "creche", "workspace"]) {
   test(`${product} package dependencies name real source owners`, () => {
     const root = resolve(`products/${product}/browser`);
     const descriptor = JSON.parse(readFileSync(`${root}/${product}.application.template.json`, "utf8"));
+    const resources = new Map(descriptor.resources.map((resource) => [resource.role, resource]));
     assert.equal(descriptor.application_id, `conduit.application/${product}`);
     for (const resource of descriptor.resources) {
-      if (!existsSync(resolve(root, resource.path)) || resource.kind !== "module") continue;
+      const source = resource.source ? resolve(resource.source) : resolve(root, resource.path);
+      if (!existsSync(source) || resource.kind !== "module") continue;
       for (const dependency of resource.dependencies) {
-        assert.ok(existsSync(resolve(root, dependency.specifier)), `${resource.role}: missing source owner ${dependency.specifier}`);
+        const dependencyResource = resources.get(dependency.role);
+        const dependencySource = dependencyResource?.source
+          ? resolve(dependencyResource.source)
+          : resolve(root, dependency.specifier);
+        assert.ok(existsSync(dependencySource), `${resource.role}: missing source owner ${dependency.specifier}`);
       }
     }
   });
