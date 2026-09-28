@@ -16,7 +16,6 @@ mod body_biography_entrance;
 mod body_planning_session;
 mod body_workload_session;
 mod build_birth;
-mod candidate_form;
 mod control;
 mod conversation_request_evidence;
 mod cross_host_renderer;
@@ -144,7 +143,6 @@ pub use build_birth::{
     BirthSigns, BuildBirthController, BuildBirthDocument, BuildBirthError, BuildRevisionStatus,
     PatchbayMode, MAX_BUILD_DOCUMENT_LINES,
 };
-pub use candidate_form::PatchbayCandidateForm;
 pub use conduit_body::WakeLifecycle;
 pub use conduit_presentation::{
     ApplicationTheme, MaskWardrobeAction, MaskWardrobeControl, MaskWardrobeControlError,
