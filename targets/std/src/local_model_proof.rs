@@ -7,7 +7,7 @@ use crate::{StdHost, StdHostComposition, StdHostConfig, TimerAdapter};
 use conduit_ai::LocalModelKindProfile;
 use conduit_core::{BaseImplementationId, BootId, HostId, OfferGeneration};
 use conduit_form::{check_syntax_document, parse_syntax_document, ProfileCatalog, StartupCatalog};
-use conduit_presentation::{GeneratedManifestation, GenerativePresenterRequest};
+use conduit_presentation::{GeneratedManifestationCandidate, GenerativePresenterRequest};
 use serde::Serialize;
 use std::collections::BTreeMap;
 use std::sync::{Arc, Mutex};
@@ -45,13 +45,13 @@ pub struct PresenterRequestProofReceipt {
     pub source_presentation_identity: String,
     pub source_presentation_revision: u64,
     pub policy_revision: String,
-    pub manifestation: GeneratedManifestation,
+    pub manifestation: GeneratedManifestationCandidate,
 }
 
 struct CapturingLocalModelAdapter {
     inner: Box<dyn HostedLocalModelAdapter>,
     generated_text: Arc<Mutex<Option<Vec<u8>>>>,
-    presenter_manifestations: Arc<Mutex<Vec<GeneratedManifestation>>>,
+    presenter_manifestations: Arc<Mutex<Vec<GeneratedManifestationCandidate>>>,
 }
 
 impl HostedLocalModelAdapter for CapturingLocalModelAdapter {
@@ -87,7 +87,9 @@ impl HostedLocalModelAdapter for CapturingLocalModelAdapter {
                 LocalModelAdapterTerminal::Produced | LocalModelAdapterTerminal::Truncated
             )
         {
-            let Ok(manifestation) = serde_json::from_slice::<GeneratedManifestation>(output) else {
+            let Ok(manifestation) =
+                serde_json::from_slice::<GeneratedManifestationCandidate>(output)
+            else {
                 return LocalModelAdapterTerminal::Failed;
             };
             let Ok(mut captured) = self.presenter_manifestations.lock() else {
@@ -215,10 +217,10 @@ pub fn run(
             .lock()
             .map_err(|_| "presenter proof capture lock is poisoned")?
             .pop()
-            .ok_or("Presenter proof produced no captured Manifestation")?;
+            .ok_or("Presenter proof produced no captured candidate")?;
         request
-            .validate_manifestation(&manifestation)
-            .map_err(|error| format!("invalid provider Manifestation: {error:?}"))?;
+            .validate_candidate(&manifestation)
+            .map_err(|error| format!("invalid provider candidate: {error:?}"))?;
         presenter_receipts.push(PresenterRequestProofReceipt {
             plan_id: execution.0,
             play_completed: execution.1,

@@ -25,11 +25,11 @@ use conduit_planner::{
 };
 use conduit_presentation::{
     ArtifactAcknowledgedSpokenShow, GeneratedContentRole, GeneratedContentSegment,
-    GeneratedManifestation, GeneratedManifestationDisposition, GenerativeNarratorRole,
-    GenerativePresenterBounds, GenerativePresenterPolicy, GenerativePresenterRequest,
-    ManifestationLifecycle, MaskForm, PlannedMaskForm, Presentation, PresentationBasis,
-    PresentationDisclosure, PresentationDisclosureLevel, PresentationRole, PresentationSubject,
-    PresentationText,
+    GeneratedManifestationCandidate, GeneratedManifestationDisposition,
+    GeneratedSemanticCorrelation, GenerativeNarratorRole, GenerativePresenterBounds,
+    GenerativePresenterPolicy, GenerativePresenterRequest, ManifestationLifecycle, MaskForm,
+    PlannedMaskForm, Presentation, PresentationBasis, PresentationDisclosure,
+    PresentationDisclosureLevel, PresentationRole, PresentationSubject, PresentationText,
 };
 use std::collections::BTreeMap;
 
@@ -56,24 +56,44 @@ impl HostedLocalModelAdapter for FixturePresenter {
             return LocalModelAdapterTerminal::Refused;
         }
         let request: GenerativePresenterRequest = serde_json::from_slice(input).unwrap();
-        let manifestation = serde_json::to_vec(&GeneratedManifestation {
-            manifestation_identity: "manifestation/spoken-mask".into(),
+        let mut manifestation = GeneratedManifestationCandidate {
+            candidate_identity: String::new(),
             request_identity: request.request_identity.clone(),
-            source_presentation_identity: request.semantic_data.source_presentation_identity,
+            source_presentation_identity: request
+                .semantic_data
+                .source_presentation_identity
+                .clone(),
             source_presentation_revision: request.semantic_data.source_presentation_revision,
             presenter_implementation_identity: "fixture/presenter@1".into(),
             provider_identity: "fixture/provider".into(),
             model_identity: "fixture/model".into(),
-            template_contract_revision: request.policy.template_contract_revision,
+            template_contract_revision: request.policy.template_contract_revision.clone(),
+            mask_contract_revision: conduit_presentation::SPOKEN_MASK_CONTRACT_REVISION.into(),
             generation_run_identity: "run/spoken-mask".into(),
             disposition: GeneratedManifestationDisposition::Produced,
             content: vec![GeneratedContentSegment {
                 role: GeneratedContentRole::Speech,
-                bytes: b"I am awake.".to_vec(),
+                bytes: request.semantic_data.presentation.text[0]
+                    .text
+                    .as_bytes()
+                    .to_vec(),
             }],
             affordances: vec![],
-        })
-        .unwrap();
+            correlations: vec![
+                GeneratedSemanticCorrelation::Subject {
+                    index: 0,
+                    identity: request.semantic_data.presentation.subjects[0]
+                        .identity
+                        .clone(),
+                },
+                GeneratedSemanticCorrelation::Text {
+                    index: 0,
+                    subject: request.semantic_data.presentation.text[0].subject.clone(),
+                },
+            ],
+        };
+        manifestation.candidate_identity = manifestation.digest();
+        let manifestation = serde_json::to_vec(&manifestation).unwrap();
         output.clear();
         output.extend_from_slice(&manifestation);
         LocalModelAdapterTerminal::Produced
@@ -221,6 +241,9 @@ fn execute_spoken_mask(
 ) {
  request: presentation/adapt-generative-request
  language: llm/present
+ envelope: presentation/build-generated-validation-envelope
+ validator: presentation/generated-semantic-validator
+ accepted: presentation/retain-generated-validation
  speech: presentation/generated-manifestation-speech
  voice: speech/synthesize(maximum-output-bytes = 32768)
  convert: audio/convert-pcm-profile(output-sample-rate-hz = 48000, output-channel-layout = "stereo-left-right")
@@ -229,8 +252,13 @@ fn execute_spoken_mask(
  no-input: presentation/no-interaction
  presentation >> request.presentation
  request.request >> language.request
- language.result >> speech.manifestation
- language.result >> shown.manifestation
+ request.request >> envelope.request
+ language.result >> envelope.candidate
+ language.result >> accepted.candidate
+ envelope.envelope >> validator.envelope
+ validator.assessment >> accepted.assessment
+ accepted.manifestation >> speech.manifestation
+ accepted.manifestation >> shown.manifestation
  speech.speech >> voice.text
  voice.audio >> convert.audio
  convert.converted >> artifact.audio
@@ -360,8 +388,8 @@ fn registered_spoken_mask_executes_to_an_artifact_acknowledged_show() {
 
 #[test]
 fn producer_callable_replays_a_retained_live_manifestation_through_the_spoken_mask() {
-    let retained = GeneratedManifestation {
-        manifestation_identity: "manifestation/retained-live-result".into(),
+    let mut retained = GeneratedManifestationCandidate {
+        candidate_identity: String::new(),
         request_identity: "request/original-live-presenter".into(),
         source_presentation_identity: presentation().identity.as_str().into(),
         source_presentation_revision: 1,
@@ -369,6 +397,7 @@ fn producer_callable_replays_a_retained_live_manifestation_through_the_spoken_ma
         provider_identity: "fixture/live-provider".into(),
         model_identity: "fixture/live-model".into(),
         template_contract_revision: "template/original@1".into(),
+        mask_contract_revision: conduit_presentation::SPOKEN_MASK_CONTRACT_REVISION.into(),
         generation_run_identity: "run/retained-live-result".into(),
         disposition: GeneratedManifestationDisposition::Produced,
         content: vec![GeneratedContentSegment {
@@ -376,7 +405,18 @@ fn producer_callable_replays_a_retained_live_manifestation_through_the_spoken_ma
             bytes: b"The Body has awakened.".to_vec(),
         }],
         affordances: vec![],
+        correlations: vec![
+            GeneratedSemanticCorrelation::Subject {
+                index: 0,
+                identity: "body/current".into(),
+            },
+            GeneratedSemanticCorrelation::Text {
+                index: 0,
+                subject: "body/current".into(),
+            },
+        ],
     };
+    retained.candidate_identity = retained.digest();
     let executed = crate::spoken_mask_journey::execute_retained_manifestation_mask(
         "spoken-producer-callable",
         "spoken-producer-callable",
@@ -603,16 +643,15 @@ fn screen_free_spoken_producer_actualizes_the_shared_ten_action_journey() {
         presentation.clone(),
     );
     let initial_identity = initial.2.form_identity.clone();
-    let alternate_identity = {
-        let prepared = execute_spoken_mask(
-            "spoken-generative",
-            "host/spoken-mask-identity",
-            "boot/spoken-mask-identity",
-            "grant/spoken-mask-identity",
-            presentation.clone(),
-        );
-        prepared.2.form_identity
-    };
+    let alternate_identity = execute_spoken_mask(
+        "spoken-generative",
+        "host/spoken-mask-identity",
+        "boot/spoken-mask-identity",
+        "grant/spoken-mask-identity",
+        presentation.clone(),
+    )
+    .2
+    .form_identity;
     let mut journey = SpokenJourney {
         presentation,
         wardrobe: conduit_presentation::MaskWardrobe::new(

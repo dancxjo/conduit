@@ -1,8 +1,7 @@
 //! Exact handoff from one generated Speech manifestation to Piper audio.
 
 use conduit_presentation::{
-    GeneratedContentRole, GeneratedManifestation, GeneratedManifestationDisposition,
-    GenerativePresenterRequest,
+    GeneratedContentRole, GeneratedManifestation, GenerativePresenterRequest,
 };
 
 use super::{PiperFailure, PiperSpeechAdapter, PiperSynthesisReceipt};
@@ -42,18 +41,12 @@ impl PiperSpeechAdapter {
         cancelled: impl FnMut() -> bool,
         consume: impl FnMut(&[u8]) -> Result<(), ()>,
     ) -> Result<GeneratedSpeechReceipt, GeneratedSpeechRefusal> {
+        let candidate = manifestation.candidate();
         request
-            .validate_manifestation(manifestation)
+            .validate_candidate(candidate)
             .map_err(|_| GeneratedSpeechRefusal::InvalidManifestation)?;
-        if !matches!(
-            manifestation.disposition,
-            GeneratedManifestationDisposition::Produced
-                | GeneratedManifestationDisposition::Truncated
-        ) {
-            return Err(GeneratedSpeechRefusal::TerminalManifestation);
-        }
         let mut speech_segments = manifestation
-            .content
+            .content()
             .iter()
             .filter(|segment| segment.role == GeneratedContentRole::Speech);
         let speech = speech_segments
@@ -71,15 +64,13 @@ impl PiperSpeechAdapter {
             return Err(GeneratedSpeechRefusal::InvalidSpeech);
         }
         Ok(GeneratedSpeechReceipt {
-            source_presentation_identity: manifestation.source_presentation_identity.clone(),
-            source_presentation_revision: manifestation.source_presentation_revision,
-            generated_manifestation_identity: manifestation.manifestation_identity.clone(),
-            generation_run_identity: manifestation.generation_run_identity.clone(),
-            presenter_implementation_identity: manifestation
-                .presenter_implementation_identity
-                .clone(),
-            presenter_provider_identity: manifestation.provider_identity.clone(),
-            presenter_model_identity: manifestation.model_identity.clone(),
+            source_presentation_identity: manifestation.source_presentation_identity().into(),
+            source_presentation_revision: manifestation.source_presentation_revision(),
+            generated_manifestation_identity: manifestation.manifestation_identity().into(),
+            generation_run_identity: candidate.generation_run_identity.clone(),
+            presenter_implementation_identity: candidate.presenter_implementation_identity.clone(),
+            presenter_provider_identity: candidate.provider_identity.clone(),
+            presenter_model_identity: candidate.model_identity.clone(),
             speech_sha256: synthesis.text_sha256.clone(),
             voice_executable_sha256: self.discovery().executable_sha256.clone(),
             voice_model_sha256: self.discovery().model_sha256.clone(),

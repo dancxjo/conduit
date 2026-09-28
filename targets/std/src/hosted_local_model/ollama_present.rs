@@ -3,8 +3,8 @@
 use conduit_ai::LocalModelIdentity;
 use conduit_presentation::{
     orifina_completion_presenter_policy, GeneratedActionAffordance, GeneratedContentRole,
-    GeneratedContentSegment, GeneratedManifestation, GeneratedManifestationDisposition,
-    GenerativeNarratorRole, GenerativePresenterRequest,
+    GeneratedContentSegment, GeneratedManifestationCandidate, GeneratedManifestationDisposition,
+    GeneratedSemanticCorrelation, GenerativeNarratorRole, GenerativePresenterRequest,
 };
 #[cfg(any(test, feature = "local-model-proof"))]
 use conduit_presentation::{
@@ -124,8 +124,36 @@ pub(super) fn finish(
         });
     }
     let source_revision = prepared.request.semantic_data.source_presentation_revision;
-    let manifestation = GeneratedManifestation {
-        manifestation_identity: format!("manifestation/ollama/{sequence}"),
+    let subject = prepared
+        .request
+        .semantic_data
+        .presentation
+        .subjects
+        .first()
+        .ok_or_else(|| "provider candidate has no source subject to correlate".to_string())?;
+    let mut correlations = vec![GeneratedSemanticCorrelation::Subject {
+        index: 0,
+        identity: subject.identity.clone(),
+    }];
+    for action_identity in &wire.suggested_action_identities {
+        let (index, action) = prepared
+            .request
+            .semantic_data
+            .presentation
+            .actions
+            .iter()
+            .enumerate()
+            .find(|(_, action)| &action.identity == action_identity)
+            .ok_or_else(|| format!("provider suggested unknown action {action_identity}"))?;
+        correlations.push(GeneratedSemanticCorrelation::Action {
+            index: index as u32,
+            identity: action.identity.clone(),
+            intent: action.intent.clone(),
+            target: action.target.clone(),
+        });
+    }
+    let mut manifestation = GeneratedManifestationCandidate {
+        candidate_identity: String::new(),
         request_identity: prepared.request.request_identity.clone(),
         source_presentation_identity: prepared
             .request
@@ -140,6 +168,7 @@ pub(super) fn finish(
             identity.model_name, identity.model_content_identity
         ),
         template_contract_revision: prepared.request.policy.template_contract_revision.clone(),
+        mask_contract_revision: conduit_presentation::SPOKEN_MASK_CONTRACT_REVISION.into(),
         generation_run_identity: format!("run/ollama-present/{sequence}"),
         disposition: if truncated {
             GeneratedManifestationDisposition::Truncated
@@ -155,7 +184,9 @@ pub(super) fn finish(
                 source_presentation_revision: source_revision,
             })
             .collect(),
+        correlations,
     };
+    manifestation.candidate_identity = manifestation.digest();
     prepared
         .request
         .validate_manifestation(&manifestation)
@@ -255,7 +286,8 @@ mod tests {
             false,
         )
         .unwrap();
-        let manifestation: GeneratedManifestation = serde_json::from_slice(&payload).unwrap();
+        let manifestation: GeneratedManifestationCandidate =
+            serde_json::from_slice(&payload).unwrap();
         assert_eq!(manifestation.request_identity, "request/present/7");
         assert_eq!(manifestation.provider_identity, "ollama/1.2.3");
         assert_eq!(
@@ -305,7 +337,8 @@ mod tests {
             false,
         )
         .unwrap();
-        let manifestation: GeneratedManifestation = serde_json::from_slice(&payload).unwrap();
+        let manifestation: GeneratedManifestationCandidate =
+            serde_json::from_slice(&payload).unwrap();
         assert_eq!(
             manifestation.template_contract_revision,
             conduit_presentation::ORIFINA_COMPLETION_POLICY_REVISION

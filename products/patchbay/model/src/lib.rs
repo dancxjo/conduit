@@ -52,6 +52,7 @@ mod front_door_session;
 mod front_door_topology;
 mod front_door_transition;
 mod gear_realization;
+mod generated_validation_inspection;
 mod graphical_patchbay;
 mod host_adapter;
 mod interaction;
@@ -227,6 +228,7 @@ pub use gear_realization::{
     GearRealizationAlternative, GearRealizationError, GearRealizationInspection,
     LearnedImplementationSelection, RealizationDisposition, MAX_GEAR_REALIZATION_ALTERNATIVES,
 };
+pub use generated_validation_inspection::project_generated_validation_receipt;
 pub use graphical_patchbay::{
     PatchbayComposition, PatchbayCompositionBinding, PatchbayConnectionCandidate, PatchbayCord,
     PatchbayFrontPort, PatchbayGear, PatchbayGraph, PatchbayGraphError, PatchbayInspection,

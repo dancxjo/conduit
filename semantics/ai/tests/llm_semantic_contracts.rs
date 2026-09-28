@@ -113,7 +113,7 @@ fn generative_presentation_is_structured_and_distinct_from_input_interpretation(
     );
     assert_eq!(
         present.outputs[0].value_kind.as_str(),
-        "conduit.presentation/generated-manifestation@2"
+        "conduit.presentation/generated-manifestation-candidate@1"
     );
     assert_eq!(
         present.kind_contract_revision.as_str(),

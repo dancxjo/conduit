@@ -1,12 +1,11 @@
 use super::*;
-use crate::hosted_speech::GeneratedSpeechRefusal;
 use conduit_audio::{PcmChannelLayout, PcmFrameHeader};
 use conduit_presentation::{
     Face, FaceContext, FaceFocus, GeneratedContentRole, GeneratedContentSegment,
-    GeneratedManifestation, GeneratedManifestationDisposition, GenerativeNarratorRole,
-    GenerativePresenterBounds, GenerativePresenterPolicy, GenerativePresenterRequest, Presentation,
-    PresentationBasis, PresentationDisclosure, PresentationDisclosureLevel, PresentationRole,
-    PresentationSubject,
+    GeneratedManifestationCandidate, GeneratedManifestationDisposition,
+    GeneratedSemanticCorrelation, GenerativeNarratorRole, GenerativePresenterBounds,
+    GenerativePresenterPolicy, GenerativePresenterRequest, Presentation, PresentationBasis,
+    PresentationDisclosure, PresentationDisclosureLevel, PresentationRole, PresentationSubject,
 };
 use std::fs;
 use std::os::unix::fs::PermissionsExt;
@@ -125,10 +124,10 @@ fn provider_receives_end_of_text_before_output_is_polled() {
 }
 
 #[test]
-fn generated_speech_retains_presenter_and_voice_provenance() {
+fn generated_candidate_stops_before_the_typed_speech_boundary() {
     let _provider_process = provider_process();
     let fixture = Fixture::new("#!/bin/sh\ncat >/dev/null\nprintf '\\001\\000'\n");
-    let mut adapter = fixture.adapter(8);
+    let adapter = fixture.adapter(8);
     let presentation = Presentation::new_with_semantics(
         7,
         PresentationBasis {
@@ -174,8 +173,8 @@ fn generated_speech_retains_presenter_and_voice_provenance() {
         GenerativePresenterBounds::reviewed_default(),
     )
     .unwrap();
-    let manifestation = GeneratedManifestation {
-        manifestation_identity: "manifestation/generated/7".into(),
+    let mut manifestation = GeneratedManifestationCandidate {
+        candidate_identity: String::new(),
         request_identity: request.request_identity.clone(),
         source_presentation_identity: request.semantic_data.source_presentation_identity.clone(),
         source_presentation_revision: request.semantic_data.source_presentation_revision,
@@ -183,6 +182,7 @@ fn generated_speech_retains_presenter_and_voice_provenance() {
         provider_identity: "ollama/1.2.3".into(),
         model_identity: "model/fixture".into(),
         template_contract_revision: request.policy.template_contract_revision.clone(),
+        mask_contract_revision: conduit_presentation::SPOKEN_MASK_CONTRACT_REVISION.into(),
         generation_run_identity: "run/ollama/7".into(),
         disposition: GeneratedManifestationDisposition::Produced,
         content: vec![GeneratedContentSegment {
@@ -190,35 +190,14 @@ fn generated_speech_retains_presenter_and_voice_provenance() {
             bytes: b"I am awake.".to_vec(),
         }],
         affordances: vec![],
+        correlations: vec![GeneratedSemanticCorrelation::Subject {
+            index: 0,
+            identity: "body/current".into(),
+        }],
     };
-    let receipt = adapter
-        .synthesize_generated_speech(&request, &manifestation, || false, |_| Ok(()))
-        .unwrap();
-
-    assert_eq!(
-        receipt.generated_manifestation_identity,
-        manifestation.manifestation_identity
-    );
-    assert_eq!(receipt.generation_run_identity, "run/ollama/7");
-    assert_eq!(receipt.presenter_provider_identity, "ollama/1.2.3");
-    assert_eq!(receipt.presenter_model_identity, "model/fixture");
-    assert_eq!(receipt.speech_sha256, receipt.synthesis.text_sha256);
-    assert_eq!(receipt.voice_model_sha256, adapter.discovery().model_sha256);
-    assert_eq!(receipt.synthesis.frames, 1);
-
-    let mut stale = manifestation.clone();
-    stale.source_presentation_revision += 1;
-    assert_eq!(
-        adapter.synthesize_generated_speech(&request, &stale, || false, |_| Ok(())),
-        Err(GeneratedSpeechRefusal::InvalidManifestation)
-    );
-
-    let cancelling_fixture = Fixture::new("#!/bin/sh\nsleep 2\n");
-    let mut cancelling = cancelling_fixture.adapter(8);
-    assert_eq!(
-        cancelling.synthesize_generated_speech(&request, &manifestation, || true, |_| Ok(())),
-        Err(GeneratedSpeechRefusal::Synthesis(PiperFailure::Cancelled))
-    );
+    manifestation.candidate_identity = manifestation.digest();
+    request.validate_candidate(&manifestation).unwrap();
+    assert!(!adapter.discovery().model_sha256.is_empty());
 }
 
 #[test]

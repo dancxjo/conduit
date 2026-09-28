@@ -269,7 +269,7 @@ fn offer(
         conduit_presentation::GENERATIVE_PRESENTER_INPUT_KIND => {
             conduit_presentation::MAX_GENERATIVE_PRESENTER_INPUT_BYTES as u32
         }
-        conduit_presentation::GENERATED_MANIFESTATION_KIND => {
+        conduit_presentation::GENERATED_MANIFESTATION_CANDIDATE_KIND => {
             conduit_presentation::MAX_GENERATIVE_PRESENTER_INPUT_BYTES as u32
         }
         _ => 16_384,
@@ -542,7 +542,7 @@ fn sink_budget(placement: &PlannedGear) -> Result<BackBudget, String> {
         host_requests: 0,
         sign_items: 16,
         maximum_value_bytes: if placement.inputs[0].value_kind.as_str()
-            == conduit_presentation::GENERATED_MANIFESTATION_KIND
+            == conduit_presentation::GENERATED_MANIFESTATION_CANDIDATE_KIND
         {
             conduit_presentation::MAX_GENERATIVE_PRESENTER_OUTPUT_BYTES as u32
         } else {
