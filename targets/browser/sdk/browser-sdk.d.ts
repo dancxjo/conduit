@@ -127,8 +127,8 @@ export class BrowserBody {
   current(): Promise<Readonly<Record<string, unknown>>>;
   /** Refresh one immutable projection of current Rust Body and Host evidence. */
   snapshot(): Promise<BrowserBodySnapshot>;
-  /** Project the exact checked topology and optionally mount an inspection-only Patchbay. */
-  patchbay(options?: { root?: Element | ShadowRoot }): Promise<BrowserBodyPatchbay>;
+  /** Project the exact checked topology for consumption by a Patchbay Mask. */
+  patchbay(): Promise<BrowserBodyPatchbay>;
   /** Stream retained runtime events; replay is opt-in and notifications are polled/coalesced from bounded evidence. */
   events(options?: { replay?: boolean; pollIntervalMillis?: number; signal?: AbortSignal }): AsyncIterable<BrowserBodyEvent>;
   /** Propose, admit, and start one exact runtime Play through the reviewed Browser Host adapters. */
