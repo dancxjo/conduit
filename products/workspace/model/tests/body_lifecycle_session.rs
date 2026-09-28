@@ -1191,9 +1191,7 @@ fn stale_or_absent_removal_preserves_current_workload_and_evidence() {
 
 #[test]
 fn library_projects_the_current_workset_and_preserves_exact_indices_when_filtered() {
-    use conduit_workspace_model::library::{
-        FormLibrary, LibraryAvailability, LibraryEntry, LibraryRefusal,
-    };
+    use conduit_form_library::{FormLibrary, LibraryAvailability, LibraryEntry, LibraryRefusal};
     let body = born();
     let library = FormLibrary::new(vec![
         LibraryEntry {
@@ -1210,7 +1208,7 @@ fn library_projects_the_current_workset_and_preserves_exact_indices_when_filtere
             availability: LibraryAvailability::NeedsCapability(
                 "Needs a text model realization.".into(),
             ),
-            graceful_fallback: Some(conduit_workspace_model::library::LibraryFallback {
+            graceful_fallback: Some(conduit_form_library::LibraryFallback {
                 title: "Keyboard Notes".into(),
                 availability: LibraryAvailability::Available,
             }),
@@ -1250,7 +1248,7 @@ fn library_projects_the_current_workset_and_preserves_exact_indices_when_filtere
 #[test]
 fn library_keeps_reviewed_forms_visible_when_the_body_is_at_capacity() {
     use conduit_body::MAX_BODY_FORMS;
-    use conduit_workspace_model::library::{FormLibrary, LibraryAvailability, LibraryEntry};
+    use conduit_form_library::{FormLibrary, LibraryAvailability, LibraryEntry};
 
     let mut body = born();
     for index in 1..MAX_BODY_FORMS {
