@@ -263,7 +263,7 @@ mod product_source_tests {
         ] {
             let path = format!("targets/{target}/deployment/browser/creche-adapter.mjs");
             assert_eq!(
-                proofs_for_paths(&[path.clone()]),
+                proofs_for_paths(std::slice::from_ref(&path)),
                 ["products.pages-carrier"],
                 "{path}"
             );
