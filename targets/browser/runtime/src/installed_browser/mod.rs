@@ -5,6 +5,7 @@ pub(crate) mod audio_io;
 mod back;
 pub(crate) mod body_startup;
 mod button_indicator;
+mod debounce;
 mod delay;
 mod deterministic_garden_source;
 mod factory;
