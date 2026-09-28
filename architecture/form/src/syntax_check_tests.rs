@@ -363,6 +363,73 @@ fn generic_inference_refuses_conflicting_port_evidence() {
 }
 
 #[test]
+fn generic_specialization_preserves_temporal_modalities_and_data_references() {
+    let checked = check(
+        "form latest (\n item: type\n >> values: item...\n >> source: $item\n current: $item >>\n snapshot: &item >>\n) {\n source >> current\n}\n\
+         form main {\n selected: latest(item = Text)\n}\n",
+    );
+    let latest = checked
+        .forms
+        .iter()
+        .find(|form| form.name == "latest[item=value/text]")
+        .unwrap();
+    let values = latest
+        .runtime_front
+        .inputs()
+        .iter()
+        .find(|port| port.port_id.as_str() == "values")
+        .unwrap();
+    assert_eq!(
+        values.temporal,
+        conduit_core::PortTemporal::Flow { closes: false }
+    );
+    let source = latest
+        .runtime_front
+        .inputs()
+        .iter()
+        .find(|port| port.port_id.as_str() == "source")
+        .unwrap();
+    assert_eq!(source.temporal, conduit_core::PortTemporal::Current);
+    let snapshot = latest
+        .runtime_front
+        .outputs()
+        .iter()
+        .find(|port| port.port_id.as_str() == "snapshot")
+        .unwrap();
+    assert_eq!(
+        snapshot.value_kind,
+        conduit_core::data_reference_kind(&conduit_core::kind_id("value/text"))
+    );
+}
+
+#[test]
+fn generic_use_alias_preserves_the_canonical_specialization_identity() {
+    let template = "form library/identity (\n item: type\n >> value: item\n result: item >>\n) {\n value >> result\n}\n";
+    let direct = check(&format!(
+        "{template}form main (\n >> value: Text\n result: Text >>\n) {{\n value >> library/identity(item = Text) >> result\n}}\n"
+    ));
+    let aliased = check(&format!(
+        "use library/identity as copy\n{template}form main (\n >> value: Text\n result: Text >>\n) {{\n value >> copy(item = Text) >> result\n}}\n"
+    ));
+    let direct_main = direct
+        .forms
+        .iter()
+        .find(|form| form.name == "main")
+        .unwrap();
+    let aliased_main = aliased
+        .forms
+        .iter()
+        .find(|form| form.name == "main")
+        .unwrap();
+    assert_eq!(direct_main.checked_form_id, aliased_main.checked_form_id);
+    assert_eq!(
+        direct_main.gears[0].kind,
+        "library/identity[item=value/text]"
+    );
+    assert_eq!(direct_main.gears[0].kind, aliased_main.gears[0].kind);
+}
+
+#[test]
 fn type_arguments_must_resolve_to_exact_checked_types() {
     let parsed = parse_syntax_document(
         "form identity (\n item: type\n >> value: item\n result: item >>\n) {\n value >> result\n}\n\
