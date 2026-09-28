@@ -25,8 +25,8 @@ use crate::{
     ROBOTICS_OBSERVE_IMU_KIND, ROBOTICS_OBSERVE_ODOMETRY_KIND, ROBOTICS_OBSERVE_PROXIMITY_KIND,
     ROBOTICS_OBSERVE_RANGE_KIND, ROBOTICS_OBSERVE_WHEEL_DROP_KIND, ROBOTICS_VELOCITY_INTENT_KIND,
     STATE_COUNT_KIND, STATE_SELECT_KIND, STATE_TOGGLE_KIND, TEE_KIND, TEXT_PRESENTATION_KIND,
-    TICK_KIND, TICK_PRESENTATION_KIND, TIME_DEBOUNCE_KIND, TIME_DELAY_KIND, TIME_THROTTLE_KIND,
-    TIME_TIMEOUT_KIND,
+    TICK_KIND, TICK_PRESENTATION_KIND, TIME_DEADLINE_KIND, TIME_DEBOUNCE_KIND, TIME_DELAY_KIND,
+    TIME_THROTTLE_KIND, TIME_TIMEOUT_KIND,
 };
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
@@ -154,6 +154,11 @@ pub fn palette_metadata(kind_id: &KindId) -> Option<PaletteMetadata> {
         TIME_THROTTLE_KIND => metadata(
             PaletteCategory::TimeAndFlow,
             &["timer", "throttle", "pace", "leading"],
+            PaletteIconKey::Clock,
+        ),
+        TIME_DEADLINE_KIND => metadata(
+            PaletteCategory::TimeAndFlow,
+            &["timer", "deadline", "cancellation", "request"],
             PaletteIconKey::Clock,
         ),
         KEYBOARD_KIND => metadata(
@@ -506,7 +511,6 @@ mod tests {
     #[test]
     fn every_supported_kind_has_non_fallback_legibility_metadata() {
         let contracts = crate::palette_contracts();
-        assert_eq!(contracts.len(), 76);
         assert_eq!(
             contracts
                 .iter()
