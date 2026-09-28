@@ -935,20 +935,17 @@ pub fn lower_plan_fragment_for_profile(
             ));
         }
         let maximum_value_bytes = if connection.track == ConnectionTrack::Payload {
-            source_value_bound
-                .or(sink_value_bound)
-                .map(u32::try_from)
-                .transpose()
-                .map_err(|_| LoweringError::CapacityOverflow)?
-                .unwrap_or(connection.byte_capacity)
+            admitted_maximum_value_bytes(
+                source_value_bound
+                    .or(sink_value_bound)
+                    .map(u32::try_from)
+                    .transpose()
+                    .map_err(|_| LoweringError::CapacityOverflow)?,
+                connection.byte_capacity,
+            )
         } else {
             connection.byte_capacity
         };
-        if maximum_value_bytes == 0 || maximum_value_bytes > connection.byte_capacity {
-            return Err(LoweringError::InvalidConnectionBudget(
-                connection.connection_id.clone(),
-            ));
-        }
         value_slots = value_slots
             .checked_add(connection.item_capacity)
             .ok_or(LoweringError::CapacityOverflow)?;
@@ -1260,6 +1257,10 @@ pub fn lower_plan_fragment_for_profile(
     })
 }
 
+fn admitted_maximum_value_bytes(semantic_bound: Option<u32>, byte_capacity: u32) -> u32 {
+    semantic_bound.unwrap_or(byte_capacity).min(byte_capacity)
+}
+
 fn fragment_id_for_host(
     fragment: &PlanFragment,
     host_id: &HostId,
@@ -1373,6 +1374,13 @@ mod terminal_track_tests {
             &kind_id("test/fault"),
             PortTemporal::Value
         ));
+    }
+
+    #[test]
+    fn payload_value_maximum_is_bounded_by_the_admitted_cord_capacity() {
+        assert_eq!(admitted_maximum_value_bytes(Some(256), 64), 64);
+        assert_eq!(admitted_maximum_value_bytes(Some(32), 64), 32);
+        assert_eq!(admitted_maximum_value_bytes(None, 64), 64);
     }
 
     #[test]
