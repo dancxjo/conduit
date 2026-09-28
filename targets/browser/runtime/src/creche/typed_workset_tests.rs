@@ -12,6 +12,32 @@ fn bundle() -> String {
 }
 
 #[test]
+fn canonical_keep_form_checks_without_inventing_a_browser_state_back() {
+    let source = serde_json::json!({
+        "schema": "conduit.creche/reviewed-form-bundle@1",
+        "forms": [{
+            "slug": "pocket-theremin",
+            "entry": "pocket-theremin",
+            "presentation_profile": 1,
+            "source": include_str!("../../../../../forms/pocket-theremin/main.conduit"),
+        }],
+    })
+    .to_string();
+    let inventory = initial_forms::reviewed_inventory(&source).unwrap();
+    assert_eq!(inventory.forms.len(), 1);
+    assert!(inventory.forms[0]
+        .required_kinds
+        .contains(&"state/latest".to_owned()));
+    let host =
+        initial_forms::reviewed_browser_host(&source, "host/typed".into(), "boot/typed".into())
+            .unwrap();
+    assert!(!host
+        .capabilities
+        .iter()
+        .any(|offer| offer.kind_id.as_str() == "state/latest"));
+}
+
+#[test]
 fn typed_inventory_accepts_canonical_default_aliases() {
     let source = bundle();
     let entries = initial_forms::reviewed_inventory(&source).unwrap();

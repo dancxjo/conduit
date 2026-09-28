@@ -71,6 +71,10 @@ pub(crate) fn catalogs_for_presentation(
     super::pointer_selector::install_types(&mut startup, &mut profile)?;
     conduit_presentation::install_bounded_stroke_capture_catalog(&mut startup, &mut profile)?;
     conduit_semantic_catalog::install_logic_catalogs(&mut startup, &mut profile)?;
+    // Reviewed Forms are checked before realization eligibility is known. Keep
+    // the canonical retained-State contract available to the checker even
+    // though this browser profile does not currently offer its Back.
+    conduit_semantic_catalog::install_flow_state_catalogs(&mut startup, &mut profile)?;
     conduit_semantic_catalog::install_timed_button_attempt_catalogs(&mut startup, &mut profile)?;
     conduit_semantic_catalog::install_timing_catalogs(&mut startup, &mut profile)?;
     conduit_semantic_catalog::install_timed_pattern_catalogs(&mut startup, &mut profile)?;
@@ -112,6 +116,9 @@ pub(crate) fn catalogs_for_presentation(
         &mut startup,
         &mut profile,
     )?;
+    // This Host has no eligible audio/tone Back, but reviewed Forms must still
+    // check against its portable semantic contract before planning refuses.
+    conduit_semantic_catalog::install_audio_tone_catalog(&mut startup, &mut profile)?;
     startup.insert_value_kind_alias(
         "PcmFrames",
         conduit_core::kind_id(conduit_audio::AUDIO_PCM_INFO_ID),
