@@ -35,10 +35,10 @@
     { "role": "theme-style", "kind": "style", "path": "assets/theme.css", "source": "generated:theme", "maximum_bytes": 2048, "dependencies": [] },
     { "role": "shared-presentation-style", "kind": "style", "path": "assets/conduit.css", "source": "products/shared/browser/conduit.css", "maximum_bytes": 16384, "dependencies": [] },
     { "role": "application-style", "kind": "style", "path": "assets/app.css", "source": "products/patchbay/html/assets/app.css", "maximum_bytes": 32768, "dependencies": [] },
-    { "role": "react-flow-style", "kind": "style", "path": "assets/react-flow.css", "source": "products/patchbay/html/assets/react-flow.css", "maximum_bytes": 8192, "dependencies": [] },
+    { "role": "react-flow-style", "kind": "style", "path": "assets/react-flow.css", "source": "targets/browser/host/assets/vendor/react-flow/react-flow.css", "maximum_bytes": 8192, "dependencies": [] },
     { "role": "flow-style", "kind": "style", "path": "assets/flow.css", "source": "products/patchbay/html/assets/flow.css", "maximum_bytes": 8192, "dependencies": [] },
-    { "role": "react", "kind": "classic-script", "path": "assets/react.min.js", "source": "products/patchbay/html/assets/react.min.js", "maximum_bytes": 32768, "dependencies": [] },
-    { "role": "react-dom", "kind": "classic-script", "path": "assets/react-dom.min.js", "source": "products/patchbay/html/assets/react-dom.min.js", "maximum_bytes": 262144, "dependencies": [{"role":"react","specifier":"global:React"}] },
-    { "role": "react-flow", "kind": "classic-script", "path": "assets/react-flow.min.js", "source": "products/patchbay/html/assets/react-flow.min.js", "maximum_bytes": 262144, "dependencies": [{"role":"react","specifier":"global:React"},{"role":"react-dom","specifier":"global:ReactDOM"}] }
+    { "role": "react", "kind": "classic-script", "path": "assets/react.min.js", "source": "targets/browser/host/assets/vendor/react-flow/react.min.js", "maximum_bytes": 32768, "dependencies": [] },
+    { "role": "react-dom", "kind": "classic-script", "path": "assets/react-dom.min.js", "source": "targets/browser/host/assets/vendor/react-flow/react-dom.min.js", "maximum_bytes": 262144, "dependencies": [{"role":"react","specifier":"global:React"}] },
+    { "role": "react-flow", "kind": "classic-script", "path": "assets/react-flow.min.js", "source": "targets/browser/host/assets/vendor/react-flow/react-flow.min.js", "maximum_bytes": 262144, "dependencies": [{"role":"react","specifier":"global:React"},{"role":"react-dom","specifier":"global:ReactDOM"}] }
   ]
 }

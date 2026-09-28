@@ -36,7 +36,10 @@ cp targets/browser/host/assets/application-theme.mjs "$destination/application-t
 cp products/shared/browser/conduit.css "$destination/conduit.css"
 cp semantics/presentation/assets/product-masthead.mjs "$destination/product-masthead.mjs"
 cp "$runtime" "$destination/runtime.wasm"
-for asset in react.min.js react-dom.min.js react-flow.min.js react-flow.css flow.css flow.js flow-scene.js flow-layout.js flow-frontplate.js portable-navigation.js; do
+for asset in react.min.js react-dom.min.js react-flow.min.js react-flow.css; do
+    cp "targets/browser/host/assets/vendor/react-flow/$asset" "$destination/assets/$asset"
+done
+for asset in flow.css flow.js flow-scene.js flow-layout.js flow-frontplate.js portable-navigation.js; do
     cp "products/patchbay/html/assets/$asset" "$destination/assets/$asset"
 done
 
