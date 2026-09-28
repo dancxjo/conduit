@@ -47,7 +47,7 @@ test("Crèche compatibility entrance cannot run parallel product state", () => {
   assert.deepEqual(application.dependencies, []);
 });
 
-for (const product of ["tour", "creche", "workspace"]) {
+for (const product of ["creche", "workspace"]) {
   test(`${product} package dependencies name real source owners`, () => {
     const root = resolve(`products/${product}/browser`);
     const descriptor = JSON.parse(readFileSync(`${root}/${product}.application.template.json`, "utf8"));

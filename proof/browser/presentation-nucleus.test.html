@@ -27,7 +27,7 @@ const assert = (condition, message) => {
 
 try {
   const wasmBytes = await fetch(
-    "/target/tour-product/runtime.wasm",
+    "/target/wasm32-unknown-unknown/release/conduit_browser_runtime.wasm",
   ).then((response) => {
     assert(response.ok, "browser runtime WASM artifact loads");
     return response.arrayBuffer();

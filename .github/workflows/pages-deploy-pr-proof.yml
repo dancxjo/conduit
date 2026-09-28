@@ -4,7 +4,7 @@ on:
   pull_request:
     branches: [dev]
     paths:
-      - .github/workflows/tour-pages-deploy.yml
+      - .github/workflows/pages-deploy.yml
       - .github/workflows/pages-deploy-pr-proof.yml
       - tools/ci/pages-product-run-selection.mjs
       - tools/ci/resolve-pages-product-run.mjs

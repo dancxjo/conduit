@@ -1,10 +1,10 @@
 # Try Conduit
 
-Start with the [live Tour](https://dancxjo.github.io/conduit/tour/) or the
+Start with the [body Workspace](https://dancxjo.github.io/conduit/workspace/) or the
 [ConduitOS visual journey](https://dancxjo.github.io/conduit/current/conduitos/x86_64/)
 to see the project before building it. The journey shows a bounded sequence of
 checkpoints from a real QEMU session, including body lifecycle, a hot-plugged line, every
-Tour page and runnable exercise, foreground form switching, and Patchbay.
+resident tutorial checkpoint, foreground form switching, and Patchbay.
 
 The commands below run from a checkout. You do not need an installed `conduit`
 binary or `just`. See [contributor setup](../CONTRIBUTING.md) for prerequisites.
@@ -64,17 +64,11 @@ rustup target add wasm32-unknown-unknown
 cargo xtask prove journey patchbay --on browser
 ```
 
-To build and open the guided executable Tour locally:
-
-```bash
-cargo xtask prove journey tour
-```
-
-These commands build the required browser runtime and serve it locally. Keep
+This command builds the required browser runtime and serves it locally. Keep
 the terminal process running while using the page. A separate browser host can
-be launched with `cargo xtask fabricate host browser`; each launch has its own runtime
-identity. The [body lifecycle guide](self-hosted-biography.md) explains how Tour,
-Crèche, and Patchbay relate.
+be launched with `cargo xtask fabricate host browser`; each launch has its own
+runtime identity. The [body lifecycle guide](self-hosted-biography.md) explains
+how resident Forms, Crèche compatibility, and Patchbay relate.
 
 ## boot ConduitOS
 

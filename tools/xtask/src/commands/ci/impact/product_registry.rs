@@ -24,24 +24,21 @@ impl ProductProofSpec {
 pub(super) const PRODUCT_PROOFS: &[ProductProofSpec] = &[ProductProofSpec {
     id: "products.pages-carrier",
     exact_inputs: &[
-        ".github/workflows/tour-products.yml",
-        ".github/workflows/tour-pages-deploy.yml",
+        ".github/workflows/product-carrier.yml",
+        ".github/workflows/pages-deploy.yml",
         "proof/browser/package.json",
         "proof/browser/package-lock.json",
         "targets/browser/tools/build-browser-application-package.mjs",
         "targets/browser/tools/render-product-masthead.mjs",
         "tools/ci/seal-pages-carrier.mjs",
         "tools/ci/verify-pages-carrier.mjs",
-        "proof/browser/executable-tour.spec.mjs",
-        "proof/browser/browser-application-package.spec.mjs",
         "proof/browser/browser-bundle-build.spec.mjs",
         "proof/browser/browser-boot-profile.spec.mjs",
-        "proof/browser/browser-form-runner.spec.mjs",
         "proof/browser/pages-front-door.spec.mjs",
         "proof/ci/browser-product-ownership.test.mjs",
         "proof/browser/presentation-nucleus.spec.mjs",
         "proof/browser/presentation-nucleus.test.html",
-        "proof/browser/tour-test-server.mjs",
+        "proof/browser/static-product-server.mjs",
         "proof/browser/playwright.config.mjs",
         "proof/browser/static-server.mjs",
         "proof/browser/creche-browser-configuration.spec.mjs",
@@ -55,7 +52,6 @@ pub(super) const PRODUCT_PROOFS: &[ProductProofSpec] = &[ProductProofSpec {
         "proof/browser/creche-workspace-continuity.spec.mjs",
     ],
     input_prefixes: &[
-        "products/tour/",
         "docs/journeys/tour/",
         "products/creche/",
         "products/workspace/",
@@ -120,11 +116,9 @@ pub(super) const BROWSER_PRESENTATION_PROOFS: &[BrowserPresentationSpec] =
         input_prefixes: &[
             "site/",
             "products/shared/browser/",
-            "products/tour/browser/",
             "docs/journeys/tour/",
             "products/creche/browser/",
             "products/workspace/browser/",
-            "products/tour/tools/stage-tour-product",
             "products/creche/tools/stage-creche-product",
             "products/workspace/tools/stage-workspace-product",
             "site/tools/stage-pages-root",
@@ -186,7 +180,7 @@ mod tests {
         for path in [
             "proof/browser/presentation-nucleus.spec.mjs",
             "proof/browser/presentation-nucleus.test.html",
-            "proof/browser/tour-test-server.mjs",
+            "proof/browser/static-product-server.mjs",
             "proof/browser/playwright.config.mjs",
             "proof/browser/static-server.mjs",
         ] {
@@ -206,7 +200,6 @@ mod product_source_tests {
     fn product_owned_browser_source_requires_carrier_and_browser_proof() {
         for path in [
             "products/shared/browser/conduit.css",
-            "products/tour/browser/tour.mjs",
             "docs/journeys/tour/chapter-1.md",
             "products/workspace/browser/body-bootstrap.mjs",
             "products/workspace/browser/reviewed-form-selection.mjs",
@@ -219,7 +212,6 @@ mod product_source_tests {
     #[test]
     fn broad_product_and_site_roots_own_their_carrier_staging_tools() {
         for path in [
-            "products/tour/tools/stage-tour-product.mjs",
             "products/creche/tools/stage-creche-product.mjs",
             "products/workspace/tools/stage-workspace-product.mjs",
             "products/patchbay/tools/stage-patchbay-product.mjs",

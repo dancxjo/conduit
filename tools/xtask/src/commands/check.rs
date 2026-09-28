@@ -463,12 +463,6 @@ const QUANTITY_MAPPING_STEPS: &[Step] = &[
         ],
     ),
     Step::new(
-        "quantity-mapping.inventory-bound",
-        "Preserve bounded browser inventory navigation as installed offers grow",
-        "node",
-        &["--test", "proof/browser/tour-inventory-pagination.test.mjs"],
-    ),
-    Step::new(
         "quantity-mapping.chromium",
         "Prove real pointer causality and deterministic alternate input in pinned Chromium",
         "node",

@@ -97,7 +97,6 @@ fn main() {
 
 fn run_journey(args: cli::DemoArgs, opts: &GlobalOpts) -> Result<(), Box<dyn std::error::Error>> {
     match args.command {
-        DemoCommand::Tour => commands::demo::run_tour(opts),
         DemoCommand::Workspace(args) => commands::workspace::run(&args, opts),
         DemoCommand::Std => commands::demo::run_std(opts),
         DemoCommand::Triple => commands::demo::run_triple(opts),

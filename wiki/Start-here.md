@@ -4,13 +4,13 @@ You can meet Conduit at three levels: **look at it**, **run it hosted**, or **bo
 
 ## 1. Look before building
 
-The public Tour and visual journeys are the quickest entrances:
+The body Workspace and visual journeys are the quickest entrances:
 
-- [Interactive Tour](https://dancxjo.github.io/conduit/tour/)
+- [body Workspace](https://dancxjo.github.io/conduit/workspace/)
 - [ConduitOS visual journey](https://dancxjo.github.io/conduit/current/conduitos/x86_64/)
 - [Current product truth](https://dancxjo.github.io/conduit/current-product.html)
 
-The Tour teaches concepts by running real forms. The ConduitOS journey is evidence from a real QEMU boot, not a mock screenshot deck.
+The Workspace exposes resident forms. The ConduitOS journey is evidence from a real QEMU boot, not a mock screenshot deck.
 
 ## 2. Run the first hosted form
 
@@ -66,15 +66,7 @@ cargo xtask prove journey patchbay --on browser
 
 Patchbay is a projection over real body and execution truth. It is not another scheduler.
 
-## 5. Run the Tour locally
-
-```bash
-cargo xtask prove journey tour
-```
-
-The same tutorial state can be realized through browser, hosted, and ConduitOS masks without turning presentation technology into application semantics.
-
-## 6. Boot ConduitOS
+## 5. Boot ConduitOS
 
 ```bash
 cargo xtask fabricate conduitos live x86_64
@@ -85,7 +77,7 @@ The first builds the x86_64 live ISO. The second verifies and boots it in visibl
 
 Inside the graphical system, birth a body, wake it, run resident forms, and inspect the same plan/play truth through Patchbay.
 
-## 7. Read source, not just screenshots
+## 6. Read source, not just screenshots
 
 A good beginner sequence is:
 

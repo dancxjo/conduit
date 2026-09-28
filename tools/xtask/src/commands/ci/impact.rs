@@ -47,7 +47,7 @@ const GLOBAL_PREFIXES: [&str; 5] = [
     "tools/xtask-dispatch/",
 ];
 const GLOBAL_FILES: [&str; 3] = ["Cargo.toml", "rust-toolchain", "rust-toolchain.toml"];
-const FOCUSED_WORKFLOW_FILES: [&str; 1] = [".github/workflows/tour-products.yml"];
+const FOCUSED_WORKFLOW_FILES: [&str; 1] = [".github/workflows/product-carrier.yml"];
 
 struct ControllerProofSpec {
     id: &'static str,
@@ -148,8 +148,8 @@ fn controller_proofs(paths: &[String]) -> Vec<&'static str> {
         .collect()
 }
 const PAGES_DEPLOY_RESOLVER_SLICE: [&str; 9] = [
-    ".github/workflows/tour-products.yml",
-    ".github/workflows/tour-pages-deploy.yml",
+    ".github/workflows/product-carrier.yml",
+    ".github/workflows/pages-deploy.yml",
     ".github/workflows/pages-deploy-pr-proof.yml",
     "proof/ci/pages-product-run-selection.spec.mjs",
     "proof/ci/pages-workflow-paths.spec.mjs",
@@ -190,9 +190,9 @@ const PATCHBAY_PACKAGE_SLICE: [&str; 11] = [
     "proof/browser/patchbay-html.spec.mjs",
 ];
 const PI_ZERO_CRECHE_SLICE: [&str; 12] = [
-    ".github/workflows/tour-products.yml",
+    ".github/workflows/product-carrier.yml",
     "fabrication/workspace/tests/family_contracts.rs",
-    "proof/browser/executable-tour.spec.mjs",
+    "proof/browser/creche-raspberry-pi.spec.mjs",
     "products/creche/tools/stage-creche-product.sh",
     "targets/browser/runtime/src/creche/spore_target.rs",
     "targets/raspberry-pi/deployment/browser/creche-adapter.mjs",
@@ -219,7 +219,7 @@ fn is_tongues_analysis_path(path: &str) -> bool {
 }
 
 fn is_creche_presentation_path(path: &str) -> bool {
-    path == "proof/browser/executable-tour.spec.mjs"
+    path == "proof/browser/creche-browser-configuration.spec.mjs"
         || path == "products/creche/tools/stage-creche-product.sh"
         || path == "targets/browser/host/src/server.rs"
         || path == "targets/browser/host/src/server/tests.rs"
@@ -528,8 +528,8 @@ fn plan_for_paths(
         .iter()
         .all(|path| PI_ZERO_CRECHE_SLICE.contains(&path.as_str()))
         && [
-            ".github/workflows/tour-products.yml",
-            "proof/browser/executable-tour.spec.mjs",
+            ".github/workflows/product-carrier.yml",
+            "proof/browser/creche-raspberry-pi.spec.mjs",
             "products/creche/tools/stage-creche-product.sh",
             "targets/browser/runtime/src/creche/spore_target.rs",
             "targets/raspberry-pi/fabrication/src/lib.rs",
@@ -544,7 +544,7 @@ fn plan_for_paths(
             .any(|path| path.starts_with("products/creche/browser/creche"))
         && substantive
             .iter()
-            .any(|path| path.as_str() == "proof/browser/executable-tour.spec.mjs");
+            .any(|path| path.as_str() == "proof/browser/creche-browser-configuration.spec.mjs");
     let pages_deploy_resolver_slice = substantive
         .iter()
         .all(|path| PAGES_DEPLOY_RESOLVER_SLICE.contains(&path.as_str()))
@@ -1031,7 +1031,7 @@ fn browser_admission_shards(
         || paths.iter().any(|path| {
             matches!(
                 path.as_str(),
-                ".github/workflows/tour-products.yml"
+                ".github/workflows/product-carrier.yml"
                     | "proof/browser/playwright.config.mjs"
                     | "proof/browser/package.json"
                     | "proof/browser/package-lock.json"

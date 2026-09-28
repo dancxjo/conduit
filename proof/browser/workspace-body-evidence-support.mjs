@@ -1,7 +1,7 @@
 import { writeFile } from "node:fs/promises";
 import { join } from "node:path";
 import { expect } from "@playwright/test";
-import { startStaticProduct } from "./tour-test-server.mjs";
+import { startStaticProduct } from "./static-product-server.mjs";
 
 /** Birth one canonical Workspace Body and retain its exact evidence for later Hosts. */
 export async function birthWorkspaceEvidence(page, temporary, friendlyName, titles, filename) {

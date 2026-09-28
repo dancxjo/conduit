@@ -1,7 +1,7 @@
 import { mkdir, writeFile } from "node:fs/promises";
 import { join } from "node:path";
 import { chromium, expect } from "@playwright/test";
-import { startStaticProduct } from "./tour-test-server.mjs";
+import { startStaticProduct } from "./static-product-server.mjs";
 
 const [publication, output] = process.argv.slice(2);
 if (!publication || !output) throw new Error("expected publication root and new review directory");

@@ -9,8 +9,6 @@ pub struct DemoArgs {
 
 #[derive(Subcommand, Debug)]
 pub enum DemoCommand {
-    /// Open the executable Conduit Tour through the browser Host.
-    Tour,
     /// Birth a body and arrive in its listening Forms through the browser Host.
     Workspace(crate::commands::workspace::WorkspaceArgs),
     /// Run the native Signal Form through the production kernel.
