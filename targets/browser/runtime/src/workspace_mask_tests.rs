@@ -1,6 +1,8 @@
 use super::*;
 use conduit_core::{
-    CheckedFormId, CheckedValueContract, ExpandedFormId, PlanId, SourceDocumentId, ValueConstraint,
+    encode_count, CheckedFormId, CheckedValueContract, ExpandedFormId, IntervalEndpoint, PlanId,
+    Quantity, QuantityUnit, SourceDocumentId, ValueConstraint, COUNT_ENCODED_LEN, COUNT_INFO_ID,
+    DISTANCE_INFO_ID, QUANTITY_ENCODED_LEN,
 };
 use conduit_form::TextPatternExpression;
 use conduit_presentation::{
@@ -105,22 +107,66 @@ fn presentation() -> Presentation {
             intent: "conduit.intent/inspect@1".into(),
             target: "body/browser-mask-test".into(),
             name: "Inspect".into(),
-            arguments: vec![conduit_presentation::FaceActionArgument {
-                name: "input/inspect".into(),
-                value_name: "Lowercase subject".into(),
-                contract: CheckedValueContract::new(
-                    UTF8_TEXT_VALUE_KIND.into(),
-                    32,
-                    vec![
-                        ValueConstraint::ByteLength {
-                            minimum: 1,
-                            maximum: 32,
-                        },
-                        ValueConstraint::TextPattern(lowercase),
-                    ],
-                )
-                .expect("reviewed browser Face contract is canonical"),
-            }],
+            arguments: vec![
+                conduit_presentation::FaceActionArgument {
+                    name: "input/inspect".into(),
+                    value_name: "Lowercase subject".into(),
+                    contract: CheckedValueContract::new(
+                        UTF8_TEXT_VALUE_KIND.into(),
+                        32,
+                        vec![
+                            ValueConstraint::ByteLength {
+                                minimum: 1,
+                                maximum: 32,
+                            },
+                            ValueConstraint::TextPattern(lowercase),
+                        ],
+                    )
+                    .expect("reviewed browser Face pattern contract is canonical"),
+                },
+                conduit_presentation::FaceActionArgument {
+                    name: "input/count".into(),
+                    value_name: "Inspection count from two through four".into(),
+                    contract: CheckedValueContract::new(
+                        COUNT_INFO_ID.into(),
+                        COUNT_ENCODED_LEN as u32,
+                        vec![ValueConstraint::UnsignedRange {
+                            minimum: 2,
+                            maximum: 4,
+                            minimum_endpoint: IntervalEndpoint::Inclusive,
+                            maximum_endpoint: IntervalEndpoint::Inclusive,
+                        }],
+                    )
+                    .expect("reviewed browser Face count range is canonical"),
+                },
+                conduit_presentation::FaceActionArgument {
+                    name: "input/distance".into(),
+                    value_name: "Inspection distance from one through two meters".into(),
+                    contract: CheckedValueContract::new(
+                        DISTANCE_INFO_ID.into(),
+                        QUANTITY_ENCODED_LEN as u32,
+                        vec![ValueConstraint::QuantityRange {
+                            minimum: Quantity::new(1, QuantityUnit::Meter),
+                            maximum: Quantity::new(2, QuantityUnit::Meter),
+                            minimum_endpoint: IntervalEndpoint::Inclusive,
+                            maximum_endpoint: IntervalEndpoint::Inclusive,
+                        }],
+                    )
+                    .expect("reviewed browser Face quantity range is canonical"),
+                },
+                conduit_presentation::FaceActionArgument {
+                    name: "input/mode".into(),
+                    value_name: "Inspection mode".into(),
+                    contract: CheckedValueContract::new(
+                        UTF8_TEXT_VALUE_KIND.into(),
+                        8,
+                        vec![ValueConstraint::CanonicalMembership {
+                            members: vec![b"careful".to_vec(), b"quick".to_vec()],
+                        }],
+                    )
+                    .expect("reviewed browser Face finite membership is canonical"),
+                },
+            ],
             disclosure: PresentationDisclosureLevel::CurrentAction,
             availability: PresentationActionAvailability::Available,
         }],
@@ -136,11 +182,30 @@ fn interaction(effect: &BrowserMaskEffect) -> BrowserMaskInteraction {
         presentation_revision: effect.presentation_revision,
         action_id: "body.inspect".into(),
         target: "body/browser-mask-test".into(),
-        arguments: vec![FaceInteractionArgument {
-            name: "input/inspect".into(),
-            value_kind: UTF8_TEXT_VALUE_KIND.into(),
-            value: b"body".to_vec(),
-        }],
+        arguments: vec![
+            FaceInteractionArgument {
+                name: "input/inspect".into(),
+                value_kind: UTF8_TEXT_VALUE_KIND.into(),
+                value: b"body".to_vec(),
+            },
+            FaceInteractionArgument {
+                name: "input/count".into(),
+                value_kind: COUNT_INFO_ID.into(),
+                value: encode_count(3).to_vec(),
+            },
+            FaceInteractionArgument {
+                name: "input/distance".into(),
+                value_kind: DISTANCE_INFO_ID.into(),
+                value: Quantity::new(150, QuantityUnit::Centimeter)
+                    .encode()
+                    .to_vec(),
+            },
+            FaceInteractionArgument {
+                name: "input/mode".into(),
+                value_kind: UTF8_TEXT_VALUE_KIND.into(),
+                value: b"careful".to_vec(),
+            },
+        ],
         sequence: 1,
     }
 }
@@ -345,6 +410,25 @@ fn show_becomes_available_only_after_exact_browser_acknowledgement() {
     assert!(runtime.interact(&stale_interaction).is_err());
     let mut invalid_interaction = interaction(&effect);
     invalid_interaction.arguments[0].value = b"Body".to_vec();
+    assert_eq!(
+        runtime.interact(&invalid_interaction).unwrap_err(),
+        "browser Mask interaction refused: ViolatedConstraint"
+    );
+    let mut invalid_interaction = interaction(&effect);
+    invalid_interaction.arguments[1].value = encode_count(5).to_vec();
+    assert_eq!(
+        runtime.interact(&invalid_interaction).unwrap_err(),
+        "browser Mask interaction refused: ViolatedConstraint"
+    );
+    let mut invalid_interaction = interaction(&effect);
+    invalid_interaction.arguments[2].value =
+        Quantity::new(3, QuantityUnit::Meter).encode().to_vec();
+    assert_eq!(
+        runtime.interact(&invalid_interaction).unwrap_err(),
+        "browser Mask interaction refused: ViolatedConstraint"
+    );
+    let mut invalid_interaction = interaction(&effect);
+    invalid_interaction.arguments[3].value = b"reckless".to_vec();
     assert_eq!(
         runtime.interact(&invalid_interaction).unwrap_err(),
         "browser Mask interaction refused: ViolatedConstraint"
