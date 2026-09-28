@@ -16,7 +16,9 @@ mod three_body_actions;
 mod workspace;
 
 use clap::Parser;
-use cli::{AudioCommand, Cli, Command, DemoCommand, FabricateTarget, GlobalOpts, MidiCommand};
+use cli::{
+    AudioCommand, Cli, Command, DemoCommand, FabricateTarget, GlobalOpts, MidiCommand, ProveCommand,
+};
 use commands::check::CheckScope;
 
 fn main() {
@@ -25,7 +27,6 @@ fn main() {
     ));
     let opts = cli.global;
     let result: Result<(), Box<dyn std::error::Error>> = match cli.command {
-        Command::BodyCoordination(args) => commands::body_coordination::run(args, &opts),
         Command::Check(mut args) => {
             if let Some(scope) = args.scope.take() {
                 if args.suite.is_some() {
@@ -50,15 +51,20 @@ fn main() {
         Command::Ci(args) => commands::ci::run(args),
         Command::Fabricate(args) => run_fabricate(args.target, &opts),
         Command::Prove(mut args) => {
-            if let Some(evidence) = args.evidence.take() {
+            if let Some(command) = args.command.take() {
                 if args.proof.is_some()
                     || args.list
                     || args.verify_record.is_some()
                     || args.run_obligation
                 {
-                    Err("a proof evidence operation cannot be combined with a proof target, --list, --verify, or --run-obligation".into())
+                    Err("a structured proof operation cannot be combined with a proof target, --list, --verify, or --run-obligation".into())
                 } else {
-                    commands::evidence::run(evidence)
+                    match command {
+                        ProveCommand::BodyCoordination(args) => {
+                            commands::body_coordination::run(args, &opts)
+                        }
+                        ProveCommand::Evidence(evidence) => commands::evidence::run(evidence),
+                    }
                 }
             } else if args.list || args.verify_record.is_some() || args.run_obligation {
                 commands::proofs::run(&args, opts.json)
