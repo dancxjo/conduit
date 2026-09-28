@@ -19,7 +19,7 @@ use conduit_plan_lowering::lowering::KernelIdentityMap;
 mod continuity;
 use continuity::validate_recovery_continuity;
 mod graph;
-use graph::record_intra_run_edges;
+use graph::{record_intra_run_edges, record_planned_recovery_edges};
 mod identity;
 use identity::{digest_u64, evidence_sign, execution_envelope};
 
@@ -66,6 +66,7 @@ struct BodyCausalNode {
     resources: Vec<ResourceBinding>,
     authority: Vec<AuthorityBinding>,
     kernel_kind: KernelEventKind,
+    kernel_port: Option<conduit_kernel::PortId>,
     kernel_sequence: u32,
     semantic_terminal: bool,
 }
@@ -88,6 +89,7 @@ impl BodyRunCausalRecord {
         }
         let mut graph = CausalEvidence::default();
         record_intra_run_edges(&mut graph, &nodes)?;
+        record_planned_recovery_edges(&mut graph, &nodes, plan, &report.partitions)?;
         Ok(Self {
             graph,
             terminals: TerminalEvidenceIndex::default(),
@@ -141,7 +143,14 @@ impl BodyRunCausalRecord {
 
         let mut graph = CausalEvidence::default();
         record_intra_run_edges(&mut graph, &prior)?;
+        record_planned_recovery_edges(&mut graph, &prior, prior_plan, &prior_report.partitions)?;
         record_intra_run_edges(&mut graph, &replacement)?;
+        record_planned_recovery_edges(
+            &mut graph,
+            &replacement,
+            replacement_plan,
+            &replacement_report.partitions,
+        )?;
         graph.record(CausalEdge {
             effect,
             relationship: CausalRelationship::Corrects,
@@ -334,6 +343,7 @@ fn collect_nodes(
             resources: placement.resources.clone(),
             authority: placement.authority.clone(),
             kernel_kind: event.kind,
+            kernel_port: event.port,
             kernel_sequence: event.sequence,
             semantic_terminal: false,
         });

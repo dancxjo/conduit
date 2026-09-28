@@ -565,6 +565,59 @@ fn only_a_plan_bound_recovery_contract_resolves_projected_abnormal_truth() {
 }
 
 #[test]
+fn unconnected_checked_terminal_is_semantic_truth_not_invalid_port_access() {
+    let mut routes = FixedRoutes::<4, 1>::new(PORTS as u16);
+    routes
+        .install(
+            NodeId(1),
+            PortId(0),
+            RouteRange { start: 0, len: 1 },
+            &[RouteTarget {
+                cord: CordId(0),
+                sink: crate::CordEndpoint::local(NodeId(0), PortId(1)),
+            }],
+        )
+        .unwrap();
+    routes.seal().unwrap();
+    let signs =
+        FixedSignLog::<4>::new((4 * core::mem::size_of::<crate::KernelEvent>()) as u32).unwrap();
+    let mut scheduler = FixedScheduler::<_, _, _, 2, 1, PORTS, 1, 4, 1>::new(
+        [node([None, Some(CordId(0))]), node([None, None])],
+        [CordSpec::local(
+            CordId(0),
+            (NodeId(1), PortId(0)),
+            (NodeId(0), PortId(1)),
+            CordCapacity {
+                slot_start: 0,
+                item_capacity: 1,
+                byte_capacity: 4,
+                pressure_policy: Default::default(),
+            },
+        )],
+        routes,
+        [Driver::SemanticAbnormal, Driver::TerminalSource],
+        FixedValueStore::<1, 4>::new(4).unwrap(),
+        signs,
+    )
+    .unwrap();
+
+    assert!(matches!(
+        scheduler.step(),
+        Err(SchedulerError::SemanticAbnormal {
+            node: NodeId(0),
+            port: PortId(0),
+            ..
+        })
+    ));
+    assert!(scheduler
+        .signs()
+        .contains_kind(KernelEventKind::SemanticAbnormal));
+    assert!(!scheduler
+        .signs()
+        .contains_kind(KernelEventKind::RunCancelled));
+}
+
+#[test]
 fn abnormal_terminal_fanout_is_atomic_across_every_explicit_track() {
     let mut routes = FixedRoutes::<3, 2>::new(PORTS as u16);
     routes

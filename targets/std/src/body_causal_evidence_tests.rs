@@ -44,6 +44,7 @@ fn node(
         resources: Vec::new(),
         authority: Vec::new(),
         kernel_kind: kind,
+        kernel_port: None,
         kernel_sequence: evidence.sign as u32,
         semantic_terminal: false,
     }

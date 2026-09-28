@@ -2255,19 +2255,20 @@ where
             StepOutcome::Abnormal { port, terminal } => {
                 self.completed[node] = true;
                 self.ready[node] = false;
-                if !self.abnormally_terminate_outputs(node, port, terminal)? {
+                let routed = self.abnormally_terminate_outputs(node, port, terminal)?;
+                self.signs.record(
+                    NodeId(as_u16(node)?),
+                    Some(port),
+                    None,
+                    KernelEventKind::SemanticAbnormal,
+                )?;
+                if !routed {
                     return Err(SchedulerError::SemanticAbnormal {
                         node: NodeId(as_u16(node)?),
                         port,
                         terminal,
                     });
                 }
-                self.signs.record(
-                    NodeId(as_u16(node)?),
-                    None,
-                    None,
-                    KernelEventKind::SemanticAbnormal,
-                )?;
             }
             StepOutcome::Fail(_) => unreachable!(),
         }
@@ -3264,10 +3265,12 @@ where
     ) -> Result<bool, SchedulerError> {
         let mut abnormal_targets = 0_usize;
         let mut remote_closures = 0_usize;
-        let targets = self
-            .routes
-            .route(NodeId(as_u16(node)?), output)
-            .map_err(|_| SchedulerError::InvalidPortAccess)?;
+        let Ok(targets) = self.routes.route(NodeId(as_u16(node)?), output) else {
+            // A checked terminal output may deliberately end at this semantic
+            // boundary. No Cord means the typed abnormal value terminates the
+            // Play here; it is not an invalid-port side channel.
+            return Ok(false);
+        };
         for target in targets {
             let cord = usize::from(target.cord.0);
             let spec = self.cord_specs[cord];
