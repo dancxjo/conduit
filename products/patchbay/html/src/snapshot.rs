@@ -85,7 +85,7 @@ impl RendererSnapshot {
             body_host_offer_evidence: None,
             body_host_planning_offer: None,
             body_planning: None,
-            presenter_topology: None,
+            mask_topology: None,
             debugger: None,
             watches: None,
             timeline: None,
@@ -273,7 +273,7 @@ impl RendererSnapshot {
                     || planning.current_hosts.len() != 1
             })
         });
-        let invalid_presenter_topology = self.presenter_topology.as_ref().is_some_and(|topology| {
+        let invalid_mask_topology = self.mask_topology.as_ref().is_some_and(|topology| {
             topology.validate().is_err()
                 || topology.basis.body_id != self.presentation.basis.body_id
                 || topology.basis.source_document_id != self.presentation.basis.source_document_id
@@ -444,7 +444,7 @@ impl RendererSnapshot {
             || invalid_body_host_offer
             || invalid_body_host_planning_offer
             || invalid_body_planning
-            || invalid_presenter_topology
+            || invalid_mask_topology
             || invalid_debugger
             || invalid_watches
             || invalid_timeline

@@ -371,11 +371,11 @@ impl PatchbayApplication {
             | PatchbayAction::ConnectPorts
             | PatchbayAction::RerouteCord
             | PatchbayAction::ConfigureGear
-            | PatchbayAction::AddPresenter
-            | PatchbayAction::RemovePresenter
-            | PatchbayAction::ReplacePresenter
-            | PatchbayAction::ReorderPresenter
-            | PatchbayAction::ToggleParallelPresenters => {
+            | PatchbayAction::AddMask
+            | PatchbayAction::RemoveMask
+            | PatchbayAction::ReplaceMask
+            | PatchbayAction::ReorderMaskStages
+            | PatchbayAction::ToggleParallelMasks => {
                 return PatchbayInvocationOutcome::Refused(PatchbayRefusal::OperationRejected)
             }
         };

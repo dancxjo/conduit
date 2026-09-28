@@ -25,11 +25,11 @@ pub enum PatchbayAction {
     ConnectPorts,
     RerouteCord,
     ConfigureGear,
-    AddPresenter,
-    RemovePresenter,
-    ReplacePresenter,
-    ReorderPresenter,
-    ToggleParallelPresenters,
+    AddMask,
+    RemoveMask,
+    ReplaceMask,
+    ReorderMaskStages,
+    ToggleParallelMasks,
 }
 
 impl PatchbayAction {
@@ -54,11 +54,11 @@ impl PatchbayAction {
             Self::ConnectPorts => "connect-ports",
             Self::RerouteCord => "reroute-cord",
             Self::ConfigureGear => "configure-gear",
-            Self::AddPresenter => "presenter-topology-add",
-            Self::RemovePresenter => "presenter-topology-remove",
-            Self::ReplacePresenter => "presenter-topology-replace",
-            Self::ReorderPresenter => "presenter-topology-reorder",
-            Self::ToggleParallelPresenters => "presenter-topology-toggle-parallel",
+            Self::AddMask => "mask-topology-add",
+            Self::RemoveMask => "mask-topology-remove",
+            Self::ReplaceMask => "mask-topology-replace",
+            Self::ReorderMaskStages => "mask-topology-reorder",
+            Self::ToggleParallelMasks => "mask-topology-toggle-parallel",
         }
     }
 
@@ -83,11 +83,11 @@ impl PatchbayAction {
             "connect-ports" => Self::ConnectPorts,
             "reroute-cord" => Self::RerouteCord,
             "configure-gear" => Self::ConfigureGear,
-            "presenter-topology-add" => Self::AddPresenter,
-            "presenter-topology-remove" => Self::RemovePresenter,
-            "presenter-topology-replace" => Self::ReplacePresenter,
-            "presenter-topology-reorder" => Self::ReorderPresenter,
-            "presenter-topology-toggle-parallel" => Self::ToggleParallelPresenters,
+            "mask-topology-add" => Self::AddMask,
+            "mask-topology-remove" => Self::RemoveMask,
+            "mask-topology-replace" => Self::ReplaceMask,
+            "mask-topology-reorder" => Self::ReorderMaskStages,
+            "mask-topology-toggle-parallel" => Self::ToggleParallelMasks,
             _ => return None,
         })
     }
@@ -113,11 +113,11 @@ impl PatchbayAction {
             Self::ConnectPorts => "conduit.intent/connect-ports@1",
             Self::RerouteCord => "conduit.intent/reroute-cord@1",
             Self::ConfigureGear => "conduit.intent/configure-gear@1",
-            Self::AddPresenter => "conduit.intent/presenter-topology-add@1",
-            Self::RemovePresenter => "conduit.intent/presenter-topology-remove@1",
-            Self::ReplacePresenter => "conduit.intent/presenter-topology-replace@1",
-            Self::ReorderPresenter => "conduit.intent/presenter-topology-reorder@1",
-            Self::ToggleParallelPresenters => "conduit.intent/presenter-topology-toggle-parallel@1",
+            Self::AddMask => "conduit.intent/mask-topology-add@1",
+            Self::RemoveMask => "conduit.intent/mask-topology-remove@1",
+            Self::ReplaceMask => "conduit.intent/mask-topology-replace@1",
+            Self::ReorderMaskStages => "conduit.intent/mask-topology-reorder@1",
+            Self::ToggleParallelMasks => "conduit.intent/mask-topology-toggle-parallel@1",
         }
     }
 }
@@ -188,11 +188,11 @@ mod tests {
             PatchbayAction::Stop,
             PatchbayAction::Lull,
             PatchbayAction::Fulfill,
-            PatchbayAction::AddPresenter,
-            PatchbayAction::RemovePresenter,
-            PatchbayAction::ReplacePresenter,
-            PatchbayAction::ReorderPresenter,
-            PatchbayAction::ToggleParallelPresenters,
+            PatchbayAction::AddMask,
+            PatchbayAction::RemoveMask,
+            PatchbayAction::ReplaceMask,
+            PatchbayAction::ReorderMaskStages,
+            PatchbayAction::ToggleParallelMasks,
         ] {
             assert_eq!(PatchbayAction::from_name(action.as_str()), Some(action));
             assert!(PatchbayControlRequest::new(

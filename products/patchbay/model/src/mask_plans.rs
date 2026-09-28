@@ -13,7 +13,7 @@ pub use conduit_semantic_catalog::PATCHBAY_PRESENTATION_KIND;
 
 const USER_SOURCE: &str = "form patchbay-capstone {\n subject: text/literal(\"Gear demo with typed Ports and one Cord\")\n canvas: presentation/patchbay\n subject >> canvas.subject\n}\n";
 #[derive(Debug, Clone, PartialEq, Eq)]
-pub struct PatchbayPresenterPlans {
+pub struct PatchbayMaskPlans {
     pub direct_expanded: conduit_form::ExpandedCanonicalForm,
     pub recursive_expanded: conduit_form::ExpandedCanonicalForm,
     pub direct_host: HostAdvertisement,
@@ -22,7 +22,7 @@ pub struct PatchbayPresenterPlans {
     pub recursive: Plan,
 }
 
-pub fn patchbay_presenter_plans() -> Result<PatchbayPresenterPlans, String> {
+pub fn patchbay_mask_plans() -> Result<PatchbayMaskPlans, String> {
     let (startup, profile) = catalogs()?;
     let checked = check_syntax_document(&parse_syntax_document(USER_SOURCE), &startup)
         .map_err(|error| format!("check Patchbay specimen: {error:?}"))?;
@@ -36,7 +36,7 @@ pub fn patchbay_presenter_plans() -> Result<PatchbayPresenterPlans, String> {
     let recursive_host = recursive_host();
     let direct = plan(&direct_expanded, &direct_host)?;
     let recursive = plan(&recursive_expanded, &recursive_host)?;
-    Ok(PatchbayPresenterPlans {
+    Ok(PatchbayMaskPlans {
         direct_expanded,
         recursive_expanded,
         direct_host,
@@ -49,7 +49,7 @@ pub fn patchbay_presenter_plans() -> Result<PatchbayPresenterPlans, String> {
 /// Production Patchbay input for inspecting the ordinary recursive
 /// realization of the Patchbay presentation Front itself.
 pub fn recursive_form_demonstration() -> Result<conduit_presentation::Presentation, String> {
-    let proof = patchbay_presenter_plans()?;
+    let proof = patchbay_mask_plans()?;
     let (startup, profile) = catalogs()?;
     let editor = crate::FormEditor::from_source_with_catalogs(
         "patchbay-recursive-form.conduit".into(),
@@ -276,10 +276,10 @@ fn text_literal_fixture_offer(implementation: &str) -> conduit_core::CapabilityO
         kind_contract_revision: contract.kind_contract_revision,
         implementation: conduit_core::ImplementationOffer {
             execution_profile_id: conduit_core::ExecutionProfileId::from(
-                "patchbay/presenter-fixture@1",
+                "patchbay/mask-fixture@1",
             ),
             implementation_id: conduit_core::ImplementationId::from(implementation),
-            artifact_id: conduit_core::ArtifactId::from("patchbay/presenter-fixture@1"),
+            artifact_id: conduit_core::ArtifactId::from("patchbay/mask-fixture@1"),
         },
         inputs: contract.inputs,
         outputs: contract.outputs,

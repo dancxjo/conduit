@@ -1,8 +1,8 @@
 #![cfg(feature = "form-catalog")]
 
 use conduit_body::{
-    Body, BodyFormPlan, BodyPlan, BodyPresentationSelector, BodyPresenterChainPlan,
-    BodyPresenterTopology, BodyWorkset, ResidentForm,
+    Body, BodyFaceSelector, BodyFormPlan, BodyMaskChainPlan, BodyMaskTopology, BodyPlan,
+    BodyWorkset, ResidentForm,
 };
 use conduit_core::{
     bind_active_play, kind_id, port_id, ArtifactId, Back, BackOfferBuilder, BootId, CapabilityId,
@@ -295,22 +295,22 @@ fn body_plan_for(planned_masks: &[PlannedMaskForm]) -> BodyPlan {
                 .unwrap()
                 .placement_id
                 .clone();
-            BodyPresenterTopology {
-                presentation: BodyPresentationSelector {
+            BodyMaskTopology {
+                face: BodyFaceSelector {
                     form: Some(ResidentForm::new(
                         planned.mask.form_identity.source_document_id.clone(),
                         planned.mask.form_identity.checked_form_id.clone(),
                     )),
                     source_placement_id: first.clone(),
                 },
-                chains: vec![BodyPresenterChainPlan {
+                chains: vec![BodyMaskChainPlan {
                     plan: planned.plan.clone(),
                     stage_placement_ids: vec![first],
                 }],
             }
         })
         .collect();
-    BodyPlan::seal_with_presenters(&wake, forms, topologies).unwrap()
+    BodyPlan::seal_with_masks(&wake, forms, topologies).unwrap()
 }
 
 fn plan_mask(source: &str, name: &str) -> PlannedMaskForm {

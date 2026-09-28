@@ -1,9 +1,7 @@
 //! Native actualization of the shared Mask journey action contract.
 
 use alloc::{format, string::String, vec, vec::Vec};
-use conduit_body::{
-    BodyPlan, BodyPresentationSelector, BodyPresenterChainPlan, BodyPresenterTopology, Wake,
-};
+use conduit_body::{BodyFaceSelector, BodyMaskChainPlan, BodyMaskTopology, BodyPlan, Wake};
 use conduit_core::{BootId, HostId, PlanId, SignId};
 use conduit_presentation::{
     AdmittedMaskFormRoutes, BodyMaskWardrobe, ManifestationLifecycle, MaskJourneyAction,
@@ -13,7 +11,7 @@ use conduit_presentation::{
 };
 use serde::Serialize;
 
-use crate::presenter_control::{Adapter, PresenterStage, prepare_stage};
+use crate::mask_control::{Adapter, MaskStage, prepare_stage};
 
 #[derive(Clone, Debug, Eq, PartialEq, Serialize)]
 pub struct NativeMaskJourneyObservation {
@@ -34,7 +32,7 @@ pub(super) fn actualize(
     host_id: &HostId,
     boot_id: &BootId,
     presentation: &Presentation,
-    initial: &PresenterStage,
+    initial: &MaskStage,
     sequence: u64,
     initial_show: &MaskShow,
     initial_receipt: &crate::native_mask_play::NativeMaskPlayReceipt,
@@ -104,10 +102,10 @@ pub(super) fn actualize(
 
 struct NativeJourney<'a> {
     presentation: &'a Presentation,
-    initial: PresenterStage,
-    alternate: PresenterStage,
-    replacement: PresenterStage,
-    restored: PresenterStage,
+    initial: MaskStage,
+    alternate: MaskStage,
+    replacement: MaskStage,
+    restored: MaskStage,
     initial_plan: BodyPlan,
     initial_routes: AdmittedMaskFormRoutes,
     replacement_plan: BodyPlan,
@@ -123,19 +121,19 @@ impl<'a> NativeJourney<'a> {
         wake: &Wake,
         application_plan: &BodyPlan,
         presentation: &'a Presentation,
-        initial: &'a PresenterStage,
-        alternate: PresenterStage,
-        replacement: PresenterStage,
-        restored: PresenterStage,
+        initial: &'a MaskStage,
+        alternate: MaskStage,
+        replacement: MaskStage,
+        restored: MaskStage,
         initial_show: &MaskShow,
         initial_receipt: &crate::native_mask_play::NativeMaskPlayReceipt,
     ) -> Result<Self, ()> {
         let initial_mask = initial.planned_mask.mask.form_identity.clone();
         let selector = application_plan
-            .presenter_topologies
+            .mask_topologies
             .first()
             .ok_or(())?
-            .presentation
+            .face
             .clone();
         let initial_plan = body_plan_with_masks(
             wake,
@@ -364,30 +362,27 @@ impl MaskJourneyEmbodiment for NativeJourney<'_> {
 fn body_plan_with_masks(
     wake: &Wake,
     application_plan: &BodyPlan,
-    presentation: BodyPresentationSelector,
-    stages: &[&PresenterStage],
+    face: BodyFaceSelector,
+    stages: &[&MaskStage],
 ) -> Result<BodyPlan, ()> {
     let chains = stages
         .iter()
-        .map(|stage| BodyPresenterChainPlan {
+        .map(|stage| BodyMaskChainPlan {
             plan: stage.planned_mask.plan.clone(),
             stage_placement_ids: vec![stage.planned_mask.show_placement().placement_id.clone()],
         })
         .collect();
-    BodyPlan::seal_with_presenters(
+    BodyPlan::seal_with_masks(
         wake,
         application_plan.forms.clone(),
-        vec![BodyPresenterTopology {
-            presentation,
-            chains,
-        }],
+        vec![BodyMaskTopology { face, chains }],
     )
     .map_err(|_| ())
 }
 
 fn admitted_routes(
     body_plan: &BodyPlan,
-    stages: &[&PresenterStage],
+    stages: &[&MaskStage],
     availability: &[bool],
 ) -> Result<AdmittedMaskFormRoutes, ()> {
     if stages.len() != availability.len() {
@@ -418,12 +413,12 @@ fn admitted_routes(
     AdmittedMaskFormRoutes::new(body_plan, &masks, routes).map_err(|_| ())
 }
 
-fn route_id(stage: &PresenterStage) -> String {
+fn route_id(stage: &MaskStage) -> String {
     format!("mask-route/{}", stage.planned_mask.plan.plan_id.as_str())
 }
 
 fn execute(
-    stage: &PresenterStage,
+    stage: &MaskStage,
     presentation: &Presentation,
     play_sequence: u64,
     label: &str,

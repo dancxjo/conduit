@@ -128,7 +128,7 @@ pub fn encode_native(
 ) -> Result<Vec<u8>, JoinError> {
     let host_id = conduit_core::HostId::from(crate::identity::hex(&identities.host));
     let boot_id = conduit_core::BootId::from(crate::identity::hex(&identities.boot));
-    let advertisement = crate::presenter_control::native_host_advertisement(&host_id, &boot_id, 1);
+    let advertisement = crate::mask_control::native_host_advertisement(&host_id, &boot_id, 1);
     encode(provision, &advertisement)
 }
 
@@ -156,7 +156,7 @@ mod tests {
 
     #[test]
     fn emits_one_bounded_non_member_serial_join_without_logging_the_secret() {
-        let advertisement = crate::presenter_control::native_host_advertisement(
+        let advertisement = crate::mask_control::native_host_advertisement(
             &HostId::from("host/one"),
             &BootId::from("boot/one"),
             1,

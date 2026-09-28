@@ -1,4 +1,4 @@
-//! Portable semantic projection of exact Presenter topology truth.
+//! Portable semantic projection of exact Mask topology truth.
 
 use conduit_presentation::{
     Presentation, PresentationAction, PresentationActionAvailability, PresentationDisclosure,
@@ -7,20 +7,20 @@ use conduit_presentation::{
     PresentationText,
 };
 
-use crate::{PresenterTopology, PresenterTopologyRefusal, PRESENTER_TOPOLOGY_SCHEMA};
+use crate::{MaskTopology, MaskTopologyRefusal, MASK_TOPOLOGY_SCHEMA};
 
-/// Add exact Presenter-chain truth and typed controls to the portable
+/// Add exact Mask-chain truth and typed controls to the portable
 /// Presentation consumed by both browser and native Patchbay renderers.
-pub fn project_presenter_topology(
+pub fn project_mask_topology(
     base: &Presentation,
-    topology: &PresenterTopology,
-) -> Result<Presentation, PresenterTopologyRefusal> {
+    topology: &MaskTopology,
+) -> Result<Presentation, MaskTopologyRefusal> {
     topology.validate()?;
     if base.basis.body_id.as_ref() != Some(&topology.body_id)
         || base.basis.source_document_id != topology.source_document_id
         || base.identity.as_str() != topology.presentation_id
     {
-        return Err(PresenterTopologyRefusal::StaleRequest);
+        return Err(MaskTopologyRefusal::StaleRequest);
     }
     let (mut subjects, mut relationships, mut properties, mut text, mut actions, mut disclosures) = (
         base.subjects.clone(),
@@ -30,16 +30,16 @@ pub fn project_presenter_topology(
         base.actions.clone(),
         base.disclosures.clone(),
     );
-    let root = format!("presenter-topology/{}", topology.presentation_id);
+    let root = format!("mask-topology/{}", topology.presentation_id);
     subjects.push(PresentationSubject {
         identity: root.clone(),
         role: PresentationRole::Plan,
-        name: "Presenter topology".into(),
+        name: "Mask topology".into(),
     });
     properties.push(PresentationProperty {
         subject: root.clone(),
         name: "schema".into(),
-        value: PresentationPropertyValue::Text(PRESENTER_TOPOLOGY_SCHEMA.into()),
+        value: PresentationPropertyValue::Text(MASK_TOPOLOGY_SCHEMA.into()),
     });
     properties.push(PresentationProperty {
         subject: root.clone(),
@@ -50,7 +50,7 @@ pub fn project_presenter_topology(
         subject: root.clone(),
         level: PresentationDisclosureLevel::Primary,
     });
-    actions.push(topology_action(&root, "add", "Add Presenter", true));
+    actions.push(topology_action(&root, "add", "Add Mask", true));
     actions.push(topology_action(
         &root,
         "toggle-parallel",
@@ -62,7 +62,7 @@ pub fn project_presenter_topology(
         subjects.push(PresentationSubject {
             identity: chain_subject.clone(),
             role: PresentationRole::Manifestation,
-            name: format!("Presenter chain {}", chain.chain_id),
+            name: format!("Mask chain {}", chain.chain_id),
         });
         relationships.push(PresentationRelationship {
             source: root.clone(),
@@ -77,19 +77,19 @@ pub fn project_presenter_topology(
         actions.push(topology_action(
             &chain_subject,
             "remove",
-            "Remove Presenter chain",
+            "Remove Mask chain",
             true,
         ));
         actions.push(topology_action(
             &chain_subject,
             "replace",
-            "Replace Presenter",
+            "Replace Mask",
             true,
         ));
         actions.push(topology_action(
             &chain_subject,
             "reorder",
-            "Reorder Presenter stages",
+            "Reorder Mask stages",
             chain.stages.len() > 1,
         ));
         for (stage_order, stage) in chain.stages.iter().enumerate() {
@@ -146,7 +146,7 @@ pub fn project_presenter_topology(
         actions,
         disclosures,
     )
-    .map_err(|_| PresenterTopologyRefusal::InvalidTopology)
+    .map_err(|_| MaskTopologyRefusal::InvalidTopology)
 }
 
 fn topology_action(
@@ -156,8 +156,8 @@ fn topology_action(
     available: bool,
 ) -> PresentationAction {
     PresentationAction {
-        identity: format!("action/presenter-topology/{operation}/{target}"),
-        intent: format!("conduit.intent/presenter-topology-{operation}@1"),
+        identity: format!("action/mask-topology/{operation}/{target}"),
+        intent: format!("conduit.intent/mask-topology-{operation}@1"),
         target: target.into(),
         name: label.into(),
         arguments: vec![],
@@ -167,7 +167,7 @@ fn topology_action(
         } else {
             PresentationActionAvailability::Unavailable {
                 reason_code: "IncompatibleType".into(),
-                explanation: "A one-stage Presenter chain has no valid reordered sequence.".into(),
+                explanation: "A one-stage Mask chain has no valid reordered sequence.".into(),
             }
         },
     }

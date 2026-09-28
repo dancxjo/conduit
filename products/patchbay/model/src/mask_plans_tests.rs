@@ -1,5 +1,5 @@
 use crate::{
-    patchbay_presenter_plans, portable_demonstration, InteractionDisposition, PatchbayInteraction,
+    patchbay_mask_plans, portable_demonstration, InteractionDisposition, PatchbayInteraction,
     PatchbayInteractionRequest, PATCHBAY_PRESENTATION_KIND,
 };
 use conduit_core::{BootId, HostId};
@@ -45,7 +45,7 @@ impl StepBack<FIXED_KERNEL_STORAGE_PORTS_PER_NODE> for PresentLeaf {
                 });
             }
             io.consume_host_completion()
-                .expect("observed Presenter Host Call completion");
+                .expect("observed Mask Host Call completion");
             self.pending = false;
             return StepOutcome::Complete;
         }
@@ -60,7 +60,7 @@ impl StepBack<FIXED_KERNEL_STORAGE_PORTS_PER_NODE> for PresentLeaf {
             operation,
             BoundedValueRef::new(self.input, 1).unwrap(),
         )
-        .expect("planned Presenter Host Call");
+        .expect("planned Mask Host Call");
         self.pending = true;
         StepOutcome::Progress
     }
@@ -72,7 +72,7 @@ impl StepBack<FIXED_KERNEL_STORAGE_PORTS_PER_NODE> for PresentLeaf {
 
 #[test]
 fn unchanged_patchbay_meaning_has_distinct_truthful_direct_and_recursive_plans() {
-    let proof = patchbay_presenter_plans().unwrap();
+    let proof = patchbay_mask_plans().unwrap();
     assert_eq!(
         proof.direct.source_document_id,
         proof.recursive.source_document_id
@@ -170,13 +170,13 @@ fn production_projection_keeps_recursive_forms_behind_stable_front_gears() {
     }));
     assert_eq!(
         presentation.basis.plan_id.as_ref(),
-        Some(&crate::patchbay_presenter_plans().unwrap().recursive.plan_id)
+        Some(&crate::patchbay_mask_plans().unwrap().recursive.plan_id)
     );
 }
 
 #[test]
 fn both_shapes_lower_and_execute_through_the_production_kernel_with_bounded_signs() {
-    let proof = patchbay_presenter_plans().unwrap();
+    let proof = patchbay_mask_plans().unwrap();
     let direct = execute::<DIRECT_NODES, DIRECT_CORDS>(&proof.direct).unwrap();
     let recursive = execute::<RECURSIVE_NODES, RECURSIVE_CORDS>(&proof.recursive).unwrap();
     for signs in [&direct, &recursive] {
@@ -190,7 +190,7 @@ fn both_shapes_lower_and_execute_through_the_production_kernel_with_bounded_sign
 
 #[test]
 fn unavailable_direct_renderer_and_missing_recursive_leaf_fail_differently_without_form_mutation() {
-    let proof = patchbay_presenter_plans().unwrap();
+    let proof = patchbay_mask_plans().unwrap();
     let source = proof.direct.source_document_id.clone();
     let checked = proof.direct.checked_form_id.clone();
 
@@ -218,7 +218,7 @@ fn unavailable_direct_renderer_and_missing_recursive_leaf_fail_differently_witho
 
 #[test]
 fn both_shapes_use_the_same_portable_selection_seam_and_normalized_subjects() {
-    let proof = patchbay_presenter_plans().unwrap();
+    let proof = patchbay_mask_plans().unwrap();
     let base = portable_demonstration().unwrap();
     let presentation = |plan: &conduit_core::Plan| {
         let mut basis = base.basis.clone();

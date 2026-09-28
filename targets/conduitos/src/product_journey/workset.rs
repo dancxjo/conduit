@@ -116,7 +116,7 @@ impl ProductJourney {
         self.kernel = None;
         self.input_owners = core::array::from_fn(|_| None);
         self.application_request = None;
-        self.presenter_control = None;
+        self.mask_control = None;
         self.status = JourneyStatus::Awake;
         Ok(())
     }

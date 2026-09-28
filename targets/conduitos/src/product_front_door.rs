@@ -566,10 +566,10 @@ pub fn run(
                             arch::early_write(b"CONDUIT_WORKSPACE_CHECKPOINT resident-tour-ran\n");
                         }
                         Some(crate::native_workset::NativeApplicationRequest::EditCurrent(
-                            request @ patchbay_application::PatchbayApplicationRequest::ChangePresenters { .. },
+                            request @ patchbay_application::PatchbayApplicationRequest::ChangeMasks { .. },
                         )) => {
                             journey
-                                .replan_presenters(
+                                .replan_masks(
                                     request,
                                     identities,
                                     offer,

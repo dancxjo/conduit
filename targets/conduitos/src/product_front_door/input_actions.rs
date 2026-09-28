@@ -7,7 +7,7 @@ use crate::{
 };
 use conduit_presentation::{ApplicationAction, ApplicationView};
 use patchbay_application::{
-    CHANGE_PRESENTERS_ACTION_ID, EDIT_CURRENT_ACTION_ID, INSPECT_NEXT_ACTION_ID,
+    CHANGE_MASKS_ACTION_ID, EDIT_CURRENT_ACTION_ID, INSPECT_NEXT_ACTION_ID,
 };
 
 pub(super) fn action_for(
@@ -146,7 +146,7 @@ pub(super) fn resident_application_action(
     let patchbay_action = match usage {
         super::F10 => Some(INSPECT_NEXT_ACTION_ID),
         super::F11 => Some(EDIT_CURRENT_ACTION_ID),
-        super::F1 => Some(CHANGE_PRESENTERS_ACTION_ID),
+        super::F1 => Some(CHANGE_MASKS_ACTION_ID),
         _ => None,
     };
     tour_action(usage)
@@ -224,7 +224,7 @@ mod tests {
                 event: ApplicationEventKind::Activate,
             },
             ApplicationAction {
-                id: CHANGE_PRESENTERS_ACTION_ID.to_string(),
+                id: CHANGE_MASKS_ACTION_ID.to_string(),
                 event: ApplicationEventKind::Activate,
             },
             ApplicationAction {
@@ -245,7 +245,7 @@ mod tests {
         for (usage, expected) in [
             (super::super::F10, INSPECT_NEXT_ACTION_ID),
             (super::super::F11, EDIT_CURRENT_ACTION_ID),
-            (super::super::F1, CHANGE_PRESENTERS_ACTION_ID),
+            (super::super::F1, CHANGE_MASKS_ACTION_ID),
         ] {
             assert_eq!(
                 resident_application_action(usage, &view).map(|action| action.id.as_str()),

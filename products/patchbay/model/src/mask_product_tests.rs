@@ -1,6 +1,5 @@
 use conduit_body::{
-    BodyFormPlan, BodyPlan, BodyPresentationSelector, BodyPresenterChainPlan,
-    BodyPresenterTopology, ResidentForm,
+    BodyFaceSelector, BodyFormPlan, BodyMaskChainPlan, BodyMaskTopology, BodyPlan, ResidentForm,
 };
 use conduit_core::{
     bind_active_play, kind_id, port_id, ArtifactId, Back, BackOfferBuilder, BootId, CapabilityId,
@@ -186,18 +185,18 @@ fn fixture(available: bool) -> Fixture {
         mask.form_identity.checked_form_id.clone(),
     );
     let first_placement = plan.fragments[0].placements[0].placement_id.clone();
-    let body_plan = BodyPlan::seal_with_presenters(
+    let body_plan = BodyPlan::seal_with_masks(
         &wake,
         vec![BodyFormPlan {
             form: resident.clone(),
             plan: plan.clone(),
         }],
-        vec![BodyPresenterTopology {
-            presentation: BodyPresentationSelector {
+        vec![BodyMaskTopology {
+            face: BodyFaceSelector {
                 form: Some(resident),
                 source_placement_id: first_placement.clone(),
             },
-            chains: vec![BodyPresenterChainPlan {
+            chains: vec![BodyMaskChainPlan {
                 plan: plan.clone(),
                 stage_placement_ids: vec![first_placement],
             }],

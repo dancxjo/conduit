@@ -1,4 +1,4 @@
-//! Presenter chains derived from ordinary immutable Plan placements and Cords.
+//! Mask chains derived from ordinary immutable Plan placements and Cords.
 
 use alloc::{collections::BTreeMap, vec::Vec};
 use conduit_core::{
@@ -9,11 +9,11 @@ use serde::{Deserialize, Serialize};
 
 use crate::{PRESENTATION_VALUE_KIND, PRESENTER_STAGE_KIND, RENDERER_KIND};
 
-pub const MAX_PRESENTER_CHAINS: usize = 8;
-pub const MAX_PRESENTER_STAGES_PER_CHAIN: usize = 8;
+pub const MAX_MASK_CHAINS: usize = 8;
+pub const MAX_MASK_STAGES_PER_CHAIN: usize = 8;
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
-pub struct PlannedPresenterStage {
+pub struct PlannedMaskStage {
     pub placement_id: PlacementId,
     pub capability_id: CapabilityId,
     pub implementation_id: ImplementationId,
@@ -27,18 +27,18 @@ pub struct PlannedPresenterStage {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
-pub struct PlannedPresenterChain {
-    pub stages: Vec<PlannedPresenterStage>,
+pub struct PlannedMaskChain {
+    pub stages: Vec<PlannedMaskStage>,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
-pub struct PresenterTopologyAdmission {
+pub struct MaskTopologyAdmission {
     pub plan_id: PlanId,
-    pub chains: Vec<PlannedPresenterChain>,
+    pub chains: Vec<PlannedMaskChain>,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
-pub enum PresenterTopologyError {
+pub enum MaskTopologyError {
     InvalidPlan,
     InvalidStageContract,
     IncompatibleType,
@@ -49,10 +49,10 @@ pub enum PresenterTopologyError {
     DuplicateStage,
 }
 
-impl PresenterTopologyAdmission {
-    pub fn from_plan(plan: &Plan) -> Result<Self, PresenterTopologyError> {
+impl MaskTopologyAdmission {
+    pub fn from_plan(plan: &Plan) -> Result<Self, MaskTopologyError> {
         if !verify_plan(plan) {
-            return Err(PresenterTopologyError::InvalidPlan);
+            return Err(MaskTopologyError::InvalidPlan);
         }
         let placements = plan
             .fragments
@@ -73,7 +73,7 @@ impl PresenterTopologyAdmission {
                 let Some(sink) = placements.get(&cord.sink_placement_id) else {
                     continue;
                 };
-                if is_presenter(source) && is_presenter(sink) {
+                if is_mask_stage(source) && is_mask_stage(sink) {
                     next.entry(source.placement_id.clone())
                         .or_default()
                         .push(sink.placement_id.clone());
@@ -83,16 +83,18 @@ impl PresenterTopologyAdmission {
         }
         let roots = placements
             .values()
-            .filter(|p| is_presenter(p) && incoming.get(&p.placement_id).copied().unwrap_or(0) == 0)
+            .filter(|p| {
+                is_mask_stage(p) && incoming.get(&p.placement_id).copied().unwrap_or(0) == 0
+            })
             .collect::<Vec<_>>();
         let mut chains = Vec::new();
         for root in roots {
             walk(root, &placements, &next, &mut Vec::new(), &mut chains)?;
         }
-        if chains.len() > MAX_PRESENTER_CHAINS {
-            return Err(PresenterTopologyError::ParallelChainBound);
+        if chains.len() > MAX_MASK_CHAINS {
+            return Err(MaskTopologyError::ParallelChainBound);
         }
-        if !placements.values().any(|p| is_presenter(p)) {
+        if !placements.values().any(|p| is_mask_stage(p)) {
             return Ok(Self {
                 plan_id: plan.plan_id.clone(),
                 chains,
@@ -105,10 +107,10 @@ impl PresenterTopologyAdmission {
             .collect::<alloc::collections::BTreeSet<_>>();
         if placements
             .values()
-            .filter(|p| is_presenter(p))
+            .filter(|p| is_mask_stage(p))
             .any(|p| !visited.contains(&p.placement_id))
         {
-            return Err(PresenterTopologyError::Cycle);
+            return Err(MaskTopologyError::Cycle);
         }
         Ok(Self {
             plan_id: plan.plan_id.clone(),
@@ -122,18 +124,18 @@ fn walk(
     placements: &BTreeMap<PlacementId, &PlannedGear>,
     next: &BTreeMap<PlacementId, Vec<PlacementId>>,
     path: &mut Vec<PlacementId>,
-    chains: &mut Vec<PlannedPresenterChain>,
-) -> Result<(), PresenterTopologyError> {
+    chains: &mut Vec<PlannedMaskChain>,
+) -> Result<(), MaskTopologyError> {
     if path.contains(&placement.placement_id) {
-        return Err(PresenterTopologyError::Cycle);
+        return Err(MaskTopologyError::Cycle);
     }
-    if path.len() >= MAX_PRESENTER_STAGES_PER_CHAIN {
-        return Err(PresenterTopologyError::ChainLengthBound);
+    if path.len() >= MAX_MASK_STAGES_PER_CHAIN {
+        return Err(MaskTopologyError::ChainLengthBound);
     }
     validate_stage(placement)?;
     path.push(placement.placement_id.clone());
     if placement.kind_id.as_str() == RENDERER_KIND {
-        chains.push(PlannedPresenterChain {
+        chains.push(PlannedMaskChain {
             stages: path
                 .iter()
                 .map(|id| stage(placements[id]))
@@ -142,15 +144,13 @@ fn walk(
     } else {
         let successors = next
             .get(&placement.placement_id)
-            .ok_or(PresenterTopologyError::MissingTerminalRenderer)?;
+            .ok_or(MaskTopologyError::MissingTerminalRenderer)?;
         if successors.is_empty() {
-            return Err(PresenterTopologyError::MissingTerminalRenderer);
+            return Err(MaskTopologyError::MissingTerminalRenderer);
         }
         for id in successors {
             walk(
-                placements
-                    .get(id)
-                    .ok_or(PresenterTopologyError::InvalidPlan)?,
+                placements.get(id).ok_or(MaskTopologyError::InvalidPlan)?,
                 placements,
                 next,
                 path,
@@ -162,27 +162,27 @@ fn walk(
     Ok(())
 }
 
-fn is_presenter(p: &PlannedGear) -> bool {
+fn is_mask_stage(p: &PlannedGear) -> bool {
     matches!(p.kind_id.as_str(), PRESENTER_STAGE_KIND | RENDERER_KIND)
 }
 
-fn validate_stage(p: &PlannedGear) -> Result<(), PresenterTopologyError> {
+fn validate_stage(p: &PlannedGear) -> Result<(), MaskTopologyError> {
     if p.inputs.len() != 1 || p.inputs[0].value_kind.as_str() != PRESENTATION_VALUE_KIND {
-        return Err(PresenterTopologyError::InvalidStageContract);
+        return Err(MaskTopologyError::InvalidStageContract);
     }
     let final_stage = p.kind_id.as_str() == RENDERER_KIND;
     if (!final_stage
         && (p.outputs.len() != 1 || p.outputs[0].value_kind.as_str() != PRESENTATION_VALUE_KIND))
         || (final_stage && p.outputs.len() != 1)
     {
-        return Err(PresenterTopologyError::IncompatibleType);
+        return Err(MaskTopologyError::IncompatibleType);
     }
     Ok(())
 }
 
-fn stage(p: &PlannedGear) -> Result<PlannedPresenterStage, PresenterTopologyError> {
+fn stage(p: &PlannedGear) -> Result<PlannedMaskStage, MaskTopologyError> {
     validate_stage(p)?;
-    Ok(PlannedPresenterStage {
+    Ok(PlannedMaskStage {
         placement_id: p.placement_id.clone(),
         capability_id: p.capability_id.clone(),
         implementation_id: p.implementation_id.clone(),

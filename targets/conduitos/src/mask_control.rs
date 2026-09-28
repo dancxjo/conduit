@@ -1,9 +1,8 @@
-//! Target-owned realization of the body's selected Presenter chains.
+//! Target-owned realization of the body's selected Mask chains.
 
 use alloc::{format, string::String, vec, vec::Vec};
 use conduit_body::{
-    BodyPlan, BodyPlayIdentity, BodyPresentationSelector, BodyPresenterChainPlan,
-    BodyPresenterTopology, ResidentForm,
+    BodyFaceSelector, BodyMaskChainPlan, BodyMaskTopology, BodyPlan, BodyPlayIdentity, ResidentForm,
 };
 use conduit_core::{
     ArtifactId, BaseImplementationId, CapabilityId, CapabilityLimits, ExecutionProfileId,
@@ -27,9 +26,7 @@ use conduit_presentation::{
     install_mask_form_value_aliases, presentation_tee_kind_projection, presentation_tee_offer,
     renderer_kind_projection, renderer_offer,
 };
-use patchbay_application::{
-    PatchbayPresenterMode, PatchbayPresenterStage, PatchbayPresenterTopology,
-};
+use patchbay_application::{PatchbayMaskMode, PatchbayMaskStage, PatchbayMaskTopology};
 use serde::Serialize;
 
 #[derive(Clone, Debug, Eq, PartialEq, Serialize)]
@@ -67,11 +64,11 @@ pub struct NativeMaskShowCorrelation {
 }
 
 #[derive(Clone)]
-pub(super) struct PresenterControl {
+pub(super) struct MaskControl {
     host_id: HostId,
     boot_id: conduit_core::BootId,
-    graphical: Option<PresenterStage>,
-    speech: Option<PresenterStage>,
+    graphical: Option<MaskStage>,
+    speech: Option<MaskStage>,
     sequence: u64,
     presentation: Option<Presentation>,
     shows: Vec<MaskShow>,
@@ -79,12 +76,12 @@ pub(super) struct PresenterControl {
 }
 
 #[derive(Clone)]
-pub(super) struct PresenterStage {
+pub(super) struct MaskStage {
     pub(super) planned_mask: PlannedMaskForm,
     pub(super) target: String,
 }
 
-impl PresenterControl {
+impl MaskControl {
     pub(super) fn graphical(host_id: HostId, boot_id: conduit_core::BootId) -> Result<Self, ()> {
         let graphical = prepare_stage(
             Adapter::Native,
@@ -105,10 +102,10 @@ impl PresenterControl {
         })
     }
 
-    pub(super) fn request(&mut self, mode: PatchbayPresenterMode) -> Result<(), ()> {
+    pub(super) fn request(&mut self, mode: PatchbayMaskMode) -> Result<(), ()> {
         if matches!(
             mode,
-            PatchbayPresenterMode::Graphical | PatchbayPresenterMode::GraphicalAndSpeech
+            PatchbayMaskMode::Graphical | PatchbayMaskMode::GraphicalAndSpeech
         ) && self.graphical.is_none()
         {
             self.graphical = Some(prepare_stage(
@@ -122,7 +119,7 @@ impl PresenterControl {
         }
         if matches!(
             mode,
-            PatchbayPresenterMode::Speech | PatchbayPresenterMode::GraphicalAndSpeech
+            PatchbayMaskMode::Speech | PatchbayMaskMode::GraphicalAndSpeech
         ) && self.speech.is_none()
         {
             self.speech = Some(prepare_stage(
@@ -134,9 +131,9 @@ impl PresenterControl {
             )?);
             self.sequence = self.sequence.checked_add(1).ok_or(())?;
         }
-        if mode == PatchbayPresenterMode::Graphical {
+        if mode == PatchbayMaskMode::Graphical {
             self.speech = None;
-        } else if mode == PatchbayPresenterMode::Speech {
+        } else if mode == PatchbayMaskMode::Speech {
             self.graphical = None;
         }
         self.presentation = None;
@@ -145,15 +142,12 @@ impl PresenterControl {
         Ok(())
     }
 
-    pub(super) fn topology(
-        &self,
-        selector: BodyPresentationSelector,
-    ) -> Result<BodyPresenterTopology, ()> {
+    pub(super) fn topology(&self, selector: BodyFaceSelector) -> Result<BodyMaskTopology, ()> {
         let mut chains = Vec::new();
         for stage in self.graphical.iter().chain(self.speech.iter()) {
-            chains.push(BodyPresenterChainPlan {
+            chains.push(BodyMaskChainPlan {
                 plan: stage.planned_mask.plan.clone(),
-                // BodyPresenterChainPlan is the legacy linear projection used by
+                // BodyMaskChainPlan is the linear projection used by
                 // the Patchbay topology view. The ordinary Mask Plan above owns
                 // the complete branched renderer/interaction graph; this path
                 // names only its exact Show-producing stage.
@@ -163,8 +157,8 @@ impl PresenterControl {
         if chains.is_empty() {
             return Err(());
         }
-        Ok(BodyPresenterTopology {
-            presentation: selector,
+        Ok(BodyMaskTopology {
+            face: selector,
             chains,
         })
     }
@@ -174,9 +168,9 @@ impl PresenterControl {
         wake: &conduit_body::Wake,
         body_plan: &BodyPlan,
         play: &BodyPlayIdentity,
-    ) -> Result<PatchbayPresenterTopology, ()> {
-        let topology = body_plan.presenter_topologies.first().ok_or(())?;
-        let form = topology.presentation.form.as_ref();
+    ) -> Result<PatchbayMaskTopology, ()> {
+        let topology = body_plan.mask_topologies.first().ok_or(())?;
+        let form = topology.face.form.as_ref();
         let expanded_form_id = form.and_then(|selected| {
             body_plan
                 .forms
@@ -195,14 +189,14 @@ impl PresenterControl {
                 plan_id: Some(body_plan.plan_id.clone()),
                 active_play_id: Some(play.active_play_id.clone()),
                 sign_ids: vec![SignId::from(format!(
-                    "conduitos/presenter/{}/presentation",
+                    "conduitos/mask/{}/presentation",
                     self.sequence
                 ))],
             },
             vec![PresentationSubject {
                 identity: "conduitos/patchbay/self".into(),
                 role: PresentationRole::Document,
-                name: "Patchbay controlling its own Presenter topology".into(),
+                name: "Patchbay controlling its own Mask topology".into(),
             }],
             Vec::new(),
             Vec::new(),
@@ -234,23 +228,23 @@ impl PresenterControl {
                 active,
                 "conduitos/patchbay/self".into(),
                 stage.target.clone(),
-                SignId::from(format!("conduitos/presenter/{index}/prepared")),
+                SignId::from(format!("conduitos/mask/{index}/prepared")),
             )
             .map_err(|_| ())?;
             shows.push(
                 prepared
                     .transition(
                         ManifestationLifecycle::Available,
-                        SignId::from(format!("conduitos/presenter/{index}/available")),
+                        SignId::from(format!("conduitos/mask/{index}/available")),
                     )
                     .map_err(|_| ())?,
             );
             execution_receipts.push(execution);
         }
         let mode = match (self.graphical.is_some(), self.speech.is_some()) {
-            (true, false) => PatchbayPresenterMode::Graphical,
-            (true, true) => PatchbayPresenterMode::GraphicalAndSpeech,
-            (false, true) => PatchbayPresenterMode::Speech,
+            (true, false) => PatchbayMaskMode::Graphical,
+            (true, true) => PatchbayMaskMode::GraphicalAndSpeech,
+            (false, true) => PatchbayMaskMode::Speech,
             (false, false) => return Err(()),
         };
         let mut stages = Vec::with_capacity(shows.len());
@@ -274,7 +268,7 @@ impl PresenterControl {
                 })
                 .ok_or(())?;
             let resource = planned.resources.first().ok_or(())?;
-            stages.push(PatchbayPresenterStage {
+            stages.push(PatchbayMaskStage {
                 manifestation_id: manifestation.manifestation_id.as_str().into(),
                 implementation_id: manifestation.presenter_implementation_id.as_str().into(),
                 host_id: manifestation.host_id.as_str().into(),
@@ -288,7 +282,7 @@ impl PresenterControl {
                 available: manifestation.lifecycle == ManifestationLifecycle::Available,
             });
         }
-        let view = PatchbayPresenterTopology {
+        let view = PatchbayMaskTopology {
             presentation_id: presentation.identity.as_str().into(),
             body_plan_id: body_plan.plan_id.clone(),
             active_play_id: play.active_play_id.as_str().into(),
@@ -324,7 +318,7 @@ impl PresenterControl {
         }
         // Speech-only is reached by an actual doff of the previously eligible
         // native graphical Form, not by rewriting Body meaning.
-        if mode == PatchbayPresenterMode::Speech {
+        if mode == PatchbayMaskMode::Speech {
             let native = prepare_stage(
                 Adapter::Native,
                 &self.host_id,
@@ -407,7 +401,7 @@ impl PresenterControl {
     }
 }
 
-pub(super) fn patchbay_selector(plan: &BodyPlan) -> Result<BodyPresentationSelector, ()> {
+pub(super) fn patchbay_selector(plan: &BodyPlan) -> Result<BodyFaceSelector, ()> {
     let resident = crate::native_workset::resident(crate::native_workset::NativeForm::Patchbay)
         .map_err(|_| ())?;
     let partition = plan
@@ -425,7 +419,7 @@ pub(super) fn patchbay_selector(plan: &BodyPlan) -> Result<BodyPresentationSelec
                 == conduit_semantic_catalog::APPLICATION_VIEW_PRESENTATION_KIND
         })
         .ok_or(())?;
-    Ok(BodyPresentationSelector {
+    Ok(BodyFaceSelector {
         form: Some(ResidentForm::new(
             resident.source_document_id,
             resident.checked_form_id,
@@ -446,7 +440,7 @@ pub(super) fn prepare_stage(
     boot_id: &conduit_core::BootId,
     generation: u64,
     target: &str,
-) -> Result<PresenterStage, ()> {
+) -> Result<MaskStage, ()> {
     let mut startup = StartupCatalog::new();
     let mut catalog = ProfileCatalog::new();
     install_mask_form_value_aliases(&mut startup).map_err(|_| ())?;
@@ -525,7 +519,7 @@ pub(super) fn prepare_stage(
         &boundary_limits,
     )
     .map_err(|_| ())?;
-    Ok(PresenterStage {
+    Ok(MaskStage {
         planned_mask: PlannedMaskForm::admit(&mask, &plan).map_err(|_| ())?,
         target: target.into(),
     })
@@ -561,7 +555,7 @@ fn renderer_host(
         host_id: host_id.clone(),
         boot_id: boot_id.clone(),
         offer_generation: OfferGeneration(generation),
-        profile: HostProfileId::from("conduitos/presenter-host@1"),
+        profile: HostProfileId::from("conduitos/mask-host@1"),
         bases: vec![],
         resources: vec![
             resource_offer(
@@ -579,7 +573,7 @@ fn renderer_host(
             presentation_tee_offer(
                 CapabilityId::from(format!("{capability}-tee")),
                 ImplementationOffer {
-                    execution_profile_id: ExecutionProfileId::from("conduitos/bounded-presenter@1"),
+                    execution_profile_id: ExecutionProfileId::from("conduitos/bounded-mask@1"),
                     implementation_id: ImplementationId::from("conduit.presentation/tee-kernel@1"),
                     artifact_id: ArtifactId::from("conduitos/presentation-tee@1"),
                 },
@@ -591,7 +585,7 @@ fn renderer_host(
             ),
             renderer_offer(RendererRealizationOffer {
                 capability_id: CapabilityId::from(capability),
-                execution_profile_id: ExecutionProfileId::from("conduitos/bounded-presenter@1"),
+                execution_profile_id: ExecutionProfileId::from("conduitos/bounded-mask@1"),
                 implementation_id: ImplementationId::from(implementation),
                 artifact_id: ArtifactId::from(artifact),
                 host_call: HostCallRequirement {
@@ -640,7 +634,7 @@ fn renderer_host(
     }
 }
 
-/// Exact native-presenter advertisement used by boot-time Body rendezvous.
+/// Exact native-mask advertisement used by boot-time Body rendezvous.
 pub fn native_host_advertisement(
     host_id: &HostId,
     boot_id: &conduit_core::BootId,
@@ -654,10 +648,10 @@ mod tests {
     use super::*;
 
     #[test]
-    fn native_presenter_is_the_exact_ordinary_mask_form_and_keeps_its_branched_plan() {
+    fn native_mask_is_the_exact_ordinary_mask_form_and_keeps_its_branched_plan() {
         let host = HostId::from("conduitos/test-host");
         let boot = conduit_core::BootId::from("conduitos/test-boot");
-        let control = PresenterControl::graphical(host, boot).unwrap();
+        let control = MaskControl::graphical(host, boot).unwrap();
         let stage = control.graphical.as_ref().unwrap();
 
         assert_eq!(stage.planned_mask.mask.form_name, "native-graphical");
@@ -696,7 +690,7 @@ mod tests {
         );
 
         let topology = control
-            .topology(BodyPresentationSelector {
+            .topology(BodyFaceSelector {
                 form: None,
                 source_placement_id: conduit_core::PlacementId::from("application/presentation"),
             })
@@ -713,11 +707,11 @@ mod tests {
     }
 
     #[test]
-    fn spoken_presenter_is_the_exact_ordinary_mask_form_and_keeps_its_branched_plan() {
+    fn spoken_mask_is_the_exact_ordinary_mask_form_and_keeps_its_branched_plan() {
         let host = HostId::from("conduitos/test-host");
         let boot = conduit_core::BootId::from("conduitos/test-boot");
-        let mut control = PresenterControl::graphical(host, boot).unwrap();
-        control.request(PatchbayPresenterMode::Speech).unwrap();
+        let mut control = MaskControl::graphical(host, boot).unwrap();
+        control.request(PatchbayMaskMode::Speech).unwrap();
         let stage = control.speech.as_ref().unwrap();
 
         assert!(control.graphical.is_none());

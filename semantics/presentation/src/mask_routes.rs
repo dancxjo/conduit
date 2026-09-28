@@ -52,7 +52,7 @@ impl AdmittedMaskFormRoutes {
                 return Err(MaskRouteAdmissionError::InvalidPlan);
             }
             let sealed = body_plan
-                .presenter_topologies
+                .mask_topologies
                 .iter()
                 .flat_map(|topology| &topology.chains)
                 .any(|chain| chain.plan == planned.plan);

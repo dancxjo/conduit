@@ -1,5 +1,5 @@
 use super::*;
-use conduit_body::{Body, BodyPresentationSelector, BodyWorkset, ResidentForm};
+use conduit_body::{Body, BodyFaceSelector, BodyWorkset, ResidentForm};
 use conduit_core::{BaseImplementationId, BootId, HostId, PlacementId, SignId};
 use conduit_planner::{default_expanded_placements, plan_expanded_canonical};
 use conduit_presentation::{
@@ -13,7 +13,7 @@ fn touch_my_own_patchbay_replans_graphical_parallel_speech_and_back() {
         "Hello",
         "forms/hello/main.conduit",
         include_str!("../../../../forms/hello/main.conduit"),
-        "canonical Presenter-control Form",
+        "canonical Mask-control Form",
         SignId::from("sign/form-reviewed"),
         1,
     )
@@ -55,7 +55,7 @@ fn touch_my_own_patchbay_replans_graphical_parallel_speech_and_back() {
         vec![PresentationSubject {
             identity: "patchbay/self".into(),
             role: PresentationRole::Document,
-            name: "Patchbay controlling its own Presenter topology".into(),
+            name: "Patchbay controlling its own Mask topology".into(),
         }],
         vec![],
         vec![],
@@ -67,9 +67,9 @@ fn touch_my_own_patchbay_replans_graphical_parallel_speech_and_back() {
         boot_id: BootId::from(format!("boot/{label}")),
         target_subject: format!("target/{label}"),
     };
-    let mut controller = PresenterControlSession::new(
+    let mut controller = MaskControlSession::new(
         presentation.clone(),
-        BodyPresentationSelector {
+        BodyFaceSelector {
             form: Some(resident),
             source_placement_id: PlacementId::from("hello/presentation"),
         },
@@ -80,10 +80,10 @@ fn touch_my_own_patchbay_replans_graphical_parallel_speech_and_back() {
     .unwrap();
     let initial_topology = controller.prepare_initial_graphical().unwrap();
     let form = conduit_body::BodyFormPlan {
-        form: initial_topology.presentation.form.clone().unwrap(),
+        form: initial_topology.face.form.clone().unwrap(),
         plan: form_plan,
     };
-    let mut planning = BodyPlanningSession::start_with_presenters(
+    let mut planning = BodyPlanningSession::start_with_masks(
         &body,
         1,
         SignId::from("sign/woke"),
@@ -100,7 +100,7 @@ fn touch_my_own_patchbay_replans_graphical_parallel_speech_and_back() {
     let parallel = controller
         .request_mode(
             &plan_a,
-            PresenterTopologyMode::GraphicalAndSpeech,
+            MaskTopologyMode::GraphicalAndSpeech,
             &mut planning,
             transition(2, "parallel"),
         )
@@ -114,7 +114,7 @@ fn touch_my_own_patchbay_replans_graphical_parallel_speech_and_back() {
     let speech_only = controller
         .request_mode(
             &parallel.plan_id,
-            PresenterTopologyMode::Speech,
+            MaskTopologyMode::Speech,
             &mut planning,
             transition(3, "speech-only"),
         )
@@ -124,7 +124,7 @@ fn touch_my_own_patchbay_replans_graphical_parallel_speech_and_back() {
     let restored = controller
         .request_mode(
             &speech_only.plan_id,
-            PresenterTopologyMode::GraphicalAndSpeech,
+            MaskTopologyMode::GraphicalAndSpeech,
             &mut planning,
             transition(4, "restored"),
         )

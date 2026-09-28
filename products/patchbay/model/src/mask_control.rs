@@ -1,28 +1,27 @@
 //! Shared ordinary body replanning owner for browser and native Patchbay.
 
 use conduit_body::{
-    BodyPlayIdentity, BodyPresentationSelector, BodyPresenterChainPlan, BodyPresenterTopology,
-    WakeLifecycle,
+    BodyFaceSelector, BodyMaskChainPlan, BodyMaskTopology, BodyPlayIdentity, WakeLifecycle,
 };
 use conduit_core::SignId;
 use conduit_presentation::{Manifestation, Presentation};
 
 use crate::{
-    BodyPlanningSession, BodyPlanningSessionError, BodyPlanningTransition, PresenterTopology,
-    PresenterTopologyRefusal, RendererAdapterIdentity, RendererAdapterKind, RendererExecution,
+    BodyPlanningSession, BodyPlanningSessionError, BodyPlanningTransition, MaskTopology,
+    MaskTopologyRefusal, RendererAdapterIdentity, RendererAdapterKind, RendererExecution,
 };
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
-pub enum PresenterTopologyMode {
+pub enum MaskTopologyMode {
     Graphical,
     GraphicalAndSpeech,
     Speech,
 }
 
 #[derive(Debug, Clone)]
-pub struct PresenterControlSession {
+pub struct MaskControlSession {
     presentation: Presentation,
-    selector: BodyPresentationSelector,
+    selector: BodyFaceSelector,
     graphical_kind: RendererAdapterKind,
     graphical_identity: RendererAdapterIdentity,
     speech_identity: RendererAdapterIdentity,
@@ -32,22 +31,22 @@ pub struct PresenterControlSession {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
-pub enum PresenterControlError {
+pub enum MaskControlError {
     StaleRequest,
-    UnavailablePresenter,
+    UnavailableMask,
     BodyPlanning(BodyPlanningSessionError),
     InvalidRealization,
-    Projection(PresenterTopologyRefusal),
+    Projection(MaskTopologyRefusal),
 }
 
-impl PresenterControlSession {
+impl MaskControlSession {
     pub fn new(
         presentation: Presentation,
-        selector: BodyPresentationSelector,
+        selector: BodyFaceSelector,
         graphical_kind: RendererAdapterKind,
         graphical_identity: RendererAdapterIdentity,
         speech_identity: RendererAdapterIdentity,
-    ) -> Result<Self, PresenterControlError> {
+    ) -> Result<Self, MaskControlError> {
         let selector_matches = match &selector.form {
             Some(form) => {
                 presentation.basis.source_document_id.as_ref() == Some(&form.source_document_id)
@@ -59,7 +58,7 @@ impl PresenterControlSession {
             }
         };
         if !selector_matches {
-            return Err(PresenterControlError::StaleRequest);
+            return Err(MaskControlError::StaleRequest);
         }
         Ok(Self {
             presentation,
@@ -76,11 +75,11 @@ impl PresenterControlSession {
     pub fn install_initial_graphical(
         &mut self,
         planning: &mut BodyPlanningSession,
-    ) -> Result<(), PresenterControlError> {
+    ) -> Result<(), MaskControlError> {
         if planning.wake().lifecycle != WakeLifecycle::AwaitingPlan
-            || !planning.current_plan().presenter_topologies.is_empty()
+            || !planning.current_plan().mask_topologies.is_empty()
         {
-            return Err(PresenterControlError::StaleRequest);
+            return Err(MaskControlError::StaleRequest);
         }
         let mut candidate = self.clone();
         let mut next_planning = planning.clone();
@@ -91,45 +90,43 @@ impl PresenterControlSession {
         )?);
         let forms = next_planning.current_plan().forms.clone();
         next_planning
-            .replace_proposal_with_presenters(
+            .replace_proposal_with_masks(
                 forms,
-                vec![candidate.body_topology(PresenterTopologyMode::Graphical)?],
+                vec![candidate.body_topology(MaskTopologyMode::Graphical)?],
             )
-            .map_err(PresenterControlError::BodyPlanning)?;
+            .map_err(MaskControlError::BodyPlanning)?;
         *self = candidate;
         *planning = next_planning;
         Ok(())
     }
 
-    pub fn prepare_initial_graphical(
-        &mut self,
-    ) -> Result<BodyPresenterTopology, PresenterControlError> {
+    pub fn prepare_initial_graphical(&mut self) -> Result<BodyMaskTopology, MaskControlError> {
         if self.graphical.is_some() || self.speech.is_some() {
-            return Err(PresenterControlError::StaleRequest);
+            return Err(MaskControlError::StaleRequest);
         }
         self.graphical = Some(self.prepare(
             self.graphical_kind,
             self.graphical_identity.clone(),
             "graphical",
         )?);
-        self.body_topology(PresenterTopologyMode::Graphical)
+        self.body_topology(MaskTopologyMode::Graphical)
     }
 
     pub fn request_mode(
         &mut self,
         basis_plan_id: &conduit_core::PlanId,
-        mode: PresenterTopologyMode,
+        mode: MaskTopologyMode,
         planning: &mut BodyPlanningSession,
         transition: BodyPlanningTransition,
-    ) -> Result<PresenterTopology, PresenterControlError> {
+    ) -> Result<MaskTopology, MaskControlError> {
         if planning.current_plan().plan_id != *basis_plan_id {
-            return Err(PresenterControlError::StaleRequest);
+            return Err(MaskControlError::StaleRequest);
         }
         let mut candidate = self.clone();
         let mut next_planning = planning.clone();
         if matches!(
             mode,
-            PresenterTopologyMode::Graphical | PresenterTopologyMode::GraphicalAndSpeech
+            MaskTopologyMode::Graphical | MaskTopologyMode::GraphicalAndSpeech
         ) && candidate.graphical.is_none()
         {
             candidate.graphical = Some(candidate.prepare(
@@ -140,7 +137,7 @@ impl PresenterControlSession {
         }
         if matches!(
             mode,
-            PresenterTopologyMode::Speech | PresenterTopologyMode::GraphicalAndSpeech
+            MaskTopologyMode::Speech | MaskTopologyMode::GraphicalAndSpeech
         ) && candidate.speech.is_none()
         {
             candidate.speech = Some(candidate.prepare(
@@ -152,21 +149,21 @@ impl PresenterControlSession {
         let topology = candidate.body_topology(mode)?;
         let forms = next_planning.current_plan().forms.clone();
         next_planning
-            .replan_with_presenters(forms, vec![topology], transition.clone())
-            .map_err(PresenterControlError::BodyPlanning)?;
-        if mode == PresenterTopologyMode::Graphical {
+            .replan_with_masks(forms, vec![topology], transition.clone())
+            .map_err(MaskControlError::BodyPlanning)?;
+        if mode == MaskTopologyMode::Graphical {
             candidate.speech = None;
-        } else if mode == PresenterTopologyMode::Speech {
+        } else if mode == MaskTopologyMode::Speech {
             candidate.graphical = None;
         }
         let play = BodyPlayIdentity::bind(next_planning.current_plan(), transition.play_sequence);
-        let projected = PresenterTopology::from_body_plan_truth(
+        let projected = MaskTopology::from_body_plan_truth(
             &candidate.presentation,
             next_planning.current_plan(),
             &play,
             &candidate.manifestations(),
         )
-        .map_err(PresenterControlError::Projection)?;
+        .map_err(MaskControlError::Projection)?;
         *self = candidate;
         *planning = next_planning;
         Ok(projected)
@@ -176,13 +173,13 @@ impl PresenterControlSession {
         &self.presentation
     }
 
-    /// Retarget the selected Presenter Plans at a fresh immutable projection of
+    /// Retarget the selected Mask Plans at a fresh immutable projection of
     /// the same body/Form subject. Runtime evolution changes Presentation
     /// identity; it does not make the renderer the owner of that evolution.
     pub fn refresh_presentation(
         &mut self,
         presentation: Presentation,
-    ) -> Result<(), PresenterControlError> {
+    ) -> Result<(), MaskControlError> {
         let selector_matches = match &self.selector.form {
             Some(form) => {
                 presentation.basis.source_document_id.as_ref() == Some(&form.source_document_id)
@@ -194,7 +191,7 @@ impl PresenterControlSession {
             }
         };
         if !selector_matches {
-            return Err(PresenterControlError::StaleRequest);
+            return Err(MaskControlError::StaleRequest);
         }
         let mut sequence = self.sequence;
         let refresh = |current: &RendererExecution, sequence: &mut u64| {
@@ -205,15 +202,13 @@ impl PresenterControlSession {
                 current.plan.clone(),
                 current.manifestation.target_subject.clone(),
                 current_sequence,
-                SignId::from(format!(
-                    "presenter-control/refresh/{current_sequence}/prepared"
-                )),
+                SignId::from(format!("mask-control/refresh/{current_sequence}/prepared")),
             )
-            .map_err(|_| PresenterControlError::InvalidRealization)?;
+            .map_err(|_| MaskControlError::InvalidRealization)?;
             next.mark_available(SignId::from(format!(
-                "presenter-control/refresh/{current_sequence}/available"
+                "mask-control/refresh/{current_sequence}/available"
             )))
-            .map_err(|_| PresenterControlError::InvalidRealization)?;
+            .map_err(|_| MaskControlError::InvalidRealization)?;
             Ok(next)
         };
         let graphical = self
@@ -237,14 +232,14 @@ impl PresenterControlSession {
         &self,
         planning: &BodyPlanningSession,
         play: &BodyPlayIdentity,
-    ) -> Result<PresenterTopology, PresenterControlError> {
-        PresenterTopology::from_body_plan_truth(
+    ) -> Result<MaskTopology, MaskControlError> {
+        MaskTopology::from_body_plan_truth(
             &self.presentation,
             planning.current_plan(),
             play,
             &self.manifestations(),
         )
-        .map_err(PresenterControlError::Projection)
+        .map_err(MaskControlError::Projection)
     }
 
     fn prepare(
@@ -252,7 +247,7 @@ impl PresenterControlSession {
         kind: RendererAdapterKind,
         identity: RendererAdapterIdentity,
         label: &str,
-    ) -> Result<RendererExecution, PresenterControlError> {
+    ) -> Result<RendererExecution, MaskControlError> {
         let sequence = self.sequence;
         self.sequence = self.sequence.saturating_add(1);
         let mut execution = RendererExecution::prepare_with_offer_generation(
@@ -260,44 +255,41 @@ impl PresenterControlSession {
             kind,
             identity,
             sequence,
-            SignId::from(format!("presenter-control/{label}/{sequence}/prepared")),
+            SignId::from(format!("mask-control/{label}/{sequence}/prepared")),
         )
-        .map_err(|_| PresenterControlError::UnavailablePresenter)?;
+        .map_err(|_| MaskControlError::UnavailableMask)?;
         execution
             .mark_available(SignId::from(format!(
-                "presenter-control/{label}/{sequence}/available"
+                "mask-control/{label}/{sequence}/available"
             )))
-            .map_err(|_| PresenterControlError::InvalidRealization)?;
+            .map_err(|_| MaskControlError::InvalidRealization)?;
         Ok(execution)
     }
 
-    fn body_topology(
-        &self,
-        mode: PresenterTopologyMode,
-    ) -> Result<BodyPresenterTopology, PresenterControlError> {
+    fn body_topology(&self, mode: MaskTopologyMode) -> Result<BodyMaskTopology, MaskControlError> {
         let mut chains = Vec::new();
         if matches!(
             mode,
-            PresenterTopologyMode::Graphical | PresenterTopologyMode::GraphicalAndSpeech
+            MaskTopologyMode::Graphical | MaskTopologyMode::GraphicalAndSpeech
         ) {
             chains.push(chain(
                 self.graphical
                     .as_ref()
-                    .ok_or(PresenterControlError::UnavailablePresenter)?,
+                    .ok_or(MaskControlError::UnavailableMask)?,
             ));
         }
         if matches!(
             mode,
-            PresenterTopologyMode::Speech | PresenterTopologyMode::GraphicalAndSpeech
+            MaskTopologyMode::Speech | MaskTopologyMode::GraphicalAndSpeech
         ) {
             chains.push(chain(
                 self.speech
                     .as_ref()
-                    .ok_or(PresenterControlError::UnavailablePresenter)?,
+                    .ok_or(MaskControlError::UnavailableMask)?,
             ));
         }
-        Ok(BodyPresenterTopology {
-            presentation: self.selector.clone(),
+        Ok(BodyMaskTopology {
+            face: self.selector.clone(),
             chains,
         })
     }
@@ -311,8 +303,8 @@ impl PresenterControlSession {
     }
 }
 
-fn chain(execution: &RendererExecution) -> BodyPresenterChainPlan {
-    BodyPresenterChainPlan {
+fn chain(execution: &RendererExecution) -> BodyMaskChainPlan {
+    BodyMaskChainPlan {
         plan: execution.plan.clone(),
         stage_placement_ids: vec![execution.placement_id.clone()],
     }
