@@ -8,10 +8,8 @@ use conduit_presentation::{
     SemanticApplicationView, SemanticPresentationNode, StatusKind,
 };
 
-mod evidence;
 mod journey;
 mod speech;
-pub use evidence::*;
 pub use journey::*;
 pub use speech::*;
 
