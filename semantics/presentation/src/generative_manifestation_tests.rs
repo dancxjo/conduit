@@ -138,6 +138,7 @@ fn candidate(request: &GenerativePresenterRequest) -> GeneratedManifestationCand
         disposition: GeneratedManifestationDisposition::Produced,
         content: vec![GeneratedContentSegment {
             role: GeneratedContentRole::Speech,
+            source_text_index: 0,
             bytes: b"The diagram emphasizes the mitochondrion. You may answer.".to_vec(),
         }],
         affordances: vec![GeneratedActionAffordance {
@@ -329,6 +330,20 @@ fn deterministic_validator_accepts_only_exact_presentation_wording() {
         GeneratedValidationDisposition::Refused
     );
     assert!(assessment.accepted_correlations.is_empty());
+
+    let mut invented_index = paraphrase;
+    invented_index.candidate.content[0].source_text_index = 9;
+    invented_index.candidate.content[0].bytes = b"Produces cellular energy".to_vec();
+    invented_index.candidate.candidate_identity = invented_index.candidate.digest();
+    assert_eq!(
+        assess_generated_output_exactly(
+            &invented_index,
+            "assessment/invented-index".into(),
+            "mask/spoken@1".into(),
+        )
+        .disposition,
+        GeneratedValidationDisposition::Refused
+    );
 }
 
 #[test]

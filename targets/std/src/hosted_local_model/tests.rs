@@ -87,7 +87,7 @@ impl HostedLocalModelAdapter for FakeLocalModel {
                 let prepared = super::ollama_present::prepare(input).unwrap();
                 super::ollama_present::finish(
                     prepared,
-                    r#"{"speech":"I am awake.","presented_thought":null,"suggested_action_identities":["body.inspect"]}"#,
+                    r#"{"speech_text_index":0,"presented_thought_text_index":null,"suggested_action_identities":["body.inspect"]}"#,
                     &self.offer.identity,
                     1,
                     false,

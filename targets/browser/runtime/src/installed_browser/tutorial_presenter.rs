@@ -187,7 +187,7 @@ mod tests {
             "mask_contract_revision": "mask/tutorial@1",
             "generation_run_identity": "run/tutorial-1",
             "disposition": "Produced",
-            "content": [{ "role": "Speech", "bytes": [78, 69, 86, 69, 82, 32, 82, 69, 78, 68, 69, 82] }],
+            "content": [{ "role": "Speech", "source_text_index": 0, "bytes": [78, 69, 86, 69, 82, 32, 82, 69, 78, 68, 69, 82] }],
             "affordances": [],
             "correlations": []
         });

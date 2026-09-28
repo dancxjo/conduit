@@ -22,9 +22,9 @@ pub const MAX_GENERATED_VALIDATION_ENVELOPE_BYTES: usize =
 pub const MAX_VALIDATION_REFUSAL_CODE_BYTES: usize = 128;
 pub const GENERATED_VALIDATOR_KIND: &str = "presentation/generated-semantic-validator";
 pub const GENERATED_VALIDATOR_CONTRACT_REVISION: &str =
-    "conduit.presentation/generated-semantic-validator@1";
+    "conduit.presentation/generated-semantic-validator@2";
 pub const GENERATED_VALIDATION_ENVELOPE_VALUE_KIND: &str =
-    "conduit.presentation/generated-validation-envelope@1";
+    "conduit.presentation/generated-validation-envelope@2";
 pub const GENERATED_VALIDATOR_ASSESSMENT_VALUE_KIND: &str =
     "conduit.presentation/generated-validator-assessment@1";
 
@@ -320,28 +320,22 @@ pub fn assess_generated_output_exactly(
 }
 
 fn exact_text_segments(envelope: &GeneratedValidationEnvelope) -> bool {
-    let text = envelope
-        .candidate
-        .correlations
-        .iter()
-        .filter_map(|correlation| match correlation {
-            GeneratedSemanticCorrelation::Text { index, .. } => envelope
-                .request
-                .semantic_data
-                .presentation
-                .text
-                .get(*index as usize)
-                .map(|text| text.text.as_bytes()),
-            _ => None,
-        })
-        .collect::<Vec<_>>();
-    envelope.candidate.content.len() == text.len()
-        && envelope
-            .candidate
-            .content
-            .iter()
-            .zip(text)
-            .all(|(segment, wording)| segment.bytes == wording)
+    envelope.candidate.content.iter().all(|segment| {
+        let Some(text) = envelope
+            .request
+            .semantic_data
+            .presentation
+            .text
+            .get(segment.source_text_index as usize)
+        else {
+            return false;
+        };
+        segment.bytes == text.text.as_bytes()
+            && envelope.candidate.correlations.iter().any(|correlation| {
+                matches!(correlation, GeneratedSemanticCorrelation::Text { index, subject }
+                    if *index == segment.source_text_index && subject == &text.subject)
+            })
+    })
 }
 
 fn exact_action_correlations(envelope: &GeneratedValidationEnvelope) -> bool {
