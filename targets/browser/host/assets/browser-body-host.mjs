@@ -56,7 +56,7 @@ export function acquireBrowserBodyHost({ api, hostId, bootId, proposal: supplied
   const external = new Set(externallyManagedPlanIds);
   if (owners.has(api)) throw new Error("browser Body resources already acquired");
   if ([hostId, bootId].some(identity => typeof identity !== "string" || identity.length < 1 || identity.length > 256) ||
-      proposal?.schema !== "conduit.patchbay/body-execution-proposal@1" ||
+      proposal?.schema !== "conduit.body/execution-proposal@1" ||
       proposal.wake?.lifecycle !== "AwaitingPlan" || proposal.wake.plans.length !== 0 ||
       !Array.isArray(proposal.plan?.forms) || proposal.plan.forms.length < 1 || proposal.plan.forms.length > 16 ||
       !Array.isArray(externallyManagedPlanIds) || external.size !== externallyManagedPlanIds.length ||

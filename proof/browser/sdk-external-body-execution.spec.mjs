@@ -154,7 +154,7 @@ async function openExternalBody(page, { friendlyName, titles, forms }) {
     await expect(page.locator("#body-plan-inspection [data-placement-id]")).toHaveCount(placementCount);
     const host = await page.evaluate(() => globalThis.__conduitSdkParticipation.host.current());
     const claimed = await post(page, api("body-execution"), {
-      schema: "conduit.patchbay/body-execution-request@1",
+      schema: "conduit.body/execution-request@1",
       action: { kind: "Claim", plan_id: proposal.plan.plan_id, host_id: host.id, boot_id: host.bootId },
     });
     const claim = claimed.body_planning.execution_claims.at(-1);
@@ -162,7 +162,7 @@ async function openExternalBody(page, { friendlyName, titles, forms }) {
       globalThis.__conduitSdkParticipation.start(identity), claim.play);
     expect(started.play).toEqual(claim.play);
     await post(page, api("body-execution"), {
-      schema: "conduit.patchbay/body-execution-request@1",
+      schema: "conduit.body/execution-request@1",
       action: { kind: "Started", play: claim.play, wake_at_start: started.wakeAtStart },
     });
     return { api, bodyId: current.body_id, claim, cleanup, host, proposal };
@@ -175,7 +175,7 @@ async function openExternalBody(page, { friendlyName, titles, forms }) {
 async function finishExternalBody(page, journey) {
   const receipt = await page.evaluate(() => globalThis.__conduitSdkParticipation.cancel());
   const terminal = await post(page, journey.api("body-execution"), {
-    schema: "conduit.patchbay/body-execution-request@1",
+    schema: "conduit.body/execution-request@1",
     action: {
       kind: "Terminal",
       play: journey.claim.play,

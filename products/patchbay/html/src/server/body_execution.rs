@@ -50,7 +50,7 @@ impl PatchbayHtmlServer {
         }
         let request: ExecutionRequest =
             serde_json::from_slice(bytes).map_err(|_| ServerError::InvalidRequest)?;
-        if request.schema != "conduit.patchbay/body-execution-request@1" {
+        if request.schema != "conduit.body/execution-request@1" {
             return Err(ServerError::InvalidRequest);
         }
         if matches!(request.action, ExecutionAction::Claim { .. }) {

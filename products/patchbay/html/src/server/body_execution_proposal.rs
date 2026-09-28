@@ -75,7 +75,7 @@ impl PatchbayHtmlServer {
             }
         }
         let proposal = ExecutionProposal {
-            schema: "conduit.patchbay/body-execution-proposal@1",
+            schema: "conduit.body/execution-proposal@1",
             wake,
             plan,
         };

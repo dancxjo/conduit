@@ -7,7 +7,7 @@ const terminal = disposition => ({ schema: "conduit.tour/manifestation-receipt@3
 
 test("ordinary body wake and lull own one exact externally managed voice Form", async () => {
   const events = [], states = [];
-  const proposal = { schema: "conduit.patchbay/body-execution-proposal@1",
+  const proposal = { schema: "conduit.body/execution-proposal@1",
     plan: { forms: [{ plan: { plan_id: "plan/local", fragments: [{}] } },
       { plan: { plan_id: "plan/voice", fragments: [{}, {}] } }] } };
   const session = {

@@ -41,7 +41,7 @@ impl PatchbayHtmlServer {
                 .wake_id
                 .clone();
             let request = serde_json::to_vec(&serde_json::json!({
-                "schema": "conduit.patchbay/body-execution-request@1",
+                "schema": "conduit.body/execution-request@1",
                 "action": {"kind": "Lull", "wake_id": wake_id},
             }))
             .map_err(|_| ServerError::InvalidRequest)?;
