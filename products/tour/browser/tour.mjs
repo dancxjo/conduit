@@ -1,5 +1,5 @@
 import { initializeBrowserHost } from "../../../targets/browser/host/assets/browser-host-membership.mjs";
-import { configureFlowStorage, renderFlow, renderFlowRefusal } from "../../patchbay/html/assets/flow.js";
+import { configureFlowStorage, renderFlow, renderFlowRefusal } from "../../../forms/patchbay/workbench/browser/flow.js";
 import { conceptualTourStage, openTourReadingState } from "./tour-state.mjs";
 import { createTourNavigation, createTourRunnerActions, createTourWorkspace, presentTourWorkspaceSeparator } from "./tour-navigation.mjs";
 import { createTourEvidenceTables, createTourPlanPresentation, createTourRunnerField, createTourRunnerStatus, restoreTourRunnerDraft } from "./tour-runner-presentation.mjs";
