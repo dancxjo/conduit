@@ -171,7 +171,7 @@ impl RosTopicBase {
         let decoded = decode_ros_string(encoded)?;
         authority
             .table
-            .complete(lease, 0)
+            .complete(&mut authority.handle, lease, 0)
             .map_err(RosBaseRefusal::Capability)?;
         Ok(decoded)
     }
@@ -211,7 +211,7 @@ impl RosTopicBase {
             .map_err(|_| RosBaseRefusal::Provider)?;
         authority
             .table
-            .complete(lease, 0)
+            .complete(&mut authority.handle, lease, 0)
             .map_err(RosBaseRefusal::Capability)?;
         Ok(manifestation)
     }

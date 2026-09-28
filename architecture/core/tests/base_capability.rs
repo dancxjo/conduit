@@ -134,6 +134,25 @@ fn copied_ids_and_another_issuers_bearer_cannot_manufacture_privilege() {
 }
 
 #[test]
+fn completion_rotates_only_the_exact_move_only_possession() {
+    let mut table = table(7);
+    let mut first = table.issue(request()).unwrap();
+    let mut second = table.issue(request()).unwrap();
+    let first_lease = table.authorize(&first, &claim()).unwrap();
+
+    assert_eq!(
+        table.complete(&mut second, first_lease.clone(), 64),
+        Err(BaseCapabilityRefusal::UnknownLease)
+    );
+    table.complete(&mut first, first_lease, 64).unwrap();
+
+    let rotated_lease = table.authorize(&first, &claim()).unwrap();
+    table.complete(&mut first, rotated_lease, 64).unwrap();
+    let independent_lease = table.authorize(&second, &claim()).unwrap();
+    table.complete(&mut second, independent_lease, 64).unwrap();
+}
+
+#[test]
 fn provider_checks_every_exact_scope_field_at_operation_time() {
     type ClaimMutation = Box<dyn Fn(&mut BaseOperationClaim)>;
     let mut table = table(7);
@@ -185,7 +204,7 @@ fn finite_pressure_completion_and_one_shot_replay_are_distinct() {
     let mut one_shot = request();
     one_shot.scope.maximum_in_flight = 1;
     one_shot.scope.maximum_operations = 1;
-    let handle = table.issue(one_shot).unwrap();
+    let mut handle = table.issue(one_shot).unwrap();
     let lease = table.authorize(&handle, &claim()).unwrap();
 
     assert_eq!(
@@ -193,12 +212,12 @@ fn finite_pressure_completion_and_one_shot_replay_are_distinct() {
         Err(BaseCapabilityRefusal::InFlightFull)
     );
     assert_eq!(
-        table.complete(lease.clone(), 129),
+        table.complete(&mut handle, lease.clone(), 129),
         Err(BaseCapabilityRefusal::ResultEnvelope)
     );
-    table.complete(lease.clone(), 64).unwrap();
+    table.complete(&mut handle, lease.clone(), 64).unwrap();
     assert_eq!(
-        table.complete(lease, 64),
+        table.complete(&mut handle, lease, 64),
         Err(BaseCapabilityRefusal::UnknownLease)
     );
     assert_eq!(
@@ -210,7 +229,7 @@ fn finite_pressure_completion_and_one_shot_replay_are_distinct() {
 #[test]
 fn revocation_cancellation_and_replacement_make_possession_stale() {
     let mut provider = table(7);
-    let handle = provider.issue(request()).unwrap();
+    let mut handle = provider.issue(request()).unwrap();
     let lease = provider.authorize(&handle, &claim()).unwrap();
     provider.revoke(&handle).unwrap();
     assert_eq!(
@@ -218,7 +237,7 @@ fn revocation_cancellation_and_replacement_make_possession_stale() {
         Err(BaseCapabilityRefusal::Revoked)
     );
     assert_eq!(
-        provider.complete(lease, 64),
+        provider.complete(&mut handle, lease, 64),
         Err(BaseCapabilityRefusal::StaleCompletion)
     );
 
