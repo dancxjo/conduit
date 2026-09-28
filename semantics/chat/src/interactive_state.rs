@@ -3,7 +3,7 @@
 use alloc::{collections::VecDeque, format, string::String, vec, vec::Vec};
 use conduit_presentation::{
     Presentation, PresentationAction, PresentationActionAvailability, PresentationBasis,
-    PresentationDisclosure, PresentationDisclosureLevel, PresentationInput, PresentationProperty,
+    PresentationDisclosure, PresentationDisclosureLevel, PresentationProperty,
     PresentationPropertyValue, PresentationRelationship, PresentationRelationshipKind,
     PresentationRole, PresentationSubject, PresentationText,
 };
@@ -161,7 +161,7 @@ impl ChatPresentationState {
                 text: message.clone(),
             });
         }
-        Presentation::new_with_interactions(
+        Presentation::new_with_semantics(
             self.revision,
             empty_basis(),
             subjects,
@@ -188,6 +188,13 @@ impl ChatPresentationState {
                 intent: CHAT_SEND_ACTION.into(),
                 target: CHAT_MESSAGE_TARGET.into(),
                 name: self.configuration.submit_label.clone(),
+                arguments: vec![conduit_presentation::FaceActionArgument::text(
+                    CHAT_MESSAGE_INPUT.into(),
+                    self.configuration.input_label.clone(),
+                    1,
+                    self.configuration.maximum_message_bytes,
+                )
+                .expect("checked chat configuration has a finite text contract")],
                 disclosure: PresentationDisclosureLevel::CurrentAction,
                 availability: match self.connection {
                     ChatConnectionState::Connected => PresentationActionAvailability::Available,
@@ -195,15 +202,6 @@ impl ChatPresentationState {
                     ChatConnectionState::Disconnected => unavailable("connection/disconnected"),
                 },
             }],
-            vec![PresentationInput::text(
-                CHAT_MESSAGE_INPUT.into(),
-                CHAT_MESSAGE_TARGET.into(),
-                self.configuration.maximum_message_bytes,
-                false,
-                self.configuration.input_label.clone(),
-                CHAT_SEND_ACTION.into(),
-            )
-            .expect("checked chat configuration has a finite text contract")],
             vec![PresentationDisclosure {
                 subject: "chat/document".into(),
                 level: PresentationDisclosureLevel::Primary,

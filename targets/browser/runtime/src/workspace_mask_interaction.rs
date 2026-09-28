@@ -6,14 +6,11 @@ use super::*;
 #[serde(deny_unknown_fields)]
 pub struct BrowserMaskInteraction {
     pub show_id: String,
-    pub manifestation_id: String,
     pub presentation_id: String,
     pub presentation_revision: u64,
-    pub input_id: String,
     pub action_id: String,
     pub target: String,
-    pub value_kind: String,
-    pub value: Vec<u8>,
+    pub arguments: Vec<FaceInteractionArgument>,
     pub sequence: u64,
 }
 
@@ -33,7 +30,6 @@ impl BrowserMaskRuntime {
             return Err("browser Mask refuses interaction before its Show is available".into());
         }
         if proposed.show_id != self.show.show_id.as_str()
-            || proposed.manifestation_id != self.show.show.manifestation_id.as_str()
             || proposed.presentation_id != self.presentation.identity.as_str()
             || proposed.presentation_revision != self.presentation.revision
         {
@@ -42,14 +38,12 @@ impl BrowserMaskRuntime {
         if self.interaction_receipt.is_some() {
             return Err("browser Mask interaction Fore is already terminal".into());
         }
-        let interaction = PresentationInteraction::new(
+        let interaction = FaceInteraction::new(
             &self.presentation,
-            &self.show.show,
-            &proposed.input_id,
+            &self.show,
             &proposed.action_id,
             &proposed.target,
-            &proposed.value_kind,
-            &proposed.value,
+            proposed.arguments.clone(),
             proposed.sequence,
         )
         .map_err(|refusal| format!("browser Mask interaction refused: {refusal:?}"))?;

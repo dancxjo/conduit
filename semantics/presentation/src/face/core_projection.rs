@@ -1,6 +1,6 @@
 //! Current execution and operator-action truth for the face core.
 
-use alloc::{format, vec::Vec};
+use alloc::{format, vec, vec::Vec};
 use conduit_body::{Body, BodyState, Wake};
 
 use crate::{
@@ -187,6 +187,7 @@ fn push_action(
         intent: intent.into(),
         target: target.into(),
         name: label.into(),
+        arguments: vec![],
         disclosure: PresentationDisclosureLevel::CurrentAction,
         availability,
     });

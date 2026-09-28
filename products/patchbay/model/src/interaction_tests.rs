@@ -36,6 +36,7 @@ fn invocation_presentation(
             intent: action.presentation_intent().into(),
             target: target.into(),
             name: action.as_str().into(),
+            arguments: vec![],
             disclosure: conduit_presentation::PresentationDisclosureLevel::CurrentAction,
             availability: conduit_presentation::PresentationActionAvailability::Available,
         }],

@@ -498,7 +498,7 @@ pub(super) fn prepare_stage(
             ConnectionQueueLimits {
                 item_capacity: 1,
                 byte_capacity: if name == "interaction" {
-                    conduit_presentation::MAX_PRESENTATION_INTERACTION_BYTES as u32
+                    conduit_presentation::MAX_FACE_INTERACTION_BYTES as u32
                 } else {
                     crate::native_mask_play::MAX_MASK_VALUE_BYTES as u32
                 },
@@ -623,21 +623,16 @@ fn renderer_host(
                     contract_id: HostCallContractId::from(
                         "conduit.host/presentation-interaction@1",
                     ),
-                    target_kind: Some(kind_id(
-                        conduit_presentation::PRESENTATION_INTERACTION_VALUE_KIND,
-                    )),
+                    target_kind: Some(kind_id(conduit_presentation::FACE_INTERACTION_VALUE_KIND)),
                     maximum_in_flight: 1,
                     maximum_input_bytes: MAX_RENDERER_VALUE_BYTES,
-                    maximum_output_bytes: conduit_presentation::MAX_PRESENTATION_INTERACTION_BYTES
-                        as u32,
+                    maximum_output_bytes: conduit_presentation::MAX_FACE_INTERACTION_BYTES as u32,
                 },
                 resource_requirement: resource_requirement(input_resource, 1),
                 limits: CapabilityLimits {
                     max_active_instances: 1,
                     max_queue_items: 8,
-                    max_queue_bytes: conduit_presentation::MAX_PRESENTATION_INTERACTION_BYTES
-                        as u32
-                        * 8,
+                    max_queue_bytes: conduit_presentation::MAX_FACE_INTERACTION_BYTES as u32 * 8,
                 },
             }),
         ],

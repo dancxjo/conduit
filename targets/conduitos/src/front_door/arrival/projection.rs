@@ -125,6 +125,7 @@ fn project_actions(
             intent: format!("conduit.intent/{}@1", action.identity),
             target: target.into(),
             name: action.label.clone(),
+            arguments: vec![],
             disclosure: PresentationDisclosureLevel::CurrentAction,
             availability: match &action.availability {
                 ActionAvailability::Available => PresentationActionAvailability::Available,

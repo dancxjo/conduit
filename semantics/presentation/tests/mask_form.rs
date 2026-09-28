@@ -18,7 +18,7 @@ use conduit_presentation::{
     install_mask_form_value_aliases, AdmittedMaskFormRoutes, ManifestationLifecycle, MaskForm,
     MaskRouteAdmissionError, MaskShow, PlannedMaskForm, Presentation, PresentationBasis,
     PresentationRole, PresentationSubject, PresentationText, SealedMaskFormRoute,
-    PRESENTATION_INTERACTION_VALUE_KIND, PRESENTATION_VALUE_KIND, SHOW_VALUE_KIND,
+    FACE_INTERACTION_VALUE_KIND, PRESENTATION_VALUE_KIND, SHOW_VALUE_KIND,
 };
 
 fn port(
@@ -106,7 +106,7 @@ fn catalogs() -> (StartupCatalog, ProfileCatalog) {
             vec![],
             vec![port(
                 "interaction",
-                PRESENTATION_INTERACTION_VALUE_KIND,
+                FACE_INTERACTION_VALUE_KIND,
                 PortDirection::Output,
                 PortTemporal::Flow { closes: true },
             )],
@@ -131,7 +131,7 @@ fn catalogs() -> (StartupCatalog, ProfileCatalog) {
             vec![],
             vec![port(
                 "interaction",
-                PRESENTATION_INTERACTION_VALUE_KIND,
+                FACE_INTERACTION_VALUE_KIND,
                 PortDirection::Output,
                 PortTemporal::Flow { closes: true },
             )],
@@ -186,7 +186,7 @@ fn catalogs() -> (StartupCatalog, ProfileCatalog) {
             vec![],
             vec![port(
                 "interaction",
-                PRESENTATION_INTERACTION_VALUE_KIND,
+                FACE_INTERACTION_VALUE_KIND,
                 PortDirection::Output,
                 PortTemporal::Flow { closes: true },
             )],

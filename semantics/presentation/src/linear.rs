@@ -70,9 +70,6 @@ pub fn render_linear_presentation(
     for action in &presentation.actions {
         builder.push(linear_action(action))?;
     }
-    for input in &presentation.inputs {
-        builder.push(crate::linear_input(input))?;
-    }
     for disclosure in &presentation.disclosures {
         builder.push(linear_disclosure(disclosure))?;
     }
@@ -181,11 +178,12 @@ pub(crate) fn linear_text(text: &crate::PresentationText) -> String {
 
 pub(crate) fn linear_action(action: &crate::PresentationAction) -> String {
     format!(
-        "ACTION id={:?} intent={:?} target={:?} name={:?} disclosure={:?} availability={}",
+        "ACTION id={:?} intent={:?} target={:?} name={:?} arguments={:?} disclosure={:?} availability={}",
         action.identity,
         action.intent,
         action.target,
         action.name,
+        action.arguments,
         action.disclosure,
         display_availability(&action.availability)
     )

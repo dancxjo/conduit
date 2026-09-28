@@ -26,6 +26,7 @@ fn action(
         intent: "conduit.intent/open@1".into(),
         target: target.into(),
         name: "Open".into(),
+        arguments: vec![],
         disclosure: PresentationDisclosureLevel::CurrentAction,
         availability,
     }

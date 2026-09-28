@@ -2,18 +2,18 @@
 
 mod common;
 
-use common::{checked_renderer_form, host, plan_for, presentation, WAYLAND_RESOURCE};
-use conduit_core::{bind_active_play, SignId};
+use common::{
+    available_mask_show, checked_renderer_form, host, plan_for, presentation, WAYLAND_RESOURCE,
+};
 use conduit_presentation::{
-    Manifestation, ManifestationLifecycle, Presentation, PresentationAction,
-    PresentationActionAvailability, PresentationContextBasis, PresentationDisclosureLevel,
-    PresentationInput, PresentationInteraction, PresentationInteractionContext,
-    PresentationInteractionDisposition, PresentationInteractionFailure,
-    PresentationInteractionLedger, PresentationInteractionRefusal, PresentationRelationshipKind,
+    FaceActionArgument, FaceInteraction, FaceInteractionArgument, FaceInteractionDisposition,
+    FaceInteractionFailure, FaceInteractionLedger, FaceInteractionRefusal, MaskShow, Presentation,
+    PresentationAction, PresentationActionAvailability, PresentationContextBasis,
+    PresentationDisclosureLevel, PresentationInteractionContext, PresentationRelationshipKind,
     UTF8_TEXT_VALUE_KIND,
 };
 
-fn available_interaction_basis() -> (Presentation, Manifestation) {
+fn available_interaction_basis() -> (Presentation, MaskShow) {
     let form = checked_renderer_form();
     let plan = plan_for(
         &form,
@@ -28,7 +28,7 @@ fn available_interaction_basis() -> (Presentation, Manifestation) {
         ),
     );
     let base = presentation(&form, &plan);
-    let presentation = Presentation::new_with_interactions(
+    let presentation = Presentation::new_with_semantics(
         base.revision,
         base.basis,
         base.subjects,
@@ -40,123 +40,198 @@ fn available_interaction_basis() -> (Presentation, Manifestation) {
             intent: "message/send".into(),
             target: "patchbay/form".into(),
             name: "Send".into(),
+            arguments: vec![FaceActionArgument::text(
+                "message/input".into(),
+                "Message".into(),
+                1,
+                8,
+            )
+            .unwrap()],
             disclosure: PresentationDisclosureLevel::CurrentAction,
             availability: PresentationActionAvailability::Available,
         }],
-        vec![PresentationInput::text(
-            "message/input".into(),
-            "patchbay/form".into(),
-            8,
-            false,
-            "Message".into(),
-            "message/send".into(),
-        )
-        .unwrap()],
         base.disclosures,
     )
     .unwrap();
-    let placement = plan.fragments[0].placements[0].placement_id.clone();
-    let active = bind_active_play(
-        &plan.plan_id,
-        &plan.fragments[0].host_id,
-        &plan.fragments[0].boot_id,
-        1,
-    );
-    let manifestation = Manifestation::prepared(
-        &presentation,
-        &plan,
-        active,
-        placement,
-        "patchbay/form".into(),
-        "display/0".into(),
-        SignId::from("interaction/prepared"),
+    let show = available_mask_show(&presentation);
+    (presentation, show)
+}
+
+fn argument(name: &str, value: &[u8]) -> FaceInteractionArgument {
+    FaceInteractionArgument {
+        name: name.into(),
+        value_kind: UTF8_TEXT_VALUE_KIND.into(),
+        value: value.to_vec(),
+    }
+}
+
+fn rebuild_with_interactions(
+    face: &Presentation,
+    actions: Vec<PresentationAction>,
+) -> Presentation {
+    Presentation::new_with_semantics(
+        face.revision,
+        face.basis.clone(),
+        face.subjects.clone(),
+        face.relationships.clone(),
+        face.properties.clone(),
+        face.text.clone(),
+        actions,
+        face.disclosures.clone(),
     )
     .unwrap()
-    .transition(
-        ManifestationLifecycle::Available,
-        SignId::from("interaction/available"),
+}
+
+#[test]
+fn zero_argument_action_needs_no_counterfeit_empty_input() {
+    let (base, _) = available_interaction_basis();
+    let mut actions = base.actions.clone();
+    actions.push(PresentationAction {
+        identity: "message/refresh".into(),
+        intent: "message/refresh".into(),
+        target: "patchbay/form".into(),
+        name: "Refresh".into(),
+        arguments: vec![],
+        disclosure: PresentationDisclosureLevel::CurrentAction,
+        availability: PresentationActionAvailability::Available,
+    });
+    let face = rebuild_with_interactions(&base, actions);
+    let show = available_mask_show(&face);
+
+    FaceInteraction::new(&face, &show, "message/refresh", "patchbay/form", vec![], 1).unwrap();
+    assert_eq!(
+        FaceInteraction::new(
+            &face,
+            &show,
+            "message/refresh",
+            "patchbay/form",
+            vec![argument("counterfeit/empty", b"")],
+            2,
+        ),
+        Err(FaceInteractionRefusal::UnknownArgument)
+    );
+}
+
+#[test]
+fn multiple_named_arguments_are_admitted_as_one_complete_atomic_interaction() {
+    let (base, _) = available_interaction_basis();
+    let mut actions = base.actions.clone();
+    actions[0]
+        .arguments
+        .push(FaceActionArgument::text("message/subject".into(), "Subject".into(), 1, 16).unwrap());
+    let face = rebuild_with_interactions(&base, actions);
+    let show = available_mask_show(&face);
+    let complete = vec![
+        argument("message/input", b"hello"),
+        argument("message/subject", b"greeting"),
+    ];
+
+    let interaction = FaceInteraction::new(
+        &face,
+        &show,
+        "message/send",
+        "patchbay/form",
+        complete.clone(),
+        1,
     )
     .unwrap();
-    (presentation, manifestation)
+    assert_eq!(interaction.arguments, complete);
+    assert_eq!(
+        FaceInteraction::new(
+            &face,
+            &show,
+            "message/send",
+            "patchbay/form",
+            vec![argument("message/input", b"hello")],
+            2,
+        ),
+        Err(FaceInteractionRefusal::MissingArgument)
+    );
+    assert_eq!(
+        FaceInteraction::new(
+            &face,
+            &show,
+            "message/send",
+            "patchbay/form",
+            vec![
+                argument("message/input", b"hello"),
+                argument("message/input", b"again"),
+            ],
+            3,
+        ),
+        Err(FaceInteractionRefusal::DuplicateArgument)
+    );
 }
 
 #[test]
 fn cancellation_and_renderer_failure_are_terminal_evidence_not_success() {
-    let (presentation, manifestation) = available_interaction_basis();
+    let (presentation, show) = available_interaction_basis();
     for failure in [
-        PresentationInteractionFailure::Cancelled,
-        PresentationInteractionFailure::AdapterUnavailable,
-        PresentationInteractionFailure::DeliveryFailed,
+        FaceInteractionFailure::Cancelled,
+        FaceInteractionFailure::AdapterUnavailable,
+        FaceInteractionFailure::DeliveryFailed,
     ] {
-        let interaction = PresentationInteraction::new(
+        let interaction = FaceInteraction::new(
             &presentation,
-            &manifestation,
-            "message/input",
+            &show,
             "message/send",
             "patchbay/form",
-            UTF8_TEXT_VALUE_KIND,
-            b"ok",
+            vec![argument("message/input", b"ok")],
             failure as u64,
         )
         .unwrap();
-        let mut ledger = PresentationInteractionLedger::new(1, 1).unwrap();
+        let mut ledger = FaceInteractionLedger::new(1, 1).unwrap();
         ledger.admit(interaction).unwrap();
         let evidence = ledger
-            .finish_front(PresentationInteractionDisposition::Failed(failure))
+            .finish_front(FaceInteractionDisposition::Failed(failure))
             .unwrap();
         assert_eq!(
             evidence.disposition,
-            PresentationInteractionDisposition::Failed(failure)
+            FaceInteractionDisposition::Failed(failure)
         );
     }
 }
 
 #[test]
 fn exact_available_interaction_round_trips_and_evidence_omits_plaintext() {
-    let (presentation, manifestation) = available_interaction_basis();
-    let interaction = PresentationInteraction::new(
+    let (presentation, show) = available_interaction_basis();
+    let interaction = FaceInteraction::new(
         &presentation,
-        &manifestation,
-        "message/input",
+        &show,
         "message/send",
         "patchbay/form",
-        UTF8_TEXT_VALUE_KIND,
-        b"hello",
+        vec![argument("message/input", b"hello")],
         7,
     )
     .unwrap();
-    let decoded = PresentationInteraction::decode(&interaction.encode()).unwrap();
-    decoded
-        .validate_against(&presentation, &manifestation)
-        .unwrap();
+    let decoded = FaceInteraction::decode(&interaction.encode()).unwrap();
+    decoded.validate_against(&presentation, &show).unwrap();
     let mut stale_interaction = decoded.clone();
-    stale_interaction.manifestation_id = "manifestation/stale".into();
+    stale_interaction.show_id = "show/stale".into();
     assert_eq!(
-        stale_interaction.validate_against(&presentation, &manifestation),
-        Err(PresentationInteractionRefusal::StaleManifestation)
+        stale_interaction.validate_against(&presentation, &show),
+        Err(FaceInteractionRefusal::StaleShow)
     );
-    let mut ledger = PresentationInteractionLedger::new(1, 1).unwrap();
+    let mut ledger = FaceInteractionLedger::new(1, 1).unwrap();
     ledger.admit(decoded).unwrap();
     let evidence = ledger
-        .finish_front(PresentationInteractionDisposition::Accepted {
+        .finish_front(FaceInteractionDisposition::Accepted {
             operation_request_id: "request/7".into(),
         })
         .unwrap();
-    assert_eq!(evidence.value_bytes, 5);
+    assert_eq!(evidence.arguments[0].value_bytes, 5);
     assert!(!format!("{evidence:?}").contains("hello"));
 }
 
 #[test]
 fn changing_only_interaction_context_stales_action_and_input_correlation() {
-    let (presentation, manifestation) = available_interaction_basis();
-    let interaction = PresentationInteraction::new(
+    let (presentation, show) = available_interaction_basis();
+    let interaction = FaceInteraction::new(
         &presentation,
-        &manifestation,
-        "message/input",
+        &show,
         "message/send",
         "patchbay/form",
-        UTF8_TEXT_VALUE_KIND,
-        b"hello",
+        vec![argument("message/input", b"hello")],
         8,
     )
     .unwrap();
@@ -174,75 +249,69 @@ fn changing_only_interaction_context_stales_action_and_input_correlation() {
 
     assert_ne!(presentation.identity, other_context.identity);
     assert_eq!(
-        interaction.validate_against(&other_context, &manifestation),
-        Err(PresentationInteractionRefusal::StalePresentation)
+        interaction.validate_against(&other_context, &show),
+        Err(FaceInteractionRefusal::StaleFace)
     );
 }
 
 #[test]
 fn stale_wrong_empty_oversize_malformed_duplicate_and_pressure_refuse_distinctly() {
-    let (presentation, manifestation) = available_interaction_basis();
+    let (presentation, show) = available_interaction_basis();
     let make = |value: &[u8], sequence| {
-        PresentationInteraction::new(
+        FaceInteraction::new(
             &presentation,
-            &manifestation,
-            "message/input",
+            &show,
             "message/send",
             "patchbay/form",
-            UTF8_TEXT_VALUE_KIND,
-            value,
+            vec![argument("message/input", value)],
             sequence,
         )
     };
     assert_eq!(
         make(b"", 0),
-        Err(PresentationInteractionRefusal::ViolatedConstraint)
+        Err(FaceInteractionRefusal::ViolatedConstraint)
     );
     assert_eq!(
         make(b"123456789", 0),
-        Err(PresentationInteractionRefusal::OversizeValue)
+        Err(FaceInteractionRefusal::OversizeValue)
     );
     assert_eq!(
         make(&[0xff], 0),
-        Err(PresentationInteractionRefusal::MalformedEncoding)
+        Err(FaceInteractionRefusal::MalformedEncoding)
     );
     assert_eq!(
-        PresentationInteraction::new(
+        FaceInteraction::new(
             &presentation,
-            &manifestation,
-            "missing",
+            &show,
             "message/send",
             "patchbay/form",
-            UTF8_TEXT_VALUE_KIND,
-            b"ok",
+            vec![argument("missing", b"ok")],
             0
         ),
-        Err(PresentationInteractionRefusal::UnknownInput)
+        Err(FaceInteractionRefusal::MissingArgument)
     );
     let accepted = make(b"ok", 1).unwrap();
-    let mut ledger = PresentationInteractionLedger::new(1, 2).unwrap();
+    let mut ledger = FaceInteractionLedger::new(1, 2).unwrap();
     ledger.admit(accepted.clone()).unwrap();
     assert_eq!(
         ledger.admit(accepted),
-        Err(PresentationInteractionRefusal::DuplicateDelivery)
+        Err(FaceInteractionRefusal::DuplicateDelivery)
     );
     assert_eq!(
         ledger.admit(make(b"next", 2).unwrap()),
-        Err(PresentationInteractionRefusal::QueuePressure)
+        Err(FaceInteractionRefusal::QueuePressure)
     );
-    let mut stale = manifestation.clone();
+    let mut stale = show.clone();
     stale.presentation_revision += 1;
     assert_eq!(
-        PresentationInteraction::new(
+        FaceInteraction::new(
             &presentation,
             &stale,
-            "message/input",
             "message/send",
             "patchbay/form",
-            UTF8_TEXT_VALUE_KIND,
-            b"ok",
+            vec![argument("message/input", b"ok")],
             3
         ),
-        Err(PresentationInteractionRefusal::StaleManifestation)
+        Err(FaceInteractionRefusal::StaleShow)
     );
 }

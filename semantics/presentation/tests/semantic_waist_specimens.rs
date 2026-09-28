@@ -126,6 +126,7 @@ fn presentation(specimen: &Specimen) -> Presentation {
                     intent: action.intent.clone(),
                     target: action.target.clone(),
                     name: action.name.clone(),
+                    arguments: vec![],
                     disclosure: PresentationDisclosureLevel::CurrentAction,
                     availability: PresentationActionAvailability::Available,
                 }

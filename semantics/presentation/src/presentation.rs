@@ -10,8 +10,7 @@ use conduit_core::{
 use serde::{Deserialize, Serialize};
 
 use crate::{
-    PresentationAction, PresentationDisclosure, PresentationInput, PresentationTemporalFact,
-    TemporalReference,
+    PresentationAction, PresentationDisclosure, PresentationTemporalFact, TemporalReference,
 };
 
 pub const MAX_PRESENTATION_SUBJECTS: usize = 1_024;
@@ -180,8 +179,6 @@ pub struct Presentation {
     pub properties: Vec<PresentationProperty>,
     pub text: Vec<PresentationText>,
     pub actions: Vec<PresentationAction>,
-    #[serde(default)]
-    pub inputs: Vec<PresentationInput>,
     pub disclosures: Vec<PresentationDisclosure>,
     #[serde(default)]
     pub temporal_references: Vec<TemporalReference>,
@@ -394,7 +391,6 @@ impl Presentation {
         }
         self.validate_semantics()?;
         self.validate_rhetorical_composition()?;
-        self.validate_inputs()?;
         self.validate_temporal()?;
         if self.content_bytes() > MAX_PRESENTATION_TOTAL_BYTES {
             return Err(PresentationError::TooManyBytes);
@@ -484,7 +480,6 @@ impl Presentation {
                     .sum::<usize>(),
             )
             .saturating_add(self.semantics_len())
-            .saturating_add(self.inputs_len())
             .saturating_add(self.temporal_len())
     }
 

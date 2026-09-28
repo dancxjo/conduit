@@ -103,7 +103,6 @@ impl PatchbayPresentation {
             properties: projection.content.properties,
             text: projection.content.text,
             actions: projection.actions,
-            inputs: Vec::new(),
             disclosures: vec![PresentationDisclosure {
                 subject: projection.document,
                 level: PresentationDisclosureLevel::Primary,
@@ -242,6 +241,7 @@ pub(super) fn lifecycle_actions(lifecycle: WakeLifecycle, target: &str) -> Vec<P
         intent: (*intent).into(),
         target: target.into(),
         name: (*label).into(),
+        arguments: vec![],
         disclosure: PresentationDisclosureLevel::CurrentAction,
         availability: if matches!(*name, "open-back" | "save" | "toggle-linear-view")
             || current.contains(name)

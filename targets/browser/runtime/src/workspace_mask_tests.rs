@@ -2,8 +2,8 @@ use super::*;
 use conduit_core::{CheckedFormId, ExpandedFormId, PlanId, SourceDocumentId};
 use conduit_presentation::{
     PresentationAction, PresentationActionAvailability, PresentationBasis,
-    PresentationDisclosureLevel, PresentationInput, PresentationRole, PresentationSubject,
-    PresentationText, UTF8_TEXT_VALUE_KIND,
+    PresentationDisclosureLevel, PresentationRole, PresentationSubject, PresentationText,
+    UTF8_TEXT_VALUE_KIND,
 };
 
 fn body_id() -> BodyId {
@@ -18,7 +18,7 @@ fn body_id() -> BodyId {
 }
 
 fn presentation() -> Presentation {
-    Presentation::new_with_interactions(
+    Presentation::new_with_semantics(
         7,
         PresentationBasis {
             body_id: Some(body_id()),
@@ -46,18 +46,16 @@ fn presentation() -> Presentation {
             intent: "conduit.intent/inspect@1".into(),
             target: "body/browser-mask-test".into(),
             name: "Inspect".into(),
+            arguments: vec![conduit_presentation::FaceActionArgument::text(
+                "input/inspect".into(),
+                "Inspect".into(),
+                0,
+                32,
+            )
+            .unwrap()],
             disclosure: PresentationDisclosureLevel::CurrentAction,
             availability: PresentationActionAvailability::Available,
         }],
-        vec![PresentationInput::text(
-            "input/inspect".into(),
-            "body/browser-mask-test".into(),
-            32,
-            true,
-            "Inspect".into(),
-            "body.inspect".into(),
-        )
-        .unwrap()],
         vec![],
     )
     .unwrap()
@@ -66,14 +64,15 @@ fn presentation() -> Presentation {
 fn interaction(effect: &BrowserMaskEffect) -> BrowserMaskInteraction {
     BrowserMaskInteraction {
         show_id: effect.show_id.clone(),
-        manifestation_id: effect.manifestation_id.clone(),
         presentation_id: effect.presentation_id.clone(),
         presentation_revision: effect.presentation_revision,
-        input_id: "input/inspect".into(),
         action_id: "body.inspect".into(),
         target: "body/browser-mask-test".into(),
-        value_kind: UTF8_TEXT_VALUE_KIND.into(),
-        value: vec![],
+        arguments: vec![FaceInteractionArgument {
+            name: "input/inspect".into(),
+            value_kind: UTF8_TEXT_VALUE_KIND.into(),
+            value: vec![],
+        }],
         sequence: 1,
     }
 }
@@ -163,10 +162,7 @@ fn show_becomes_available_only_after_exact_browser_acknowledgement() {
     assert!(runtime.interact(&stale_interaction).is_err());
     let receipt = runtime.interact(&interaction(&effect)).unwrap();
     assert_eq!(receipt.semantic_action.identity, "body.inspect");
-    assert_eq!(
-        receipt.correlation.interaction.manifestation_id,
-        effect.manifestation_id
-    );
+    assert_eq!(receipt.correlation.interaction.show_id, effect.show_id);
     let observation = runtime.observation();
     assert_eq!(
         observation

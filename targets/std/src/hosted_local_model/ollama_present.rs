@@ -221,6 +221,7 @@ pub(crate) fn proof_request() -> Result<GenerativePresenterRequest, String> {
             intent: "conduit.intent/inspect@1".into(),
             target: "body/current".into(),
             name: "Inspect Body".into(),
+            arguments: vec![],
             disclosure: PresentationDisclosureLevel::CurrentAction,
             availability: PresentationActionAvailability::Available,
         }],

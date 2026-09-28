@@ -155,7 +155,7 @@ mod tests {
         );
         assert_eq!(
             front.outputs()[0].value_kind.as_str(),
-            conduit_presentation::PRESENTATION_INTERACTION_VALUE_KIND
+            conduit_presentation::FACE_INTERACTION_VALUE_KIND
         );
         assert_eq!(
             front.outputs()[1].value_kind.as_str(),

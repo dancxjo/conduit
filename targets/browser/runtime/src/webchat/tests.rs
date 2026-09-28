@@ -14,38 +14,40 @@ fn connect(
     session: &mut BrowserChatSession,
 ) -> (
     conduit_presentation::Presentation,
-    conduit_presentation::Manifestation,
+    crate::workspace_mask::BrowserMaskEffect,
 ) {
     session
         .complete_simple(BrowserChatEffect::SocketOpen)
         .unwrap();
-    let mut presentation = None;
-    let mut manifestation = None;
+    let mut presentation: Option<conduit_presentation::Presentation> = None;
+    let mut show = None;
     while session.effect() == BrowserChatEffect::Present {
         presentation = Some(serde_json::from_slice(session.effect_bytes()).unwrap());
         session.complete_simple(BrowserChatEffect::Present).unwrap();
-        manifestation = Some(serde_json::from_slice(session.interaction_text()).unwrap());
+        show = Some(serde_json::from_slice(session.interaction_text()).unwrap());
     }
     assert_eq!(session.effect(), BrowserChatEffect::SocketReceive);
-    (presentation.unwrap(), manifestation.unwrap())
+    (presentation.unwrap(), show.unwrap())
 }
 
 fn interaction_frame(
     presentation: &conduit_presentation::Presentation,
-    manifestation: &conduit_presentation::Manifestation,
+    show: &crate::workspace_mask::BrowserMaskEffect,
     value: &str,
     sequence: u64,
 ) -> Vec<u8> {
     serde_json::to_vec(&serde_json::json!({
         "presentation_id": presentation.identity.as_str(),
         "presentation_revision": presentation.revision,
-        "manifestation_id": manifestation.manifestation_id.as_str(),
-        "input_id": conduit_chat::CHAT_MESSAGE_INPUT,
+        "show_id": show.show_id,
         "action_id": conduit_chat::CHAT_SEND_ACTION,
         "target": conduit_chat::CHAT_MESSAGE_TARGET,
-        "value_kind": conduit_presentation::UTF8_TEXT_VALUE_KIND,
+        "arguments": [{
+            "name": conduit_chat::CHAT_MESSAGE_INPUT,
+            "value_kind": conduit_presentation::UTF8_TEXT_VALUE_KIND,
+            "value": value.as_bytes(),
+        }],
         "sequence": sequence,
-        "value": value,
     }))
     .unwrap()
 }
@@ -54,9 +56,9 @@ fn interaction_frame(
 fn browser_chat_runs_planned_kernel_effects_with_preemption_and_disconnect() {
     let mut session = session();
     assert_eq!(session.effect(), BrowserChatEffect::SocketOpen);
-    let (presentation, manifestation) = connect(&mut session);
+    let (presentation, show) = connect(&mut session);
 
-    let frame = interaction_frame(&presentation, &manifestation, "hello from A", 0);
+    let frame = interaction_frame(&presentation, &show, "hello from A", 0);
     session.submit(&frame).unwrap();
     while session.effect() == BrowserChatEffect::Present {
         session.complete_simple(BrowserChatEffect::Present).unwrap();
@@ -83,8 +85,12 @@ fn browser_chat_runs_planned_kernel_effects_with_preemption_and_disconnect() {
         .any(|item| item == b"hello"));
 
     session.disconnect().unwrap();
-    while session.effect() == BrowserChatEffect::Present {
-        session.complete_simple(BrowserChatEffect::Present).unwrap();
+    while matches!(
+        session.effect(),
+        BrowserChatEffect::Present | BrowserChatEffect::SocketClose
+    ) {
+        let effect = session.effect();
+        session.complete_simple(effect).unwrap();
     }
     assert_eq!(session.status(), 1);
     assert!(session.disconnected());

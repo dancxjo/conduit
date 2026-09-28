@@ -19,7 +19,7 @@ pub const SHOW_VALUE_KIND: &str = "presentation/show@1";
 /// value and does not preserve the superseded authored identity.
 pub const MANIFESTATION_VALUE_KIND: &str = SHOW_VALUE_KIND;
 pub const RENDERER_CONTRACT_REVISION: &str = "conduit.presentation/renderer@1";
-pub const INTERACTION_CONTRACT_REVISION: &str = "conduit.presentation/interaction@1";
+pub const INTERACTION_CONTRACT_REVISION: &str = "conduit.face/interaction@2";
 pub const PRESENTATION_TEE_CONTRACT_REVISION: &str = "conduit.presentation/tee@1";
 pub const PRESENTER_STAGE_CONTRACT_REVISION: &str = "conduit.presentation/presenter-stage@1";
 pub const MAX_RENDERER_VALUE_BYTES: u32 = crate::MAX_PRESENTATION_TOTAL_BYTES as u32;
@@ -68,7 +68,7 @@ pub fn interaction_inputs() -> alloc::vec::Vec<PortDescriptor> {
 pub fn interaction_outputs() -> alloc::vec::Vec<PortDescriptor> {
     vec![PortDescriptor {
         port_id: port_id("interaction"),
-        value_kind: kind_id(crate::PRESENTATION_INTERACTION_VALUE_KIND),
+        value_kind: kind_id(crate::FACE_INTERACTION_VALUE_KIND),
         direction: PortDirection::Output,
         temporal: PortTemporal::Flow { closes: true },
         abnormal_kind: None,
@@ -223,7 +223,7 @@ fn interaction_contract() -> Kind {
         INTERACTION_CONTRACT_REVISION,
         interaction_inputs(),
         interaction_outputs(),
-        crate::MAX_PRESENTATION_INTERACTION_BYTES as u32 * u32::from(MAX_PRESENTATION_QUEUE_ITEMS),
+        crate::MAX_FACE_INTERACTION_BYTES as u32 * u32::from(MAX_PRESENTATION_QUEUE_ITEMS),
     )
 }
 

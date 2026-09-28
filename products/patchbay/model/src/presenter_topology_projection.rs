@@ -160,6 +160,7 @@ fn topology_action(
         intent: format!("conduit.intent/presenter-topology-{operation}@1"),
         target: target.into(),
         name: label.into(),
+        arguments: vec![],
         disclosure: PresentationDisclosureLevel::CurrentAction,
         availability: if available {
             PresentationActionAvailability::Available

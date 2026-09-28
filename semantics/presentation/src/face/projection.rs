@@ -1,13 +1,13 @@
 //! Lower one admitted application contribution into portable Presentation truth.
 
-use alloc::{format, vec::Vec};
+use alloc::{format, vec, vec::Vec};
 
 use crate::{
-    ApplicationComponent, ApplicationEventKind, ApplicationNodeState, PresentationAction,
-    PresentationActionAvailability, PresentationDisclosure, PresentationDisclosureLevel,
-    PresentationInput, PresentationProperty, PresentationPropertyValue, PresentationRelationship,
-    PresentationRelationshipKind, PresentationRole, PresentationSubject, PresentationTemporalFact,
-    PresentationText, TemporalReference,
+    ApplicationComponent, ApplicationEventKind, ApplicationNodeState, FaceActionArgument,
+    PresentationAction, PresentationActionAvailability, PresentationDisclosure,
+    PresentationDisclosureLevel, PresentationProperty, PresentationPropertyValue,
+    PresentationRelationship, PresentationRelationshipKind, PresentationRole, PresentationSubject,
+    PresentationTemporalFact, PresentationText, TemporalReference,
 };
 
 use super::{
@@ -25,7 +25,6 @@ pub(super) fn append_contribution(
     properties: &mut Vec<PresentationProperty>,
     text: &mut Vec<PresentationText>,
     actions: &mut Vec<PresentationAction>,
-    inputs: &mut Vec<PresentationInput>,
     disclosures: &mut Vec<PresentationDisclosure>,
     temporal_references: &mut Vec<TemporalReference>,
     temporal_facts: &mut Vec<PresentationTemporalFact>,
@@ -44,7 +43,6 @@ pub(super) fn append_contribution(
                 properties,
                 text,
                 actions,
-                inputs,
                 disclosures,
                 temporal_references,
                 temporal_facts,
@@ -60,7 +58,6 @@ pub(super) fn append_contribution(
             properties,
             text,
             actions,
-            inputs,
             disclosures,
             application_actions,
         ),
@@ -78,7 +75,6 @@ fn append_application_view(
     properties: &mut Vec<PresentationProperty>,
     text: &mut Vec<PresentationText>,
     actions: &mut Vec<PresentationAction>,
-    inputs: &mut Vec<PresentationInput>,
     disclosures: &mut Vec<PresentationDisclosure>,
     application_actions: &mut Vec<FaceApplicationAction>,
 ) {
@@ -171,11 +167,28 @@ fn append_application_view(
                 name: "application-action-id".into(),
                 value: PresentationPropertyValue::Identity(source.id.clone()),
             });
+            let arguments = if matches!(
+                node.component,
+                ApplicationComponent::TextInput
+                    | ApplicationComponent::TextArea
+                    | ApplicationComponent::Select
+            ) {
+                vec![FaceActionArgument::text(
+                    format!("{prefix}/input/{node_index}"),
+                    label.clone(),
+                    0,
+                    node.value_capacity,
+                )
+                .expect("checked application input has a finite text contract")]
+            } else {
+                vec![]
+            };
             actions.push(PresentationAction {
                 identity: action_identity.clone(),
                 intent: event_intent(source.event).into(),
                 target: identity.clone(),
                 name: label.clone(),
+                arguments,
                 disclosure: contribution_disclosure(contribution.role),
                 availability: action_availability(node.state),
             });
@@ -189,24 +202,6 @@ fn append_application_view(
                 application_action_id: source.id.clone(),
                 event: source.event,
             });
-            if matches!(
-                node.component,
-                ApplicationComponent::TextInput
-                    | ApplicationComponent::TextArea
-                    | ApplicationComponent::Select
-            ) {
-                inputs.push(
-                    PresentationInput::text(
-                        format!("{prefix}/input/{node_index}"),
-                        identity,
-                        node.value_capacity,
-                        true,
-                        label,
-                        action_identity,
-                    )
-                    .expect("checked application input has a finite text contract"),
-                );
-            }
         }
     }
 }
@@ -223,7 +218,6 @@ fn append_presentation_fragment(
     properties: &mut Vec<PresentationProperty>,
     text: &mut Vec<PresentationText>,
     actions: &mut Vec<PresentationAction>,
-    inputs: &mut Vec<PresentationInput>,
     disclosures: &mut Vec<PresentationDisclosure>,
     temporal_references: &mut Vec<TemporalReference>,
     temporal_facts: &mut Vec<PresentationTemporalFact>,
@@ -289,7 +283,6 @@ fn append_presentation_fragment(
     properties.extend(fragment.properties.iter().cloned());
     text.extend(fragment.text.iter().cloned());
     actions.extend(fragment.actions.iter().cloned());
-    inputs.extend(fragment.inputs.iter().cloned());
     disclosures.extend(fragment.disclosures.iter().cloned());
     temporal_references.extend(fragment.temporal_references.iter().cloned());
     temporal_facts.extend(fragment.temporal_facts.iter().cloned());

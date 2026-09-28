@@ -202,14 +202,12 @@ fn validate_contribution_identities(
                 .iter()
                 .map(|subject| &subject.identity)
                 .chain(fragment.actions.iter().map(|action| &action.identity))
-                .chain(fragment.inputs.iter().map(|input| &input.identity))
                 .find(|identity| {
                     other_fragment
                         .subjects
                         .iter()
                         .map(|subject| &subject.identity)
                         .chain(other_fragment.actions.iter().map(|action| &action.identity))
-                        .chain(other_fragment.inputs.iter().map(|input| &input.identity))
                         .any(|other_identity| other_identity == *identity)
                 });
             if let Some(identity) = collision {

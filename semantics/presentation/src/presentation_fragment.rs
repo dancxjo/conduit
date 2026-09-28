@@ -4,10 +4,10 @@ use alloc::{string::String, vec::Vec};
 use conduit_core::{ActivePlayId, CheckedFormId, PlanId};
 
 use crate::{
-    PresentationAction, PresentationDisclosure, PresentationInput, PresentationProperty,
-    PresentationRelationship, PresentationSubject, PresentationTemporalFact, PresentationText,
-    TemporalReference, MAX_PRESENTATION_PROPERTIES, MAX_PRESENTATION_RELATIONSHIPS,
-    MAX_PRESENTATION_SUBJECTS, MAX_PRESENTATION_TEXT_ITEMS,
+    PresentationAction, PresentationDisclosure, PresentationProperty, PresentationRelationship,
+    PresentationSubject, PresentationTemporalFact, PresentationText, TemporalReference,
+    MAX_PRESENTATION_PROPERTIES, MAX_PRESENTATION_RELATIONSHIPS, MAX_PRESENTATION_SUBJECTS,
+    MAX_PRESENTATION_TEXT_ITEMS,
 };
 
 /// Exact source and optional Face-context requirement for one contribution.
@@ -31,7 +31,6 @@ pub struct PresentationFragment {
     pub properties: Vec<PresentationProperty>,
     pub text: Vec<PresentationText>,
     pub actions: Vec<PresentationAction>,
-    pub inputs: Vec<PresentationInput>,
     pub disclosures: Vec<PresentationDisclosure>,
     pub temporal_references: Vec<TemporalReference>,
     pub temporal_facts: Vec<PresentationTemporalFact>,
@@ -46,7 +45,6 @@ pub enum PresentationFragmentError {
     TooManyProperties,
     TooManyTextItems,
     TooManyActions,
-    TooManyInputs,
     TooManyDisclosures,
     TooManyTemporalReferences,
     TooManyTemporalFacts,
@@ -54,7 +52,6 @@ pub enum PresentationFragmentError {
     InvalidIdentity,
     DuplicateSubject,
     DuplicateAction,
-    DuplicateInput,
     DuplicateCompositionRelation,
 }
 
@@ -69,7 +66,6 @@ impl PresentationFragment {
             && self.properties.is_empty()
             && self.text.is_empty()
             && self.actions.is_empty()
-            && self.inputs.is_empty()
             && self.disclosures.is_empty()
             && self.temporal_references.is_empty()
             && self.temporal_facts.is_empty()
@@ -93,9 +89,6 @@ impl PresentationFragment {
         }
         if self.actions.len() > crate::MAX_PRESENTATION_ACTIONS {
             return Err(PresentationFragmentError::TooManyActions);
-        }
-        if self.inputs.len() > crate::MAX_PRESENTATION_INPUTS {
-            return Err(PresentationFragmentError::TooManyInputs);
         }
         if self.disclosures.len() > crate::MAX_PRESENTATION_DISCLOSURES {
             return Err(PresentationFragmentError::TooManyDisclosures);
@@ -136,17 +129,6 @@ impl PresentationFragment {
                 .any(|candidate| candidate.identity == action.identity)
             {
                 return Err(PresentationFragmentError::DuplicateAction);
-            }
-        }
-        for (index, input) in self.inputs.iter().enumerate() {
-            if !valid_identity(&input.identity) {
-                return Err(PresentationFragmentError::InvalidIdentity);
-            }
-            if self.inputs[index + 1..]
-                .iter()
-                .any(|candidate| candidate.identity == input.identity)
-            {
-                return Err(PresentationFragmentError::DuplicateInput);
             }
         }
         for (index, relation) in self.composition.iter().enumerate() {

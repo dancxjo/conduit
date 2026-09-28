@@ -25,12 +25,11 @@ use conduit_plan_lowering::lowering::{
     lower_plan_fragment, LoweredForePort, FIXED_KERNEL_STORAGE_PORTS_PER_NODE,
 };
 use conduit_presentation::{
-    install_mask_form_value_aliases, AdmittedMaskFormRoutes, BodyMaskWardrobe,
-    ManifestationLifecycle, MaskForm, MaskInteractionCorrelation, MaskShow, MaskWardrobe,
-    MaskWardrobeAction, MaskWardrobeControl, MaskWardrobeControlEvidence, MaskWardrobeLifetime,
-    PlannedMaskForm, Presentation, PresentationAction, PresentationInput, PresentationInteraction,
-    SealedMaskFormRoute, PRESENTATION_INTERACTION_VALUE_KIND, PRESENTATION_VALUE_KIND,
-    SHOW_VALUE_KIND,
+    install_mask_form_value_aliases, AdmittedMaskFormRoutes, BodyMaskWardrobe, FaceInteraction,
+    FaceInteractionArgument, ManifestationLifecycle, MaskForm, MaskInteractionCorrelation,
+    MaskShow, MaskWardrobe, MaskWardrobeAction, MaskWardrobeControl, MaskWardrobeControlEvidence,
+    MaskWardrobeLifetime, PlannedMaskForm, Presentation, PresentationAction, SealedMaskFormRoute,
+    FACE_INTERACTION_VALUE_KIND, PRESENTATION_VALUE_KIND, SHOW_VALUE_KIND,
 };
 use serde::{Deserialize, Serialize};
 use std::collections::BTreeMap;
@@ -48,9 +47,9 @@ mod plan;
 pub use interaction::{BrowserMaskInteraction, BrowserMaskInteractionReceipt};
 pub use journey::BrowserMaskJourneyOutcome;
 
-#[derive(Debug, Clone, Serialize)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct BrowserMaskEffect {
-    pub schema: &'static str,
+    pub schema: String,
     pub mask_form: conduit_core::FormIdentity,
     pub mask_plan_id: conduit_core::PlanId,
     pub mask_play: ActivePlayIdentity,
@@ -61,7 +60,6 @@ pub struct BrowserMaskEffect {
     pub presentation_revision: u64,
     pub text: Vec<conduit_presentation::PresentationText>,
     pub actions: Vec<conduit_presentation::PresentationAction>,
-    pub inputs: Vec<PresentationInput>,
 }
 
 #[derive(Debug, Clone, Deserialize)]
@@ -307,7 +305,7 @@ impl BrowserMaskRuntime {
             })
             .collect();
         let effect = BrowserMaskEffect {
-            schema: "conduit.browser/mask-effect@1",
+            schema: "conduit.browser/mask-effect@1".into(),
             mask_form: mask.form_identity,
             mask_plan_id: planned.plan.plan_id.clone(),
             mask_play: play.clone(),
@@ -318,7 +316,6 @@ impl BrowserMaskRuntime {
             presentation_revision: presentation.revision,
             text: presentation.text.clone(),
             actions: presentation.actions.clone(),
-            inputs: presentation.inputs.clone(),
         };
         Ok((
             Self {

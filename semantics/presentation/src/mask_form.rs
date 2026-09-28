@@ -11,7 +11,7 @@ use conduit_core::{
 };
 use serde::{Deserialize, Serialize};
 
-use crate::{PRESENTATION_INTERACTION_VALUE_KIND, PRESENTATION_VALUE_KIND, SHOW_VALUE_KIND};
+use crate::{FACE_INTERACTION_VALUE_KIND, PRESENTATION_VALUE_KIND, SHOW_VALUE_KIND};
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
@@ -82,7 +82,7 @@ impl MaskForm {
         let interaction = required_port(
             form.front.outputs(),
             "interaction",
-            PRESENTATION_INTERACTION_VALUE_KIND,
+            FACE_INTERACTION_VALUE_KIND,
             PortDirection::Output,
             PortTemporal::Flow { closes: true },
         )
@@ -131,7 +131,7 @@ impl PlannedMaskForm {
             (
                 &mask.interaction_output,
                 PortDirection::Output,
-                PRESENTATION_INTERACTION_VALUE_KIND,
+                FACE_INTERACTION_VALUE_KIND,
                 PortTemporal::Flow { closes: true },
             ),
             (

@@ -232,6 +232,7 @@ mod tests {
                     intent: "conduit.intent/inspect@1".into(),
                     target: "body/current".into(),
                     name: "Inspect Body".into(),
+                    arguments: vec![],
                     disclosure: PresentationDisclosureLevel::CurrentAction,
                     availability: PresentationActionAvailability::Available,
                 },
@@ -240,6 +241,7 @@ mod tests {
                     intent: "conduit.intent/fulfill@1".into(),
                     target: "body/current".into(),
                     name: "Fulfill Body".into(),
+                    arguments: vec![],
                     disclosure: PresentationDisclosureLevel::CurrentAction,
                     availability: PresentationActionAvailability::Unavailable {
                         reason_code: "not-ready".into(),

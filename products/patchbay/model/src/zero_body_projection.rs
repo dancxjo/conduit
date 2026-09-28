@@ -48,6 +48,7 @@ impl ZeroBodyFrontDoor {
             intent: "conduit.intent/birth@1".into(),
             target: host_subject.clone(),
             name: "Name Body and choose Forms".into(),
+            arguments: vec![],
             disclosure: PresentationDisclosureLevel::CurrentAction,
             availability: PresentationActionAvailability::Available,
         }];
@@ -159,6 +160,7 @@ impl ZeroBodyFrontDoor {
                     intent: "conduit.intent/open@1".into(),
                     target: subject.clone(),
                     name: "Open".into(),
+                    arguments: vec![],
                     disclosure: PresentationDisclosureLevel::CurrentAction,
                     availability: PresentationActionAvailability::Available,
                 },
@@ -167,6 +169,7 @@ impl ZeroBodyFrontDoor {
                     intent: "conduit.intent/birth@1".into(),
                     target: subject.clone(),
                     name: "Birth".into(),
+                    arguments: vec![],
                     disclosure: PresentationDisclosureLevel::CurrentAction,
                     availability: if is_opened {
                         PresentationActionAvailability::Available
@@ -257,6 +260,7 @@ impl ZeroBodyFrontDoor {
                     intent: "conduit.intent/save@1".into(),
                     target: form_subject,
                     name: "Save".into(),
+                    arguments: vec![],
                     disclosure: PresentationDisclosureLevel::CurrentAction,
                     availability: PresentationActionAvailability::Available,
                 });

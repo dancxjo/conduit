@@ -247,7 +247,6 @@ impl Face {
             ),
         }];
         let mut actions = Vec::new();
-        let mut inputs = Vec::new();
         let mut application_actions = Vec::new();
         let mut operator_actions = Vec::new();
         let mut disclosures = vec![
@@ -326,7 +325,6 @@ impl Face {
                 &mut properties,
                 &mut text,
                 &mut actions,
-                &mut inputs,
                 &mut disclosures,
                 &mut temporal_references,
                 &mut temporal_facts,
@@ -340,7 +338,7 @@ impl Face {
         }
         sign_ids.sort();
         sign_ids.dedup();
-        let mut presentation = Presentation::new_with_interactions(
+        let mut presentation = Presentation::new_with_semantics(
             revision,
             PresentationBasis {
                 body_id: Some(body.body_id.clone()),
@@ -357,7 +355,6 @@ impl Face {
             properties,
             text,
             actions,
-            inputs,
             disclosures,
         )
         .map_err(FaceRefusal::InvalidPresentation)?;

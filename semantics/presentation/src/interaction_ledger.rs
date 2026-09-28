@@ -1,34 +1,34 @@
-//! Finite admission and evidence retention for Presentation interactions.
+//! Finite admission and evidence retention for inward Face interactions.
 
 use alloc::{collections::VecDeque, vec::Vec};
 
 use crate::{
-    presentation::validate_id, PresentationInteraction, PresentationInteractionDisposition,
-    PresentationInteractionEvidence, PresentationInteractionRefusal,
+    presentation::validate_id, FaceInteraction, FaceInteractionArgumentEvidence,
+    FaceInteractionDisposition, FaceInteractionEvidence, FaceInteractionRefusal,
 };
 
-pub const MAX_QUEUED_PRESENTATION_INTERACTIONS: usize = 8;
+pub const MAX_QUEUED_FACE_INTERACTIONS: usize = 8;
 pub const MAX_RETAINED_INTERACTION_EVIDENCE: usize = 32;
 
 #[derive(Debug)]
-pub struct PresentationInteractionLedger {
+pub struct FaceInteractionLedger {
     maximum_queued: usize,
     maximum_evidence: usize,
-    queued: VecDeque<PresentationInteraction>,
-    evidence: Vec<PresentationInteractionEvidence>,
+    queued: VecDeque<FaceInteraction>,
+    evidence: Vec<FaceInteractionEvidence>,
 }
 
-impl PresentationInteractionLedger {
+impl FaceInteractionLedger {
     pub fn new(
         maximum_queued: usize,
         maximum_evidence: usize,
-    ) -> Result<Self, PresentationInteractionRefusal> {
+    ) -> Result<Self, FaceInteractionRefusal> {
         if maximum_queued == 0
-            || maximum_queued > MAX_QUEUED_PRESENTATION_INTERACTIONS
+            || maximum_queued > MAX_QUEUED_FACE_INTERACTIONS
             || maximum_evidence == 0
             || maximum_evidence > MAX_RETAINED_INTERACTION_EVIDENCE
         {
-            return Err(PresentationInteractionRefusal::QueuePressure);
+            return Err(FaceInteractionRefusal::QueuePressure);
         }
         Ok(Self {
             maximum_queued,
@@ -38,10 +38,7 @@ impl PresentationInteractionLedger {
         })
     }
 
-    pub fn admit(
-        &mut self,
-        interaction: PresentationInteraction,
-    ) -> Result<(), PresentationInteractionRefusal> {
+    pub fn admit(&mut self, interaction: FaceInteraction) -> Result<(), FaceInteractionRefusal> {
         if self
             .queued
             .iter()
@@ -51,10 +48,10 @@ impl PresentationInteractionLedger {
                 .iter()
                 .any(|item| item.interaction_id == interaction.identity)
         {
-            return Err(PresentationInteractionRefusal::DuplicateDelivery);
+            return Err(FaceInteractionRefusal::DuplicateDelivery);
         }
         if self.queued.len() == self.maximum_queued {
-            return Err(PresentationInteractionRefusal::QueuePressure);
+            return Err(FaceInteractionRefusal::QueuePressure);
         }
         self.queued.push_back(interaction);
         Ok(())
@@ -62,32 +59,38 @@ impl PresentationInteractionLedger {
 
     pub fn finish_front(
         &mut self,
-        disposition: PresentationInteractionDisposition,
-    ) -> Result<&PresentationInteractionEvidence, PresentationInteractionRefusal> {
+        disposition: FaceInteractionDisposition,
+    ) -> Result<&FaceInteractionEvidence, FaceInteractionRefusal> {
         if self.evidence.len() == self.maximum_evidence {
-            return Err(PresentationInteractionRefusal::EvidenceExhausted);
+            return Err(FaceInteractionRefusal::EvidenceExhausted);
         }
         let interaction = self
             .queued
             .pop_front()
-            .ok_or(PresentationInteractionRefusal::UnknownInput)?;
-        if let PresentationInteractionDisposition::Accepted {
+            .ok_or(FaceInteractionRefusal::NoQueuedInteraction)?;
+        if let FaceInteractionDisposition::Accepted {
             operation_request_id,
         } = &disposition
         {
             validate_id(operation_request_id)
-                .map_err(|_| PresentationInteractionRefusal::MalformedEncoding)?;
+                .map_err(|_| FaceInteractionRefusal::MalformedEncoding)?;
         }
-        self.evidence.push(PresentationInteractionEvidence {
+        self.evidence.push(FaceInteractionEvidence {
             interaction_id: interaction.identity,
-            presentation_id: interaction.presentation_id,
-            presentation_revision: interaction.presentation_revision,
-            manifestation_id: interaction.manifestation_id,
-            input_id: interaction.input_id,
+            face_id: interaction.face_id,
+            face_revision: interaction.face_revision,
+            show_id: interaction.show_id,
             action_id: interaction.action_id,
             target: interaction.target,
-            value_kind: interaction.value_kind,
-            value_bytes: interaction.value.len() as u32,
+            arguments: interaction
+                .arguments
+                .into_iter()
+                .map(|argument| FaceInteractionArgumentEvidence {
+                    name: argument.name,
+                    value_kind: argument.value_kind,
+                    value_bytes: argument.value.len() as u32,
+                })
+                .collect(),
             sequence: interaction.sequence,
             disposition,
         });
@@ -98,7 +101,7 @@ impl PresentationInteractionLedger {
         self.queued.len()
     }
 
-    pub fn evidence(&self) -> &[PresentationInteractionEvidence] {
+    pub fn evidence(&self) -> &[FaceInteractionEvidence] {
         &self.evidence
     }
 }

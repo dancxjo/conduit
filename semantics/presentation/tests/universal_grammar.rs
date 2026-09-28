@@ -8,10 +8,10 @@ use conduit_presentation::{
     Presentation, PresentationAction, PresentationActionAvailability, PresentationAspect,
     PresentationBasis, PresentationCompositionKind, PresentationCompositionRelation,
     PresentationContextBasis, PresentationCursor, PresentationDepth, PresentationDisclosure,
-    PresentationDisclosureLevel, PresentationInput, PresentationInteractionContext,
-    PresentationNavigation, PresentationPlace, PresentationProjection, PresentationProperty,
-    PresentationPropertyValue, PresentationRelationship, PresentationRelationshipKind,
-    PresentationRole, PresentationSubject, ProjectionItem, ProjectionMembership,
+    PresentationDisclosureLevel, PresentationInteractionContext, PresentationNavigation,
+    PresentationPlace, PresentationProjection, PresentationProperty, PresentationPropertyValue,
+    PresentationRelationship, PresentationRelationshipKind, PresentationRole, PresentationSubject,
+    ProjectionItem, ProjectionMembership,
 };
 
 fn subject(identity: &str, role: &str, name: &str) -> PresentationSubject {
@@ -41,7 +41,7 @@ fn diagram_reference() -> Vec<u8> {
 }
 
 fn lesson_in(context: &str) -> Presentation {
-    Presentation::new_with_interactions(
+    Presentation::new_with_semantics(
         3,
         PresentationBasis {
             body_id: None,
@@ -78,18 +78,16 @@ fn lesson_in(context: &str) -> Presentation {
             intent: "education/answer@1".into(),
             target: "concept/mitochondrion".into(),
             name: "Answer".into(),
+            arguments: vec![conduit_presentation::FaceActionArgument::text(
+                "lesson/answer-text".into(),
+                "Answer".into(),
+                1,
+                128,
+            )
+            .unwrap()],
             disclosure: PresentationDisclosureLevel::CurrentAction,
             availability: PresentationActionAvailability::Available,
         }],
-        vec![PresentationInput::text(
-            "lesson/answer-text".into(),
-            "concept/mitochondrion".into(),
-            128,
-            false,
-            "Answer".into(),
-            "lesson/answer".into(),
-        )
-        .unwrap()],
         vec![
             PresentationDisclosure {
                 subject: "lesson/cell".into(),
