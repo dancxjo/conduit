@@ -212,7 +212,7 @@ conduit-core = { path = "../../architecture/core" }
 conduit-human = { path = "../../semantics/human" }
 conduit-robotics = { path = "../../semantics/robotics" }
 patchbay-control = { path = "../../forms/patchbay" }
-patchbay-application = { path = "../../products/patchbay/application" }
+patchbay-application = { path = "../../forms/patchbay/application" }
 conduit-form = { path = "../../architecture/form" }
 conduit-kernel = { path = "../../architecture/kernel" }
 conduit-observatory = { path = "../../architecture/observatory" }

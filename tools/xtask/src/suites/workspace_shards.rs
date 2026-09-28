@@ -69,6 +69,7 @@ package_test_shard!(
         "conduit-observatory",
         "patchbay-control",
         "patchbay-graph",
+        "patchbay-application",
     ],
     []
 );
@@ -112,7 +113,6 @@ package_test_shard!(
         "conduit-workspace-model",
         "conduit-tour-model",
         "conduit-tour-native",
-        "patchbay-application",
         "conduit",
         "conduit-xtask-dispatch",
         "xtask",
