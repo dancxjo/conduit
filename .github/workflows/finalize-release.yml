@@ -80,7 +80,7 @@ jobs:
           PR_NUMBER: ${{ steps.merge.outputs.pr_number }}
           MERGE_SHA: ${{ steps.merge.outputs.merge_sha }}
         run: |
-          gh workflow run tour-and-creche-pages --ref main -f pr_number="$PR_NUMBER"
+          gh workflow run pages-deploy --ref main -f pr_number="$PR_NUMBER"
           gh workflow run sync-release-to-dev.yml --ref main \
             -f pr_number="$PR_NUMBER" -f merge_sha="$MERGE_SHA"
 

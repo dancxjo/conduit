@@ -20,7 +20,7 @@ async function fixture() {
   await writeFile(proofReceiptPath, JSON.stringify({ schema: "conduit.proof/conduitos@1", proof_class: "freestanding-emulator" }));
   return { root, artifact, config: {
     artifact: { path: artifactPath, id: `image:sha256:${sha256(artifact)}`, sha256: sha256(artifact), mediaType: "application/vnd.conduit.conduitos.iso" },
-    build: { id: "build:exact", type: "https://github.com/dancxjo/conduit/build-types/conduitos@v1", builderId: "https://github.com/dancxjo/conduit/actions/workflows/tour-products.yml", invocationId: "run/42" },
+    build: { id: "build:exact", type: "https://github.com/dancxjo/conduit/build-types/conduitos@v1", builderId: "https://github.com/dancxjo/conduit/actions/workflows/product-carrier.yml", invocationId: "run/42" },
     source: { uri: "git+https://github.com/dancxjo/conduit", digest: { sha1: "a".repeat(40) } },
     buildManifestPath, proofReceiptPath,
   } };

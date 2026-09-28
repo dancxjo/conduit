@@ -796,11 +796,12 @@ cargo xtask host std
 
 That builds and runs the local example through the repository development tooling.
 
-For the browser Tour, install Node.js and npm and add the WebAssembly target:
+For the browser SDK and workbench proofs, install Node.js and npm and add the
+WebAssembly target:
 
 ```sh
 rustup target add wasm32-unknown-unknown
-cargo xtask demo tour
+cargo xtask demo patchbay --on browser
 ```
 
 To inspect your environment:

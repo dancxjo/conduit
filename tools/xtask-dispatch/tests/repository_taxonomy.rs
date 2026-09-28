@@ -105,7 +105,10 @@ fn validate_form_paths(paths: &BTreeSet<String>, inventory: &str) -> Result<(), 
         if parts.len() == 2 && !matches!(parts[1], "README.md" | "inventory.toml") {
             return Err(format!("loose source at canonical Forms root: {path}"));
         }
-        if parts.len() >= 3 && !declared.contains(&format!("forms/{}/main.conduit", parts[1])) {
+        let owned_by_reviewed_source =
+            declared.contains(&format!("forms/{}/main.conduit", parts[1]));
+        let owned_by_form_crate = paths.contains(&format!("forms/{}/Cargo.toml", parts[1]));
+        if parts.len() >= 3 && !owned_by_reviewed_source && !owned_by_form_crate {
             return Err(format!("unreviewed canonical Form owner: {path}"));
         }
     }
@@ -180,7 +183,7 @@ fn product_source_cannot_return_to_the_generic_browser_host() {
     }
     validate_owners(&paths(&[
         "targets/browser/host/assets/application-presentation.mjs",
-        "products/tour/browser/tour.mjs",
+        "docs/journeys/tour/chapter-1.md",
         "products/patchbay/html/assets/app.js",
     ]))
     .unwrap();

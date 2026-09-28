@@ -1,5 +1,4 @@
 import { spawn } from "node:child_process";
-import { expect } from "@playwright/test";
 
 function awaitUrl(child, pattern, label) {
   let output = "";
@@ -22,18 +21,6 @@ function awaitUrl(child, pattern, label) {
   });
 }
 
-export async function startTour() {
-  const host = process.env.CONDUIT_BROWSER_HOST_BIN ?? "target/debug/conduit-browser-host";
-  const product = process.env.CONDUIT_TOUR_PRODUCT_ROOT ?? "target/tour-product";
-  const child = spawn(host, ["--application", product, "--mount", "/tour/", "--no-open"], {
-    cwd: new URL("../..", import.meta.url).pathname,
-    env: process.env,
-    stdio: ["ignore", "pipe", "pipe"],
-  });
-  const url = await awaitUrl(child, /CONDUIT_BROWSER_HOST_URL=(http:\/\/127\.0\.0\.1:\d+\/tour\/)/, "executable Tour");
-  return { child, url };
-}
-
 export async function startStaticProduct(root, mount = "/") {
   const child = spawn("node", ["proof/browser/static-server.mjs", "0", root, mount], {
     cwd: new URL("../..", import.meta.url).pathname,
@@ -41,14 +28,4 @@ export async function startStaticProduct(root, mount = "/") {
   });
   const url = await awaitUrl(child, /CONDUIT_STATIC_SERVER_URL=(http:\/\/127\.0\.0\.1:\d+\/\S*)/, "staged product");
   return { child, url };
-}
-
-export async function openTourStep(page, entrance, index) {
-  await page.goto(entrance.url);
-  await expect(page.locator("#host-state")).toHaveText("Browser Host ready");
-  for (let current = 0; current < index; current += 1) {
-    await page.getByRole("button", { name: "Next" }).click();
-    await expect(page.locator('[data-application-key="progress"]')).toHaveText(new RegExp(`^Page ${current + 2} of \\d+$`));
-  }
-  await expect(page.locator('[data-application-key="progress"]')).toHaveText(new RegExp(`^Page ${index + 1} of \\d+$`));
 }

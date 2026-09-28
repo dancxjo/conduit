@@ -109,7 +109,7 @@ test("unknown API truth fails closed instead of guessing that a slice is interme
 
 test("candidate workflows retain only cheap gates for an intermediate stack slice", () => {
   const check = readFileSync(".github/workflows/check.yml", "utf8");
-  const products = readFileSync(".github/workflows/tour-products.yml", "utf8");
+  const products = readFileSync(".github/workflows/product-carrier.yml", "utf8");
   for (const workflow of [check, products]) {
     assert.match(workflow, /Classify this immutable candidate within its open PR stack/);
     assert.ok(workflow.includes('git -C "$RUNNER_TEMP/conduit-ci-controller" ls-files -- \'*/classify-pr-stack.mjs\''));

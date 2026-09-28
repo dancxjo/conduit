@@ -57,7 +57,7 @@ jobs:
     # Fail the machine gate before fabricating all products and browser carriers.
     # check runs its x86 prerequisite first and retains the exact prepared image.
     needs: [boundary, check]
-    uses: ./.github/workflows/tour-products.yml
+    uses: ./.github/workflows/product-carrier.yml
     with:
       base_sha: ${{ github.event.pull_request.base.sha }}
       candidate_sha: ${{ github.event.pull_request.head.sha }}

@@ -125,7 +125,7 @@ fn conduitos_result_join_is_folded_into_the_existing_final_gate() {
 #[test]
 fn required_product_gate_uses_the_standard_runner_pool() {
     let root = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../..");
-    let workflow = fs::read_to_string(root.join(".github/workflows/tour-products.yml"))
+    let workflow = fs::read_to_string(root.join(".github/workflows/product-carrier.yml"))
         .expect("read product workflow");
     let required_gate = workflow
         .split("\n  products-proof:\n")
@@ -204,7 +204,7 @@ fn full_promotion_suite_builds_and_publishes_classifier_artifacts_for_docs_only_
 #[test]
 fn product_planner_has_no_workspace_cache() {
     let root = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../..");
-    let workflow = fs::read_to_string(root.join(".github/workflows/tour-products.yml"))
+    let workflow = fs::read_to_string(root.join(".github/workflows/product-carrier.yml"))
         .expect("read product workflow");
     let planner = workflow
         .split("\n  plan:\n")
@@ -298,7 +298,7 @@ fn generic_ci_rust_toolchain_is_exact_and_matches_the_repository_default() {
 
     let check = fs::read_to_string(workflows.join("check.yml")).expect("read check workflow");
     let products =
-        fs::read_to_string(workflows.join("tour-products.yml")).expect("read product workflow");
+        fs::read_to_string(workflows.join("product-carrier.yml")).expect("read product workflow");
     for workflow in [&check, &products] {
         let setup = workflow
             .find("dtolnay/rust-toolchain@1.98.1")
@@ -332,7 +332,7 @@ fn controller_failure_blocks_expensive_fanout_instead_of_selecting_everything() 
     let root = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../..");
     let check =
         fs::read_to_string(root.join(".github/workflows/check.yml")).expect("read check workflow");
-    let products = fs::read_to_string(root.join(".github/workflows/tour-products.yml"))
+    let products = fs::read_to_string(root.join(".github/workflows/product-carrier.yml"))
         .expect("read product workflow");
 
     assert!(!check.contains("needs.classify.result != 'success'"));
@@ -363,7 +363,7 @@ fn controller_failure_blocks_expensive_fanout_instead_of_selecting_everything() 
 #[test]
 fn product_stage_joins_exact_required_results_after_optional_skips() {
     let root = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../..");
-    let workflow = fs::read_to_string(root.join(".github/workflows/tour-products.yml"))
+    let workflow = fs::read_to_string(root.join(".github/workflows/product-carrier.yml"))
         .expect("read product workflow");
     let stage = workflow
         .split("\n  products-stage:\n")
@@ -405,7 +405,7 @@ fn product_stage_joins_exact_required_results_after_optional_skips() {
 #[test]
 fn conduitos_oci_export_is_exact_subject_linked_and_carried_to_pages() {
     let root = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../..");
-    let products = fs::read_to_string(root.join(".github/workflows/tour-products.yml"))
+    let products = fs::read_to_string(root.join(".github/workflows/product-carrier.yml"))
         .expect("read product workflow");
     let export = products
         .split("\n  conduitos-oci-provenance:\n")
@@ -419,7 +419,7 @@ fn conduitos_oci_export_is_exact_subject_linked_and_carried_to_pages() {
     assert!(export.contains("name: conduit-conduitos-x86_64-oci"));
     assert!(products.contains("target/pages-root/supply-chain/conduitos-x86_64-pc"));
 
-    let deploy = fs::read_to_string(root.join(".github/workflows/tour-pages-deploy.yml"))
+    let deploy = fs::read_to_string(root.join(".github/workflows/pages-deploy.yml"))
         .expect("read Pages deployment workflow");
     assert!(deploy.contains("target/pages-site-with-truth/supply-chain/conduitos-x86_64-pc"));
 }
@@ -427,7 +427,7 @@ fn conduitos_oci_export_is_exact_subject_linked_and_carried_to_pages() {
 #[test]
 fn hosted_release_jobs_publish_only_current_host_artifacts() {
     let root = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../..");
-    let workflow = fs::read_to_string(root.join(".github/workflows/tour-products.yml"))
+    let workflow = fs::read_to_string(root.join(".github/workflows/product-carrier.yml"))
         .expect("read product workflow");
     let releases = workflow
         .split("\n  host-releases:\n")
@@ -445,7 +445,7 @@ fn hosted_release_jobs_publish_only_current_host_artifacts() {
 #[test]
 fn browser_release_installs_its_exact_wasm_target() {
     let root = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../..");
-    let workflow = fs::read_to_string(root.join(".github/workflows/tour-products.yml"))
+    let workflow = fs::read_to_string(root.join(".github/workflows/product-carrier.yml"))
         .expect("read product workflow");
     let browser_release = workflow
         .split("\n  browser-release:\n")
@@ -461,7 +461,7 @@ fn browser_release_installs_its_exact_wasm_target() {
 #[test]
 fn browser_development_admission_does_not_fabricate_avr_firmware() {
     let root = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../..");
-    let workflow = fs::read_to_string(root.join(".github/workflows/tour-products.yml"))
+    let workflow = fs::read_to_string(root.join(".github/workflows/product-carrier.yml"))
         .expect("read product workflow");
     let avr_release = workflow
         .split("\n  avr-release:\n")
@@ -477,7 +477,7 @@ fn browser_development_admission_does_not_fabricate_avr_firmware() {
 #[test]
 fn product_descendants_use_explicit_direct_result_admission() {
     let root = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../..");
-    let workflow = fs::read_to_string(root.join(".github/workflows/tour-products.yml"))
+    let workflow = fs::read_to_string(root.join(".github/workflows/product-carrier.yml"))
         .expect("read product workflow");
     let browser = workflow
         .split("\n  browser-proof:\n")
@@ -500,7 +500,7 @@ fn product_descendants_use_explicit_direct_result_admission() {
 #[test]
 fn gallery_only_evidence_is_pinned_to_the_accepted_commit_downstream() {
     let root = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../..");
-    let products = fs::read_to_string(root.join(".github/workflows/tour-products.yml"))
+    let products = fs::read_to_string(root.join(".github/workflows/product-carrier.yml"))
         .expect("read product workflow");
     let journey = fs::read_to_string(root.join(".github/workflows/journey-publication.yml"))
         .expect("read downstream Journey workflow");
@@ -525,7 +525,7 @@ fn gallery_only_evidence_is_pinned_to_the_accepted_commit_downstream() {
 #[test]
 fn sibling_gallery_is_rendered_only_after_release_admission() {
     let root = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../..");
-    let products = fs::read_to_string(root.join(".github/workflows/tour-products.yml"))
+    let products = fs::read_to_string(root.join(".github/workflows/product-carrier.yml"))
         .expect("read product workflow");
     let gallery = fs::read_to_string(root.join(".github/workflows/journey-publication.yml"))
         .expect("read downstream Journey workflow");
@@ -567,7 +567,7 @@ fn stacked_diff_base_does_not_select_the_controller_version() {
 #[test]
 fn pages_promotion_verifies_candidate_provenance_after_input_reconciliation() {
     let root = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../..");
-    let workflow = fs::read_to_string(root.join(".github/workflows/tour-pages-deploy.yml"))
+    let workflow = fs::read_to_string(root.join(".github/workflows/pages-deploy.yml"))
         .expect("read Pages deployment workflow");
 
     assert!(workflow.contains("refs/pull/$PR_NUMBER/head"));
@@ -575,7 +575,7 @@ fn pages_promotion_verifies_candidate_provenance_after_input_reconciliation() {
     assert!(workflow.contains("reconcile-product \\"));
     assert!(workflow.contains("products.pages-carrier \"$SOURCE_HEAD\" \"$MERGE_COMMIT\""));
     assert!(workflow.contains("needs.resolve.outputs.disposition == 'execute'"));
-    assert!(workflow.contains("uses: ./.github/workflows/tour-products.yml"));
+    assert!(workflow.contains("uses: ./.github/workflows/product-carrier.yml"));
     assert!(workflow.contains("  pull-requests: read\n"));
     assert!(workflow.contains("main_sha:\n"));
     assert!(workflow.contains("steps.resolve.outputs.direct_main == 'true'"));
@@ -593,7 +593,7 @@ fn pages_promotion_verifies_candidate_provenance_after_input_reconciliation() {
         "needs.resolve.outputs.disposition == 'inherited' && needs.resolve.outputs.source_tree || needs.resolve.outputs.integration_tree"
     ));
 
-    let products = fs::read_to_string(root.join(".github/workflows/tour-products.yml"))
+    let products = fs::read_to_string(root.join(".github/workflows/product-carrier.yml"))
         .expect("read product workflow");
     assert!(products.contains(
         "CONDUIT_CANDIDATE_SHA: ${{ inputs.candidate_sha || github.event.pull_request.head.sha }}"
@@ -665,7 +665,7 @@ fn controller_changes_run_the_dependency_light_planner_test_target() {
 #[test]
 fn surviving_pages_carrier_proof_is_attested_by_the_trusted_controller() {
     let root = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../..");
-    let workflow = fs::read_to_string(root.join(".github/workflows/tour-products.yml"))
+    let workflow = fs::read_to_string(root.join(".github/workflows/product-carrier.yml"))
         .expect("read product workflow");
 
     assert!(workflow.contains("name: Materialize the trusted carrier attestation controller"));
@@ -776,7 +776,7 @@ fn promotion_is_independent_of_downstream_three_body_documentary() {
     assert!(journey.contains("name: ${{ steps.context.outputs.carrier_name }}"));
     assert!(journey.contains("run-id: ${{ steps.context.outputs.carrier_run_id }}"));
 
-    let pages = fs::read_to_string(root.join(".github/workflows/tour-pages-deploy.yml"))
+    let pages = fs::read_to_string(root.join(".github/workflows/pages-deploy.yml"))
         .expect("read Pages workflow");
     assert!(pages.contains("if: needs.resolve.outputs.disposition == 'inherited'"));
     assert!(pages.contains("if: needs.resolve.outputs.disposition == 'execute'"));
@@ -789,7 +789,7 @@ fn promotion_is_independent_of_downstream_three_body_documentary() {
 #[test]
 fn browser_proof_reuses_the_staged_carrier_and_retains_its_own_journey_track() {
     let root = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../..");
-    let workflow = fs::read_to_string(root.join(".github/workflows/tour-products.yml"))
+    let workflow = fs::read_to_string(root.join(".github/workflows/product-carrier.yml"))
         .expect("read product workflow");
 
     assert!(workflow.contains("CONDUIT_BROWSER_PROOF_SHARD: ${{ matrix.shard }}"));

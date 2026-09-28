@@ -64,17 +64,11 @@ rustup target add wasm32-unknown-unknown
 cargo xtask demo patchbay --on browser
 ```
 
-To build and open the guided executable Tour locally:
-
-```bash
-cargo xtask demo tour
-```
-
-These commands build the required browser runtime and serve it locally. Keep
+This command builds the required browser runtime and serves it locally. Keep
 the terminal process running while using the page. A separate browser host can
 be launched with `cargo xtask host browser`; each launch has its own runtime
-identity. The [body lifecycle guide](self-hosted-biography.md) explains how Tour,
-Crèche, and Patchbay relate.
+identity. The [body lifecycle guide](self-hosted-biography.md) explains how
+resident Forms, Crèche compatibility, and Patchbay relate.
 
 ## boot ConduitOS
 
