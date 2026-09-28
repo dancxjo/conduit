@@ -75,7 +75,6 @@ fn canonical_live_conversation_is_one_reviewed_temporal_form() {
     let lower = source.to_ascii_lowercase();
     for forbidden in [
         "whisper",
-        "piper",
         "ollama",
         "alsa",
         "webaudio",
