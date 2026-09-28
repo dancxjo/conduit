@@ -15,7 +15,7 @@ pub(super) enum FaceControlKey {
 pub(super) fn resolve_front_control_key(
     key: &Key,
     modifiers: ModifiersState,
-    graph: Option<&patchbay_model::PatchbayGraph>,
+    graph: Option<&patchbay_graph::PatchbayGraph>,
     linear_view: bool,
     selected: Option<&str>,
     focus: &mut usize,

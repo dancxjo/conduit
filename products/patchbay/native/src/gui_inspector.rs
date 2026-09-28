@@ -20,7 +20,8 @@ use embedded_graphics::{
     pixelcolor::Rgb888,
     prelude::{DrawTarget, Point},
 };
-use patchbay_model::{ApplicationTheme, PatchbayGraph, PatchbaySubjectKind};
+use patchbay_graph::{PatchbayGraph, PatchbaySubjectKind};
+use patchbay_model::ApplicationTheme;
 
 pub(super) fn draw_inspector<D: DrawTarget<Color = Rgb888>>(
     target: &mut D,

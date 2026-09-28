@@ -3886,6 +3886,7 @@ dependencies = [
  "conduit-wire",
  "conduitos",
  "embedded-graphics",
+ "patchbay-graph",
  "patchbay-hosted",
  "patchbay-model",
  "serde_json",

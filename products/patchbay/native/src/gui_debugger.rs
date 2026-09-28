@@ -10,9 +10,9 @@ use embedded_graphics::{
     pixelcolor::Rgb888,
     prelude::{DrawTarget, Point},
 };
+use patchbay_graph::PatchbayGraph;
 use patchbay_model::{
     ApplicationTheme, DebuggerActivityPhase, DebuggerPresentation, DebuggerSubjectActivity,
-    PatchbayGraph,
 };
 
 pub(super) fn draw_debugger_overlay<D: DrawTarget<Color = Rgb888>>(
