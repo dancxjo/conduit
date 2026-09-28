@@ -54,7 +54,7 @@ pub const BROWSER_LINE_REALIZATIONS: &[BrowserLineRealizationDescriptor] = &[
         fabrication_implementation_id: "browser/webrtc-datachannel@1",
         implementation_revision: 1,
         base_implementation_id: "conduit.base/webrtc-data-channel@1",
-        artifact_id: "patchbay-html/webrtc-datachannel-line.mjs@1",
+        artifact_id: "browser-host/webrtc-datachannel-line.mjs@1",
         contract: LineContract {
             scope: LineScope::PointToPoint,
             traffic_shape: LineTrafficShape::Message,
