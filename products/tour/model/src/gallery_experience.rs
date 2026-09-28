@@ -38,12 +38,6 @@ pub fn gallery_experience(name: &str) -> (&'static str, &'static str, &'static s
             "Press Run, then knock three times: a short gap followed by a gap three times as long. Finish within one second.",
             "The bounded attempt resets after its result. Try another rhythm in the same play, then press Stop.",
         ),
-        "pocket-theremin" => (
-            "Motion into numbers",
-            "Explore the space between a gesture and a frequency.",
-            "Press Run once, then choose several horizontal positions to map them from 20 to 20,000 Hz.",
-            "Later positions stay in the same play. This form displays frequency but does not produce sound; press Stop when done.",
-        ),
         "button_across_room" => (
             "Touch becomes light",
             "Each touch becomes light through a connection you can see.",
@@ -73,7 +67,6 @@ mod tests {
             "desk_telegraph",
             "night-radio",
             "secret-knock-demo",
-            "pocket-theremin",
             "button_across_room",
         ] {
             let (_, _, instruction, note) = gallery_experience(name);

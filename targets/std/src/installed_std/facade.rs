@@ -90,6 +90,11 @@ pub(crate) fn test_frequency_source_offer() -> conduit_core::CapabilityOffer {
 }
 
 #[cfg(test)]
+pub(crate) fn test_distance_source_offer() -> conduit_core::CapabilityOffer {
+    super::test_audio_tone::distance_source_offer()
+}
+
+#[cfg(test)]
 pub(crate) fn test_tone_pcm_sink_offer() -> conduit_core::CapabilityOffer {
     super::test_audio_tone::sink_offer()
 }

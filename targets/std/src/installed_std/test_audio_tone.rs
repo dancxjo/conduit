@@ -20,6 +20,9 @@ use conduit_kernel::{
 const SOURCE_KIND: &str = "conduit-test/frequency-source";
 const SOURCE_REVISION: &str = "conduit-test/frequency-source@1";
 const SOURCE_IMPLEMENTATION: &str = "conduit-test/frequency-source-kernel@1";
+const DISTANCE_SOURCE_KIND: &str = "conduit-test/distance-source";
+const DISTANCE_SOURCE_REVISION: &str = "conduit-test/distance-source@1";
+const DISTANCE_SOURCE_IMPLEMENTATION: &str = "conduit-test/distance-source-kernel@1";
 const SINK_KIND: &str = "conduit-test/tone-pcm-sink";
 const SINK_REVISION: &str = "conduit-test/tone-pcm-sink@1";
 const SINK_IMPLEMENTATION: &str = "conduit-test/tone-pcm-sink-kernel@1";
@@ -36,6 +39,11 @@ pub(super) static SOURCE_FACTORY: BackFactory = BackFactory {
     implementation_id: SOURCE_IMPLEMENTATION,
     budget: source_budget,
     prepare: prepare_source,
+};
+pub(super) static DISTANCE_SOURCE_FACTORY: BackFactory = BackFactory {
+    implementation_id: DISTANCE_SOURCE_IMPLEMENTATION,
+    budget: source_budget,
+    prepare: prepare_distance_source,
 };
 pub(super) static SINK_FACTORY: BackFactory = BackFactory {
     implementation_id: SINK_IMPLEMENTATION,
@@ -58,6 +66,10 @@ pub(super) static CLOSE_FACTORY: BackFactory = BackFactory {
     prepare: prepare_close,
 };
 pub(super) struct FrequencySourceBack {
+    values: [ValueRef; 2],
+    next: usize,
+}
+pub(super) struct DistanceSourceBack {
     values: [ValueRef; 2],
     next: usize,
 }
@@ -88,6 +100,20 @@ impl<const P: usize> StepBack<P> for FrequencySourceBack {
         }
     }
 }
+impl<const P: usize> StepBack<P> for DistanceSourceBack {
+    fn step(&mut self, io: &mut StepIo<P>, _: &StepInputBytes<'_, P>) -> StepOutcome {
+        if let Some(value) = self.values.get(self.next).copied() {
+            if !io.output_ready(PortId(0)) {
+                return StepOutcome::Await;
+            }
+            io.send(PortId(0), value).unwrap();
+            self.next += 1;
+            StepOutcome::Progress
+        } else {
+            StepOutcome::Complete
+        }
+    }
+}
 impl<const P: usize> StepBack<P> for TonePcmSinkBack {
     fn step(&mut self, io: &mut StepIo<P>, inputs: &StepInputBytes<'_, P>) -> StepOutcome {
         if io.input(PortId(0)).is_some() {
@@ -103,7 +129,7 @@ impl<const P: usize> StepBack<P> for TonePcmSinkBack {
                 || h.frame_count != conduit_semantic_catalog::AUDIO_TONE_PCM_FRAMES
                 || h.start_frame != u64::from(self.seen) * u64::from(h.frame_count)
                 || p.len() != 32
-                || self.seen >= 2
+                || self.seen >= 3
             {
                 return fail(33);
             }
@@ -117,7 +143,7 @@ impl<const P: usize> StepBack<P> for TonePcmSinkBack {
             return StepOutcome::Progress;
         }
         if io.input_closed(PortId(0)) {
-            if self.seen != 2 {
+            if !(2..=3).contains(&self.seen) {
                 return fail(35);
             }
             io.consume_closed(PortId(0)).unwrap();
@@ -251,6 +277,20 @@ pub(super) fn source_offer() -> CapabilityOffer {
         )],
     )
 }
+pub(super) fn distance_source_offer() -> CapabilityOffer {
+    offer(
+        DISTANCE_SOURCE_KIND,
+        DISTANCE_SOURCE_REVISION,
+        DISTANCE_SOURCE_IMPLEMENTATION,
+        Vec::new(),
+        vec![port(
+            "distance",
+            conduit_core::DISTANCE_INFO_ID,
+            PortDirection::Output,
+            PortTemporal::Value,
+        )],
+    )
+}
 pub(super) fn sink_offer() -> CapabilityOffer {
     offer(
         SINK_KIND,
@@ -353,6 +393,12 @@ pub(super) fn install_catalog(c: &mut ProfileCatalog) {
             source_offer().outputs,
         ),
         (
+            kind_id(DISTANCE_SOURCE_KIND),
+            KindIdentity::from(DISTANCE_SOURCE_REVISION),
+            Vec::new(),
+            distance_source_offer().outputs,
+        ),
+        (
             kind_id(SINK_KIND),
             KindIdentity::from(SINK_REVISION),
             sink_offer().inputs,
@@ -402,6 +448,21 @@ fn prepare_source(
         .store(&Quantity::new(880, QuantityUnit::Hertz).encode())
         .map_err(|e| format!("{e:?}"))?;
     Ok(InstalledBack::TestFrequencySource(FrequencySourceBack {
+        values: [a, b],
+        next: 0,
+    }))
+}
+fn prepare_distance_source(
+    _: &PlannedGear,
+    s: &mut conduit_kernel::HostedValueStore,
+) -> Result<InstalledBack, String> {
+    let a = s
+        .store(&Quantity::new(0, QuantityUnit::Centimeter).encode())
+        .map_err(|e| format!("{e:?}"))?;
+    let b = s
+        .store(&Quantity::new(30, QuantityUnit::Centimeter).encode())
+        .map_err(|e| format!("{e:?}"))?;
+    Ok(InstalledBack::TestDistanceSource(DistanceSourceBack {
         values: [a, b],
         next: 0,
     }))

@@ -2,7 +2,7 @@ use serde::Serialize;
 
 use crate::installed_browser::PresentationProfile;
 
-const REVIEWED_SOURCES: [(&str, &str, &str, PresentationProfile); 8] = [
+const REVIEWED_SOURCES: [(&str, &str, &str, PresentationProfile); 7] = [
     (
         "firefly-choir",
         "Firefly Choir",
@@ -38,12 +38,6 @@ const REVIEWED_SOURCES: [(&str, &str, &str, PresentationProfile); 8] = [
         "Secret Knock",
         include_str!("../../../../../forms/secret-knock/main.conduit"),
         PresentationProfile::PatternComparison,
-    ),
-    (
-        "pocket-theremin",
-        "Pocket Theremin",
-        include_str!("../../../../../forms/pocket-theremin/main.conduit"),
-        PresentationProfile::Quantity,
     ),
     (
         "button_across_room",
@@ -344,15 +338,6 @@ mod tests {
         assert!(morse
             .required_kinds
             .contains(&"presentation/indicator".to_owned()));
-        assert_eq!(
-            gallery
-                .forms
-                .iter()
-                .find(|form| form.name == "pocket-theremin")
-                .unwrap()
-                .presentation_profile,
-            1
-        );
         assert_eq!(
             gallery
                 .forms

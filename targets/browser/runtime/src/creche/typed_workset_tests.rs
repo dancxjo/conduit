@@ -1,24 +1,46 @@
 //! Reviewed presentation profiles select existing exact typed realizations in one body.
 use super::{initial_forms, session};
 
-fn bundle(profile: u8) -> String {
+fn bundle() -> String {
     serde_json::json!({
         "schema": "conduit.creche/reviewed-form-bundle@1",
         "forms": [
             {"slug": "memory-lantern", "entry": "memory_lantern", "source": include_str!("../../../../../forms/memory-lantern/main.conduit")},
-            {"slug": "pocket-theremin", "entry": "pocket-theremin", "presentation_profile": profile, "source": include_str!("../../../../../forms/pocket-theremin/main.conduit")},
             {"slug": "secret-knock", "entry": "secret-knock-demo", "presentation_profile": 3, "source": include_str!("../../../../../forms/secret-knock/main.conduit")}
         ]
     }).to_string()
 }
 
 #[test]
-fn typed_inventory_refuses_unknown_profiles_and_accepts_canonical_default_aliases() {
-    assert!(initial_forms::reviewed_inventory(&bundle(255))
-        .unwrap_err()
-        .contains("unsupported presentation profile"));
-    let incompatible = bundle(0);
-    let entries = initial_forms::reviewed_inventory(&incompatible).unwrap();
+fn canonical_keep_form_checks_without_inventing_a_browser_state_back() {
+    let source = serde_json::json!({
+        "schema": "conduit.creche/reviewed-form-bundle@1",
+        "forms": [{
+            "slug": "pocket-theremin",
+            "entry": "pocket-theremin",
+            "presentation_profile": 1,
+            "source": include_str!("../../../../../forms/pocket-theremin/main.conduit"),
+        }],
+    })
+    .to_string();
+    let inventory = initial_forms::reviewed_inventory(&source).unwrap();
+    assert_eq!(inventory.forms.len(), 1);
+    assert!(inventory.forms[0]
+        .required_kinds
+        .contains(&"state/latest".to_owned()));
+    let host =
+        initial_forms::reviewed_browser_host(&source, "host/typed".into(), "boot/typed".into())
+            .unwrap();
+    assert!(!host
+        .capabilities
+        .iter()
+        .any(|offer| offer.kind_id.as_str() == "state/latest"));
+}
+
+#[test]
+fn typed_inventory_accepts_canonical_default_aliases() {
+    let source = bundle();
+    let entries = initial_forms::reviewed_inventory(&source).unwrap();
     let selection: Vec<_> = entries
         .forms
         .iter()
@@ -28,21 +50,18 @@ fn typed_inventory_refuses_unknown_profiles_and_accepts_canonical_default_aliase
             checked_form_id: entry.checked_form_id.clone(),
         })
         .collect();
-    let host = initial_forms::reviewed_browser_host(
-        &incompatible,
-        "host/typed".into(),
-        "boot/typed".into(),
-    )
-    .unwrap();
+    let host =
+        initial_forms::reviewed_browser_host(&source, "host/typed".into(), "boot/typed".into())
+            .unwrap();
     assert!(super::review::review(
-        &incompatible,
+        &source,
         &serde_json::to_string(&selection).unwrap(),
         &[host],
         &crate::installed_browser::local_bases()
     )
     .is_ok());
-    let inventory = initial_forms::reviewed_inventory(&bundle(1)).unwrap();
-    assert_eq!(inventory.forms.len(), 3);
+    let inventory = initial_forms::reviewed_inventory(&source).unwrap();
+    assert_eq!(inventory.forms.len(), 2);
     assert!(inventory
         .forms
         .iter()
@@ -50,9 +69,9 @@ fn typed_inventory_refuses_unknown_profiles_and_accepts_canonical_default_aliase
 }
 
 #[test]
-fn text_quantity_and_pattern_presentations_plan_together_under_one_body() {
+fn text_and_pattern_presentations_plan_together_under_one_body() {
     session::clear_for_test();
-    let source = bundle(1);
+    let source = bundle();
     let inventory = initial_forms::reviewed_inventory(&source).unwrap();
     let selected: Vec<_> = inventory
         .forms
@@ -74,7 +93,7 @@ fn text_quantity_and_pattern_presentations_plan_together_under_one_body() {
         interaction,
     )
     .unwrap();
-    assert_eq!(receipt.initial_forms.len(), 3);
+    assert_eq!(receipt.initial_forms.len(), 2);
     #[cfg(feature = "form-runner")]
     {
         let observed = super::initial_forms::reviewed_browser_host(
@@ -93,7 +112,7 @@ fn text_quantity_and_pattern_presentations_plan_together_under_one_body() {
             super::PlanningAuthority::default(),
         )
         .unwrap();
-        assert_eq!(plans.len(), 3);
+        assert_eq!(plans.len(), 2);
         let selector = plans
             .iter()
             .flat_map(|part| &part.plan.fragments)

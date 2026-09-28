@@ -9,6 +9,7 @@ use super::bool_presentation::BoolPresentationBack;
 use super::calendar_proposal_back::CalendarProposalBack;
 use super::calendar_provider_back::CalendarProviderBack;
 use super::count_backs::{CountPresentationBack, StateCountBack};
+use super::distance_frequency_back::DistanceFrequencyBack;
 use super::final_normalized_pattern_back::FinalNormalizedPatternBack;
 use super::flow_first_back::FlowFirstBack;
 use super::flow_gate_back::FlowGateScalarBack;
@@ -85,6 +86,7 @@ use super::vision_experience_back::VisionExperienceBack;
 use super::wav_artifact_back::WavArtifactBack;
 
 pub(super) enum InstalledBack {
+    DistanceFrequency(DistanceFrequencyBack),
     #[cfg(any(test, feature = "local-model-proof"))]
     RecordedSpeech(super::recorded_speech_back::RecordedSpeechBack),
     WhisperSpeech(super::whisper_speech_back::WhisperSpeechBack),
@@ -233,6 +235,8 @@ pub(super) enum InstalledBack {
     TestScalarSink(super::test_scalar_flow::TestScalarSinkBack),
     #[cfg(test)]
     TestFrequencySource(super::test_audio_tone::FrequencySourceBack),
+    #[cfg(test)]
+    TestDistanceSource(super::test_audio_tone::DistanceSourceBack),
     #[cfg(test)]
     TestTonePcmSink(super::test_audio_tone::TonePcmSinkBack),
     #[cfg(test)]

@@ -11,11 +11,6 @@ fn gallery_projection_uses_the_same_closed_root_as_play() {
             PresentationProfile::Annotation,
         ),
         (
-            include_str!("../../../../../forms/pocket-theremin/main.conduit"),
-            "pocket-theremin",
-            PresentationProfile::Quantity,
-        ),
-        (
             include_str!("../../../../../forms/secret-knock/main.conduit"),
             "secret-knock-demo",
             PresentationProfile::PatternComparison,

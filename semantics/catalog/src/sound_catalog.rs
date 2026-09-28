@@ -22,6 +22,17 @@ pub fn install_sound_catalogs(
     Ok(())
 }
 
+/// Install only the portable `audio/tone` transform contract.
+///
+/// Hosts that cannot realize tone synthesis still need this semantic contract
+/// to check reviewed Forms before realization eligibility is considered.
+pub fn install_audio_tone_catalog(
+    startup: &mut conduit_form::StartupCatalog,
+    profile: &mut conduit_form::ProfileCatalog,
+) -> Result<(), String> {
+    install_semantic_contract(startup, profile, super::audio_tone_semantic_contract())
+}
+
 fn install_semantic_contract(
     startup: &mut conduit_form::StartupCatalog,
     profile: &mut conduit_form::ProfileCatalog,

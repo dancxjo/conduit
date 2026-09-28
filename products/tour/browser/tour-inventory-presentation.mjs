@@ -177,20 +177,7 @@ export function presentGalleryExperience(runner, form, presentation) {
   result.prepend(controls);
   const keyboardControl = presentGalleryKeyboardControl(runner, form, result, controls);
   let inputButton = runner.querySelector(".input-button");
-  if (form.name === "pocket-theremin") {
-    const pitch = document.createElement("input");
-    pitch.type = "range";
-    pitch.min = "0";
-    pitch.max = "1000000";
-    pitch.step = "1000";
-    pitch.value = "500000";
-    pitch.className = "input-button theremin-slider";
-    pitch.setAttribute("aria-label", "Theremin pitch");
-    inputButton.replaceWith(pitch);
-    inputButton = pitch;
-  } else {
-    inputButton.textContent = form.name === "secret-knock-demo" ? "Knock here" : "Hold to light";
-  }
+  inputButton.textContent = form.name === "secret-knock-demo" ? "Knock here" : "Hold to light";
   result.querySelector("h2").textContent = "Live result";
   const indicator = result.querySelector(".indicator");
   if (!["morse_network", "button_across_room", "firefly-choir"].includes(form.name)) indicator.hidden = true;

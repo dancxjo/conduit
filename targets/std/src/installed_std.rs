@@ -20,6 +20,7 @@ mod catalog;
 pub(super) mod contract;
 mod count_backs;
 mod deadline_host;
+mod distance_frequency_back;
 mod external_websocket;
 mod external_websocket_host;
 mod facade;
