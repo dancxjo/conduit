@@ -3,7 +3,73 @@ import test from "node:test";
 import { accountGraphical, accountLinear, accountSpoken, graphicalProject, linearProject, semanticAccount, specimens, spokenProject } from "./specimens.mjs";
 
 const required = ["authored-argument", "named-collections", "source-destination", "spreadsheet", "timeline-editor", "web-article", "map", "terminal", "screen-reader", "patchbay"];
-const forbiddenPresentationKeys = new Set(["x", "y", "width", "height", "pane", "column", "font", "color", "pixels", "animation", "schedule", "iterator", "stateMachine"]);
+const forbiddenFaceKeys = new Set(["x", "y", "width", "height", "pane", "column", "font", "color", "pixels", "animation", "schedule", "iterator", "stateMachine"]);
+
+// These requirements are written from the human account, independently of the
+// Face records below. A projector cannot pass merely by round-tripping whatever
+// graph it received: each named understanding must retain the exact semantic
+// facts that make that understanding warranted.
+const humanMeaningRequirements = {
+  "authored-argument": {
+    claim: ["subject:claim"],
+    "evidence supports claim": ["relationship:evidence argument/supports claim"],
+    "qualification follows evidence": ["relationship:qualification argument/qualifies claim", "composition:qualification RevealAfter evidence"],
+  },
+  "named-collections": {
+    "Tools contains Editor and Mail": ["relationship:tools Contains editor", "relationship:tools Contains mail"],
+    "Editor is focused": ["relationship:tools encounter/focuses editor"],
+  },
+  "source-destination": {
+    "Archive is source": ["subject:source"],
+    "Backup is destination": ["subject:destination", "relationship:report file/copy-destination destination"],
+    "report.txt is selected": ["subject:report", "composition:report Group source"],
+  },
+  spreadsheet: {
+    "B2 and C2 contribute to Total": ["relationship:b2 calculation/input-to total", "relationship:c2 calculation/input-to total"],
+    "cell addresses are semantic identity": ["subject:b2", "subject:c2", "subject:total"],
+  },
+  "timeline-editor": {
+    "Voice and Music coexist": ["composition:voice Juxtapose music"],
+    "Verse take is selected on Voice": ["relationship:voice Contains clip", "composition:clip Emphasize voice"],
+  },
+  "web-article": {
+    "aside qualifies section": ["relationship:section Contains aside", "composition:aside Subordinate section"],
+    "reference belongs with section": ["relationship:section Describes reference", "composition:reference Associate section"],
+  },
+  map: {
+    "route goes from station to museum": ["relationship:route route/from station", "relationship:route route/to museum"],
+  },
+  terminal: {
+    "Tests passed is result of cargo test": ["relationship:result terminal/result-of command", "composition:result RevealAfter command"],
+  },
+  "screen-reader": {
+    "MFA is enabled": ["subject:mfa"],
+    "MFA status is focused in Security": ["relationship:security Contains mfa", "relationship:document encounter/focuses mfa", "composition:mfa Emphasize security"],
+  },
+  patchbay: {
+    "Text flow connects input to output": ["relationship:cord cord/from input", "relationship:cord cord/to output"],
+    "direction is input to output": ["subject:input", "subject:output", "relationship:cord cord/from input", "relationship:cord cord/to output"],
+  },
+};
+
+function retainedFacts(account) {
+  return new Set([
+    ...account.subjects.map(value => `subject:${value}`),
+    ...account.relationships.map(value => `relationship:${value}`),
+    ...account.composition.map(value => `composition:${value}`),
+    ...account.actions.map(value => `action:${value}`),
+  ]);
+}
+
+function assertIndependentHumanAccount(specimen, account) {
+  const requirements = humanMeaningRequirements[specimen.identity];
+  assert.deepEqual(Object.keys(requirements), specimen.expected.understands);
+  const facts = retainedFacts(account);
+  for (const [meaning, required] of Object.entries(requirements)) {
+    for (const fact of required) assert.ok(facts.has(fact), `${meaning} lost ${fact}`);
+  }
+  assert.deepEqual(account.actions, specimen.expected.can);
+}
 
 test("the bounded matrix contains every adversarial specimen", () => {
   assert.deepEqual(specimens.map(({ identity }) => identity), required);
@@ -27,6 +93,9 @@ for (const specimen of specimens) {
     assert.deepEqual(accountGraphical(shows[0]), expected);
     assert.deepEqual(accountSpoken(shows[1]), expected);
     assert.deepEqual(accountLinear(shows[2]), expected);
+    assertIndependentHumanAccount(specimen, accountGraphical(shows[0]));
+    assertIndependentHumanAccount(specimen, accountSpoken(shows[1]));
+    assertIndependentHumanAccount(specimen, accountLinear(shows[2]));
     assert.notEqual(shows[0].technique, shows[1].technique);
     assert.notEqual(shows[1].technique, shows[2].technique);
   });
@@ -40,11 +109,11 @@ for (const specimen of specimens) {
     }
   });
 
-  test(`${specimen.identity}: Presentation contains no medium furniture or application machine`, () => {
+  test(`${specimen.identity}: Face contains no medium furniture or application machine`, () => {
     const visit = value => {
       if (!value || typeof value !== "object") return;
       for (const [key, child] of Object.entries(value)) {
-        assert.equal(forbiddenPresentationKeys.has(key), false, `forbidden Presentation key ${key}`);
+        assert.equal(forbiddenFaceKeys.has(key), false, `forbidden Face key ${key}`);
         visit(child);
       }
     };
@@ -62,6 +131,10 @@ test("lost appearance is harmless while semantic loss is detected", () => {
   const lossy = structuredClone(spoken);
   lossy.utterances = lossy.utterances.filter(statement => !statement.includes("file/copy-destination"));
   assert.notDeepEqual(accountSpoken(lossy), accountGraphical(graphical));
+  assert.throws(
+    () => assertIndependentHumanAccount(specimen, accountSpoken(lossy)),
+    /Backup is destination lost relationship:report file\/copy-destination destination/,
+  );
 });
 
 test("Patchbay is one ordinary specimen, not a grammar owner", () => {
