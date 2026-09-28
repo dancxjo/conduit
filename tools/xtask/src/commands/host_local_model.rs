@@ -174,11 +174,11 @@ fn orifina_journey() -> Result<PreparedOrifinaJourney, Box<dyn std::error::Error
     let host = HostId::from("host/orifina-local-model");
     let boot = BootId::from("boot/orifina-local-model");
     let mut body = orifina_body()?;
-    let mut requests = vec![conduit_workspace_model::tutorial::generative_request(
+    let mut requests = vec![conduit_tutorial_form::generative_request(
         &body,
         "request/workspace/orifina/provider-proof".into(),
         1,
-        conduit_workspace_model::tutorial::TutorialPlayback::Lulled,
+        conduit_tutorial_form::TutorialPlayback::Lulled,
     )
     .map_err(|error| proof_error("build Workspace Orifina request", error))?];
     let mut plan_ids = Vec::new();
@@ -198,7 +198,7 @@ fn orifina_journey() -> Result<PreparedOrifinaJourney, Box<dyn std::error::Error
         &body,
         "playing",
         2,
-        conduit_workspace_model::tutorial::TutorialPlayback::Playing,
+        conduit_tutorial_form::TutorialPlayback::Playing,
     )?);
     body.lull(&host, &boot, Some(&first))
         .map_err(|error| proof_error("lull initial Orifina Play", error))?;
@@ -217,7 +217,7 @@ fn orifina_journey() -> Result<PreparedOrifinaJourney, Box<dyn std::error::Error
         &body,
         "revised",
         3,
-        conduit_workspace_model::tutorial::TutorialPlayback::Lulled,
+        conduit_tutorial_form::TutorialPlayback::Lulled,
     )?);
 
     let failed = body
@@ -251,7 +251,7 @@ fn orifina_journey() -> Result<PreparedOrifinaJourney, Box<dyn std::error::Error
         &body,
         "fault",
         4,
-        conduit_workspace_model::tutorial::TutorialPlayback::Refused,
+        conduit_tutorial_form::TutorialPlayback::Refused,
     )?);
 
     let repaired = start_orifina(&mut body, &host, &boot, 2)?;
@@ -268,7 +268,7 @@ fn orifina_journey() -> Result<PreparedOrifinaJourney, Box<dyn std::error::Error
         &body,
         "repaired",
         5,
-        conduit_workspace_model::tutorial::TutorialPlayback::Playing,
+        conduit_tutorial_form::TutorialPlayback::Playing,
     )?);
     body.lull(&host, &boot, Some(&repaired))
         .map_err(|error| proof_error("lull repaired Orifina Play", error))?;
@@ -276,7 +276,7 @@ fn orifina_journey() -> Result<PreparedOrifinaJourney, Box<dyn std::error::Error
         &body,
         "lulled",
         6,
-        conduit_workspace_model::tutorial::TutorialPlayback::Lulled,
+        conduit_tutorial_form::TutorialPlayback::Lulled,
     )?);
     body.fulfill(
         &host,
@@ -289,7 +289,7 @@ fn orifina_journey() -> Result<PreparedOrifinaJourney, Box<dyn std::error::Error
         &body,
         "fulfilled",
         7,
-        conduit_workspace_model::tutorial::TutorialPlayback::Completed,
+        conduit_tutorial_form::TutorialPlayback::Completed,
     )?);
     let evidence = body.evidence().clone();
     Ok(PreparedOrifinaJourney {
@@ -464,9 +464,9 @@ fn tutorial_request(
     body: &conduit_body::BodyLifecycleSession,
     stage: &str,
     revision: u64,
-    playback: conduit_workspace_model::tutorial::TutorialPlayback,
+    playback: conduit_tutorial_form::TutorialPlayback,
 ) -> Result<conduit_presentation::GenerativePresenterRequest, Box<dyn std::error::Error>> {
-    conduit_workspace_model::tutorial::generative_request(
+    conduit_tutorial_form::generative_request(
         body,
         format!("request/workspace/orifina/journey/{stage}"),
         revision,

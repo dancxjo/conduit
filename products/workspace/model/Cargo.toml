@@ -7,10 +7,9 @@ publish = false
 [dependencies]
 conduit-body = { path = "../../../architecture/body", default-features = false, features = ["authenticated-admission"] }
 conduit-core = { path = "../../../architecture/core" }
-conduit-form = { path = "../../../architecture/form" }
-conduit-ai = { path = "../../../semantics/ai", default-features = false }
 conduit-presentation = { path = "../../../semantics/presentation", default-features = false }
 serde = { version = "1", default-features = false, features = ["derive", "alloc"] }
 
 [dev-dependencies]
 serde_json = "1"
+conduit-tutorial-form = { path = "../../../semantics/tutorial" }

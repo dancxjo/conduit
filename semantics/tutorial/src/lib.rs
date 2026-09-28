@@ -1,9 +1,16 @@
-//! Renderer-neutral guidance projected only from authoritative Body truth.
+#![no_std]
+//! Renderer-neutral Tutorial guidance projected only from authoritative Body truth.
+
+extern crate alloc;
+
+pub mod presenter;
+mod purpose;
+
 use alloc::{format, vec, vec::Vec};
 use conduit_body::{
     BodyBiographyEvidence, BodyBiographyRecordKind, BodyLifecycleSession, BodyState,
-    FulfillmentReadiness, PurposeCompletionPolicy, PurposeObligation, PurposeObligationState,
-    PurposeRefusal, PurposeState, WakeLifecycleEvent, derive_fulfillment_readiness,
+    FulfillmentReadiness, PurposeObligationState, PurposeRefusal, PurposeState,
+    derive_fulfillment_readiness,
 };
 use conduit_presentation::{
     ActionAvailability, ApplicationEventKind, Face, FaceContext, FaceFocus, FaceRefusal,
@@ -14,6 +21,7 @@ use conduit_presentation::{
     SemanticPresentationNode, StatusKind, orifina_completion_presenter_policy,
     project_orifina_purpose_presentation,
 };
+pub use purpose::{purpose_state, purpose_state_from_evidence};
 use serde::{Deserialize, Serialize};
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq, Serialize, Deserialize)]
@@ -302,97 +310,6 @@ pub fn presentation_from_evidence(
     };
     view.lower()?;
     Ok(view)
-}
-
-/// Derive the tutorial's optional purpose only from retained body evidence.
-/// No chapter counter, Presenter output, or browser-local interaction can mark
-/// an obligation complete.
-pub fn purpose_state(body: &BodyLifecycleSession) -> Result<PurposeState, PurposeRefusal> {
-    purpose_state_from_evidence(body.evidence())
-}
-
-pub fn purpose_state_from_evidence(
-    evidence: &BodyBiographyEvidence,
-) -> Result<PurposeState, PurposeRefusal> {
-    let born = evidence.records.iter().find_map(|record| {
-        matches!(record.kind, BodyBiographyRecordKind::Born { .. }).then(|| record.sign_id.clone())
-    });
-    let mut woke = None;
-    let mut planned = None;
-    let mut played = None;
-    let mut repair = PurposeObligationState::Pending;
-    for wake in &evidence.wakes {
-        for event in &wake.events {
-            match event {
-                WakeLifecycleEvent::Woke { sign_id } => woke.get_or_insert_with(|| sign_id.clone()),
-                WakeLifecycleEvent::PlanReady { sign_id, .. } => {
-                    planned.get_or_insert_with(|| sign_id.clone())
-                }
-                WakeLifecycleEvent::PlayStarted { sign_id, .. } => {
-                    played.get_or_insert_with(|| sign_id.clone());
-                    if matches!(repair, PurposeObligationState::RepairRequired { .. }) {
-                        repair = PurposeObligationState::Satisfied {
-                            evidence_sign_ids: vec![sign_id.clone()],
-                        };
-                    }
-                    continue;
-                }
-                WakeLifecycleEvent::Failed { sign_id } => {
-                    repair = PurposeObligationState::RepairRequired {
-                        failure_sign_id: sign_id.clone(),
-                    };
-                    continue;
-                }
-                _ => continue,
-            };
-        }
-    }
-    let joined = evidence
-        .records
-        .iter()
-        .filter(|record| matches!(record.kind, BodyBiographyRecordKind::HostJoined { .. }))
-        .map(|record| record.sign_id.clone())
-        .nth(1);
-    let revision = evidence
-        .records
-        .last()
-        .map_or(evidence.body.birth_sequence, |record| record.sequence);
-    let state = PurposeState {
-        purpose_id: "purpose/orifina-tutorial@1".into(),
-        revision,
-        summary: "Teach one real Body lifecycle".into(),
-        completion_policy: PurposeCompletionPolicy::ExplicitFulfillmentReadiness,
-        obligations: vec![
-            exact_obligation("born", "Be born as one retained body", born),
-            exact_obligation("wake", "Wake through an admitted plan and Play", woke),
-            exact_obligation("plan-ready", "Establish an exact current plan", planned),
-            exact_obligation("play-started", "Start ordinary form work", played),
-            PurposeObligation {
-                obligation_id: "repair-fault".into(),
-                summary: "Repair a real failed Wake".into(),
-                state: repair,
-            },
-            exact_obligation("add-host", "Admit another host", joined),
-        ],
-    };
-    state.validate()?;
-    Ok(state)
-}
-
-fn exact_obligation(
-    obligation_id: &str,
-    summary: &str,
-    evidence: Option<conduit_core::SignId>,
-) -> PurposeObligation {
-    PurposeObligation {
-        obligation_id: obligation_id.into(),
-        summary: summary.into(),
-        state: evidence.map_or(PurposeObligationState::Pending, |sign_id| {
-            PurposeObligationState::Satisfied {
-                evidence_sign_ids: vec![sign_id],
-            }
-        }),
-    }
 }
 
 fn guidance(
