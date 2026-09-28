@@ -2,9 +2,55 @@ use super::*;
 use conduit_core::{CheckedFormId, ExpandedFormId, PlanId, SourceDocumentId};
 use conduit_presentation::{
     PresentationAction, PresentationActionAvailability, PresentationBasis,
-    PresentationDisclosureLevel, PresentationRole, PresentationSubject, PresentationText,
-    UTF8_TEXT_VALUE_KIND,
+    PresentationCompositionKind, PresentationCompositionRelation, PresentationDisclosureLevel,
+    PresentationRelationship, PresentationRelationshipKind, PresentationRole, PresentationSubject,
+    PresentationText, UTF8_TEXT_VALUE_KIND,
 };
+use serde::Deserialize;
+
+#[derive(Debug, Deserialize)]
+struct FaceSpecimen {
+    identity: String,
+    presentation: FaceSpecimenValue,
+}
+
+#[derive(Debug, Deserialize)]
+struct FaceSpecimenValue {
+    subjects: Vec<FaceSpecimenSubject>,
+    relationships: Vec<FaceSpecimenRelationship>,
+    composition: Vec<FaceSpecimenComposition>,
+    actions: Vec<FaceSpecimenAction>,
+}
+
+#[derive(Debug, Deserialize)]
+struct FaceSpecimenSubject {
+    identity: String,
+    name: String,
+    role: String,
+}
+
+#[derive(Debug, Deserialize)]
+struct FaceSpecimenRelationship {
+    source: String,
+    kind: String,
+    target: String,
+}
+
+#[derive(Debug, Deserialize)]
+struct FaceSpecimenComposition {
+    source: String,
+    kind: String,
+    target: String,
+}
+
+#[derive(Debug, Deserialize)]
+struct FaceSpecimenAction {
+    identity: String,
+    intent: String,
+    target: String,
+    name: String,
+    availability: String,
+}
 
 fn body_id() -> BodyId {
     conduit_body::Body::born(
@@ -121,6 +167,121 @@ fn body_plan_basis() -> (BodyId, conduit_body::Wake, conduit_body::BodyPlan) {
     (body, wake, body_plan)
 }
 
+fn face_specimens() -> Vec<FaceSpecimen> {
+    serde_json::from_str(include_str!(
+        "../../../../proof/conformance/presentation-waist/specimens.json"
+    ))
+    .expect("shared Face specimens must remain valid JSON")
+}
+
+fn relationship_kind(kind: &str) -> PresentationRelationshipKind {
+    match kind {
+        "Contains" => PresentationRelationshipKind::Contains,
+        "Connects" => PresentationRelationshipKind::Connects,
+        "Describes" => PresentationRelationshipKind::Describes,
+        "Realizes" => PresentationRelationshipKind::Realizes,
+        "Observes" => PresentationRelationshipKind::Observes,
+        semantic => PresentationRelationshipKind::Semantic(kind_id(semantic)),
+    }
+}
+
+fn composition_kind(kind: &str) -> PresentationCompositionKind {
+    match kind {
+        "Group" => PresentationCompositionKind::Group,
+        "Contrast" => PresentationCompositionKind::Contrast,
+        "Juxtapose" => PresentationCompositionKind::Juxtapose,
+        "Emphasize" => PresentationCompositionKind::Emphasize,
+        "Subordinate" => PresentationCompositionKind::Subordinate,
+        "Associate" => PresentationCompositionKind::Associate,
+        "RevealAfter" => PresentationCompositionKind::RevealAfter,
+        semantic => PresentationCompositionKind::Semantic(kind_id(semantic)),
+    }
+}
+
+fn specimen_face(specimen: &FaceSpecimen, body: BodyId, revision: u64) -> Presentation {
+    let value = &specimen.presentation;
+    Presentation::new_with_semantics(
+        revision,
+        PresentationBasis {
+            body_id: Some(body),
+            wake_id: None,
+            source_document_id: Some(SourceDocumentId::from(format!(
+                "source/face-specimen/{}",
+                specimen.identity
+            ))),
+            checked_form_id: Some(CheckedFormId::from(format!(
+                "checked/face-specimen/{}",
+                specimen.identity
+            ))),
+            expanded_form_id: Some(ExpandedFormId::from(format!(
+                "expanded/face-specimen/{}",
+                specimen.identity
+            ))),
+            plan_id: Some(PlanId::from(format!(
+                "plan/face-specimen/{}",
+                specimen.identity
+            ))),
+            active_play_id: None,
+            sign_ids: vec![SignId::from(format!(
+                "sign/face-specimen/{}",
+                specimen.identity
+            ))],
+        },
+        value
+            .subjects
+            .iter()
+            .map(|subject| PresentationSubject {
+                identity: subject.identity.clone(),
+                role: PresentationRole::Semantic(kind_id(&subject.role)),
+                name: subject.name.clone(),
+            })
+            .collect(),
+        value
+            .relationships
+            .iter()
+            .map(|relationship| PresentationRelationship {
+                source: relationship.source.clone(),
+                target: relationship.target.clone(),
+                kind: relationship_kind(&relationship.kind),
+            })
+            .collect(),
+        vec![],
+        vec![],
+        value
+            .actions
+            .iter()
+            .map(|action| {
+                assert_eq!(action.availability, "available");
+                PresentationAction {
+                    identity: action.identity.clone(),
+                    intent: action.intent.clone(),
+                    target: action.target.clone(),
+                    name: action.name.clone(),
+                    arguments: vec![],
+                    disclosure: PresentationDisclosureLevel::CurrentAction,
+                    availability: PresentationActionAvailability::Available,
+                }
+            })
+            .collect(),
+        vec![],
+    )
+    .expect("Face specimen must construct the migration-era Presentation value")
+    .with_composition(
+        value
+            .composition
+            .iter()
+            .enumerate()
+            .map(|(index, relation)| PresentationCompositionRelation {
+                identity: format!("composition/{}/{index}", specimen.identity),
+                source: relation.source.clone(),
+                target: relation.target.clone(),
+                kind: composition_kind(&relation.kind),
+            })
+            .collect(),
+    )
+    .expect("Face specimen composition must remain valid")
+}
+
 #[test]
 fn show_becomes_available_only_after_exact_browser_acknowledgement() {
     let (body, wake, body_plan) = body_plan_basis();
@@ -219,4 +380,63 @@ fn show_becomes_available_only_after_exact_browser_acknowledgement() {
     assert_eq!(journey[7].plan_id, journey[6].plan_id);
     assert!(journey[7].show_id.is_some());
     assert!(journey[9].show_id.is_some());
+}
+
+#[test]
+fn every_face_specimen_executes_through_the_ordinary_browser_mask_form() {
+    let specimens = face_specimens();
+    assert_eq!(specimens.len(), 10);
+
+    for (index, specimen) in specimens.iter().enumerate() {
+        let (body, wake, body_plan) = body_plan_basis();
+        let face = specimen_face(specimen, body.clone(), index as u64 + 1);
+        let expected_identity = face.identity.clone();
+        let expected_revision = face.revision;
+        let (mut runtime, effect) = BrowserMaskRuntime::prepare(
+            body,
+            HostId::from(format!("host/browser/{}", specimen.identity)),
+            BootId::from(format!("boot/browser/{}", specimen.identity)),
+            face,
+            wake,
+            body_plan,
+        )
+        .unwrap_or_else(|error| {
+            panic!(
+                "{} did not reach the browser Mask: {error}",
+                specimen.identity
+            )
+        });
+
+        assert_eq!(effect.schema, "conduit.browser/mask-effect@1");
+        assert_eq!(effect.presentation_id, expected_identity.as_str());
+        assert_eq!(effect.presentation_revision, expected_revision);
+        assert_eq!(
+            runtime.show.show.lifecycle,
+            ManifestationLifecycle::Prepared
+        );
+        runtime
+            .acknowledge(&acknowledgement(&effect))
+            .unwrap_or_else(|error| {
+                panic!("{} did not emit its exact Show: {error}", specimen.identity)
+            });
+
+        let observation = runtime.observation();
+        assert_eq!(observation.presentation.identity, expected_identity);
+        assert_eq!(
+            observation.mask_show.show.lifecycle,
+            ManifestationLifecycle::Available
+        );
+        assert_eq!(observation.planned_mask.mask.form_name, "browser-graphical");
+        assert_eq!(observation.execution.fore.len(), 3);
+        assert!(observation
+            .execution
+            .remote_signs
+            .iter()
+            .any(|sign| { sign.kind == "RemoteInputAdmitted" }));
+        assert!(observation
+            .execution
+            .remote_signs
+            .iter()
+            .any(|sign| { sign.kind == "RemoteValueDelivered" }));
+    }
 }
