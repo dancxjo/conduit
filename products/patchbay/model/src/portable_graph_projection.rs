@@ -97,6 +97,13 @@ pub(super) fn append_exact_graph(
                 "value-kind",
                 port.descriptor.value_kind.as_str(),
             );
+            if let Some(contract) = &port.value_contract {
+                content.property(
+                    &port_subject,
+                    "value-contract",
+                    PresentationPropertyValue::ValueContract(contract.clone()),
+                );
+            }
             text(
                 content,
                 &port_subject,
@@ -201,6 +208,13 @@ pub(super) fn append_exact_graph(
                 "value-kind",
                 port.descriptor.value_kind.as_str(),
             );
+            if let Some(contract) = &port.value_contract {
+                content.property(
+                    &port_subject,
+                    "value-contract",
+                    PresentationPropertyValue::ValueContract(contract.clone()),
+                );
+            }
             text(
                 content,
                 &port_subject,

@@ -6,7 +6,7 @@ use crate::{
     PatchbayComposition, PatchbayCompositionBinding, PatchbayFrontPort, PatchbayGraph,
     PatchbayGraphError, RecursiveFormGearProjection,
 };
-use conduit_core::{GearId, PortDescriptor};
+use conduit_core::{FrontValueLocation, GearId, PortDescriptor};
 
 impl PatchbayGraph {
     /// Adds one presentation boundary for realization truth already projected
@@ -34,6 +34,10 @@ impl PatchbayGraph {
             .cloned()
             .map(|descriptor| PatchbayFrontPort {
                 identity: port_identity("input", &descriptor),
+                value_contract: projection
+                    .front
+                    .value_contract(&FrontValueLocation::Input(descriptor.port_id.clone()))
+                    .cloned(),
                 descriptor,
             })
             .collect::<Vec<_>>();
@@ -44,6 +48,10 @@ impl PatchbayGraph {
             .cloned()
             .map(|descriptor| PatchbayFrontPort {
                 identity: port_identity("output", &descriptor),
+                value_contract: projection
+                    .front
+                    .value_contract(&FrontValueLocation::Output(descriptor.port_id.clone()))
+                    .cloned(),
                 descriptor,
             })
             .collect::<Vec<_>>();

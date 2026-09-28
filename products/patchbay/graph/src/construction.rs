@@ -1,7 +1,9 @@
 //! Projection from exact checked and expanded Form truth.
 use crate::graph::temporal_compatible;
 use crate::{prelude::*, *};
-use conduit_core::{GearId, PortDescriptor, PortDirection};
+use conduit_core::{
+    CheckedValueContract, FrontValueLocation, GearId, PortDescriptor, PortDirection,
+};
 use conduit_form::ExpandedCanonicalForm;
 
 impl PatchbayGraph {
@@ -24,6 +26,7 @@ impl PatchbayGraph {
             .gears
             .iter()
             .map(|gear| {
+                let front = gear.checked_front();
                 let provenance = form
                     .provenance
                     .iter()
@@ -39,12 +42,32 @@ impl PatchbayGraph {
                     inputs: gear
                         .inputs
                         .iter()
-                        .map(|port| patchbay_port(&gear.gear_id, port))
+                        .map(|port| {
+                            patchbay_port(
+                                &gear.gear_id,
+                                port,
+                                front
+                                    .value_contract(&FrontValueLocation::Input(
+                                        port.port_id.clone(),
+                                    ))
+                                    .cloned(),
+                            )
+                        })
                         .collect(),
                     outputs: gear
                         .outputs
                         .iter()
-                        .map(|port| patchbay_port(&gear.gear_id, port))
+                        .map(|port| {
+                            patchbay_port(
+                                &gear.gear_id,
+                                port,
+                                front
+                                    .value_contract(&FrontValueLocation::Output(
+                                        port.port_id.clone(),
+                                    ))
+                                    .cloned(),
+                            )
+                        })
                         .collect(),
                     controls: crate::front_controls::project_controls(gear)?,
                 })
@@ -124,6 +147,10 @@ impl PatchbayGraph {
             .cloned()
             .map(|descriptor| PatchbayFrontPort {
                 identity: front_port_identity(PortDirection::Input, descriptor.port_id.as_str()),
+                value_contract: form
+                    .front
+                    .value_contract(&FrontValueLocation::Input(descriptor.port_id.clone()))
+                    .cloned(),
                 descriptor,
             })
             .collect();
@@ -134,6 +161,10 @@ impl PatchbayGraph {
             .cloned()
             .map(|descriptor| PatchbayFrontPort {
                 identity: front_port_identity(PortDirection::Output, descriptor.port_id.as_str()),
+                value_contract: form
+                    .front
+                    .value_contract(&FrontValueLocation::Output(descriptor.port_id.clone()))
+                    .cloned(),
                 descriptor,
             })
             .collect();
@@ -194,11 +225,16 @@ impl PatchbayGraph {
     }
 }
 
-fn patchbay_port(gear_id: &GearId, descriptor: &PortDescriptor) -> PatchbayPort {
+fn patchbay_port(
+    gear_id: &GearId,
+    descriptor: &PortDescriptor,
+    value_contract: Option<CheckedValueContract>,
+) -> PatchbayPort {
     PatchbayPort {
         identity: port_identity(gear_id, descriptor.direction, descriptor.port_id.as_str()),
         gear_id: gear_id.clone(),
         descriptor: descriptor.clone(),
+        value_contract,
     }
 }
 

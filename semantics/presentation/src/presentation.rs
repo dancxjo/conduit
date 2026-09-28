@@ -148,6 +148,8 @@ pub enum PresentationPropertyValue {
     Count(u64),
     Signed(i64),
     Flag(bool),
+    /// Exact reusable validation truth, carried without becoming a widget.
+    ValueContract(conduit_core::CheckedValueContract),
     /// Canonical encoded `&T`: one exact bounded independently addressable
     /// content generation. It contains no path, URL, handle, or authority.
     Content(Vec<u8>),
@@ -381,6 +383,9 @@ impl Presentation {
                     BoundedResourceRef::validate_encoded(encoded)
                         .map_err(|_| PresentationError::InvalidContent)?;
                 }
+                PresentationPropertyValue::ValueContract(contract) => contract
+                    .validate_definition()
+                    .map_err(|_| PresentationError::InvalidContent)?,
                 PresentationPropertyValue::BaseImplementationId(_)
                 | PresentationPropertyValue::Count(_)
                 | PresentationPropertyValue::Signed(_)
@@ -531,6 +536,7 @@ fn property_value_len(value: &PresentationPropertyValue) -> usize {
         PresentationPropertyValue::Count(_) | PresentationPropertyValue::Signed(_) => 8,
         PresentationPropertyValue::Flag(_) => 1,
         PresentationPropertyValue::Content(encoded) => encoded.len(),
+        PresentationPropertyValue::ValueContract(contract) => contract.identity_bytes().len(),
     }
 }
 

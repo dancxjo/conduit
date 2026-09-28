@@ -141,6 +141,13 @@ impl CheckedFront {
     pub fn value_contracts(&self) -> &[FrontValueContract] {
         &self.value_contracts
     }
+
+    pub fn value_contract(&self, location: &FrontValueLocation) -> Option<&CheckedValueContract> {
+        self.value_contracts
+            .iter()
+            .find(|candidate| &candidate.location == location)
+            .map(|candidate| &candidate.contract)
+    }
 }
 
 fn default_maximum_bytes(kind_id: &KindId) -> Option<u64> {

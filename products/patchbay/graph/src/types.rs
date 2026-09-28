@@ -3,8 +3,8 @@
 use crate::prelude::*;
 
 use conduit_core::{
-    CheckedFormId, ExpandedFormId, GearId, KindId, KindIdentity, PortDescriptor, PortTemporal,
-    SourceDocumentId,
+    CheckedFormId, CheckedValueContract, ExpandedFormId, GearId, KindId, KindIdentity,
+    PortDescriptor, PortTemporal, SourceDocumentId,
 };
 
 pub const MAX_PATCHBAY_GEARS: usize = 128;
@@ -89,12 +89,14 @@ pub struct PatchbayPort {
     pub identity: String,
     pub gear_id: GearId,
     pub descriptor: PortDescriptor,
+    pub value_contract: Option<CheckedValueContract>,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct PatchbayFrontPort {
     pub identity: String,
     pub descriptor: PortDescriptor,
+    pub value_contract: Option<CheckedValueContract>,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]

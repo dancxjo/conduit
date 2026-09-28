@@ -145,6 +145,15 @@ fn living_patchbay_projection_preserves_lifecycle_plan_play_and_sign() {
         property.name == "form-path"
             && property.value == PresentationPropertyValue::Text("hello".into())
     }));
+    assert!(portable.properties.iter().any(|property| {
+        property.name == "value-contract"
+            && matches!(
+                &property.value,
+                PresentationPropertyValue::ValueContract(contract)
+                    if contract.value_kind.as_str() == conduit_core::TEXT_INFO_ID
+                        && contract.maximum_bytes == 256
+            )
+    }));
     assert!(portable.relationships.iter().any(|relationship| {
         relationship.kind == conduit_presentation::PresentationRelationshipKind::Connects
     }));

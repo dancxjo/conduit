@@ -125,23 +125,30 @@ impl CheckedValueContract {
         maximum_bytes: u32,
         constraints: Vec<ValueConstraint>,
     ) -> Result<Self, ConstraintDefinitionError> {
-        if constraints.len() > MAX_VALUE_CONSTRAINTS {
+        let contract = Self {
+            value_kind,
+            maximum_bytes,
+            constraints,
+        };
+        contract.validate_definition()?;
+        Ok(contract)
+    }
+
+    pub fn validate_definition(&self) -> Result<(), ConstraintDefinitionError> {
+        if self.constraints.len() > MAX_VALUE_CONSTRAINTS {
             return Err(ConstraintDefinitionError::TooManyConstraints);
         }
-        if constraints
+        if self
+            .constraints
             .windows(2)
             .any(|pair| pair[0].rank() >= pair[1].rank())
         {
             return Err(ConstraintDefinitionError::NonCanonicalConstraintOrder);
         }
-        for constraint in &constraints {
-            constraint.validate_definition(value_kind.as_str(), maximum_bytes)?;
+        for constraint in &self.constraints {
+            constraint.validate_definition(self.value_kind.as_str(), self.maximum_bytes)?;
         }
-        Ok(Self {
-            value_kind,
-            maximum_bytes,
-            constraints,
-        })
+        Ok(())
     }
 
     pub fn validate(&self, canonical: &[u8]) -> Result<(), ValueConstraintRefusal> {

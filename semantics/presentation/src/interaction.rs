@@ -137,13 +137,7 @@ impl Presentation {
             }
             crate::presentation::validate_text(&input.name)?;
             if input.contract.maximum_bytes > MAX_PRESENTATION_INPUT_VALUE_BYTES
-                || CheckedValueContract::new(
-                    input.contract.value_kind.clone(),
-                    input.contract.maximum_bytes,
-                    input.contract.constraints.clone(),
-                )
-                .as_ref()
-                    != Ok(&input.contract)
+                || input.contract.validate_definition().is_err()
             {
                 return Err(PresentationError::InvalidInputContract);
             }

@@ -308,6 +308,12 @@ impl FormEditor {
                         "composition/{gear_name}/input/{}",
                         descriptor.port_id.as_str()
                     ),
+                    value_contract: back
+                        .front
+                        .value_contract(&conduit_core::FrontValueLocation::Input(
+                            descriptor.port_id.clone(),
+                        ))
+                        .cloned(),
                     descriptor,
                 })
                 .collect::<Vec<_>>();
@@ -321,6 +327,12 @@ impl FormEditor {
                         "composition/{gear_name}/output/{}",
                         descriptor.port_id.as_str()
                     ),
+                    value_contract: back
+                        .front
+                        .value_contract(&conduit_core::FrontValueLocation::Output(
+                            descriptor.port_id.clone(),
+                        ))
+                        .cloned(),
                     descriptor,
                 })
                 .collect::<Vec<_>>();
