@@ -24,6 +24,23 @@ export class InvalidLifecycleError extends ConduitSdkError { readonly category: 
 export class PermissionDeniedError extends ConduitSdkError { readonly category: "PermissionDenied"; }
 export class IncompatibleRuntimeAbiError extends ConduitSdkError { readonly category: "IncompatibleRuntimeAbi"; }
 
+/** Bounded same-origin client for one HTTP-carried Body Face. */
+export class BrowserFaceError extends Error {
+  readonly code: "FaceUnavailable" | "FaceHttpRefusal" | "FaceResponseBound" | "FaceResponseMalformed";
+  readonly operation: string;
+  readonly status: number | null;
+}
+
+export class BrowserFaceClient {
+  constructor(options?: {
+    base?: string | URL;
+    fetch?: typeof globalThis.fetch;
+    maximumResponseBytes?: number;
+  });
+  snapshot(): Promise<Readonly<Record<string, unknown>>>;
+  interact(interaction: Readonly<Record<string, unknown>>): Promise<Readonly<Record<string, unknown>>>;
+}
+
 /** Read-only projection of one exact browser Host and Boot incarnation. */
 export class BrowserHost {
   private constructor();

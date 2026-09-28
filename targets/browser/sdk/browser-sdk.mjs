@@ -17,6 +17,7 @@ import { acquireBrowserBodyHost } from "../host/assets/browser-body-host.mjs";
 import { openBrowserApplicationStorage } from "../host/assets/browser-application-storage.mjs";
 import { joinBrowserBody } from "../host/assets/browser-membership.js";
 export { BrowserForm, BrowserBody } from "./browser-sdk-forms.mjs";
+export { BrowserFaceClient, BrowserFaceError } from "./browser-sdk-face.mjs";
 
 export class ConduitSdkError extends Error {
   constructor({ code, category = "RuntimeRefusal", message, operation, evidence, identities = {}, cause }) {
