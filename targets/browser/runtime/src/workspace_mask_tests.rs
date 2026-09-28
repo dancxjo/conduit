@@ -550,5 +550,31 @@ fn every_face_specimen_executes_through_the_ordinary_browser_mask_form() {
             .remote_signs
             .iter()
             .any(|sign| { sign.kind == "RemoteValueDelivered" }));
+
+        if specimen.identity == "source-destination" {
+            assert!(observation
+                .presentation
+                .relationships
+                .iter()
+                .any(|relationship| {
+                    relationship.source == "report"
+                        && relationship.target == "destination"
+                        && relationship.kind
+                            == PresentationRelationshipKind::Semantic(kind_id(
+                                "file/copy-destination",
+                            ))
+                }));
+            assert!(observation.presentation.composition.iter().any(|relation| {
+                relation.source == "source"
+                    && relation.target == "destination"
+                    && relation.kind == PresentationCompositionKind::Juxtapose
+            }));
+            assert!(observation.presentation.actions.iter().any(|action| {
+                action.identity == "copy-to-destination"
+                    && action.intent == "encounter/copy-to-destination"
+                    && action.target == "report"
+                    && action.availability == PresentationActionAvailability::Available
+            }));
+        }
     }
 }

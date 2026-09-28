@@ -233,3 +233,24 @@ fn deterministic_linear_projection_preserves_every_specimen_record() {
         );
     }
 }
+
+#[test]
+fn deterministic_linear_mask_preserves_source_destination_direction_and_action() {
+    let specimen = fixtures()
+        .into_iter()
+        .find(|specimen| specimen.identity == "source-destination")
+        .expect("source/destination pressure specimen remains present");
+    let linear = render_linear_presentation(&presentation(&specimen)).unwrap();
+
+    for exact in [
+        "kind=Semantic(KindId(\"file/copy-destination\")) source=\"report\" target=\"destination\"",
+        "kind=Juxtapose source=\"source\" target=\"destination\"",
+        "id=\"copy-to-destination\" intent=\"encounter/copy-to-destination\" target=\"report\"",
+    ] {
+        assert!(
+            linear.lines.iter().any(|line| line.contains(exact)),
+            "deterministic-linear Mask lost {exact}: {:?}",
+            linear.lines
+        );
+    }
+}
