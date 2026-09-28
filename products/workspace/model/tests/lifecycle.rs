@@ -111,6 +111,64 @@ fn tutorial_builds_an_exact_orifina_request_from_current_body_truth() {
 }
 
 #[test]
+fn production_tutorial_face_keeps_one_constraint_across_encounters_and_validation() {
+    let body = born();
+    let face = conduit_workspace_model::tutorial::face_presentation(
+        &body,
+        12,
+        conduit_workspace_model::tutorial::TutorialPlayback::Lulled,
+    )
+    .unwrap();
+    let action = face
+        .actions
+        .iter()
+        .find(|action| action.intent == "conduit.intent/tutorial-next@1")
+        .expect("production tutorial Face exposes its current action");
+    let argument = action
+        .arguments
+        .first()
+        .expect("production tutorial action owns its input contract");
+
+    assert_eq!(argument.name, "input/tutorial-action");
+    assert_eq!(argument.contract.maximum_bytes, 256);
+    argument
+        .contract
+        .validate(action.name.as_bytes())
+        .expect("the current production action label satisfies its Face contract");
+    assert_eq!(
+        argument.contract.validate(&vec![b'x'; 257]),
+        Err(conduit_core::ValueConstraintRefusal::Oversize {
+            actual: 257,
+            maximum: 256,
+        })
+    );
+
+    let spoken = conduit_presentation::plan_face_utterances(&face).unwrap();
+    let spoken_argument = spoken
+        .clauses
+        .iter()
+        .find(|clause| {
+            clause.provenance
+                == conduit_presentation::FaceUtteranceProvenance::ActionArgument {
+                    action_identity: action.identity.clone(),
+                    argument_name: argument.name.clone(),
+                }
+        })
+        .expect("aural projection retains the production Face argument");
+    assert!(spoken_argument.text.contains("kind value/text"));
+    assert!(spoken_argument.text.contains("at most 256 bytes"));
+
+    let linear = conduit_presentation::render_linear_presentation(&face).unwrap();
+    let linear_action = linear
+        .lines
+        .iter()
+        .find(|line| line.starts_with("ACTION ") && line.contains(&action.identity))
+        .expect("deterministic-linear projection retains the production Face action");
+    assert!(linear_action.contains("input/tutorial-action"));
+    assert!(linear_action.contains("maximum_bytes: 256"));
+}
+
+#[test]
 fn playing_tutorial_request_uses_the_canonical_face_execution_projection() {
     let mut body = born();
     let play = start(&mut body);
