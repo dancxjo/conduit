@@ -15,7 +15,7 @@ use crate::{
 };
 
 mod construction;
-mod front;
+pub(crate) mod front;
 mod shared_pool;
 use construction::parse_construction;
 use front::{canonical_default_bound, parse_finite_bound, parse_port_type};

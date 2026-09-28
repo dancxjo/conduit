@@ -271,6 +271,84 @@ fn relational_glyph_refuses_wrong_arity_and_mixed_adjacent_meanings() {
 }
 
 #[test]
+fn named_type_parameters_specialize_to_exact_ordinary_fores() {
+    let checked = check(
+        "form identity (\n item: type\n >> value: item\n result: item >>\n) {\n value >> result\n}\n\
+         form text-identity (\n >> value: Text\n result: Text >>\n) {\n value >> identity(item = Text) >> result\n}\n\
+         form bytes-identity (\n >> value: Bytes\n result: Bytes >>\n) {\n value >> identity(item = Bytes) >> result\n}\n",
+    );
+
+    assert!(checked.forms.iter().all(|form| form.name != "identity"));
+    let text = checked
+        .forms
+        .iter()
+        .find(|form| form.name == "identity[item=value/text]")
+        .expect("Text specialization is retained as an exact ordinary Form");
+    assert!(text.startup_parameters.is_empty());
+    assert_eq!(
+        text.runtime_front.inputs()[0].value_kind,
+        conduit_core::kind_id("value/text")
+    );
+    assert_eq!(
+        text.runtime_front.outputs()[0].value_kind,
+        conduit_core::kind_id("value/text")
+    );
+    let text_input = conduit_core::FrontValueLocation::Input(conduit_core::port_id("value"));
+    assert_eq!(
+        text.runtime_front
+            .value_contract(&text_input)
+            .unwrap()
+            .maximum_bytes,
+        256
+    );
+
+    let bytes = checked
+        .forms
+        .iter()
+        .find(|form| form.name == "identity[item=value/bytes]")
+        .expect("Bytes specialization is retained as an exact ordinary Form");
+    assert_eq!(
+        bytes.runtime_front.inputs()[0].value_kind,
+        conduit_core::kind_id("value/bytes")
+    );
+    assert_ne!(text.checked_form_id, bytes.checked_form_id);
+
+    for wrapper in ["text-identity", "bytes-identity"] {
+        let form = checked
+            .forms
+            .iter()
+            .find(|form| form.name == wrapper)
+            .unwrap();
+        assert!(form.gears[0].startup_bindings.is_empty());
+        assert!(form.gears[0].kind.starts_with("identity[item=value/"));
+    }
+}
+
+#[test]
+fn explicit_generic_application_cannot_disagree_with_connected_ports() {
+    let parsed = parse_syntax_document(
+        "form identity (\n item: type\n >> value: item\n result: item >>\n) {\n value >> result\n}\n\
+         form bad (\n >> value: Text\n result: Text >>\n) {\n value >> identity(item = Bytes) >> result\n}\n",
+    );
+    let checked = check_syntax_document(&parsed, &catalog()).unwrap();
+    let error =
+        crate::expand_canonical_form_for_authoring(&checked, "bad", &crate::ProfileCatalog::new())
+            .expect_err("Text cannot satisfy a Bytes specialization");
+    assert_eq!(error.code, "CND-FRM-046");
+}
+
+#[test]
+fn type_arguments_must_resolve_to_exact_checked_types() {
+    let parsed = parse_syntax_document(
+        "form identity (\n item: type\n >> value: item\n result: item >>\n) {\n value >> result\n}\n\
+         form bad {\n value: identity(item = Mystery)\n}\n",
+    );
+    let error = check_syntax_document(&parsed, &catalog()).unwrap_err();
+    assert_eq!(error.code, "CND-FRM-057");
+    assert!(error.message.contains("exact checked type"));
+}
+
+#[test]
 fn grouped_uses_resolve_each_exact_installed_kind() {
     let checked = check(
         "use time/{every, default}\nform example {\n first: every(1s)\n second: default\n}\n",
