@@ -2,7 +2,9 @@
 
 #[cfg(feature = "form-catalog")]
 use crate::human_media_catalog::install_camera_catalogs;
-use alloc::{string::String, string::ToString, vec, vec::Vec};
+#[cfg(feature = "form-catalog")]
+use alloc::string::ToString;
+use alloc::{string::String, vec, vec::Vec};
 use conduit_core::{
     kind_id, port_id, BoundedResourceRef, CapabilityLimits, Kind, KindId, KindIdentity,
     PortDescriptor, PortDirection, PortTemporal, StructuredFieldType, StructuredFieldValue,

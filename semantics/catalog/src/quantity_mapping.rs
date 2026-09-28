@@ -1,10 +1,16 @@
 //! Portable mapping from a bounded scalar range to an exact unit-bearing quantity.
 
-use alloc::{format, string::ToString, vec, vec::Vec};
+#[cfg(feature = "form-catalog")]
+use alloc::format;
+#[cfg(feature = "form-catalog")]
+use alloc::string::ToString;
+use alloc::{vec, vec::Vec};
+#[cfg(feature = "form-catalog")]
+use conduit_core::QuantityDimension;
 use conduit_core::{
     kind_id, port_id, CapabilityLimits, ConfigurationValue, Kind, PortDescriptor, PortDirection,
-    PortTemporal, Quantity, QuantityDimension, QuantityUnit, Scalar, DISTANCE_INFO_ID,
-    FREQUENCY_INFO_ID, QUANTITY_ENCODED_LEN, QUANTITY_INFO_ID, SCALAR_INFO_ID,
+    PortTemporal, Quantity, QuantityUnit, Scalar, DISTANCE_INFO_ID, FREQUENCY_INFO_ID,
+    QUANTITY_ENCODED_LEN, QUANTITY_INFO_ID, SCALAR_INFO_ID,
 };
 
 use crate::{
