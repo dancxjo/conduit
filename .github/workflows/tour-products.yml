@@ -834,8 +834,6 @@ jobs:
           cp target/browser-product-runtimes/patchbay-runtime.wasm target/wasm32-unknown-unknown/release/conduit_browser_runtime.wasm
           chmod 755 target/debug/conduit-browser-host
           chmod 755 target/browser-product-runtimes/patchbay-static-assets
-          cp target/browser-product-runtimes/tour-runtime.wasm target/conduit_tour_runtime.wasm
-          cp target/browser-product-runtimes/creche-runtime.wasm target/conduit_creche_runtime.wasm
           rm -rf target/pages-root target/tour-product target/creche-product target/workspace-product target/patchbay-product target/home-product
           site/tools/stage-pages-root.sh target/pages-root
           mkdir -p target/pages-root/supply-chain/conduitos-x86_64-pc
