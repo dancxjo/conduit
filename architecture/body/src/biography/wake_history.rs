@@ -106,12 +106,6 @@ impl BodyBiographyEvidence {
         Ok(Some(segment))
     }
 
-    #[deprecated(note = "persist the segment returned by seal_oldest_terminal_wake")]
-    pub fn compact_oldest_terminal_wake(&mut self) -> Result<bool, BodyBiographyError> {
-        self.seal_oldest_terminal_wake()
-            .map(|segment| segment.is_some())
-    }
-
     /// Retain an exact extension of one wake and its body lifecycle atomically.
     /// Workload changes must already have their own biography records. Execution
     /// termination is not a lull: callers must supply that distinct transition.
