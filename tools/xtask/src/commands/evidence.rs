@@ -4,8 +4,6 @@ use clap::{Args, Subcommand, ValueEnum};
 
 use crate::evidence::{self, ExpectedEvidenceResult, VerificationRequest};
 
-#[path = "evidence_home_cross_front.rs"]
-mod home_cross_front;
 #[path = "evidence_three_body_browser.rs"]
 mod three_body_browser;
 #[path = "evidence_three_body_journey.rs"]
@@ -23,8 +21,6 @@ pub struct EvidenceArgs {
 enum EvidenceCommand {
     /// Check the assembled documentary's images, playback, navigation and mobile layout.
     CheckThreeBodyJourney(three_body_browser::BrowserArgs),
-    /// Publish the bounded Home index after every front supplies exact evidence.
-    HomeCrossFront(HomeCrossFrontArgs),
     /// Verify three independently born Bodies against one semantic Journey contract.
     ThreeBodyJourney(ThreeBodyJourneyArgs),
     /// Write the canonical exact-commit contract for the three-Body Journey.
@@ -41,20 +37,6 @@ enum EvidenceCommand {
     Gallery(EvidenceGalleryArgs),
     /// Verify canonical documentation links structurally and against a built gallery.
     DocsVerify(EvidenceDocsVerifyArgs),
-}
-
-#[derive(Args, Debug)]
-struct HomeCrossFrontArgs {
-    /// One conduit.evidence/home-front@2 receipt; exactly six distinct fronts are required.
-    #[arg(long = "receipt", required = true)]
-    receipts: Vec<PathBuf>,
-
-    /// New file that will receive the verified bounded index.
-    #[arg(
-        long,
-        default_value = "target/conduit-evidence/home-cross-front/index.json"
-    )]
-    output: PathBuf,
 }
 
 #[derive(Args, Debug)]
@@ -189,7 +171,6 @@ enum EvidenceResultArg {
 
 pub fn run(args: EvidenceArgs) -> Result<(), Box<dyn std::error::Error>> {
     match args.command {
-        EvidenceCommand::HomeCrossFront(args) => home_cross_front::run(args.receipts, args.output),
         EvidenceCommand::CheckThreeBodyJourney(args) => three_body_browser::run(args),
         EvidenceCommand::ThreeBodyJourney(args) => {
             three_body_journey::run(args.commit, args.contract, args.tracks, args.output)

@@ -54,7 +54,6 @@ pub(super) const PRODUCT_PROOFS: &[ProductProofSpec] = &[ProductProofSpec {
         "proof/browser/workspace-handoff.test.mjs",
         "proof/browser/creche-workspace-continuity.spec.mjs",
         "proof/browser/home-host.spec.mjs",
-        "proof/browser/home-cross-front.spec.mjs",
     ],
     input_prefixes: &[
         "products/tour/",

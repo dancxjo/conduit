@@ -109,7 +109,6 @@ package_test_shard!(
         "conduit-tongues",
         "conduit-creche-model",
         "conduit-home-model",
-        "conduit-home-native",
         "conduit-workspace-model",
         "conduit-tour-model",
         "conduit-tour-native",

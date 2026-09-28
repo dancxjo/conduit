@@ -425,7 +425,7 @@ fn conduitos_oci_export_is_exact_subject_linked_and_carried_to_pages() {
 }
 
 #[test]
-fn hosted_release_jobs_run_the_packaged_tour_and_home_journeys() {
+fn hosted_release_jobs_run_the_packaged_tour_journeys() {
     let root = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../..");
     let workflow = fs::read_to_string(root.join(".github/workflows/tour-products.yml"))
         .expect("read product workflow");
@@ -434,23 +434,12 @@ fn hosted_release_jobs_run_the_packaged_tour_and_home_journeys() {
         .nth(1)
         .and_then(|tail| tail.split("\n  raspberry-pi-release:\n").next())
         .expect("locate host releases job");
-    assert!(
-        workflow.contains("host_releases_required: ${{ inputs.full_suite || steps.native-host-release.outputs.required == 'true'")
-    );
+    assert!(!workflow.contains("native-host-release"));
     assert!(releases.contains("if: needs.plan.outputs.host_releases_required == 'true'"));
     assert!(releases.contains("conduit-tour-linux-x86_64 --journey"));
     assert!(releases.contains("conduit-tour-windows-x86_64.exe --journey"));
     assert!(releases.contains("cargo +1.98.1 xtask setup linux-release"));
-    assert!(releases.contains("rm -rf target/creche-host-releases/home-front-linux-native"));
-    assert!(releases.contains(
-        "xvfb-run -a target/creche-host-releases/conduit-home-linux-x86_64 --journey-evidence target/creche-host-releases/home-front-linux-native"
-    ));
-    assert!(releases.contains(
-        "Remove-Item -Recurse -Force -ErrorAction SilentlyContinue target/creche-host-releases/home-front-windows-native"
-    ));
-    assert!(releases.contains(
-        "conduit-home-windows-x86_64.exe --journey-evidence target/creche-host-releases/home-front-windows-native"
-    ));
+    assert!(!releases.contains("conduit-home"));
     assert!(releases.contains("name: conduit-existing-computer-releases-${{ matrix.artifact }}"));
 }
 
