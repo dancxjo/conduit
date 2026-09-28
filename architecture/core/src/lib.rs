@@ -81,7 +81,7 @@ pub use device::*;
 pub use execution::*;
 pub use execution_fusion::*;
 pub use fixed_integer::*;
-pub use front::{CheckedFront, FrontStartupParameter, FrontValueBound, FrontValueLocation};
+pub use front::{CheckedFront, FrontStartupParameter, FrontValueContract, FrontValueLocation};
 pub use implementation::{
     ImplementationOffer, RealizationAdvertisement, RealizationCharacteristic,
 };

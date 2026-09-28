@@ -40,10 +40,10 @@ pub fn plan_expanded_canonical(
         let bound_at = |gear: &conduit_form::CheckedGear,
                         location: conduit_core::FrontValueLocation| {
             gear.checked_front()
-                .value_bounds()
+                .value_contracts()
                 .iter()
                 .find(|bound| bound.location == location)
-                .map(|bound| bound.maximum_bytes)
+                .map(|contract| u64::from(contract.contract.maximum_bytes))
                 .unwrap_or_default()
         };
         let required_value_bytes = bound_at(

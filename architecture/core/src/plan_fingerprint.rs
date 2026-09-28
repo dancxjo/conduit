@@ -533,11 +533,11 @@ fn push_semantic_contract(canonical: &mut Vec<u8>, contract: &crate::KindSemanti
                     canonical.push(port.mobility as u8);
                 }
             }
-            Law::ValueBounds(bounds) => {
+            Law::ValueContracts(contracts) => {
                 canonical.push(11);
-                push_u32(canonical, bounds.len() as u32);
-                for bound in bounds {
-                    match &bound.location {
+                push_u32(canonical, contracts.len() as u32);
+                for value_contract in contracts {
+                    match &value_contract.location {
                         crate::FrontValueLocation::Startup(name) => {
                             canonical.push(0);
                             push_string(canonical, name);
@@ -551,7 +551,7 @@ fn push_semantic_contract(canonical: &mut Vec<u8>, contract: &crate::KindSemanti
                             push_string(canonical, port.as_str());
                         }
                     }
-                    push_u64(canonical, bound.maximum_bytes);
+                    push_value_contract(canonical, &value_contract.contract);
                 }
             }
         }
@@ -657,9 +657,9 @@ fn push_checked_front(canonical: &mut Vec<u8>, front: &CheckedFront) {
         canonical.push(resource.lifecycle as u8);
         canonical.push(resource.mobility as u8);
     }
-    push_u32(canonical, front.value_bounds().len() as u32);
-    for bound in front.value_bounds() {
-        match &bound.location {
+    push_u32(canonical, front.value_contracts().len() as u32);
+    for value_contract in front.value_contracts() {
+        match &value_contract.location {
             crate::FrontValueLocation::Startup(name) => {
                 canonical.push(0);
                 push_string(canonical, name);
@@ -673,7 +673,7 @@ fn push_checked_front(canonical: &mut Vec<u8>, front: &CheckedFront) {
                 push_string(canonical, port.as_str());
             }
         }
-        push_u64(canonical, bound.maximum_bytes);
+        push_value_contract(canonical, &value_contract.contract);
     }
     match front.shorthand() {
         Some((input, output)) => {
@@ -682,6 +682,50 @@ fn push_checked_front(canonical: &mut Vec<u8>, front: &CheckedFront) {
             push_string(canonical, output.as_str());
         }
         None => canonical.push(0),
+    }
+}
+
+fn push_value_contract(canonical: &mut Vec<u8>, contract: &crate::CheckedValueContract) {
+    push_string(canonical, contract.value_kind.as_str());
+    push_u32(canonical, contract.maximum_bytes);
+    push_u32(canonical, contract.constraints.len() as u32);
+    for constraint in &contract.constraints {
+        match constraint {
+            crate::ValueConstraint::ByteLength { minimum, maximum } => {
+                canonical.push(0);
+                push_u32(canonical, *minimum);
+                push_u32(canonical, *maximum);
+            }
+            crate::ValueConstraint::UnsignedRange { minimum, maximum } => {
+                canonical.push(1);
+                push_u64(canonical, *minimum);
+                push_u64(canonical, *maximum);
+            }
+            crate::ValueConstraint::CanonicalMembership { members } => {
+                canonical.push(2);
+                push_u32(canonical, members.len() as u32);
+                for member in members {
+                    push_u32(canonical, member.len() as u32);
+                    canonical.extend_from_slice(member);
+                }
+            }
+            crate::ValueConstraint::TextPattern(pattern) => {
+                canonical.push(3);
+                push_u32(canonical, u32::from(pattern.start_state));
+                push_u32(canonical, pattern.maximum_input_characters);
+                push_u32(canonical, pattern.maximum_match_steps);
+                push_u32(canonical, pattern.states.len() as u32);
+                for state in &pattern.states {
+                    canonical.push(u8::from(state.accepting));
+                    push_u32(canonical, state.transitions.len() as u32);
+                    for transition in &state.transitions {
+                        push_u32(canonical, transition.first_scalar);
+                        push_u32(canonical, transition.last_scalar);
+                        push_u32(canonical, u32::from(transition.target_state));
+                    }
+                }
+            }
+        }
     }
 }
 

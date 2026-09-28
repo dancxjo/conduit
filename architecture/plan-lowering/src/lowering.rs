@@ -739,14 +739,14 @@ pub fn lower_plan_fragment_for_profile(
             &placement.placement_id,
             &placement.inputs,
             PortDirection::Input,
-            checked_front.value_bounds(),
+            checked_front.value_contracts(),
         )?;
         let outputs = lower_ports(
             node,
             &placement.placement_id,
             &placement.outputs,
             PortDirection::Output,
-            checked_front.value_bounds(),
+            checked_front.value_contracts(),
         )?;
         if inputs.len() > profile.maximum_ports_per_node() {
             return Err(LoweringError::ProfileCapacityExceeded {

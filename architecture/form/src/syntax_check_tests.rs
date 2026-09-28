@@ -135,20 +135,31 @@ fn finite_value_bounds_survive_in_the_exact_checked_fore() {
         conduit_core::compute_checked_front_fingerprint(&narrower_front)
     );
     assert_eq!(
-        default_front.value_bounds(),
-        &[
-            conduit_core::FrontValueBound {
-                location: conduit_core::FrontValueLocation::Startup("title".into()),
-                maximum_bytes: 256,
-            },
-            conduit_core::FrontValueBound {
-                location: conduit_core::FrontValueLocation::Input(conduit_core::port_id("input")),
-                maximum_bytes: 256,
-            },
-            conduit_core::FrontValueBound {
-                location: conduit_core::FrontValueLocation::Output(conduit_core::port_id("output")),
-                maximum_bytes: 65_536,
-            },
+        default_front
+            .value_contracts()
+            .iter()
+            .map(|value_contract| (
+                value_contract.location.clone(),
+                value_contract.contract.value_kind.clone(),
+                value_contract.contract.maximum_bytes,
+            ))
+            .collect::<Vec<_>>(),
+        vec![
+            (
+                conduit_core::FrontValueLocation::Startup("title".into()),
+                conduit_core::kind_id(conduit_core::TEXT_INFO_ID),
+                256,
+            ),
+            (
+                conduit_core::FrontValueLocation::Input(conduit_core::port_id("input")),
+                conduit_core::kind_id(conduit_core::TEXT_INFO_ID),
+                256,
+            ),
+            (
+                conduit_core::FrontValueLocation::Output(conduit_core::port_id("output")),
+                conduit_core::kind_id(conduit_core::BYTES_INFO_ID),
+                65_536,
+            ),
         ]
     );
 }

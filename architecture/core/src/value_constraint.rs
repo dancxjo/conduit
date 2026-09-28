@@ -16,14 +16,14 @@ pub const MAX_PATTERN_STATES: usize = 256;
 pub const MAX_PATTERN_TRANSITIONS: usize = 1_024;
 pub const MAX_PATTERN_MATCH_STEPS: u32 = 65_536;
 
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]
 pub struct CheckedValueContract {
     pub value_kind: KindId,
     pub maximum_bytes: u32,
     pub constraints: Vec<ValueConstraint>,
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]
 pub enum ValueConstraint {
     ByteLength { minimum: u32, maximum: u32 },
     UnsignedRange { minimum: u64, maximum: u64 },
@@ -31,7 +31,7 @@ pub enum ValueConstraint {
     TextPattern(CheckedTextPattern),
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]
 pub struct CheckedTextPattern {
     pub states: Vec<TextPatternState>,
     pub start_state: u16,
@@ -39,13 +39,13 @@ pub struct CheckedTextPattern {
     pub maximum_match_steps: u32,
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]
 pub struct TextPatternState {
     pub accepting: bool,
     pub transitions: Vec<TextPatternTransition>,
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]
 pub struct TextPatternTransition {
     pub first_scalar: u32,
     pub last_scalar: u32,
@@ -56,12 +56,14 @@ pub struct TextPatternTransition {
 pub enum ConstraintDefinitionError {
     TooManyConstraints,
     NonCanonicalConstraintOrder,
+    WrongConstraintKind,
     InvalidByteRange,
     InvalidUnsignedRange,
     EmptyMembership,
     TooManyMembershipValues,
     MembershipBytesExceeded,
     NonCanonicalMembership,
+    MalformedMembership,
     EmptyPattern,
     TooManyPatternStates,
     TooManyPatternTransitions,
@@ -100,7 +102,7 @@ impl CheckedValueContract {
             return Err(ConstraintDefinitionError::NonCanonicalConstraintOrder);
         }
         for constraint in &constraints {
-            constraint.validate_definition(maximum_bytes)?;
+            constraint.validate_definition(value_kind.as_str(), maximum_bytes)?;
         }
         Ok(Self {
             value_kind,
@@ -135,7 +137,11 @@ impl ValueConstraint {
         }
     }
 
-    fn validate_definition(&self, maximum_bytes: u32) -> Result<(), ConstraintDefinitionError> {
+    fn validate_definition(
+        &self,
+        value_kind: &str,
+        maximum_bytes: u32,
+    ) -> Result<(), ConstraintDefinitionError> {
         match self {
             Self::ByteLength { minimum, maximum }
                 if minimum > maximum || *maximum > maximum_bytes =>
@@ -144,6 +150,9 @@ impl ValueConstraint {
             }
             Self::UnsignedRange { minimum, maximum } if minimum > maximum => {
                 Err(ConstraintDefinitionError::InvalidUnsignedRange)
+            }
+            Self::UnsignedRange { .. } if value_kind != crate::COUNT_INFO_ID => {
+                Err(ConstraintDefinitionError::WrongConstraintKind)
             }
             Self::CanonicalMembership { members } if members.is_empty() => {
                 Err(ConstraintDefinitionError::EmptyMembership)
@@ -163,6 +172,16 @@ impl ValueConstraint {
                 if members.windows(2).any(|pair| pair[0] >= pair[1]) =>
             {
                 Err(ConstraintDefinitionError::NonCanonicalMembership)
+            }
+            Self::CanonicalMembership { members }
+                if members
+                    .iter()
+                    .any(|member| validate_primitive_info(value_kind, member).is_err()) =>
+            {
+                Err(ConstraintDefinitionError::MalformedMembership)
+            }
+            Self::TextPattern(_) if value_kind != crate::TEXT_INFO_ID => {
+                Err(ConstraintDefinitionError::WrongConstraintKind)
             }
             Self::TextPattern(pattern) => pattern.validate_definition(),
             _ => Ok(()),
@@ -457,6 +476,31 @@ mod tests {
         assert_eq!(
             contract.validate(b"zz"),
             Err(ValueConstraintRefusal::Membership)
+        );
+    }
+
+    #[test]
+    fn incompatible_and_malformed_constraints_refuse_before_play() {
+        assert_eq!(
+            CheckedValueContract::new(
+                crate::kind_id(crate::TEXT_INFO_ID),
+                8,
+                vec![ValueConstraint::UnsignedRange {
+                    minimum: 0,
+                    maximum: 8,
+                }],
+            ),
+            Err(ConstraintDefinitionError::WrongConstraintKind)
+        );
+        assert_eq!(
+            CheckedValueContract::new(
+                crate::kind_id(crate::COUNT_INFO_ID),
+                crate::COUNT_ENCODED_LEN as u32,
+                vec![ValueConstraint::CanonicalMembership {
+                    members: vec![vec![0]],
+                }],
+            ),
+            Err(ConstraintDefinitionError::MalformedMembership)
         );
     }
 }

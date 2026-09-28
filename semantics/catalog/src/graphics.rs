@@ -262,21 +262,23 @@ mod tests {
     fn scene_transforms_publish_exact_finite_port_envelopes() {
         let kind =
             graphics_icon_contract().into_semantic_contract(GRAPHICS_SCENE_CONTRACT_REVISION);
-        let bounds = kind
+        let contracts = kind
             .semantic_laws
             .iter()
             .find_map(|law| match law {
-                KindSemanticLaw::ValueBounds(bounds) => Some(bounds),
+                KindSemanticLaw::ValueContracts(contracts) => Some(contracts),
                 _ => None,
             })
             .expect("variable-size Face values require explicit envelopes");
-        assert!(bounds.iter().any(|bound| {
-            bound.location == FrontValueLocation::Input(port_id(GRAPHICS_INPUT_PORT))
-                && bound.maximum_bytes == conduit_presentation::MAX_GRAPHICS_SCENE_BYTES as u64
+        assert!(contracts.iter().any(|value_contract| {
+            value_contract.location == FrontValueLocation::Input(port_id(GRAPHICS_INPUT_PORT))
+                && value_contract.contract.maximum_bytes
+                    == conduit_presentation::MAX_GRAPHICS_SCENE_BYTES as u32
         }));
-        assert!(bounds.iter().any(|bound| {
-            bound.location == FrontValueLocation::Output(port_id(GRAPHICS_OUTPUT_PORT))
-                && bound.maximum_bytes == conduit_presentation::MAX_GRAPHICS_SCENE_BYTES as u64
+        assert!(contracts.iter().any(|value_contract| {
+            value_contract.location == FrontValueLocation::Output(port_id(GRAPHICS_OUTPUT_PORT))
+                && value_contract.contract.maximum_bytes
+                    == conduit_presentation::MAX_GRAPHICS_SCENE_BYTES as u32
         }));
     }
 }
