@@ -150,6 +150,16 @@ pub mod linear_presenter;
     feature = "loongarch64-product",
     feature = "aarch64-orange-pi-5"
 ))]
+mod mask_control;
+#[cfg(any(
+    test,
+    target_arch = "x86_64",
+    feature = "ia32-product",
+    feature = "aarch64-product",
+    feature = "riscv64-product",
+    feature = "loongarch64-product",
+    feature = "aarch64-orange-pi-5"
+))]
 mod native_mask_journey;
 #[cfg(any(
     test,
@@ -163,16 +173,6 @@ mod native_mask_journey;
 mod native_mask_play;
 #[cfg(any(test, target_arch = "x86_64", feature = "hosted-tools"))]
 pub mod presentation_nucleus;
-#[cfg(any(
-    test,
-    target_arch = "x86_64",
-    feature = "ia32-product",
-    feature = "aarch64-product",
-    feature = "riscv64-product",
-    feature = "loongarch64-product",
-    feature = "aarch64-orange-pi-5"
-))]
-mod presenter_control;
 #[cfg(any(test, target_arch = "x86_64"))]
 pub mod product_bases;
 #[cfg(any(

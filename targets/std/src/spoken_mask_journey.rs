@@ -27,8 +27,8 @@ pub fn admit_spoken_mask_routes(
     evidence_id: &str,
 ) -> Result<SpokenMaskRouteSet, String> {
     use conduit_body::{
-        Body, BodyFormPlan, BodyPresentationSelector, BodyPresenterChainPlan,
-        BodyPresenterTopology, BodyWorkset, ResidentForm,
+        Body, BodyFaceSelector, BodyFormPlan, BodyMaskChainPlan, BodyMaskTopology, BodyWorkset,
+        ResidentForm,
     };
     let planned = executions
         .iter()
@@ -80,22 +80,22 @@ pub fn admit_spoken_mask_routes(
                 .expect("planned Mask has placement")
                 .placement_id
                 .clone();
-            BodyPresenterTopology {
-                presentation: BodyPresentationSelector {
+            BodyMaskTopology {
+                face: BodyFaceSelector {
                     form: Some(ResidentForm::new(
                         item.mask.form_identity.source_document_id.clone(),
                         item.mask.form_identity.checked_form_id.clone(),
                     )),
                     source_placement_id: first.clone(),
                 },
-                chains: vec![BodyPresenterChainPlan {
+                chains: vec![BodyMaskChainPlan {
                     plan: item.plan.clone(),
                     stage_placement_ids: vec![first],
                 }],
             }
         })
         .collect();
-    let body_plan = conduit_body::BodyPlan::seal_with_presenters(&wake, forms, topologies)
+    let body_plan = conduit_body::BodyPlan::seal_with_masks(&wake, forms, topologies)
         .map_err(|error| format!("seal spoken Mask Body Plan: {error:?}"))?;
     let routes = planned
         .iter()

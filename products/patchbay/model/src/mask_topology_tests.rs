@@ -8,8 +8,8 @@ use conduit_presentation::{
     PresentationBasis, PresentationPropertyValue, PresentationRole, PresentationSubject,
 };
 
-fn stage(id: &str, implementation: &str, input: &str, output: Option<&str>) -> PresenterStage {
-    PresenterStage {
+fn stage(id: &str, implementation: &str, input: &str, output: Option<&str>) -> MaskStage {
+    MaskStage {
         stage_id: id.into(),
         placement_id: PlacementId::from(format!("placement/{id}")),
         capability_id: CapabilityId::from(format!("capability/{id}")),
@@ -23,15 +23,15 @@ fn stage(id: &str, implementation: &str, input: &str, output: Option<&str>) -> P
         authorized: true,
     }
 }
-fn chain(id: &str, implementation: &str) -> PresenterChain {
-    PresenterChain {
+fn chain(id: &str, implementation: &str) -> MaskChain {
+    MaskChain {
         chain_id: id.into(),
         stages: vec![stage(id, implementation, "presentation/structured@1", None)],
         manifestation_id: format!("manifestation/{id}"),
     }
 }
-fn topology(chains: Vec<PresenterChain>) -> PresenterTopology {
-    PresenterTopology::new(
+fn topology(chains: Vec<MaskChain>) -> MaskTopology {
+    MaskTopology::new(
         body_id("self", 0),
         Some(SourceDocumentId::from("source/self")),
         "presentation/patchbay".into(),
@@ -51,11 +51,8 @@ fn body_id(label: &str, sequence: u64) -> BodyId {
     .unwrap()
     .body_id
 }
-fn request(
-    current: &PresenterTopology,
-    change: PresenterTopologyChange,
-) -> PresenterTopologyRequest {
-    PresenterTopologyRequest {
+fn request(current: &MaskTopology, change: MaskTopologyChange) -> MaskTopologyRequest {
+    MaskTopologyRequest {
         body_id: current.body_id.clone(),
         source_document_id: current.source_document_id.clone(),
         presentation_id: current.presentation_id.clone(),
@@ -72,13 +69,13 @@ fn renderer(plan: &conduit_core::Plan) -> &conduit_core::PlannedGear {
 }
 
 #[test]
-fn patchbay_adds_and_removes_its_own_presenters_through_fresh_plan_and_play() {
-    let graphical = chain("graphical", "conduit.presenter/native-graphical@1");
-    let speech = chain("speech", "conduit.presenter/test-speech@1");
+fn patchbay_adds_and_removes_its_own_masks_through_fresh_plan_and_play() {
+    let graphical = chain("graphical", "conduit.mask/native-graphical@1");
+    let speech = chain("speech", "conduit.mask/test-speech@1");
     let original = topology(vec![graphical.clone()]);
     let added = original
         .request_replacement(
-            request(&original, PresenterTopologyChange::Add(speech.clone())),
+            request(&original, MaskTopologyChange::Add(speech.clone())),
             PlanId::from("plan/b"),
             ActivePlayId::from("play/b"),
         )
@@ -98,7 +95,7 @@ fn patchbay_adds_and_removes_its_own_presenters_through_fresh_plan_and_play() {
         .request_replacement(
             request(
                 &added.current,
-                PresenterTopologyChange::Remove {
+                MaskTopologyChange::Remove {
                     chain_id: graphical.chain_id.clone(),
                 },
             ),
@@ -116,7 +113,7 @@ fn patchbay_adds_and_removes_its_own_presenters_through_fresh_plan_and_play() {
         .request_replacement(
             request(
                 &speech_only.current,
-                PresenterTopologyChange::Add(PresenterChain {
+                MaskTopologyChange::Add(MaskChain {
                     manifestation_id: "manifestation/graphical-restored".into(),
                     ..graphical
                 }),
@@ -130,7 +127,7 @@ fn patchbay_adds_and_removes_its_own_presenters_through_fresh_plan_and_play() {
 
 #[test]
 fn two_stage_handoff_and_reorder_are_typed_and_finite() {
-    let chain = PresenterChain {
+    let chain = MaskChain {
         chain_id: "spoken".into(),
         stages: vec![
             stage(
@@ -148,7 +145,7 @@ fn two_stage_handoff_and_reorder_are_typed_and_finite() {
         current.request_replacement(
             request(
                 &current,
-                PresenterTopologyChange::Reorder {
+                MaskTopologyChange::Reorder {
                     chain_id: "spoken".into(),
                     stage_ids: vec!["speech".into(), "normalize".into()]
                 }
@@ -156,51 +153,48 @@ fn two_stage_handoff_and_reorder_are_typed_and_finite() {
             PlanId::from("plan/b"),
             ActivePlayId::from("play/b")
         ),
-        Err(PresenterTopologyRefusal::IncompatibleType)
+        Err(MaskTopologyRefusal::IncompatibleType)
     );
 }
 
 #[test]
 fn refusal_causes_are_distinct_and_leave_current_realization_unchanged() {
     let current = topology(vec![chain("graphical", "native")]);
-    let mut stale = request(
-        &current,
-        PresenterTopologyChange::Add(chain("speech", "speech")),
-    );
+    let mut stale = request(&current, MaskTopologyChange::Add(chain("speech", "speech")));
     stale.basis_plan_id = PlanId::from("plan/stale");
     assert_eq!(
         current.request_replacement(stale, PlanId::from("plan/b"), ActivePlayId::from("play/b")),
-        Err(PresenterTopologyRefusal::StaleRequest)
+        Err(MaskTopologyRefusal::StaleRequest)
     );
     let mut unavailable = chain("speech", "speech");
     unavailable.stages[0].available = false;
     assert_eq!(
         current.request_replacement(
-            request(&current, PresenterTopologyChange::Add(unavailable)),
+            request(&current, MaskTopologyChange::Add(unavailable)),
             PlanId::from("plan/b"),
             ActivePlayId::from("play/b")
         ),
-        Err(PresenterTopologyRefusal::UnavailablePresenter)
+        Err(MaskTopologyRefusal::UnavailableMask)
     );
     let mut denied = chain("speech", "speech");
     denied.stages[0].authorized = false;
     assert_eq!(
         current.request_replacement(
-            request(&current, PresenterTopologyChange::Add(denied)),
+            request(&current, MaskTopologyChange::Add(denied)),
             PlanId::from("plan/b"),
             ActivePlayId::from("play/b")
         ),
-        Err(PresenterTopologyRefusal::AuthorityPolicy)
+        Err(MaskTopologyRefusal::AuthorityPolicy)
     );
     let mut pressure = chain("speech", "speech");
-    pressure.stages[0].capacity_cost = MAX_PRESENTER_CAPACITY;
+    pressure.stages[0].capacity_cost = MAX_MASK_CAPACITY;
     assert_eq!(
         current.request_replacement(
-            request(&current, PresenterTopologyChange::Add(pressure)),
+            request(&current, MaskTopologyChange::Add(pressure)),
             PlanId::from("plan/b"),
             ActivePlayId::from("play/b")
         ),
-        Err(PresenterTopologyRefusal::ResourcePressure)
+        Err(MaskTopologyRefusal::ResourcePressure)
     );
     assert_eq!(current.plan_id.as_str(), "plan/a");
     assert_eq!(current.chains.len(), 1);
@@ -211,12 +205,9 @@ fn cycle_overlength_lost_host_and_superseded_body_refuse_distinctly() {
     let current = topology(vec![chain("graphical", "native")]);
     let mut cycle = chain("cycle", "one");
     cycle.stages.push(cycle.stages[0].clone());
-    assert_eq!(
-        validate_chains(&[cycle]),
-        Err(PresenterTopologyRefusal::Cycle)
-    );
+    assert_eq!(validate_chains(&[cycle]), Err(MaskTopologyRefusal::Cycle));
     let mut long = chain("long", "one");
-    for index in 1..=MAX_PRESENTER_STAGES_PER_CHAIN {
+    for index in 1..=MAX_MASK_STAGES_PER_CHAIN {
         long.stages.last_mut().unwrap().output_kind = Some(format!("presentation/stage-{index}"));
         long.stages.push(stage(
             &format!("stage-{index}"),
@@ -227,7 +218,7 @@ fn cycle_overlength_lost_host_and_superseded_body_refuse_distinctly() {
     }
     assert_eq!(
         validate_chains(&[long]),
-        Err(PresenterTopologyRefusal::ChainLengthBound)
+        Err(MaskTopologyRefusal::ChainLengthBound)
     );
     let mut lost = chain("lost", "speech");
     lost.stages.insert(
@@ -240,14 +231,8 @@ fn cycle_overlength_lost_host_and_superseded_body_refuse_distinctly() {
         ),
     );
     lost.stages[1].available = false;
-    assert_eq!(
-        validate_chains(&[lost]),
-        Err(PresenterTopologyRefusal::LostHost)
-    );
-    let mut wrong_body = request(
-        &current,
-        PresenterTopologyChange::Add(chain("speech", "speech")),
-    );
+    assert_eq!(validate_chains(&[lost]), Err(MaskTopologyRefusal::LostHost));
+    let mut wrong_body = request(&current, MaskTopologyChange::Add(chain("speech", "speech")));
     wrong_body.body_id = body_id("replaced", 1);
     assert_eq!(
         current.request_replacement(
@@ -255,15 +240,15 @@ fn cycle_overlength_lost_host_and_superseded_body_refuse_distinctly() {
             PlanId::from("plan/b"),
             ActivePlayId::from("play/b")
         ),
-        Err(PresenterTopologyRefusal::SupersededBodyTruth)
+        Err(MaskTopologyRefusal::SupersededBodyTruth)
     );
 }
 
 #[test]
 fn browser_and_native_receive_one_portable_exact_topology_and_visible_controls() {
     let mut current = topology(vec![
-        chain("graphical", "conduit.presenter/native-graphical@1"),
-        chain("speech", "conduit.presenter/test-speech@1"),
+        chain("graphical", "conduit.mask/native-graphical@1"),
+        chain("speech", "conduit.mask/test-speech@1"),
     ]);
     let base = conduit_presentation::Presentation::new_with_semantics(
         7,
@@ -290,20 +275,18 @@ fn browser_and_native_receive_one_portable_exact_topology_and_visible_controls()
     )
     .unwrap();
     current.presentation_id = base.identity.as_str().into();
-    let portable = project_presenter_topology(&base, &current).unwrap();
+    let portable = project_mask_topology(&base, &current).unwrap();
     portable.validate().unwrap();
     assert_eq!(portable.basis, base.basis);
     assert_eq!(
         portable.identity,
-        project_presenter_topology(&base, &current)
-            .unwrap()
-            .identity
+        project_mask_topology(&base, &current).unwrap().identity
     );
     let graphical_stage = portable
         .subjects
         .iter()
-        .find(|subject| subject.name == "conduit.presenter/native-graphical@1")
-        .expect("graphical Presenter stage");
+        .find(|subject| subject.name == "conduit.mask/native-graphical@1")
+        .expect("graphical Mask stage");
     for (name, value) in [("host", "host/graphical"), ("boot", "boot/graphical")] {
         assert!(portable.properties.iter().any(|property| {
             property.subject == graphical_stage.identity
@@ -322,21 +305,19 @@ fn browser_and_native_receive_one_portable_exact_topology_and_visible_controls()
         .lines;
     assert!(native_lines
         .iter()
-        .any(|line| line.contains("Presenter topology")));
-    assert!(native_lines
-        .iter()
-        .any(|line| line.contains("Add Presenter")));
+        .any(|line| line.contains("Mask topology")));
+    assert!(native_lines.iter().any(|line| line.contains("Add Mask")));
     assert!(native_lines.iter().any(|line| line.contains("test-speech")));
 }
 
 #[test]
 fn public_replanning_seam_requires_exact_verified_planner_output() {
-    let plans = patchbay_presenter_plans().unwrap();
+    let plans = patchbay_mask_plans().unwrap();
     let direct = renderer(&plans.direct);
     let recursive = renderer(&plans.recursive);
-    let from_placement = |id: &str, placement: &conduit_core::PlannedGear| PresenterChain {
+    let from_placement = |id: &str, placement: &conduit_core::PlannedGear| MaskChain {
         chain_id: "graphical".into(),
-        stages: vec![PresenterStage {
+        stages: vec![MaskStage {
             stage_id: id.into(),
             placement_id: placement.placement_id.clone(),
             capability_id: placement.capability_id.clone(),
@@ -352,7 +333,7 @@ fn public_replanning_seam_requires_exact_verified_planner_output() {
         manifestation_id: format!("manifestation/{id}"),
     };
     let current_play = bind_active_play(&plans.direct.plan_id, &direct.host_id, &direct.boot_id, 1);
-    let current = PresenterTopology::new(
+    let current = MaskTopology::new(
         body_id("planned", 2),
         Some(plans.direct.source_document_id.clone()),
         "presentation/patchbay".into(),
@@ -371,7 +352,7 @@ fn public_replanning_seam_requires_exact_verified_planner_output() {
         .request_replacement_from_plan(
             request(
                 &current,
-                PresenterTopologyChange::Replace {
+                MaskTopologyChange::Replace {
                     chain_id: "graphical".into(),
                     replacement: from_placement("recursive", recursive),
                 },

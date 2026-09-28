@@ -16,11 +16,8 @@ use patchbay_graph::{PatchbayGraph, PatchbayGraphError, PatchbayInspection};
 pub const INSPECT_NEXT_ACTION_ID: &str = "patchbay.inspect.next";
 pub const EDIT_CURRENT_ACTION_ID: &str = "patchbay.edit.current";
 pub const SELECT_FORM_ACTION_PREFIX: &str = "patchbay.form.";
-mod presenter;
-pub use presenter::{
-    PatchbayPresenterMode, PatchbayPresenterStage, PatchbayPresenterTopology,
-    CHANGE_PRESENTERS_ACTION_ID,
-};
+mod mask;
+pub use mask::{PatchbayMaskMode, PatchbayMaskStage, PatchbayMaskTopology, CHANGE_MASKS_ACTION_ID};
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub enum PatchbayApplicationRequest {
@@ -28,9 +25,9 @@ pub enum PatchbayApplicationRequest {
         expanded_form_id: conduit_core::ExpandedFormId,
         subject_identity: String,
     },
-    ChangePresenters {
+    ChangeMasks {
         body_plan_id: PlanId,
-        mode: PatchbayPresenterMode,
+        mode: PatchbayMaskMode,
     },
 }
 
@@ -95,7 +92,7 @@ pub struct PatchbayApplicationPort {
     selected_form: Option<usize>,
     selected_subject: usize,
     edit_requested: bool,
-    presenter_topology: Option<PatchbayPresenterTopology>,
+    mask_topology: Option<PatchbayMaskTopology>,
 }
 
 impl PatchbayApplicationPort {
@@ -137,13 +134,13 @@ impl PatchbayApplicationPort {
             selected_form: None,
             selected_subject: 0,
             edit_requested: false,
-            presenter_topology: None,
+            mask_topology: None,
         })
     }
 
-    pub fn set_presenter_topology(&mut self, topology: PatchbayPresenterTopology) {
+    pub fn set_mask_topology(&mut self, topology: PatchbayMaskTopology) {
         self.body_plan_id = topology.body_plan_id.clone();
-        self.presenter_topology = Some(topology);
+        self.mask_topology = Some(topology);
     }
 
     pub fn graph(&self) -> &PatchbayGraph {
@@ -225,13 +222,13 @@ impl PatchbayApplicationPort {
                     subject_identity: inspection.subject_identity,
                 }))
             }
-            CHANGE_PRESENTERS_ACTION_ID => {
+            CHANGE_MASKS_ACTION_ID => {
                 let topology = self
-                    .presenter_topology
+                    .mask_topology
                     .as_ref()
                     .ok_or(PatchbayApplicationRefusal::UnknownAction)?;
                 let mode = topology.next_mode();
-                Ok(Some(PatchbayApplicationRequest::ChangePresenters {
+                Ok(Some(PatchbayApplicationRequest::ChangeMasks {
                     body_plan_id: topology.body_plan_id.clone(),
                     mode,
                 }))
@@ -274,8 +271,8 @@ impl PatchbayApplicationPort {
             id: EDIT_CURRENT_ACTION_ID.into(),
             event: ApplicationEventKind::Activate,
         });
-        if self.presenter_topology.is_some() {
-            actions.push(presenter::action());
+        if self.mask_topology.is_some() {
+            actions.push(mask::action());
         }
         let mut nodes = vec![
             node(
@@ -413,8 +410,8 @@ impl PatchbayApplicationPort {
                 None,
             ));
         }
-        if let Some(topology) = &self.presenter_topology {
-            presenter::append_nodes(topology, &mut nodes, (actions.len() - 1) as u8);
+        if let Some(topology) = &self.mask_topology {
+            mask::append_nodes(topology, &mut nodes, (actions.len() - 1) as u8);
         }
         let view = ApplicationView {
             revision: self.revision,

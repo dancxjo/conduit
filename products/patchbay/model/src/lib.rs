@@ -67,9 +67,19 @@ mod llm_embodiment_presentation;
 mod llm_presentation;
 mod llm_replan_explanation;
 mod maker_environment;
+mod mask_control;
+#[cfg(test)]
+mod mask_control_tests;
 mod mask_inspection;
+mod mask_plans;
+#[cfg(test)]
+mod mask_plans_tests;
 #[cfg(test)]
 mod mask_product_tests;
+mod mask_topology;
+mod mask_topology_projection;
+#[cfg(test)]
+mod mask_topology_tests;
 mod palette;
 #[cfg(test)]
 mod parts_truth_explanation_tests;
@@ -91,16 +101,6 @@ mod portable_route_projection;
 mod portable_vector_search_projection;
 mod portable_world_projection;
 mod presentation_layout;
-mod presenter_control;
-#[cfg(test)]
-mod presenter_control_tests;
-mod presenter_plans;
-#[cfg(test)]
-mod presenter_plans_tests;
-mod presenter_topology;
-mod presenter_topology_projection;
-#[cfg(test)]
-mod presenter_topology_tests;
 mod prewake;
 pub mod proof;
 mod readable_body_history;
@@ -278,7 +278,11 @@ pub use maker_environment::{
     SimulationProvenance, MAKER_ENVIRONMENT_VERSION, MAX_AUTHORED_LINKS, MAX_AUTHORED_PARTS,
     MAX_ENVIRONMENT_COORDINATE, MAX_ENVIRONMENT_ID_BYTES, MAX_PART_NAME_BYTES,
 };
+pub use mask_control::*;
 pub use mask_inspection::*;
+pub use mask_plans::*;
+pub use mask_topology::*;
+pub use mask_topology_projection::*;
 pub use palette::{
     GearPalette, PaletteCategory, PaletteConfigurationSummary, PaletteEntry, PaletteError,
     PaletteIconKey, MAX_PALETTE_ENTRIES, MAX_PALETTE_QUERY_BYTES,
@@ -298,7 +302,7 @@ pub use portable_demo::{portable_demonstration, portable_demonstration_with_part
 pub use portable_demo::{
     portable_demonstration_with_adapter, portable_demonstration_with_parts_and_adapter,
 };
-pub use portable_graphics::{NativeGraphicsObligation, NativeGraphicsPresenter};
+pub use portable_graphics::{NativeGraphicsMask, NativeGraphicsObligation};
 pub use portable_layout::{DirectLayoutEvaluator, DirectLayoutOperation};
 pub use portable_navigation::PatchbayNavigationProjection;
 pub use portable_projection::PortableProjectionError;
@@ -307,10 +311,6 @@ pub use presentation_layout::{
     PresentationOverflow, PresentationPriority, PresentationRegion, PresentationRegionId,
     PresentationRegionMode, ResponsivePatchbayLayout, MAX_PRESENTATION_REGIONS,
 };
-pub use presenter_control::*;
-pub use presenter_plans::*;
-pub use presenter_topology::*;
-pub use presenter_topology_projection::*;
 pub use prewake::*;
 pub use readable_body_history::{
     BodyHistoryAccess, BodyHistoryEntry, BodyHistoryExactEvidence, BodyHistoryInspectTarget,

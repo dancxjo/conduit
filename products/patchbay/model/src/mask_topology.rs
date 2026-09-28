@@ -1,4 +1,4 @@
-//! Typed, finite control of the current body Presenter realization.
+//! Typed, finite control of the current body Mask realization.
 //!
 //! These records are a projection and a replanning request. They do not mutate
 //! a plan, schedule a renderer, or grant authority.
@@ -9,18 +9,17 @@ use conduit_core::{
     PlacementId, Plan, PlanId, SourceDocumentId,
 };
 use conduit_presentation::{
-    Manifestation, ManifestationLifecycle, ManifestationSet, Presentation,
-    PresenterTopologyAdmission,
+    Manifestation, ManifestationLifecycle, ManifestationSet, MaskTopologyAdmission, Presentation,
 };
 use serde::{Deserialize, Serialize};
 
-pub const PRESENTER_TOPOLOGY_SCHEMA: &str = "conduit.patchbay/presenter-topology@1";
-pub const MAX_PRESENTER_CHAINS: usize = 4;
-pub const MAX_PRESENTER_STAGES_PER_CHAIN: usize = 4;
-pub const MAX_PRESENTER_CAPACITY: u32 = 64;
+pub const MASK_TOPOLOGY_SCHEMA: &str = "conduit.patchbay/mask-topology@1";
+pub const MAX_MASK_CHAINS: usize = 4;
+pub const MAX_MASK_STAGES_PER_CHAIN: usize = 4;
+pub const MAX_MASK_CAPACITY: u32 = 64;
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
-pub struct PresenterStage {
+pub struct MaskStage {
     pub stage_id: String,
     pub placement_id: PlacementId,
     pub capability_id: CapabilityId,
@@ -35,66 +34,66 @@ pub struct PresenterStage {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
-pub struct PresenterChain {
+pub struct MaskChain {
     pub chain_id: String,
-    pub stages: Vec<PresenterStage>,
+    pub stages: Vec<MaskStage>,
     pub manifestation_id: String,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
-pub struct PresenterTopology {
+pub struct MaskTopology {
     pub schema: String,
     pub body_id: BodyId,
     pub source_document_id: Option<SourceDocumentId>,
     pub presentation_id: String,
     pub plan_id: PlanId,
     pub active_play_id: ActivePlayId,
-    pub chains: Vec<PresenterChain>,
+    pub chains: Vec<MaskChain>,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
-pub enum PresenterTopologyChange {
-    Add(PresenterChain),
+pub enum MaskTopologyChange {
+    Add(MaskChain),
     Remove {
         chain_id: String,
     },
     Replace {
         chain_id: String,
-        replacement: PresenterChain,
+        replacement: MaskChain,
     },
     Reorder {
         chain_id: String,
         stage_ids: Vec<String>,
     },
     SetParallel {
-        chains: Vec<PresenterChain>,
+        chains: Vec<MaskChain>,
     },
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
-pub struct PresenterTopologyRequest {
+pub struct MaskTopologyRequest {
     pub body_id: BodyId,
     pub source_document_id: Option<SourceDocumentId>,
     pub presentation_id: String,
     pub basis_plan_id: PlanId,
-    pub change: PresenterTopologyChange,
+    pub change: MaskTopologyChange,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
-pub struct PresenterTopologyReplacement {
-    pub prior: PresenterTopology,
-    pub current: PresenterTopology,
+pub struct MaskTopologyReplacement {
+    pub prior: MaskTopology,
+    pub current: MaskTopology,
     pub replaced_manifestations: Vec<String>,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
-pub enum PresenterTopologyRefusal {
+pub enum MaskTopologyRefusal {
     InvalidTopology,
     StaleRequest,
     SupersededBodyTruth,
     UnknownChain,
     DuplicateChain,
-    UnavailablePresenter,
+    UnavailableMask,
     LostHost,
     IncompatibleType,
     ResourcePressure,
@@ -106,30 +105,30 @@ pub enum PresenterTopologyRefusal {
     ReusedPlay,
 }
 
-impl core::fmt::Display for PresenterTopologyRefusal {
+impl core::fmt::Display for MaskTopologyRefusal {
     fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
-        write!(f, "Presenter topology request refused: {self:?}")
+        write!(f, "Mask topology request refused: {self:?}")
     }
 }
-impl std::error::Error for PresenterTopologyRefusal {}
+impl std::error::Error for MaskTopologyRefusal {}
 
-impl PresenterTopology {
+impl MaskTopology {
     /// Project from the body-wide Plan selection and exact terminal receipts.
     pub fn from_body_plan_truth(
         presentation: &Presentation,
         body_plan: &BodyPlan,
         body_play: &BodyPlayIdentity,
         manifestations: &[Manifestation],
-    ) -> Result<Self, PresenterTopologyRefusal> {
+    ) -> Result<Self, MaskTopologyRefusal> {
         if !body_play.validate_for(body_plan)
             || presentation.basis.body_id.as_ref() != Some(&body_plan.body_id)
         {
-            return Err(PresenterTopologyRefusal::SupersededBodyTruth);
+            return Err(MaskTopologyRefusal::SupersededBodyTruth);
         }
         let selected = body_plan
-            .presenter_topologies
+            .mask_topologies
             .iter()
-            .find(|topology| match &topology.presentation.form {
+            .find(|topology| match &topology.face.form {
                 Some(form) => {
                     presentation.basis.source_document_id.as_ref() == Some(&form.source_document_id)
                         && presentation.basis.checked_form_id.as_ref()
@@ -140,10 +139,10 @@ impl PresenterTopology {
                         && presentation.basis.checked_form_id.is_none()
                 }
             })
-            .ok_or(PresenterTopologyRefusal::InvalidTopology)?;
+            .ok_or(MaskTopologyRefusal::InvalidTopology)?;
         let mut chains = Vec::with_capacity(selected.chains.len());
         for (chain_index, selected_chain) in selected.chains.iter().enumerate() {
-            let admission = PresenterTopologyAdmission::from_plan(&selected_chain.plan)
+            let admission = MaskTopologyAdmission::from_plan(&selected_chain.plan)
                 .map_err(map_admission_error)?;
             let admitted = admission
                 .chains
@@ -155,21 +154,21 @@ impl PresenterTopology {
                         .map(|stage| &stage.placement_id)
                         .eq(selected_chain.stage_placement_ids.iter())
                 })
-                .ok_or(PresenterTopologyRefusal::InvalidTopology)?;
+                .ok_or(MaskTopologyRefusal::InvalidTopology)?;
             let terminal = admitted
                 .stages
                 .last()
-                .ok_or(PresenterTopologyRefusal::InvalidTopology)?;
+                .ok_or(MaskTopologyRefusal::InvalidTopology)?;
             let manifestation = manifestations
                 .iter()
                 .find(|value| {
                     value.plan_id == selected_chain.plan.plan_id
                         && value.placement_id == terminal.placement_id
                 })
-                .ok_or(PresenterTopologyRefusal::UnavailablePresenter)?;
+                .ok_or(MaskTopologyRefusal::UnavailableMask)?;
             manifestation
                 .validate_against(presentation, &selected_chain.plan)
-                .map_err(|_| PresenterTopologyRefusal::SupersededBodyTruth)?;
+                .map_err(|_| MaskTopologyRefusal::SupersededBodyTruth)?;
             chains.push(chain_from_admission(chain_index, admitted, manifestation));
         }
         Self::new(
@@ -191,15 +190,15 @@ impl PresenterTopology {
         plan: &Plan,
         active_play_id: ActivePlayId,
         manifestations: &ManifestationSet,
-    ) -> Result<Self, PresenterTopologyRefusal> {
+    ) -> Result<Self, MaskTopologyRefusal> {
         if presentation.basis.body_id.as_ref() != Some(&body_id)
             || presentation.basis.source_document_id.as_ref() != Some(&plan.source_document_id)
             || manifestations.presentation_id != presentation.identity
             || manifestations.presentation_revision != presentation.revision
         {
-            return Err(PresenterTopologyRefusal::SupersededBodyTruth);
+            return Err(MaskTopologyRefusal::SupersededBodyTruth);
         }
-        let admission = PresenterTopologyAdmission::from_plan(plan).map_err(map_admission_error)?;
+        let admission = MaskTopologyAdmission::from_plan(plan).map_err(map_admission_error)?;
         let chains = admission
             .chains
             .into_iter()
@@ -208,19 +207,19 @@ impl PresenterTopology {
                 let terminal = chain
                     .stages
                     .last()
-                    .ok_or(PresenterTopologyRefusal::InvalidTopology)?;
+                    .ok_or(MaskTopologyRefusal::InvalidTopology)?;
                 let manifestation = manifestations
                     .manifestations
                     .iter()
                     .find(|value| value.placement_id == terminal.placement_id)
-                    .ok_or(PresenterTopologyRefusal::UnavailablePresenter)?;
+                    .ok_or(MaskTopologyRefusal::UnavailableMask)?;
                 let available = manifestation.lifecycle == ManifestationLifecycle::Available;
                 let stage_count = chain.stages.len();
                 let stages = chain
                     .stages
                     .into_iter()
                     .enumerate()
-                    .map(|(stage_index, stage)| PresenterStage {
+                    .map(|(stage_index, stage)| MaskStage {
                         stage_id: stage.placement_id.as_str().into(),
                         placement_id: stage.placement_id,
                         capability_id: stage.capability_id,
@@ -235,7 +234,7 @@ impl PresenterTopology {
                         authorized: true,
                     })
                     .collect();
-                Ok(PresenterChain {
+                Ok(MaskChain {
                     chain_id: format!("chain/{chain_index}"),
                     stages,
                     manifestation_id: manifestation.manifestation_id.as_str().into(),
@@ -258,10 +257,10 @@ impl PresenterTopology {
         presentation_id: String,
         plan_id: PlanId,
         active_play_id: ActivePlayId,
-        chains: Vec<PresenterChain>,
-    ) -> Result<Self, PresenterTopologyRefusal> {
+        chains: Vec<MaskChain>,
+    ) -> Result<Self, MaskTopologyRefusal> {
         let value = Self {
-            schema: PRESENTER_TOPOLOGY_SCHEMA.into(),
+            schema: MASK_TOPOLOGY_SCHEMA.into(),
             body_id,
             source_document_id,
             presentation_id,
@@ -273,9 +272,9 @@ impl PresenterTopology {
         Ok(value)
     }
 
-    pub fn validate(&self) -> Result<(), PresenterTopologyRefusal> {
-        if self.schema != PRESENTER_TOPOLOGY_SCHEMA || self.presentation_id.is_empty() {
-            return Err(PresenterTopologyRefusal::InvalidTopology);
+    pub fn validate(&self) -> Result<(), MaskTopologyRefusal> {
+        if self.schema != MASK_TOPOLOGY_SCHEMA || self.presentation_id.is_empty() {
+            return Err(MaskTopologyRefusal::InvalidTopology);
         }
         validate_chains(&self.chains)
     }
@@ -284,39 +283,39 @@ impl PresenterTopology {
     /// fresh immutable Plan/Play chosen by the ordinary planning owner.
     pub(crate) fn request_replacement(
         &self,
-        request: PresenterTopologyRequest,
+        request: MaskTopologyRequest,
         replacement_plan_id: PlanId,
         replacement_play_id: ActivePlayId,
-    ) -> Result<PresenterTopologyReplacement, PresenterTopologyRefusal> {
+    ) -> Result<MaskTopologyReplacement, MaskTopologyRefusal> {
         self.validate()?;
         if request.body_id != self.body_id
             || request.source_document_id != self.source_document_id
             || request.presentation_id != self.presentation_id
         {
-            return Err(PresenterTopologyRefusal::SupersededBodyTruth);
+            return Err(MaskTopologyRefusal::SupersededBodyTruth);
         }
         if request.basis_plan_id != self.plan_id {
-            return Err(PresenterTopologyRefusal::StaleRequest);
+            return Err(MaskTopologyRefusal::StaleRequest);
         }
         if replacement_plan_id == self.plan_id {
-            return Err(PresenterTopologyRefusal::ReusedPlan);
+            return Err(MaskTopologyRefusal::ReusedPlan);
         }
         if replacement_play_id == self.active_play_id {
-            return Err(PresenterTopologyRefusal::ReusedPlay);
+            return Err(MaskTopologyRefusal::ReusedPlay);
         }
         let mut chains = self.chains.clone();
         match request.change {
-            PresenterTopologyChange::Add(chain) => {
+            MaskTopologyChange::Add(chain) => {
                 if chains.iter().any(|value| value.chain_id == chain.chain_id) {
-                    return Err(PresenterTopologyRefusal::DuplicateChain);
+                    return Err(MaskTopologyRefusal::DuplicateChain);
                 }
                 chains.push(chain);
             }
-            PresenterTopologyChange::Remove { chain_id } => {
+            MaskTopologyChange::Remove { chain_id } => {
                 let index = chain_index(&chains, &chain_id)?;
                 chains.remove(index);
             }
-            PresenterTopologyChange::Replace {
+            MaskTopologyChange::Replace {
                 chain_id,
                 replacement,
             } => {
@@ -326,36 +325,36 @@ impl PresenterTopology {
                         .iter()
                         .any(|value| value.chain_id == replacement.chain_id)
                 {
-                    return Err(PresenterTopologyRefusal::DuplicateChain);
+                    return Err(MaskTopologyRefusal::DuplicateChain);
                 }
                 chains[index] = replacement;
             }
-            PresenterTopologyChange::Reorder {
+            MaskTopologyChange::Reorder {
                 chain_id,
                 stage_ids,
             } => {
                 let index = chain_index(&chains, &chain_id)?;
                 let old = chains[index].stages.clone();
                 if stage_ids.len() != old.len() {
-                    return Err(PresenterTopologyRefusal::IncompatibleType);
+                    return Err(MaskTopologyRefusal::IncompatibleType);
                 }
                 let mut reordered = Vec::with_capacity(old.len());
                 for id in stage_ids {
                     let stage = old
                         .iter()
                         .find(|stage| stage.stage_id == id)
-                        .ok_or(PresenterTopologyRefusal::IncompatibleType)?;
+                        .ok_or(MaskTopologyRefusal::IncompatibleType)?;
                     if reordered
                         .iter()
-                        .any(|value: &PresenterStage| value.stage_id == id)
+                        .any(|value: &MaskStage| value.stage_id == id)
                     {
-                        return Err(PresenterTopologyRefusal::Cycle);
+                        return Err(MaskTopologyRefusal::Cycle);
                     }
                     reordered.push(stage.clone());
                 }
                 chains[index].stages = reordered;
             }
-            PresenterTopologyChange::SetParallel {
+            MaskTopologyChange::SetParallel {
                 chains: replacement,
             } => chains = replacement,
         }
@@ -378,7 +377,7 @@ impl PresenterTopology {
             replacement_play_id,
             chains,
         )?;
-        Ok(PresenterTopologyReplacement {
+        Ok(MaskTopologyReplacement {
             prior: self.clone(),
             current,
             replaced_manifestations,
@@ -389,16 +388,16 @@ impl PresenterTopology {
     /// a verified replacement Plan containing every requested exact stage.
     pub fn request_replacement_from_plan(
         &self,
-        request: PresenterTopologyRequest,
+        request: MaskTopologyRequest,
         replacement_plan: &Plan,
         replacement_play: ActivePlayIdentity,
-    ) -> Result<PresenterTopologyReplacement, PresenterTopologyRefusal> {
+    ) -> Result<MaskTopologyReplacement, MaskTopologyRefusal> {
         if !verify_plan(replacement_plan)
             || Some(&replacement_plan.source_document_id) != self.source_document_id.as_ref()
             || replacement_play.plan_id != replacement_plan.plan_id
             || replacement_play.active_play_id == self.active_play_id
         {
-            return Err(PresenterTopologyRefusal::InvalidTopology);
+            return Err(MaskTopologyRefusal::InvalidTopology);
         }
         let result = self.request_replacement(
             request,
@@ -410,39 +409,37 @@ impl PresenterTopology {
     }
 }
 
-fn map_admission_error(
-    error: conduit_presentation::PresenterTopologyError,
-) -> PresenterTopologyRefusal {
+fn map_admission_error(error: conduit_presentation::MaskTopologyError) -> MaskTopologyRefusal {
     match error {
-        conduit_presentation::PresenterTopologyError::IncompatibleType
-        | conduit_presentation::PresenterTopologyError::InvalidStageContract => {
-            PresenterTopologyRefusal::IncompatibleType
+        conduit_presentation::MaskTopologyError::IncompatibleType
+        | conduit_presentation::MaskTopologyError::InvalidStageContract => {
+            MaskTopologyRefusal::IncompatibleType
         }
-        conduit_presentation::PresenterTopologyError::Cycle => PresenterTopologyRefusal::Cycle,
-        conduit_presentation::PresenterTopologyError::ChainLengthBound => {
-            PresenterTopologyRefusal::ChainLengthBound
+        conduit_presentation::MaskTopologyError::Cycle => MaskTopologyRefusal::Cycle,
+        conduit_presentation::MaskTopologyError::ChainLengthBound => {
+            MaskTopologyRefusal::ChainLengthBound
         }
-        conduit_presentation::PresenterTopologyError::ParallelChainBound => {
-            PresenterTopologyRefusal::ParallelChainBound
+        conduit_presentation::MaskTopologyError::ParallelChainBound => {
+            MaskTopologyRefusal::ParallelChainBound
         }
-        _ => PresenterTopologyRefusal::InvalidTopology,
+        _ => MaskTopologyRefusal::InvalidTopology,
     }
 }
 
 fn chain_from_admission(
     chain_index: usize,
-    chain: &conduit_presentation::PlannedPresenterChain,
+    chain: &conduit_presentation::PlannedMaskChain,
     manifestation: &Manifestation,
-) -> PresenterChain {
+) -> MaskChain {
     let available = manifestation.lifecycle == ManifestationLifecycle::Available;
     let stage_count = chain.stages.len();
-    PresenterChain {
+    MaskChain {
         chain_id: format!("chain/{chain_index}"),
         stages: chain
             .stages
             .iter()
             .enumerate()
-            .map(|(stage_index, stage)| PresenterStage {
+            .map(|(stage_index, stage)| MaskStage {
                 stage_id: stage.placement_id.as_str().into(),
                 placement_id: stage.placement_id.clone(),
                 capability_id: stage.capability_id.clone(),
@@ -461,74 +458,74 @@ fn chain_from_admission(
     }
 }
 
-fn chain_index(chains: &[PresenterChain], id: &str) -> Result<usize, PresenterTopologyRefusal> {
+fn chain_index(chains: &[MaskChain], id: &str) -> Result<usize, MaskTopologyRefusal> {
     chains
         .iter()
         .position(|chain| chain.chain_id == id)
-        .ok_or(PresenterTopologyRefusal::UnknownChain)
+        .ok_or(MaskTopologyRefusal::UnknownChain)
 }
 
-pub(crate) fn validate_chains(chains: &[PresenterChain]) -> Result<(), PresenterTopologyRefusal> {
-    if chains.is_empty() || chains.len() > MAX_PRESENTER_CHAINS {
-        return Err(PresenterTopologyRefusal::ParallelChainBound);
+pub(crate) fn validate_chains(chains: &[MaskChain]) -> Result<(), MaskTopologyRefusal> {
+    if chains.is_empty() || chains.len() > MAX_MASK_CHAINS {
+        return Err(MaskTopologyRefusal::ParallelChainBound);
     }
     let mut capacity = 0_u32;
     for (index, chain) in chains.iter().enumerate() {
         if chain.chain_id.is_empty() || chain.manifestation_id.is_empty() || chain.stages.is_empty()
         {
-            return Err(PresenterTopologyRefusal::InvalidTopology);
+            return Err(MaskTopologyRefusal::InvalidTopology);
         }
         if chains[index + 1..]
             .iter()
             .any(|candidate| candidate.chain_id == chain.chain_id)
         {
-            return Err(PresenterTopologyRefusal::DuplicateChain);
+            return Err(MaskTopologyRefusal::DuplicateChain);
         }
-        if chain.stages.len() > MAX_PRESENTER_STAGES_PER_CHAIN {
-            return Err(PresenterTopologyRefusal::ChainLengthBound);
+        if chain.stages.len() > MAX_MASK_STAGES_PER_CHAIN {
+            return Err(MaskTopologyRefusal::ChainLengthBound);
         }
         for (stage_index, stage) in chain.stages.iter().enumerate() {
             if stage.stage_id.is_empty() || stage.input_kind.is_empty() {
-                return Err(PresenterTopologyRefusal::InvalidTopology);
+                return Err(MaskTopologyRefusal::InvalidTopology);
             }
             if chain.stages[stage_index + 1..]
                 .iter()
                 .any(|candidate| candidate.stage_id == stage.stage_id)
             {
-                return Err(PresenterTopologyRefusal::Cycle);
+                return Err(MaskTopologyRefusal::Cycle);
             }
             if !stage.available {
                 return Err(if stage_index == 0 {
-                    PresenterTopologyRefusal::UnavailablePresenter
+                    MaskTopologyRefusal::UnavailableMask
                 } else {
-                    PresenterTopologyRefusal::LostHost
+                    MaskTopologyRefusal::LostHost
                 });
             }
             if !stage.authorized {
-                return Err(PresenterTopologyRefusal::AuthorityPolicy);
+                return Err(MaskTopologyRefusal::AuthorityPolicy);
             }
             capacity = capacity
                 .checked_add(stage.capacity_cost)
-                .ok_or(PresenterTopologyRefusal::ResourcePressure)?;
+                .ok_or(MaskTopologyRefusal::ResourcePressure)?;
             if let Some(next) = chain.stages.get(stage_index + 1) {
                 if stage.output_kind.as_deref() != Some(next.input_kind.as_str()) {
-                    return Err(PresenterTopologyRefusal::IncompatibleType);
+                    return Err(MaskTopologyRefusal::IncompatibleType);
                 }
             } else if stage.output_kind.is_some() {
-                return Err(PresenterTopologyRefusal::IncompatibleType);
+                return Err(MaskTopologyRefusal::IncompatibleType);
             }
         }
     }
-    if capacity > MAX_PRESENTER_CAPACITY {
-        return Err(PresenterTopologyRefusal::ResourcePressure);
+    if capacity > MAX_MASK_CAPACITY {
+        return Err(MaskTopologyRefusal::ResourcePressure);
     }
     Ok(())
 }
 
 fn validate_chains_against_plan(
-    chains: &[PresenterChain],
+    chains: &[MaskChain],
     plan: &Plan,
-) -> Result<(), PresenterTopologyRefusal> {
+) -> Result<(), MaskTopologyRefusal> {
     for stage in chains.iter().flat_map(|chain| chain.stages.iter()) {
         let mut placements = plan
             .fragments
@@ -537,14 +534,14 @@ fn validate_chains_against_plan(
             .filter(|placement| placement.placement_id == stage.placement_id);
         let placement = placements
             .next()
-            .ok_or(PresenterTopologyRefusal::UnavailablePresenter)?;
+            .ok_or(MaskTopologyRefusal::UnavailableMask)?;
         if placements.next().is_some()
             || placement.capability_id != stage.capability_id
             || placement.implementation_id != stage.implementation_id
             || placement.host_id != stage.host_id
             || placement.boot_id != stage.boot_id
         {
-            return Err(PresenterTopologyRefusal::SupersededBodyTruth);
+            return Err(MaskTopologyRefusal::SupersededBodyTruth);
         }
     }
     Ok(())

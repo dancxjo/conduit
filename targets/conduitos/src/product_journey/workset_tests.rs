@@ -44,14 +44,14 @@ fn select(journey: &mut ProductJourney, form: NativeForm) {
         .unwrap();
 }
 
-fn request_presenter_change(
+fn request_mask_change(
     journey: &mut ProductJourney,
 ) -> patchbay_application::PatchbayApplicationRequest {
     let view = journey.foreground_application_view().unwrap().clone();
     let action = view
         .actions
         .iter()
-        .find(|action| action.id == patchbay_application::CHANGE_PRESENTERS_ACTION_ID)
+        .find(|action| action.id == patchbay_application::CHANGE_MASKS_ACTION_ID)
         .unwrap();
     assert!(
         journey
@@ -65,7 +65,7 @@ fn request_presenter_change(
     );
     match journey.take_application_request().unwrap() {
         native_workset::NativeApplicationRequest::EditCurrent(request) => request,
-        _ => panic!("Patchbay Presenter action must cross the typed application seam"),
+        _ => panic!("Patchbay Mask action must cross the typed application seam"),
     }
 }
 
@@ -132,7 +132,7 @@ fn native_birth_keeps_four_forms_in_one_body_plan_play_and_switches_only_foregro
 }
 
 #[test]
-fn resident_patchbay_replans_its_own_graphical_and_speech_presenters() {
+fn resident_patchbay_replans_its_own_graphical_and_speech_masks() {
     let (ids, offer, mut journey) = born();
     run(&mut journey, &ids, &offer);
     select(&mut journey, NativeForm::Patchbay);
@@ -142,23 +142,21 @@ fn resident_patchbay_replans_its_own_graphical_and_speech_presenters() {
         initial_view
             .nodes
             .iter()
-            .filter(|node| node.key.starts_with("presenter-stage-"))
+            .filter(|node| node.key.starts_with("mask-stage-"))
             .count(),
         1
     );
     let initial_graphics = initial_view
         .nodes
         .iter()
-        .find(|node| node.key == "presenter-facts-0")
+        .find(|node| node.key == "mask-facts-0")
         .unwrap()
         .value
         .clone();
 
-    let add = request_presenter_change(&mut journey);
+    let add = request_mask_change(&mut journey);
     let stale_add = add.clone();
-    journey
-        .replan_presenters(add, &ids, &offer, "build")
-        .unwrap();
+    journey.replan_masks(add, &ids, &offer, "build").unwrap();
     let parallel = journey.projection();
     assert_eq!(parallel.body_id, initial.body_id);
     assert_ne!(parallel.plan_id, initial.plan_id);
@@ -169,20 +167,20 @@ fn resident_patchbay_replans_its_own_graphical_and_speech_presenters() {
             .unwrap()
             .nodes
             .iter()
-            .filter(|node| node.key.starts_with("presenter-stage-"))
+            .filter(|node| node.key.starts_with("mask-stage-"))
             .count(),
         2
     );
     let before_stale = journey.projection();
     assert_eq!(
-        journey.replan_presenters(stale_add, &ids, &offer, "build"),
+        journey.replan_masks(stale_add, &ids, &offer, "build"),
         Err(JourneyError::StalePresentation)
     );
     assert_eq!(journey.projection(), before_stale);
 
-    let remove_graphics = request_presenter_change(&mut journey);
+    let remove_graphics = request_mask_change(&mut journey);
     journey
-        .replan_presenters(remove_graphics, &ids, &offer, "build")
+        .replan_masks(remove_graphics, &ids, &offer, "build")
         .unwrap();
     let speech = journey.projection();
     assert_eq!(speech.body_id, initial.body_id);
@@ -255,7 +253,7 @@ fn resident_patchbay_replans_its_own_graphical_and_speech_presenters() {
         speech_view
             .nodes
             .iter()
-            .filter(|node| node.key.starts_with("presenter-stage-"))
+            .filter(|node| node.key.starts_with("mask-stage-"))
             .count(),
         1
     );
@@ -263,12 +261,12 @@ fn resident_patchbay_replans_its_own_graphical_and_speech_presenters() {
         speech_view
             .nodes
             .iter()
-            .any(|node| { node.key == "presenter-impl-0" && node.value.contains("test-speech") })
+            .any(|node| { node.key == "mask-impl-0" && node.value.contains("test-speech") })
     );
 
-    let restore_graphics = request_presenter_change(&mut journey);
+    let restore_graphics = request_mask_change(&mut journey);
     journey
-        .replan_presenters(restore_graphics, &ids, &offer, "build")
+        .replan_masks(restore_graphics, &ids, &offer, "build")
         .unwrap();
     let restored = journey.projection();
     assert_eq!(restored.body_id, initial.body_id);
@@ -278,7 +276,7 @@ fn resident_patchbay_replans_its_own_graphical_and_speech_presenters() {
         restored_view
             .nodes
             .iter()
-            .filter(|node| node.key.starts_with("presenter-stage-"))
+            .filter(|node| node.key.starts_with("mask-stage-"))
             .count(),
         2
     );
@@ -286,7 +284,7 @@ fn resident_patchbay_replans_its_own_graphical_and_speech_presenters() {
         restored_view
             .nodes
             .iter()
-            .find(|node| node.key == "presenter-facts-0")
+            .find(|node| node.key == "mask-facts-0")
             .unwrap()
             .value,
         initial_graphics

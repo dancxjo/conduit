@@ -16,7 +16,7 @@ const MARKERS: &[&str] = &[
 // directory to accumulate more milestone vocabulary.
 const ALLOWLIST: &[(&str, &str, &str)] = &[
     (
-        "products/patchbay/model/src/presenter_plans.rs",
+        "products/patchbay/model/src/mask_plans.rs",
         "capstone",
         "accepted canonical Form identity is preserved without migration",
     ),

@@ -10,7 +10,7 @@ use conduit_form::{parse, ProfileCatalog};
 use conduit_planner::{plan, PlacementChoice, PlacementChoices};
 use conduit_presentation::{
     presenter_stage_kind_projection, presenter_stage_offer, renderer_kind_projection,
-    PresenterTopologyAdmission, MAX_RENDERER_VALUE_BYTES,
+    MaskTopologyAdmission, MAX_RENDERER_VALUE_BYTES,
 };
 use std::collections::BTreeMap;
 
@@ -72,7 +72,7 @@ fn ordinary_plan_cords_seal_a_typed_two_stage_presenter_chain() {
         &[BaseImplementationId::from("conduit.base/local@1")],
     )
     .unwrap();
-    let topology = PresenterTopologyAdmission::from_plan(&sealed).unwrap();
+    let topology = MaskTopologyAdmission::from_plan(&sealed).unwrap();
     assert_eq!(topology.plan_id, sealed.plan_id);
     assert_eq!(topology.chains.len(), 1);
     assert_eq!(topology.chains[0].stages.len(), 2);
@@ -136,7 +136,7 @@ fn two_renderer_placements_are_two_independently_admitted_chains() {
         ]),
     };
     let sealed = plan(&form, &[graphical, speech], &placements, &[]).unwrap();
-    let topology = PresenterTopologyAdmission::from_plan(&sealed).unwrap();
+    let topology = MaskTopologyAdmission::from_plan(&sealed).unwrap();
     assert_eq!(topology.chains.len(), 2);
     assert!(topology.chains.iter().all(|chain| chain.stages.len() == 1));
 }

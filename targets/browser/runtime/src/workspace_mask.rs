@@ -1,8 +1,6 @@
 //! Browser realization of the tutorial Face through one ordinary Mask Form.
 
-use conduit_body::{
-    BodyId, BodyPlan, BodyPresentationSelector, BodyPresenterChainPlan, BodyPresenterTopology, Wake,
-};
+use conduit_body::{BodyFaceSelector, BodyId, BodyMaskChainPlan, BodyMaskTopology, BodyPlan, Wake};
 use conduit_core::{
     bind_active_play, kind_id, port_id, ActivePlayIdentity, ArtifactId, Back, BackOfferBuilder,
     BootId, CapabilityId, CapabilityLimits, ExecutionProfileId, HostAdvertisement,
@@ -166,7 +164,7 @@ impl BrowserMaskRuntime {
             .clone();
         let chains = [&planned, &alternate]
             .into_iter()
-            .map(|p| BodyPresenterChainPlan {
+            .map(|p| BodyMaskChainPlan {
                 plan: p.plan.clone(),
                 stage_placement_ids: p
                     .plan
@@ -177,11 +175,11 @@ impl BrowserMaskRuntime {
                     .collect(),
             })
             .collect();
-        let body_plan = BodyPlan::seal_with_presenters(
+        let body_plan = BodyPlan::seal_with_masks(
             &wake,
             base_plan.forms.clone(),
-            vec![BodyPresenterTopology {
-                presentation: BodyPresentationSelector {
+            vec![BodyMaskTopology {
+                face: BodyFaceSelector {
                     form: base_plan.forms.first().map(|f| f.form.clone()),
                     source_placement_id,
                 },

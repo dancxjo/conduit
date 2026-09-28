@@ -1,4 +1,4 @@
-//! Bounded resident-application projection of authoritative Presenter truth.
+//! Bounded resident-application projection of authoritative Mask truth.
 
 use alloc::{format, string::String, vec::Vec};
 use conduit_core::PlanId;
@@ -7,17 +7,17 @@ use conduit_presentation::{
     ApplicationViewNode,
 };
 
-pub const CHANGE_PRESENTERS_ACTION_ID: &str = "patchbay.presenters.change";
+pub const CHANGE_MASKS_ACTION_ID: &str = "patchbay.masks.change";
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
-pub enum PatchbayPresenterMode {
+pub enum PatchbayMaskMode {
     Graphical,
     GraphicalAndSpeech,
     Speech,
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
-pub struct PatchbayPresenterStage {
+pub struct PatchbayMaskStage {
     pub manifestation_id: String,
     pub implementation_id: String,
     pub host_id: String,
@@ -32,65 +32,60 @@ pub struct PatchbayPresenterStage {
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
-pub struct PatchbayPresenterTopology {
+pub struct PatchbayMaskTopology {
     pub presentation_id: String,
     pub body_plan_id: PlanId,
     pub active_play_id: String,
-    pub mode: PatchbayPresenterMode,
-    pub stages: Vec<PatchbayPresenterStage>,
+    pub mode: PatchbayMaskMode,
+    pub stages: Vec<PatchbayMaskStage>,
 }
 
-impl PatchbayPresenterTopology {
-    pub(crate) const fn next_mode(&self) -> PatchbayPresenterMode {
+impl PatchbayMaskTopology {
+    pub(crate) const fn next_mode(&self) -> PatchbayMaskMode {
         match self.mode {
-            PatchbayPresenterMode::Graphical => PatchbayPresenterMode::GraphicalAndSpeech,
-            PatchbayPresenterMode::GraphicalAndSpeech => PatchbayPresenterMode::Speech,
-            PatchbayPresenterMode::Speech => PatchbayPresenterMode::GraphicalAndSpeech,
+            PatchbayMaskMode::Graphical => PatchbayMaskMode::GraphicalAndSpeech,
+            PatchbayMaskMode::GraphicalAndSpeech => PatchbayMaskMode::Speech,
+            PatchbayMaskMode::Speech => PatchbayMaskMode::GraphicalAndSpeech,
         }
     }
 }
 
 pub(crate) fn action() -> ApplicationAction {
     ApplicationAction {
-        id: CHANGE_PRESENTERS_ACTION_ID.into(),
+        id: CHANGE_MASKS_ACTION_ID.into(),
         event: ApplicationEventKind::Activate,
     }
 }
 
 pub(crate) fn append_nodes(
-    topology: &PatchbayPresenterTopology,
+    topology: &PatchbayMaskTopology,
     nodes: &mut Vec<ApplicationViewNode>,
     action: u8,
 ) {
     nodes.push(node(
         ApplicationComponent::Heading,
-        "presenter-topology",
-        "Presenter topology",
+        "mask-topology",
+        "Mask topology",
         "",
         0,
         None,
     ));
+    definition(nodes, "face-identity", "Face", &topology.presentation_id);
     definition(
         nodes,
-        "presenter-identity",
-        "Presentation",
-        &topology.presentation_id,
-    );
-    definition(
-        nodes,
-        "presenter-body-plan",
+        "mask-body-plan",
         "Body Plan",
         topology.body_plan_id.as_str(),
     );
-    definition(nodes, "presenter-play", "Play", &topology.active_play_id);
+    definition(nodes, "mask-play", "Play", &topology.active_play_id);
     for (index, stage) in topology.stages.iter().enumerate() {
         nodes.push(node(
             ApplicationComponent::Status,
-            &format!("presenter-stage-{index}"),
+            &format!("mask-stage-{index}"),
             if stage.available {
-                "Presenter stage available"
+                "Mask stage available"
             } else {
-                "Presenter stage unavailable"
+                "Mask stage unavailable"
             },
             "",
             0,
@@ -98,13 +93,13 @@ pub(crate) fn append_nodes(
         ));
         definition(
             nodes,
-            &format!("presenter-impl-{index}"),
+            &format!("mask-impl-{index}"),
             "Implementation",
             &stage.implementation_id,
         );
         definition(
             nodes,
-            &format!("presenter-facts-{index}"),
+            &format!("mask-facts-{index}"),
             "Manifestation · Host/Boot · reserved resource · finite capacity",
             &format!(
                 "{} · {}/{} · {}/{}:{} · instances {} · queue {}/{} bytes",
@@ -121,13 +116,13 @@ pub(crate) fn append_nodes(
         );
     }
     let label = match topology.mode {
-        PatchbayPresenterMode::Graphical => "Add speech Presenter",
-        PatchbayPresenterMode::GraphicalAndSpeech => "Remove graphical Presenter",
-        PatchbayPresenterMode::Speech => "Restore graphical Presenter",
+        PatchbayMaskMode::Graphical => "Wear speech Mask",
+        PatchbayMaskMode::GraphicalAndSpeech => "Doff graphical Mask",
+        PatchbayMaskMode::Speech => "Wear graphical Mask",
     };
     nodes.push(node(
         ApplicationComponent::Button,
-        "change-presenters",
+        "change-masks",
         label,
         "",
         0,

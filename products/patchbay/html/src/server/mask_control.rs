@@ -1,8 +1,8 @@
-//! Typed Presenter-topology requests through the ordinary body planning owner.
+//! Typed Mask-topology requests through the ordinary body planning owner.
 
 use super::{PatchbayHtmlServer, ServerError};
 use conduit_core::{PlanId, SignId};
-use patchbay_model::{BodyPlanningTransition, PresenterTopologyMode};
+use patchbay_model::{BodyPlanningTransition, MaskTopologyMode};
 use serde::Deserialize;
 use std::net::TcpStream;
 
@@ -12,24 +12,24 @@ struct Request {
     presentation_id: String,
     presentation_revision: u64,
     basis_plan_id: PlanId,
-    mode: PresenterTopologyModeWire,
+    mode: MaskTopologyModeWire,
 }
 
 #[derive(Deserialize)]
 #[serde(rename_all = "kebab-case")]
-enum PresenterTopologyModeWire {
+enum MaskTopologyModeWire {
     Graphical,
     GraphicalAndSpeech,
     Speech,
 }
 
 impl PatchbayHtmlServer {
-    pub(super) fn deliver_presenter_topology(
+    pub(super) fn deliver_mask_topology(
         &mut self,
         stream: &mut TcpStream,
         body: &[u8],
     ) -> Result<(), ServerError> {
-        let response = self.apply_presenter_topology(body)?;
+        let response = self.apply_mask_topology(body)?;
         super::write_response(
             stream,
             "200 OK",
@@ -38,7 +38,7 @@ impl PatchbayHtmlServer {
         )
     }
 
-    fn apply_presenter_topology(&mut self, body: &[u8]) -> Result<Vec<u8>, ServerError> {
+    fn apply_mask_topology(&mut self, body: &[u8]) -> Result<Vec<u8>, ServerError> {
         let request: Request =
             serde_json::from_slice(body).map_err(|_| ServerError::InvalidRequest)?;
         if request.presentation_id != self.snapshot.presentation.identity.as_str()
@@ -51,18 +51,16 @@ impl PatchbayHtmlServer {
             .interaction
             .revision
             .checked_add(1)
-            .ok_or_else(|| ServerError::Interaction("PresenterRevisionExhausted".into()))?;
+            .ok_or_else(|| ServerError::Interaction("MaskRevisionExhausted".into()))?;
         let mode = match request.mode {
-            PresenterTopologyModeWire::Graphical => PresenterTopologyMode::Graphical,
-            PresenterTopologyModeWire::GraphicalAndSpeech => {
-                PresenterTopologyMode::GraphicalAndSpeech
-            }
-            PresenterTopologyModeWire::Speech => PresenterTopologyMode::Speech,
+            MaskTopologyModeWire::Graphical => MaskTopologyMode::Graphical,
+            MaskTopologyModeWire::GraphicalAndSpeech => MaskTopologyMode::GraphicalAndSpeech,
+            MaskTopologyModeWire::Speech => MaskTopologyMode::Speech,
         };
         let mut control = self
-            .presenter_control
+            .mask_control
             .clone()
-            .ok_or_else(|| ServerError::Interaction("PresenterControlUnavailable".into()))?;
+            .ok_or_else(|| ServerError::Interaction("MaskControlUnavailable".into()))?;
         let mut planning = self
             .body_planning
             .clone()
@@ -74,14 +72,12 @@ impl PatchbayHtmlServer {
                 &mut planning,
                 BodyPlanningTransition {
                     unsatisfied_sign_id: Some(SignId::from(format!(
-                        "patchbay-html/presenter/{sequence}/unsatisfied"
+                        "patchbay-html/mask/{sequence}/unsatisfied"
                     ))),
-                    plan_ready_sign_id: SignId::from(format!(
-                        "patchbay-html/presenter/{sequence}/plan"
-                    )),
+                    plan_ready_sign_id: SignId::from(format!("patchbay-html/mask/{sequence}/plan")),
                     play_sequence: sequence,
                     play_started_sign_id: SignId::from(format!(
-                        "patchbay-html/presenter/{sequence}/play"
+                        "patchbay-html/mask/{sequence}/play"
                     )),
                 },
             )
@@ -100,17 +96,17 @@ impl PatchbayHtmlServer {
         let topology = control
             .project_current(&planning, &play)
             .map_err(|error| ServerError::Interaction(format!("{error:?}")))?;
-        snapshot.presenter_topology = Some(
-            patchbay_model::project_presenter_topology(control.presentation(), &topology)
+        snapshot.mask_topology = Some(
+            patchbay_model::project_mask_topology(control.presentation(), &topology)
                 .map_err(|error| ServerError::Interaction(format!("{error:?}")))?,
         );
         snapshot.interaction.revision = sequence;
-        snapshot.interaction.last_request_id = Some("presenter-topology".into());
+        snapshot.interaction.last_request_id = Some("mask-topology".into());
         snapshot.interaction.last_disposition = Some("Succeeded(BodyReplanned)".into());
         self.encoded_snapshot = snapshot.encode()?;
         self.body_workload = Some(session);
         self.body_planning = Some(planning);
-        self.presenter_control = Some(control);
+        self.mask_control = Some(control);
         self.snapshot = snapshot;
         Ok(self.encoded_snapshot.clone())
     }
@@ -183,7 +179,7 @@ mod tests {
             .current_plan()
             .forms
             .clone();
-        assert!(server.snapshot.presenter_topology.is_some());
+        assert!(server.snapshot.mask_topology.is_some());
 
         let invoke = |server: &mut PatchbayHtmlServer, mode: &str| {
             let request = json!({
@@ -193,9 +189,9 @@ mod tests {
                 "mode": mode,
             });
             server
-                .apply_presenter_topology(&serde_json::to_vec(&request).unwrap())
+                .apply_mask_topology(&serde_json::to_vec(&request).unwrap())
                 .unwrap();
-            server.snapshot.presenter_topology.clone().unwrap()
+            server.snapshot.mask_topology.clone().unwrap()
         };
         let parallel = invoke(&mut server, "graphical-and-speech");
         assert_eq!(chains(&parallel), 2);

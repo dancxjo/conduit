@@ -141,7 +141,7 @@ fn stale_events_and_edit_authority_remain_explicit() {
 }
 
 #[test]
-fn presenter_topology_is_visible_and_requests_the_exact_body_plan() {
+fn mask_topology_is_visible_and_requests_the_exact_body_plan() {
     let form = form();
     let mut port = PatchbayApplicationPort::open(
         &form,
@@ -149,18 +149,18 @@ fn presenter_topology_is_visible_and_requests_the_exact_body_plan() {
         PlanId::from("body-plan/current"),
     )
     .unwrap();
-    port.set_presenter_topology(PatchbayPresenterTopology {
+    port.set_mask_topology(PatchbayMaskTopology {
         presentation_id: "presentation/current".into(),
         body_plan_id: PlanId::from("body-plan/current"),
         active_play_id: "play/current".into(),
-        mode: PatchbayPresenterMode::Graphical,
-        stages: vec![PatchbayPresenterStage {
+        mode: PatchbayMaskMode::Graphical,
+        stages: vec![PatchbayMaskStage {
             manifestation_id: "manifestation/graphical".into(),
             implementation_id: "presentation/renderer-conduitos-native@1".into(),
             host_id: "host/current".into(),
             boot_id: "boot/current".into(),
-            resource_pool_id: "pool/presenter".into(),
-            resource_class_id: "resource/presenter".into(),
+            resource_pool_id: "pool/mask".into(),
+            resource_class_id: "resource/mask".into(),
             reserved_units: 1,
             maximum_active_instances: 1,
             maximum_queue_items: 1,
@@ -172,15 +172,15 @@ fn presenter_topology_is_visible_and_requests_the_exact_body_plan() {
     assert_eq!(view.actions[0].id, "patchbay.form.0");
     assert_eq!(view.actions[1].id, INSPECT_NEXT_ACTION_ID);
     assert_eq!(view.actions[2].id, EDIT_CURRENT_ACTION_ID);
-    assert_eq!(view.actions[3].id, CHANGE_PRESENTERS_ACTION_ID);
+    assert_eq!(view.actions[3].id, CHANGE_MASKS_ACTION_ID);
     assert!(view
         .nodes
         .iter()
-        .any(|node| node.key == "presenter-stage-0" && node.text.contains("available")));
+        .any(|node| node.key == "mask-stage-0" && node.text.contains("available")));
     let action = view
         .actions
         .iter()
-        .find(|action| action.id == CHANGE_PRESENTERS_ACTION_ID)
+        .find(|action| action.id == CHANGE_MASKS_ACTION_ID)
         .unwrap();
     let changed = port
         .apply(
@@ -196,9 +196,9 @@ fn presenter_topology_is_visible_and_requests_the_exact_body_plan() {
         .unwrap();
     assert_eq!(
         changed.request,
-        Some(PatchbayApplicationRequest::ChangePresenters {
+        Some(PatchbayApplicationRequest::ChangeMasks {
             body_plan_id: PlanId::from("body-plan/current"),
-            mode: PatchbayPresenterMode::GraphicalAndSpeech
+            mode: PatchbayMaskMode::GraphicalAndSpeech
         })
     );
 }
