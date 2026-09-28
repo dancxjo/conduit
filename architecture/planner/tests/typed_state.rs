@@ -18,6 +18,7 @@ fn authored_state_reaches_an_exact_plan_and_rejects_silent_initialization_or_cap
     source.implementation.execution_profile_id = ExecutionProfileId::from("fixture/typed-flow@1");
     source.implementation.implementation_id = ImplementationId::from("fixture/typed-flow@1");
     source.implementation.artifact_id = ArtifactId::from("fixture/planning-only@1");
+    source.state_retention = None;
     source.startup_parameters.clear();
     source.inputs.clear();
     source.shorthand = None;

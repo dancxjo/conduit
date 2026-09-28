@@ -342,6 +342,7 @@ pub struct BackOfferBuilder {
     contract: Kind,
     realization: Back,
     realization_limits: CapabilityLimits,
+    state_retention: Option<crate::StateRetentionSupport>,
 }
 
 impl BackOfferBuilder {
@@ -357,6 +358,7 @@ impl BackOfferBuilder {
             contract,
             realization,
             realization_limits,
+            state_retention: None,
         }
     }
 
@@ -367,7 +369,21 @@ impl BackOfferBuilder {
             contract,
             realization,
             realization_limits,
+            state_retention: None,
         })
+    }
+
+    /// Advertise the longest keep duration this exact Back can truthfully
+    /// satisfy. Only the canonical retained-State Kind may carry this fact.
+    pub fn with_state_retention(
+        mut self,
+        support: crate::StateRetentionSupport,
+    ) -> Result<Self, StateRetentionSupportError> {
+        if self.contract.kind_id.as_str() != crate::STATE_VALUE_KIND {
+            return Err(StateRetentionSupportError::WrongSemanticKind);
+        }
+        self.state_retention = Some(support);
+        Ok(self)
     }
 
     pub fn narrow_capacity(
@@ -403,6 +419,7 @@ impl BackOfferBuilder {
                 implementation_id: self.realization.implementation_id,
                 artifact_id: self.realization.artifact_id,
             },
+            state_retention: self.state_retention,
             host_calls: self.realization.host_calls,
             resource_requirements: self.realization.resource_requirements,
             authority_requirements: self.realization.authority_requirements,
@@ -412,6 +429,22 @@ impl BackOfferBuilder {
 }
 
 impl CapabilityOffer {
+    pub fn validate_state_retention(&self) -> Result<(), StateRetentionSupportError> {
+        if self.state_retention.is_some() && self.kind_id.as_str() != crate::STATE_VALUE_KIND {
+            return Err(StateRetentionSupportError::WrongSemanticKind);
+        }
+        Ok(())
+    }
+
+    pub fn with_state_retention(
+        mut self,
+        support: crate::StateRetentionSupport,
+    ) -> Result<Self, StateRetentionSupportError> {
+        self.state_retention = Some(support);
+        self.validate_state_retention()?;
+        Ok(self)
+    }
+
     /// Revalidates the semantic half of an already assembled offer.
     ///
     /// Canonical production offers should use [`BackOfferBuilder`]. This is
@@ -445,12 +478,17 @@ impl CapabilityOffer {
 #[macro_export]
 macro_rules! capability_offer_from_parts {
     ($($fields:tt)*) => {{
-        let offer = $crate::CapabilityOffer { $($fields)* };
+        let offer = $crate::CapabilityOffer { state_retention: None, $($fields)* };
         if let Err(error) = offer.validate_constructed_semantic_contract() {
             panic!("CapabilityOffer requires a valid semantic contract: {:?}", error);
         }
         offer
     }};
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum StateRetentionSupportError {
+    WrongSemanticKind,
 }
 
 #[cfg(test)]
@@ -853,6 +891,38 @@ mod tests {
         // older position. A future positional carrier needs its own versioned
         // envelope and cannot inherit this record layout.
         assert!(postcard::to_allocvec(&offer).is_err());
+    }
+
+    #[test]
+    fn state_retention_is_offer_owned_validated_and_serialized() {
+        let support = crate::StateRetentionSupport {
+            maximum_lifetime: crate::StateLifetime::Body,
+        };
+        let ordinary = BackOfferBuilder::new(contract(), realization("ordinary")).build();
+        assert_eq!(
+            ordinary.clone().with_state_retention(support),
+            Err(StateRetentionSupportError::WrongSemanticKind)
+        );
+        assert!(serde_json::to_value(&ordinary)
+            .unwrap()
+            .get("state_retention")
+            .is_none());
+
+        let mut state_contract = contract();
+        state_contract.kind_id = crate::kind_id(crate::STATE_VALUE_KIND);
+        let offered = BackOfferBuilder::new(state_contract, realization("state"))
+            .with_state_retention(support)
+            .unwrap()
+            .build();
+        let json = serde_json::to_value(&offered).unwrap();
+        assert_eq!(
+            json.get("state_retention")
+                .and_then(|value| value.get("maximum_lifetime"))
+                .and_then(serde_json::Value::as_str),
+            Some("Body")
+        );
+        let decoded: CapabilityOffer = serde_json::from_value(json).unwrap();
+        assert_eq!(decoded.state_retention, Some(support));
     }
 
     #[test]

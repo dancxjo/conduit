@@ -457,6 +457,10 @@ pub struct CapabilityOffer {
     pub semantic_contract: KindSemanticContract,
     #[serde(flatten)]
     pub implementation: ImplementationOffer,
+    /// Exact keep-duration support of this Back. Absence means that the Back
+    /// makes no retained-State promise.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub state_retention: Option<StateRetentionSupport>,
     pub host_calls: Vec<HostCallRequirement>,
     pub resource_requirements: Vec<ResourceRequirement>,
     pub authority_requirements: Vec<AuthorityRequirement>,

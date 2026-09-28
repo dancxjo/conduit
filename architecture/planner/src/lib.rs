@@ -474,6 +474,7 @@ pub(crate) fn plan_validated_form_with_connection_limits(
                 PlannerError::UnknownCapability(choice.capability_id.as_str().to_string())
             })?;
         validate_operation_capability(gear, capability)?;
+        validate_keep_retention(gear, capability)?;
 
         let count = placement_count
             .entry((host.host_id.clone(), capability.capability_id.clone()))
@@ -872,20 +873,7 @@ fn planned_keep_state(
             placement.gear_id.as_str()
         )));
     };
-    let lifetime = match duration.as_str() {
-        "step" => StateLifetime::Step,
-        "play" => StateLifetime::Play,
-        "wake" => StateLifetime::Wake,
-        "boot" => StateLifetime::Boot,
-        "body" => StateLifetime::Body,
-        _ => {
-            return Err(PlannerError::InvalidStateContract(format!(
-                "gear '{}' has unknown retained duration '{}'",
-                placement.gear_id.as_str(),
-                duration
-            )))
-        }
-    };
+    let lifetime = state_lifetime(duration, &placement.gear_id)?;
     let maximum = placement
         .configuration
         .iter()
@@ -960,6 +948,64 @@ fn planned_keep_state(
         maximum_value_bytes: maximum,
         continuation: StateContinuation::ExternallyBounded,
     }))
+}
+
+fn validate_keep_retention(
+    gear: &CheckedGear,
+    capability: &conduit_core::CapabilityOffer,
+) -> Result<(), PlannerError> {
+    capability.validate_state_retention().map_err(|_| {
+        PlannerError::InvalidStateContract(format!(
+            "capability '{}' attaches State retention to non-State Kind '{}'",
+            capability.capability_id.as_str(),
+            capability.kind_id.as_str()
+        ))
+    })?;
+    let Some(duration) = gear
+        .configuration
+        .iter()
+        .find(|entry| entry.key == "retained-duration")
+    else {
+        return Ok(());
+    };
+    let conduit_core::ConfigurationValue::Text(duration) = &duration.value else {
+        return Err(PlannerError::InvalidStateContract(format!(
+            "gear '{}' retained duration is not canonical text",
+            gear.gear_id.as_str()
+        )));
+    };
+    let required = state_lifetime(duration, &gear.gear_id)?;
+    if capability
+        .state_retention
+        .is_none_or(|support| !support.supports(required))
+    {
+        return Err(PlannerError::StateRetentionUnsupported(format!(
+            "gear '{}' requires {:?}, but capability '{}' supports at most {}",
+            gear.gear_id.as_str(),
+            required,
+            capability.capability_id.as_str(),
+            capability
+                .state_retention
+                .map(|support| format!("{:?}", support.maximum_lifetime))
+                .unwrap_or_else(|| "no keep duration".to_string())
+        )));
+    }
+    Ok(())
+}
+
+fn state_lifetime(duration: &str, gear_id: &GearId) -> Result<StateLifetime, PlannerError> {
+    match duration {
+        "step" => Ok(StateLifetime::Step),
+        "play" => Ok(StateLifetime::Play),
+        "wake" => Ok(StateLifetime::Wake),
+        "boot" => Ok(StateLifetime::Boot),
+        "body" => Ok(StateLifetime::Body),
+        _ => Err(PlannerError::InvalidStateContract(format!(
+            "gear '{}' has unknown retained duration '{}'",
+            gear_id.as_str(),
+            duration
+        ))),
+    }
 }
 
 fn connection_endpoints(connection: &conduit_form::CheckedConnection) -> ConnectionEndpoints {
