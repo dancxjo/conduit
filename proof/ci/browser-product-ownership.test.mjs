@@ -28,6 +28,14 @@ test("browser WebRTC realization is owned by the browser Host", () => {
   }
 });
 
+test("generic browser membership is owned by the browser Host", () => {
+  const source = readFileSync("targets/browser/host/assets/browser-membership.js", "utf8");
+  assert.match(source, /export async function joinBrowserBody/);
+  assert.match(source, /\.\/body-webrtc-sessions\.mjs/);
+  assert.doesNotMatch(source, /Patchbay/);
+  assert.equal(existsSync("products/patchbay/html/assets/browser-membership.js"), false);
+});
+
 test("Crèche compatibility entrance cannot run parallel product state", () => {
   const source = readFileSync("products/creche/browser/creche.mjs", "utf8");
   assert.match(source, /location\.replace\(workspace\.href\)/);
