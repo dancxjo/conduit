@@ -46,8 +46,6 @@ mod planning;
 mod profile;
 #[cfg(test)]
 mod proof;
-mod ssd1306_frame;
-mod ssd1306_presenter;
 
 pub use conduit_create_oi::*;
 pub use create_dock::*;
@@ -87,8 +85,6 @@ pub use physical_emergency::*;
 pub use physical_interaction_surface::*;
 pub use planning::*;
 pub use profile::*;
-pub use ssd1306_frame::*;
-pub use ssd1306_presenter::*;
 
 #[cfg(test)]
 mod tests {

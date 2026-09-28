@@ -1156,7 +1156,6 @@ dependencies = [
  "conduit-robotics",
  "conduit-semantic-catalog",
  "conduit-signal",
- "conduit-ssd1306",
  "conduit-std-offers",
  "conduit-text",
  "conduit-time",
