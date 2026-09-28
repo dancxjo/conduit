@@ -1,5 +1,8 @@
 use super::*;
-use conduit_core::{CheckedFormId, ExpandedFormId, PlanId, SourceDocumentId};
+use conduit_core::{
+    CheckedFormId, CheckedValueContract, ExpandedFormId, PlanId, SourceDocumentId, ValueConstraint,
+};
+use conduit_form::TextPatternExpression;
 use conduit_presentation::{
     PresentationAction, PresentationActionAvailability, PresentationBasis,
     PresentationCompositionKind, PresentationCompositionRelation, PresentationDisclosureLevel,
@@ -64,6 +67,16 @@ fn body_id() -> BodyId {
 }
 
 fn presentation() -> Presentation {
+    let lowercase = TextPatternExpression::Repeat {
+        expression: Box::new(TextPatternExpression::ScalarRange {
+            first: 'a' as u32,
+            last: 'z' as u32,
+        }),
+        minimum: 1,
+        maximum: 32,
+    }
+    .compile(32)
+    .expect("reviewed browser Face pattern compiles during checking");
     Presentation::new_with_semantics(
         7,
         PresentationBasis {
@@ -92,13 +105,22 @@ fn presentation() -> Presentation {
             intent: "conduit.intent/inspect@1".into(),
             target: "body/browser-mask-test".into(),
             name: "Inspect".into(),
-            arguments: vec![conduit_presentation::FaceActionArgument::text(
-                "input/inspect".into(),
-                "Inspect".into(),
-                0,
-                32,
-            )
-            .unwrap()],
+            arguments: vec![conduit_presentation::FaceActionArgument {
+                name: "input/inspect".into(),
+                value_name: "Lowercase subject".into(),
+                contract: CheckedValueContract::new(
+                    UTF8_TEXT_VALUE_KIND.into(),
+                    32,
+                    vec![
+                        ValueConstraint::ByteLength {
+                            minimum: 1,
+                            maximum: 32,
+                        },
+                        ValueConstraint::TextPattern(lowercase),
+                    ],
+                )
+                .expect("reviewed browser Face contract is canonical"),
+            }],
             disclosure: PresentationDisclosureLevel::CurrentAction,
             availability: PresentationActionAvailability::Available,
         }],
@@ -117,7 +139,7 @@ fn interaction(effect: &BrowserMaskEffect) -> BrowserMaskInteraction {
         arguments: vec![FaceInteractionArgument {
             name: "input/inspect".into(),
             value_kind: UTF8_TEXT_VALUE_KIND.into(),
-            value: vec![],
+            value: b"body".to_vec(),
         }],
         sequence: 1,
     }
@@ -321,6 +343,12 @@ fn show_becomes_available_only_after_exact_browser_acknowledgement() {
     let mut stale_interaction = interaction(&effect);
     stale_interaction.presentation_revision += 1;
     assert!(runtime.interact(&stale_interaction).is_err());
+    let mut invalid_interaction = interaction(&effect);
+    invalid_interaction.arguments[0].value = b"Body".to_vec();
+    assert_eq!(
+        runtime.interact(&invalid_interaction).unwrap_err(),
+        "browser Mask interaction refused: ViolatedConstraint"
+    );
     let receipt = runtime.interact(&interaction(&effect)).unwrap();
     assert_eq!(receipt.semantic_action.identity, "body.inspect");
     assert_eq!(receipt.correlation.interaction.show_id, effect.show_id);
