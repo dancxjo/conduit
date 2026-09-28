@@ -200,7 +200,6 @@ installed_step_dispatch!(
     PcmProfileConversion,
     MidiOutput,
     ExternalWebSocketListener,
-    GenerateText,
     HousePrompt,
     BodyChatPrompt,
     BodyConversationContext,

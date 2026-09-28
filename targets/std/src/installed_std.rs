@@ -32,7 +32,6 @@ mod flow_pressure_backs;
 #[cfg(test)]
 mod flow_pressure_form_tests;
 mod flow_state_backs;
-mod generate_text;
 mod generated_speech_commit_back;
 mod generated_validation_backs;
 mod house_prompt_back;
@@ -684,8 +683,7 @@ pub(super) fn run_fragment_retaining<W: Write, T: TimerAdapter>(
                 .then(template_storage_host::TemplateStorageHost::prepare)
         })
         .collect::<Vec<_>>();
-    let mut generate_text_output =
-        Vec::with_capacity(conduit_ai::MAXIMUM_OUTPUT_TOKENS as usize * 4);
+    let mut local_model_output = Vec::with_capacity(conduit_ai::MAXIMUM_LLM_OUTPUT_BYTES as usize);
     let mut vector_search_output =
         Vec::with_capacity(conduit_ai::MAXIMUM_VECTOR_SEARCH_OUTPUT_BYTES as usize);
     let mut synth_output = Vec::with_capacity(synth_back::PCM_BLOCK_BYTES as usize);
@@ -2823,10 +2821,7 @@ pub(super) fn run_fragment_retaining<W: Write, T: TimerAdapter>(
                     )
                     .map_err(|error| format!("complete House prompt operation: {error:?}"))?;
                 continue;
-            } else if matches!(
-                contract.as_str(),
-                conduit_ai::GENERATE_TEXT_HOST_CALL | conduit_ai::LOCAL_MODEL_OPERATION
-            ) {
+            } else if contract.as_str() == conduit_ai::LOCAL_MODEL_OPERATION {
                 let placement = fragment
                     .placements
                     .get(usize::from(request.node.0))
@@ -2839,11 +2834,11 @@ pub(super) fn run_fragment_retaining<W: Write, T: TimerAdapter>(
                         Some(adapter) => Some(&mut **adapter),
                         None => None,
                     },
-                    &mut generate_text_output,
+                    &mut local_model_output,
                 )?;
                 let output = if completion.has_output() {
                     let value = scheduler
-                        .store_host_value(&generate_text_output)
+                        .store_host_value(&local_model_output)
                         .map_err(|error| format!("store model output: {error:?}"))?;
                     Some(
                         BoundedValueRef::new(value, lowered_operation.binding.maximum_output_bytes)
