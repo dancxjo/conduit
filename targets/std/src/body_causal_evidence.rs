@@ -15,12 +15,13 @@ use conduit_kernel::{
     KernelEvent, KernelEventKind,
 };
 use conduit_plan_lowering::lowering::KernelIdentityMap;
-use sha2::{Digest, Sha256};
 
 mod continuity;
 use continuity::validate_recovery_continuity;
 mod graph;
 use graph::record_intra_run_edges;
+mod identity;
+use identity::{digest_u64, evidence_sign, execution_envelope};
 
 pub const MAXIMUM_BODY_CAUSAL_NODES: usize = 128;
 pub const MAXIMUM_BODY_CAUSAL_EDGES: usize = 128;
@@ -52,6 +53,7 @@ struct BodyCausalNode {
     evidence: EvidenceIdentity,
     outcome: EvidenceOutcome,
     source_document_id: SourceDocumentId,
+    source_span: Option<conduit_core::SourceSpan>,
     wake_id: WakeId,
     plan_id: PlanId,
     play_id: conduit_core::ActivePlayId,
@@ -212,6 +214,15 @@ impl BodyRunCausalRecord {
     pub const fn terminals(&self) -> &TerminalEvidenceIndex<MAXIMUM_BODY_TERMINAL_CORRELATIONS> {
         &self.terminals
     }
+
+    /// Enumerates the exact identities retained by this bounded record.
+    ///
+    /// Successful recovery deliberately has no semantic-terminal correlation,
+    /// so inspection enters through this finite history rather than inventing
+    /// a terminal root merely to make the evidence discoverable.
+    pub fn retained_evidence(&self) -> impl ExactSizeIterator<Item = EvidenceIdentity> + '_ {
+        self.nodes.iter().map(|node| node.evidence)
+    }
 }
 
 impl EvidenceMetadataLookup for BodyRunCausalRecord {
@@ -243,8 +254,12 @@ impl EvidenceMetadataLookup for BodyRunCausalRecord {
             })?;
             emit(EvidenceMetadataFact::Source {
                 document: node.source_document_id.as_str(),
-                start: None,
-                end: None,
+                start: node.source_span.map(|span| span.start),
+                end: node.source_span.map(|span| span.end),
+                line: node.source_span.map(|span| span.line),
+                column: node.source_span.map(|span| span.column),
+                end_line: node.source_span.map(|span| span.end_line),
+                end_column: node.source_span.map(|span| span.end_column),
             })?;
             emit(EvidenceMetadataFact::Wake(node.wake_id.as_str()))?;
             emit(EvidenceMetadataFact::Plan(node.plan_id.as_str()))?;
@@ -306,6 +321,7 @@ fn collect_nodes(
             },
             outcome: outcome(event.kind),
             source_document_id: fragment.source_document_id.clone(),
+            source_span: placement.source_span,
             wake_id: plan.wake_id.clone(),
             plan_id: plan.plan_id.clone(),
             play_id: report.play.active_play_id.clone(),
@@ -467,29 +483,6 @@ fn outcome(kind: KernelEventKind) -> EvidenceOutcome {
         KernelEventKind::BackCompleted => EvidenceOutcome::PlayCompleted,
         _ => unreachable!("only relevant kernel events become causal nodes"),
     }
-}
-
-fn execution_envelope(plan: &BodyPlan) -> u64 {
-    digest_u64(&[plan.body_id.as_str(), plan.wake_id.as_str()])
-}
-
-fn evidence_sign(sign: &conduit_core::SignId, sequence: u32) -> u64 {
-    let sequence = sequence.to_le_bytes();
-    let mut digest = Sha256::new();
-    digest.update(sign.as_str().as_bytes());
-    digest.update(sequence);
-    let digest = digest.finalize();
-    u64::from_le_bytes(digest[..8].try_into().unwrap())
-}
-
-fn digest_u64(parts: &[&str]) -> u64 {
-    let mut digest = Sha256::new();
-    for part in parts {
-        digest.update((part.len() as u64).to_le_bytes());
-        digest.update(part.as_bytes());
-    }
-    let digest = digest.finalize();
-    u64::from_le_bytes(digest[..8].try_into().unwrap())
 }
 
 #[cfg(test)]

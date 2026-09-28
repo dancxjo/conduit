@@ -11,6 +11,9 @@ use conduit_form::{
     KindConfigurationRule, KindProjection, KindSignature, ProfileCatalog, StartupCatalog,
     StartupParameterSignature,
 };
+use conduit_kernel::causal_evidence::{
+    EvidenceMetadataFact, EvidenceMetadataLookup, EvidenceMetadataVisit,
+};
 use std::collections::BTreeMap;
 
 struct Clock;
@@ -191,6 +194,41 @@ fn canonical_image_text_composition_coexists_in_one_body_play() {
     assert_eq!(report.requests.len(), 4);
     assert!(report.play.validate_for(&body_plan));
     assert!(output.is_empty());
+
+    let evidence =
+        crate::body_causal_evidence::BodyRunCausalRecord::from_run(&body_plan, &report).unwrap();
+    let retained = evidence.retained_evidence().collect::<Vec<_>>();
+    assert!(!retained.is_empty());
+    for identity in retained {
+        let mut source = None;
+        assert_eq!(
+            evidence.visit(identity, &mut |fact| {
+                if let EvidenceMetadataFact::Source {
+                    document,
+                    start,
+                    end,
+                    line,
+                    column,
+                    end_line,
+                    end_column,
+                } = fact
+                {
+                    source = Some((document, start, end, line, column, end_line, end_column));
+                }
+                true
+            }),
+            EvidenceMetadataVisit::Visited
+        );
+        let (document, start, end, line, column, end_line, end_column) = source.unwrap();
+        assert!(body_plan
+            .forms
+            .iter()
+            .any(|form| form.plan.source_document_id.as_str() == document));
+        assert!(start.is_some_and(|value| value < end.unwrap()));
+        assert!(line.is_some_and(|value| value <= end_line.unwrap()));
+        assert!(column.is_some());
+        assert!(end_column.is_some());
+    }
 }
 
 fn plan(

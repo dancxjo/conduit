@@ -105,6 +105,15 @@ pub fn compute_fragment_id(fragment: &PlanFragment) -> FragmentId {
         push_string(&mut canonical, gear.capability_id.as_str());
         push_string(&mut canonical, gear.implementation_id.as_str());
         push_string(&mut canonical, gear.artifact_id.as_str());
+        if let Some(span) = gear.source_span {
+            push_string(&mut canonical, "source-span@1");
+            push_u64(&mut canonical, span.start);
+            push_u64(&mut canonical, span.end);
+            push_u64(&mut canonical, span.line);
+            push_u64(&mut canonical, span.column);
+            push_u64(&mut canonical, span.end_line);
+            push_u64(&mut canonical, span.end_column);
+        }
         if let Some(base) = &gear.base {
             push_string(&mut canonical, "base-provider-binding@1");
             push_string(&mut canonical, base.base_id.as_str());

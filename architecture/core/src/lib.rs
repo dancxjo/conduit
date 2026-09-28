@@ -250,6 +250,30 @@ pub struct FormIdentity {
     pub expanded_form_id: ExpandedFormId,
 }
 
+/// Exact authored UTF-8 extent retained as provenance, not semantic meaning.
+/// Portable fixed-width coordinates keep Plans inspectable across Hosts.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]
+pub struct SourceSpan {
+    pub start: u64,
+    pub end: u64,
+    pub line: u64,
+    pub column: u64,
+    pub end_line: u64,
+    pub end_column: u64,
+}
+
+impl SourceSpan {
+    pub const fn is_valid(self) -> bool {
+        self.start < self.end
+            && self.line > 0
+            && self.column > 0
+            && self.end_line > 0
+            && self.end_column > 0
+            && (self.line < self.end_line
+                || (self.line == self.end_line && self.column < self.end_column))
+    }
+}
+
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct ActivePlayIdentity {
     pub active_play_id: ActivePlayId,
@@ -522,6 +546,10 @@ pub struct PlannedGear {
     pub gear_id: GearId,
     pub kind_id: KindId,
     pub kind_contract_revision: KindIdentity,
+    /// Authored provenance where one exists. Generated realization machinery
+    /// remains honestly spanless rather than borrowing a nearby location.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub source_span: Option<SourceSpan>,
     pub execution_profile_id: ExecutionProfileId,
     pub configuration: Vec<ConfigurationEntry>,
     pub host_id: HostId,

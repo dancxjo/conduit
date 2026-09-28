@@ -49,8 +49,12 @@ pub enum CausalExplanationMetadataFact {
     },
     Source {
         document: String,
-        start: Option<u32>,
-        end: Option<u32>,
+        start: Option<u64>,
+        end: Option<u64>,
+        line: Option<u64>,
+        column: Option<u64>,
+        end_line: Option<u64>,
+        end_column: Option<u64>,
     },
     Wake(String),
     Plan(String),
@@ -294,10 +298,18 @@ fn owned_metadata_fact(fact: EvidenceMetadataFact<'_>) -> CausalExplanationMetad
             document,
             start,
             end,
+            line,
+            column,
+            end_line,
+            end_column,
         } => CausalExplanationMetadataFact::Source {
             document: document.into(),
             start,
             end,
+            line,
+            column,
+            end_line,
+            end_column,
         },
         EvidenceMetadataFact::Wake(value) => CausalExplanationMetadataFact::Wake(value.into()),
         EvidenceMetadataFact::Plan(value) => CausalExplanationMetadataFact::Plan(value.into()),
@@ -353,6 +365,15 @@ mod tests {
             }
             for fact in [
                 EvidenceMetadataFact::Outcome(EvidenceOutcome::SemanticTerminal),
+                EvidenceMetadataFact::Source {
+                    document: "source/exact",
+                    start: Some(4),
+                    end: Some(12),
+                    line: Some(2),
+                    column: Some(3),
+                    end_line: Some(2),
+                    end_column: Some(11),
+                },
                 EvidenceMetadataFact::Plan("plan/exact"),
                 EvidenceMetadataFact::Implementation("back/exact"),
                 EvidenceMetadataFact::Host("host/private"),
@@ -486,7 +507,15 @@ mod tests {
             CausalExplanationMetadata::Visible(facts)
                 if facts.contains(&CausalExplanationMetadataFact::Implementation(
                     "back/exact".into()
-                )) && facts.contains(&CausalExplanationMetadataFact::Authority {
+                )) && facts.contains(&CausalExplanationMetadataFact::Source {
+                    document: "source/exact".into(),
+                    start: Some(4),
+                    end: Some(12),
+                    line: Some(2),
+                    column: Some(3),
+                    end_line: Some(2),
+                    end_column: Some(11),
+                }) && facts.contains(&CausalExplanationMetadataFact::Authority {
                     grant: "grant/private".into(),
                     contract: "authority/audio".into(),
                 })
