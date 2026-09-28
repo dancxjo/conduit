@@ -25,9 +25,25 @@ pub struct CheckedValueContract {
 
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]
 pub enum ValueConstraint {
-    ByteLength { minimum: u32, maximum: u32 },
-    UnsignedRange { minimum: u64, maximum: u64 },
-    CanonicalMembership { members: Vec<Vec<u8>> },
+    ByteLength {
+        minimum: u32,
+        maximum: u32,
+    },
+    UnsignedRange {
+        minimum: u64,
+        maximum: u64,
+    },
+    SignedRange {
+        minimum: i64,
+        maximum: i64,
+    },
+    QuantityRange {
+        minimum: crate::Quantity,
+        maximum: crate::Quantity,
+    },
+    CanonicalMembership {
+        members: Vec<Vec<u8>>,
+    },
     TextPattern(CheckedTextPattern),
 }
 
@@ -59,6 +75,8 @@ pub enum ConstraintDefinitionError {
     WrongConstraintKind,
     InvalidByteRange,
     InvalidUnsignedRange,
+    InvalidSignedRange,
+    InvalidQuantityRange,
     EmptyMembership,
     TooManyMembershipValues,
     MembershipBytesExceeded,
@@ -82,6 +100,8 @@ pub enum ValueConstraintRefusal {
     WrongConstraintKind,
     ByteLength,
     UnsignedRange,
+    SignedRange,
+    QuantityRange,
     Membership,
     TextPattern,
 }
@@ -132,8 +152,10 @@ impl ValueConstraint {
         match self {
             Self::ByteLength { .. } => 0,
             Self::UnsignedRange { .. } => 1,
-            Self::CanonicalMembership { .. } => 2,
-            Self::TextPattern(_) => 3,
+            Self::SignedRange { .. } => 2,
+            Self::QuantityRange { .. } => 3,
+            Self::CanonicalMembership { .. } => 4,
+            Self::TextPattern(_) => 5,
         }
     }
 
@@ -152,6 +174,25 @@ impl ValueConstraint {
                 Err(ConstraintDefinitionError::InvalidUnsignedRange)
             }
             Self::UnsignedRange { .. } if value_kind != crate::COUNT_INFO_ID => {
+                Err(ConstraintDefinitionError::WrongConstraintKind)
+            }
+            Self::SignedRange { minimum, maximum } if minimum > maximum => {
+                Err(ConstraintDefinitionError::InvalidSignedRange)
+            }
+            Self::SignedRange { .. } if value_kind != crate::SCALAR_INFO_ID => {
+                Err(ConstraintDefinitionError::WrongConstraintKind)
+            }
+            Self::QuantityRange { minimum, maximum }
+                if minimum.dimension() != maximum.dimension()
+                    || minimum.compare(*maximum).is_err()
+                    || minimum.compare(*maximum).is_ok_and(|order| order.is_gt()) =>
+            {
+                Err(ConstraintDefinitionError::InvalidQuantityRange)
+            }
+            Self::QuantityRange { minimum, .. }
+                if value_kind != crate::QUANTITY_INFO_ID
+                    && crate::quantity_info_dimension(value_kind) != Some(minimum.dimension()) =>
+            {
                 Err(ConstraintDefinitionError::WrongConstraintKind)
             }
             Self::CanonicalMembership { members } if members.is_empty() => {
@@ -209,6 +250,26 @@ impl ValueConstraint {
                 (value >= *minimum && value <= *maximum)
                     .then_some(())
                     .ok_or(ValueConstraintRefusal::UnsignedRange)
+            }
+            Self::SignedRange { minimum, maximum } => {
+                if value_kind != crate::SCALAR_INFO_ID {
+                    return Err(ValueConstraintRefusal::WrongConstraintKind);
+                }
+                let value = crate::Scalar::decode(canonical)
+                    .map_err(|_| ValueConstraintRefusal::SignedRange)?
+                    .raw_microunits();
+                (value >= *minimum && value <= *maximum)
+                    .then_some(())
+                    .ok_or(ValueConstraintRefusal::SignedRange)
+            }
+            Self::QuantityRange { minimum, maximum } => {
+                let value = crate::Quantity::decode(canonical)
+                    .map_err(|_| ValueConstraintRefusal::QuantityRange)?;
+                let above_minimum = value.compare(*minimum).is_ok_and(|order| !order.is_lt());
+                let below_maximum = value.compare(*maximum).is_ok_and(|order| !order.is_gt());
+                (above_minimum && below_maximum)
+                    .then_some(())
+                    .ok_or(ValueConstraintRefusal::QuantityRange)
             }
             Self::CanonicalMembership { members } => members
                 .iter()
@@ -453,6 +514,68 @@ mod tests {
             count.validate(&[0]),
             Err(ValueConstraintRefusal::MalformedPrimitive(_))
         ));
+    }
+
+    #[test]
+    fn signed_and_quantity_ranges_compare_semantic_values() {
+        let scalar = CheckedValueContract::new(
+            crate::kind_id(crate::SCALAR_INFO_ID),
+            crate::SCALAR_ENCODED_LEN as u32,
+            vec![ValueConstraint::SignedRange {
+                minimum: -2_000_000,
+                maximum: 2_000_000,
+            }],
+        )
+        .unwrap();
+        assert_eq!(scalar.validate(&crate::Scalar::ZERO.encode()), Ok(()));
+        assert_eq!(
+            scalar.validate(&crate::Scalar::from_raw_microunits(3_000_000).encode()),
+            Err(ValueConstraintRefusal::SignedRange)
+        );
+
+        let distance = CheckedValueContract::new(
+            crate::kind_id(crate::DISTANCE_INFO_ID),
+            crate::QUANTITY_ENCODED_LEN as u32,
+            vec![ValueConstraint::QuantityRange {
+                minimum: crate::Quantity::new(1, crate::QuantityUnit::Meter),
+                maximum: crate::Quantity::new(2, crate::QuantityUnit::Meter),
+            }],
+        )
+        .unwrap();
+        assert_eq!(
+            distance.validate(&crate::Quantity::new(150, crate::QuantityUnit::Centimeter).encode()),
+            Ok(())
+        );
+        assert_eq!(
+            distance.validate(&crate::Quantity::new(3, crate::QuantityUnit::Meter).encode()),
+            Err(ValueConstraintRefusal::QuantityRange)
+        );
+    }
+
+    #[test]
+    fn quantity_range_refuses_a_mismatched_kind_or_dimension() {
+        assert_eq!(
+            CheckedValueContract::new(
+                crate::kind_id(crate::DISTANCE_INFO_ID),
+                crate::QUANTITY_ENCODED_LEN as u32,
+                vec![ValueConstraint::QuantityRange {
+                    minimum: crate::Quantity::new(1, crate::QuantityUnit::Second),
+                    maximum: crate::Quantity::new(2, crate::QuantityUnit::Second),
+                }],
+            ),
+            Err(ConstraintDefinitionError::WrongConstraintKind)
+        );
+        assert_eq!(
+            CheckedValueContract::new(
+                crate::kind_id(crate::QUANTITY_INFO_ID),
+                crate::QUANTITY_ENCODED_LEN as u32,
+                vec![ValueConstraint::QuantityRange {
+                    minimum: crate::Quantity::new(1, crate::QuantityUnit::Meter),
+                    maximum: crate::Quantity::new(2, crate::QuantityUnit::Second),
+                }],
+            ),
+            Err(ConstraintDefinitionError::InvalidQuantityRange)
+        );
     }
 
     #[test]

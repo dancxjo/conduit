@@ -708,8 +708,18 @@ fn push_value_contract(canonical: &mut Vec<u8>, contract: &crate::CheckedValueCo
                 push_u64(canonical, *minimum);
                 push_u64(canonical, *maximum);
             }
-            crate::ValueConstraint::CanonicalMembership { members } => {
+            crate::ValueConstraint::SignedRange { minimum, maximum } => {
                 canonical.push(2);
+                canonical.extend_from_slice(&minimum.to_le_bytes());
+                canonical.extend_from_slice(&maximum.to_le_bytes());
+            }
+            crate::ValueConstraint::QuantityRange { minimum, maximum } => {
+                canonical.push(3);
+                canonical.extend_from_slice(&minimum.encode());
+                canonical.extend_from_slice(&maximum.encode());
+            }
+            crate::ValueConstraint::CanonicalMembership { members } => {
+                canonical.push(4);
                 push_u32(canonical, members.len() as u32);
                 for member in members {
                     push_u32(canonical, member.len() as u32);
@@ -717,7 +727,7 @@ fn push_value_contract(canonical: &mut Vec<u8>, contract: &crate::CheckedValueCo
                 }
             }
             crate::ValueConstraint::TextPattern(pattern) => {
-                canonical.push(3);
+                canonical.push(5);
                 push_u32(canonical, u32::from(pattern.start_state));
                 push_u32(canonical, pattern.maximum_input_characters);
                 push_u32(canonical, pattern.maximum_match_steps);

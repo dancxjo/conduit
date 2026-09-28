@@ -45,6 +45,7 @@ mod syntax_check;
 mod syntax_highlight;
 mod syntax_identity;
 mod text_value;
+mod value_pattern;
 mod value_type;
 
 pub use back_catalog::*;
@@ -60,6 +61,7 @@ pub use expression_program::*;
 pub use structured_startup::*;
 pub use syntax::*;
 pub use syntax_highlight::*;
+pub use value_pattern::*;
 
 pub const MAXIMUM_FORM_SOURCE_BYTES: usize = 1024 * 1024;
 pub const MAXIMUM_FORM_TOKENS: usize = 131_072;
