@@ -1,4 +1,5 @@
 import { Conduit } from "/target/field-station-sdk/browser-sdk.mjs";
+import { renderBrowserBodyPatchbay } from "/forms/patchbay/workbench/browser/browser-sdk.js";
 
 const root = document.querySelector("#conduit");
 const status = document.querySelector("#status");
@@ -20,7 +21,8 @@ try {
   const recoverySnapshot = recoveredBody ? await recoveredBody.current() : null;
   const body = recoveredBody ?? await host.birth({ name: "Field Station Clock", forms: checked.forms });
   const play = await body.wake();
-  const patchbay = await body.patchbay({ root: patchbayRoot });
+  const patchbay = await body.patchbay();
+  renderBrowserBodyPatchbay(patchbayRoot, patchbay);
   const exact = Object.freeze({
     hostId: host.id,
     bootId: host.bootId,

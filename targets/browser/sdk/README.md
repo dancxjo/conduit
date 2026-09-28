@@ -178,6 +178,10 @@ snapshot independently of subscriptions.
 const snapshot = await body.snapshot();
 console.log(snapshot.evidence.body_id, snapshot.evidence.body.workload_revision);
 
+// Patchbay is a Body-owned semantic projection. A workbench Mask, not the SDK,
+// decides how to realize it in HTML.
+const patchbay = await body.patchbay();
+
 const controller = new AbortController();
 for await (const event of body.events({ signal: controller.signal })) {
   console.log(event.type, event.identity, event.evidence);
