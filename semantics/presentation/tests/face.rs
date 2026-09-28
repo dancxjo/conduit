@@ -4,17 +4,15 @@ use conduit_core::{
     FormIdentity, SignId, SourceDocumentId,
 };
 use conduit_presentation::{
-    render_linear_presentation, ApplicationAction, ApplicationComponent, ApplicationEventKind,
-    ApplicationNodeState, ApplicationView, ApplicationViewNode, Face, FaceContext,
-    FaceContribution, FaceContributionContent, FaceContributionRole, FaceFocus,
-    FaceOperatorActionKind, FaceRefusal, GenerativeNarratorRole, GenerativePresenterBounds,
-    GenerativePresenterPolicy, GenerativePresenterRequest, NavigationAspect, NavigationPlace,
-    PresentationAction, PresentationActionAvailability, PresentationAspect,
-    PresentationCompositionKind, PresentationCompositionRelation, PresentationContributionBasis,
-    PresentationCursor, PresentationDepth, PresentationDisclosure, PresentationDisclosureLevel,
-    PresentationFragment, PresentationNavigation, PresentationPlace, PresentationProjection,
-    PresentationPropertyValue, PresentationRole, PresentationSubject, ProjectionItem,
-    ProjectionMembership,
+    render_linear_presentation, Face, FaceContext, FaceContribution, FaceContributionRole,
+    FaceFocus, FaceOperatorActionKind, FaceRefusal, GenerativeNarratorRole,
+    GenerativePresenterBounds, GenerativePresenterPolicy, GenerativePresenterRequest,
+    NavigationAspect, NavigationPlace, PresentationAction, PresentationActionAvailability,
+    PresentationAspect, PresentationCompositionKind, PresentationCompositionRelation,
+    PresentationContributionBasis, PresentationCursor, PresentationDepth, PresentationDisclosure,
+    PresentationDisclosureLevel, PresentationFragment, PresentationNavigation, PresentationPlace,
+    PresentationProjection, PresentationPropertyValue, PresentationRole, PresentationSubject,
+    ProjectionItem, ProjectionMembership,
 };
 
 fn born_body() -> Body {
@@ -53,35 +51,45 @@ fn playing() -> (Body, Wake, conduit_core::PlanId, conduit_core::ActivePlayId) {
     (body, wake, plan.plan_id, play_id)
 }
 
-fn tutorial_view(revision: u32) -> ApplicationView {
-    ApplicationView {
-        revision,
-        nodes: vec![
-            ApplicationViewNode {
-                parent: None,
-                component: ApplicationComponent::Main,
-                key: "tutorial".into(),
-                text: "Learn this body".into(),
-                value: String::new(),
-                value_capacity: 0,
-                action: None,
-                state: ApplicationNodeState::Ready,
+fn tutorial_fragment(
+    plan_id: conduit_core::PlanId,
+    play_id: conduit_core::ActivePlayId,
+) -> PresentationFragment {
+    PresentationFragment {
+        basis: PresentationContributionBasis {
+            checked_form_id: CheckedFormId::from("checked/tutorial"),
+            plan_id,
+            active_play_id: play_id,
+            required_interaction_context: None,
+        },
+        subjects: vec![
+            PresentationSubject {
+                identity: "tutorial".into(),
+                role: PresentationRole::Semantic(kind_id("education/tutorial")),
+                name: "Learn this body".into(),
             },
-            ApplicationViewNode {
-                parent: Some(0),
-                component: ApplicationComponent::Button,
-                key: "continue".into(),
-                text: "Continue".into(),
-                value: String::new(),
-                value_capacity: 0,
-                action: Some(0),
-                state: ApplicationNodeState::Ready,
+            PresentationSubject {
+                identity: "continue".into(),
+                role: PresentationRole::Action,
+                name: "Continue".into(),
             },
         ],
-        actions: vec![ApplicationAction {
-            id: "tutorial.continue".into(),
-            event: ApplicationEventKind::Activate,
+        relationships: vec![],
+        composition: vec![],
+        properties: vec![],
+        text: vec![],
+        actions: vec![PresentationAction {
+            identity: "tutorial.continue".into(),
+            intent: "education/tutorial/continue@1".into(),
+            target: "continue".into(),
+            name: "Continue".into(),
+            arguments: vec![],
+            disclosure: PresentationDisclosureLevel::CurrentAction,
+            availability: PresentationActionAvailability::Available,
         }],
+        disclosures: vec![],
+        temporal_references: vec![],
+        temporal_facts: vec![],
     }
 }
 
@@ -117,13 +125,10 @@ fn lulled_body_has_an_exact_surface_without_a_running_form() {
 #[test]
 fn resident_view_joins_body_truth_only_for_its_current_play() {
     let (body, wake, plan_id, play_id) = playing();
-    let contribution = FaceContribution {
-        role: FaceContributionRole::Tutorial,
-        checked_form_id: CheckedFormId::from("checked/tutorial"),
-        plan_id: plan_id.clone(),
-        active_play_id: play_id.clone(),
-        content: FaceContributionContent::ApplicationView(tutorial_view(11)),
-    };
+    let contribution = FaceContribution::from_presentation(
+        FaceContributionRole::Tutorial,
+        tutorial_fragment(plan_id.clone(), play_id.clone()),
+    );
     let surface = Face::project(
         &body,
         Some(&wake),
@@ -165,17 +170,6 @@ fn resident_view_joins_body_truth_only_for_its_current_play() {
         .presentation
         .resolve_action(20, &action.identity)
         .is_ok());
-    let routed = surface
-        .resolve_application_action(20, &action.identity)
-        .unwrap();
-    assert_eq!(routed.active_play_id, play_id);
-    assert_eq!(routed.plan_id, plan_id);
-    assert_eq!(routed.application_view_revision, 11);
-    assert_eq!(routed.application_action_id, "tutorial.continue");
-    assert_eq!(
-        surface.resolve_application_action(19, &action.identity),
-        Err(FaceRefusal::StaleAction)
-    );
     let library = surface
         .operator_actions
         .iter()
@@ -218,13 +212,10 @@ fn resident_view_joins_body_truth_only_for_its_current_play() {
 #[test]
 fn presentation_only_navigation_does_not_change_body_or_running_work() {
     let (body, wake, plan_id, play_id) = playing();
-    let contribution = FaceContribution {
-        role: FaceContributionRole::Foreground,
-        checked_form_id: CheckedFormId::from("checked/tutorial"),
-        plan_id,
-        active_play_id: play_id,
-        content: FaceContributionContent::ApplicationView(tutorial_view(4)),
-    };
+    let contribution = FaceContribution::from_presentation(
+        FaceContributionRole::Foreground,
+        tutorial_fragment(plan_id, play_id),
+    );
     let overview = Face::project(
         &body,
         Some(&wake),
@@ -266,13 +257,10 @@ fn presentation_only_navigation_does_not_change_body_or_running_work() {
 #[test]
 fn composition_is_finite_and_deterministic() {
     let (body, wake, plan_id, play_id) = playing();
-    let contribution = FaceContribution {
-        role: FaceContributionRole::Tutorial,
-        checked_form_id: CheckedFormId::from("checked/tutorial"),
-        plan_id,
-        active_play_id: play_id,
-        content: FaceContributionContent::ApplicationView(tutorial_view(8)),
-    };
+    let contribution = FaceContribution::from_presentation(
+        FaceContributionRole::Tutorial,
+        tutorial_fragment(plan_id, play_id),
+    );
     let project = || {
         Face::project(
             &body,
@@ -376,7 +364,7 @@ fn ordinary_form_contributes_universal_truth_without_an_application_view() {
         checked_form_id: CheckedFormId::from("checked/tutorial"),
         plan_id: plan_id.clone(),
         active_play_id: play_id.clone(),
-        content: FaceContributionContent::Presentation(Box::new(PresentationFragment {
+        presentation: Box::new(PresentationFragment {
             basis: PresentationContributionBasis {
                 checked_form_id: CheckedFormId::from("checked/tutorial"),
                 plan_id,
@@ -425,7 +413,7 @@ fn ordinary_form_contributes_universal_truth_without_an_application_view() {
             }],
             temporal_references: vec![],
             temporal_facts: vec![],
-        })),
+        }),
     };
     let face = Face::project(
         &body,
@@ -545,7 +533,6 @@ fn fulfilled_body_keeps_terminal_surface_without_wake_or_actions() {
     )
     .unwrap();
 
-    assert!(surface.application_actions.is_empty());
     assert!(!surface.operator_actions.iter().any(|action| matches!(
         action.kind,
         FaceOperatorActionKind::Wake | FaceOperatorActionKind::Lull

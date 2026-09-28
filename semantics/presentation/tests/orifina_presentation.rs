@@ -62,7 +62,6 @@ fn surface(purpose: &PurposeState, experience_revision: u64, revision: u64) -> F
             revision,
         )
         .unwrap(),
-        application_actions: vec![],
         operator_actions: vec![],
     }
 }

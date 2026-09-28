@@ -4,8 +4,8 @@ use alloc::{format, vec};
 use conduit_body::{Body, BodyState, Wake, WakePlanState};
 
 use super::{
-    interaction_context_identity, FaceContext, FaceContribution, FaceContributionContent,
-    FaceContributionRole, FaceFocus, FaceRefusal, MAX_FACE_CONTRIBUTIONS, MAX_FACE_TRANSIENTS,
+    interaction_context_identity, FaceContext, FaceContribution, FaceContributionRole, FaceFocus,
+    FaceRefusal, MAX_FACE_CONTRIBUTIONS, MAX_FACE_TRANSIENTS,
 };
 use crate::PresentationFragmentError;
 
@@ -108,34 +108,28 @@ fn validate_contribution(
     focus: &FaceFocus,
     contribution: &FaceContribution,
 ) -> Result<(), FaceRefusal> {
-    match &contribution.content {
-        FaceContributionContent::Presentation(fragment) => {
-            fragment
-                .validate_bounds()
-                .map_err(FaceRefusal::InvalidPresentationFragment)?;
-            if fragment.basis.checked_form_id != contribution.checked_form_id
-                || fragment.basis.plan_id != contribution.plan_id
-                || fragment.basis.active_play_id != contribution.active_play_id
-            {
-                return Err(FaceRefusal::InvalidPresentationFragment(
-                    PresentationFragmentError::InvalidContextRequirement,
-                ));
-            }
-            let context_identity = interaction_context_identity(context, focus);
-            if fragment
-                .basis
-                .required_interaction_context
-                .as_ref()
-                .is_some_and(|required| required != &context_identity)
-            {
-                return Err(FaceRefusal::IncompatibleInteractionContext);
-            }
-            Ok(())
-        }
-        FaceContributionContent::ApplicationView(view) => {
-            view.validate().map_err(FaceRefusal::InvalidApplicationView)
-        }
+    let fragment = &contribution.presentation;
+    fragment
+        .validate_bounds()
+        .map_err(FaceRefusal::InvalidPresentationFragment)?;
+    if fragment.basis.checked_form_id != contribution.checked_form_id
+        || fragment.basis.plan_id != contribution.plan_id
+        || fragment.basis.active_play_id != contribution.active_play_id
+    {
+        return Err(FaceRefusal::InvalidPresentationFragment(
+            PresentationFragmentError::InvalidContextRequirement,
+        ));
     }
+    let context_identity = interaction_context_identity(context, focus);
+    if fragment
+        .basis
+        .required_interaction_context
+        .as_ref()
+        .is_some_and(|required| required != &context_identity)
+    {
+        return Err(FaceRefusal::IncompatibleInteractionContext);
+    }
+    Ok(())
 }
 
 fn validate_focus(
@@ -149,15 +143,11 @@ fn validate_focus(
         return Err(FaceRefusal::InvalidFocus);
     };
     if let Some(key) = node_key {
-        let found = match &contribution.content {
-            FaceContributionContent::ApplicationView(view) => {
-                view.nodes.iter().any(|node| &node.key == key)
-            }
-            FaceContributionContent::Presentation(fragment) => fragment
-                .subjects
-                .iter()
-                .any(|subject| &subject.identity == key),
-        };
+        let found = contribution
+            .presentation
+            .subjects
+            .iter()
+            .any(|subject| &subject.identity == key);
         if !found {
             return Err(FaceRefusal::InvalidFocus);
         }
@@ -177,9 +167,7 @@ fn validate_contribution_identities(
             .map(|form| format!("form/{}", form.checked_form_id.as_str())),
     );
     for contribution in contributions {
-        let FaceContributionContent::Presentation(fragment) = &contribution.content else {
-            continue;
-        };
+        let fragment = &contribution.presentation;
         if let Some(identity) = fragment
             .subjects
             .iter()
@@ -190,13 +178,9 @@ fn validate_contribution_identities(
         }
     }
     for (index, contribution) in contributions.iter().enumerate() {
-        let FaceContributionContent::Presentation(fragment) = &contribution.content else {
-            continue;
-        };
+        let fragment = &contribution.presentation;
         for other in &contributions[index + 1..] {
-            let FaceContributionContent::Presentation(other_fragment) = &other.content else {
-                continue;
-            };
+            let other_fragment = &other.presentation;
             let collision = fragment
                 .subjects
                 .iter()

@@ -242,7 +242,6 @@ pub(crate) fn proof_request() -> Result<GenerativePresenterRequest, String> {
             context: FaceContext::Overview,
             focus: FaceFocus::Body,
             presentation,
-            application_actions: vec![],
             operator_actions: vec![],
         },
         None,

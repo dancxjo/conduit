@@ -6,12 +6,11 @@ use conduit_core::{ActivePlayId, CheckedFormId, PlanId};
 use serde::{Deserialize, Serialize};
 
 use crate::{
-    ApplicationEventKind, ApplicationView, ApplicationViewRefusal, Presentation, PresentationBasis,
-    PresentationContextBasis, PresentationDisclosure, PresentationDisclosureLevel,
-    PresentationError, PresentationFragment, PresentationFragmentError,
-    PresentationInteractionContext, PresentationProperty, PresentationPropertyValue,
-    PresentationRelationship, PresentationRelationshipKind, PresentationRole, PresentationSubject,
-    PresentationText,
+    Presentation, PresentationBasis, PresentationContextBasis, PresentationDisclosure,
+    PresentationDisclosureLevel, PresentationError, PresentationFragment,
+    PresentationFragmentError, PresentationInteractionContext, PresentationProperty,
+    PresentationPropertyValue, PresentationRelationship, PresentationRelationshipKind,
+    PresentationRole, PresentationSubject, PresentationText,
 };
 
 mod action_resolution;
@@ -59,15 +58,7 @@ pub struct FaceContribution {
     pub checked_form_id: CheckedFormId,
     pub plan_id: PlanId,
     pub active_play_id: ActivePlayId,
-    pub content: FaceContributionContent,
-}
-
-/// Direct universal grammar is the architectural path. `ApplicationView` is a
-/// bounded downstream compatibility producer during migration.
-#[derive(Debug, Clone, PartialEq, Eq)]
-pub enum FaceContributionContent {
-    Presentation(Box<PresentationFragment>),
-    ApplicationView(ApplicationView),
+    pub presentation: Box<PresentationFragment>,
 }
 
 impl FaceContribution {
@@ -77,24 +68,7 @@ impl FaceContribution {
             checked_form_id: fragment.basis.checked_form_id.clone(),
             plan_id: fragment.basis.plan_id.clone(),
             active_play_id: fragment.basis.active_play_id.clone(),
-            content: FaceContributionContent::Presentation(Box::new(fragment)),
-        }
-    }
-
-    /// Explicit compatibility edge for historical widget-oriented producers.
-    pub fn from_application_view(
-        role: FaceContributionRole,
-        checked_form_id: CheckedFormId,
-        plan_id: PlanId,
-        active_play_id: ActivePlayId,
-        view: ApplicationView,
-    ) -> Self {
-        Self {
-            role,
-            checked_form_id,
-            plan_id,
-            active_play_id,
-            content: FaceContributionContent::ApplicationView(view),
+            presentation: Box::new(fragment),
         }
     }
 }
@@ -113,20 +87,7 @@ pub struct Face {
     pub context: FaceContext,
     pub focus: FaceFocus,
     pub presentation: Presentation,
-    pub application_actions: Vec<FaceApplicationAction>,
     pub operator_actions: Vec<FaceOperatorAction>,
-}
-
-#[derive(Debug, Clone, PartialEq, Eq)]
-pub struct FaceApplicationAction {
-    pub surface_action_id: String,
-    pub role: FaceContributionRole,
-    pub checked_form_id: CheckedFormId,
-    pub plan_id: PlanId,
-    pub active_play_id: ActivePlayId,
-    pub application_view_revision: u32,
-    pub application_action_id: String,
-    pub event: ApplicationEventKind,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -157,7 +118,6 @@ pub enum FaceRefusal {
     DuplicatePlay,
     FormNotResident,
     PlayNotCurrent,
-    InvalidApplicationView(ApplicationViewRefusal),
     InvalidPresentationFragment(PresentationFragmentError),
     IncompatibleInteractionContext,
     FaceOwnedIdentity(String),
@@ -247,7 +207,6 @@ impl Face {
             ),
         }];
         let mut actions = Vec::new();
-        let mut application_actions = Vec::new();
         let mut operator_actions = Vec::new();
         let mut disclosures = vec![
             PresentationDisclosure {
@@ -328,7 +287,6 @@ impl Face {
                 &mut disclosures,
                 &mut temporal_references,
                 &mut temporal_facts,
-                &mut application_actions,
             );
         }
 
@@ -375,7 +333,6 @@ impl Face {
             context,
             focus,
             presentation,
-            application_actions,
             operator_actions,
         })
     }

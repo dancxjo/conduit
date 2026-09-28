@@ -246,7 +246,6 @@ mod tests {
             context: FaceContext::Overview,
             focus: FaceFocus::Body,
             presentation: presentation.clone(),
-            application_actions: vec![],
             operator_actions: vec![],
         };
         let generative = GenerativePresenterRequest::from_face(

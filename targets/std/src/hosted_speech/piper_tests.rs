@@ -166,7 +166,6 @@ fn generated_candidate_stops_before_the_typed_speech_boundary() {
             context: FaceContext::Overview,
             focus: FaceFocus::Body,
             presentation,
-            application_actions: vec![],
             operator_actions: vec![],
         },
         None,
