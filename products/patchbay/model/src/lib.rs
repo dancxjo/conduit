@@ -13,7 +13,6 @@ use conduit_observatory::{
 
 mod body_biography;
 mod body_biography_entrance;
-mod body_plan_projection;
 mod body_planning_session;
 mod body_workload_session;
 mod build_birth;
@@ -38,7 +37,6 @@ mod degradation_explanation;
 mod degraded_profile_explanation;
 mod dormant_readmission_explanation;
 mod execution_disposition_explanation;
-mod experience_inspection;
 mod form_editor;
 mod form_editor_catalogs;
 mod form_editor_error;
@@ -133,9 +131,6 @@ pub use body_biography_entrance::{
     PatchbayBodyApplicationEntrance, PatchbayBodyAttachment, PatchbayBodyEntranceError,
     MAX_PATCHBAY_BODY_EVIDENCE_BYTES,
 };
-pub use body_plan_projection::{
-    project_body_plan, BodyPlanFormProjection, BodyPlanPlacementProjection, BodyPlanProjection,
-};
 pub use body_planning_session::{
     body_planning_requirements, plan_body_workset_on_host, BodyExecutionClaim,
     BodyExecutionClaimError, BodyExecutionPhase, BodyPlanningHost, BodyPlanningRequirements,
@@ -209,7 +204,6 @@ pub use dormant_readmission_explanation::{
 pub use execution_disposition_explanation::{
     explain_execution_disposition, ExecutionDispositionExplanation,
 };
-pub use experience_inspection::*;
 pub use form_editor::{
     CheckedRevision, EditorDiagnostic, FormDocumentView, FormEditor, FormEditorError, GraphCord,
     GraphCordStage, GraphForm, GraphItem, GraphItemKind, SourceSelection,
