@@ -304,6 +304,7 @@ fn run_profile(
     host: &mut StdHost,
     profile: LocalModelKindProfile,
 ) -> Result<(String, bool), Box<dyn std::error::Error>> {
+    const PROOF_MAXIMUM_INPUT_BYTES: u64 = 16 * 1024;
     let contract = conduit_ai::llm_contract(profile.kind()).expect("proof profiles are L0");
     let mut startup = StartupCatalog::new();
     let mut profiles = ProfileCatalog::new();
@@ -314,25 +315,29 @@ fn run_profile(
         contract.inputs[0].value_kind.as_str(),
         contract.outputs[0].value_kind.as_str(),
     );
-    let (maximum_input_bytes, maximum_output_bytes, maximum_work_units) =
-        if profile == LocalModelKindProfile::PresentSemanticFront {
-            let provider_maximum_input_bytes = host
-                .advertisement()
-                .capabilities
-                .iter()
-                .find(|offer| offer.kind_id.as_str() == profile.kind())
-                .and_then(|offer| offer.host_calls.first())
-                .map(|call| u64::from(call.maximum_input_bytes))
-                .ok_or("local-model proof Presenter Back has no Host Call bound")?;
-            (
-                (conduit_presentation::MAX_GENERATIVE_PRESENTER_INPUT_BYTES as u64)
-                    .min(provider_maximum_input_bytes),
-                conduit_presentation::MAX_GENERATIVE_PRESENTER_OUTPUT_BYTES as u64,
-                contract.bounds.maximum_work_units,
-            )
-        } else {
-            (4_096, 4_096, 4_096)
-        };
+    let provider_call = host
+        .advertisement()
+        .capabilities
+        .iter()
+        .find(|offer| offer.kind_id.as_str() == profile.kind())
+        .and_then(|offer| {
+            offer.host_calls.iter().find(|call| {
+                call.target_kind
+                    .as_ref()
+                    .is_some_and(|kind| kind.as_str() == profile.kind())
+            })
+        })
+        .ok_or("local-model proof Back has no Host Call bound")?;
+    let maximum_input_bytes = contract
+        .bounds
+        .maximum_input_bytes
+        .min(PROOF_MAXIMUM_INPUT_BYTES)
+        .min(u64::from(provider_call.maximum_input_bytes));
+    let maximum_output_bytes = contract
+        .bounds
+        .maximum_output_bytes
+        .min(u64::from(provider_call.maximum_output_bytes));
+    let maximum_work_units = contract.bounds.maximum_work_units;
     let source = format!(
         "form run {{\n source: conduit-test/local-model-request\n model: {}({}, 1, {}, {}, 0)\n sink: conduit-test/local-model-result\n source.value >> model.request\n model.result >> sink.value\n}}\n",
         profile.kind(), maximum_input_bytes, maximum_output_bytes, maximum_work_units,
@@ -351,11 +356,7 @@ fn run_profile(
                 error.code, error.message
             )
         })?;
-    let connection_byte_capacity = if profile == LocalModelKindProfile::PresentSemanticFront {
-        conduit_presentation::MAX_GENERATIVE_PRESENTER_OUTPUT_BYTES as u32
-    } else {
-        4_096
-    };
+    let connection_byte_capacity = u32::try_from(maximum_input_bytes.max(maximum_output_bytes))?;
     run_expanded(host, expanded, profile.kind(), connection_byte_capacity)
 }
 

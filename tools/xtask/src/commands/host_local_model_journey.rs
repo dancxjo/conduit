@@ -52,12 +52,23 @@ pub(super) fn write(
         .ok_or("Orifina biography lacks its repair sign")?
         .as_str()
         .to_owned();
+    let request = journey
+        .requests
+        .iter()
+        .find(|request| {
+            let basis = &request.semantic_data.presentation.basis;
+            basis.source_document_id.is_some()
+                && basis.checked_form_id.is_some()
+                && basis.expanded_form_id.is_some()
+                && basis.plan_id.is_some()
+        })
+        .ok_or("Orifina live proof lacks a planned Face for its spoken Mask")?;
     let manifestation = receipt
         .presenter_requests
         .iter()
-        .find(|candidate| candidate.request_identity == journey.requests[0].request_identity)
-        .ok_or("Orifina live proof lacks its generative Mask Show")?;
-    let presentation = journey.requests[0].semantic_data.presentation.clone();
+        .find(|candidate| candidate.request_identity == request.request_identity)
+        .ok_or("Orifina live proof lacks its planned generative Mask Show")?;
+    let presentation = request.semantic_data.presentation.clone();
     let retained = manifestation.manifestation.clone();
     let initial = conduit_std_host::spoken_mask_journey::execute_retained_manifestation_mask(
         "spoken-initial",

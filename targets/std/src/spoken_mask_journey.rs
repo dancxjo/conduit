@@ -182,7 +182,7 @@ pub fn execute_retained_manifestation_mask(
  show: Show >>
 ) {{
  request: presentation/adapt-generative-request
- language: llm/present
+ language: llm/present(16384, 1, 4096, 16384, 0)
  envelope: presentation/build-generated-validation-envelope
  validator: presentation/generated-semantic-validator
  accepted: presentation/retain-generated-validation
@@ -279,11 +279,17 @@ pub fn execute_retained_manifestation_mask(
         GenerativePresenterBounds::reviewed_default(),
     )
     .map_err(|error| format!("prepare Presenter request: {error:?}"))?;
+    let front_subject = presentation
+        .subjects
+        .iter()
+        .find(|subject| subject.role == conduit_presentation::PresentationRole::Body)
+        .map(|subject| subject.identity.clone())
+        .ok_or("spoken Mask Face has no Body subject")?;
     let preparation = crate::spoken_mask_runtime::SpokenMaskPreparation {
         request,
         presentation: presentation.clone(),
         planned_mask: planned,
-        front_subject: "body/current".into(),
+        front_subject,
         target_subject: format!("artifact/{execution_id}"),
         prepared_sign: SignId::from(format!("sign/{execution_id}/prepared")),
         available_sign: SignId::from(format!("sign/{execution_id}/available")),

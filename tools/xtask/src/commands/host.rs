@@ -142,12 +142,18 @@ enum HostCommand {
         /// Exact local model name or its local `:latest` alias.
         #[arg(long)]
         model: String,
+        /// Exact loopback Ollama origin.
+        #[arg(long, default_value = conduit_std_host::hosted_local_model::DEFAULT_OLLAMA_ENDPOINT)]
+        ollama_endpoint: String,
     },
     /// Initialize and warm one already-local Ollama model under finite Host limits.
     ProveLocalModel {
         /// Exact local model name or its local `:latest` alias.
         #[arg(long)]
         model: String,
+        /// Exact loopback Ollama origin.
+        #[arg(long, default_value = conduit_std_host::hosted_local_model::DEFAULT_OLLAMA_ENDPOINT)]
+        ollama_endpoint: String,
         /// Finite admitted RAM/VRAM ceiling expressed in MiB.
         #[arg(long)]
         admitted_memory_mib: u32,
@@ -442,14 +448,19 @@ pub fn run(args: HostArgs, opts: &GlobalOpts) -> Result<(), Box<dyn std::error::
             &output,
             opts,
         ),
-        HostCommand::InspectLocalModel { model } => host_local_model::inspect(&model, opts),
+        HostCommand::InspectLocalModel {
+            model,
+            ollama_endpoint,
+        } => host_local_model::inspect(&model, &ollama_endpoint, opts),
         HostCommand::ProveLocalModel {
             model,
+            ollama_endpoint,
             admitted_memory_mib,
             orifina_presenter,
             journey_documentary,
         } => host_local_model::prove(
             &model,
+            &ollama_endpoint,
             admitted_memory_mib,
             orifina_presenter,
             journey_documentary,
