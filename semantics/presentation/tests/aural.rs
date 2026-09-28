@@ -1,10 +1,15 @@
-use conduit_core::kind_id;
+use conduit_core::{
+    kind_id, CheckedValueContract, IntervalEndpoint, Quantity, QuantityUnit, ValueConstraint,
+    COUNT_ENCODED_LEN, COUNT_INFO_ID, DISTANCE_INFO_ID, QUANTITY_ENCODED_LEN, SCALAR_ENCODED_LEN,
+    SCALAR_INFO_ID,
+};
+use conduit_form::TextPatternExpression;
 use conduit_presentation::{
-    plan_face_utterances, FaceUtteranceClauseKind, FaceUtteranceProvenance, Presentation,
-    PresentationAction, PresentationActionAvailability, PresentationBasis,
+    plan_face_utterances, FaceActionArgument, FaceUtteranceClauseKind, FaceUtteranceProvenance,
+    Presentation, PresentationAction, PresentationActionAvailability, PresentationBasis,
     PresentationCompositionKind, PresentationCompositionRelation, PresentationDisclosureLevel,
     PresentationRelationship, PresentationRelationshipKind, PresentationRole, PresentationSubject,
-    PresentationText,
+    PresentationText, UTF8_TEXT_VALUE_KIND,
 };
 
 fn basis() -> PresentationBasis {
@@ -250,4 +255,166 @@ fn unavailable_and_refused_actions_remain_distinct_without_becoming_invocations(
             "Unavailable action: Try later, for Item. Reason example/not-ready: The source is still arriving.",
         ]
     );
+}
+
+fn participation_face(pattern_maximum: u16) -> Presentation {
+    let lowercase = TextPatternExpression::Repeat {
+        expression: Box::new(TextPatternExpression::ScalarRange {
+            first: 'a' as u32,
+            last: 'z' as u32,
+        }),
+        minimum: 1,
+        maximum: pattern_maximum,
+    }
+    .compile(u32::from(pattern_maximum))
+    .unwrap();
+    let argument = |name: &str, value_name: &str, contract| FaceActionArgument {
+        name: name.into(),
+        value_name: value_name.into(),
+        contract,
+    };
+    Presentation::new_with_semantics(
+        4,
+        basis(),
+        vec![subject("sample", "Sample", "example/sample")],
+        vec![],
+        vec![],
+        vec![],
+        vec![PresentationAction {
+            identity: "sample/configure".into(),
+            intent: "example/configure".into(),
+            target: "sample".into(),
+            name: "Configure sample".into(),
+            arguments: vec![
+                argument(
+                    "sample/name",
+                    "Lowercase name",
+                    CheckedValueContract::new(
+                        UTF8_TEXT_VALUE_KIND.into(),
+                        u32::from(pattern_maximum),
+                        vec![
+                            ValueConstraint::ByteLength {
+                                minimum: 1,
+                                maximum: u32::from(pattern_maximum),
+                            },
+                            ValueConstraint::TextPattern(lowercase),
+                        ],
+                    )
+                    .unwrap(),
+                ),
+                argument(
+                    "sample/count",
+                    "Sample count",
+                    CheckedValueContract::new(
+                        COUNT_INFO_ID.into(),
+                        COUNT_ENCODED_LEN as u32,
+                        vec![ValueConstraint::UnsignedRange {
+                            minimum: 2,
+                            maximum: 4,
+                            minimum_endpoint: IntervalEndpoint::Inclusive,
+                            maximum_endpoint: IntervalEndpoint::Exclusive,
+                        }],
+                    )
+                    .unwrap(),
+                ),
+                argument(
+                    "sample/offset",
+                    "Sample offset",
+                    CheckedValueContract::new(
+                        SCALAR_INFO_ID.into(),
+                        SCALAR_ENCODED_LEN as u32,
+                        vec![ValueConstraint::SignedRange {
+                            minimum: -2,
+                            maximum: 2,
+                            minimum_endpoint: IntervalEndpoint::Exclusive,
+                            maximum_endpoint: IntervalEndpoint::Inclusive,
+                        }],
+                    )
+                    .unwrap(),
+                ),
+                argument(
+                    "sample/distance",
+                    "Sampling distance",
+                    CheckedValueContract::new(
+                        DISTANCE_INFO_ID.into(),
+                        QUANTITY_ENCODED_LEN as u32,
+                        vec![ValueConstraint::QuantityRange {
+                            minimum: Quantity::new(1, QuantityUnit::Meter),
+                            maximum: Quantity::new(2, QuantityUnit::Meter),
+                            minimum_endpoint: IntervalEndpoint::Inclusive,
+                            maximum_endpoint: IntervalEndpoint::Inclusive,
+                        }],
+                    )
+                    .unwrap(),
+                ),
+                argument(
+                    "sample/mode",
+                    "Sampling mode",
+                    CheckedValueContract::new(
+                        UTF8_TEXT_VALUE_KIND.into(),
+                        8,
+                        vec![ValueConstraint::CanonicalMembership {
+                            members: vec![b"careful".to_vec(), b"quick".to_vec()],
+                        }],
+                    )
+                    .unwrap(),
+                ),
+            ],
+            disclosure: PresentationDisclosureLevel::CurrentAction,
+            availability: PresentationActionAvailability::Available,
+        }],
+        vec![],
+    )
+    .unwrap()
+}
+
+#[test]
+fn exact_inward_participation_contract_survives_aural_projection() {
+    let face = participation_face(8);
+    let plan = plan_face_utterances(&face).unwrap();
+    let arguments = plan
+        .clauses
+        .iter()
+        .filter(|clause| clause.kind == FaceUtteranceClauseKind::ActionArgument)
+        .collect::<Vec<_>>();
+
+    assert_eq!(arguments.len(), 5);
+    for (name, expected) in [
+        (
+            "sample/name",
+            "between 1 and 8 bytes; the exact checked portable text pattern with 9 states, start state 0, at most 8 characters, and at most 8 match steps",
+        ),
+        (
+            "sample/count",
+            "a value from inclusive 2 through exclusive 4",
+        ),
+        (
+            "sample/offset",
+            "a value from exclusive -2 through inclusive 2",
+        ),
+        (
+            "sample/distance",
+            "a quantity from inclusive 1 length/meter through inclusive 2 length/meter",
+        ),
+        (
+            "sample/mode",
+            "one of the canonical values \"careful\", \"quick\"",
+        ),
+    ] {
+        let clause = arguments
+            .iter()
+            .find(|clause| {
+                clause.provenance
+                    == FaceUtteranceProvenance::ActionArgument {
+                        action_identity: "sample/configure".into(),
+                        argument_name: name.into(),
+                    }
+            })
+            .unwrap_or_else(|| panic!("missing aural Face argument {name}"));
+        assert!(clause.text.contains(expected), "{}", clause.text);
+    }
+
+    let changed = plan_face_utterances(&participation_face(7)).unwrap();
+    assert_ne!(plan.source_face_identity, changed.source_face_identity);
+    assert_ne!(plan.digest, changed.digest);
 }
