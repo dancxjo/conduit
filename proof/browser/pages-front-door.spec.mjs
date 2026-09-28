@@ -36,8 +36,9 @@ test("Open your body enters the current Body surface", async ({ page }) => {
   await page.goto(entrance.url);
   await page.getByRole("link", { name: "Open your body", exact: true }).click();
   await expect(page).toHaveURL(/\/workspace\/$/);
-  await expect(page.getByRole("main")).toBeVisible();
+  // Readiness is a Body fact, not the incidental layout of an empty main.
   await expect(page.locator("[data-body-state]")).not.toHaveText("Opening…");
+  await expect(page.getByRole("main")).toBeVisible();
 });
 
 test("Browser Home enacts the shared journey through the real Patchbay", async ({ page }) => {
