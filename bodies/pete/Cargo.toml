@@ -33,4 +33,3 @@ sha2 = "0.10"
 
 [dev-dependencies]
 conduit-embedded-build = { path = "../../fabrication/embedded-build" }
-patchbay-model = { path = "../../products/patchbay/model" }

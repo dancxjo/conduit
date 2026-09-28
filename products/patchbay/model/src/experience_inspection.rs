@@ -4,14 +4,11 @@
 //! content, resolve contradictions, manufacture presentation prose, or grant
 //! action authority.
 
-use conduit_human::{CurrentExperience, ExperienceItem, ExperienceRelation};
+use conduit_human::{
+    inspect_current_experience_item, CurrentExperience, CurrentExperienceInspectionError,
+    CurrentExperienceTrace,
+};
 use conduit_presentation::{Presentation, PresentationError};
-
-#[derive(Clone, Debug, Eq, PartialEq)]
-pub struct CurrentExperienceTrace {
-    pub item: ExperienceItem,
-    pub relationships: Vec<ExperienceRelation>,
-}
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct PresentedCurrentExperienceTrace {
@@ -21,47 +18,12 @@ pub struct PresentedCurrentExperienceTrace {
     pub experience: CurrentExperienceTrace,
 }
 
-#[derive(Clone, Copy, Debug, Eq, PartialEq)]
-pub enum CurrentExperienceInspectionError {
-    EmptyItemIdentity,
-    UnknownItem,
-}
-
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub enum PresentedCurrentExperienceInspectionError {
     InvalidPresentation(PresentationError),
     Experience(CurrentExperienceInspectionError),
     UnknownPresentationSubject,
     MissingSourceSign,
-}
-
-/// Trace one exact semantic experience item to its retained source references
-/// and every retained relationship that names it.
-pub fn inspect_current_experience_item(
-    experience: &CurrentExperience,
-    item_identity: &str,
-) -> Result<CurrentExperienceTrace, CurrentExperienceInspectionError> {
-    if item_identity.is_empty() {
-        return Err(CurrentExperienceInspectionError::EmptyItemIdentity);
-    }
-    let item = experience
-        .items()
-        .iter()
-        .find(|item| item.id == item_identity)
-        .cloned()
-        .ok_or(CurrentExperienceInspectionError::UnknownItem)?;
-    let relationships = experience
-        .relationships()
-        .iter()
-        .filter(|relation| {
-            relation.subject_id == item_identity || relation.object_id == item_identity
-        })
-        .cloned()
-        .collect();
-    Ok(CurrentExperienceTrace {
-        item,
-        relationships,
-    })
 }
 
 /// Correlate a presented semantic subject to the exact experience item with
@@ -107,8 +69,8 @@ mod tests {
     use super::*;
     use conduit_core::{kind_id, SignId, TemporalInstant, TemporalScale};
     use conduit_human::{
-        ExperienceAvailability, ExperienceCertainty, ExperienceDomain, ExperienceLimits,
-        ExperienceOrigin, ExperienceRelationKind, ExperienceSourceRef, ExperienceTemporalPolicy,
+        ExperienceAvailability, ExperienceCertainty, ExperienceDomain, ExperienceItem,
+        ExperienceLimits, ExperienceOrigin, ExperienceSourceRef, ExperienceTemporalPolicy,
         ExperienceTemporalRole,
     };
     use conduit_presentation::{
@@ -169,37 +131,6 @@ mod tests {
             recorded_at: None,
             sources: vec![ExperienceSourceRef::Sign(SignId::from(sign))],
         }
-    }
-
-    #[test]
-    fn exact_item_trace_retains_epistemic_frontts_sources_and_contradiction() {
-        let mut experience = experience();
-        experience
-            .try_admit(item("door-open", "sign/camera/7"))
-            .unwrap();
-        experience
-            .try_admit(item("door-closed", "sign/human/2"))
-            .unwrap();
-        experience
-            .relate(ExperienceRelation {
-                subject_id: "door-open".into(),
-                object_id: "door-closed".into(),
-                kind: ExperienceRelationKind::Contradicts,
-            })
-            .unwrap();
-
-        let trace = inspect_current_experience_item(&experience, "door-open").unwrap();
-        assert_eq!(trace.item.origin, ExperienceOrigin::Observation);
-        assert_eq!(trace.item.temporal_role, ExperienceTemporalRole::Current);
-        assert_eq!(
-            trace.item.sources,
-            vec![ExperienceSourceRef::Sign(SignId::from("sign/camera/7"))]
-        );
-        assert_eq!(trace.relationships, experience.relationships());
-        assert_eq!(
-            inspect_current_experience_item(&experience, "invented"),
-            Err(CurrentExperienceInspectionError::UnknownItem)
-        );
     }
 
     #[test]
