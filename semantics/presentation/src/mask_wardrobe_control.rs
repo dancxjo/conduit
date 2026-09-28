@@ -111,6 +111,27 @@ impl MaskWardrobeControl {
         })
     }
 
+    /// Reconcile current route availability without changing wardrobe policy.
+    pub fn reconcile_routes(
+        &mut self,
+        routes: &AdmittedMaskFormRoutes,
+    ) -> Result<MaskReconciliation, MaskWardrobeControlError> {
+        if routes.plan_id() != &self.active_plan_id {
+            return Err(MaskWardrobeControlError::StalePlan);
+        }
+        let reconciliation = self
+            .scoped_wardrobe
+            .wardrobe
+            .reconcile(
+                &self.active_plan_id,
+                routes.routes(),
+                self.selected.as_ref(),
+            )
+            .map_err(MaskWardrobeControlError::Wardrobe)?;
+        self.selected = selection(&reconciliation.show);
+        Ok(reconciliation)
+    }
+
     pub fn admit_replacement_plan(
         &mut self,
         basis_plan_id: &PlanId,
