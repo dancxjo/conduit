@@ -16,9 +16,7 @@ mod three_body_actions;
 mod workspace;
 
 use clap::Parser;
-use cli::{
-    AudioCommand, Cli, Command, DemoCommand, FabricateTarget, GlobalOpts, MidiCommand, ProveCommand,
-};
+use cli::{Cli, Command, DemoCommand, DoctorTarget, FabricateTarget, GlobalOpts, ProveCommand};
 use commands::check::CheckScope;
 
 fn main() {
@@ -60,6 +58,12 @@ fn main() {
                     Err("a structured proof operation cannot be combined with a proof target, --list, --verify, or --run-obligation".into())
                 } else {
                     match command {
+                        ProveCommand::AudioPlayback(args) => commands::audio::prove(
+                            &opts,
+                            &args.card_id,
+                            args.device,
+                            args.authorize_output,
+                        ),
                         ProveCommand::BodyCoordination(args) => {
                             commands::body_coordination::run(args, &opts)
                         }
@@ -73,23 +77,13 @@ fn main() {
                     .map_err(|error| Box::new(error) as Box<dyn std::error::Error>)
             }
         }
-        Command::Doctor(args) => commands::doctor::run(args, &opts)
-            .map_err(|error| Box::new(error) as Box<dyn std::error::Error>),
+        Command::Doctor(args) => match args.target {
+            DoctorTarget::Audio => commands::audio::list(&opts),
+            DoctorTarget::Midi => commands::midi::list(&opts),
+            _ => commands::doctor::run(args, &opts)
+                .map_err(|error| Box::new(error) as Box<dyn std::error::Error>),
+        },
         Command::Setup(args) => commands::setup::run(args, &opts),
-        Command::Audio(args) => match args.command {
-            AudioCommand::List => commands::audio::list(&opts),
-            AudioCommand::RenderStartupCue { output } => {
-                commands::audio::cue::render(&opts, &output)
-            }
-            AudioCommand::PlaybackProof {
-                card_id,
-                device,
-                authorize_output,
-            } => commands::audio::prove(&opts, &card_id, device, authorize_output),
-        },
-        Command::Midi(args) => match args.command {
-            MidiCommand::List => commands::midi::list(&opts),
-        },
         Command::Pete(args) => commands::pete_std_observe::run(args, &opts),
         Command::Demo(args) => match args.command {
             DemoCommand::Tour => commands::demo::run_tour(&opts),
@@ -133,6 +127,7 @@ fn run_fabricate(
             .map_err(|error| Box::new(error) as Box<dyn std::error::Error>),
         FabricateTarget::UnifontSubset(args) => commands::unifont_subset::run(args),
         FabricateTarget::PaletteIcons(args) => commands::palette_icons::run(args),
+        FabricateTarget::StartupCue(args) => commands::audio::cue::render(opts, &args.output),
     }
 }
 

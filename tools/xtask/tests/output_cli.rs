@@ -21,13 +21,13 @@ fn parse_stdout(output: &Output) -> Value {
 #[test]
 fn dry_run_json_is_deterministic_and_effect_free_for_migrated_commands() {
     let commands: &[&[&str]] = &[
-        &["--dry-run", "--json", "midi", "list"],
-        &["--dry-run", "--json", "audio", "list"],
+        &["--dry-run", "--json", "doctor", "midi"],
+        &["--dry-run", "--json", "doctor", "audio"],
         &[
             "--dry-run",
             "--json",
-            "audio",
-            "playback-proof",
+            "prove",
+            "audio-playback",
             "--card-id",
             "Fixture",
             "--device",
@@ -64,8 +64,8 @@ fn dry_run_json_is_deterministic_and_effect_free_for_migrated_commands() {
 #[test]
 fn quiet_dry_runs_emit_no_ordinary_stdout() {
     for command in [
-        vec!["--dry-run", "--quiet", "midi", "list"],
-        vec!["--dry-run", "--quiet", "audio", "list"],
+        vec!["--dry-run", "--quiet", "doctor", "midi"],
+        vec!["--dry-run", "--quiet", "doctor", "audio"],
         vec!["--dry-run", "--quiet", "fabricate", "pico", "build"],
     ] {
         let output = xtask(&command);
