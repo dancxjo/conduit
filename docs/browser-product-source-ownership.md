@@ -10,4 +10,9 @@ The browser host owns package admission/loading, bounded generic presentation, i
 
 Target fabrication and browser deployment adapters remain in their existing target roots. Crèche consumes their reviewed contributions; moving its source does not transfer target policy or turn a presentation action into authority. Opening any product still does not implicitly birth a body or start a play.
 
-Tour staging is `products/tour/tools/stage-tour-product.sh`, used internally by the existing `cargo xtask demo tour` and CI entrances. Public `/tour/`, `/creche/` and `/patchbay/` routes are unchanged. The historical reading-state compatibility identity stays explicit so existing persisted state is not silently discarded; current module, style, action and presentation slot identities use Tour names.
+Tour staging is `products/tour/tools/stage-tour-product.sh`, used internally by
+the existing `cargo xtask demo tour` and CI proof entrances. Tour is no longer a
+public Pages product and does not retain the retired Book route or saved-state
+dialect. Its remaining development package owns one bounded
+`conduit.application/tour-reading-state` identity while its lessons and proofs
+are harvested into the Body-and-Face architecture.

@@ -1,7 +1,7 @@
 # The Conduit Tour
 
-[Open the Tour](https://dancxjo.github.io/conduit/tour/) to learn Conduit by
-running and changing ordinary forms. A Markdown fence marked `conduit run` is sent unchanged to the browser host's Rust/WASM
+The repository-development Tour teaches Conduit by running and changing
+ordinary forms. A Markdown fence marked `conduit run` is sent unchanged to the browser host's Rust/WASM
 parser, checker, planner, lowering layer, and production kernel.
 
 From a repository checkout, open it with:
@@ -10,13 +10,10 @@ From a repository checkout, open it with:
 cargo xtask demo tour
 ```
 
-The current product route is `/tour/` (`/conduit/tour/` on Pages). The old
-`/book/` Pages route redirects to Tour, preserving its query and fragment.
-Tour retains the historical `conduit.application/book-reading-state` storage
-compatibility identity so existing drafts remain accessible. Its bounded
-reader accepts the historical reading-state schema and writes the Tour schema;
-it refuses malformed or over-capacity state. This is saved-state compatibility,
-not a second executable Book product.
+Tour owns the bounded `conduit.application/tour-reading-state` storage identity
+and refuses malformed or over-capacity state. It is not a public Pages product;
+the retired Book and Tour routes and the Book saved-state dialect are not part
+of the pre-v1 product contract.
 
 Tour does not own body lifecycle truth, a compiler, simulator, scheduler,
 or alternate runtime.
