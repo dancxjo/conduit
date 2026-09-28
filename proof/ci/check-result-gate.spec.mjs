@@ -21,7 +21,6 @@ function results(overrides = {}) {
     WORKSPACE_MATRIX: '["test-products"]',
     ESP32_RESULT: "skipped",
     STANDALONE_LOCKS_RESULT: "skipped",
-    BROWSER_HOST_RESULT: "skipped",
     LIMINE_RESULT: "skipped",
     TOOLS_RESULT: "skipped",
     X86_RESULT: "skipped",
