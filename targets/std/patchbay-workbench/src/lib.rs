@@ -1,4 +1,4 @@
-//! Concrete std-Host adapter for Patchbay application compositions.
+//! Concrete std-Host adapter for the resident Patchbay workbench.
 
 use conduit_core::{BootId, HostAdvertisement, HostId, OfferGeneration, Plan, PlanFragment};
 use conduit_std_host::{StdHost, StdHostComposition, StdHostConfig, ThreadTimer};
