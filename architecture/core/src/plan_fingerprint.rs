@@ -703,20 +703,41 @@ fn push_value_contract(canonical: &mut Vec<u8>, contract: &crate::CheckedValueCo
                 push_u32(canonical, *minimum);
                 push_u32(canonical, *maximum);
             }
-            crate::ValueConstraint::UnsignedRange { minimum, maximum } => {
+            crate::ValueConstraint::UnsignedRange {
+                minimum,
+                maximum,
+                minimum_endpoint,
+                maximum_endpoint,
+            } => {
                 canonical.push(1);
                 push_u64(canonical, *minimum);
                 push_u64(canonical, *maximum);
+                canonical.push(*minimum_endpoint as u8);
+                canonical.push(*maximum_endpoint as u8);
             }
-            crate::ValueConstraint::SignedRange { minimum, maximum } => {
+            crate::ValueConstraint::SignedRange {
+                minimum,
+                maximum,
+                minimum_endpoint,
+                maximum_endpoint,
+            } => {
                 canonical.push(2);
                 canonical.extend_from_slice(&minimum.to_le_bytes());
                 canonical.extend_from_slice(&maximum.to_le_bytes());
+                canonical.push(*minimum_endpoint as u8);
+                canonical.push(*maximum_endpoint as u8);
             }
-            crate::ValueConstraint::QuantityRange { minimum, maximum } => {
+            crate::ValueConstraint::QuantityRange {
+                minimum,
+                maximum,
+                minimum_endpoint,
+                maximum_endpoint,
+            } => {
                 canonical.push(3);
                 canonical.extend_from_slice(&minimum.encode());
                 canonical.extend_from_slice(&maximum.encode());
+                canonical.push(*minimum_endpoint as u8);
+                canonical.push(*maximum_endpoint as u8);
             }
             crate::ValueConstraint::CanonicalMembership { members } => {
                 canonical.push(4);

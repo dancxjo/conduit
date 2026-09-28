@@ -1429,6 +1429,8 @@ mod terminal_track_tests {
                     alloc::vec![conduit_core::ValueConstraint::UnsignedRange {
                         minimum: 2,
                         maximum: 4,
+                        minimum_endpoint: conduit_core::IntervalEndpoint::Inclusive,
+                        maximum_endpoint: conduit_core::IntervalEndpoint::Inclusive,
                     }],
                 )
                 .unwrap(),
