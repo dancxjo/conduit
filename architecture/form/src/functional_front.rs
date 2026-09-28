@@ -8,7 +8,7 @@ impl CheckedGear {
             self.outputs.clone(),
             self.shorthand.clone(),
         )
-        .with_value_bounds(self.semantic_contract.value_bounds().to_vec())
+        .with_value_contracts(self.semantic_contract.value_contracts().to_vec())
     }
 
     /// Tests both callable fit and semantic realization eligibility.

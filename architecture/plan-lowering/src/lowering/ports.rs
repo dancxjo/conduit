@@ -2,7 +2,7 @@
 use super::{as_u16, LoweredPort, LoweringError};
 use alloc::{collections::BTreeSet, vec::Vec};
 use conduit_core::{
-    FrontValueBound, FrontValueLocation, PlacementId, PortDescriptor, PortDirection,
+    FrontValueContract, FrontValueLocation, PlacementId, PortDescriptor, PortDirection,
     PortId as PlanPortId,
 };
 use conduit_kernel::{NodeId, PortId};
@@ -11,7 +11,7 @@ pub(super) fn lower_ports(
     placement_id: &PlacementId,
     ports: &[PortDescriptor],
     expected_direction: PortDirection,
-    value_bounds: &[FrontValueBound],
+    value_contracts: &[FrontValueContract],
 ) -> Result<Vec<LoweredPort>, LoweringError> {
     let mut ids = BTreeSet::new();
     ports
@@ -38,7 +38,7 @@ pub(super) fn lower_ports(
                 direction: descriptor.direction,
                 temporal: descriptor.temporal,
                 abnormal_kind: descriptor.abnormal_kind.clone(),
-                maximum_value_bytes: value_bounds
+                maximum_value_bytes: value_contracts
                     .iter()
                     .find(|bound| {
                         bound.location
@@ -51,7 +51,7 @@ pub(super) fn lower_ports(
                                 }
                             }
                     })
-                    .map(|bound| bound.maximum_bytes),
+                    .map(|contract| u64::from(contract.contract.maximum_bytes)),
             })
         })
         .collect()

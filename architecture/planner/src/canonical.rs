@@ -120,6 +120,23 @@ pub fn plan_expanded_authoring_with_options(
                 .ok_or_else(|| {
                     PlannerError::InvalidFormIdentity("external Fore descriptor is missing".into())
                 })?;
+            let value_contract = (binding.track == conduit_core::ConnectionTrack::Payload)
+                .then(|| {
+                    let location = match direction {
+                        conduit_core::PortDirection::Input => {
+                            conduit_core::FrontValueLocation::Input(binding.front_port_id.clone())
+                        }
+                        conduit_core::PortDirection::Output => {
+                            conduit_core::FrontValueLocation::Output(binding.front_port_id.clone())
+                        }
+                    };
+                    form.front
+                        .value_contracts()
+                        .iter()
+                        .find(|contract| contract.location == location)
+                        .map(|contract| contract.contract.clone())
+                })
+                .flatten();
             let fragment = plan
                 .fragments
                 .iter_mut()
@@ -155,6 +172,28 @@ pub fn plan_expanded_authoring_with_options(
                     binding.front_port_id.as_str(),
                 )));
             }
+            if binding.track == conduit_core::ConnectionTrack::Payload {
+                let internal_front = placement.checked_port_front();
+                let internal_location = match direction {
+                    conduit_core::PortDirection::Input => {
+                        conduit_core::FrontValueLocation::Input(binding.gear_port_id.clone())
+                    }
+                    conduit_core::PortDirection::Output => {
+                        conduit_core::FrontValueLocation::Output(binding.gear_port_id.clone())
+                    }
+                };
+                let internal_contract = internal_front
+                    .value_contracts()
+                    .iter()
+                    .find(|contract| contract.location == internal_location)
+                    .map(|contract| contract.contract.clone());
+                if internal_contract != value_contract {
+                    return Err(PlannerError::InvalidFormIdentity(format!(
+                        "external Fore port '{}' value contract does not match its selected Back",
+                        binding.front_port_id.as_str(),
+                    )));
+                }
+            }
             if limits.item_capacity > placement.limits.max_queue_items
                 || limits.byte_capacity > placement.limits.max_queue_bytes
             {
@@ -169,6 +208,7 @@ pub fn plan_expanded_authoring_with_options(
                 placement_id: placement.placement_id.clone(),
                 gear_port_id: binding.gear_port_id.clone(),
                 value_kind: descriptor.value_kind.clone(),
+                value_contract,
                 abnormal_kind: descriptor.abnormal_kind.clone(),
                 track: binding.track,
                 temporal: descriptor.temporal,

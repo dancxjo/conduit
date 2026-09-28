@@ -1,6 +1,7 @@
 //! Typed, bounded human submission against one exact Presentation Manifestation.
 
 use alloc::{string::String, vec::Vec};
+use conduit_core::{CheckedValueContract, ValueConstraint, ValueConstraintRefusal};
 use serde::{Deserialize, Serialize};
 use sha2::{Digest, Sha256};
 
@@ -19,12 +20,37 @@ pub const MAX_PRESENTATION_INTERACTION_BYTES: usize = 8_192;
 pub struct PresentationInput {
     pub identity: String,
     pub target: String,
-    pub value_kind: String,
-    pub maximum_bytes: u32,
-    pub allow_empty: bool,
+    /// The exact portable value contract solicited by this inward Face.
+    pub contract: CheckedValueContract,
     /// The one ordinary bounded human name for this semantic input.
     pub name: String,
     pub submit_action: String,
+}
+
+impl PresentationInput {
+    pub fn text(
+        identity: String,
+        target: String,
+        maximum_bytes: u32,
+        allow_empty: bool,
+        name: String,
+        submit_action: String,
+    ) -> Result<Self, conduit_core::ConstraintDefinitionError> {
+        Ok(Self {
+            identity,
+            target,
+            contract: CheckedValueContract::new(
+                conduit_core::kind_id(UTF8_TEXT_VALUE_KIND),
+                maximum_bytes,
+                alloc::vec![ValueConstraint::ByteLength {
+                    minimum: u32::from(!allow_empty),
+                    maximum: maximum_bytes,
+                }],
+            )?,
+            name,
+            submit_action,
+        })
+    }
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]
@@ -62,9 +88,10 @@ pub enum PresentationInteractionRefusal {
     UnavailableAction,
     RefusedAction,
     WrongValueKind,
-    EmptyValue,
     OversizeValue,
     MalformedEncoding,
+    ViolatedConstraint,
+    ValidatorIncapacity,
     DuplicateDelivery,
     QueuePressure,
     EvidenceExhausted,
@@ -105,18 +132,14 @@ impl Presentation {
             return Err(PresentationError::TooManyInputs);
         }
         for (index, input) in self.inputs.iter().enumerate() {
-            for value in [
-                &input.identity,
-                &input.target,
-                &input.value_kind,
-                &input.submit_action,
-            ] {
+            for value in [&input.identity, &input.target, &input.submit_action] {
                 validate_id(value)?;
             }
             crate::presentation::validate_text(&input.name)?;
-            if input.maximum_bytes == 0 || input.maximum_bytes > MAX_PRESENTATION_INPUT_VALUE_BYTES
+            if input.contract.maximum_bytes > MAX_PRESENTATION_INPUT_VALUE_BYTES
+                || input.contract.validate_definition().is_err()
             {
-                return Err(PresentationError::InvalidInputLimit);
+                return Err(PresentationError::InvalidInputContract);
             }
             if !self.has_subject(&input.target) {
                 return Err(PresentationError::UnknownInputTarget);
@@ -145,10 +168,10 @@ impl Presentation {
             .map(|input| {
                 input.identity.len()
                     + input.target.len()
-                    + input.value_kind.len()
                     + input.name.len()
                     + input.submit_action.len()
-                    + 5
+                    + input.contract.identity_bytes().len()
+                    + 4
             })
             .sum()
     }
@@ -157,9 +180,9 @@ impl Presentation {
         for input in &self.inputs {
             hash_string(digest, &input.identity);
             hash_string(digest, &input.target);
-            hash_string(digest, &input.value_kind);
-            digest.update(input.maximum_bytes.to_le_bytes());
-            digest.update([u8::from(input.allow_empty)]);
+            let contract = input.contract.identity_bytes();
+            digest.update((contract.len() as u32).to_le_bytes());
+            digest.update(contract);
             hash_string(digest, &input.name);
             hash_string(digest, &input.submit_action);
         }
@@ -206,18 +229,10 @@ impl PresentationInteraction {
         {
             return Err(PresentationInteractionRefusal::WrongTarget);
         }
-        if input.value_kind != value_kind {
+        if input.contract.value_kind.as_str() != value_kind {
             return Err(PresentationInteractionRefusal::WrongValueKind);
         }
-        if value.is_empty() && !input.allow_empty {
-            return Err(PresentationInteractionRefusal::EmptyValue);
-        }
-        if value.len() > input.maximum_bytes as usize {
-            return Err(PresentationInteractionRefusal::OversizeValue);
-        }
-        if value_kind == UTF8_TEXT_VALUE_KIND && core::str::from_utf8(value).is_err() {
-            return Err(PresentationInteractionRefusal::MalformedEncoding);
-        }
+        input.contract.validate(value).map_err(map_value_refusal)?;
         let mut result = Self {
             identity: PresentationInteractionId(String::new()),
             presentation_id: presentation.identity.as_str().into(),
@@ -340,14 +355,30 @@ impl PresentationInteraction {
     }
 }
 
+fn map_value_refusal(refusal: ValueConstraintRefusal) -> PresentationInteractionRefusal {
+    match refusal {
+        ValueConstraintRefusal::Oversize { .. } => PresentationInteractionRefusal::OversizeValue,
+        ValueConstraintRefusal::MalformedPrimitive(_) => {
+            PresentationInteractionRefusal::MalformedEncoding
+        }
+        ValueConstraintRefusal::WrongConstraintKind => {
+            PresentationInteractionRefusal::ValidatorIncapacity
+        }
+        ValueConstraintRefusal::ByteLength
+        | ValueConstraintRefusal::UnsignedRange
+        | ValueConstraintRefusal::SignedRange
+        | ValueConstraintRefusal::QuantityRange
+        | ValueConstraintRefusal::Membership
+        | ValueConstraintRefusal::TextPattern => PresentationInteractionRefusal::ViolatedConstraint,
+    }
+}
+
 pub(crate) fn linear_input(input: &PresentationInput) -> String {
     alloc::format!(
-        "INPUT id={:?} target={:?} kind={:?} maximum_bytes={} allow_empty={} name={:?} submit_action={:?}",
+        "INPUT id={:?} target={:?} contract={:?} name={:?} submit_action={:?}",
         input.identity,
         input.target,
-        input.value_kind,
-        input.maximum_bytes,
-        input.allow_empty,
+        input.contract,
         input.name,
         input.submit_action,
     )

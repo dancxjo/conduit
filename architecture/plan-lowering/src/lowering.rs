@@ -267,10 +267,39 @@ pub struct LoweredForePort {
     pub endpoint: RemoteEndpointId,
     pub cord: CordId,
     pub value_kind: KindId,
+    pub value_contract: Option<conduit_core::CheckedValueContract>,
     pub abnormal_kind: Option<KindId>,
     pub temporal: conduit_core::PortTemporal,
     pub item_capacity: u16,
     pub byte_capacity: u32,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum ForeValueRefusal {
+    NotPayload,
+    CordCapacity,
+    Malformed(conduit_core::PrimitiveInfoRefusal),
+    Constraint(conduit_core::ValueConstraintRefusal),
+}
+
+impl LoweredForePort {
+    /// Revalidates one committed external value against the exact sealed Fore
+    /// contract before the kernel observes it.
+    pub fn validate_value(&self, canonical: &[u8]) -> Result<(), ForeValueRefusal> {
+        if self.track != conduit_core::ConnectionTrack::Payload {
+            return Err(ForeValueRefusal::NotPayload);
+        }
+        if canonical.len() > self.byte_capacity as usize {
+            return Err(ForeValueRefusal::CordCapacity);
+        }
+        if let Some(contract) = &self.value_contract {
+            return contract
+                .validate(canonical)
+                .map_err(ForeValueRefusal::Constraint);
+        }
+        conduit_core::validate_primitive_info(self.value_kind.as_str(), canonical)
+            .map_err(ForeValueRefusal::Malformed)
+    }
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -739,14 +768,14 @@ pub fn lower_plan_fragment_for_profile(
             &placement.placement_id,
             &placement.inputs,
             PortDirection::Input,
-            checked_front.value_bounds(),
+            checked_front.value_contracts(),
         )?;
         let outputs = lower_ports(
             node,
             &placement.placement_id,
             &placement.outputs,
             PortDirection::Output,
-            checked_front.value_bounds(),
+            checked_front.value_contracts(),
         )?;
         if inputs.len() > profile.maximum_ports_per_node() {
             return Err(LoweringError::ProfileCapacityExceeded {
@@ -1115,6 +1144,7 @@ pub fn lower_plan_fragment_for_profile(
             endpoint,
             cord,
             value_kind: planned.value_kind.clone(),
+            value_contract: planned.value_contract.clone(),
             abnormal_kind: planned.abnormal_kind.clone(),
             temporal: planned.temporal,
             item_capacity: planned.item_capacity,
@@ -1381,6 +1411,42 @@ mod terminal_track_tests {
         assert_eq!(admitted_maximum_value_bytes(Some(256), 64), 64);
         assert_eq!(admitted_maximum_value_bytes(Some(32), 64), 32);
         assert_eq!(admitted_maximum_value_bytes(None, 64), 64);
+    }
+
+    #[test]
+    fn external_fore_value_revalidates_the_sealed_constraint() {
+        let port = LoweredForePort {
+            front_port_id: port_id("count"),
+            direction: PortDirection::Input,
+            track: ConnectionTrack::Payload,
+            endpoint: RemoteEndpointId(0),
+            cord: CordId(0),
+            value_kind: kind_id(conduit_core::COUNT_INFO_ID),
+            value_contract: Some(
+                conduit_core::CheckedValueContract::new(
+                    kind_id(conduit_core::COUNT_INFO_ID),
+                    conduit_core::COUNT_ENCODED_LEN as u32,
+                    alloc::vec![conduit_core::ValueConstraint::UnsignedRange {
+                        minimum: 2,
+                        maximum: 4,
+                        minimum_endpoint: conduit_core::IntervalEndpoint::Inclusive,
+                        maximum_endpoint: conduit_core::IntervalEndpoint::Inclusive,
+                    }],
+                )
+                .unwrap(),
+            ),
+            abnormal_kind: None,
+            temporal: PortTemporal::Value,
+            item_capacity: 1,
+            byte_capacity: conduit_core::COUNT_ENCODED_LEN as u32,
+        };
+        assert_eq!(port.validate_value(&conduit_core::encode_count(3)), Ok(()));
+        assert_eq!(
+            port.validate_value(&conduit_core::encode_count(7)),
+            Err(ForeValueRefusal::Constraint(
+                conduit_core::ValueConstraintRefusal::UnsignedRange
+            ))
+        );
     }
 
     #[test]

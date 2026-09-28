@@ -44,6 +44,7 @@ depends on semantic, application, target, or proof packages.
 | `resource_acquisition.rs` | generic mechanism | Attended resource request, acquisition, release, revocation, loss, and fresh-generation fencing. |
 | `info.rs` | generic value mechanism | Minimal bool/scalar envelopes, decode refusal, and semantic digest used by unrelated domains. |
 | `primitive_info.rs` | generic value mechanism | Closed canonical primitive identity registry plus allocation-free validation and count encoding. |
+| `value_constraint.rs` | generic value mechanism | Exact finite reusable value contracts, deterministic refusal, and portable bounded text-pattern automata shared by checking, planning, Faces, and Hosts. |
 | `fixed_integer.rs` | generic value mechanism | Exact fixed-width signed and unsigned integer values, encoding, and checked arithmetic. |
 | `kind_effects.rs` | universal architecture | Reviewed semantic effect facts used to admit pure Kind calls without inferring behavior from names. |
 | `retry_evidence.rs` | universal architecture | Finite provider-owned retained evidence for one exact semantic operation, prior realization, and retry law; proves eligibility without inventing a retry loop or treating Step failure as semantic terminal truth. |

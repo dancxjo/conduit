@@ -316,7 +316,7 @@ pub(crate) fn validate_correlation(
             } => p.inputs.get(*index as usize).is_some_and(|v| {
                 &v.identity == identity
                     && &v.target == target
-                    && &v.value_kind == value_kind
+                    && v.contract.value_kind.as_str() == value_kind
                     && &v.submit_action == submit_action
             }),
             GeneratedSemanticCorrelation::Disclosure {

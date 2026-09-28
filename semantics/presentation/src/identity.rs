@@ -98,6 +98,12 @@ impl Presentation {
                     digest.update((encoded.len() as u32).to_le_bytes());
                     digest.update(encoded);
                 }
+                PresentationPropertyValue::ValueContract(contract) => {
+                    digest.update([7]);
+                    let identity = contract.identity_bytes();
+                    digest.update((identity.len() as u32).to_le_bytes());
+                    digest.update(identity);
+                }
             }
         }
         for item in &self.text {

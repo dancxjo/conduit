@@ -81,15 +81,15 @@ fn request() -> GenerativePresenterRequest {
             disclosure: PresentationDisclosureLevel::CurrentAction,
             availability: PresentationActionAvailability::Available,
         }],
-        vec![PresentationInput {
-            identity: "lesson/answer-input".into(),
-            target: "concept/mitochondrion".into(),
-            value_kind: "value/text".into(),
-            maximum_bytes: 128,
-            allow_empty: false,
-            name: "Answer".into(),
-            submit_action: "lesson/answer".into(),
-        }],
+        vec![PresentationInput::text(
+            "lesson/answer-input".into(),
+            "concept/mitochondrion".into(),
+            128,
+            false,
+            "Answer".into(),
+            "lesson/answer".into(),
+        )
+        .unwrap()],
         vec![PresentationDisclosure {
             subject: "concept/mitochondrion".into(),
             level: PresentationDisclosureLevel::SelectedDetail,

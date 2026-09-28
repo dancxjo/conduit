@@ -24,11 +24,11 @@ pub struct Kind {
 }
 
 impl Kind {
-    pub fn value_bounds(&self) -> &[crate::FrontValueBound] {
+    pub fn value_contracts(&self) -> &[crate::FrontValueContract] {
         self.semantic_laws
             .iter()
             .find_map(|law| match law {
-                KindSemanticLaw::ValueBounds(bounds) => Some(bounds.as_slice()),
+                KindSemanticLaw::ValueContracts(contracts) => Some(contracts.as_slice()),
                 _ => None,
             })
             .unwrap_or_default()
@@ -66,7 +66,7 @@ impl Kind {
             self.shorthand.clone(),
         )
         .with_resource_ports(self.resource_ports().to_vec())
-        .with_value_bounds(self.value_bounds().to_vec())
+        .with_value_contracts(self.value_contracts().to_vec())
     }
 
     pub fn validate(&self) -> Result<(), KindValidationError> {
@@ -115,7 +115,7 @@ impl Kind {
         }
         let mut terminal_transduction = None;
         let mut resource_ports = None;
-        let mut value_bounds = None;
+        let mut value_contracts = None;
         for law in &self.semantic_laws {
             match law {
                 KindSemanticLaw::TerminalTransduction(profile) => {
@@ -130,11 +130,11 @@ impl Kind {
                     }
                     validate_resource_ports(self, ports)?;
                 }
-                KindSemanticLaw::ValueBounds(bounds) => {
-                    if value_bounds.replace(bounds).is_some() {
+                KindSemanticLaw::ValueContracts(contracts) => {
+                    if value_contracts.replace(contracts).is_some() {
                         return Err(KindValidationError::DuplicateValueBounds);
                     }
-                    validate_value_bounds(self, bounds)?;
+                    validate_value_contracts(self, contracts)?;
                 }
                 _ => {}
             }
@@ -143,31 +143,37 @@ impl Kind {
     }
 }
 
-fn validate_value_bounds(
+fn validate_value_contracts(
     kind: &Kind,
-    bounds: &[crate::FrontValueBound],
+    contracts: &[crate::FrontValueContract],
 ) -> Result<(), KindValidationError> {
     let mut locations = BTreeSet::new();
-    for bound in bounds {
-        if bound.maximum_bytes == 0 || !locations.insert(bound.location.clone()) {
+    for value_contract in contracts {
+        if !locations.insert(value_contract.location.clone()) {
             return Err(KindValidationError::InvalidValueBound);
         }
-        let present = match &bound.location {
+        let expected_kind = match &value_contract.location {
             crate::FrontValueLocation::Startup(name) => kind
                 .startup_parameters
                 .iter()
-                .any(|parameter| &parameter.name == name),
+                .find(|parameter| &parameter.name == name)
+                .map(|parameter| &parameter.value_type),
             crate::FrontValueLocation::Input(port) => kind
                 .inputs
                 .iter()
-                .any(|candidate| &candidate.port_id == port),
+                .find(|candidate| &candidate.port_id == port)
+                .map(|candidate| &candidate.value_kind),
             crate::FrontValueLocation::Output(port) => kind
                 .outputs
                 .iter()
-                .any(|candidate| &candidate.port_id == port),
+                .find(|candidate| &candidate.port_id == port)
+                .map(|candidate| &candidate.value_kind),
         };
-        if !present {
+        let Some(expected_kind) = expected_kind else {
             return Err(KindValidationError::UnknownValueBoundLocation);
+        };
+        if expected_kind != &value_contract.contract.value_kind {
+            return Err(KindValidationError::InvalidValueBound);
         }
     }
     Ok(())
@@ -553,16 +559,24 @@ mod tests {
     }
 
     #[test]
-    fn value_bounds_are_exact_checked_fore_identity_and_validate_fail_closed() {
+    fn value_contracts_are_exact_checked_fore_identity_and_validate_fail_closed() {
         let mut bounded = contract();
         bounded
             .semantic_laws
-            .push(KindSemanticLaw::ValueBounds(vec![crate::FrontValueBound {
-                location: crate::FrontValueLocation::Input(port_id("in")),
-                maximum_bytes: 128,
-            }]));
+            .push(KindSemanticLaw::ValueContracts(vec![
+                crate::FrontValueContract {
+                    location: crate::FrontValueLocation::Input(port_id("in")),
+                    contract: crate::CheckedValueContract::new(kind_id("value/count"), 128, vec![])
+                        .unwrap(),
+                },
+            ]));
         bounded.validate().unwrap();
-        assert_eq!(bounded.checked_front().value_bounds()[0].maximum_bytes, 128);
+        assert_eq!(
+            bounded.checked_front().value_contracts()[0]
+                .contract
+                .maximum_bytes,
+            128
+        );
         assert_ne!(
             crate::compute_checked_front_fingerprint(&contract().checked_front()),
             crate::compute_checked_front_fingerprint(&bounded.checked_front())
@@ -571,18 +585,21 @@ mod tests {
         let decoded: crate::CheckedFront = serde_json::from_slice(&encoded).unwrap();
         assert_eq!(decoded, bounded.checked_front());
 
-        let mut zero = bounded.clone();
-        let KindSemanticLaw::ValueBounds(bounds) = &mut zero.semantic_laws[0] else {
+        let mut wrong_kind = bounded.clone();
+        let KindSemanticLaw::ValueContracts(contracts) = &mut wrong_kind.semantic_laws[0] else {
             unreachable!()
         };
-        bounds[0].maximum_bytes = 0;
-        assert_eq!(zero.validate(), Err(KindValidationError::InvalidValueBound));
+        contracts[0].contract.value_kind = kind_id("value/text");
+        assert_eq!(
+            wrong_kind.validate(),
+            Err(KindValidationError::InvalidValueBound)
+        );
 
         let mut unknown = bounded;
-        let KindSemanticLaw::ValueBounds(bounds) = &mut unknown.semantic_laws[0] else {
+        let KindSemanticLaw::ValueContracts(contracts) = &mut unknown.semantic_laws[0] else {
             unreachable!()
         };
-        bounds[0].location = crate::FrontValueLocation::Input(port_id("missing"));
+        contracts[0].location = crate::FrontValueLocation::Input(port_id("missing"));
         assert_eq!(
             unknown.validate(),
             Err(KindValidationError::UnknownValueBoundLocation)

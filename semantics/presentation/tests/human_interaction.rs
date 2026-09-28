@@ -43,15 +43,15 @@ fn available_interaction_basis() -> (Presentation, Manifestation) {
             disclosure: PresentationDisclosureLevel::CurrentAction,
             availability: PresentationActionAvailability::Available,
         }],
-        vec![PresentationInput {
-            identity: "message/input".into(),
-            target: "patchbay/form".into(),
-            value_kind: UTF8_TEXT_VALUE_KIND.into(),
-            maximum_bytes: 8,
-            allow_empty: false,
-            name: "Message".into(),
-            submit_action: "message/send".into(),
-        }],
+        vec![PresentationInput::text(
+            "message/input".into(),
+            "patchbay/form".into(),
+            8,
+            false,
+            "Message".into(),
+            "message/send".into(),
+        )
+        .unwrap()],
         base.disclosures,
     )
     .unwrap();
@@ -196,7 +196,7 @@ fn stale_wrong_empty_oversize_malformed_duplicate_and_pressure_refuse_distinctly
     };
     assert_eq!(
         make(b"", 0),
-        Err(PresentationInteractionRefusal::EmptyValue)
+        Err(PresentationInteractionRefusal::ViolatedConstraint)
     );
     assert_eq!(
         make(b"123456789", 0),

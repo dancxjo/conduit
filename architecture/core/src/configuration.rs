@@ -106,11 +106,11 @@ impl KindSemanticContract {
         self.configuration.is_empty() && self.laws.is_empty()
     }
 
-    pub fn value_bounds(&self) -> &[crate::FrontValueBound] {
+    pub fn value_contracts(&self) -> &[crate::FrontValueContract] {
         self.laws
             .iter()
             .find_map(|law| match law {
-                KindSemanticLaw::ValueBounds(bounds) => Some(bounds.as_slice()),
+                KindSemanticLaw::ValueContracts(contracts) => Some(contracts.as_slice()),
                 _ => None,
             })
             .unwrap_or_default()
@@ -279,8 +279,8 @@ pub enum KindSemanticLaw {
     /// Exact Fore ports whose values are unforgeable resource authority rather
     /// than serializable info.
     ResourcePorts(Vec<crate::ResourcePortContract>),
-    /// Exact finite envelopes for variable-size values at this Kind's Fore.
-    ValueBounds(Vec<crate::FrontValueBound>),
+    /// Exact finite contracts for values at this Kind's Fore.
+    ValueContracts(Vec<crate::FrontValueContract>),
 }
 
 /// Independent terminal behaviors owned by a Kind's checked Fore.

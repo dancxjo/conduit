@@ -202,15 +202,17 @@ fn tutorial_face(
         disclosure: PresentationDisclosureLevel::CurrentAction,
         availability: PresentationActionAvailability::Available,
     });
-    face.presentation.inputs.push(PresentationInput {
-        identity: "input/tutorial-action".into(),
-        target: body_subject.clone(),
-        value_kind: conduit_presentation::UTF8_TEXT_VALUE_KIND.into(),
-        maximum_bytes: 256,
-        allow_empty: true,
-        name: label.into(),
-        submit_action: identity.into(),
-    });
+    face.presentation.inputs.push(
+        PresentationInput::text(
+            "input/tutorial-action".into(),
+            body_subject.clone(),
+            256,
+            true,
+            label.into(),
+            identity.into(),
+        )
+        .expect("tutorial action has a finite text contract"),
+    );
     face.presentation = Presentation::new_with_interactions(
         face.presentation.revision,
         face.presentation.basis,

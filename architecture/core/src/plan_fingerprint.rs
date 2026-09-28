@@ -225,6 +225,13 @@ pub fn compute_fragment_id(fragment: &PlanFragment) -> FragmentId {
         push_string(&mut canonical, port.placement_id.as_str());
         push_string(&mut canonical, port.gear_port_id.as_str());
         push_string(&mut canonical, port.value_kind.as_str());
+        match &port.value_contract {
+            Some(contract) => {
+                canonical.push(1);
+                push_value_contract(&mut canonical, contract);
+            }
+            None => canonical.push(0),
+        }
         push_optional_string(
             &mut canonical,
             port.abnormal_kind.as_ref().map(|kind| kind.as_str()),
@@ -533,11 +540,11 @@ fn push_semantic_contract(canonical: &mut Vec<u8>, contract: &crate::KindSemanti
                     canonical.push(port.mobility as u8);
                 }
             }
-            Law::ValueBounds(bounds) => {
+            Law::ValueContracts(contracts) => {
                 canonical.push(11);
-                push_u32(canonical, bounds.len() as u32);
-                for bound in bounds {
-                    match &bound.location {
+                push_u32(canonical, contracts.len() as u32);
+                for value_contract in contracts {
+                    match &value_contract.location {
                         crate::FrontValueLocation::Startup(name) => {
                             canonical.push(0);
                             push_string(canonical, name);
@@ -551,7 +558,7 @@ fn push_semantic_contract(canonical: &mut Vec<u8>, contract: &crate::KindSemanti
                             push_string(canonical, port.as_str());
                         }
                     }
-                    push_u64(canonical, bound.maximum_bytes);
+                    push_value_contract(canonical, &value_contract.contract);
                 }
             }
         }
@@ -657,9 +664,9 @@ fn push_checked_front(canonical: &mut Vec<u8>, front: &CheckedFront) {
         canonical.push(resource.lifecycle as u8);
         canonical.push(resource.mobility as u8);
     }
-    push_u32(canonical, front.value_bounds().len() as u32);
-    for bound in front.value_bounds() {
-        match &bound.location {
+    push_u32(canonical, front.value_contracts().len() as u32);
+    for value_contract in front.value_contracts() {
+        match &value_contract.location {
             crate::FrontValueLocation::Startup(name) => {
                 canonical.push(0);
                 push_string(canonical, name);
@@ -673,7 +680,7 @@ fn push_checked_front(canonical: &mut Vec<u8>, front: &CheckedFront) {
                 push_string(canonical, port.as_str());
             }
         }
-        push_u64(canonical, bound.maximum_bytes);
+        push_value_contract(canonical, &value_contract.contract);
     }
     match front.shorthand() {
         Some((input, output)) => {
@@ -683,6 +690,12 @@ fn push_checked_front(canonical: &mut Vec<u8>, front: &CheckedFront) {
         }
         None => canonical.push(0),
     }
+}
+
+fn push_value_contract(canonical: &mut Vec<u8>, contract: &crate::CheckedValueContract) {
+    let identity = contract.identity_bytes();
+    push_u32(canonical, identity.len() as u32);
+    canonical.extend_from_slice(&identity);
 }
 
 /// Returns the canonical semantic fingerprint of an executable Front.

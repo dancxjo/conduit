@@ -49,15 +49,15 @@ fn presentation() -> Presentation {
             disclosure: PresentationDisclosureLevel::CurrentAction,
             availability: PresentationActionAvailability::Available,
         }],
-        vec![PresentationInput {
-            identity: "input/inspect".into(),
-            target: "body/browser-mask-test".into(),
-            value_kind: UTF8_TEXT_VALUE_KIND.into(),
-            maximum_bytes: 32,
-            allow_empty: true,
-            name: "Inspect".into(),
-            submit_action: "body.inspect".into(),
-        }],
+        vec![PresentationInput::text(
+            "input/inspect".into(),
+            "body/browser-mask-test".into(),
+            32,
+            true,
+            "Inspect".into(),
+            "body.inspect".into(),
+        )
+        .unwrap()],
         vec![],
     )
     .unwrap()

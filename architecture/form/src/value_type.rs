@@ -2,8 +2,9 @@ use alloc::vec::Vec;
 
 use crate::{FormSyntax, RuntimePortDirection, RuntimePortTemporal, SyntaxCheckDiagnostic};
 use conduit_core::{
-    data_reference_kind, kind_id, CheckedFront, FrontStartupParameter, FrontValueBound,
-    FrontValueLocation, KindId, PortDescriptor, PortDirection, StructuredInfoRefusal,
+    data_reference_kind, kind_id, CheckedFront, CheckedValueContract, FrontStartupParameter,
+    FrontValueContract, FrontValueLocation, KindId, PortDescriptor, PortDirection,
+    StructuredInfoRefusal,
 };
 
 use crate::StartupCatalog;
@@ -121,19 +122,36 @@ pub(crate) fn checked_front(
             })
         })
         .collect::<Result<Vec<_>, SyntaxCheckDiagnostic>>()?;
-    let mut value_bounds = form
+    let mut value_contracts = form
         .front
         .startup_parameters
         .iter()
-        .filter_map(|parameter| {
-            parameter
-                .maximum_bytes
-                .map(|maximum_bytes| FrontValueBound {
-                    location: FrontValueLocation::Startup(parameter.name.text.clone()),
-                    maximum_bytes,
-                })
+        .filter(|parameter| parameter.maximum_bytes.is_some())
+        .map(|parameter| {
+            let maximum_bytes = parameter.maximum_bytes.expect("filtered above");
+            let checked = startup_parameters
+                .iter()
+                .find(|checked| checked.name == parameter.name.text)
+                .expect("checked startup parameter preserves its name");
+            Ok(FrontValueContract {
+                location: FrontValueLocation::Startup(parameter.name.text.clone()),
+                contract: CheckedValueContract::new(
+                    checked.value_type.clone(),
+                    u32::try_from(maximum_bytes).map_err(|_| SyntaxCheckDiagnostic {
+                        code: "CND-FRM-053",
+                        span: parameter.value_type.span,
+                        message: "startup value bound exceeds canonical bounds".into(),
+                    })?,
+                    Vec::new(),
+                )
+                .map_err(|_| SyntaxCheckDiagnostic {
+                    code: "CND-FRM-053",
+                    span: parameter.value_type.span,
+                    message: "startup value contract is invalid".into(),
+                })?,
+            })
         })
-        .collect::<Vec<_>>();
+        .collect::<Result<Vec<_>, SyntaxCheckDiagnostic>>()?;
     let mut inputs = Vec::new();
     let mut outputs = Vec::new();
     for port in &form.front.runtime_ports {
@@ -160,7 +178,7 @@ pub(crate) fn checked_front(
             abnormal_kind: None,
         };
         if let Some(maximum_bytes) = port.maximum_bytes {
-            value_bounds.push(FrontValueBound {
+            value_contracts.push(FrontValueContract {
                 location: match port.direction {
                     RuntimePortDirection::Input => {
                         FrontValueLocation::Input(descriptor.port_id.clone())
@@ -169,7 +187,20 @@ pub(crate) fn checked_front(
                         FrontValueLocation::Output(descriptor.port_id.clone())
                     }
                 },
-                maximum_bytes,
+                contract: CheckedValueContract::new(
+                    descriptor.value_kind.clone(),
+                    u32::try_from(maximum_bytes).map_err(|_| SyntaxCheckDiagnostic {
+                        code: "CND-FRM-053",
+                        span: port.value_type.span,
+                        message: "runtime Port value bound exceeds canonical bounds".into(),
+                    })?,
+                    Vec::new(),
+                )
+                .map_err(|_| SyntaxCheckDiagnostic {
+                    code: "CND-FRM-053",
+                    span: port.value_type.span,
+                    message: "runtime Port value contract is invalid".into(),
+                })?,
             });
         }
         match descriptor.direction {
@@ -188,7 +219,7 @@ pub(crate) fn checked_front(
             )
         }),
     )
-    .with_value_bounds(value_bounds))
+    .with_value_contracts(value_contracts))
 }
 
 pub(crate) fn canonical_port_temporal(source: RuntimePortTemporal) -> conduit_core::PortTemporal {

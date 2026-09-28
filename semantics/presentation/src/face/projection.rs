@@ -7,7 +7,7 @@ use crate::{
     PresentationActionAvailability, PresentationDisclosure, PresentationDisclosureLevel,
     PresentationInput, PresentationProperty, PresentationPropertyValue, PresentationRelationship,
     PresentationRelationshipKind, PresentationRole, PresentationSubject, PresentationTemporalFact,
-    PresentationText, TemporalReference, UTF8_TEXT_VALUE_KIND,
+    PresentationText, TemporalReference,
 };
 
 use super::{
@@ -195,15 +195,17 @@ fn append_application_view(
                     | ApplicationComponent::TextArea
                     | ApplicationComponent::Select
             ) {
-                inputs.push(PresentationInput {
-                    identity: format!("{prefix}/input/{node_index}"),
-                    target: identity,
-                    value_kind: UTF8_TEXT_VALUE_KIND.into(),
-                    maximum_bytes: node.value_capacity,
-                    allow_empty: true,
-                    name: label,
-                    submit_action: action_identity,
-                });
+                inputs.push(
+                    PresentationInput::text(
+                        format!("{prefix}/input/{node_index}"),
+                        identity,
+                        node.value_capacity,
+                        true,
+                        label,
+                        action_identity,
+                    )
+                    .expect("checked application input has a finite text contract"),
+                );
             }
         }
     }

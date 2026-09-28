@@ -1,4 +1,6 @@
-use crate::{CapabilityOffer, KindId, PortDescriptor, PortId, ResourcePortContract};
+use crate::{
+    CapabilityOffer, CheckedValueContract, KindId, PortDescriptor, PortId, ResourcePortContract,
+};
 use alloc::string::String;
 use alloc::vec::Vec;
 use serde::{Deserialize, Serialize};
@@ -14,9 +16,9 @@ pub enum FrontValueLocation {
 /// Semantic value envelope. This constrains info; it does not promise
 /// allocation, retention, residence, or persistence.
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]
-pub struct FrontValueBound {
+pub struct FrontValueContract {
     pub location: FrontValueLocation,
-    pub maximum_bytes: u64,
+    pub contract: CheckedValueContract,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]
@@ -35,7 +37,7 @@ pub struct CheckedFront {
     shorthand: Option<(PortId, PortId)>,
     #[serde(default)]
     resource_ports: Vec<ResourcePortContract>,
-    value_bounds: Vec<FrontValueBound>,
+    value_contracts: Vec<FrontValueContract>,
 }
 
 impl CheckedFront {
@@ -47,39 +49,54 @@ impl CheckedFront {
     ) -> Self {
         inputs.sort_by(|left, right| left.port_id.as_str().cmp(right.port_id.as_str()));
         outputs.sort_by(|left, right| left.port_id.as_str().cmp(right.port_id.as_str()));
-        let mut value_bounds = Vec::new();
+        let mut value_contracts = Vec::new();
         for parameter in &startup_parameters {
             if let Some(maximum_bytes) = default_maximum_bytes(&parameter.value_type) {
-                value_bounds.push(FrontValueBound {
+                value_contracts.push(FrontValueContract {
                     location: FrontValueLocation::Startup(parameter.name.clone()),
-                    maximum_bytes,
+                    contract: CheckedValueContract::new(
+                        parameter.value_type.clone(),
+                        maximum_bytes as u32,
+                        Vec::new(),
+                    )
+                    .expect("canonical default value contract is finite"),
                 });
             }
         }
         for port in &inputs {
             if let Some(maximum_bytes) = default_maximum_bytes(&port.value_kind) {
-                value_bounds.push(FrontValueBound {
+                value_contracts.push(FrontValueContract {
                     location: FrontValueLocation::Input(port.port_id.clone()),
-                    maximum_bytes,
+                    contract: CheckedValueContract::new(
+                        port.value_kind.clone(),
+                        maximum_bytes as u32,
+                        Vec::new(),
+                    )
+                    .expect("canonical default value contract is finite"),
                 });
             }
         }
         for port in &outputs {
             if let Some(maximum_bytes) = default_maximum_bytes(&port.value_kind) {
-                value_bounds.push(FrontValueBound {
+                value_contracts.push(FrontValueContract {
                     location: FrontValueLocation::Output(port.port_id.clone()),
-                    maximum_bytes,
+                    contract: CheckedValueContract::new(
+                        port.value_kind.clone(),
+                        maximum_bytes as u32,
+                        Vec::new(),
+                    )
+                    .expect("canonical default value contract is finite"),
                 });
             }
         }
-        value_bounds.sort();
+        value_contracts.sort();
         Self {
             startup_parameters,
             inputs,
             outputs,
             shorthand,
             resource_ports: Vec::new(),
-            value_bounds,
+            value_contracts,
         }
     }
 
@@ -89,13 +106,13 @@ impl CheckedFront {
         self
     }
 
-    pub fn with_value_bounds(mut self, value_bounds: Vec<FrontValueBound>) -> Self {
-        for bound in value_bounds {
-            self.value_bounds
-                .retain(|existing| existing.location != bound.location);
-            self.value_bounds.push(bound);
+    pub fn with_value_contracts(mut self, value_contracts: Vec<FrontValueContract>) -> Self {
+        for contract in value_contracts {
+            self.value_contracts
+                .retain(|existing| existing.location != contract.location);
+            self.value_contracts.push(contract);
         }
-        self.value_bounds.sort();
+        self.value_contracts.sort();
         self
     }
 
@@ -121,8 +138,15 @@ impl CheckedFront {
         &self.resource_ports
     }
 
-    pub fn value_bounds(&self) -> &[FrontValueBound] {
-        &self.value_bounds
+    pub fn value_contracts(&self) -> &[FrontValueContract] {
+        &self.value_contracts
+    }
+
+    pub fn value_contract(&self, location: &FrontValueLocation) -> Option<&CheckedValueContract> {
+        self.value_contracts
+            .iter()
+            .find(|candidate| &candidate.location == location)
+            .map(|candidate| &candidate.contract)
     }
 }
 
@@ -149,7 +173,7 @@ impl CapabilityOffer {
             self.outputs.clone(),
             shorthand,
         )
-        .with_value_bounds(self.semantic_contract.value_bounds().to_vec())
+        .with_value_contracts(self.semantic_contract.value_contracts().to_vec())
     }
 }
 
@@ -179,15 +203,21 @@ mod tests {
         );
 
         assert_eq!(
-            front.value_bounds(),
+            front.value_contracts(),
             &[
-                FrontValueBound {
+                FrontValueContract {
                     location: FrontValueLocation::Startup("blob".into()),
-                    maximum_bytes: 65_536,
+                    contract: CheckedValueContract::new(
+                        KindId::from("value/bytes"),
+                        65_536,
+                        vec![],
+                    )
+                    .unwrap(),
                 },
-                FrontValueBound {
+                FrontValueContract {
                     location: FrontValueLocation::Startup("message".into()),
-                    maximum_bytes: 256,
+                    contract: CheckedValueContract::new(KindId::from("value/text"), 256, vec![],)
+                        .unwrap(),
                 },
             ]
         );
@@ -201,12 +231,41 @@ mod tests {
             Vec::new(),
             None,
         )
-        .with_value_bounds(vec![FrontValueBound {
+        .with_value_contracts(vec![FrontValueContract {
             location: FrontValueLocation::Startup("message".into()),
-            maximum_bytes: 32,
+            contract: CheckedValueContract::new(KindId::from("value/text"), 32, vec![]).unwrap(),
         }]);
 
-        assert_eq!(front.value_bounds()[0].maximum_bytes, 32);
-        assert_eq!(front.value_bounds().len(), 1);
+        assert_eq!(front.value_contracts()[0].contract.maximum_bytes, 32);
+        assert_eq!(front.value_contracts().len(), 1);
+    }
+
+    #[test]
+    fn constraints_participate_in_exact_checked_fore_identity() {
+        let unconstrained = CheckedFront::new(
+            vec![startup("message", "value/text")],
+            Vec::new(),
+            Vec::new(),
+            None,
+        );
+        let constrained = unconstrained
+            .clone()
+            .with_value_contracts(vec![FrontValueContract {
+                location: FrontValueLocation::Startup("message".into()),
+                contract: CheckedValueContract::new(
+                    KindId::from("value/text"),
+                    256,
+                    vec![crate::ValueConstraint::ByteLength {
+                        minimum: 1,
+                        maximum: 32,
+                    }],
+                )
+                .unwrap(),
+            }]);
+
+        assert_ne!(
+            crate::compute_checked_front_fingerprint(&unconstrained),
+            crate::compute_checked_front_fingerprint(&constrained)
+        );
     }
 }

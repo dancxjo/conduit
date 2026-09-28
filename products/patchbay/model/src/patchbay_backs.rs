@@ -298,6 +298,7 @@ mod tests {
                 temporal: PortTemporal::Value,
                 abnormal_kind: None,
             },
+            value_contract: None,
         }
     }
 

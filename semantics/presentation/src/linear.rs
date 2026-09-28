@@ -299,6 +299,9 @@ fn display_property(value: &PresentationPropertyValue) -> String {
                 content.extent.items
             )
         }
+        PresentationPropertyValue::ValueContract(contract) => {
+            format!("value-contract:{contract:?}")
+        }
     }
 }
 

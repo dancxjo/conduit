@@ -447,10 +447,10 @@ pub(super) fn run_fragment_retaining<W: Write, T: TimerAdapter>(
             .collect::<Vec<_>>();
         if branches
             .iter()
-            .any(|planned| supplied.bytes.len() > planned.byte_capacity as usize)
+            .any(|planned| planned.validate_value(&supplied.bytes).is_err())
         {
             return Err(format!(
-                "external Fore input '{}' exceeds its sealed byte capacity",
+                "external Fore input '{}' violates its sealed value contract",
                 front_port_id.as_str()
             ));
         }

@@ -58,6 +58,7 @@ mod temporal_civil_conversion;
 mod temporal_clock;
 mod temporal_quantity;
 mod terminal_info;
+mod value_constraint;
 
 pub use base_capability::*;
 pub use base_registry::*;
@@ -80,7 +81,7 @@ pub use device::*;
 pub use execution::*;
 pub use execution_fusion::*;
 pub use fixed_integer::*;
-pub use front::{CheckedFront, FrontStartupParameter, FrontValueBound, FrontValueLocation};
+pub use front::{CheckedFront, FrontStartupParameter, FrontValueContract, FrontValueLocation};
 pub use implementation::{
     ImplementationOffer, RealizationAdvertisement, RealizationCharacteristic,
 };
@@ -111,6 +112,7 @@ pub use temporal_civil_conversion::*;
 pub use temporal_clock::*;
 pub use temporal_quantity::*;
 pub use terminal_info::*;
+pub use value_constraint::*;
 
 pub const PROTOCOL_VERSION: u16 = 1;
 pub const DEFAULT_CONNECTION_ITEM_CAPACITY: u16 = 4;
@@ -678,6 +680,8 @@ pub struct PlannedForePort {
     pub placement_id: PlacementId,
     pub gear_port_id: PortId,
     pub value_kind: KindId,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub value_contract: Option<CheckedValueContract>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub abnormal_kind: Option<KindId>,
     #[serde(default)]

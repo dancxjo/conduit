@@ -7,7 +7,7 @@ impl PlannedGear {
     /// retained in a [`PlannedGear`].
     pub fn checked_port_front(&self) -> CheckedFront {
         CheckedFront::new(Vec::new(), self.inputs.clone(), self.outputs.clone(), None)
-            .with_value_bounds(self.semantic_contract.value_bounds().to_vec())
+            .with_value_contracts(self.semantic_contract.value_contracts().to_vec())
     }
 
     /// Minimum structural validation for an explicitly assembled Plan record.
