@@ -425,7 +425,7 @@ fn conduitos_oci_export_is_exact_subject_linked_and_carried_to_pages() {
 }
 
 #[test]
-fn hosted_release_jobs_run_the_packaged_tour_journeys() {
+fn hosted_release_jobs_publish_only_current_host_artifacts() {
     let root = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../..");
     let workflow = fs::read_to_string(root.join(".github/workflows/tour-products.yml"))
         .expect("read product workflow");
@@ -436,8 +436,7 @@ fn hosted_release_jobs_run_the_packaged_tour_journeys() {
         .expect("locate host releases job");
     assert!(!workflow.contains("native-host-release"));
     assert!(releases.contains("if: needs.plan.outputs.host_releases_required == 'true'"));
-    assert!(releases.contains("conduit-tour-linux-x86_64 --journey"));
-    assert!(releases.contains("conduit-tour-windows-x86_64.exe --journey"));
+    assert!(!releases.contains("conduit-tour"));
     assert!(releases.contains("cargo +1.98.1 xtask setup linux-release"));
     assert!(!releases.contains("conduit-home"));
     assert!(releases.contains("name: conduit-existing-computer-releases-${{ matrix.artifact }}"));

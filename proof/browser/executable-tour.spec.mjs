@@ -1521,7 +1521,6 @@ test("a native Linux target produces an exact spore but refuses to execute an un
   });
   expect(hostedPackage.files).toEqual([
     "conduit-linux-x86_64",
-    "conduit-tour-linux-x86_64",
     "install-linux-x86_64.sh",
     "conduit-spore.json",
   ]);
@@ -1549,7 +1548,7 @@ test("Windows and macOS native releases are exact selectable Crèche targets", a
       os: "windows",
       architecture: "x86_64",
       machine: "windows-computer",
-      executables: ["conduit-windows-x86_64.exe", "conduit-tour-windows-x86_64.exe"],
+      executables: ["conduit-windows-x86_64.exe"],
     },
     {
       id: "std/aarch64/macos-computer",
