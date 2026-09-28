@@ -42,6 +42,7 @@ fn inspect_json(path: &Path, bytes: &[u8]) -> Result<String, String> {
     match schema {
         conduit_observatory::SNAPSHOT_SCHEMA => inspect_report(bytes),
         BODY_BIOGRAPHY_SCHEMA => inspect_body(bytes),
+        crate::durable_host::INSTALL_SCHEMA => crate::durable_host::inspect_installation(path),
         _ => Err(format!("inspection does not yet support schema {schema}")),
     }
 }

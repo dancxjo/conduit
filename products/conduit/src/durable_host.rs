@@ -13,7 +13,7 @@ use std::{
     time::{SystemTime, UNIX_EPOCH},
 };
 
-const INSTALL_SCHEMA: &str = "conduit.install/durable-host@1";
+pub(crate) const INSTALL_SCHEMA: &str = "conduit.install/durable-host@1";
 const RUNTIME_SCHEMA: &str = "conduit.install/durable-host-runtime@1";
 const RELEASE_SCHEMA: &str = "conduit.release/host-bundle@1";
 const MAXIMUM_RELEASE_FILES: usize = 32;
@@ -100,6 +100,17 @@ pub(crate) struct InstalledHostIdentity {
 pub(crate) fn has_current_body(state_dir: &Path) -> Result<bool, String> {
     let installation = read_installation(&state_dir.join("installation.json"))?;
     Ok(installation.body_state.is_some() || installation.joined_body_state.is_some())
+}
+
+pub(crate) fn inspect_installation(path: &Path) -> Result<String, String> {
+    let installation = read_installation(path)?;
+    Ok(format!(
+        "Host {}\nrelease {}\nproduct {}\nbody {}\n",
+        installation.host_id,
+        installation.release_bundle_sha256,
+        installation.product_executable,
+        current_body_id(&installation).unwrap_or("none"),
+    ))
 }
 
 pub(crate) fn install_and_activate(
@@ -912,6 +923,25 @@ mod tests {
         assert!(Path::new(&second.product_executable).is_file());
         assert!(Path::new(&second.product_executable).starts_with(state.join("releases")));
         assert!(!state.join("bin").exists());
+        fs::remove_dir_all(state.parent().unwrap()).unwrap();
+    }
+
+    #[test]
+    fn installation_inspection_uses_validated_retained_host_truth() {
+        let (manifest, state) = fixture();
+        let installation = install(&manifest, &state).unwrap();
+        let rendered = inspect_installation(&state.join("installation.json")).unwrap();
+
+        assert!(rendered.contains(&format!("Host {}", installation.host_id)));
+        assert!(rendered.contains(&format!("release {}", installation.release_bundle_sha256)));
+        assert!(rendered.contains("body none"));
+
+        fs::write(
+            state.join("installation.json"),
+            br#"{"schema":"conduit.install/durable-host@1"}"#,
+        )
+        .unwrap();
+        assert!(inspect_installation(&state.join("installation.json")).is_err());
         fs::remove_dir_all(state.parent().unwrap()).unwrap();
     }
 
