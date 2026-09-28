@@ -5,7 +5,8 @@ use conduit_core::ResourceAcquisitionState;
 use conduit_kernel::{
     causal_evidence::{
         CausalEvidence, CausalEvidenceRefusal, CausalRelationship, CausalTraceCompleteness,
-        EvidenceIdentity, TerminalEvidenceIndex,
+        EvidenceIdentity, EvidenceMetadataFact, EvidenceMetadataLookup, EvidenceMetadataVisit,
+        EvidenceOutcome, TerminalEvidenceIndex,
     },
     fault_disposition::FaultDisposition,
 };
@@ -29,6 +30,43 @@ pub struct CausalExplanationNode {
     pub ordinal: u16,
     pub terminal: bool,
     pub evidence: Option<EvidenceIdentity>,
+    pub outcome: Option<EvidenceOutcome>,
+    pub metadata: CausalExplanationMetadata,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum CausalExplanationMetadata {
+    Missing,
+    Redacted,
+    Visible(Vec<CausalExplanationMetadataFact>),
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum CausalExplanationMetadataFact {
+    SemanticSubject {
+        gear: String,
+        kind: String,
+    },
+    Source {
+        document: String,
+        start: Option<u32>,
+        end: Option<u32>,
+    },
+    Wake(String),
+    Plan(String),
+    Play(String),
+    Placement(String),
+    Implementation(String),
+    Host(String),
+    Boot(String),
+    Resource {
+        pool: String,
+        generation: Option<String>,
+    },
+    Authority {
+        grant: String,
+        contract: String,
+    },
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -49,6 +87,7 @@ pub struct CausalTraceExplanation {
 
 pub const MAXIMUM_CAUSAL_EXPLANATION_EDGES: usize = 128;
 pub const MAXIMUM_CAUSAL_EXPLANATION_NODES: usize = MAXIMUM_CAUSAL_EXPLANATION_EDGES * 2 + 1;
+pub const MAXIMUM_CAUSAL_METADATA_FACTS_PER_NODE: usize = 32;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum CausalExplanationRefusal {
@@ -122,6 +161,25 @@ pub fn explain_trace<const N: usize>(
     terminal: EvidenceIdentity,
     visibility: CausalExplanationVisibility,
 ) -> Result<CausalTraceExplanation, CausalExplanationRefusal> {
+    struct NoMetadata;
+    impl EvidenceMetadataLookup for NoMetadata {
+        fn visit<'a>(
+            &'a self,
+            _evidence: EvidenceIdentity,
+            _visitor: &mut dyn FnMut(EvidenceMetadataFact<'a>) -> bool,
+        ) -> EvidenceMetadataVisit {
+            EvidenceMetadataVisit::Missing
+        }
+    }
+    explain_trace_with_metadata(evidence, &NoMetadata, terminal, visibility)
+}
+
+pub fn explain_trace_with_metadata<const N: usize>(
+    evidence: &CausalEvidence<N>,
+    metadata: &impl EvidenceMetadataLookup,
+    terminal: EvidenceIdentity,
+    visibility: CausalExplanationVisibility,
+) -> Result<CausalTraceExplanation, CausalExplanationRefusal> {
     let trace = evidence.trace(terminal)?;
     let edge_count = trace.edges().count();
     if edge_count > MAXIMUM_CAUSAL_EXPLANATION_EDGES {
@@ -142,12 +200,19 @@ pub fn explain_trace<const N: usize>(
     let nodes = identities
         .iter()
         .enumerate()
-        .map(|(index, identity)| CausalExplanationNode {
-            ordinal: u16::try_from(index).expect("causal evidence capacity fits one u16 ordinal"),
-            terminal: identity == &terminal,
-            evidence: (visibility == CausalExplanationVisibility::Operator).then_some(*identity),
+        .map(|(index, identity)| {
+            let (outcome, projected) = project_metadata(metadata, *identity, visibility)?;
+            Ok(CausalExplanationNode {
+                ordinal: u16::try_from(index)
+                    .expect("causal evidence capacity fits one u16 ordinal"),
+                terminal: identity == &terminal,
+                evidence: (visibility == CausalExplanationVisibility::Operator)
+                    .then_some(*identity),
+                outcome,
+                metadata: projected,
+            })
         })
-        .collect();
+        .collect::<Result<Vec<_>, CausalExplanationRefusal>>()?;
     let edges = trace
         .edges()
         .map(|edge| CausalExplanationEdge {
@@ -174,6 +239,92 @@ pub fn explain_trace<const N: usize>(
     })
 }
 
+fn project_metadata(
+    lookup: &impl EvidenceMetadataLookup,
+    identity: EvidenceIdentity,
+    visibility: CausalExplanationVisibility,
+) -> Result<(Option<EvidenceOutcome>, CausalExplanationMetadata), CausalExplanationRefusal> {
+    let mut outcome = None;
+    let mut exact = Vec::new();
+    let mut redacted = false;
+    let visit = lookup.visit(identity, &mut |fact| {
+        if let EvidenceMetadataFact::Outcome(value) = fact {
+            outcome = Some(value);
+            return true;
+        }
+        if visibility == CausalExplanationVisibility::Public {
+            redacted = true;
+            return true;
+        }
+        if exact.len() == MAXIMUM_CAUSAL_METADATA_FACTS_PER_NODE {
+            return false;
+        }
+        exact.push(owned_metadata_fact(fact));
+        true
+    });
+    match visit {
+        EvidenceMetadataVisit::Missing => Ok((outcome, CausalExplanationMetadata::Missing)),
+        EvidenceMetadataVisit::VisitorRefused => {
+            Err(CausalExplanationRefusal::InspectionEnvelopeExceeded)
+        }
+        EvidenceMetadataVisit::Visited if visibility == CausalExplanationVisibility::Public => {
+            Ok((
+                outcome,
+                if redacted {
+                    CausalExplanationMetadata::Redacted
+                } else {
+                    CausalExplanationMetadata::Visible(Vec::new())
+                },
+            ))
+        }
+        EvidenceMetadataVisit::Visited => Ok((outcome, CausalExplanationMetadata::Visible(exact))),
+    }
+}
+
+fn owned_metadata_fact(fact: EvidenceMetadataFact<'_>) -> CausalExplanationMetadataFact {
+    match fact {
+        EvidenceMetadataFact::Outcome(_) => unreachable!("outcome is projected separately"),
+        EvidenceMetadataFact::SemanticSubject { gear, kind } => {
+            CausalExplanationMetadataFact::SemanticSubject {
+                gear: gear.into(),
+                kind: kind.into(),
+            }
+        }
+        EvidenceMetadataFact::Source {
+            document,
+            start,
+            end,
+        } => CausalExplanationMetadataFact::Source {
+            document: document.into(),
+            start,
+            end,
+        },
+        EvidenceMetadataFact::Wake(value) => CausalExplanationMetadataFact::Wake(value.into()),
+        EvidenceMetadataFact::Plan(value) => CausalExplanationMetadataFact::Plan(value.into()),
+        EvidenceMetadataFact::Play(value) => CausalExplanationMetadataFact::Play(value.into()),
+        EvidenceMetadataFact::Placement(value) => {
+            CausalExplanationMetadataFact::Placement(value.into())
+        }
+        EvidenceMetadataFact::Implementation(value) => {
+            CausalExplanationMetadataFact::Implementation(value.into())
+        }
+        EvidenceMetadataFact::Host(value) => CausalExplanationMetadataFact::Host(value.into()),
+        EvidenceMetadataFact::Boot(value) => CausalExplanationMetadataFact::Boot(value.into()),
+        EvidenceMetadataFact::Resource { pool, generation } => {
+            CausalExplanationMetadataFact::Resource {
+                pool: pool.into(),
+                generation: generation.map(Into::into),
+            }
+        }
+        EvidenceMetadataFact::Authority { grant, contract } => {
+            CausalExplanationMetadataFact::Authority {
+                grant: grant.into(),
+                contract: contract.into(),
+            }
+        }
+    }
+}
+
 fn ordinal(identities: &[EvidenceIdentity], identity: EvidenceIdentity) -> u16 {
     let index = identities
         .iter()
@@ -186,6 +337,37 @@ fn ordinal(identities: &[EvidenceIdentity], identity: EvidenceIdentity) -> u16 {
 mod tests {
     use super::*;
     use conduit_kernel::causal_evidence::{CausalEdge, CausalRelationship};
+
+    struct ExactMetadata {
+        terminal: EvidenceIdentity,
+    }
+
+    impl EvidenceMetadataLookup for ExactMetadata {
+        fn visit<'a>(
+            &'a self,
+            evidence: EvidenceIdentity,
+            visitor: &mut dyn FnMut(EvidenceMetadataFact<'a>) -> bool,
+        ) -> EvidenceMetadataVisit {
+            if evidence != self.terminal {
+                return EvidenceMetadataVisit::Missing;
+            }
+            for fact in [
+                EvidenceMetadataFact::Outcome(EvidenceOutcome::SemanticTerminal),
+                EvidenceMetadataFact::Plan("plan/exact"),
+                EvidenceMetadataFact::Implementation("back/exact"),
+                EvidenceMetadataFact::Host("host/private"),
+                EvidenceMetadataFact::Authority {
+                    grant: "grant/private",
+                    contract: "authority/audio",
+                },
+            ] {
+                if !visitor(fact) {
+                    return EvidenceMetadataVisit::VisitorRefused;
+                }
+            }
+            EvidenceMetadataVisit::Visited
+        }
+    }
 
     #[test]
     fn patchbay_explains_generic_evidence_and_leaves_missing_truth_unknown() {
@@ -267,18 +449,48 @@ mod tests {
             evidence.record(edge).unwrap();
         }
 
-        let public =
-            explain_trace(&evidence, terminal, CausalExplanationVisibility::Public).unwrap();
+        let metadata = ExactMetadata { terminal };
+        let public = explain_trace_with_metadata(
+            &evidence,
+            &metadata,
+            terminal,
+            CausalExplanationVisibility::Public,
+        )
+        .unwrap();
         assert_eq!(public.nodes.len(), 4);
         assert_eq!(public.edges.len(), 3);
         assert!(public.nodes.iter().all(|node| node.evidence.is_none()));
         assert!(public.nodes.iter().any(|node| node.terminal));
+        assert_eq!(
+            public.nodes[0].outcome,
+            Some(EvidenceOutcome::SemanticTerminal)
+        );
+        assert_eq!(
+            public.nodes[0].metadata,
+            CausalExplanationMetadata::Redacted
+        );
 
-        let operator =
-            explain_trace(&evidence, terminal, CausalExplanationVisibility::Operator).unwrap();
+        let operator = explain_trace_with_metadata(
+            &evidence,
+            &metadata,
+            terminal,
+            CausalExplanationVisibility::Operator,
+        )
+        .unwrap();
         assert_eq!(operator.edges, public.edges);
         assert_eq!(operator.nodes[0].evidence, Some(terminal));
         assert!(operator.nodes.iter().all(|node| node.evidence.is_some()));
+        assert_eq!(operator.nodes[0].outcome, public.nodes[0].outcome);
+        assert!(matches!(
+            &operator.nodes[0].metadata,
+            CausalExplanationMetadata::Visible(facts)
+                if facts.contains(&CausalExplanationMetadataFact::Implementation(
+                    "back/exact".into()
+                )) && facts.contains(&CausalExplanationMetadataFact::Authority {
+                    grant: "grant/private".into(),
+                    contract: "authority/audio".into(),
+                })
+        ));
     }
 
     #[test]

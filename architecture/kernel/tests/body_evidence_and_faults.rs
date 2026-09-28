@@ -8,6 +8,62 @@ fn id(sign: u64, execution: u64, session: u64) -> EvidenceIdentity {
     }
 }
 
+struct BorrowedMetadata;
+
+impl EvidenceMetadataLookup for BorrowedMetadata {
+    fn visit<'a>(
+        &'a self,
+        evidence: EvidenceIdentity,
+        visitor: &mut dyn FnMut(EvidenceMetadataFact<'a>) -> bool,
+    ) -> EvidenceMetadataVisit {
+        if evidence != id(1, 1, 1) {
+            return EvidenceMetadataVisit::Missing;
+        }
+        for fact in [
+            EvidenceMetadataFact::Outcome(EvidenceOutcome::Recovered),
+            EvidenceMetadataFact::Plan("plan/exact"),
+            EvidenceMetadataFact::Host("host/exact"),
+        ] {
+            if !visitor(fact) {
+                return EvidenceMetadataVisit::VisitorRefused;
+            }
+        }
+        EvidenceMetadataVisit::Visited
+    }
+}
+
+#[test]
+fn metadata_lookup_lends_exact_identity_without_changing_graph_storage() {
+    let lookup = BorrowedMetadata;
+    let mut facts = std::vec::Vec::new();
+    assert_eq!(
+        lookup.visit(id(1, 1, 1), &mut |fact| {
+            facts.push(fact);
+            true
+        }),
+        EvidenceMetadataVisit::Visited
+    );
+    assert_eq!(
+        facts,
+        vec![
+            EvidenceMetadataFact::Outcome(EvidenceOutcome::Recovered),
+            EvidenceMetadataFact::Plan("plan/exact"),
+            EvidenceMetadataFact::Host("host/exact"),
+        ]
+    );
+    assert_eq!(
+        lookup.visit(id(2, 1, 1), &mut |_| true),
+        EvidenceMetadataVisit::Missing
+    );
+    assert_eq!(
+        lookup.visit(id(1, 1, 1), &mut |_| false),
+        EvidenceMetadataVisit::VisitorRefused
+    );
+
+    let evidence = CausalEvidence::<1>::default();
+    assert!(!evidence.history_was_truncated());
+}
+
 #[test]
 fn semantic_terminal_digest_resolves_to_exact_causal_evidence() {
     let digest = [7; 32];
