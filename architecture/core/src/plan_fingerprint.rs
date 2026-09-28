@@ -225,6 +225,13 @@ pub fn compute_fragment_id(fragment: &PlanFragment) -> FragmentId {
         push_string(&mut canonical, port.placement_id.as_str());
         push_string(&mut canonical, port.gear_port_id.as_str());
         push_string(&mut canonical, port.value_kind.as_str());
+        match &port.value_contract {
+            Some(contract) => {
+                canonical.push(1);
+                push_value_contract(&mut canonical, contract);
+            }
+            None => canonical.push(0),
+        }
         push_optional_string(
             &mut canonical,
             port.abnormal_kind.as_ref().map(|kind| kind.as_str()),

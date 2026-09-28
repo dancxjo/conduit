@@ -681,6 +681,8 @@ pub struct PlannedForePort {
     pub gear_port_id: PortId,
     pub value_kind: KindId,
     #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub value_contract: Option<CheckedValueContract>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
     pub abnormal_kind: Option<KindId>,
     #[serde(default)]
     pub track: ConnectionTrack,
