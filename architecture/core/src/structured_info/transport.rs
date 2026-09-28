@@ -197,9 +197,13 @@ fn decode_node(
             }
             StructuredInfoValue::collection(expected.clone(), values)
         }
-        StructuredInfoTypeShape::Sequence { element, capacity } if tag == 1 => {
+        StructuredInfoTypeShape::Sequence {
+            element,
+            minimum_items,
+            maximum_items,
+        } if tag == 1 => {
             let length = cursor.length()?;
-            if length > usize::from(capacity) {
+            if length < usize::from(minimum_items) || length > usize::from(maximum_items) {
                 return Err(StructuredInfoTransportRefusal::MalformedRepresentation);
             }
             let mut values = Vec::with_capacity(length);

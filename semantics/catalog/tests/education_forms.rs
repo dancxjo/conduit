@@ -177,10 +177,15 @@ fn lesson_state_and_hints_are_bounded_without_retained_learner_history() {
         .find(|field| field.name() == "hints")
         .unwrap()
         .value_type();
-    let StructuredInfoTypeShape::Sequence { capacity, .. } = hints.shape() else {
+    let StructuredInfoTypeShape::Sequence {
+        minimum_items,
+        maximum_items,
+        ..
+    } = hints.shape()
+    else {
         panic!("hints must be a bounded sequence")
     };
-    assert_eq!(capacity, MAXIMUM_EDUCATION_HINTS);
+    assert_eq!((minimum_items, maximum_items), (0, MAXIMUM_EDUCATION_HINTS));
 
     let progress = education_progress_type();
     let rendered = format!("{progress:?}").to_ascii_lowercase();

@@ -72,7 +72,7 @@ fn llm_value() -> StructuredInfoValue {
 #[test]
 fn bounded_sequence_round_trips_through_transport_with_actual_length() {
     let element = leaf_type("value/count");
-    let ty = StructuredInfoType::sequence(element, 5).unwrap();
+    let ty = StructuredInfoType::bounded_sequence(element, 2, 5).unwrap();
     let value = StructuredInfoValue::sequence(
         ty.clone(),
         vec![
@@ -85,7 +85,21 @@ fn bounded_sequence_round_trips_through_transport_with_actual_length() {
         encode_structured_transport(&value, MAXIMUM_STRUCTURED_TRANSPORT_BYTES as u32).unwrap();
     assert_eq!(
         decode_structured_transport(&ty, &encoded, MAXIMUM_STRUCTURED_TRANSPORT_BYTES as u32,),
-        Ok(value)
+        Ok(value.clone())
+    );
+
+    let mut below_minimum = encoded;
+    let canonical = value.canonical_bytes().unwrap();
+    let header = below_minimum.len() - canonical.len();
+    let length = header + ty.canonical_bytes().unwrap().len() + 1;
+    below_minimum[length..length + 4].copy_from_slice(&1_u32.to_le_bytes());
+    assert_eq!(
+        decode_structured_transport(
+            &ty,
+            &below_minimum,
+            MAXIMUM_STRUCTURED_TRANSPORT_BYTES as u32,
+        ),
+        Err(StructuredInfoTransportRefusal::MalformedRepresentation)
     );
 }
 

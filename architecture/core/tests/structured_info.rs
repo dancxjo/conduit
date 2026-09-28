@@ -256,7 +256,21 @@ fn exact_structured_type_round_trips_without_a_value_node() {
 #[test]
 fn bounded_sequence_preserves_element_type_and_canonical_actual_length() {
     let element = leaf_type("value/count");
-    let sequence_type = StructuredInfoType::sequence(element.clone(), 4).unwrap();
+    assert_eq!(
+        StructuredInfoType::bounded_sequence(element.clone(), 3, 2),
+        Err(StructuredInfoRefusal::InvalidCollectionBounds)
+    );
+    let sequence_type = StructuredInfoType::bounded_sequence(element.clone(), 2, 4).unwrap();
+    let optional_sequence = StructuredInfoType::sequence(element.clone(), 4).unwrap();
+    assert_ne!(
+        sequence_type.semantic_digest().unwrap(),
+        optional_sequence.semantic_digest().unwrap()
+    );
+    assert_ne!(
+        sequence_type.canonical_bytes().unwrap(),
+        optional_sequence.canonical_bytes().unwrap()
+    );
+    StructuredInfoValue::sequence(optional_sequence, vec![]).unwrap();
     let values = vec![
         leaf("value/count", &encode_count(1)),
         leaf("value/count", &encode_count(2)),
@@ -269,6 +283,17 @@ fn bounded_sequence_preserves_element_type_and_canonical_actual_length() {
     );
     assert!(validate_canonical_structured_value(&canonical).is_ok());
     assert_eq!(
+        StructuredInfoValue::sequence(sequence_type.clone(), vec![]),
+        Err(StructuredInfoRefusal::WrongCollectionLength)
+    );
+    assert_eq!(
+        StructuredInfoValue::sequence(
+            sequence_type.clone(),
+            vec![leaf("value/count", &encode_count(1))]
+        ),
+        Err(StructuredInfoRefusal::WrongCollectionLength)
+    );
+    assert_eq!(
         StructuredInfoValue::sequence(
             sequence_type.clone(),
             (0..5)
@@ -278,7 +303,13 @@ fn bounded_sequence_preserves_element_type_and_canonical_actual_length() {
         Err(StructuredInfoRefusal::WrongCollectionLength)
     );
     assert_eq!(
-        StructuredInfoValue::sequence(sequence_type, vec![leaf("value/text", b"wrong element")],),
+        StructuredInfoValue::sequence(
+            sequence_type,
+            vec![
+                leaf("value/text", b"wrong element"),
+                leaf("value/text", b"wrong element"),
+            ],
+        ),
         Err(StructuredInfoRefusal::WrongType)
     );
 }
