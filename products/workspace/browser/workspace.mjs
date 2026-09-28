@@ -133,7 +133,7 @@ export async function startApplication(application) {
         input_id: input.identity,
         action_id: event.action,
         target: input.target,
-        value_kind: input.value_kind,
+        value_kind: input.contract.value_kind,
         value: Array.from(event.value ?? []),
         sequence: Number(event.sequence ?? 1),
       });
