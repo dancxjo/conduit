@@ -398,30 +398,65 @@ impl ProfileCatalog {
     pub fn startup_catalog(&self) -> Result<StartupCatalog, String> {
         let mut startup = StartupCatalog::new();
         for definition in self.kinds.values() {
-            startup.insert(KindSignature {
+            let canonical_kind = self.canonical_kind(&definition.kind_id);
+            let signature = KindSignature {
                 kind: definition.kind_id.as_str().to_string(),
-                startup_parameters: definition
-                    .configuration
-                    .iter()
-                    .map(|field| StartupParameterSignature {
-                        name: field.key.clone(),
-                        value_type: match (&field.rule, &field.default_value) {
-                            (
-                                KindConfigurationRule::QuantityRange { canonical_unit, .. },
-                                ConfigurationValue::Quantity(_),
-                            ) => canonical_unit.dimension().info_id(),
-                            (_, ConfigurationValue::Bool(_)) => "Boolean",
-                            (_, ConfigurationValue::U64(_)) => "Count",
-                            (_, ConfigurationValue::I64(_)) => "Scalar",
-                            (_, ConfigurationValue::Text(_)) => "Text",
-                            (_, ConfigurationValue::Structured(_)) => "Structured",
-                            (_, ConfigurationValue::Quantity(_)) => "Quantity",
-                        }
-                        .into(),
-                        default: Some(render_value(&field.default_value)),
-                    })
-                    .collect(),
-            })?;
+                startup_parameters: canonical_kind.map_or_else(
+                    || {
+                        definition
+                            .configuration
+                            .iter()
+                            .map(projected_startup_parameter)
+                            .collect()
+                    },
+                    |kind| {
+                        kind.startup_parameters
+                            .iter()
+                            .map(|parameter| StartupParameterSignature {
+                                name: parameter.name.clone(),
+                                value_type: parameter.value_type.as_str().to_string(),
+                                default: parameter.has_default.then(|| {
+                                    definition
+                                        .configuration
+                                        .iter()
+                                        .find(|field| field.key == parameter.name)
+                                        .map(|field| render_value(&field.default_value))
+                                        .expect("validated Kind startup default has configuration")
+                                }),
+                            })
+                            .collect()
+                    },
+                ),
+            };
+            startup.insert(signature)?;
+            let fore = if let Some(kind) = canonical_kind {
+                kind.checked_front()
+            } else {
+                let signature = startup
+                    .signature(definition.kind_id.as_str())
+                    .expect("the signature was inserted immediately above");
+                let startup_parameters =
+                    startup
+                        .canonical_startup_parameters(signature)
+                        .map_err(|error| {
+                            format!(
+                                "cannot derive checked Fore for '{}': {error:?}",
+                                definition.kind_id.as_str()
+                            )
+                        })?;
+                let shorthand = match (definition.inputs.as_slice(), definition.outputs.as_slice())
+                {
+                    ([input], [output]) => Some((input.port_id.clone(), output.port_id.clone())),
+                    _ => None,
+                };
+                conduit_core::CheckedFront::new(
+                    startup_parameters,
+                    definition.inputs.clone(),
+                    definition.outputs.clone(),
+                    shorthand,
+                )
+            };
+            startup.insert_fore(definition.kind_id.as_str(), fore)?;
         }
         Ok(startup)
     }
@@ -1005,6 +1040,29 @@ fn push_identity_field(canonical: &mut String, value: &str) {
     canonical.push(':');
     canonical.push_str(value);
     canonical.push('|');
+}
+
+fn projected_startup_parameter(field: &KindConfigurationField) -> StartupParameterSignature {
+    StartupParameterSignature {
+        name: field.key.clone(),
+        value_type: match (&field.rule, &field.default_value) {
+            (
+                KindConfigurationRule::QuantityRange { canonical_unit, .. },
+                ConfigurationValue::Quantity(_),
+            ) => canonical_unit.dimension().info_id(),
+            (_, ConfigurationValue::Bool(_)) => "Boolean",
+            (_, ConfigurationValue::U64(_)) => "Count",
+            (_, ConfigurationValue::I64(_)) => "Scalar",
+            (_, ConfigurationValue::Text(_)) => "Text",
+            (_, ConfigurationValue::Structured(value)) => value.profile().as_str(),
+            (_, ConfigurationValue::Quantity(_)) => "Quantity",
+        }
+        .into(),
+        // A legacy projection has no independently declared callable Fore, so
+        // its historical configuration default remains the only available
+        // omission contract. Canonical Kinds take the stricter branch above.
+        default: Some(render_value(&field.default_value)),
+    }
 }
 
 fn render_value(value: &ConfigurationValue) -> String {

@@ -239,6 +239,20 @@ pub struct Cord {
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum CordStage {
     Reference(SpannedText),
+    /// A punctuation Gear name awaiting lexical resolution during checking.
+    Glyph(SpannedText),
+    RelationalGlyph {
+        operands: Vec<SpannedText>,
+        glyph: SpannedText,
+        span: Span,
+    },
+    RelationalGear {
+        operands: Vec<SpannedText>,
+        invocation: Invocation,
+        input_ports: Vec<String>,
+        output_port: String,
+        span: Span,
+    },
     TerminalProjection {
         endpoint: SpannedText,
         terminal: TerminalProjection,

@@ -24,6 +24,14 @@ mod structured_selector;
 use resolution::{is_atomic_literal, Resolver};
 use shared_pool::{check_pool_declarations, checked_pool};
 
+const STANDARD_GLYPH_BINDINGS: [(&str, &str); 5] = [
+    ("><", "flow/merge"),
+    ("&>", "flow/zip"),
+    ("?>", "flow/race"),
+    ("<>", "state/combine-latest"),
+    ("@", "current/sample"),
+];
+
 pub(crate) fn check_document(
     document: &SyntaxDocument,
     catalog: &StartupCatalog,
@@ -36,15 +44,16 @@ pub(crate) fn check_document(
         });
     }
     let unresolved_form_signatures = form_signatures(&document.forms)?;
-    let forms = resolve_use_declarations(document, catalog, &unresolved_form_signatures)?;
-    let form_signatures = form_signatures(&forms)?;
     let mut form_fronts = BTreeMap::new();
-    for form in &forms {
+    for form in &document.forms {
         form_fronts.insert(
             form.name.text.clone(),
             crate::value_type::checked_front(form, catalog)?,
         );
     }
+    let forms =
+        resolve_use_declarations(document, catalog, &unresolved_form_signatures, &form_fronts)?;
+    let form_signatures = form_signatures(&forms)?;
     let mut checked_forms = Vec::with_capacity(forms.len());
     for form in &forms {
         checked_forms.push(check_form(form, catalog, &form_signatures, &form_fronts)?);
@@ -140,8 +149,15 @@ fn resolve_use_declarations(
     document: &SyntaxDocument,
     catalog: &StartupCatalog,
     forms: &BTreeMap<String, KindSignature>,
+    form_fronts: &BTreeMap<String, CheckedFront>,
 ) -> Result<Vec<FormSyntax>, SyntaxCheckDiagnostic> {
     let mut aliases = BTreeMap::<String, (String, crate::Span, bool)>::new();
+    if document.standard_glyphs {
+        let span = source_start_span();
+        for (glyph, kind) in STANDARD_GLYPH_BINDINGS {
+            aliases.insert(glyph.into(), (kind.into(), span, true));
+        }
+    }
     for declaration in &document.uses {
         let path = declaration.path.as_str();
         if catalog.get(path).is_none() && !forms.contains_key(path) {
@@ -155,6 +171,19 @@ fn resolve_use_declarations(
                 declaration.alias.span,
                 format!(
                     "use alias '{}' conflicts with a source Form name",
+                    declaration.alias.text
+                ),
+            ));
+        }
+        if document.standard_glyphs
+            && STANDARD_GLYPH_BINDINGS
+                .iter()
+                .any(|(glyph, _)| *glyph == declaration.alias.text)
+        {
+            return Err(use_diagnostic(
+                declaration.alias.span,
+                format!(
+                    "standard glyph '{}' is already in scope; use 'without glyphs' before rebinding it",
                     declaration.alias.text
                 ),
             ));
@@ -181,10 +210,12 @@ fn resolve_use_declarations(
                 BackStatement::NamedGear(gear) => {
                     resolve_invocation_alias(&mut gear.invocation, &mut aliases)
                 }
-                BackStatement::Cord(cord) => resolve_stage_aliases(&mut cord.stages, &mut aliases),
+                BackStatement::Cord(cord) => {
+                    resolve_stage_aliases(&mut cord.stages, &mut aliases, catalog, form_fronts)?
+                }
                 BackStatement::MatchedRoute(route) => {
                     for arm in &mut route.arms {
-                        resolve_stage_aliases(&mut arm.stages, &mut aliases);
+                        resolve_stage_aliases(&mut arm.stages, &mut aliases, catalog, form_fronts)?;
                     }
                 }
                 BackStatement::Pool(_) | BackStatement::LocalValue(_) => {}
@@ -197,15 +228,146 @@ fn resolve_use_declarations(
     Ok(resolved)
 }
 
+fn source_start_span() -> crate::Span {
+    crate::Span {
+        start: 0,
+        end: 0,
+        line: 1,
+        column: 1,
+        end_line: 1,
+        end_column: 1,
+    }
+}
+
 fn resolve_stage_aliases(
     stages: &mut [CordStage],
     aliases: &mut BTreeMap<String, (String, crate::Span, bool)>,
-) {
+    catalog: &StartupCatalog,
+    form_fronts: &BTreeMap<String, CheckedFront>,
+) -> Result<(), SyntaxCheckDiagnostic> {
     for stage in stages {
-        if let CordStage::InlineGear(invocation) = stage {
-            resolve_invocation_alias(invocation, aliases);
+        match stage {
+            CordStage::InlineGear(invocation) => resolve_invocation_alias(invocation, aliases),
+            CordStage::Reference(reference) => {
+                if let Some((canonical, _, used)) = aliases.get_mut(&reference.text) {
+                    let span = reference.span;
+                    *stage = CordStage::InlineGear(Invocation {
+                        kind: crate::syntax::SpannedText {
+                            text: canonical.clone(),
+                            span,
+                        },
+                        arguments: Vec::new(),
+                        span,
+                    });
+                    *used = true;
+                }
+            }
+            CordStage::Glyph(glyph) => {
+                if let Some((canonical, _, used)) = aliases.get_mut(&glyph.text) {
+                    let fore = form_fronts
+                        .get(canonical)
+                        .or_else(|| catalog.fore(canonical))
+                        .ok_or_else(|| {
+                            use_diagnostic(
+                                glyph.span,
+                                format!(
+                                    "glyph '{}' requires the exact checked Fore for '{}'",
+                                    glyph.text, canonical
+                                ),
+                            )
+                        })?;
+                    if fore.shorthand().is_none() {
+                        return Err(use_diagnostic(
+                            glyph.span,
+                            format!(
+                                "unary glyph '{}' requires exactly one shorthand input and output",
+                                glyph.text
+                            ),
+                        ));
+                    }
+                    let span = glyph.span;
+                    *stage = CordStage::InlineGear(Invocation {
+                        kind: crate::syntax::SpannedText {
+                            text: canonical.clone(),
+                            span,
+                        },
+                        arguments: Vec::new(),
+                        span,
+                    });
+                    *used = true;
+                } else {
+                    *stage = CordStage::Reference(glyph.clone());
+                }
+            }
+            CordStage::RelationalGlyph {
+                operands,
+                glyph,
+                span,
+            } => {
+                let Some((canonical, _, used)) = aliases.get_mut(&glyph.text) else {
+                    return Err(use_diagnostic(
+                        glyph.span,
+                        format!("glyph '{}' did not resolve in lexical scope", glyph.text),
+                    ));
+                };
+                let fore = form_fronts
+                    .get(canonical)
+                    .or_else(|| catalog.fore(canonical))
+                    .ok_or_else(|| {
+                        use_diagnostic(
+                            glyph.span,
+                            format!(
+                                "glyph '{}' requires the exact checked Fore for '{}'",
+                                glyph.text, canonical
+                            ),
+                        )
+                    })?;
+                if fore.inputs().len() != operands.len() || fore.outputs().len() != 1 {
+                    return Err(use_diagnostic(
+                        glyph.span,
+                        format!(
+                            "relational glyph '{}' supplies {} operands but '{}' has {} inputs and {} outputs",
+                            glyph.text,
+                            operands.len(),
+                            canonical,
+                            fore.inputs().len(),
+                            fore.outputs().len()
+                        ),
+                    ));
+                }
+                let invocation = Invocation {
+                    kind: crate::syntax::SpannedText {
+                        text: canonical.clone(),
+                        span: glyph.span,
+                    },
+                    arguments: Vec::new(),
+                    span: glyph.span,
+                };
+                let input_ports = fore
+                    .inputs()
+                    .iter()
+                    .map(|port| port.port_id.as_str().to_string())
+                    .collect();
+                let output_port = fore.outputs()[0].port_id.as_str().to_string();
+                *used = true;
+                *stage = CordStage::RelationalGear {
+                    operands: operands.clone(),
+                    invocation,
+                    input_ports,
+                    output_port,
+                    span: *span,
+                };
+            }
+            CordStage::RelationalGear { .. } => {}
+            CordStage::TerminalProjection { .. }
+            | CordStage::Cancellation { .. }
+            | CordStage::When(_)
+            | CordStage::Literal(_)
+            | CordStage::PureExpression(_)
+            | CordStage::StructuredSelector(_) => {}
         }
     }
+    Ok(())
 }
 
 fn resolve_invocation_alias(
@@ -538,6 +700,37 @@ fn check_cord_stages(
         match stage {
             CordStage::Reference(reference) => {
                 stages.push(CheckedCordStage::Reference(reference.text.clone()));
+            }
+            CordStage::Glyph(glyph) => {
+                return Err(use_diagnostic(
+                    glyph.span,
+                    format!("glyph '{}' did not resolve in lexical scope", glyph.text),
+                ));
+            }
+            CordStage::RelationalGlyph { glyph, .. } => {
+                return Err(use_diagnostic(
+                    glyph.span,
+                    format!("glyph '{}' did not resolve in lexical scope", glyph.text),
+                ));
+            }
+            CordStage::RelationalGear {
+                operands,
+                invocation,
+                input_ports,
+                output_port,
+                ..
+            } => {
+                let gear = check_invocation(None, invocation, catalog, form_signatures, resolver)?;
+                stages.push(CheckedCordStage::RelationalGear {
+                    operands: operands
+                        .iter()
+                        .map(|operand| operand.text.clone())
+                        .collect(),
+                    gear: gear.clone(),
+                    input_ports: input_ports.clone(),
+                    output_port: output_port.clone(),
+                });
+                gears.push(gear);
             }
             CordStage::TerminalProjection {
                 endpoint,

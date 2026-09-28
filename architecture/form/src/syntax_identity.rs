@@ -172,6 +172,20 @@ pub(crate) fn canonical_cord(cord: &CheckedCanonicalCord) -> String {
                 push_field(&mut value, "reference");
                 push_field(&mut value, reference);
             }
+            CheckedCordStage::RelationalGear {
+                operands,
+                gear,
+                input_ports,
+                output_port,
+            } => {
+                push_field(&mut value, "relational-gear");
+                push_field(&mut value, &canonical_gear(gear));
+                for (operand, input_port) in operands.iter().zip(input_ports) {
+                    push_field(&mut value, operand);
+                    push_field(&mut value, input_port);
+                }
+                push_field(&mut value, output_port);
+            }
             CheckedCordStage::TerminalProjection {
                 endpoint, terminal, ..
             } => {

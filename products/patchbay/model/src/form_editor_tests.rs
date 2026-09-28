@@ -70,6 +70,44 @@ fn graph_projection_preserves_terminal_and_cancellation_stages() {
 }
 
 #[test]
+fn graph_projection_exposes_the_ordinary_gear_behind_a_relational_glyph() {
+    let span = Span {
+        start: 4,
+        end: 10,
+        line: 1,
+        column: 5,
+        end_line: 1,
+        end_column: 11,
+    };
+    let cord = conduit_form::CheckedCanonicalCord {
+        stages: vec![CheckedCordStage::RelationalGear {
+            operands: vec!["left.out".into(), "right.out".into()],
+            gear: conduit_form::CheckedCanonicalGear {
+                name: None,
+                kind: "flow/zip".into(),
+                startup_parameters: vec![],
+                startup_bindings: vec![],
+                retained: None,
+                source_span: span,
+            },
+            input_ports: vec!["left".into(), "right".into()],
+            output_port: "paired".into(),
+        }],
+    };
+
+    assert_eq!(cord_label(&cord), "flow/zip(left.out, right.out)");
+    assert_eq!(
+        graph_cord_stage(&cord.stages[0]),
+        GraphCordStage::RelationalGear {
+            operands: vec!["left.out".into(), "right.out".into()],
+            kind: "flow/zip".into(),
+            input_ports: vec!["left".into(), "right".into()],
+            output_port: "paired".into(),
+        }
+    );
+}
+
+#[test]
 fn catalog_aware_editor_retains_exact_catalogs_for_recheck_and_expansion() {
     let mut startup = conduit_form::StartupCatalog::new();
     let mut profile = conduit_form::ProfileCatalog::new();

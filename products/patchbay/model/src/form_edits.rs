@@ -153,6 +153,14 @@ impl FormEditor {
                             .is_some_and(|suffix| suffix.starts_with('.'))
                 }
                 crate::GraphCordStage::Cancellation { gear } => gear == gear_name,
+                crate::GraphCordStage::RelationalGear { operands, .. } => {
+                    operands.iter().any(|operand| {
+                        operand == gear_name
+                            || operand
+                                .strip_prefix(gear_name)
+                                .is_some_and(|suffix| suffix.starts_with('.'))
+                    })
+                }
                 crate::GraphCordStage::InlineGear { .. }
                 | crate::GraphCordStage::Literal
                 | crate::GraphCordStage::When

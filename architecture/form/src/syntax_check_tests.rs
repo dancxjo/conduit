@@ -3,6 +3,7 @@ use crate::{
     StartupCatalog, StartupParameterSignature,
 };
 use alloc::vec::Vec;
+use conduit_core::{kind_id, port_id, CheckedFront, PortDescriptor, PortDirection, PortTemporal};
 
 fn catalog() -> StartupCatalog {
     let mut catalog = StartupCatalog::new();
@@ -17,6 +18,12 @@ fn catalog() -> StartupCatalog {
                 value_type: "Duration".into(),
                 default: None,
             }],
+        })
+        .unwrap();
+    catalog
+        .insert(KindSignature {
+            kind: "text/upper".into(),
+            startup_parameters: vec![],
         })
         .unwrap();
     catalog
@@ -54,6 +61,49 @@ fn check(source: &str) -> crate::CheckedSyntaxDocument {
     check_syntax_document(&parsed, &catalog()).expect("canonical syntax checks")
 }
 
+fn text_port(name: &str, direction: PortDirection) -> PortDescriptor {
+    PortDescriptor {
+        port_id: port_id(name),
+        value_kind: kind_id("value/text"),
+        direction,
+        temporal: PortTemporal::Value,
+        abnormal_kind: None,
+    }
+}
+
+fn standard_glyph_catalog() -> StartupCatalog {
+    let mut catalog = catalog();
+    for kind in [
+        "flow/merge",
+        "flow/zip",
+        "flow/race",
+        "state/combine-latest",
+        "current/sample",
+    ] {
+        catalog
+            .insert(KindSignature {
+                kind: kind.into(),
+                startup_parameters: vec![],
+            })
+            .unwrap();
+        catalog
+            .insert_fore(
+                kind,
+                CheckedFront::new(
+                    vec![],
+                    vec![
+                        text_port("left", PortDirection::Input),
+                        text_port("right", PortDirection::Input),
+                    ],
+                    vec![text_port("result", PortDirection::Output)],
+                    None,
+                ),
+            )
+            .unwrap();
+    }
+    catalog
+}
+
 #[test]
 fn completion_policy_is_exact_checked_meaning() {
     let live = check("form example {\n tick: time/every(1s)\n}\n");
@@ -79,6 +129,145 @@ fn authored_use_alias_resolves_to_canonical_kind_without_changing_checked_identi
         direct.forms[0].checked_form_id
     );
     assert_ne!(alias.source_document_id, direct.source_document_id);
+}
+
+#[test]
+fn explicit_glyph_alias_lowers_to_the_same_ordinary_inline_gear() {
+    let direct = check(
+        "form transform (\n input: Text >> output: Text\n) {\n input >> output\n}\nform example (\n input: Text >> output: Text\n) {\n input >> transform() >> output\n}\n",
+    );
+    let glyph = check(
+        "use transform as ^^\nform transform (\n input: Text >> output: Text\n) {\n input >> output\n}\nform example (\n input: Text >> output: Text\n) {\n input ^^ output\n}\n",
+    );
+    assert_eq!(glyph.forms[0].gears[0].kind, "transform");
+    assert_eq!(glyph.forms[0].cords, direct.forms[0].cords);
+    assert_eq!(
+        glyph.forms[0].checked_form_id,
+        direct.forms[0].checked_form_id
+    );
+    assert_ne!(glyph.source_document_id, direct.source_document_id);
+}
+
+#[test]
+fn installed_kind_glyph_requires_and_uses_its_exact_checked_fore() {
+    let source = "use text/upper as ^^\nform example (\n input: Text >> output: Text\n) {\n input ^^ output\n}\n";
+    let missing = check_syntax_document(&parse_syntax_document(source), &catalog())
+        .expect_err("a startup signature alone is not an exact runtime Fore");
+    assert!(missing.message.contains("exact checked Fore"));
+
+    let mut catalog = catalog();
+    let input = text_port("input", PortDirection::Input);
+    let output = text_port("output", PortDirection::Output);
+    catalog
+        .insert_fore(
+            "text/upper",
+            CheckedFront::new(
+                vec![],
+                vec![input.clone()],
+                vec![output.clone()],
+                Some((input.port_id, output.port_id)),
+            ),
+        )
+        .unwrap();
+    let checked = check_syntax_document(&parse_syntax_document(source), &catalog).unwrap();
+    assert_eq!(checked.forms[0].gears[0].kind, "text/upper");
+}
+
+#[test]
+fn configured_gear_occurrence_may_have_a_glyph_name() {
+    let checked = check(
+        "form transform (\n input: Text >> output: Text\n) {\n input >> output\n}\nform example (\n input: Text >> output: Text\n) {\n ^^: transform\n input ^^ output\n}\n",
+    );
+    assert_eq!(checked.forms[0].gears[0].name.as_deref(), Some("^^"));
+    assert!(matches!(
+        &checked.forms[0].cords[0].stages[1],
+        crate::CheckedCordStage::Reference(name) if name == "^^"
+    ));
+}
+
+#[test]
+fn fixed_arity_relational_glyph_binds_operands_in_checked_fore_order() {
+    let checked = check(
+        "without glyphs\nuse pair as &>\nform pair (\n >> left: Text\n >> right: Text\n result: Text >>\n) {\n}\nform example (\n >> a: Text\n >> b: Text\n paired: Text >>\n) {\n a &> b >> paired\n}\n",
+    );
+    let crate::CheckedCordStage::RelationalGear {
+        operands,
+        gear,
+        input_ports,
+        output_port,
+    } = &checked.forms[0].cords[0].stages[0]
+    else {
+        panic!("expected exact relational Gear")
+    };
+    assert_eq!(operands, &["a", "b"]);
+    assert_eq!(gear.kind, "pair");
+    assert_eq!(input_ports, &["left", "right"]);
+    assert_eq!(output_port, "result");
+}
+
+#[test]
+fn standard_glyph_prelude_resolves_every_reviewed_binding_lazily() {
+    let catalog = standard_glyph_catalog();
+    for (glyph, kind) in [
+        ("><", "flow/merge"),
+        ("&>", "flow/zip"),
+        ("?>", "flow/race"),
+        ("<>", "state/combine-latest"),
+        ("@", "current/sample"),
+    ] {
+        let source = format!(
+            "form example (\n >> a: Text\n >> b: Text\n result: Text >>\n) {{\n a {glyph} b >> result\n}}\n"
+        );
+        let checked = check_syntax_document(&parse_syntax_document(&source), &catalog).unwrap();
+        assert_eq!(checked.forms[0].gears[0].kind, kind);
+    }
+
+    check_syntax_document(
+        &parse_syntax_document("form unrelated {\n}\n"),
+        &StartupCatalog::new(),
+    )
+    .expect("unused prelude bindings do not require installed Kinds");
+}
+
+#[test]
+fn without_glyphs_removes_only_the_standard_prelude() {
+    let catalog = standard_glyph_catalog();
+    let body =
+        "form example (\n >> a: Text\n >> b: Text\n result: Text >>\n) {\n a &> b >> result\n}\n";
+    let missing = check_syntax_document(
+        &parse_syntax_document(&format!("without glyphs\n{body}")),
+        &catalog,
+    )
+    .expect_err("opt-out removes the standard binding");
+    assert!(missing.message.contains("did not resolve in lexical scope"));
+
+    let explicit = check_syntax_document(
+        &parse_syntax_document(&format!("without glyphs\nuse flow/zip as &>\n{body}")),
+        &catalog,
+    )
+    .expect("an explicit glyph import remains legal after opt-out");
+    assert_eq!(explicit.forms[0].gears[0].kind, "flow/zip");
+
+    let occupied = check_syntax_document(
+        &parse_syntax_document(&format!("use flow/zip as &>\n{body}")),
+        &catalog,
+    )
+    .expect_err("a standard glyph must be opted out before rebinding");
+    assert!(occupied.message.contains("use 'without glyphs'"));
+}
+
+#[test]
+fn relational_glyph_refuses_wrong_arity_and_mixed_adjacent_meanings() {
+    let wrong_arity = "without glyphs\nuse pair as &>\nform pair (\n >> left: Text\n >> right: Text\n result: Text >>\n) {\n}\nform example (\n >> a: Text\n paired: Text >>\n) {\n a &> a &> a >> paired\n}\n";
+    let error = check_syntax_document(&parse_syntax_document(wrong_arity), &catalog())
+        .expect_err("fixed arity comes from the exact checked Fore");
+    assert!(error.message.contains("supplies 3 operands"));
+
+    let mixed = "without glyphs\nuse pair as &>\nuse time/default as ?>\nform pair (\n >> left: Text\n >> right: Text\n result: Text >>\n) {\n}\nform example (\n >> a: Text\n >> b: Text\n >> c: Text\n paired: Text >>\n) {\n a &> b ?> c >> paired\n}\n";
+    let parsed = parse_syntax_document(mixed);
+    assert!(parsed.diagnostics[0]
+        .message
+        .contains("mixed adjacent glyphs require explicit grouping"));
 }
 
 #[test]

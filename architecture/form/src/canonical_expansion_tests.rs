@@ -82,6 +82,42 @@ fn profile_startup_catalog_preserves_quantity_dimensions() {
         startup.signature("test/range").unwrap().startup_parameters[0].value_type,
         conduit_core::DISTANCE_INFO_ID
     );
+    assert_eq!(
+        startup.fore("test/range").unwrap().startup_parameters()[0]
+            .value_type
+            .as_str(),
+        conduit_core::DISTANCE_INFO_ID
+    );
+}
+
+#[test]
+fn canonical_kind_fore_owns_callable_default_truth() {
+    let projection = KindProjection {
+        kind_id: kind_id("test/required-prefix"),
+        kind_contract_revision: KindIdentity::from("test/required-prefix@1"),
+        inputs: vec![],
+        outputs: vec![],
+        configuration: vec![KindConfigurationField {
+            key: "prefix".into(),
+            default_value: ConfigurationValue::Text("provider-default".into()),
+            rule: KindConfigurationRule::TextBytes { maximum: 64 },
+        }],
+    };
+    let mut kind = canonical_kind(projection);
+    kind.startup_parameters[0].has_default = false;
+    let mut profile = ProfileCatalog::new();
+    profile.insert_kind(kind).unwrap();
+
+    let startup = profile.startup_catalog().unwrap();
+    let signature = startup.signature("test/required-prefix").unwrap();
+    assert_eq!(signature.startup_parameters[0].default, None);
+    assert!(
+        !startup
+            .fore("test/required-prefix")
+            .unwrap()
+            .startup_parameters()[0]
+            .has_default
+    );
 }
 
 fn port(name: &str, direction: PortDirection) -> PortDescriptor {
@@ -92,6 +128,36 @@ fn port(name: &str, direction: PortDirection) -> PortDescriptor {
         temporal: conduit_core::PortTemporal::Value,
         abnormal_kind: None,
     }
+}
+
+#[test]
+fn fixed_arity_relational_glyph_expands_to_one_ordinary_gear() {
+    let mut profile = ProfileCatalog::new();
+    profile
+        .insert_kind(canonical_kind(KindProjection {
+            kind_id: kind_id("test/zip"),
+            kind_contract_revision: KindIdentity::from("test/zip@1"),
+            inputs: vec![
+                port("left", PortDirection::Input),
+                port("right", PortDirection::Input),
+            ],
+            outputs: vec![port("paired", PortDirection::Output)],
+            configuration: vec![],
+        }))
+        .unwrap();
+    let startup = profile.startup_catalog().unwrap();
+    let checked = check_syntax_document(
+        &parse_syntax_document(
+            "without glyphs\nuse test/zip as &>\nform main (\n >> a: test/value\n >> b: test/value\n paired: test/value >>\n) {\n a &> b >> paired\n}\n",
+        ),
+        &startup,
+    )
+    .unwrap();
+    let authoring = expand_canonical_form_for_authoring(&checked, "main", &profile).unwrap();
+    assert_eq!(authoring.expanded.gears.len(), 1);
+    assert_eq!(authoring.expanded.gears[0].kind_id.as_str(), "test/zip");
+    assert_eq!(authoring.input_bindings.len(), 2);
+    assert_eq!(authoring.output_bindings.len(), 1);
 }
 
 #[test]

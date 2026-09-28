@@ -219,7 +219,9 @@ impl<'a> Parser<'a> {
             .map_or((import, None), |(path, alias)| {
                 (path.trim(), Some(alias.trim()))
             });
-        if !is_operation(path) || alias.is_some_and(|alias| !is_name(alias)) {
+        if !is_operation(path)
+            || alias.is_some_and(|alias| !crate::surface_lex::is_gear_name(alias))
+        {
             return Err(self.invalid_statement(line, start));
         }
         let alias = alias.unwrap_or_else(|| path.rsplit('/').next().unwrap_or(path));
@@ -505,6 +507,9 @@ impl<'a> Parser<'a> {
         if let Some(declaration) = text.strip_prefix("pool ") {
             return parse_pool_declaration(self, declaration, text, start).map(BackStatement::Pool);
         }
+        if let Some(cord) = self.parse_unary_glyph_cord(text, start) {
+            return cord.map(BackStatement::Cord);
+        }
         if has_top_level_cord(text) {
             return self.parse_cord(text, start).map(BackStatement::Cord);
         }
@@ -529,7 +534,7 @@ impl<'a> Parser<'a> {
         if let Some(colon) = top_level_positions(text, ':').first().copied() {
             let name = text[..colon].trim();
             let invoked = text[colon + 1..].trim();
-            if name.is_empty() || invoked.is_empty() {
+            if !crate::surface_lex::is_gear_name(name) || invoked.is_empty() {
                 return Err((
                     FormError::InvalidSyntax("missing Gear Kind after ':'".into()),
                     self.span(start, start + text.len()),
@@ -559,6 +564,38 @@ impl<'a> Parser<'a> {
             }));
         }
         Err(self.invalid_statement(text, start))
+    }
+
+    /// The fixed unary glyph grammar is `source glyph target`. It is exactly
+    /// sugar for `source >> glyph >> target`; the glyph contributes no
+    /// precedence, fixity, hidden operand, or alternate parsing production.
+    fn parse_unary_glyph_cord(
+        &self,
+        text: &str,
+        start: usize,
+    ) -> Option<Result<Cord, (FormError, Span)>> {
+        let parts = text.split_whitespace().collect::<Vec<_>>();
+        if parts.len() != 3 || !crate::surface_lex::is_glyph(parts[1]) {
+            return None;
+        }
+        if !is_reference(parts[0]) || !is_reference(parts[2]) {
+            return Some(Err(self.invalid_statement(text, start)));
+        }
+        let source_offset = text.find(parts[0]).unwrap_or(0);
+        let glyph_offset = text[source_offset + parts[0].len()..]
+            .find(parts[1])
+            .map_or(0, |offset| source_offset + parts[0].len() + offset);
+        let target_offset = text[glyph_offset + parts[1].len()..]
+            .find(parts[2])
+            .map_or(0, |offset| glyph_offset + parts[1].len() + offset);
+        Some(Ok(Cord {
+            stages: vec![
+                CordStage::Reference(self.spanned(parts[0], start + source_offset)),
+                CordStage::Glyph(self.spanned(parts[1], start + glyph_offset)),
+                CordStage::Reference(self.spanned(parts[2], start + target_offset)),
+            ],
+            span: self.span(start, start + text.len()),
+        }))
     }
 
     fn parse_retained_value(
@@ -684,6 +721,10 @@ impl<'a> Parser<'a> {
                 stages.push(CordStage::PureExpression(
                     self.expression_at(part, part, part_start)?,
                 ));
+            } else if let Some(relational) = self.parse_relational_glyph(part, part_start)? {
+                stages.push(relational);
+            } else if crate::surface_lex::is_glyph(part) {
+                stages.push(CordStage::Glyph(self.spanned(part, part_start)));
             } else if part.contains('/') || part.contains('(') {
                 stages.push(CordStage::InlineGear(
                     self.parse_invocation(part, part_start)?,
@@ -704,6 +745,52 @@ impl<'a> Parser<'a> {
         Ok(stages)
     }
 
+    fn parse_relational_glyph(
+        &self,
+        text: &str,
+        start: usize,
+    ) -> Result<Option<CordStage>, (FormError, Span)> {
+        let parts = text.split_whitespace().collect::<Vec<_>>();
+        if parts.len() < 3 || parts.len() % 2 == 0 {
+            return Ok(None);
+        }
+        let glyph = parts[1];
+        if !crate::surface_lex::is_glyph(glyph) {
+            return Ok(None);
+        }
+        if parts
+            .iter()
+            .skip(1)
+            .step_by(2)
+            .any(|candidate| *candidate != glyph)
+        {
+            return Err((
+                FormError::InvalidSyntax("mixed adjacent glyphs require explicit grouping".into()),
+                self.span(start, start + text.len()),
+            ));
+        }
+        if parts
+            .iter()
+            .step_by(2)
+            .any(|operand| !is_reference(operand))
+        {
+            return Err(self.invalid_statement(text, start));
+        }
+        let mut search = 0;
+        let mut operands = Vec::new();
+        for operand in parts.iter().step_by(2) {
+            let offset = text[search..].find(operand).unwrap_or(0) + search;
+            operands.push(self.spanned(operand, start + offset));
+            search = offset + operand.len();
+        }
+        let glyph_offset = text.find(glyph).unwrap_or(0);
+        Ok(Some(CordStage::RelationalGlyph {
+            operands,
+            glyph: self.spanned(glyph, start + glyph_offset),
+            span: self.span(start, start + text.len()),
+        }))
+    }
+
     fn parse_invocation(&self, text: &str, start: usize) -> Result<Invocation, (FormError, Span)> {
         if !top_level_positions(text, '{').is_empty() {
             return Err((
@@ -720,7 +807,7 @@ impl<'a> Parser<'a> {
             (text, "", text.len())
         };
         let gear = gear.trim();
-        if gear.is_empty() || !is_operation(gear) {
+        if gear.is_empty() || !crate::surface_lex::is_gear_name(gear) {
             return Err((
                 FormError::InvalidSyntax("invalid gear reference".into()),
                 self.span(start, start + text.len()),
