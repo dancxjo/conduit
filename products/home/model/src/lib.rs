@@ -8,9 +8,6 @@ use conduit_presentation::{
     SemanticApplicationView, SemanticPresentationNode, StatusKind,
 };
 
-mod journey;
-pub use journey::*;
-
 pub const MAX_COMMAND_BYTES: usize = 96;
 pub const HOME_ITEM_COUNT: usize = 6;
 
