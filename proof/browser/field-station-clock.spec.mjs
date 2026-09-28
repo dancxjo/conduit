@@ -6,17 +6,39 @@ test.beforeAll(async ({}, testInfo) => {
   await prepareFieldStationPackage();
 });
 
-test("an external page births, wakes, inspects, and lulls the canonical Clock through the public SDK", async ({ page }) => {
+test("an external page recovers one Clock Body across a fresh Boot without resurrecting its Play", async ({ page }) => {
   const pageErrors = [];
   page.on("pageerror", (error) => pageErrors.push(error.message));
   await page.goto("/proof/browser/field-station/");
   await expect(page.locator("#status")).toHaveText("Clock Body awake", { timeout: 15_000 });
 
+  const first = await page.evaluate(() => ({
+    identities: __conduitFieldStation.identities,
+    playState: __conduitFieldStation.play.state,
+    recovered: __conduitFieldStation.recovered,
+  }));
+  expect(first.recovered).toBe(false);
+  expect(first.playState).toBe("playing");
+  await expect(page.locator('[data-presentation-kind="presentation/tick"]')).toHaveText("0", { timeout: 15_000 });
+
+  await page.reload();
+  await expect(page.locator("#status")).toHaveText("Clock Body awake", { timeout: 15_000 });
   const running = await page.evaluate(() => ({
     identities: __conduitFieldStation.identities,
     playState: __conduitFieldStation.play.state,
+    recovered: __conduitFieldStation.recovered,
+    recoverySnapshot: __conduitFieldStation.recoverySnapshot,
   }));
+  expect(running.recovered).toBe(true);
   expect(running.playState).toBe("playing");
+  expect(running.identities.hostId).toBe(first.identities.hostId);
+  expect(running.identities.bodyId).toBe(first.identities.bodyId);
+  expect(running.identities.bootId).not.toBe(first.identities.bootId);
+  expect(running.identities.wakeId).not.toBe(first.identities.wakeId);
+  expect(running.identities.planId).not.toBe(first.identities.planId);
+  expect(running.identities.playId).not.toBe(first.identities.playId);
+  expect(running.recoverySnapshot.evidence.body_id).toBe(first.identities.bodyId);
+  expect(running.recoverySnapshot.realization).toBeNull();
   expect(Object.values(running.identities).every((identity) => typeof identity === "string" && identity.length > 0)).toBe(true);
   expect(new Set(Object.values(running.identities)).size).toBe(6);
   for (const [name, identity] of Object.entries(running.identities)) {

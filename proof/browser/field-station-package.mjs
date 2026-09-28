@@ -30,7 +30,7 @@ export async function prepareFieldStationPackage() {
       target_id: "browser/wasm32/page",
       configuration_id: identity,
       profile_id: identity,
-      selected_implementations: ["browser/dom@1", "browser/dom-presentation@1"],
+      selected_implementations: ["browser/dom@1", "browser/dom-presentation@1", "browser/indexeddb@1"],
     },
     distribution,
   });

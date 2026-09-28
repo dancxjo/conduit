@@ -4,6 +4,8 @@ const SOURCE_SCHEMA = "conduit.browser/form-source@1";
 const CHECK_SCHEMA = "conduit.browser/checked-source@1";
 const FORM_SCHEMA = "conduit.browser/checked-form@1";
 const BODY_SCHEMA = "conduit.browser/body@1";
+const CONTINUITY_SCHEMA = "conduit.browser/body-continuity@1";
+const CONTINUITY_KEY = "body-continuity";
 const BODY_KEY = Symbol("Conduit BrowserBody");
 let sdkErrors;
 
@@ -72,21 +74,26 @@ export class BrowserBody {
   #play = null;
   #opened = false;
   #eventSubscriptions = 0;
-  constructor(key, { bridge, host, boot, api, root, createPlay, acquireBodyHost, advertisement, source, receipt, sequence }) {
-    if (key !== BODY_KEY) throw new TypeError("BrowserBody values come from an admitted Host BIRTH");
+  #storage;
+  #persistence = Promise.resolve();
+  #persistenceFailure = null;
+  constructor(key, { bridge, host, boot, api, root, createPlay, acquireBodyHost, advertisement, source, receipt, sequence, storage, opened = false }) {
+    if (key !== BODY_KEY) throw new TypeError("BrowserBody values come from admitted Host birth or recovery");
     this.#bridge = bridge; this.#host = host; this.#boot = boot;
     this.#api = api; this.#root = root;
     this.#createPlay = createPlay;
     this.#acquireBodyHost = acquireBodyHost;
     this.#advertisement = advertisement; this.#source = source;
     this.#receipt = receipt; this.#sequence = sequence;
+    this.#storage = storage;
+    this.#opened = opened;
   }
   get schema() { return BODY_SCHEMA; }
   get id() { return this.#receipt.body_id; }
   get receipt() { return this.#receipt; }
 
   async current() {
-    this.#openWorkspace();
+    await this.#openWorkspace();
     const { status, outputJson } = this.#bridge.workspaceRequest({ action: "Current" });
     if (status < 0) throw sdkRefusal("Body.current", outputJson, this.#identities());
     return projectBodySnapshot(outputJson);
@@ -110,7 +117,7 @@ export class BrowserBody {
   /** Admit one exact Plan and return the Play receipt emitted by the Rust runtime. */
   async wake() {
     if (this.#play) throw sdkRefusal("Body.wake", { code: "PlayAlreadyActive", message: "Body already has an active Play" }, this.#identities());
-    this.#openWorkspace();
+    await this.#openWorkspace();
     const proposalResult = this.#bridge.workspaceRequest({
       action: "Propose", host_id: this.#host, boot_id: this.#boot,
       source: this.#source, joined_lines: [], browser_audio_authority: false,
@@ -129,6 +136,7 @@ export class BrowserBody {
       playStarted = true;
       const accepted = this.#bridge.workspaceRequest({ action: "Started", host_id: this.#host, boot_id: this.#boot, play: started.play, wake_at_start: started.wake_at_start });
       if (accepted.status < 0) throw sdkRefusal("Body.wake.started", accepted.outputJson, this.#identities());
+      await this.#retain();
       const play = this.#createPlay({ started, adapter });
       this.#play = play;
       play.dispatch().catch(() => {});
@@ -140,6 +148,7 @@ export class BrowserBody {
         action: "Failed", host_id: this.#host, boot_id: this.#boot,
         rejections: Array.isArray(refusal.rejections) ? refusal.rejections : [],
       });
+      await this.#retain();
       if (playStarted && closed?.receipt) this.#play = null;
       if (error?.category) throw error;
       throw sdkRefusal("Body.wake", { code: error?.refusal?.code ?? error?.code ?? "HostRefusal", message: error?.message ?? "Browser Host refused Play admission", ...(error?.refusal ?? {}) }, this.#identities());
@@ -156,6 +165,7 @@ export class BrowserBody {
     });
     if (response.status < 0) throw sdkRefusal("Body.lull", response.outputJson, this.#identities());
     this.#play = null;
+    await this.#retain();
     return this.current();
   }
 
@@ -164,11 +174,29 @@ export class BrowserBody {
 
   #identities() { return { bodyId: this.id, hostId: this.#host, bootId: this.#boot }; }
 
-  #openWorkspace() {
+  async #openWorkspace() {
     if (this.#opened) return;
     const { status, outputJson } = this.#bridge.workspaceRequest({ action: "Arrive", advertisement: this.#advertisement });
     if (status < 0) throw sdkRefusal("Body.open", outputJson, this.#identities());
     this.#opened = true;
+    await this.#retain();
+  }
+
+  async #retain() {
+    if (!this.#storage) return;
+    if (this.#persistenceFailure) throw this.#persistenceFailure;
+    const { status, outputJson } = this.#bridge.workspaceRequest({ action: "Durable" });
+    if (status < 0) throw sdkRefusal("Body.retain", outputJson, this.#identities());
+    const record = Object.freeze({ schema: CONTINUITY_SCHEMA, source: this.#source, durable: outputJson });
+    this.#persistence = this.#persistence.then(() => this.#storage.writeJson(CONTINUITY_KEY, record));
+    try { await this.#persistence; }
+    catch (error) {
+      this.#persistenceFailure = sdkRefusal("Body.retain", {
+        code: error?.code ?? "StorageUnavailable",
+        message: error?.message ?? "durable Body continuity could not be retained",
+      }, this.#identities());
+      throw this.#persistenceFailure;
+    }
   }
 
   async #changeWorkset(edit, form) {
@@ -183,12 +211,17 @@ export class BrowserBody {
       source: this.#source, edit,
     });
     if (status < 0) throw sdkRefusal(`Body.${edit.toLowerCase()}`, outputJson, this.#identities(), expectedRevision);
+    await this.#retain();
     return this.current();
   }
 }
 
-export async function birthBrowserBody({ bridge, host, boot, api, root, createPlay, acquireBodyHost, membership, name, forms, sequence }) {
+export async function birthBrowserBody({ bridge, host, boot, api, root, createPlay, acquireBodyHost, membership, storage, name, forms, sequence }) {
   if (!Array.isArray(forms) || forms.length === 0) throw new TypeError("BIRTH requires at least one checked Form");
+  if (storage && await readContinuity(storage, host, boot) !== null) throw sdkRefusal("Body.birth", {
+    code: "RetainedBodyRequiresRecovery",
+    message: "this Host retains a Body; recover it before attempting another birth",
+  }, { hostId: host, bootId: boot });
   const checked = await Promise.all(forms.map((form) => checkedFormValue(form, bridge)));
   const source = checked[0].documentSource;
   if (checked.some((form) => form.documentSource !== source)) throw new TypeError("initial Forms must come from one exact source document");
@@ -204,7 +237,81 @@ export async function birthBrowserBody({ bridge, host, boot, api, root, createPl
   if (receipt.status < 0) throw sdkRefusal("Body.birth", receipt.outputJson, host);
   const attached = bridge.crecheAttachHere(new TextEncoder().encode(host), new TextEncoder().encode(boot), BigInt(sequence()));
   if (attached.status < 0) throw sdkRefusal("Body.attach", attached.outputJson, receipt.outputJson.body_id);
-  return new BrowserBody(BODY_KEY, { bridge, host, boot, api, root, createPlay, acquireBodyHost, advertisement: membership.advertisement(), source, receipt: attached.outputJson, sequence });
+  const body = new BrowserBody(BODY_KEY, { bridge, host, boot, api, root, createPlay, acquireBodyHost, advertisement: membership.advertisement(), source, receipt: attached.outputJson, sequence, storage });
+  await body.current();
+  return body;
+}
+
+export async function recoverBrowserBody({ bridge, host, boot, api, root, createPlay, acquireBodyHost, membership, storage }) {
+  if (!storage) throw sdkRefusal("Host.recover", {
+    code: "DurabilityDisabled",
+    message: "this BrowserHost was admitted without durable continuity",
+  }, { hostId: host, bootId: boot });
+  const retained = await readContinuity(storage, host, boot);
+  if (retained === null) return null;
+  if (retained?.schema !== CONTINUITY_SCHEMA || typeof retained.source !== "string"
+    || retained.source.length < 1 || retained.durable?.schema !== "conduit.workspace/body@1") {
+    throw sdkRefusal("Host.recover", {
+      code: "CorruptDurableBody",
+      message: "retained Body continuity is malformed or incompatible",
+    }, { hostId: host, bootId: boot });
+  }
+  const checked = await new BrowserForm(retained.source, bridge).check();
+  if (!checked.ok) throw sdkRefusal("Host.recover.check", checked.refusal, { hostId: host, bootId: boot });
+  const resident = retained.durable.evidence?.body?.workset?.forms;
+  if (!Array.isArray(resident) || resident.length < 1 || resident.some(({ source_document_id, checked_form_id }) =>
+    !checked.forms.some((form) => form.sourceDocumentId === source_document_id && form.checkedFormId === checked_form_id))) {
+    throw sdkRefusal("Host.recover", {
+      code: "DurableFormIdentityMismatch",
+      message: "retained Body Forms do not match the freshly checked source",
+    }, { hostId: host, bootId: boot });
+  }
+  const restored = bridge.workspaceRequest({
+    action: "Restore",
+    evidence: retained.durable.evidence,
+    admission: retained.durable.admission ?? null,
+    host_id: host,
+    boot_id: boot,
+    advertisement: membership.advertisement(),
+  });
+  if (restored.status < 0) throw sdkRefusal("Host.recover", restored.outputJson, { hostId: host, bootId: boot });
+  const evidence = restored.outputJson?.evidence;
+  if (!evidence?.body_id) throw sdkRefusal("Host.recover", {
+    code: "RecoveryEvidenceMissing",
+    message: "runtime recovery omitted the retained Body identity",
+  }, { hostId: host, bootId: boot });
+  const currentDurable = bridge.workspaceRequest({ action: "Durable" });
+  if (currentDurable.status < 0) throw sdkRefusal("Host.recover.retain", currentDurable.outputJson, { bodyId: evidence.body_id, hostId: host, bootId: boot });
+  try {
+    await storage.writeJson(CONTINUITY_KEY, { schema: CONTINUITY_SCHEMA, source: retained.source, durable: currentDurable.outputJson });
+  } catch (error) {
+    throw sdkRefusal("Host.recover.retain", {
+      code: error?.code ?? "StorageUnavailable",
+      message: error?.message ?? "recovered Body continuity could not be retained",
+    }, { bodyId: evidence.body_id, hostId: host, bootId: boot });
+  }
+  const receipt = Object.freeze({
+    schema: "conduit.browser/body-recovery@1",
+    body_id: evidence.body_id,
+    host_id: host,
+    boot_id: boot,
+    evidence,
+  });
+  return new BrowserBody(BODY_KEY, {
+    bridge, host, boot, api, root, createPlay, acquireBodyHost,
+    advertisement: membership.advertisement(), source: retained.source,
+    receipt, sequence: () => 0, storage, opened: true,
+  });
+}
+
+async function readContinuity(storage, host, boot) {
+  try { return await storage.readJson(CONTINUITY_KEY); }
+  catch (error) {
+    throw sdkRefusal("Host.recover.read", {
+      code: error?.code ?? "StorageUnavailable",
+      message: error?.message ?? "durable Body continuity could not be read",
+    }, { hostId: host, bootId: boot });
+  }
 }
 
 export async function reviewBrowserForms({ bridge, host, boot, forms }) {
