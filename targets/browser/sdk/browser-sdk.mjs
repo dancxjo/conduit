@@ -10,8 +10,9 @@ const encoder = new TextEncoder();
 const decoder = new TextDecoder("utf-8", { fatal: true });
 const mounted = new WeakMap();
 const BROWSER_HOST_KEY = Symbol("Conduit BrowserHost");
-import { BrowserForm, birthBrowserBody, reviewBrowserForms, sdkRefusal, setBrowserSdkErrors } from "./browser-sdk-forms.mjs";
+import { BrowserForm, birthBrowserBody, recoverBrowserBody, reviewBrowserForms, sdkRefusal, setBrowserSdkErrors } from "./browser-sdk-forms.mjs";
 import { acquireBrowserBodyHost } from "../host/assets/browser-body-host.mjs";
+import { openBrowserApplicationStorage } from "../host/assets/browser-application-storage.mjs";
 export { BrowserForm, BrowserBody } from "./browser-sdk-forms.mjs";
 
 export class ConduitSdkError extends Error {
@@ -98,12 +99,28 @@ export class BrowserHost {
       membership: this.#state.membership,
       createPlay: (options) => new BrowserPlay(BROWSER_HOST_KEY, options),
       acquireBodyHost: acquireBrowserBodyHost,
+      storage: this.#state.storage,
       name,
       forms,
       sequence: () => {
         if (this.#state.sequence >= Number.MAX_SAFE_INTEGER - 1) throw new RangeError("Body event sequence exhausted");
         return ++this.#state.sequence;
       },
+    });
+  }
+
+  /** Recover the exact retained Body into this fresh Boot without resurrecting an old Play. */
+  async recover() {
+    return recoverBrowserBody({
+      bridge: this.#state.bridge,
+      host: this.id,
+      boot: this.bootId,
+      api: this.#state.api,
+      root: this.#state.root,
+      membership: this.#state.membership,
+      createPlay: (options) => new BrowserPlay(BROWSER_HOST_KEY, options),
+      acquireBodyHost: acquireBrowserBodyHost,
+      storage: this.#state.storage,
     });
   }
 }
@@ -210,6 +227,13 @@ export const Conduit = Object.freeze({
         || initialized.hostId !== initialized.membership.hostId) {
         refuse("HostIncarnationMismatch", "initialized membership does not match the admitted Host and Boot identity");
       }
+      const implementationRegistry = boot.offers.map(({ implementation_id }) => implementation_id);
+      const storage = durable && implementationRegistry.includes("browser/indexeddb@1") ? await openBrowserApplicationStorage(
+        "conduit.browser/sdk-body-continuity@1",
+        1,
+        pkg.bundle_sha256,
+        { implementationRegistry },
+      ) : null;
       const state = {
         packageVersion: pkg.package_version,
         runtimeAbi: pkg.runtime_abi,
@@ -218,6 +242,7 @@ export const Conduit = Object.freeze({
         root,
         bridge,
         membership: initialized.membership,
+        storage,
         sequence: 0,
         boot,
         offers: Object.freeze(boot.offers.map((offer) => Object.freeze({ ...offer }))),

@@ -10,13 +10,14 @@ try {
   if (!sourceResponse.ok) throw new Error("canonical Clock Form is unavailable");
   const host = await Conduit.browser({
     root,
-    durable: false,
   });
   const checked = await host.form(await sourceResponse.text()).check();
   if (!checked.ok || checked.forms.length !== 1) {
     throw new Error(checked.refusal?.message ?? "canonical Clock Form was refused");
   }
-  const body = await host.birth({ name: "Field Station Clock", forms: checked.forms });
+  const recoveredBody = await host.recover();
+  const recoverySnapshot = recoveredBody ? await recoveredBody.current() : null;
+  const body = recoveredBody ?? await host.birth({ name: "Field Station Clock", forms: checked.forms });
   const play = await body.wake();
   const exact = Object.freeze({
     hostId: host.id,
@@ -38,6 +39,8 @@ try {
     host,
     body,
     play,
+    recovered: recoveredBody !== null,
+    recoverySnapshot,
     identities: exact,
     lullSnapshot: null,
     async lull() {

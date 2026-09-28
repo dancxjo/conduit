@@ -52,6 +52,8 @@ export class BrowserHost {
   review(forms: readonly (BrowserForm | CheckedForm | CheckedSource)[]): Promise<FormWorkloadReview>;
   /** Birth a Body only from Forms checked by this Host's exact Browser runtime. */
   birth(options: { name: string; forms: readonly (BrowserForm | CheckedForm | CheckedSource)[] }): Promise<BrowserBody>;
+  /** Recover the retained Body under this fresh Boot. Returns null when no Body is retained. */
+  recover(): Promise<BrowserBody | null>;
 }
 
 export interface FormDiagnostic {

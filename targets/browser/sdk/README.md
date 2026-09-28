@@ -122,6 +122,33 @@ permission decision, or resource handle. Those belong to later Host and Plan
 decisions. This is what lets one checked meaning remain portable without
 pretending each Host can realize it.
 
+## Durable Body continuity
+
+The default BrowserHost is durable when its checked IMAGE selects the bounded
+`browser/indexeddb@1` implementation. The SDK retains the Rust Workspace's own
+durable Body evidence together with the exact Conduitese source needed to check
+that workset again. It does not serialize a JavaScript Body or an in-memory
+Play.
+
+On a later page load, `recover()` rechecks the source, refuses any retained
+Form identity that no longer matches canonical checking, and asks the Rust
+Workspace runtime to restore the same Body under the current Boot:
+
+```js
+const host = await Conduit.browser({ root });
+const checked = await host.form(source).check();
+const body = await host.recover()
+  ?? await host.birth({ name: "Clock", forms: checked.forms });
+const play = await body.wake();
+```
+
+Host and Body continuity do not imply Boot, Plan, Wake, or Play continuity. A
+reload admits a fresh Boot; recovery exposes no live realization and never
+resurrects an in-memory Play. A subsequent `wake()` must produce newly admitted
+Wake, Plan, and Play identities. `recover()` returns `null` when nothing has
+been retained and refuses when durability was disabled or the checked Profile
+did not select durable storage.
+
 ## Snapshots and evidence events
 
 `body.snapshot()` independently refreshes the exact Workspace snapshot. Its
@@ -175,8 +202,8 @@ then initializes one real Host/Boot. It refuses cross-origin bundle roots,
 redirects, unlisted assets, stale digests, ABI mismatch, and a requested Profile
 that differs from the package's image. Module code is imported only from bytes
 whose identities were admitted by those manifests. The application's root is
-used as a presentation surface; it contributes no Host, Profile, or authority
-fact.
+used as a Mask realization surface for the body's Face; it contributes no Host,
+Profile, or authority fact.
 
 An application bundler needs no Conduit compiler. If it does not preserve the
 package's adjacent `bundle/` directory, publish that directory as static assets
