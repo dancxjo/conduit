@@ -5,7 +5,7 @@ import { join } from "node:path";
 const STEPS = [
   ["body.absent", "body-absent", "runtime-receipt"], ["bootstrap.started", "bootstrap-started", "runtime-receipt"],
   ["body.born", "body-born", "body-biography"], ["body.awake", "body-awake", "body-biography"],
-  ["form.used", "standing-form-used", "runtime-receipt"], ["body.inspected", "body-inspected", "semantic-presentation"],
+  ["form.used", "standing-form-used", "runtime-receipt"], ["body.inspected", "body-inspected", "semantic-face"],
   ["workload.revised", "workload-revised", "body-biography"], ["host.added", "host-added", "runtime-receipt"],
   ["fault.observed", "fault-observed", "stream-disposition"], ["body.repaired", "body-repaired", "runtime-receipt"],
   ["body.long-running", "body-long-running", "runtime-receipt"], ["body.lulled", "body-lulled", "lifecycle-action"],
@@ -57,7 +57,7 @@ export async function writeBrowserBodyJourneyTrack(source, screenshotPath, outpu
       || interaction.correlation?.interaction?.presentation_id !== inspectedMask.presentation?.identity
       || interaction.correlation?.interaction?.presentation_revision !== inspectedMask.presentation?.revision
       || interaction.correlation?.interaction?.manifestation_id !== inspectedMask.mask_show?.show?.manifestation_id) {
-    throw new Error("browser track lacks exact Presentation/Show-correlated Mask interaction");
+    throw new Error("browser track lacks exact Face/Show-correlated Mask interaction");
   }
   const kernelSigns = new Set(inspectedMask.execution.remote_signs?.map(sign => sign.kind));
   for (const requiredSign of ["RemoteInputAdmitted", "RemoteInputClosed", "RemoteValueOffered",
@@ -68,15 +68,15 @@ export async function writeBrowserBodyJourneyTrack(source, screenshotPath, outpu
     boot: required(current.boot_id, "Boot identity"), peerHost: required(peer?.host_id, "peer Host identity"),
     peerBoot: required(peer?.boot_id, "peer Boot identity"), plan: required(plan.plan_id, "Plan identity"),
     play: required(plan.active_play_id, "Play identity"),
-    presentation: required(inspectedMask.presentation?.identity, "Presentation identity"),
-    manifestation: required(inspectedMask.mask_show?.show?.manifestation_id, "Mask Show manifestation identity"),
+    face: required(inspectedMask.presentation?.identity, "Face identity"),
+    show: required(inspectedMask.mask_show?.show?.manifestation_id, "Show identity"),
     maskForm: required(inspectedMask.planned_mask?.mask?.form_identity?.checked_form_id, "Mask Form identity"),
     maskPlan: required(inspectedMask.planned_mask?.plan?.plan_id, "Mask Plan identity"),
     maskPlay: required(inspectedMask.mask_play?.active_play_id, "Mask Play identity") };
   const facts = [
     { initial_body: null, host_id: ids.host, boot_id: ids.boot }, { host_id: ids.host, boot_id: ids.boot },
     { event: events[0] }, { wake: evidence.wakes[0] }, { plan_id: ids.plan, active_play_id: ids.play },
-    { presentation_id: ids.presentation, manifestation_id: ids.manifestation },
+    { face_id: ids.face, show_id: ids.show },
     { workload_revision: current.workload_revision, forms: evidence.body.workset.forms },
     { peer, membership_revision: source.checkpoints.joined.evidence.membership.revision },
     { refusal: source.checkpoints.refused.playback.refusal, wake: refusedWake }, { wake: repairedWake },
@@ -100,8 +100,8 @@ export async function writeBrowserBodyJourneyTrack(source, screenshotPath, outpu
       boot_id: index < 3 ? ids.boot : hostAdded ? ids.peerBoot : null,
       plan_id: ["form.used", "workload.revised", "host.added", "body.repaired"].includes(stepId) ? ids.plan : null,
       play_id: ["form.used", "body.repaired", "body.long-running"].includes(stepId) ? ids.play : null,
-      presentation_id: stepId === "body.inspected" ? ids.presentation : null,
-      manifestation_id: stepId === "body.inspected" ? ids.manifestation : null, line_id: null, sign_id: signs[index],
+      face_id: stepId === "body.inspected" ? ids.face : null,
+      show_id: stepId === "body.inspected" ? ids.show : null, line_id: null, sign_id: signs[index],
     }, evidence: [{ artifact_id: `browser-graphical/${stepId}`, evidence_class: "semantic-receipt",
       assertion_rung: rung, documentary_description: `browser-wasm-body producer receipt for ${stepId}.`,
       path: relative, sha256: digest(bytes) }] });
@@ -123,7 +123,7 @@ export async function writeBrowserBodyJourneyTrack(source, screenshotPath, outpu
       const observationBytes = Buffer.from(`${JSON.stringify(capture.mask, null, 2)}\n`);
       await writeFile(join(output, observationRelative), observationBytes, { flag: "wx" });
       step.evidence.push({ artifact_id: `browser-graphical/${stepId}/mask`, evidence_class: "semantic-receipt",
-        assertion_rung: "semantic-presentation", documentary_description: "Rust-owned ordinary Mask Form, wardrobe, Plan, Play, Presentation and acknowledged Show observation for this action.",
+        assertion_rung: "semantic-face", documentary_description: "Rust-owned ordinary Mask Form, wardrobe, Plan, Play, Face and acknowledged Show observation for this action.",
         path: observationRelative, sha256: digest(observationBytes) });
     }
   }
@@ -132,6 +132,10 @@ export async function writeBrowserBodyJourneyTrack(source, screenshotPath, outpu
       || maskActions.length !== MASK_ACTION_IDS.length
       || maskActions.some((action, index) => action.action_id !== MASK_ACTION_IDS[index])) {
     throw new Error("browser track lacks the exact producer-owned Mask journey");
+  }
+  for (const action of maskActions) {
+    action.face_id = action.presentation_id;
+    delete action.presentation_id;
   }
   for (let index = 0; index < maskActions.length; index += 1) {
     const action = maskActions[index];
@@ -144,10 +148,10 @@ export async function writeBrowserBodyJourneyTrack(source, screenshotPath, outpu
     await writeFile(join(output, relative), bytes, { flag: "wx" });
     receipts.push({ step_id: stepId, assertion, disposition: "established", provenance: {
       body_id: ids.body, host_id: null, boot_id: null, plan_id: action.plan_id, play_id: null,
-      presentation_id: action.presentation_id, manifestation_id: action.show_id,
+      face_id: action.face_id, show_id: action.show_id,
       line_id: null, sign_id: null,
     }, evidence: [{ artifact_id: `browser-graphical/mask-action-${index}`,
-      evidence_class: "semantic-receipt", assertion_rung: "semantic-presentation",
+      evidence_class: "semantic-receipt", assertion_rung: "semantic-face",
       documentary_description: `browser-wasm-body producer outcome for ${action.action_id}.`,
       path: relative, sha256: digest(bytes) }] });
     action.receipt_ids = [stepId];
@@ -172,9 +176,9 @@ export async function writeBrowserBodyJourneyTrack(source, screenshotPath, outpu
     action_id: action.action_id, concrete_event: action.concrete_event, receipt_ids: action.receipt_ids,
   })));
   await writeFile(join(output, "track.json"), `${JSON.stringify({
-    schema: "conduit.evidence/body-journey-track@4", journey_id: "orifina/tutorial@1", git_commit: commit,
+    schema: "conduit.evidence/body-journey-track@5", journey_id: "orifina/tutorial@1", git_commit: commit,
     track_id: "browser-graphical", embodiment: "browser-wasm-body", body_id: ids.body,
-    presenter_id: ids.maskForm, hosts: [
+    mask_form_id: ids.maskForm, hosts: [
       { host_id: ids.host, boot_id: ids.boot }, { host_id: ids.peerHost, boot_id: ids.peerBoot },
     ], line_ids: [], distributed_plan_ids: [], receipts, actions: publicActions,
     mask_actions: maskActions,

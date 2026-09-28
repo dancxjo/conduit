@@ -11,8 +11,8 @@ fn receipt(track: usize, step_id: &str, assertion: &str) -> TrackStep {
             boot_id: None,
             plan_id: Some(format!("plan-{track}")),
             play_id: Some(format!("play-{track}")),
-            presentation_id: Some(format!("presentation-{track}-{step_id}")),
-            manifestation_id: Some(format!("manifestation-{track}-{step_id}")),
+            face_id: Some(format!("face-{track}-{step_id}")),
+            show_id: Some(format!("show-{track}-{step_id}")),
             line_id: (track == 2).then(|| "line-2".into()),
             sign_id: Some(format!("sign-{track}-{step_id}")),
         },
@@ -28,7 +28,7 @@ fn receipt(track: usize, step_id: &str, assertion: &str) -> TrackStep {
 }
 
 fn mask_actions(track: usize) -> Vec<MaskActionObservation> {
-    let presentation_id = format!("mask-presentation-{track}");
+    let face_id = format!("mask-face-{track}");
     let first_plan = format!("mask-plan-{track}-initial");
     let replacement_plan = format!("mask-plan-{track}-replacement");
     let primary_mask = format!("mask-{track}-primary");
@@ -46,7 +46,7 @@ fn mask_actions(track: usize) -> Vec<MaskActionObservation> {
                     "Embodiment {track} enacted shared Mask action {}.",
                     action.id()
                 ),
-                presentation_id: presentation_id.clone(),
+                face_id: face_id.clone(),
                 selected_mask_form_id: Some(if position < 2 || restored {
                     primary_mask.clone()
                 } else {
@@ -149,7 +149,7 @@ fn track(index: usize) -> BodyTrack {
         track_id: format!("track-{index}"),
         embodiment: format!("embodiment-{index}"),
         body_id: format!("body-{index}"),
-        presenter_id: format!("presenter-{index}"),
+        mask_form_id: format!("mask-form-{index}"),
         hosts: if index == 2 {
             vec![
                 HostIdentity {

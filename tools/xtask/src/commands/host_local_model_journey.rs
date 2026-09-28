@@ -56,7 +56,7 @@ pub(super) fn write(
         .presenter_requests
         .iter()
         .find(|candidate| candidate.request_identity == journey.requests[0].request_identity)
-        .ok_or("Orifina live proof lacks its Presenter manifestation")?;
+        .ok_or("Orifina live proof lacks its generative Mask Show")?;
     let presentation = journey.requests[0].semantic_data.presentation.clone();
     let retained = manifestation.manifestation.clone();
     let initial = conduit_std_host::spoken_mask_journey::execute_retained_manifestation_mask(
@@ -118,14 +118,14 @@ pub(super) fn write(
     let replacement_alternate_route = replacement_routes.routes.routes()[0].route_id.as_str();
     let restored_route = replacement_routes.routes.routes()[1].route_id.as_str();
     let prepared_actions = vec![
-        observation(A::InspectInitialShow, "initial spoken Mask completed Presenter, synthesis, artifact, and acknowledged Show Host Calls", Some(&initial), initial_plan, Some(initial_route)),
+        observation(A::InspectInitialShow, "initial spoken Mask completed language, synthesis, artifact, and acknowledged Show Host Calls", Some(&initial), initial_plan, Some(initial_route)),
         observation(A::WearAlternateMask, "alternate spoken Mask was worn while the selected sealed route remained current", Some(&initial), initial_plan, Some(initial_route)),
         observation(A::PreferAlternateMask, "preference selected the alternate sealed route under the same immutable Body Plan", Some(&alternate), initial_plan, Some(alternate_route)),
         observation(A::WithdrawSelectedRoute, "selected route was withdrawn without inventing a Show", None, initial_plan, None),
         observation(A::InspectUnavailableShow, "no current Show; retained WAV is stale artifact evidence only", None, initial_plan, None),
-        observation(A::AddPresentationHost, "replacement presentation Host became available but the old Plan selected no route on it", None, initial_plan, None),
+        observation(A::AddPresentationHost, "replacement Face Host became available but the old Plan selected no route on it", None, initial_plan, None),
         observation(A::AdmitReplacementPlan, "replacement Body Plan sealed the replacement Host routes", None, replacement_plan, None),
-        observation(A::InspectReplannedShow, "replacement spoken route completed Presenter, synthesis, artifact, and acknowledged Show Host Calls", Some(&replacement_alternate), replacement_plan, Some(replacement_alternate_route)),
+        observation(A::InspectReplannedShow, "replacement spoken route completed language, synthesis, artifact, and acknowledged Show Host Calls", Some(&replacement_alternate), replacement_plan, Some(replacement_alternate_route)),
         observation(A::DoffAlternateMask, "alternate Mask was doffed and its Show ceased being current", None, replacement_plan, None),
         observation(A::InspectRestoredShow, "initial-role spoken Mask was restored through the replacement Body Plan", Some(&restored), replacement_plan, Some(restored_route)),
     ];
@@ -178,7 +178,7 @@ pub(super) fn write(
         serde_json::json!({"body_id": journey.receipt.body_id, "born_sign_id": born}),
         serde_json::json!({"wake_sign_id": wake, "plan_id": journey.receipt.plan_ids[0]}),
         serde_json::json!({"plan_id": journey.receipt.plan_ids[0], "play_id": journey.receipt.play_ids[0]}),
-        serde_json::json!({"presentation_id": manifestation.source_presentation_identity, "manifestation": manifestation.manifestation}),
+        serde_json::json!({"face_id": manifestation.source_presentation_identity, "show": manifestation.manifestation}),
         serde_json::json!({"workload_revision": journey.receipt.workload_revision, "workload_sign_id": workload}),
         serde_json::json!({"host_id": journey.receipt.host_ids[1], "boot_id": journey.receipt.boot_ids[1], "membership": evidence.membership}),
         serde_json::json!({"reason": journey.receipt.fault_reason, "fault_sign_id": failed}),
@@ -187,7 +187,7 @@ pub(super) fn write(
         serde_json::json!({"lull_sign_id": lulled}),
         serde_json::json!({"fulfilled_sign_id": fulfilled, "fulfilled": journey.receipt.fulfilled}),
     ];
-    let (embodiment, presenter_id) = if receipt.proof_class == "ollama-http-fixture" {
+    let (embodiment, mask_form_id) = if receipt.proof_class == "ollama-http-fixture" {
         (
             "hosted-ollama-http-fixture-body",
             "std/ollama-http-fixture@1",
@@ -203,7 +203,7 @@ pub(super) fn write(
             commit: git_head()?,
             track_id: "hosted-generative",
             embodiment,
-            presenter_id,
+            mask_form_id,
             identities: TrackIdentities {
                 body: journey.receipt.body_id.clone(),
                 host: journey.receipt.host_ids[0].clone(),
@@ -223,8 +223,8 @@ pub(super) fn write(
                     .last()
                     .cloned()
                     .ok_or("missing Orifina Play")?,
-                presentation: manifestation.source_presentation_identity.clone(),
-                manifestation: manifestation.manifestation.candidate_identity.clone(),
+                face: manifestation.source_presentation_identity.clone(),
+                show: manifestation.manifestation.candidate_identity.clone(),
                 line: None,
                 signs: BTreeMap::from([
                     ("body.born", born),
@@ -245,7 +245,7 @@ pub(super) fn write(
             action_events: BTreeMap::from([
                 ("journey.bootstrap", "The std Host began Orifina's bounded bootstrap before any Body identity existed.".into()),
                 ("journey.birth", "The accepted birth and wake receipts created and activated Orifina's independent Body.".into()),
-                ("journey.useful-work", "The admitted model Form handled a later Presenter request through the retained Plan and Play.".into()),
+                ("journey.useful-work", "The admitted model Form handled a later Face realization request through the retained Plan and Play.".into()),
                 ("journey.break-recover", "A retained model-provider failure was followed by a new admitted repair receipt.".into()),
                 ("journey.rest-finish", "Explicit lull and fulfillment signs ended Orifina's wake and biography in order.".into()),
             ]),
