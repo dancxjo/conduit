@@ -198,7 +198,7 @@ pub fn run_environment(opts: &GlobalOpts) -> Result<(), Box<dyn std::error::Erro
             "patchbay-native",
             "--",
             "--environment",
-            "products/patchbay/native/assets/maker-workbench.json",
+            "forms/patchbay/workbench/examples/maker-workbench.json",
         ],
     );
     run_step(&step, &root, opts)?;
@@ -220,7 +220,7 @@ pub fn run_prewake(opts: &GlobalOpts) -> Result<(), Box<dyn std::error::Error>> 
             "--form",
             "forms/hello/main.conduit",
             "--environment",
-            "products/patchbay/native/assets/maker-workbench.json",
+            "forms/patchbay/workbench/examples/maker-workbench.json",
         ],
     );
     run_step(&step, &root, opts)?;
@@ -243,7 +243,7 @@ pub fn run_text_lab(opts: &GlobalOpts) -> Result<(), Box<dyn std::error::Error>>
             "--form",
             "forms/text-lab/main.conduit",
             "--environment",
-            "products/patchbay/native/assets/maker-workbench.json",
+            "forms/patchbay/workbench/examples/maker-workbench.json",
         ],
     );
     run_step(&step, &root, opts)?;

@@ -113,7 +113,7 @@ mod tests {
             prewake: true,
             form_path: Some(root.join("forms/hello/main.conduit")),
             environment_path: Some(
-                root.join("products/patchbay/native/assets/maker-workbench.json"),
+                root.join("forms/patchbay/workbench/examples/maker-workbench.json"),
             ),
             ..Default::default()
         })
@@ -185,7 +185,7 @@ mod tests {
             prewake_hold: true,
             form_path: Some(root.join("forms/text-lab/main.conduit")),
             environment_path: Some(
-                root.join("products/patchbay/native/assets/maker-workbench.json"),
+                root.join("forms/patchbay/workbench/examples/maker-workbench.json"),
             ),
             ..Default::default()
         })
