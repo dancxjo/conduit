@@ -1,4 +1,5 @@
 import { Conduit } from "/target/field-station-sdk/browser-sdk.mjs";
+import { renderBodyPlanInspection } from "/forms/patchbay/workbench/browser/body-plan-inspection.js";
 
 const parameters = new URLSearchParams(location.search);
 const invitation = parameters.get("body");
@@ -33,6 +34,7 @@ try {
         inputTarget: document.querySelector("#external-body-input"),
         outputRoot: document.querySelector("#external-body-output"),
       });
+      renderBodyPlanInspection(document.querySelector("#body-plan-inspection"), preparation.inspection());
       return preparation.observations();
     },
     planInspection: () => preparation.inspection(),
