@@ -28,7 +28,7 @@ uses the additional pinned tools described in the [browser proof guide](proof/br
 `cargo xtask doctor` reports prerequisites across targets and can fail for
 optional browser/Pico tools even when the hosted example can run. For the full
 Linux release set, including the Raspberry Pi OS AArch64 package, run
-`cargo xtask setup linux-release` (or `just setup`) once, then verify it with
+`cargo xtask setup linux-release` once, then verify it with
 `cargo xtask doctor linux-release`. The first invocation compiles the repository
 tooling, so allow time and disk space.
 

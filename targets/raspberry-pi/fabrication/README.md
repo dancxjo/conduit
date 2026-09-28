@@ -20,7 +20,7 @@ On Debian or Ubuntu, prepare the remaining development-host packages once:
 cargo xtask setup linux-release
 ```
 
-`just setup` is the thin convenience entrance to the same command. Verify the
+Verify the
 environment without building the release:
 
 ```sh
