@@ -4,6 +4,7 @@ use conduit_core::{
     verify_plan, ActivePlayId, CheckedFormId, ExpandedFormId, HostAdvertisement, Observation, Plan,
     PlanId, SourceDocumentId, TerminalDisposition,
 };
+use patchbay_workbench_host_contract::PlayExecutionProjection;
 
 const MAXIMUM_CONTROL_ID_BYTES: usize = 128;
 const MAXIMUM_INSPECTION_LINES: usize = 512;
@@ -167,23 +168,6 @@ pub struct PlayDocument {
     pub terminal: TerminalDisposition,
 }
 
-#[derive(Debug, Clone, PartialEq, Eq)]
-pub struct PlayExecutionProjection {
-    pub active_play_id: ActivePlayId,
-    pub decisions: u32,
-    pub kernel_events: u16,
-    pub kernel_sign: Vec<conduit_kernel::KernelEvent>,
-    pub observations: Vec<Observation>,
-    pub control_receipts: Vec<ControlReceiptProjection>,
-}
-
-#[derive(Debug, Clone, PartialEq, Eq)]
-pub struct ControlReceiptProjection {
-    pub request_id: String,
-    pub disposition: String,
-    pub active_play_id: ActivePlayId,
-}
-
 impl PlayDocument {
     #[cfg(test)]
     pub fn from_report(
@@ -200,11 +184,13 @@ impl PlayDocument {
             control_receipts: report
                 .control_receipts
                 .iter()
-                .map(|receipt| ControlReceiptProjection {
-                    request_id: receipt.request_id.as_str().into(),
-                    disposition: format!("{:?}", receipt.disposition),
-                    active_play_id: receipt.active_play_id.clone(),
-                })
+                .map(
+                    |receipt| patchbay_workbench_host_contract::ControlReceiptProjection {
+                        request_id: receipt.request_id.as_str().into(),
+                        disposition: format!("{:?}", receipt.disposition),
+                        active_play_id: receipt.active_play_id.clone(),
+                    },
+                )
                 .collect(),
         };
         Self::from_execution(plan, &execution)

@@ -148,10 +148,7 @@ pub use conduit_presentation::{
     ApplicationTheme, MaskWardrobeAction, MaskWardrobeControl, MaskWardrobeControlError,
     MaskWardrobeControlEvidence, ThemeColor, CONDUIT_APPLICATION_THEME,
 };
-pub use control::{
-    admit_run, ControlError, ControlReceiptProjection, PatchbayRequestId, PlanDocument,
-    PlayDocument, PlayExecutionProjection,
-};
+pub use control::{admit_run, ControlError, PatchbayRequestId, PlanDocument, PlayDocument};
 pub use conversation_request_evidence::ConversationRequestEvidence;
 pub use cross_host_renderer::{
     cross_host_renderer_plan, CrossHostRendererPlan, CROSS_HOST_MAXIMUM_FRAME_BYTES,
@@ -217,7 +214,6 @@ pub use gear_realization::{
     LearnedImplementationSelection, RealizationDisposition, MAX_GEAR_REALIZATION_ALTERNATIVES,
 };
 pub use generated_validation_inspection::project_generated_validation_receipt;
-pub use host_adapter::{PatchbayHostAdapter, PatchbayHostExecution, PatchbayHostProfile};
 pub use interaction::{
     InteractionDisposition, InteractionError, InteractionReceipt, PatchbayAction, PatchbayEdit,
     PatchbayEditBasis, PatchbayInteraction, PatchbayInteractionRequest,
@@ -280,6 +276,10 @@ pub use patchbay_graph::{
     PatchbayFrontPort, PatchbayGear, PatchbayGraph, PatchbayGraphError, PatchbayInspection,
     PatchbayPort, PatchbayPortCompatibility, PatchbaySubjectKind, PatchbaySubjectRef,
     MAX_PATCHBAY_CORDS, MAX_PATCHBAY_GEARS, MAX_PATCHBAY_PORTS, MAX_PATCHBAY_SUBJECTS,
+};
+pub use patchbay_workbench_host_contract::{
+    ControlReceiptProjection, PatchbayHostAdapter, PatchbayHostExecution, PatchbayHostProfile,
+    PlayExecutionProjection,
 };
 pub use policy_explanation::{
     PolicyChoiceDetails, PolicyChoiceDomain, PolicyChoiceExplanation, PolicyChoiceSummary,

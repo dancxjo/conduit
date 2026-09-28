@@ -3806,7 +3806,7 @@ dependencies = [
  "conduit-core",
  "conduit-form",
  "conduit-std-host",
- "patchbay-model",
+ "patchbay-workbench-host-contract",
 ]
 
 [[package]]
@@ -3860,6 +3860,7 @@ dependencies = [
  "conduit-wire",
  "patchbay-control",
  "patchbay-graph",
+ "patchbay-workbench-host-contract",
  "serde",
  "serde_json",
 ]
@@ -3892,6 +3893,15 @@ dependencies = [
  "serde_json",
  "softbuffer",
  "winit",
+]
+
+[[package]]
+name = "patchbay-workbench-host-contract"
+version = "0.1.0"
+dependencies = [
+ "conduit-core",
+ "conduit-form",
+ "conduit-kernel",
 ]
 
 [[package]]

@@ -2,7 +2,7 @@
 
 use conduit_core::{BootId, HostAdvertisement, HostId, OfferGeneration, Plan, PlanFragment};
 use conduit_std_host::{StdHost, StdHostComposition, StdHostConfig, ThreadTimer};
-use patchbay_model::{
+use patchbay_workbench_host_contract::{
     ControlReceiptProjection, PatchbayHostAdapter, PatchbayHostExecution, PatchbayHostProfile,
     PlayExecutionProjection,
 };

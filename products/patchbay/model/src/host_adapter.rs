@@ -1,44 +1,13 @@
-//! Application-edge contract for concrete hosted construction and execution.
+//! Test realization of the workbench Form's Host contract.
 
-use crate::PlayExecutionProjection;
+#[cfg(test)]
 use conduit_core::{BootId, HostAdvertisement, HostId, OfferGeneration, Plan, PlanFragment};
+#[cfg(test)]
 use conduit_form::ExpandedCanonicalForm;
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum PatchbayHostProfile {
-    Signal,
-    Text,
-    Reference,
-    PicoSimulation,
-}
-
-#[derive(Debug, Clone, PartialEq, Eq)]
-pub struct PatchbayHostExecution {
-    pub projection: PlayExecutionProjection,
-    pub output: Vec<u8>,
-}
-
-pub trait PatchbayHostAdapter: Send + Sync {
-    fn advertisement(
-        &self,
-        host_id: HostId,
-        boot_id: BootId,
-        offer_generation: OfferGeneration,
-        profile: PatchbayHostProfile,
-    ) -> Result<HostAdvertisement, String>;
-
-    fn plan_expanded_local(
-        &self,
-        advertisement: &HostAdvertisement,
-        expanded: &ExpandedCanonicalForm,
-    ) -> Result<Plan, String>;
-
-    fn run_fragment(
-        &self,
-        advertisement: &HostAdvertisement,
-        fragment: PlanFragment,
-    ) -> Result<PatchbayHostExecution, String>;
-}
+#[cfg(test)]
+use patchbay_workbench_host_contract::{
+    PatchbayHostAdapter, PatchbayHostExecution, PatchbayHostProfile, PlayExecutionProjection,
+};
 
 #[cfg(test)]
 pub(crate) fn test_host_adapter() -> &'static dyn PatchbayHostAdapter {
@@ -117,11 +86,13 @@ impl PatchbayHostAdapter for TestHostAdapter {
                 control_receipts: report
                     .control_receipts
                     .into_iter()
-                    .map(|receipt| crate::ControlReceiptProjection {
-                        request_id: receipt.request_id.as_str().into(),
-                        disposition: format!("{:?}", receipt.disposition),
-                        active_play_id: receipt.active_play_id,
-                    })
+                    .map(
+                        |receipt| patchbay_workbench_host_contract::ControlReceiptProjection {
+                            request_id: receipt.request_id.as_str().into(),
+                            disposition: format!("{:?}", receipt.disposition),
+                            active_play_id: receipt.active_play_id,
+                        },
+                    )
                     .collect(),
             },
             output,
