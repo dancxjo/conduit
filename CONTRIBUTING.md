@@ -36,8 +36,8 @@ tooling, so allow time and disk space.
 
 | If you want to work on… | Begin with… |
 |---|---|
-| Examples and the programming experience | [forms](forms/README.md), [Tour](products/tour/README.md) |
-| Visual interaction and inspection | [Patchbay](products/patchbay/README.md), [presentation boundary](docs/presenter-hourglass.md) |
+| Examples and the programming experience | [reviewed forms](forms/README.md), [Try Conduit](docs/try-conduit.md) |
+| Human encounter and inspection | [universal Face grammar](docs/architecture/presentation-grammar-conformance.md), [Patchbay Form graph](forms/patchbay/graph/README.md) |
 | Language, planning, or execution | [Canon](docs/conduit-canon.md), [architecture index](docs/architecture/README.md) |
 | A device, host, or ConduitOS | [Targets](targets/README.md), then that target's README |
 | Setup, documentation, or tests | [Documentation index](docs/README.md), [repository map](docs/repository-layout.md), [CI guide](docs/contributing/ci.md) |
