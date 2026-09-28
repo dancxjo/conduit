@@ -38,6 +38,14 @@ fn required_check_waits_for_every_selectable_proof_aggregate() {
     let root = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../..");
     let workflow =
         fs::read_to_string(root.join(".github/workflows/check.yml")).expect("read check workflow");
+    assert!(
+        !workflow.contains("\n  browser-tools:\n"),
+        "permanently disabled browser-tools job must not return"
+    );
+    assert!(
+        !workflow.contains("\n  browser-host:\n"),
+        "permanently disabled browser-host job must not return"
+    );
     let required_gate = workflow
         .split("\n  check:\n")
         .nth(1)
@@ -54,7 +62,6 @@ fn required_check_waits_for_every_selectable_proof_aggregate() {
         "local-integration",
         "workspace-check",
         "esp32-firmware",
-        "browser-host",
         "conduitos-limine",
         "conduitos-tools",
         "conduitos-x86",
@@ -68,7 +75,6 @@ fn required_check_waits_for_every_selectable_proof_aggregate() {
     }
 
     for result in [
-        "BROWSER_HOST_RESULT",
         "LIMINE_RESULT",
         "TOOLS_RESULT",
         "X86_RESULT",
