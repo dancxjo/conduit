@@ -92,6 +92,9 @@ fn scan_source(
                 offset += next.len_utf8();
             }
             SyntaxHighlightKind::Comment
+        } else if source[offset..].starts_with("r\"") {
+            offset = raw_quoted_end(source, offset);
+            SyntaxHighlightKind::String
         } else if matches!(character, '\'' | '"') {
             offset = quoted_end(source, offset, character);
             SyntaxHighlightKind::String
@@ -119,6 +122,13 @@ fn scan_source(
         push(spans, start, offset, kind)?;
     }
     Ok(())
+}
+
+fn raw_quoted_end(text: &str, start: usize) -> usize {
+    let content = start + 2;
+    text[content..]
+        .find('"')
+        .map_or(text.len(), |end| content + end + 1)
 }
 
 fn quoted_end(text: &str, start: usize, quote: char) -> usize {
@@ -187,9 +197,8 @@ fn punctuation(text: &str) -> Option<(usize, SyntaxHighlightKind)> {
 
 fn classify_word(word: &str) -> SyntaxHighlightKind {
     match word {
-        "form" | "host" | "body" | "pool" | "use" | "as" | "without" | "glyphs" => {
-            SyntaxHighlightKind::Keyword
-        }
+        "form" | "host" | "body" | "pool" | "use" | "as" | "without" | "glyphs" | "where"
+        | "pattern" => SyntaxHighlightKind::Keyword,
         "true" | "false" => SyntaxHighlightKind::Literal,
         _ if word.parse::<i128>().is_ok() || word.parse::<u128>().is_ok() => {
             SyntaxHighlightKind::Number
@@ -239,6 +248,24 @@ mod tests {
         }
         assert!(pieces.contains(&(SyntaxHighlightKind::Identity, "text/upper")));
         assert!(pieces.contains(&(SyntaxHighlightKind::Operator, "^^")));
+    }
+
+    #[test]
+    fn checked_pattern_spelling_is_one_lossless_language_construct() {
+        let source =
+            "form code (\n value: Text <= 16B where pattern(r\"[A-Z]{2}[0-9]{4}\")\n) {\n}\n";
+        let spans = highlight_syntax(source).unwrap();
+        let pieces = pieces(source, &spans);
+        assert!(pieces.contains(&(SyntaxHighlightKind::Keyword, "where")));
+        assert!(pieces.contains(&(SyntaxHighlightKind::Keyword, "pattern")));
+        assert!(pieces.contains(&(SyntaxHighlightKind::String, "r\"[A-Z]{2}[0-9]{4}\"")));
+        assert_eq!(
+            spans
+                .iter()
+                .map(|span| &source[span.start..span.end])
+                .collect::<String>(),
+            source
+        );
     }
 
     fn pieces<'a>(
