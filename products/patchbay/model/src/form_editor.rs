@@ -56,6 +56,12 @@ pub struct GraphCord {
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum GraphCordStage {
     Reference(String),
+    RelationalGear {
+        operands: Vec<String>,
+        kind: String,
+        input_ports: Vec<String>,
+        output_port: String,
+    },
     InlineGear {
         kind: String,
     },
@@ -558,6 +564,9 @@ fn cord_label(cord: &conduit_form::CheckedCanonicalCord) -> String {
         .iter()
         .map(|stage| match stage {
             CheckedCordStage::Reference(name) => name.clone(),
+            CheckedCordStage::RelationalGear { operands, gear, .. } => {
+                format!("{}({})", gear.kind, operands.join(", "))
+            }
             CheckedCordStage::TerminalProjection {
                 endpoint, terminal, ..
             } => format!(
@@ -581,6 +590,17 @@ fn cord_label(cord: &conduit_form::CheckedCanonicalCord) -> String {
 fn graph_cord_stage(stage: &CheckedCordStage) -> GraphCordStage {
     match stage {
         CheckedCordStage::Reference(name) => GraphCordStage::Reference(name.clone()),
+        CheckedCordStage::RelationalGear {
+            operands,
+            gear,
+            input_ports,
+            output_port,
+        } => GraphCordStage::RelationalGear {
+            operands: operands.clone(),
+            kind: gear.kind.clone(),
+            input_ports: input_ports.clone(),
+            output_port: output_port.clone(),
+        },
         CheckedCordStage::TerminalProjection {
             endpoint, terminal, ..
         } => GraphCordStage::TerminalProjection {
