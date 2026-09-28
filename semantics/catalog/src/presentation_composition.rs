@@ -21,7 +21,7 @@ pub const PRESENTATION_OUTPUT_PORT: &str = "presented";
 pub const ICON_KEY: &str = "icon";
 pub const ROLE_KEY: &str = "role";
 pub const STATE_KEY: &str = "state";
-pub const ACCESSIBILITY_NAME_KEY: &str = "accessibility-name";
+pub const NAME_KEY: &str = "name";
 pub const PRESENTATION_COMPOSITION_CONTRACT_REVISION: &str =
     "conduit.std/presentation-composition@1";
 
@@ -29,7 +29,7 @@ pub fn presentation_icon_contract() -> StandardKindContract {
     contract(
         PRESENTATION_ICON_KIND,
         "Presentation icon",
-        "Resolve one authoritative local icon identity with an exact accessible name.",
+        "Resolve one authoritative local icon identity with one exact human name.",
         vec![
             KindConfigurationField {
                 key: ICON_KEY.to_string(),
@@ -44,7 +44,7 @@ pub fn presentation_icon_contract() -> StandardKindContract {
             name_field("generic Gear; icon metadata missing"),
         ],
         false,
-        "icon: presentation/icon(icon = \"presentation\", accessibility-name = \"Patchbay\")",
+        "icon: presentation/icon(icon = \"presentation\", name = \"Patchbay\")",
     )
 }
 
@@ -55,7 +55,7 @@ pub fn presentation_frame_contract() -> StandardKindContract {
         "Group bounded content with one renderer-neutral semantic frame role.",
         vec![text_field(ROLE_KEY, "panel"), name_field("Gear Front")],
         true,
-        "frame: presentation/frame(role = \"panel\", accessibility-name = \"Gear Front\")",
+        "frame: presentation/frame(role = \"panel\", name = \"Gear Front\")",
     )
 }
 
@@ -66,7 +66,7 @@ pub fn presentation_badge_contract() -> StandardKindContract {
         "Annotate bounded content with one compact semantic status.",
         vec![text_field(STATE_KEY, "ready"), name_field("ready")],
         true,
-        "badge: presentation/badge(state = \"ready\", accessibility-name = \"ready\")",
+        "badge: presentation/badge(state = \"ready\", name = \"ready\")",
     )
 }
 
@@ -136,7 +136,7 @@ fn text_field(key: &str, default: &str) -> KindConfigurationField {
 }
 
 fn name_field(default: &str) -> KindConfigurationField {
-    text_field(ACCESSIBILITY_NAME_KEY, default)
+    text_field(NAME_KEY, default)
 }
 
 #[cfg(feature = "form-catalog")]
@@ -200,5 +200,15 @@ mod tests {
             super::super::text_presentation_contract().kind_id.as_str(),
             TEXT_PRESENTATION_KIND
         );
+        assert!(contracts.iter().all(|contract| {
+            contract
+                .configuration
+                .iter()
+                .any(|field| field.key == NAME_KEY)
+                && contract
+                    .configuration
+                    .iter()
+                    .all(|field| field.key != "accessibility-name")
+        }));
     }
 }
