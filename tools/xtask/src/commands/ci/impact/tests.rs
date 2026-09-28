@@ -737,6 +737,42 @@ fn acceptance_diff_classes_keep_exact_obligation_boundaries() {
 }
 
 #[test]
+fn native_patchbay_changes_do_not_fabricate_browser_or_pages_work() {
+    let root = crate::workspace::workspace_root().unwrap();
+    let packages = discover(&root).unwrap();
+    let plan = plan_for_paths(
+        &root,
+        vec![
+            "Cargo.lock".to_owned(),
+            "products/patchbay/native/Cargo.toml".to_owned(),
+            "products/patchbay/native/src/gui.rs".to_owned(),
+        ],
+        &packages,
+    )
+    .unwrap();
+
+    assert!(!plan.browser_required);
+    assert!(!plan.pages_products_required);
+    assert!(plan.pages_product_proofs.is_empty());
+    assert!(plan
+        .changed_packages
+        .contains(&"patchbay-native".to_owned()));
+    assert!(plan.workspace_shards.values().any(|required| *required));
+
+    let browser_manifest = plan_for_paths(
+        &root,
+        vec![
+            "Cargo.lock".to_owned(),
+            "products/patchbay/html/Cargo.toml".to_owned(),
+        ],
+        &packages,
+    )
+    .unwrap();
+    assert!(browser_manifest.browser_required);
+    assert!(browser_manifest.pages_products_required);
+}
+
+#[test]
 fn dev_dependencies_do_not_leak_conduitos_into_browser() {
     let root = crate::workspace::workspace_root().unwrap();
     let packages = discover(&root).unwrap();
