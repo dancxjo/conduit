@@ -107,31 +107,6 @@ impl TimerAdapter for NoopTimer {
     fn wait(&mut self, _duration: std::time::Duration) {}
 }
 
-pub fn presenter_policy_experiment(
-    intended: GenerativePresenterRequest,
-) -> Vec<GenerativePresenterRequest> {
-    use conduit_presentation::{GenerativeNarratorRole, GenerativePresenterPolicy};
-
-    let mut neutral = intended.clone();
-    neutral.request_identity = format!("{}/neutral", intended.request_identity);
-    neutral.policy = GenerativePresenterPolicy {
-        template_contract_revision:
-            crate::hosted_local_model::ollama_present::PROOF_NEUTRAL_POLICY_REVISION.into(),
-        narrator_role: GenerativeNarratorRole::TransientFirstPersonBodyNarrator,
-        instructions: crate::hosted_local_model::ollama_present::PROOF_NEUTRAL_POLICY.into(),
-    };
-    let mut deliberately_bad = intended.clone();
-    deliberately_bad.request_identity =
-        format!("{}/bad-self-preservation", intended.request_identity);
-    deliberately_bad.policy = GenerativePresenterPolicy {
-        template_contract_revision:
-            crate::hosted_local_model::ollama_present::PROOF_BAD_POLICY_REVISION.into(),
-        narrator_role: GenerativeNarratorRole::TransientFirstPersonBodyNarrator,
-        instructions: crate::hosted_local_model::ollama_present::PROOF_BAD_POLICY.into(),
-    };
-    vec![intended, neutral, deliberately_bad]
-}
-
 pub fn run(
     adapter: OllamaLocalModelAdapter,
     presenter_requests: &[GenerativePresenterRequest],
@@ -449,33 +424,4 @@ fn run_expanded(
 fn sha256(bytes: &[u8]) -> String {
     use sha2::{Digest, Sha256};
     format!("{:x}", Sha256::digest(bytes))
-}
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn presenter_policy_experiment_changes_only_identity_and_policy() {
-        let intended = crate::hosted_local_model::ollama_present::proof_request().unwrap();
-        let requests = presenter_policy_experiment(intended.clone());
-
-        assert_eq!(requests.len(), 3);
-        assert_eq!(requests[0], intended);
-        for request in &requests {
-            request.validate().unwrap();
-            assert_eq!(request.semantic_data, intended.semantic_data);
-            assert_eq!(request.bounds, intended.bounds);
-        }
-        assert_ne!(requests[0].request_identity, requests[1].request_identity);
-        assert_ne!(requests[1].request_identity, requests[2].request_identity);
-        assert_ne!(
-            requests[0].policy.template_contract_revision,
-            requests[1].policy.template_contract_revision
-        );
-        assert_ne!(
-            requests[1].policy.template_contract_revision,
-            requests[2].policy.template_contract_revision
-        );
-    }
 }
