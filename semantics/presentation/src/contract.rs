@@ -315,3 +315,28 @@ pub fn presenter_stage_kind_projection() -> conduit_form::KindProjection {
         configuration: Default::default(),
     }
 }
+
+/// Install the portable Kind fronts used by ordinary Forms serving as Masks.
+///
+/// This is checking truth only. A Host still has to offer and the Plan still
+/// has to select each exact renderer, tee, and Face-interaction Back.
+#[cfg(feature = "form-catalog")]
+pub fn install_mask_mechanism_catalog(
+    startup: &mut conduit_form::StartupCatalog,
+    profiles: &mut conduit_form::ProfileCatalog,
+) -> Result<(), alloc::string::String> {
+    for projection in [
+        renderer_kind_projection(),
+        face_interaction_kind_projection(),
+        presentation_tee_kind_projection(),
+    ] {
+        startup.insert(conduit_form::KindSignature {
+            kind: projection.kind_id.as_str().into(),
+            startup_parameters: alloc::vec::Vec::new(),
+        })?;
+        profiles
+            .insert(projection)
+            .map_err(|error| alloc::format!("install Mask mechanism profile: {error:?}"))?;
+    }
+    Ok(())
+}

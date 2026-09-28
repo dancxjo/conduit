@@ -126,14 +126,14 @@ fn explicit_inventory_covers_canonical_sources_and_checks_every_entry() {
             .iter()
             .filter(|result| result.status == "passed")
             .count(),
-        28
+        27
     );
     assert_eq!(
         composition
             .iter()
             .filter(|result| result.status == "unavailable")
             .count(),
-        2
+        3
     );
     assert!(composition
         .iter()
