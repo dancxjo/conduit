@@ -9,6 +9,7 @@ use crate::syntax::{
     StartupParameter,
 };
 use crate::{eof_span, FormError, Span};
+use alloc::vec::Vec;
 
 pub(super) fn parse_port_type(value_type: &str) -> Option<(&str, RuntimePortTemporal)> {
     let (value_type, temporal) = if let Some(value_type) = value_type
@@ -125,6 +126,7 @@ impl Parser<'_> {
         let (name, value_type) =
             split_declaration(left).ok_or_else(|| self.invalid_statement(text, start))?;
         let span = self.span(start, start + text.len());
+        let (value_type, refinements) = self.parse_value_refinements(value_type, text, start)?;
         let (value_type, explicit_bound) =
             split_type_bound(value_type).ok_or_else(|| self.invalid_statement(text, start))?;
         let (value_type, temporal) =
@@ -140,6 +142,7 @@ impl Parser<'_> {
             value_type: self.spanned_at(value_type, text, start),
             optional: temporal == RuntimePortTemporal::OptionalValue,
             maximum_bytes: explicit_bound.or_else(|| canonical_default_bound(value_type)),
+            refinements,
             default: default
                 .map(|value| self.expression_at(value, text, start))
                 .transpose()?,
@@ -206,6 +209,7 @@ impl Parser<'_> {
     ) -> Result<RuntimePort, (FormError, Span)> {
         let (name, value_type) =
             split_declaration(declaration).ok_or_else(|| self.invalid_statement(line, start))?;
+        let (value_type, refinements) = self.parse_value_refinements(value_type, line, start)?;
         let (value_type, explicit_bound) =
             split_type_bound(value_type).ok_or_else(|| self.invalid_statement(line, start))?;
         let (value_type, temporal) =
@@ -216,10 +220,44 @@ impl Parser<'_> {
             direction,
             temporal,
             maximum_bytes: explicit_bound.or_else(|| canonical_default_bound(value_type)),
+            refinements,
             span: self.span(
                 start + line.find(declaration).unwrap(),
                 start + line.find(declaration).unwrap() + declaration.len(),
             ),
         })
+    }
+
+    fn parse_value_refinements<'b>(
+        &self,
+        source: &'b str,
+        line: &str,
+        start: usize,
+    ) -> Result<(&'b str, Vec<crate::ValueRefinement>), (FormError, Span)> {
+        let Some((value_type, refinement)) = source.split_once(" where ") else {
+            return Ok((source, Vec::new()));
+        };
+        let value_type = value_type.trim();
+        let refinement = refinement.trim();
+        let pattern = refinement
+            .strip_prefix("pattern(r\"")
+            .and_then(|tail| tail.strip_suffix("\")"))
+            .ok_or_else(|| self.invalid_statement(line, start))?;
+        let refinement_offset = line
+            .find(refinement)
+            .expect("refinement is an exact slice of the declaration line");
+        let pattern_offset = start
+            + refinement_offset
+            + refinement
+                .find(pattern)
+                .expect("pattern is an exact slice of the refinement");
+        let span_start = start + refinement_offset;
+        Ok((
+            value_type,
+            vec![crate::ValueRefinement::TextPattern {
+                source: self.spanned(pattern, pattern_offset),
+                span: self.span(span_start, span_start + refinement.len()),
+            }],
+        ))
     }
 }

@@ -114,6 +114,7 @@ pub struct StartupParameter {
     pub value_type: SpannedText,
     pub optional: bool,
     pub maximum_bytes: Option<u64>,
+    pub refinements: Vec<ValueRefinement>,
     pub default: Option<Expression>,
     pub span: Span,
 }
@@ -140,7 +141,13 @@ pub struct RuntimePort {
     pub direction: RuntimePortDirection,
     pub temporal: RuntimePortTemporal,
     pub maximum_bytes: Option<u64>,
+    pub refinements: Vec<ValueRefinement>,
     pub span: Span,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum ValueRefinement {
+    TextPattern { source: SpannedText, span: Span },
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
