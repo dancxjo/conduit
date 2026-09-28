@@ -62,7 +62,7 @@ members = [
 	"products/patchbay/model",
 	"products/patchbay/application",
 	"products/patchbay/graph",
-	"products/patchbay/control",
+	"forms/patchbay",
 	"products/patchbay/native",
 	"bodies/pete",
 	"forms/little-seismograph/fixture",

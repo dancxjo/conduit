@@ -99,7 +99,7 @@ pub const WORKSPACE_STEPS: &[Step] = &[
     ),
     Step::new(
         "check.no-std.extracted-domains",
-        "Extracted human, robotics, JSON, and Patchbay control no-default-features check",
+        "Extracted domains and resident Patchbay Form no-default-features check",
         "cargo",
         &[
             "check",
@@ -186,7 +186,7 @@ pub const WORKSPACE_STEPS: &[Step] = &[
     ),
     Step::typed(
         "check.thumb.extracted-domains",
-        "Extracted human, robotics, JSON, and Patchbay control Thumb target check",
+        "Extracted domains and resident Patchbay Form Thumb target check",
         "cargo",
         &[
             "check",

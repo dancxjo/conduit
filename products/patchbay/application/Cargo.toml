@@ -7,7 +7,7 @@ edition = "2021"
 conduit-core = { path = "../../../architecture/core" }
 conduit-form = { path = "../../../architecture/form" }
 conduit-presentation = { path = "../../../semantics/presentation" }
-patchbay-control = { path = "../control" }
+patchbay-control = { path = "../../../forms/patchbay" }
 patchbay-graph = { path = "../graph" }
 
 [dev-dependencies]
