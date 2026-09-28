@@ -28,10 +28,6 @@ mod host_local_model;
 mod host_local_model_journey;
 #[path = "host_microphone.rs"]
 mod host_microphone;
-#[path = "host_microphone_house.rs"]
-mod host_microphone_house;
-#[path = "host_recorded_house.rs"]
-mod host_recorded_house;
 #[path = "host_release.rs"]
 mod host_release;
 #[path = "host_release_catalog.rs"]
@@ -188,23 +184,6 @@ enum HostCommand {
         #[arg(long, default_value_t = 30, value_parser = clap::value_parser!(u64).range(1..=120))]
         timeout_seconds: u64,
     },
-    /// Run recorded speech through name-gated local House generation in one plan.
-    ProveRecordedHouse {
-        #[arg(long)]
-        whisper_executable: PathBuf,
-        #[arg(long)]
-        whisper_model: PathBuf,
-        #[arg(long)]
-        pcm_s16le_16000_mono: PathBuf,
-        #[arg(long, default_value_t = 2)]
-        whisper_threads: u8,
-        #[arg(long, default_value_t = 30)]
-        whisper_timeout_seconds: u64,
-        #[arg(long)]
-        ollama_model: String,
-        #[arg(long)]
-        admitted_memory_mib: u32,
-    },
     /// Explicitly capture one bounded microphone clip and recognize it through Whisper.
     ProveMicrophoneWhisper {
         #[arg(long)]
@@ -228,8 +207,6 @@ enum HostCommand {
         #[arg(long)]
         authorize_capture: bool,
     },
-    /// Capture one clip through the address-gated local House model Plan.
-    ProveMicrophoneHouse(host_microphone_house::MicrophoneHouseArgs),
 }
 
 #[derive(Args, Debug)]
@@ -299,26 +276,6 @@ pub fn run(args: HostArgs, opts: &GlobalOpts) -> Result<(), Box<dyn std::error::
             },
             opts,
         ),
-        HostCommand::ProveRecordedHouse {
-            whisper_executable,
-            whisper_model,
-            pcm_s16le_16000_mono,
-            whisper_threads,
-            whisper_timeout_seconds,
-            ollama_model,
-            admitted_memory_mib,
-        } => host_recorded_house::prove(
-            host_recorded_house::RecordedHouseRequest {
-                whisper_executable,
-                whisper_model,
-                pcm_s16le_16000_mono,
-                whisper_threads,
-                whisper_timeout_seconds,
-                ollama_model,
-                admitted_memory_mib,
-            },
-            opts,
-        ),
         HostCommand::ProveMicrophoneWhisper {
             arecord_executable,
             card_id,
@@ -345,7 +302,6 @@ pub fn run(args: HostArgs, opts: &GlobalOpts) -> Result<(), Box<dyn std::error::
             },
             opts,
         ),
-        HostCommand::ProveMicrophoneHouse(request) => host_microphone_house::prove(request, opts),
         HostCommand::Rpi(args) => match args.action.unwrap_or(RpiHostAction::Image) {
             RpiHostAction::Image => {
                 super::conduitos::build_rpi_image(args.board, opts).map_err(Into::into)
