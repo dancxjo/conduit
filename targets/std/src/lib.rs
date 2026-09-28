@@ -517,6 +517,16 @@ fn normalize_capability_offers(
 }
 
 impl StdHost {
+    #[cfg(test)]
+    fn install_test_capability(&mut self, offer: conduit_core::CapabilityOffer) {
+        self.advertisement.capabilities.push(offer);
+        self.advertisement
+            .capabilities
+            .sort_by(|left, right| left.capability_id.cmp(&right.capability_id));
+        self.kernel_resources = kernel_preparation::KernelResourceLedger::new(&self.advertisement)
+            .expect("test capability ledger is exact");
+    }
+
     pub fn install_body_conversation_context(
         &mut self,
         context: &conduit_body::BodyConversationContext,

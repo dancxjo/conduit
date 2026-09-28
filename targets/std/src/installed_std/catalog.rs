@@ -16,6 +16,7 @@ use super::calendar_provider_back::{
     CALENDAR_INVITE_FACTORY, CALENDAR_READ_FACTORY, CALENDAR_UPDATE_FACTORY,
 };
 use super::count_backs::{COUNT_PRESENTATION_FACTORY, STATE_COUNT_FACTORY};
+use super::distance_frequency_back::FACTORY as DISTANCE_FREQUENCY_FACTORY;
 use super::external_websocket::EXTERNAL_WEBSOCKET_LISTENER_FACTORY;
 use super::final_normalized_pattern_back::FACTORY as FINAL_NORMALIZED_PATTERN_FACTORY;
 use super::flow_first_back::FLOW_FIRST_FACTORY;
@@ -124,6 +125,7 @@ use super::test_audio_source::FACTORY as TEST_PCM_SOURCE_FACTORY;
 use super::test_audio_tone::{
     CANCEL_FACTORY as TEST_CANCELLATION_SOURCE_FACTORY,
     CLOSE_FACTORY as TEST_NORMAL_CLOSE_SINK_FACTORY,
+    DISTANCE_SOURCE_FACTORY as TEST_DISTANCE_SOURCE_FACTORY,
     RECOVERY_FACTORY as TEST_TONE_TERMINAL_RECOVERY_FACTORY,
     SINK_FACTORY as TEST_TONE_PCM_SINK_FACTORY, SOURCE_FACTORY as TEST_FREQUENCY_SOURCE_FACTORY,
 };
@@ -185,9 +187,12 @@ use super::whisper_speech_back::{
 use conduit_core::{ImplementationId, PlanFragment};
 
 const FACTORIES: &[&BackFactory] = &[
+    &DISTANCE_FREQUENCY_FACTORY,
     &AUDIO_TONE_FACTORY,
     #[cfg(test)]
     &TEST_FREQUENCY_SOURCE_FACTORY,
+    #[cfg(test)]
+    &TEST_DISTANCE_SOURCE_FACTORY,
     #[cfg(test)]
     &TEST_TONE_PCM_SINK_FACTORY,
     #[cfg(test)]

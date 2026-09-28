@@ -82,7 +82,6 @@ gallery/memory-lantern
 gallery/desk-telegraph
 gallery/night-radio
 gallery/secret-knock-demo
-gallery/pocket-theremin
 gallery/button-across-room'
 printf '%s\n' "$gallery_routes" | while IFS= read -r route; do
     mkdir -p "$destination/$route"
@@ -94,5 +93,5 @@ node targets/browser/tools/build-browser-application-package.mjs \
 
 # Includes the shared admitted host-effect dispatcher used by Tour and Body.
 test -f "$destination/browser-form-effects.mjs"
-test "$(find "$destination" -type f | wc -l)" -eq 63
+test "$(find "$destination" -type f | wc -l)" -eq 62
 test -z "$(find "$destination" -type f \( -name 'creche*.mjs' -o -name 'creche*.css' -o -path '*/artifacts/*' -o -path '*/targets/*' \) -print -quit)"

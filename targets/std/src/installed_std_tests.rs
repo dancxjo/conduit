@@ -228,6 +228,114 @@ fn current_frequency_drives_bounded_pcm_through_one_ordinary_play() {
 }
 
 #[test]
+fn canonical_pocket_theremin_maps_changing_distance_to_bounded_pcm() {
+    let mut host = host("pocket-theremin-host");
+    let source = format!(
+        "{}\nform pocket_theremin_proof {{\n source: conduit-test/distance-source\n theremin: pocket-theremin\n sink: conduit-test/tone-pcm-sink\n closed: conduit-test/normal-close-sink\n source.distance >> theremin.distance\n theremin.audio >> sink.audio\n theremin.audio| >> closed.closed\n}}.\n",
+        include_str!("../../../forms/pocket-theremin/main.conduit")
+    );
+    let form = parse(&source, &installed_std::test_catalog())
+        .expect("canonical Pocket Theremin and typed Distance proof parse");
+    let frequency_type = conduit_core::StructuredInfoType::leaf(conduit_core::kind_id(
+        conduit_core::FREQUENCY_INFO_ID,
+    ))
+    .unwrap();
+    let frequency_initial = conduit_core::StructuredInfoValue::leaf(
+        frequency_type.clone(),
+        conduit_core::Quantity::new(440, conduit_core::QuantityUnit::Hertz)
+            .encode()
+            .to_vec(),
+    )
+    .unwrap();
+    host.install_test_capability(
+        conduit_std_offers::state_value_std_offer("Frequency", &frequency_type, &frequency_initial)
+            .unwrap(),
+    );
+    let hosts = [host.advertisement().clone()];
+    let placements = default_placements(&form, &hosts)
+        .expect("canonical Pocket Theremin production placements resolve");
+    let plan = plan_with_options(
+        &form,
+        &hosts,
+        &placements,
+        &[BaseImplementationId::from("conduit.base/local@1")],
+        PlanningOptions {
+            connection_bases: &BTreeMap::new(),
+            line_candidates: &BTreeMap::new(),
+            connection_item_capacity: 1,
+            connection_byte_capacity: conduit_semantic_catalog::AUDIO_TONE_PCM_BLOCK_BYTES,
+            authority_grants: &[],
+            protected_resource_grants: &[],
+            line_offers: &[],
+        },
+    )
+    .expect("canonical Pocket Theremin plans with bounded pressure");
+    let fragment = &plan.fragments[0];
+    assert!(fragment
+        .connections
+        .iter()
+        .all(|cord| cord.item_capacity == 1));
+    let mapping = fragment
+        .placements
+        .iter()
+        .find(|placement| {
+            placement.kind_id.as_str() == conduit_semantic_catalog::DISTANCE_FREQUENCY_MAP_KIND
+        })
+        .expect("exact Distance-to-Frequency mapping is planned");
+    for (key, expected) in [
+        (
+            "source-minimum",
+            conduit_core::Quantity::new(0, conduit_core::QuantityUnit::Centimeter),
+        ),
+        (
+            "source-maximum",
+            conduit_core::Quantity::new(30, conduit_core::QuantityUnit::Centimeter),
+        ),
+        (
+            "target-minimum",
+            conduit_core::Quantity::new(220, conduit_core::QuantityUnit::Hertz),
+        ),
+        (
+            "target-maximum",
+            conduit_core::Quantity::new(880, conduit_core::QuantityUnit::Hertz),
+        ),
+    ] {
+        assert!(mapping.configuration.iter().any(|entry| {
+            entry.key == key && entry.value == conduit_core::ConfigurationValue::Quantity(expected)
+        }));
+    }
+    assert!(fragment.placements.iter().any(|placement| {
+        placement.kind_id.as_str() == conduit_semantic_catalog::AUDIO_TONE_KIND
+    }));
+    assert!(!fragment.placements.iter().any(|placement| {
+        placement.kind_id.as_str() == conduit_semantic_catalog::AUDIO_PLAY_KIND
+    }));
+
+    let report = host
+        .run_fragment_to(
+            fragment.clone(),
+            &mut Vec::with_capacity(2_048),
+            &mut RecordingTimer { waits: Vec::new() },
+        )
+        .expect("changing typed Distance executes through ordinary Plan and Play");
+    assert!(matches!(
+        report
+            .observations
+            .last()
+            .map(|observation| &observation.kind),
+        Some(ObservationKind::PlanTerminal {
+            disposition: TerminalDisposition::Completed
+        })
+    ));
+    let kernel = report.kernel.expect("kernel report exists");
+    assert_eq!(kernel.post_play_start_allocations, 0);
+    assert_eq!(
+        kernel.value_allocation_capacity_before,
+        kernel.value_allocation_capacity_after
+    );
+}
+
+#[test]
 fn authored_tone_cancellation_routes_exact_observed_terminal_truth() {
     let mut host = host("audio-tone-cancellation-host");
     let form = parse(

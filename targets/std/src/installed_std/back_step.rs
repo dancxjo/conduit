@@ -109,6 +109,7 @@ macro_rules! installed_step_dispatch {
 }
 
 installed_step_dispatch!(
+    DistanceFrequency,
     #[cfg(any(test, feature = "local-model-proof"))]
     RecordedSpeech,
     WhisperSpeech,
@@ -253,6 +254,8 @@ installed_step_dispatch!(
     TestScalarSink,
     #[cfg(test)]
     TestFrequencySource,
+    #[cfg(test)]
+    TestDistanceSource,
     #[cfg(test)]
     TestTonePcmSink,
     #[cfg(test)]

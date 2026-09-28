@@ -152,34 +152,6 @@ export function registerTourGalleryExecutionTests(openStep) {
     await expectCancelled(runner);
   });
 
-  test("Gallery Pocket Theremin maps two positions in one living Play", async ({ page }) => {
-    await openGallery(page);
-    const runner = await openForm(page, "Pocket Theremin");
-    await expect(runner.locator(".structured-output-profile")).toHaveValue("1");
-    await expect(runner.getByRole("slider", { name: "Theremin pitch" })).toBeVisible();
-    await runner.getByRole("button", { name: "Run", exact: true }).click();
-    await expect(runner.locator(".input-button")).toBeVisible();
-    const identities = await captureRunIdentities(runner);
-    expect(identities.checkedFormId).toBeTruthy();
-    expect(identities.planId).toBeTruthy();
-    expect(identities.playId).toBeTruthy();
-    const bounds = await runner.locator(".input-button").boundingBox();
-    expect(bounds).not.toBeNull();
-    await page.mouse.click(bounds.x + bounds.width * 0.25, bounds.y + bounds.height / 2);
-    await expect(runner.locator(".morse")).toHaveText("5015 Hz");
-    await expectSameRunIdentities(runner, identities);
-    await expectStanding(runner);
-    await page.waitForTimeout(40);
-    await page.mouse.click(bounds.x + bounds.width * 0.75, bounds.y + bounds.height / 2);
-    await expect(runner.locator(".morse")).toHaveText("15005 Hz");
-    await expectSameRunIdentities(runner, identities);
-    await expectStanding(runner);
-    await runner.getByRole("button", { name: "Stop", exact: true }).click();
-    await expectCancelled(runner);
-    await openForm(page, "Memory Lantern");
-    await expect(page.locator(".runner .morse")).toHaveText("ready");
-  });
-
   test("Gallery Firefly Choir reaches pulse five and remains alive until Stop", async ({ page }) => {
     await openGallery(page);
     const runner = await openForm(page, "Firefly Choir");
