@@ -77,6 +77,7 @@ export class BrowserBody {
   #storage;
   #persistence = Promise.resolve();
   #persistenceFailure = null;
+  #patchbaySequence = 0;
   constructor(key, { bridge, host, boot, api, root, createPlay, acquireBodyHost, advertisement, source, receipt, sequence, storage, opened = false }) {
     if (key !== BODY_KEY) throw new TypeError("BrowserBody values come from admitted Host birth or recovery");
     this.#bridge = bridge; this.#host = host; this.#boot = boot;
@@ -100,6 +101,48 @@ export class BrowserBody {
   }
 
   snapshot() { return this.current(); }
+
+  /**
+   * Project this Body's exact checked Form through Rust and optionally mount a
+   * small inspection-only Patchbay. The SDK never parses or reconstructs the
+   * topology from Conduitese source.
+   */
+  async patchbay({ root } = {}) {
+    await this.#openWorkspace();
+    if (this.#patchbaySequence >= Number.MAX_SAFE_INTEGER) {
+      throw sdkRefusal("Body.patchbay", {
+        code: "ProjectionSequenceExhausted",
+        message: "Patchbay projection sequence is exhausted",
+      }, this.#identities());
+    }
+    const sequence = ++this.#patchbaySequence;
+    const current = await this.current();
+    const projected = this.#bridge.projectPatchbay(this.#source, BigInt(sequence));
+    if (projected.status < 0) {
+      throw sdkRefusal("Body.patchbay", projected.outputJson, this.#identities());
+    }
+    const topology = freezePatchbayProjection(projected.outputJson);
+    const resident = current.evidence?.body?.workset?.forms;
+    if (!Array.isArray(resident) || !resident.some((form) =>
+      form.source_document_id === topology.source_document_id
+      && form.checked_form_id === topology.checked_form_id)) {
+      throw sdkRefusal("Body.patchbay", {
+        code: "PatchbayFormIdentityMismatch",
+        message: "Patchbay projection does not match this Body's current checked Form",
+      }, this.#identities());
+    }
+    const snapshot = Object.freeze({
+      schema: "conduit.browser/body-patchbay@1",
+      bodyId: this.id,
+      hostId: this.#host,
+      bootId: this.#boot,
+      planId: this.#play?.plan.planId ?? null,
+      playId: this.#play?.id ?? null,
+      topology,
+    });
+    if (root !== undefined) renderPatchbay(root, snapshot);
+    return snapshot;
+  }
 
   events({ replay = false, pollIntervalMillis = 250, signal } = {}) {
     return createBodyEventStream({
@@ -214,6 +257,75 @@ export class BrowserBody {
     await this.#retain();
     return this.current();
   }
+}
+
+function freezePatchbayProjection(value) {
+  if (value?.schema !== "conduit.patchbay/checked-form-projection@1"
+    || typeof value.source_document_id !== "string"
+    || typeof value.checked_form_id !== "string"
+    || !Array.isArray(value.gears) || !Array.isArray(value.cords)) {
+    throw sdkRefusal("Body.patchbay", {
+      code: "PatchbayProjectionInvalid",
+      message: "runtime returned a malformed Patchbay projection",
+    });
+  }
+  return Object.freeze({
+    ...value,
+    gears: Object.freeze(value.gears.map((gear) => Object.freeze({
+      ...gear,
+      inputs: Object.freeze(gear.inputs.map((port) => Object.freeze({ ...port }))),
+      outputs: Object.freeze(gear.outputs.map((port) => Object.freeze({ ...port }))),
+    }))),
+    cords: Object.freeze(value.cords.map((cord) => Object.freeze({ ...cord }))),
+    realization_gears: Object.freeze(value.realization_gears.map((gear) => Object.freeze({
+      ...gear,
+      inputs: Object.freeze(gear.inputs.map((port) => Object.freeze({ ...port }))),
+      outputs: Object.freeze(gear.outputs.map((port) => Object.freeze({ ...port }))),
+    }))),
+    realization_cords: Object.freeze(value.realization_cords.map((cord) => Object.freeze({ ...cord }))),
+    realization_backs: Object.freeze(value.realization_backs.map((back) => Object.freeze({ ...back }))),
+    diagnostics: Object.freeze(value.diagnostics.map((diagnostic) => Object.freeze({
+      ...diagnostic,
+      subjects: Object.freeze([...diagnostic.subjects]),
+    }))),
+  });
+}
+
+function renderPatchbay(root, snapshot) {
+  if (typeof Element === "undefined" || !(root instanceof Element || root instanceof ShadowRoot)) {
+    throw new TypeError("Body.patchbay root must be one Element or ShadowRoot");
+  }
+  const document = root.ownerDocument ?? root.host?.ownerDocument;
+  const surface = document.createElement("section");
+  surface.setAttribute("aria-label", "Patchbay checked Form topology");
+  surface.dataset.patchbaySchema = snapshot.schema;
+  surface.dataset.bodyId = snapshot.bodyId;
+  surface.dataset.bootId = snapshot.bootId;
+  if (snapshot.planId) surface.dataset.planId = snapshot.planId;
+  if (snapshot.playId) surface.dataset.playId = snapshot.playId;
+
+  const heading = document.createElement("h2");
+  heading.textContent = `Patchbay — ${snapshot.topology.form_name}`;
+  surface.append(heading);
+  const gears = document.createElement("ol");
+  gears.setAttribute("aria-label", "Gears");
+  for (const gear of snapshot.topology.gears) {
+    const item = document.createElement("li");
+    item.dataset.patchbayGear = gear.gear_id;
+    item.textContent = `${gear.gear_id} — ${gear.kind_id}`;
+    gears.append(item);
+  }
+  surface.append(gears);
+  const cords = document.createElement("ol");
+  cords.setAttribute("aria-label", "Cords");
+  for (const cord of snapshot.topology.cords) {
+    const item = document.createElement("li");
+    item.dataset.patchbayCord = `${cord.source_gear_id}.${cord.source_port_id}->${cord.sink_gear_id}.${cord.sink_port_id}`;
+    item.textContent = `${cord.source_gear_id}.${cord.source_port_id} → ${cord.sink_gear_id}.${cord.sink_port_id} (${cord.info_kind}, ${cord.temporal})`;
+    cords.append(item);
+  }
+  surface.append(cords);
+  root.replaceChildren(surface);
 }
 
 export async function birthBrowserBody({ bridge, host, boot, api, root, createPlay, acquireBodyHost, membership, storage, name, forms, sequence }) {

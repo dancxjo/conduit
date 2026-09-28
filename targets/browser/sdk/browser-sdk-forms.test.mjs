@@ -83,6 +83,46 @@ test("workset changes send canonical checked identity and exact observed workloa
   assert.equal(change.source, source);
 });
 
+test("Body Patchbay uses the Rust projection and binds it to exact Body and Boot truth", async () => {
+  const snapshot = bodySnapshot(0);
+  let projectedSource;
+  let projectedSequence;
+  const bridge = {
+    crecheAdmitSourceInteraction: () => ({ status: 0, outputJson: {} }),
+    crecheBirth: () => ({ status: 0, outputJson: { body_id: "body/1" } }),
+    crecheAttachHere: () => ({ status: 0, outputJson: { body_id: "body/1" } }),
+    workspaceRequest: () => ({ status: 0, outputJson: snapshot }),
+    projectPatchbay(input, sequence) {
+      projectedSource = input;
+      projectedSequence = sequence;
+      return { status: 0, outputJson: {
+        schema: "conduit.patchbay/checked-form-projection@1",
+        sequence: Number(sequence),
+        source_document_id: "sha256:source",
+        checked_form_id: "sha256:checked",
+        visible_expanded_form_id: "sha256:expanded",
+        realization_expanded_form_id: "sha256:expanded",
+        source_proposal_id: "proposal/1",
+        form_name: "clock",
+        realization: "direct",
+        gears: [{ gear_id: "clock/tick", kind_id: "presentation/tick", inputs: [], outputs: [] }],
+        cords: [], realization_gears: [], realization_cords: [], realization_backs: [], diagnostics: [],
+      } };
+    },
+  };
+  const checked = { schema: "conduit.browser/checked-form@1", name: "clock", source, documentSource: source, sourceDocumentId: "sha256:source", checkedFormId: "sha256:checked" };
+  const body = await birthBrowserBody({ bridge, host: "host/1", boot: "boot/1", membership: { advertisement: () => ({}) }, name: "Clock", forms: [checked], sequence: () => 1 });
+
+  const patchbay = await body.patchbay();
+  assert.equal(projectedSource, source);
+  assert.equal(projectedSequence, 1n);
+  assert.equal(patchbay.bodyId, "body/1");
+  assert.equal(patchbay.hostId, "host/1");
+  assert.equal(patchbay.bootId, "boot/1");
+  assert.equal(patchbay.topology.checked_form_id, "sha256:checked");
+  assert.equal(Object.isFrozen(patchbay.topology.gears), true);
+});
+
 test("workset refusal retains the exact expected revision", async () => {
   const bridge = { workspaceRequest(request) {
     return request.action === "ChangeWorkset"

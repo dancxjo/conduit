@@ -28,6 +28,7 @@ test("an external page recovers one Clock Body across a fresh Boot without resur
     playState: __conduitFieldStation.play.state,
     recovered: __conduitFieldStation.recovered,
     recoverySnapshot: __conduitFieldStation.recoverySnapshot,
+    patchbay: __conduitFieldStation.patchbay,
   }));
   expect(running.recovered).toBe(true);
   expect(running.playState).toBe("playing");
@@ -41,6 +42,30 @@ test("an external page recovers one Clock Body across a fresh Boot without resur
   expect(running.recoverySnapshot.realization).toBeNull();
   expect(Object.values(running.identities).every((identity) => typeof identity === "string" && identity.length > 0)).toBe(true);
   expect(new Set(Object.values(running.identities)).size).toBe(6);
+  expect(running.patchbay).toMatchObject({
+    schema: "conduit.browser/body-patchbay@1",
+    bodyId: running.identities.bodyId,
+    hostId: running.identities.hostId,
+    bootId: running.identities.bootId,
+    planId: running.identities.planId,
+    playId: running.identities.playId,
+    topology: {
+      schema: "conduit.patchbay/checked-form-projection@1",
+      form_name: "clock-demo",
+    },
+  });
+  expect(running.patchbay.topology.gears.map(({ kind_id }) => kind_id)).toEqual([
+    "time/every",
+    "presentation/tick",
+  ]);
+  expect(running.patchbay.topology.cords).toHaveLength(1);
+  const patchbay = page.locator('#patchbay [data-patchbay-schema="conduit.browser/body-patchbay@1"]');
+  await expect(patchbay).toHaveAttribute("data-body-id", running.identities.bodyId);
+  await expect(patchbay).toHaveAttribute("data-boot-id", running.identities.bootId);
+  await expect(patchbay).toHaveAttribute("data-plan-id", running.identities.planId);
+  await expect(patchbay).toHaveAttribute("data-play-id", running.identities.playId);
+  await expect(patchbay.locator("[data-patchbay-gear]")).toHaveCount(2);
+  await expect(patchbay.locator("[data-patchbay-cord]")).toHaveCount(1);
   for (const [name, identity] of Object.entries(running.identities)) {
     const selector = name.replace(/Id$/, "").toLowerCase();
     await expect(page.locator(`[data-identity="${selector}"]`)).toHaveText(identity);
