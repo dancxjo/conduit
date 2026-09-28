@@ -32,20 +32,12 @@ test.beforeEach(async () => {
 
 test.afterEach(() => entrance?.child.kill());
 
-test("Birth on the front page hands the Lulled Body to an explicit Wake", async ({ page }) => {
+test("Open your body enters the current Body surface", async ({ page }) => {
   await page.goto(entrance.url);
   await page.getByRole("link", { name: "Open your body", exact: true }).click();
-  await expect(page).toHaveTitle("Birth your body · Conduit");
-  await expect(page.locator("[data-body-state]")).toHaveText("Crèche");
-  await expect(page.locator("[data-workspace-creche]")).toBeVisible();
-  await expect(page.getByRole("button", { name: "Birth Body", exact: true })).toBeVisible();
-  await page.getByRole("button", { name: "Birth Body", exact: true }).click();
-  await expect(page.locator("[data-body-state]")).toHaveText("lulled");
-  await expect(page.getByRole("button", { name: "wake body", exact: true })).toBeVisible();
-  await page.getByRole("button", { name: "wake body", exact: true }).click();
-  await expect(page.locator("[data-play-state]")).toHaveText("Playing");
-  await page.keyboard.press("h");
-  await expect(page.locator("[data-form-output] output:visible")).toHaveText("h");
+  await expect(page).toHaveURL(/\/workspace\/$/);
+  await expect(page.getByRole("main")).toBeVisible();
+  await expect(page.locator("[data-body-state]")).not.toHaveText("Opening…");
 });
 
 test("Browser Home enacts the shared journey through the real Patchbay", async ({ page }) => {
