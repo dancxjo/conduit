@@ -97,6 +97,11 @@ pub(crate) struct InstalledHostIdentity {
     pub(crate) release_bundle_sha256: String,
 }
 
+pub(crate) fn has_current_body(state_dir: &Path) -> Result<bool, String> {
+    let installation = read_installation(&state_dir.join("installation.json"))?;
+    Ok(installation.body_state.is_some() || installation.joined_body_state.is_some())
+}
+
 pub(crate) fn install_and_activate(
     manifest: &Path,
     state_dir: &Path,

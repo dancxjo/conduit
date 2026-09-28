@@ -17,7 +17,7 @@ your certificate provider. Then create a new private directory containing one
 relay slot and two role-specific endpoint descriptors:
 
 ```console
-conduit rendezvous-relay provision \
+conduit-relay provision \
   --relay-address 203.0.113.10:7443 \
   --relay-url wss://relay.example:7443/conduit \
   --server-identity relay.example \
@@ -52,7 +52,7 @@ key material; do not paste them into issues, logs, or evidence.
 On the routable relay host, start the exact pre-provisioned slot:
 
 ```console
-conduit rendezvous-relay serve \
+conduit-relay serve \
   --bind 203.0.113.10:7443 \
   --public-url wss://relay.example:7443/conduit \
   --tls-cert relay-chain.pem \

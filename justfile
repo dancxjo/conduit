@@ -9,11 +9,8 @@ run form *args:
 form-check form *args:
     conduit check {{form}} {{args}}
 
-inspect report *args:
-    conduit inspect runtime-report {{report}} {{args}}
-
-copy *args:
-    conduit copy {{args}}
+inspect artifact *args:
+    conduit inspect {{artifact}} {{args}}
 
 xtask *args:
     cargo xtask {{args}}
