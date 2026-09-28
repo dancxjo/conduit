@@ -791,6 +791,19 @@ fn validate_mask_journey(track: &BodyTrack) -> Result<(), String> {
     }
 
     let first = &track.mask_actions[0];
+    let mut current_show_ids = BTreeSet::new();
+    for action in &track.mask_actions {
+        if action
+            .show_id
+            .as_deref()
+            .is_some_and(|show_id| !current_show_ids.insert(show_id))
+        {
+            return Err(format!(
+                "{} reuses a retained Show as current Face truth",
+                track.track_id
+            ));
+        }
+    }
     if track
         .mask_actions
         .iter()
