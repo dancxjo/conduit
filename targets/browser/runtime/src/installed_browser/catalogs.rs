@@ -107,7 +107,6 @@ pub(crate) fn catalogs_for_presentation(
     conduit_chat::install_body_chat_catalog(&mut startup, &mut profile)?;
     conduit_ai::install_llm_semantic_catalog(&mut startup, &mut profile)?;
     conduit_ai::install_model_text_catalog(&mut startup, &mut profile)?;
-    conduit_ai::install_generate_text_catalog(&mut startup, &mut profile)?;
     conduit_tongues::install_house_conversation_catalog(&mut startup, &mut profile)?;
     conduit_tongues::install_house_conversation_form_catalog(&mut startup, &mut profile)?;
     conduit_tongues::install_speech_recognition_catalog(&mut startup, &mut profile)?;

@@ -515,10 +515,7 @@ impl InstalledRemoteFragment {
                 }
                 Err(failure) => super::whisper_speech_back::failure_outcome(failure),
             }
-        } else if matches!(
-            contract,
-            conduit_ai::GENERATE_TEXT_HOST_CALL | conduit_ai::LOCAL_MODEL_OPERATION
-        ) {
+        } else if contract == conduit_ai::LOCAL_MODEL_OPERATION {
             let placement = self
                 .placements
                 .get(usize::from(request.node.0))

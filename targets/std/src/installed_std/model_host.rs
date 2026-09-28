@@ -65,10 +65,6 @@ pub(super) fn execute(
     output: &mut Vec<u8>,
 ) -> Result<ModelHostCompletion, String> {
     output.clear();
-    if contract == conduit_ai::GENERATE_TEXT_HOST_CALL {
-        super::generate_text::execute_fixture(placement, input, output)?;
-        return Ok(ModelHostCompletion::Output);
-    }
     if contract != conduit_ai::LOCAL_MODEL_OPERATION {
         return Err("model host received an unsupported operation".to_string());
     }

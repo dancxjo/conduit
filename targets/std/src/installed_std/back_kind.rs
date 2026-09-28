@@ -15,7 +15,6 @@ use super::flow_first_back::FlowFirstBack;
 use super::flow_gate_back::FlowGateScalarBack;
 use super::flow_pressure_backs::FlowPressureBack;
 use super::flow_state_backs::{FlowTeeScalarBack, StateLatestScalarBack};
-use super::generate_text::GenerateTextBack;
 use super::generated_speech_commit_back::GeneratedSpeechCommitBack;
 use super::house_prompt_back::HousePromptBack;
 use super::http::{HttpClientBack, HttpServerBack};
@@ -177,7 +176,6 @@ pub(super) enum InstalledBack {
     MidiOutput(MidiOutputBack),
     MidiInput(Box<MidiInputBack>),
     ExternalWebSocketListener(super::external_websocket::ExternalWebSocketListenerBack),
-    GenerateText(GenerateTextBack),
     HousePrompt(HousePromptBack),
     BodyChatPrompt(BodyChatPromptBack),
     BodyConversationContext(BodyConversationContextBack),
