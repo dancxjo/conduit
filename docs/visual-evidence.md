@@ -76,7 +76,7 @@ The manifest contract originated in #821; the first Patchbay captures were
 added through #822.
 
 The One form, Two fronts sibling uses a separate four-output manifest. Its
-supported entrance is `cargo xtask evidence one-form-two-fronts`, which feeds
+supported entrance is `cargo xtask prove one-form-two-fronts`, which feeds
 one deterministic front-door presentation into the native software renderer
 and the pinned Chromium DOM/SVG renderer. It retains `native.png`,
 `native.json`, `browser.png`, and `browser.json`; complete verification requires
@@ -91,7 +91,7 @@ physical-display output, nor human perception is established. Omitting the
 input clears stale `current/one-form-two-fronts/` content.
 
 Little Life uses a separate six-output manifest rather than consuming a
-ConduitOS capture slot. `cargo xtask evidence little-life` retains PNGs at
+ConduitOS capture slot. `cargo xtask prove little-life` retains PNGs at
 generations 0, 1, 8, and 32, the complete 32-generation scalar-field terminal
 transcript, and the ordinary plan/play execution report. Generation zero is
 the deterministic Orbium seed lowered through the semantic gray8 bitmap
@@ -148,7 +148,7 @@ new success or erasing the known state.
 
 [![Current accepted Patchbay state retaining its exact plan after renderer delivery loss](https://dancxjo.github.io/conduit/current/patchbay/disconnected.png)](https://dancxjo.github.io/conduit/current/patchbay/disconnected/)
 
-`cargo xtask evidence docs-verify` rejects missing, duplicated, immutable-commit,
+`cargo xtask prove docs-verify` rejects missing, duplicated, immutable-commit,
 or ephemeral-artifact references. At publication, the same command additionally
 requires each stable image to match the exact current commit bytes and requires
 its page to expose that commit's provenance before Pages can deploy.
@@ -168,7 +168,7 @@ is an explicit documentary run, not a required live-inference release gate.
 The retained words are not voiced by an unrelated documentary binary. Spoken
 evidence must cross the same admitted Tongues contract as any other speech.
 
-Publication uses `cargo xtask evidence three-body-journey` with
+Publication uses `cargo xtask prove three-body-journey` with
 `--recorded-generative <recorded-track.json>`. It verifies each current producer
 track, requires graphical media, verifies retained media digests, and refuses
 live-recording reuse when any exact structured Presenter request changes.
@@ -184,7 +184,7 @@ gallery-only One Form, Two Fronts and Little Life evidence against the accepted
 source, and refuses to replace Pages if `main` has advanced. Its failure leaves
 both the release and the base software publication intact.
 
-`cargo xtask evidence check-three-body-journey --publication-root <directory>
+`cargo xtask prove check-three-body-journey --publication-root <directory>
 --output <new-review-directory>` checks the assembled documentary in the pinned
 Chromium with one worker and zero retries. It verifies media loading/playback,
 collapsed provenance, body navigation and mobile overflow, and retains desktop

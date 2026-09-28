@@ -3,7 +3,7 @@ use clap::Args;
 use std::{path::PathBuf, process::Command};
 
 #[derive(Args, Debug)]
-pub(super) struct BrowserArgs {
+pub(crate) struct BrowserArgs {
     #[arg(long)]
     publication_root: PathBuf,
     #[arg(long)]

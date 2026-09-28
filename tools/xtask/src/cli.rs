@@ -9,7 +9,7 @@ use crate::commands::check::CheckArgs;
 use crate::commands::ci::CiArgs;
 use crate::commands::conduitos::ConduitosArgs;
 use crate::commands::esp32_firmware::Esp32FirmwareArgs;
-use crate::commands::evidence::EvidenceArgs;
+use crate::commands::evidence::EvidenceCommand;
 use crate::commands::forms::FormsArgs;
 use crate::commands::host::HostArgs;
 use crate::commands::pete_std_observe::PeteArgs;
@@ -63,10 +63,8 @@ pub enum Command {
     Integrate,
     /// Plan repository CI obligations from an exact change.
     Ci(CiArgs),
-    /// Execute platform and protocol proof suites.
+    /// Execute proofs and manage their bounded evidence.
     Prove(Box<ProveArgs>),
-    /// Verify bounded proof evidence before transport or review.
-    Evidence(EvidenceArgs),
     /// Check and report the explicit reviewed form inventory.
     Forms(FormsArgs),
     /// Inspect repository and platform prerequisites.
@@ -120,16 +118,29 @@ pub struct ProveArgs {
     /// Which proof suite to execute.
     pub proof: Option<ProveTarget>,
 
+    /// Produce, verify, or publish bounded proof evidence.
+    #[command(subcommand)]
+    pub evidence: Option<EvidenceCommand>,
+
     /// List the versioned proof command contract instead of executing a proof.
-    #[arg(long, conflicts_with_all = ["proof", "verify_record", "run_obligation"])]
+    #[arg(
+        long,
+        conflicts_with_all = ["proof", "verify_record", "run_obligation"]
+    )]
     pub list: bool,
 
-    /// Validate one JSON proof record against its exact registered command contract.
-    #[arg(long, conflicts_with_all = ["proof", "list", "run_obligation"])]
+    /// Verify one JSON proof record against its exact registered command contract.
+    #[arg(
+        long = "verify",
+        conflicts_with_all = ["proof", "list", "run_obligation"]
+    )]
     pub verify_record: Option<std::path::PathBuf>,
 
     /// Run the one pinned finite proof-catalog validation obligation.
-    #[arg(long, conflicts_with_all = ["proof", "list", "verify_record"])]
+    #[arg(
+        long,
+        conflicts_with_all = ["proof", "list", "verify_record"]
+    )]
     pub run_obligation: bool,
 
     /// Stop after emitting the reviewed checkpoint and residual obligation.
@@ -694,10 +705,14 @@ mod tests {
         ));
         assert!(Cli::try_parse_from(["xtask", "proofs"]).is_err());
 
-        let docs =
-            Cli::try_parse_from(["xtask", "evidence", "docs-verify", "--workspace-root", "."])
-                .expect("evidence docs verifier parses");
-        assert!(matches!(docs.command, Command::Evidence(_)));
+        let docs = Cli::try_parse_from(["xtask", "prove", "docs-verify", "--workspace-root", "."])
+            .expect("proof evidence docs verifier parses");
+        assert!(matches!(
+            docs.command,
+            Command::Prove(args)
+                if matches!(args.evidence, Some(EvidenceCommand::DocsVerify(_)))
+        ));
+        assert!(Cli::try_parse_from(["xtask", "evidence", "docs-verify"]).is_err());
 
         let conduitos = Cli::try_parse_from(["xtask", "conduitos", "prove", "--arch", "x86-64"])
             .expect("ConduitOS command parses");

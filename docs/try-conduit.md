@@ -129,7 +129,7 @@ pinned Chromium DOM/SVG renderer:
 
 ```bash
 npm --prefix proof/browser ci --ignore-scripts --prefer-offline
-cargo xtask evidence one-form-two-fronts
+cargo xtask prove one-form-two-fronts
 ```
 
 The command refuses an existing output directory. On success,
@@ -145,7 +145,7 @@ Retain the deterministic Orbium seed and three checkpoints from one ordinary
 32-step Lenia plan/play:
 
 ```bash
-cargo xtask evidence little-life
+cargo xtask prove little-life
 ```
 
 The exact six-output manifest under `target/journeys/little-life/` contains

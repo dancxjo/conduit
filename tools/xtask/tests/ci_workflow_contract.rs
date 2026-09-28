@@ -510,9 +510,9 @@ fn gallery_only_evidence_is_pinned_to_the_accepted_commit_downstream() {
     assert!(!products.contains("JOURNEY_RESULT"));
     assert!(!products.contains("LITTLE_LIFE_RESULT"));
     assert!(journey.contains("CONDUIT_CHECKOUT_SHA: ${{ steps.context.outputs.source_commit }}"));
-    assert!(journey.contains("cargo xtask evidence one-form-two-fronts --locked"));
+    assert!(journey.contains("cargo xtask prove one-form-two-fronts --locked"));
     assert!(journey.contains("--proof journey-one-form-two-fronts --suite journey-gallery"));
-    assert!(journey.contains("cargo xtask evidence little-life --locked"));
+    assert!(journey.contains("cargo xtask prove little-life --locked"));
     assert!(journey.contains("--proof journey-little-life --suite journey-gallery"));
     assert!(
         journey
@@ -532,8 +532,8 @@ fn sibling_gallery_is_rendered_only_after_release_admission() {
 
     assert!(!products.contains("\n  journey-gallery:\n"));
     assert!(!products.contains("JOURNEY_GALLERY_RESULT"));
-    assert!(gallery.contains("cargo xtask evidence one-form-two-fronts --locked"));
-    assert!(gallery.contains("cargo xtask evidence little-life --locked"));
+    assert!(gallery.contains("cargo xtask prove one-form-two-fronts --locked"));
+    assert!(gallery.contains("cargo xtask prove little-life --locked"));
     assert!(gallery.contains("--two-fronts-evidence-root"));
     assert!(gallery.contains("--little-life-evidence-root"));
     assert!(gallery.contains("target/journey-gallery-site"));
@@ -790,7 +790,7 @@ fn promotion_is_independent_of_downstream_three_body_documentary() {
     assert!(journey.contains("conduit-browser-body-journey-"));
     assert!(journey.contains("name: conduitos-x86-batch-"));
     assert!(journey.contains("host prove-local-model"));
-    assert!(journey.contains("evidence stage-three-body-journey"));
+    assert!(journey.contains("prove stage-three-body-journey"));
     assert!(journey.contains("Refuse to overwrite a newer accepted release"));
     assert!(journey.contains("test \"$carrier_run_id\" = \"$PAGES_RUN_ID\""));
     assert!(journey.contains("name: ${{ steps.context.outputs.carrier_name }}"));

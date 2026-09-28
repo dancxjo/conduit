@@ -135,10 +135,10 @@ test("product jobs build the immutable PR head and deployments queue", () => {
   assert.match(journeyWorkflow, /test "\$carrier_run_id" = "\$PAGES_RUN_ID"/);
   assert.match(journeyWorkflow, /conduit-browser-body-journey-/);
   assert.match(journeyWorkflow, /name: conduitos-x86-batch-/);
-  assert.match(journeyWorkflow, /cargo xtask evidence one-form-two-fronts --locked/);
-  assert.match(journeyWorkflow, /cargo xtask evidence little-life --locked/);
+  assert.match(journeyWorkflow, /cargo xtask prove one-form-two-fronts --locked/);
+  assert.match(journeyWorkflow, /cargo xtask prove little-life --locked/);
   assert.match(journeyWorkflow, /CONDUIT_CHECKOUT_SHA: \$\{\{ steps\.context\.outputs\.source_commit \}\}/);
-  assert.match(journeyWorkflow, /cargo xtask evidence gallery/);
+  assert.match(journeyWorkflow, /cargo xtask prove gallery/);
   assert.match(journeyWorkflow, /proof\/fixtures\/ollama-http-service\.mjs/);
   assert.match(journeyWorkflow, /three-body-journey-contract/);
   assert.match(journeyWorkflow, /stage-three-body-journey/);
