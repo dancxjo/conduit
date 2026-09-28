@@ -327,15 +327,15 @@ impl OllamaLocalModelAdapter {
             "format": {
                 "type": "object",
                 "properties": {
-                    "speech": { "type": "string", "minLength": 1, "maxLength": 1024 },
-                    "presented_thought": { "type": ["string", "null"], "maxLength": 1024 },
+                    "speech_text_index": { "type": "integer", "minimum": 0 },
+                    "presented_thought_text_index": { "type": ["integer", "null"], "minimum": 0 },
                     "suggested_action_identities": {
                         "type": "array",
                         "items": action_items,
                         "maxItems": available_actions.len()
                     }
                 },
-                "required": ["speech", "presented_thought", "suggested_action_identities"],
+                "required": ["speech_text_index", "presented_thought_text_index", "suggested_action_identities"],
                 "additionalProperties": false
             },
             "keep_alive": "5m",

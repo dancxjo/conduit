@@ -19,7 +19,7 @@ pub const GENERATIVE_PRESENTER_INPUT_KIND: &str =
     "conduit.presentation/generative-presenter-input@1";
 /// Untrusted provider output awaiting an accountable semantic validator.
 pub const GENERATED_MANIFESTATION_CANDIDATE_KIND: &str =
-    "conduit.presentation/generated-manifestation-candidate@1";
+    "conduit.presentation/generated-manifestation-candidate@2";
 /// Accepted generated output carrying a retained validation receipt.
 pub const GENERATED_MANIFESTATION_KIND: &str = "conduit.presentation/generated-manifestation@2";
 pub const MAX_GENERATIVE_PRESENTER_IDENTITY_BYTES: usize = 128;
@@ -170,14 +170,6 @@ impl GenerativePresenterRequest {
     ) -> Result<(), GenerativePresenterRefusal> {
         validate_generated_candidate(self, manifestation)
     }
-
-    /// Validate provider structure without accepting it as outward output.
-    pub fn validate_manifestation(
-        &self,
-        candidate: &GeneratedManifestationCandidate,
-    ) -> Result<(), GenerativePresenterRefusal> {
-        self.validate_candidate(candidate)
-    }
 }
 
 pub(crate) fn validate_identity(value: &str) -> Result<(), GenerativePresenterRefusal> {
@@ -316,6 +308,7 @@ mod tests {
             disposition: GeneratedManifestationDisposition::Produced,
             content: vec![GeneratedContentSegment {
                 role: GeneratedContentRole::Speech,
+                source_text_index: 0,
                 bytes: b"I am awake. You can inspect this body.".to_vec(),
             }],
             affordances: vec![GeneratedActionAffordance {
@@ -350,7 +343,7 @@ mod tests {
             GenerativeNarratorRole::TransientFirstPersonBodyNarrator
         );
         request
-            .validate_manifestation(&manifestation(&request))
+            .validate_candidate(&manifestation(&request))
             .unwrap();
     }
 
@@ -388,18 +381,18 @@ mod tests {
         let mut generated = manifestation(&request);
         generated.affordances[0].action_identity = "disk.format".into();
         assert_eq!(
-            request.validate_manifestation(&generated),
+            request.validate_candidate(&generated),
             Err(GenerativePresenterRefusal::UnknownAction)
         );
         generated.affordances[0].action_identity = "body.fulfill".into();
         assert_eq!(
-            request.validate_manifestation(&generated),
+            request.validate_candidate(&generated),
             Err(GenerativePresenterRefusal::UnavailableAction)
         );
         generated.affordances[0].action_identity = "patchbay.open".into();
         generated.affordances[0].source_presentation_revision = 6;
         assert_eq!(
-            request.validate_manifestation(&generated),
+            request.validate_candidate(&generated),
             Err(GenerativePresenterRefusal::StaleAction)
         );
     }
@@ -410,19 +403,19 @@ mod tests {
         let mut generated = manifestation(&request);
         generated.source_presentation_identity = "sha256:other".into();
         assert_eq!(
-            request.validate_manifestation(&generated),
+            request.validate_candidate(&generated),
             Err(GenerativePresenterRefusal::SourcePresentationMismatch)
         );
         generated = manifestation(&request);
         generated.template_contract_revision = "presenter-template/2".into();
         assert_eq!(
-            request.validate_manifestation(&generated),
+            request.validate_candidate(&generated),
             Err(GenerativePresenterRefusal::TemplateMismatch)
         );
         generated = manifestation(&request);
         generated.content[0].bytes = vec![b'x'; request.bounds.maximum_output_bytes as usize + 1];
         assert_eq!(
-            request.validate_manifestation(&generated),
+            request.validate_candidate(&generated),
             Err(GenerativePresenterRefusal::OutputBoundExceeded)
         );
     }
@@ -478,7 +471,7 @@ mod tests {
         )
         .unwrap();
         let generated = manifestation(&request);
-        request.validate_manifestation(&generated).unwrap();
+        request.validate_candidate(&generated).unwrap();
 
         assert_eq!(
             linear.presentation_id.as_str(),
@@ -504,10 +497,11 @@ mod tests {
         let mut generated = manifestation(&request);
         generated.content.push(GeneratedContentSegment {
             role: GeneratedContentRole::PresentedThought,
+            source_text_index: 0,
             bytes: b"I wonder what I will notice next.".to_vec(),
         });
         generated.candidate_identity = generated.digest();
-        request.validate_manifestation(&generated).unwrap();
+        request.validate_candidate(&generated).unwrap();
         assert_eq!(generated.content[0].role, GeneratedContentRole::Speech);
         assert_eq!(
             generated.content[1].role,
@@ -517,11 +511,12 @@ mod tests {
         generated.content = (0..=MAX_GENERATED_CONTENT_SEGMENTS)
             .map(|_| GeneratedContentSegment {
                 role: GeneratedContentRole::Speech,
+                source_text_index: 0,
                 bytes: b"I am here.".to_vec(),
             })
             .collect();
         assert_eq!(
-            request.validate_manifestation(&generated),
+            request.validate_candidate(&generated),
             Err(GenerativePresenterRefusal::TooManyContentSegments)
         );
     }
@@ -532,13 +527,13 @@ mod tests {
         let mut generated = manifestation(&request);
         generated.disposition = GeneratedManifestationDisposition::Refused;
         assert_eq!(
-            request.validate_manifestation(&generated),
+            request.validate_candidate(&generated),
             Err(GenerativePresenterRefusal::OutputForTerminalDisposition)
         );
         generated.content.clear();
         generated.affordances.clear();
         generated.correlations.clear();
         generated.candidate_identity = generated.digest();
-        request.validate_manifestation(&generated).unwrap();
+        request.validate_candidate(&generated).unwrap();
     }
 }

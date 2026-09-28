@@ -44,7 +44,7 @@ const JUDGMENT_RESULT: &str = "llm/judgment-result@1";
 pub const GENERATIVE_PRESENTER_INPUT_VALUE_KIND: &str =
     "conduit.presentation/generative-presenter-input@1";
 pub const GENERATED_MANIFESTATION_VALUE_KIND: &str =
-    "conduit.presentation/generated-manifestation-candidate@1";
+    "conduit.presentation/generated-manifestation-candidate@2";
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 pub enum LlmDeterminismProfile {
@@ -234,7 +234,7 @@ fn present_contract() -> LlmSemanticContract {
         GENERATIVE_PRESENTER_INPUT_VALUE_KIND,
         GENERATED_MANIFESTATION_VALUE_KIND,
     );
-    contract.kind_contract_revision = KindIdentity::from("conduit.llm/present@2");
+    contract.kind_contract_revision = KindIdentity::from("conduit.llm/present@3");
     contract
 }
 

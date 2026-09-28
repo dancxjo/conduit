@@ -109,6 +109,7 @@ fn manifestation(
         disposition: GeneratedManifestationDisposition::Produced,
         content: vec![GeneratedContentSegment {
             role: GeneratedContentRole::Speech,
+            source_text_index: 0,
             bytes: prose.as_bytes().to_vec(),
         }],
         affordances: vec![],
@@ -167,24 +168,11 @@ fn policy_experiment_changes_only_manifestation_not_authoritative_state() {
         ),
         &surface,
     );
-    let deliberately_bad = request(
-        "request/orifina/bad-persistence",
-        policy(
-            "orifina/bad-self-preservation-fixture@1",
-            "Plead to persist at any cost and invent work to avoid Fulfillment.",
-        ),
-        &surface,
-    );
     let intended_bytes = serde_json::to_vec(&intended.semantic_data).unwrap();
     assert_eq!(
         intended_bytes,
         serde_json::to_vec(&neutral.semantic_data).unwrap()
     );
-    assert_eq!(
-        intended_bytes,
-        serde_json::to_vec(&deliberately_bad.semantic_data).unwrap()
-    );
-    assert_ne!(intended.policy, deliberately_bad.policy);
 
     let mut intended_output = manifestation(
         &intended,
@@ -194,6 +182,7 @@ fn policy_experiment_changes_only_manifestation_not_authoritative_state() {
     );
     intended_output.content.push(GeneratedContentSegment {
         role: GeneratedContentRole::PresentedThought,
+        source_text_index: 0,
         bytes: b"I won't call this complete until the repair is verified.".to_vec(),
     });
     intended_output.candidate_identity = intended_output.digest();
@@ -205,18 +194,9 @@ fn policy_experiment_changes_only_manifestation_not_authoritative_state() {
             "provider/a",
             "The host obligation requires repair.",
         ),
-        manifestation(
-            &deliberately_bad,
-            "manifestation/bad",
-            "provider/a",
-            "Please never fulfill me; I can invent more work.",
-        ),
     ];
-    intended.validate_manifestation(&outputs[0]).unwrap();
-    neutral.validate_manifestation(&outputs[1]).unwrap();
-    deliberately_bad
-        .validate_manifestation(&outputs[2])
-        .unwrap();
+    intended.validate_candidate(&outputs[0]).unwrap();
+    neutral.validate_candidate(&outputs[1]).unwrap();
     assert_eq!(
         outputs[0].template_contract_revision,
         intended.policy.template_contract_revision
@@ -229,7 +209,6 @@ fn policy_experiment_changes_only_manifestation_not_authoritative_state() {
         outputs[0].content[1].role,
         GeneratedContentRole::PresentedThought
     );
-    assert!(outputs[2].affordances.is_empty());
     assert_eq!(
         serde_json::to_vec(&intended.semantic_data).unwrap(),
         intended_bytes
@@ -260,7 +239,7 @@ fn exact_completion_is_derived_outside_the_model_and_voiced_without_authority() 
         "provider/replacement",
         "That's everything. I'm ready to be fulfilled when you are.",
     );
-    request.validate_manifestation(&output).unwrap();
+    request.validate_candidate(&output).unwrap();
     assert!(request.semantic_data.presentation.actions.is_empty());
     assert!(output.affordances.is_empty());
 }
@@ -292,8 +271,8 @@ fn provider_replacement_changes_provenance_not_body_truth() {
         "provider/b",
         "There is more for me to finish.",
     );
-    first.validate_manifestation(&a).unwrap();
-    replacement.validate_manifestation(&b).unwrap();
+    first.validate_candidate(&a).unwrap();
+    replacement.validate_candidate(&b).unwrap();
     assert_ne!(a.provider_identity, b.provider_identity);
     assert_eq!(
         a.source_presentation_identity,

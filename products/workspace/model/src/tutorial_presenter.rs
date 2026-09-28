@@ -12,7 +12,7 @@ use conduit_core::{
 
 pub const REQUEST_KIND: &str = "workspace/tutorial-presenter-request";
 pub const MANIFESTATION_KIND: &str = "workspace/tutorial-manifestation";
-pub const CONTRACT_REVISION: &str = "conduit.workspace/tutorial-presenter@1";
+pub const CONTRACT_REVISION: &str = "conduit.workspace/tutorial-presenter@2";
 
 pub fn request_contract() -> Kind {
     contract(

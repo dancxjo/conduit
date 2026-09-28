@@ -37,6 +37,9 @@ pub enum GeneratedContentRole {
 #[serde(deny_unknown_fields)]
 pub struct GeneratedContentSegment {
     pub role: GeneratedContentRole,
+    /// Exact text statement in the correlated source Face. This is selection,
+    /// not a claim that a validator can prove arbitrary prose entailment.
+    pub source_text_index: u32,
     pub bytes: Vec<u8>,
 }
 
@@ -269,7 +272,7 @@ pub enum GeneratedValidationError {
 impl GeneratedManifestationCandidate {
     pub fn digest(&self) -> String {
         let mut state = Sha256::new();
-        state.update(b"conduit.presentation/generated-manifestation-candidate@1\0");
+        state.update(b"conduit.presentation/generated-manifestation-candidate@2\0");
         for value in [
             &self.request_identity,
             &self.source_presentation_identity,
@@ -286,6 +289,7 @@ impl GeneratedManifestationCandidate {
         state.update([self.disposition as u8]);
         for segment in &self.content {
             state.update([segment.role as u8]);
+            state.update(segment.source_text_index.to_be_bytes());
             hash_bytes(&mut state, &segment.bytes);
         }
         for affordance in &self.affordances {

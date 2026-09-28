@@ -11,8 +11,8 @@ pub const GENERATED_SPEECH_IMPLEMENTATION: &str = "std/spoken-mask-generated-spe
 pub const SPOKEN_ARTIFACT_IMPLEMENTATION: &str = "std/spoken-mask-wav-artifact@1";
 pub const ARTIFACT_SHOW_IMPLEMENTATION: &str = "std/spoken-mask-artifact-show@1";
 pub const NO_INTERACTION_IMPLEMENTATION: &str = "std/spoken-mask-no-interaction@1";
-pub const VALIDATION_ENVELOPE_IMPLEMENTATION: &str = "std/generated-validation-envelope@1";
-pub const GENERATED_VALIDATOR_IMPLEMENTATION: &str = "std/generated-semantic-validator@1";
+pub const VALIDATION_ENVELOPE_IMPLEMENTATION: &str = "std/generated-validation-envelope@2";
+pub const GENERATED_VALIDATOR_IMPLEMENTATION: &str = "std/generated-semantic-validator@2";
 pub const RETAIN_GENERATED_VALIDATION_IMPLEMENTATION: &str = "std/retain-generated-validation@1";
 pub const PRESENTATION_REQUEST_OPERATION: &str = "conduit.host/spoken-mask-request@1";
 pub const GENERATED_SPEECH_OPERATION: &str = "conduit.host/spoken-mask-speech@1";
@@ -26,9 +26,9 @@ pub const RETAIN_GENERATED_ASSESSMENT_OPERATION: &str =
 pub const REGISTER_VALIDATION_REQUEST_OPERATION: &str =
     "conduit.host/register-generated-validation-request@1";
 pub const BUILD_VALIDATION_ENVELOPE_OPERATION: &str =
-    "conduit.host/build-generated-validation-envelope@1";
+    "conduit.host/build-generated-validation-envelope@2";
 pub const ASSESS_GENERATED_ENVELOPE_OPERATION: &str =
-    "conduit.host/assess-generated-validation-envelope@1";
+    "conduit.host/assess-generated-validation-envelope@2";
 
 pub fn spoken_mask_offers() -> Vec<CapabilityOffer> {
     vec![

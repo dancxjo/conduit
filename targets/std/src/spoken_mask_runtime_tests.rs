@@ -73,6 +73,7 @@ impl HostedLocalModelAdapter for FixturePresenter {
             disposition: GeneratedManifestationDisposition::Produced,
             content: vec![GeneratedContentSegment {
                 role: GeneratedContentRole::Speech,
+                source_text_index: 0,
                 bytes: request.semantic_data.presentation.text[0]
                     .text
                     .as_bytes()
@@ -402,6 +403,7 @@ fn producer_callable_replays_a_retained_live_manifestation_through_the_spoken_ma
         disposition: GeneratedManifestationDisposition::Produced,
         content: vec![GeneratedContentSegment {
             role: GeneratedContentRole::Speech,
+            source_text_index: 0,
             bytes: b"The Body has awakened.".to_vec(),
         }],
         affordances: vec![],
