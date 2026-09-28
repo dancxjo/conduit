@@ -34,8 +34,6 @@ mod host_local_model_journey;
 mod host_microphone;
 #[path = "host_microphone_house.rs"]
 mod host_microphone_house;
-#[path = "host_piper.rs"]
-mod host_piper;
 #[path = "host_recorded_house.rs"]
 mod host_recorded_house;
 #[path = "host_release.rs"]
@@ -170,47 +168,6 @@ enum HostCommand {
         #[arg(long, requires = "orifina_presenter")]
         journey_documentary: bool,
     },
-    /// Exercise one explicitly selected local Piper provider under finite bounds.
-    ProvePiper {
-        #[arg(long)]
-        executable: PathBuf,
-        #[arg(long)]
-        model: PathBuf,
-        #[arg(long)]
-        config: PathBuf,
-        #[arg(long)]
-        library_path: Option<PathBuf>,
-        #[arg(long)]
-        text: String,
-        /// Run the unchanged portable form through ordinary std Plan and Play.
-        #[arg(long)]
-        plan_play: bool,
-        /// Freshly select this ALSA card for the plan/Play output.
-        #[arg(
-            long,
-            requires = "plan_play",
-            requires = "playback_device",
-            requires = "authorize_output"
-        )]
-        playback_card_id: Option<String>,
-        /// Freshly select this ALSA device number for the plan/Play output.
-        #[arg(
-            long,
-            requires = "plan_play",
-            requires = "playback_card_id",
-            requires = "authorize_output"
-        )]
-        playback_device: Option<u16>,
-        /// Explicitly authorize opening and writing the selected playback device.
-        #[arg(long, requires = "playback_card_id")]
-        authorize_output: bool,
-        #[arg(long, default_value_t = conduit_std_offers::PIPER_MAXIMUM_FRAMES)]
-        maximum_frames: u32,
-        #[arg(long, default_value_t = conduit_std_offers::PIPER_MAXIMUM_BLOCKS)]
-        maximum_blocks: u16,
-        #[arg(long, default_value_t = 30)]
-        timeout_seconds: u64,
-    },
     /// Speak through Tongues as Host, perform one Birth, then speak as the Body.
     ProveSpokenBirth {
         /// Explicitly consume the one allowed Birth action.
@@ -340,36 +297,6 @@ pub fn run(args: HostArgs, opts: &GlobalOpts) -> Result<(), Box<dyn std::error::
     match args.command.unwrap_or(HostCommand::Std) {
         HostCommand::Std => super::demo::run_std(opts),
         HostCommand::Browser => super::browser::run(opts),
-        HostCommand::ProvePiper {
-            executable,
-            model,
-            config,
-            library_path,
-            text,
-            plan_play,
-            playback_card_id,
-            playback_device,
-            authorize_output,
-            maximum_frames,
-            maximum_blocks,
-            timeout_seconds,
-        } => host_piper::prove(
-            host_piper::PiperProofRequest {
-                executable,
-                model,
-                config,
-                library_path,
-                text,
-                plan_play,
-                playback_card_id,
-                playback_device,
-                authorize_output,
-                maximum_frames,
-                maximum_blocks,
-                timeout_seconds,
-            },
-            opts,
-        ),
         HostCommand::ProveSpokenBirth {
             confirm_birth,
             bootstrap_text,
