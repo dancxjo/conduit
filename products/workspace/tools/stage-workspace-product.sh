@@ -49,7 +49,7 @@ if test -n "$initial_body_bundle" || test -n "$workspace_catalog"; then
   cp "$initial_body_bundle" "$destination/forms/initial-body.conduit"
   cp "$workspace_catalog" "$destination/forms/workspace-catalog.json"
 else
-  cargo xtask forms bundle-initial-body --output "$destination/forms/initial-body.conduit"
-  cargo xtask forms bundle-workspace-catalog --output "$destination/forms/workspace-catalog.json"
+  cargo xtask check forms bundle-initial-body --output "$destination/forms/initial-body.conduit"
+  cargo xtask check forms bundle-workspace-catalog --output "$destination/forms/workspace-catalog.json"
 fi
 node targets/browser/tools/build-browser-application-package.mjs products/workspace/browser/workspace.application.template.json "$destination" workspace.application.json

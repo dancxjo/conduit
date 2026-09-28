@@ -716,8 +716,8 @@ jobs:
       - name: Build the reviewed Form bundles before release payload assembly
         run: |
           mkdir -p target/reviewed-form-bundles
-          cargo +1.98.1 xtask forms bundle-initial-body --output target/reviewed-form-bundles/initial-body.conduit
-          cargo +1.98.1 xtask forms bundle-workspace-catalog --output target/reviewed-form-bundles/workspace-catalog.json
+          cargo +1.98.1 xtask check forms bundle-initial-body --output target/reviewed-form-bundles/initial-body.conduit
+          cargo +1.98.1 xtask check forms bundle-workspace-catalog --output target/reviewed-form-bundles/workspace-catalog.json
       - name: Download the reviewed browser product runtimes
         uses: ./.github/actions/download-artifact-retry
         with:

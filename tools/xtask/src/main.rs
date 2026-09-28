@@ -16,6 +16,7 @@ mod workspace;
 
 use clap::Parser;
 use cli::{AudioCommand, Cli, Command, DemoCommand, FabricateTarget, GlobalOpts, MidiCommand};
+use commands::check::CheckScope;
 
 fn main() {
     let cli = Cli::parse_from(command_registry::normalize_compatibility_aliases(
@@ -24,10 +25,26 @@ fn main() {
     let opts = cli.global;
     let result: Result<(), Box<dyn std::error::Error>> = match cli.command {
         Command::BodyCoordination(args) => commands::body_coordination::run(args, &opts),
-        Command::Catalog(args) => commands::catalog::run(args, &opts)
-            .map_err(|error| Box::new(error) as Box<dyn std::error::Error>),
-        Command::Check(args) => commands::check::run(args, &opts)
-            .map_err(|error| Box::new(error) as Box<dyn std::error::Error>),
+        Command::Check(mut args) => {
+            if let Some(scope) = args.scope.take() {
+                if args.suite.is_some() {
+                    Err("a check suite cannot be combined with a scoped check".into())
+                } else {
+                    match scope {
+                        CheckScope::Catalog(args) => commands::catalog::run(args, &opts)
+                            .map_err(|error| Box::new(error) as Box<dyn std::error::Error>),
+                        CheckScope::Forms(args) => {
+                            commands::forms::run(args, &opts).map_err(|error| {
+                                Box::new(std::io::Error::other(error)) as Box<dyn std::error::Error>
+                            })
+                        }
+                    }
+                }
+            } else {
+                commands::check::run(args, &opts)
+                    .map_err(|error| Box::new(error) as Box<dyn std::error::Error>)
+            }
+        }
         Command::Integrate => commands::integrate::run(&opts),
         Command::Ci(args) => commands::ci::run(args),
         Command::Fabricate(args) => run_fabricate(args.target, &opts),
@@ -49,8 +66,6 @@ fn main() {
                     .map_err(|error| Box::new(error) as Box<dyn std::error::Error>)
             }
         }
-        Command::Forms(args) => commands::forms::run(args, &opts)
-            .map_err(|error| Box::new(std::io::Error::other(error)) as Box<dyn std::error::Error>),
         Command::Doctor(args) => commands::doctor::run(args, &opts)
             .map_err(|error| Box::new(error) as Box<dyn std::error::Error>),
         Command::Setup(args) => commands::setup::run(args, &opts),

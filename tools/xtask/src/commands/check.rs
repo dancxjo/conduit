@@ -1,4 +1,4 @@
-use clap::{Args, ValueEnum};
+use clap::{Args, Subcommand, ValueEnum};
 use std::collections::BTreeSet;
 
 #[path = "../suites/todo.rs"]
@@ -21,8 +21,19 @@ use crate::{
 #[derive(Args, Debug)]
 pub struct CheckArgs {
     /// Which check suite to execute (default: workspace).
-    #[arg(default_value = "workspace")]
-    pub suite: CheckSuite,
+    pub suite: Option<CheckSuite>,
+
+    /// Inspect or validate one repository-owned semantic scope.
+    #[command(subcommand)]
+    pub scope: Option<CheckScope>,
+}
+
+#[derive(Subcommand, Debug)]
+pub enum CheckScope {
+    /// Inspect mechanically derived portable kind coverage by Host profile.
+    Catalog(crate::commands::catalog::CatalogArgs),
+    /// Check and report the explicit reviewed form inventory.
+    Forms(crate::commands::forms::FormsArgs),
 }
 
 #[derive(ValueEnum, Debug, Clone, Copy, PartialEq, Eq)]
@@ -70,7 +81,7 @@ pub enum CheckSuite {
 pub fn run(args: CheckArgs, opts: &GlobalOpts) -> Result<(), StepError> {
     let root = workspace_root().map_err(|error| StepError::prereq("workspace-root", error))?;
 
-    match args.suite {
+    match args.suite.unwrap_or(CheckSuite::Workspace) {
         CheckSuite::Workspace => {
             run_suite(WORKSPACE_STEPS, &root, opts)?;
             run_suite(NETWORK_CAPABILITY_STEPS, &root, opts)?;

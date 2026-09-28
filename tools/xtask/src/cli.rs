@@ -4,13 +4,11 @@ use clap::{Args, Parser, Subcommand, ValueEnum};
 use crate::commands::avr::AvrArgs;
 use crate::commands::body::BodyArgs;
 use crate::commands::body_coordination::BodyCoordinationArgs;
-use crate::commands::catalog::CatalogArgs;
 use crate::commands::check::CheckArgs;
 use crate::commands::ci::CiArgs;
 use crate::commands::conduitos::ConduitosArgs;
 use crate::commands::esp32_firmware::Esp32FirmwareArgs;
 use crate::commands::evidence::EvidenceCommand;
-use crate::commands::forms::FormsArgs;
 use crate::commands::host::HostArgs;
 use crate::commands::pete_std_observe::PeteArgs;
 use crate::commands::pico::PicoArgs;
@@ -49,8 +47,6 @@ pub struct GlobalOpts {
 pub enum Command {
     /// Prove bounded Pete forebrain-motherbrain coordination.
     BodyCoordination(BodyCoordinationArgs),
-    /// Inspect mechanically derived portable kind coverage by Host profile.
-    Catalog(CatalogArgs),
     /// Execute repository validation check suites.
     Check(CheckArgs),
     /// Run the fast, local end-to-end developer truth loop.
@@ -61,8 +57,6 @@ pub enum Command {
     Fabricate(FabricateArgs),
     /// Execute proofs and manage their bounded evidence.
     Prove(Box<ProveArgs>),
-    /// Check and report the explicit reviewed form inventory.
-    Forms(FormsArgs),
     /// Inspect repository and platform prerequisites.
     Doctor(DoctorArgs),
     /// Install explicit prerequisites for a repository workflow.
@@ -389,13 +383,13 @@ mod tests {
 
     #[test]
     fn doctor_and_pico_commands_parse() {
-        let matrix = Cli::try_parse_from(["xtask", "catalog", "matrix"])
+        let matrix = Cli::try_parse_from(["xtask", "check", "catalog", "matrix"])
             .expect("catalog matrix command parses");
-        assert!(matches!(matrix.command, Command::Catalog(_)));
+        assert!(matches!(matrix.command, Command::Check(_)));
 
-        let gap = Cli::try_parse_from(["xtask", "catalog", "gap", "--host", "pico"])
+        let gap = Cli::try_parse_from(["xtask", "check", "catalog", "gap", "--host", "pico"])
             .expect("catalog gap command parses");
-        assert!(matches!(gap.command, Command::Catalog(_)));
+        assert!(matches!(gap.command, Command::Check(_)));
 
         let doctor = Cli::try_parse_from(["xtask", "--dry-run", "doctor", "pico"])
             .expect("doctor command parses");
