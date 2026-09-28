@@ -1,3 +1,4 @@
+// Bounded browser encounter mechanics owned by the Patchbay workbench Mask.
 export function createPatchbaySharedPresentation(presentation, scope = document) {
   const docks = ["left", "right", "bottom"];
   const revisions = new Map();
