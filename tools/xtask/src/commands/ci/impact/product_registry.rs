@@ -247,7 +247,7 @@ mod product_source_tests {
         for path in [
             "products/patchbay/native/Cargo.toml",
             "products/patchbay/native/src/gui.rs",
-            "products/home/model/src/lib.rs",
+            "forms/home/src/lib.rs",
         ] {
             assert!(proofs_for_paths(&[path.to_owned()]).is_empty(), "{path}");
             assert!(

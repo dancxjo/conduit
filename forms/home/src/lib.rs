@@ -1,3 +1,5 @@
+//! Resident Home Form meaning shared by ConduitOS realizations.
+
 #![no_std]
 
 extern crate alloc;
