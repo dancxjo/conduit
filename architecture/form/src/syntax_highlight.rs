@@ -148,6 +148,16 @@ fn punctuation(text: &str) -> Option<(usize, SyntaxHighlightKind)> {
     if text.starts_with("...") {
         return Some((3, SyntaxHighlightKind::Operator));
     }
+    let glyph_length = text
+        .char_indices()
+        .take_while(|(_, character)| matches!(character, '<' | '>' | '&' | '?' | '@' | '^'))
+        .take(8)
+        .map(|(offset, character)| offset + character.len_utf8())
+        .last()
+        .unwrap_or(0);
+    if glyph_length > 0 && crate::surface_lex::is_glyph(&text[..glyph_length]) {
+        return Some((glyph_length, SyntaxHighlightKind::Operator));
+    }
     let character = text.chars().next()?;
     let following = &text[character.len_utf8()..];
     match character {
@@ -218,7 +228,7 @@ mod tests {
 
     #[test]
     fn use_and_glyph_header_words_are_language_keywords() {
-        let source = "without glyphs\nuse text/upper as loud\nform example {\n}\n";
+        let source = "without glyphs\nuse text/upper as ^^\nform example {\n}\n";
         let spans = highlight_syntax(source).unwrap();
         let pieces = spans
             .iter()
@@ -228,6 +238,7 @@ mod tests {
             assert!(pieces.contains(&(SyntaxHighlightKind::Keyword, keyword)));
         }
         assert!(pieces.contains(&(SyntaxHighlightKind::Identity, "text/upper")));
+        assert!(pieces.contains(&(SyntaxHighlightKind::Operator, "^^")));
     }
 
     fn pieces<'a>(

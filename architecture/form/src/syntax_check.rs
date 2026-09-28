@@ -202,8 +202,44 @@ fn resolve_stage_aliases(
     aliases: &mut BTreeMap<String, (String, crate::Span, bool)>,
 ) {
     for stage in stages {
-        if let CordStage::InlineGear(invocation) = stage {
-            resolve_invocation_alias(invocation, aliases);
+        match stage {
+            CordStage::InlineGear(invocation) => resolve_invocation_alias(invocation, aliases),
+            CordStage::Reference(reference) => {
+                if let Some((canonical, _, used)) = aliases.get_mut(&reference.text) {
+                    let span = reference.span;
+                    *stage = CordStage::InlineGear(Invocation {
+                        kind: crate::syntax::SpannedText {
+                            text: canonical.clone(),
+                            span,
+                        },
+                        arguments: Vec::new(),
+                        span,
+                    });
+                    *used = true;
+                }
+            }
+            CordStage::Glyph(glyph) => {
+                if let Some((canonical, _, used)) = aliases.get_mut(&glyph.text) {
+                    let span = glyph.span;
+                    *stage = CordStage::InlineGear(Invocation {
+                        kind: crate::syntax::SpannedText {
+                            text: canonical.clone(),
+                            span,
+                        },
+                        arguments: Vec::new(),
+                        span,
+                    });
+                    *used = true;
+                } else {
+                    *stage = CordStage::Reference(glyph.clone());
+                }
+            }
+            CordStage::TerminalProjection { .. }
+            | CordStage::Cancellation { .. }
+            | CordStage::When(_)
+            | CordStage::Literal(_)
+            | CordStage::PureExpression(_)
+            | CordStage::StructuredSelector(_) => {}
         }
     }
 }
@@ -538,6 +574,12 @@ fn check_cord_stages(
         match stage {
             CordStage::Reference(reference) => {
                 stages.push(CheckedCordStage::Reference(reference.text.clone()));
+            }
+            CordStage::Glyph(glyph) => {
+                return Err(use_diagnostic(
+                    glyph.span,
+                    format!("glyph '{}' did not resolve in lexical scope", glyph.text),
+                ));
             }
             CordStage::TerminalProjection {
                 endpoint,

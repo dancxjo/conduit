@@ -82,6 +82,35 @@ fn authored_use_alias_resolves_to_canonical_kind_without_changing_checked_identi
 }
 
 #[test]
+fn explicit_glyph_alias_lowers_to_the_same_ordinary_inline_gear() {
+    let direct = check(
+        "form transform (\n input: Text >> output: Text\n) {\n input >> output\n}\nform example (\n input: Text >> output: Text\n) {\n input >> transform() >> output\n}\n",
+    );
+    let glyph = check(
+        "use transform as ^^\nform transform (\n input: Text >> output: Text\n) {\n input >> output\n}\nform example (\n input: Text >> output: Text\n) {\n input ^^ output\n}\n",
+    );
+    assert_eq!(glyph.forms[0].gears[0].kind, "transform");
+    assert_eq!(glyph.forms[0].cords, direct.forms[0].cords);
+    assert_eq!(
+        glyph.forms[0].checked_form_id,
+        direct.forms[0].checked_form_id
+    );
+    assert_ne!(glyph.source_document_id, direct.source_document_id);
+}
+
+#[test]
+fn configured_gear_occurrence_may_have_a_glyph_name() {
+    let checked = check(
+        "form transform (\n input: Text >> output: Text\n) {\n input >> output\n}\nform example (\n input: Text >> output: Text\n) {\n ^^: transform\n input ^^ output\n}\n",
+    );
+    assert_eq!(checked.forms[0].gears[0].name.as_deref(), Some("^^"));
+    assert!(matches!(
+        &checked.forms[0].cords[0].stages[1],
+        crate::CheckedCordStage::Reference(name) if name == "^^"
+    ));
+}
+
+#[test]
 fn grouped_uses_resolve_each_exact_installed_kind() {
     let checked = check(
         "use time/{every, default}\nform example {\n first: every(1s)\n second: default\n}\n",
