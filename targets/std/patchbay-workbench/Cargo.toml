@@ -6,5 +6,5 @@ edition = "2021"
 [dependencies]
 conduit-core = { path = "../../../architecture/core" }
 conduit-form = { path = "../../../architecture/form" }
-conduit-std-host = { path = "../../../targets/std" }
-patchbay-model = { path = "../model" }
+conduit-std-host = { path = ".." }
+patchbay-model = { path = "../../../products/patchbay/model" }
