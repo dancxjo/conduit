@@ -7,6 +7,9 @@ pub(super) struct ProductProofSpec {
 
 impl ProductProofSpec {
     fn owns(&self, path: &str) -> bool {
+        if super::is_rust_test_source(path) {
+            return false;
+        }
         self.exact_inputs.contains(&path)
             || self
                 .input_prefixes
@@ -235,6 +238,19 @@ mod product_source_tests {
                 proofs_for_paths(&[path.to_owned()]),
                 ["products.pages-carrier"]
             );
+        }
+    }
+
+    #[test]
+    fn rust_test_sources_do_not_fabricate_the_product_carrier() {
+        for path in [
+            "targets/browser/runtime/src/workspace_mask_tests.rs",
+            "targets/browser/runtime/src/form_runner/tests.rs",
+            "targets/browser/runtime/tests/presentation_offer_ownership.rs",
+            "products/patchbay/model/src/mask_control_tests.rs",
+            "products/patchbay/html/tests/server.rs",
+        ] {
+            assert!(proofs_for_paths(&[path.to_owned()]).is_empty(), "{path}");
         }
     }
 }

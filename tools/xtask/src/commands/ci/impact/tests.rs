@@ -35,6 +35,34 @@ fn representative_changes_select_only_owned_heavy_suites() {
 }
 
 #[test]
+fn rust_test_only_face_changes_stay_in_workspace_proof() {
+    let root = crate::workspace::workspace_root().unwrap();
+    let packages = discover(&root).unwrap();
+    let plan = plan_for_paths(
+        &root,
+        vec![
+            "semantics/presentation/tests/human_interaction.rs".to_owned(),
+            "targets/browser/runtime/src/workspace_mask_tests.rs".to_owned(),
+        ],
+        &packages,
+    )
+    .unwrap();
+
+    assert!(!plan.full_fallback);
+    assert!(!plan.pages_products_required);
+    assert!(!plan.browser_required);
+    assert!(!plan.esp32_required);
+    assert!(!plan.conduitos_required);
+    assert!(plan
+        .changed_packages
+        .contains(&"conduit-presentation".to_owned()));
+    assert!(plan
+        .changed_packages
+        .contains(&"conduit-browser-runtime".to_owned()));
+    assert!(plan.workspace_shards.values().any(|required| *required));
+}
+
+#[test]
 fn test_extraction_narrowing_retains_workspace_proof_only() {
     let root = crate::workspace::workspace_root().unwrap();
     let packages = discover(&root).unwrap();

@@ -230,7 +230,23 @@ fn is_repository_tool_test(path: &str) -> bool {
     path.starts_with("tools/xtask/tests/") && path.ends_with(".rs")
 }
 
+/// Rust sources compiled only by a package's test target cannot alter a
+/// fabricated product or machine image. Their owning package and reverse
+/// dependents still run through the workspace test shards.
+fn is_rust_test_source(path: &str) -> bool {
+    if !path.ends_with(".rs") {
+        return false;
+    }
+    let file = path.rsplit('/').next().unwrap_or(path);
+    file == "tests.rs"
+        || file.ends_with("_tests.rs")
+        || path.split('/').any(|component| component == "tests")
+}
+
 fn machine_proof_is_required_for_dependency(path: &str, suite: &str) -> bool {
+    if is_rust_test_source(path) {
+        return false;
+    }
     // Semantic crates are renderer- and machine-neutral contracts. Their
     // reverse-dependent workspace shards compile and test the affected product
     // graph, including portable/embedded configurations. Fabricating firmware
@@ -693,7 +709,7 @@ fn plan_for_paths(
         }
         let mut direct = false;
         for suite in SUITES {
-            if starts_with_any(path, direct_prefixes(suite)) {
+            if !is_rust_test_source(path) && starts_with_any(path, direct_prefixes(suite)) {
                 selected.insert(suite.to_owned(), true);
                 reasons
                     .get_mut(suite)
