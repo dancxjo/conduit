@@ -286,6 +286,30 @@ fn grouped_uses_resolve_each_exact_installed_kind() {
 }
 
 #[test]
+fn text_pattern_refinement_enters_the_checked_fore_and_identity() {
+    let source =
+        "form code (\n >> value: Text <= 16B where pattern(r\"[A-Z]{2}[0-9]{4}\")\n) {\n}\n";
+    let checked = check(source);
+    let location = conduit_core::FrontValueLocation::Input(conduit_core::port_id("value"));
+    let contract = checked.forms[0]
+        .runtime_front
+        .value_contract(&location)
+        .unwrap();
+    assert_eq!(contract.validate(b"AB1234"), Ok(()));
+    assert_eq!(
+        contract.validate(b"Ab1234"),
+        Err(conduit_core::ValueConstraintRefusal::TextPattern)
+    );
+
+    let different =
+        check("form code (\n >> value: Text <= 16B where pattern(r\"[A-Z]{3}[0-9]{3}\")\n) {\n}\n");
+    assert_ne!(
+        checked.forms[0].checked_form_id,
+        different.forms[0].checked_form_id
+    );
+}
+
+#[test]
 fn unresolved_unused_duplicate_and_shadowing_uses_refuse() {
     for (source, expected) in [
         (
@@ -309,6 +333,19 @@ fn unresolved_unused_duplicate_and_shadowing_uses_refuse() {
         assert_eq!(error.code, "CND-FRM-056");
         assert!(error.message.contains(expected), "{}", error.message);
     }
+}
+
+#[test]
+fn pattern_refinement_refuses_wrong_kind_and_unbounded_source() {
+    let wrong_kind =
+        diagnostic("form code (\n >> value: Count where pattern(r\"[0-9]{1}\")\n) {\n}\n");
+    assert_eq!(wrong_kind.code, "CND-FRM-057");
+    assert!(wrong_kind.message.contains("only canonical Text"));
+
+    let unbounded =
+        diagnostic("form code (\n >> value: Text <= 16B where pattern(r\"[A-Z]*\")\n) {\n}\n");
+    assert_eq!(unbounded.code, "CND-FRM-057");
+    assert!(unbounded.message.contains("UnboundedRepeat"));
 }
 
 #[test]

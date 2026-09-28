@@ -1,0 +1,301 @@
+//! Authored source parser for Conduit's finite portable text-pattern language.
+
+use crate::prelude::*;
+use crate::TextPatternExpression;
+
+const MAX_SCALAR: u32 = 0x10_ffff;
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum TextPatternSourceError {
+    Empty,
+    Unexpected {
+        offset: usize,
+        character: Option<char>,
+    },
+    UnclosedGroup {
+        offset: usize,
+    },
+    UnclosedClass {
+        offset: usize,
+    },
+    EmptyClass {
+        offset: usize,
+    },
+    InvalidRange {
+        offset: usize,
+    },
+    InvalidRepeat {
+        offset: usize,
+    },
+    UnboundedRepeat {
+        offset: usize,
+    },
+}
+
+/// Parses Conduit's deliberately bounded regular-expression surface.
+///
+/// Matching is always a full match. The admitted source subset contains
+/// sequences, `|`, groups, scalar classes/ranges, `.`, `?`, and finite
+/// `{n}`/`{n,m}` repetition. `*` and `+` are refused because they promise no
+/// finite semantic maximum.
+pub fn parse_text_pattern(source: &str) -> Result<TextPatternExpression, TextPatternSourceError> {
+    if source.is_empty() {
+        return Err(TextPatternSourceError::Empty);
+    }
+    let mut parser = PatternParser { source, offset: 0 };
+    let expression = parser.choice()?;
+    if parser.offset != source.len() {
+        return Err(parser.unexpected());
+    }
+    Ok(expression)
+}
+
+struct PatternParser<'a> {
+    source: &'a str,
+    offset: usize,
+}
+
+impl PatternParser<'_> {
+    fn choice(&mut self) -> Result<TextPatternExpression, TextPatternSourceError> {
+        let mut choices = vec![self.sequence()?];
+        while self.peek() == Some('|') {
+            self.take();
+            choices.push(self.sequence()?);
+        }
+        if choices.len() == 1 {
+            Ok(choices.pop().expect("one choice exists"))
+        } else {
+            Ok(TextPatternExpression::Choice(choices))
+        }
+    }
+
+    fn sequence(&mut self) -> Result<TextPatternExpression, TextPatternSourceError> {
+        let mut expressions = Vec::new();
+        while self
+            .peek()
+            .is_some_and(|character| !matches!(character, '|' | ')'))
+        {
+            expressions.push(self.repeated_atom()?);
+        }
+        Ok(match expressions.len() {
+            0 => TextPatternExpression::Empty,
+            1 => expressions.pop().expect("one expression exists"),
+            _ => TextPatternExpression::Sequence(expressions),
+        })
+    }
+
+    fn repeated_atom(&mut self) -> Result<TextPatternExpression, TextPatternSourceError> {
+        let mut expression = self.atom()?;
+        match self.peek() {
+            Some('?') => {
+                self.take();
+                expression = TextPatternExpression::Repeat {
+                    expression: Box::new(expression),
+                    minimum: 0,
+                    maximum: 1,
+                };
+            }
+            Some('{') => {
+                let repeat_offset = self.offset;
+                self.take();
+                let minimum = self.number(repeat_offset)?;
+                let maximum = if self.peek() == Some(',') {
+                    self.take();
+                    self.number(repeat_offset)?
+                } else {
+                    minimum
+                };
+                if self.take() != Some('}') || minimum > maximum {
+                    return Err(TextPatternSourceError::InvalidRepeat {
+                        offset: repeat_offset,
+                    });
+                }
+                expression = TextPatternExpression::Repeat {
+                    expression: Box::new(expression),
+                    minimum,
+                    maximum,
+                };
+            }
+            Some('*' | '+') => {
+                return Err(TextPatternSourceError::UnboundedRepeat {
+                    offset: self.offset,
+                });
+            }
+            _ => {}
+        }
+        Ok(expression)
+    }
+
+    fn atom(&mut self) -> Result<TextPatternExpression, TextPatternSourceError> {
+        let offset = self.offset;
+        match self.take() {
+            Some('(') => {
+                let expression = self.choice()?;
+                if self.take() != Some(')') {
+                    return Err(TextPatternSourceError::UnclosedGroup { offset });
+                }
+                Ok(expression)
+            }
+            Some('[') => self.class(offset),
+            Some('.') => Ok(TextPatternExpression::ScalarRange {
+                first: 0,
+                last: MAX_SCALAR,
+            }),
+            Some('\\') => self.escaped_scalar(offset),
+            Some(character)
+                if matches!(
+                    character,
+                    '|' | ')' | '{' | '}' | '?' | '*' | '+' | '^' | '$'
+                ) =>
+            {
+                Err(TextPatternSourceError::Unexpected {
+                    offset,
+                    character: Some(character),
+                })
+            }
+            Some(character) => Ok(scalar_expression(character)),
+            None => Err(self.unexpected()),
+        }
+    }
+
+    fn class(
+        &mut self,
+        class_offset: usize,
+    ) -> Result<TextPatternExpression, TextPatternSourceError> {
+        let mut ranges = Vec::new();
+        while self.peek().is_some_and(|character| character != ']') {
+            let range_offset = self.offset;
+            let first = self.class_scalar(class_offset)?;
+            let last = if self.peek() == Some('-') {
+                self.take();
+                if self.peek() == Some(']') {
+                    return Err(TextPatternSourceError::InvalidRange {
+                        offset: range_offset,
+                    });
+                }
+                self.class_scalar(class_offset)?
+            } else {
+                first
+            };
+            if first > last {
+                return Err(TextPatternSourceError::InvalidRange {
+                    offset: range_offset,
+                });
+            }
+            ranges.push(TextPatternExpression::ScalarRange {
+                first: first as u32,
+                last: last as u32,
+            });
+        }
+        if self.take() != Some(']') {
+            return Err(TextPatternSourceError::UnclosedClass {
+                offset: class_offset,
+            });
+        }
+        if ranges.is_empty() {
+            return Err(TextPatternSourceError::EmptyClass {
+                offset: class_offset,
+            });
+        }
+        Ok(if ranges.len() == 1 {
+            ranges.pop().expect("one range exists")
+        } else {
+            TextPatternExpression::Choice(ranges)
+        })
+    }
+
+    fn class_scalar(&mut self, class_offset: usize) -> Result<char, TextPatternSourceError> {
+        match self.take() {
+            Some('\\') => self.escaped_character(self.offset.saturating_sub(1)),
+            Some('^') => Err(TextPatternSourceError::Unexpected {
+                offset: self.offset.saturating_sub(1),
+                character: Some('^'),
+            }),
+            Some(character) => Ok(character),
+            None => Err(TextPatternSourceError::UnclosedClass {
+                offset: class_offset,
+            }),
+        }
+    }
+
+    fn escaped_scalar(
+        &mut self,
+        escape_offset: usize,
+    ) -> Result<TextPatternExpression, TextPatternSourceError> {
+        self.escaped_character(escape_offset).map(scalar_expression)
+    }
+
+    fn escaped_character(&mut self, escape_offset: usize) -> Result<char, TextPatternSourceError> {
+        let character = self.take().ok_or(TextPatternSourceError::Unexpected {
+            offset: escape_offset,
+            character: None,
+        })?;
+        if !matches!(
+            character,
+            '[' | ']'
+                | '('
+                | ')'
+                | '{'
+                | '}'
+                | '|'
+                | '.'
+                | '?'
+                | '*'
+                | '+'
+                | '-'
+                | '\\'
+                | '^'
+                | '$'
+        ) {
+            return Err(TextPatternSourceError::Unexpected {
+                offset: escape_offset,
+                character: Some(character),
+            });
+        }
+        Ok(character)
+    }
+
+    fn number(&mut self, repeat_offset: usize) -> Result<u16, TextPatternSourceError> {
+        let start = self.offset;
+        while self
+            .peek()
+            .is_some_and(|character| character.is_ascii_digit())
+        {
+            self.take();
+        }
+        if start == self.offset {
+            return Err(TextPatternSourceError::InvalidRepeat {
+                offset: repeat_offset,
+            });
+        }
+        self.source[start..self.offset]
+            .parse()
+            .map_err(|_| TextPatternSourceError::InvalidRepeat {
+                offset: repeat_offset,
+            })
+    }
+
+    fn peek(&self) -> Option<char> {
+        self.source[self.offset..].chars().next()
+    }
+
+    fn take(&mut self) -> Option<char> {
+        let character = self.peek()?;
+        self.offset += character.len_utf8();
+        Some(character)
+    }
+
+    fn unexpected(&self) -> TextPatternSourceError {
+        TextPatternSourceError::Unexpected {
+            offset: self.offset,
+            character: self.peek(),
+        }
+    }
+}
+
+fn scalar_expression(character: char) -> TextPatternExpression {
+    TextPatternExpression::ScalarRange {
+        first: character as u32,
+        last: character as u32,
+    }
+}

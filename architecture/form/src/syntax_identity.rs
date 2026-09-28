@@ -78,6 +78,17 @@ pub(crate) fn checked_identity(
                 .map_or_else(|| "intrinsic".into(), |value| value.to_string()),
         );
     }
+    for contract in runtime_front
+        .value_contracts()
+        .iter()
+        .filter(|contract| !contract.contract.constraints.is_empty())
+    {
+        canonical.push_str("value-contract");
+        push_field(&mut canonical, &format!("{:?}", contract.location));
+        let mut encoded = String::new();
+        push_hex(&mut encoded, &contract.contract.identity_bytes());
+        push_field(&mut canonical, &encoded);
+    }
     if let Some((input, output)) = shorthand {
         canonical.push_str("shorthand");
         push_field(&mut canonical, input);

@@ -6,6 +6,22 @@ use crate::{
 use alloc::vec::Vec;
 
 #[test]
+fn checked_pattern_refinement_is_lossless_front_syntax() {
+    let source =
+        "form code (\n >> value: Text <= 16B where pattern(r\"[A-Z]{2}[0-9]{4}\")\n) {\n}\n";
+    let document = parse_syntax_document(source);
+    assert!(
+        document.diagnostics.is_empty(),
+        "{:?}",
+        document.diagnostics
+    );
+    assert_eq!(document.round_trip(), source);
+    let crate::ValueRefinement::TextPattern { source, .. } =
+        &document.forms[0].front.runtime_ports[0].refinements[0];
+    assert_eq!(source.text, "[A-Z]{2}[0-9]{4}");
+}
+
+#[test]
 fn forms_are_live_by_default_and_completion_is_explicit() {
     let source = "form live {\n    source: text/literal(\"ready\")\n}\nform finite {\n    source: text/literal(\"done\")\n}.\n";
     let document = parse_syntax_document(source);

@@ -299,6 +299,7 @@ fn determinize(
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::{parse_text_pattern, TextPatternSourceError};
     use alloc::vec;
 
     fn scalar(character: char) -> TextPatternExpression {
@@ -306,6 +307,41 @@ mod tests {
             first: character as u32,
             last: character as u32,
         }
+    }
+
+    #[test]
+    fn canonical_bounded_regex_source_compiles_before_play() {
+        let pattern = parse_text_pattern("[A-Z]{2}[0-9]{4}")
+            .unwrap()
+            .compile(16)
+            .unwrap();
+        assert!(pattern.is_match("AB1234"));
+        assert!(!pattern.is_match("Ab1234"));
+        assert!(!pattern.is_match("AB123"));
+    }
+
+    #[test]
+    fn source_refuses_unbounded_and_malformed_constructs() {
+        assert!(matches!(
+            parse_text_pattern("a*"),
+            Err(TextPatternSourceError::UnboundedRepeat { .. })
+        ));
+        assert!(matches!(
+            parse_text_pattern("[Z-A]"),
+            Err(TextPatternSourceError::InvalidRange { .. })
+        ));
+        assert!(matches!(
+            parse_text_pattern("a{2,}"),
+            Err(TextPatternSourceError::InvalidRepeat { .. })
+        ));
+        assert!(matches!(
+            parse_text_pattern("^a$"),
+            Err(TextPatternSourceError::Unexpected { .. })
+        ));
+        assert!(matches!(
+            parse_text_pattern(r"\d{2}"),
+            Err(TextPatternSourceError::Unexpected { .. })
+        ));
     }
 
     #[test]
