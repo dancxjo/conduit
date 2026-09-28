@@ -108,7 +108,6 @@ fn actual_std_run_writes_a_read_only_observatory_report() {
     let inspect = Command::new(env!("CARGO_BIN_EXE_conduit"))
         .args([
             "inspect",
-            "runtime-report",
             report_path.to_str().expect("report path must be utf-8"),
         ])
         .output()
@@ -157,7 +156,6 @@ fn actual_std_run_writes_a_read_only_observatory_report() {
     let gap_report = Command::new(env!("CARGO_BIN_EXE_conduit"))
         .args([
             "inspect",
-            "runtime-report",
             report_path.to_str().expect("report path must be utf-8"),
         ])
         .output()
@@ -179,7 +177,6 @@ fn actual_std_run_writes_a_read_only_observatory_report() {
     let rejected = Command::new(env!("CARGO_BIN_EXE_conduit"))
         .args([
             "inspect",
-            "runtime-report",
             report_path.to_str().expect("report path must be utf-8"),
         ])
         .output()

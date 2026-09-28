@@ -1,5 +1,4 @@
-//! User-operated two-endpoint opaque relay service.
-
+/// User-operated two-endpoint opaque relay service.
 use conduit_protected_line::{
     OpaqueRelayService, RelayAttachmentDisposition, RelayEndpointRole, RelayServiceError,
     RelayServiceLimits, RelaySlotDescriptor, RelaySlotDisposition, RELAY_SERVICE_IMPLEMENTATION_ID,
@@ -21,7 +20,9 @@ const OUTCOME_SCHEMA: &str = "conduit.relay/outcome@1";
 const MAXIMUM_SLOT_FILE_BYTES: u64 = 16 * 1024;
 const MAXIMUM_CONTROL_BYTES: usize = 4 * 1024;
 
+#[path = "rendezvous_relay/provision.rs"]
 mod provision;
+#[cfg_attr(test, allow(unused_imports))]
 pub(crate) use provision::{provision, ProvisionOptions};
 
 pub(crate) struct ServeOptions {
@@ -542,4 +543,5 @@ fn debug<T: core::fmt::Debug>(context: &'static str) -> impl FnOnce(T) -> String
 }
 
 #[cfg(test)]
+#[path = "rendezvous_relay/tests.rs"]
 mod tests;

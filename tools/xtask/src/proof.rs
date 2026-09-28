@@ -310,14 +310,6 @@ pub const CURRENT_PROOF_COMMANDS: &[ProofCommandContract] = &[
         allowed_claims: &["one physical Pico W client associates with the exact finite Pico W appliance, receives its bounded DHCP lease, resolves hello.conduit, loads the literal Hello response, and correlates its exact receipt with the appliance terminal Sign sequence"],
     },
     ProofCommandContract {
-        id: "copy.unfamiliar-user",
-        command: "target/debug/conduit copy <source> <destination> --inspect",
-        proof_class: ProofClass::ManualObservation,
-        required_tools_or_targets: &["conduit"],
-        named_artifacts: &[],
-        allowed_claims: &["an unfamiliar user can complete and inspect the copy task"],
-    },
-    ProofCommandContract {
         id: "r1.new-plan-recovery-simulation",
         command: "cargo xtask prove r1-new-plan-recovery",
         proof_class: ProofClass::DeterministicSimulation,

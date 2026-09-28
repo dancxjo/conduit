@@ -8,7 +8,16 @@ Create-only commit uses a same-directory hard link so a concurrent destination c
 
 Every run returns a receipt naming the request, active play, plan, source handle, destination handle, structured result, copied byte count where applicable, and kernel sign count. Raw paths remain base-private and are absent from the form, plan, receipt, and kernel protocol.
 
-The current std profile admits at most 16 MiB per run. The product entrance is `conduit copy SOURCE DESTINATION`; its positional paths become private protected-resource choices, not authored form facts. Native Patchbay also has a [protected file chooser](native-file-base.md). This hosted contract alone establishes neither a browser copy realization nor a fresh human usability observation.
+The current std profile admits at most 16 MiB per run. The former privileged
+`conduit copy SOURCE DESTINATION` entrance has been retired: copying belongs to
+an ordinary `file/copy` Form whose selected Host Back receives separately
+authorized protected-resource choices. Until the general product entrance can
+bind those choices without placing paths in authored meaning, the checked
+contract and Host implementation remain available but the installed CLI does
+not advertise a special copy command. Native graphical Masks may offer a
+[protected file chooser](native-file-base.md). This hosted contract alone
+establishes neither a browser copy realization nor a fresh human usability
+observation.
 
 Linux targets may instead explicitly install the `isolated-file-base` feature
 and `conduit-isolated-copy-base` binary. That realization preserves this form,

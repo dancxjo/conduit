@@ -291,4 +291,5 @@ fn cleanup_incomplete_output(path: &Path) -> Result<(), String> {
 }
 
 #[cfg(test)]
+#[path = "provision/tests.rs"]
 mod tests;

@@ -46,7 +46,7 @@ conduit run forms/hello/main.conduit \
 Inspection is a separate read-only command:
 
 ```text
-conduit inspect runtime-report runtime-report.json
+conduit inspect runtime-report.json
 ```
 
 The inspection command only validates, projects, and renders the stored

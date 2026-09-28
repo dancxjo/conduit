@@ -560,7 +560,7 @@ pub const PROVE_STD_BROWSER_S4_STEPS: &[Step] = &[
         None,
         None,
         Some(ProofClass::ContractCompile),
-        &["target/debug/conduit"],
+        &["target/debug/conduit", "target/debug/conduit-relay"],
     ),
     Step::typed(
         "prove.std-browser-s4.wasm-build",
@@ -652,7 +652,7 @@ pub const PROVE_BROWSER_HOST_STEPS: &[Step] = &[
         None,
         None,
         Some(ProofClass::ContractCompile),
-        &["target/debug/conduit"],
+        &["target/debug/conduit", "target/debug/conduit-relay"],
     ),
     Step::typed(
         "prove.browser-host.wasm-build",

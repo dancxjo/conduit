@@ -2,6 +2,7 @@
 name = "conduit"
 version = "0.1.0"
 edition = "2021"
+default-run = "conduit"
 
 [dependencies]
 clap = { version = "4", features = ["derive"] }
@@ -45,10 +46,6 @@ path = "src/lib.rs"
 [[test]]
 name = "hello"
 path = "tests/hello.rs"
-
-[[test]]
-name = "copy_task_front"
-path = "tests/copy_task_front.rs"
 
 [[test]]
 name = "structured_diagnostics"
