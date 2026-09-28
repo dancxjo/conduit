@@ -7,5 +7,3 @@ extern crate alloc;
 
 pub mod invitation;
 pub mod library;
-pub mod tutorial;
-pub mod tutorial_presenter;

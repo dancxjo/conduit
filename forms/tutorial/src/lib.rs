@@ -1,4 +1,9 @@
-//! Renderer-neutral guidance projected only from authoritative Body truth.
+#![no_std]
+//! Renderer-neutral Tutorial Form guidance projected only from authoritative Body truth.
+
+extern crate alloc;
+
+pub mod presenter;
 use alloc::{format, vec, vec::Vec};
 use conduit_body::{
     BodyBiographyEvidence, BodyBiographyRecordKind, BodyLifecycleSession, BodyState,

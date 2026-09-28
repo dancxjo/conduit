@@ -204,7 +204,7 @@ impl TourSession {
             )),
             engine::BrowserHostEffect::TutorialPresenterRequest => Ok(
                 TourHostEffect::TutorialPresenterRequest(Box::new(TourKeyEventEffect {
-                    schema: "conduit.workspace/tutorial-presenter-request-effect@1",
+                    schema: "conduit.form/tutorial-presenter-request-effect@1",
                     effect_kind: "tutorial-presenter-request",
                     source_document_id: fragment.source_document_id.as_str().into(),
                     checked_form_id: fragment.checked_form_id.as_str().into(),

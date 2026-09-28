@@ -1,7 +1,7 @@
 form orifina-tutorial-presenter {
-  request: workspace/tutorial-presenter-request
+  request: tutorial/presenter-request
   present: llm/present
-  manifestation: workspace/tutorial-manifestation
+  manifestation: tutorial/manifestation
 
   request.request >> present.request
   present.result >> manifestation.manifestation

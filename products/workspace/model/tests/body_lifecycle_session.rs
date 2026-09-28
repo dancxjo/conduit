@@ -13,11 +13,11 @@ use conduit_core::{
 #[test]
 fn tutorial_builds_an_exact_orifina_request_from_current_body_truth() {
     let body = born();
-    let request = conduit_workspace_model::tutorial::generative_request(
+    let request = conduit_tutorial_form::generative_request(
         &body,
         "request/orifina/initial".into(),
         11,
-        conduit_workspace_model::tutorial::TutorialPlayback::Lulled,
+        conduit_tutorial_form::TutorialPlayback::Lulled,
     )
     .unwrap();
     assert_eq!(
@@ -112,10 +112,10 @@ fn tutorial_builds_an_exact_orifina_request_from_current_body_truth() {
 #[test]
 fn production_tutorial_face_keeps_one_constraint_across_encounters_and_validation() {
     let body = born();
-    let face = conduit_workspace_model::tutorial::face_presentation(
+    let face = conduit_tutorial_form::face_presentation(
         &body,
         12,
-        conduit_workspace_model::tutorial::TutorialPlayback::Lulled,
+        conduit_tutorial_form::TutorialPlayback::Lulled,
     )
     .unwrap();
     let action = face
@@ -172,11 +172,11 @@ fn playing_tutorial_request_uses_the_canonical_face_execution_projection() {
     let mut body = born();
     let play = start(&mut body);
     let realization = body.realization().unwrap();
-    let request = conduit_workspace_model::tutorial::generative_request(
+    let request = conduit_tutorial_form::generative_request(
         &body,
         "request/orifina/playing".into(),
         13,
-        conduit_workspace_model::tutorial::TutorialPlayback::Playing,
+        conduit_tutorial_form::TutorialPlayback::Playing,
     )
     .unwrap();
     let presentation = &request.semantic_data.presentation;
@@ -261,11 +261,11 @@ fn exact_tutorial_completion_only_presents_fulfillment_as_an_operator_choice() {
         .append_membership_events(membership, &[(admitted, next), (joined, next + 1)])
         .unwrap();
     let body = BodyLifecycleSession::open(evidence).unwrap();
-    let request = conduit_workspace_model::tutorial::generative_request(
+    let request = conduit_tutorial_form::generative_request(
         &body,
         "request/orifina/ready".into(),
         12,
-        conduit_workspace_model::tutorial::TutorialPlayback::Completed,
+        conduit_tutorial_form::TutorialPlayback::Completed,
     )
     .unwrap();
     assert!(
@@ -294,10 +294,10 @@ fn exact_tutorial_completion_only_presents_fulfillment_as_an_operator_choice() {
 #[test]
 fn tutorial_guidance_is_a_renderer_neutral_revision_bound_application_view() {
     let body = born();
-    let view = conduit_workspace_model::tutorial::presentation(
+    let view = conduit_tutorial_form::presentation(
         &body,
         7,
-        conduit_workspace_model::tutorial::TutorialPlayback::Lulled,
+        conduit_tutorial_form::TutorialPlayback::Lulled,
     )
     .unwrap()
     .lower()
@@ -315,10 +315,10 @@ fn revised_tutorial_uses_the_shared_host_invitation_action() {
     let mut body = born();
     body.admit_form(0, form("notes"), &host(), &boot()).unwrap();
     start(&mut body);
-    let view = conduit_workspace_model::tutorial::presentation(
+    let view = conduit_tutorial_form::presentation(
         &body,
         8,
-        conduit_workspace_model::tutorial::TutorialPlayback::Playing,
+        conduit_tutorial_form::TutorialPlayback::Playing,
     )
     .unwrap()
     .lower()
@@ -338,7 +338,7 @@ fn revised_tutorial_uses_the_shared_host_invitation_action() {
 #[test]
 fn tutorial_purpose_is_derived_from_exact_body_evidence_not_a_chapter_counter() {
     let mut body = born();
-    let initial = conduit_workspace_model::tutorial::purpose_state(&body).unwrap();
+    let initial = conduit_tutorial_form::purpose_state(&body).unwrap();
     assert!(matches!(
         initial.obligations[0].state,
         PurposeObligationState::Satisfied { ref evidence_sign_ids }
@@ -351,7 +351,7 @@ fn tutorial_purpose_is_derived_from_exact_body_evidence_not_a_chapter_counter() 
     );
 
     start(&mut body);
-    let active = conduit_workspace_model::tutorial::purpose_state(&body).unwrap();
+    let active = conduit_tutorial_form::purpose_state(&body).unwrap();
     for obligation_id in ["born", "wake", "plan-ready", "play-started"] {
         let obligation = active
             .obligations
@@ -401,10 +401,10 @@ fn repaired_wake_advances_tutorial_guidance_from_fault_to_continuity() {
     )
     .unwrap();
 
-    let repair = conduit_workspace_model::tutorial::presentation(
+    let repair = conduit_tutorial_form::presentation(
         &body,
         9,
-        conduit_workspace_model::tutorial::TutorialPlayback::Refused,
+        conduit_tutorial_form::TutorialPlayback::Refused,
     )
     .unwrap()
     .lower()
@@ -423,15 +423,15 @@ fn repaired_wake_advances_tutorial_guidance_from_fault_to_continuity() {
     );
 
     start(&mut body);
-    let purpose = conduit_workspace_model::tutorial::purpose_state(&body).unwrap();
+    let purpose = conduit_tutorial_form::purpose_state(&body).unwrap();
     assert!(purpose.obligations.iter().any(|obligation| {
         obligation.obligation_id == "repair-fault"
             && matches!(obligation.state, PurposeObligationState::Satisfied { .. })
     }));
-    let repaired = conduit_workspace_model::tutorial::presentation(
+    let repaired = conduit_tutorial_form::presentation(
         &body,
         10,
-        conduit_workspace_model::tutorial::TutorialPlayback::Playing,
+        conduit_tutorial_form::TutorialPlayback::Playing,
     )
     .unwrap()
     .lower()
