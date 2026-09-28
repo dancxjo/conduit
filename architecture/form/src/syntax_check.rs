@@ -24,6 +24,14 @@ mod structured_selector;
 use resolution::{is_atomic_literal, Resolver};
 use shared_pool::{check_pool_declarations, checked_pool};
 
+const STANDARD_GLYPH_BINDINGS: [(&str, &str); 5] = [
+    ("><", "flow/merge"),
+    ("&>", "flow/zip"),
+    ("?>", "flow/race"),
+    ("<>", "state/combine-latest"),
+    ("@", "current/sample"),
+];
+
 pub(crate) fn check_document(
     document: &SyntaxDocument,
     catalog: &StartupCatalog,
@@ -144,6 +152,12 @@ fn resolve_use_declarations(
     form_fronts: &BTreeMap<String, CheckedFront>,
 ) -> Result<Vec<FormSyntax>, SyntaxCheckDiagnostic> {
     let mut aliases = BTreeMap::<String, (String, crate::Span, bool)>::new();
+    if document.standard_glyphs {
+        let span = source_start_span();
+        for (glyph, kind) in STANDARD_GLYPH_BINDINGS {
+            aliases.insert(glyph.into(), (kind.into(), span, true));
+        }
+    }
     for declaration in &document.uses {
         let path = declaration.path.as_str();
         if catalog.get(path).is_none() && !forms.contains_key(path) {
@@ -157,6 +171,19 @@ fn resolve_use_declarations(
                 declaration.alias.span,
                 format!(
                     "use alias '{}' conflicts with a source Form name",
+                    declaration.alias.text
+                ),
+            ));
+        }
+        if document.standard_glyphs
+            && STANDARD_GLYPH_BINDINGS
+                .iter()
+                .any(|(glyph, _)| *glyph == declaration.alias.text)
+        {
+            return Err(use_diagnostic(
+                declaration.alias.span,
+                format!(
+                    "standard glyph '{}' is already in scope; use 'without glyphs' before rebinding it",
                     declaration.alias.text
                 ),
             ));
@@ -199,6 +226,17 @@ fn resolve_use_declarations(
         return Err(use_diagnostic(*span, format!("unused use alias '{alias}'")));
     }
     Ok(resolved)
+}
+
+fn source_start_span() -> crate::Span {
+    crate::Span {
+        start: 0,
+        end: 0,
+        line: 1,
+        column: 1,
+        end_line: 1,
+        end_column: 1,
+    }
 }
 
 fn resolve_stage_aliases(

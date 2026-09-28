@@ -118,7 +118,7 @@ fn fixed_arity_relational_glyph_expands_to_one_ordinary_gear() {
     let startup = profile.startup_catalog().unwrap();
     let checked = check_syntax_document(
         &parse_syntax_document(
-            "use test/zip as &>\nform main (\n >> a: test/value\n >> b: test/value\n paired: test/value >>\n) {\n a &> b >> paired\n}\n",
+            "without glyphs\nuse test/zip as &>\nform main (\n >> a: test/value\n >> b: test/value\n paired: test/value >>\n) {\n a &> b >> paired\n}\n",
         ),
         &startup,
     )

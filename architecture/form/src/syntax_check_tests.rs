@@ -71,6 +71,39 @@ fn text_port(name: &str, direction: PortDirection) -> PortDescriptor {
     }
 }
 
+fn standard_glyph_catalog() -> StartupCatalog {
+    let mut catalog = catalog();
+    for kind in [
+        "flow/merge",
+        "flow/zip",
+        "flow/race",
+        "state/combine-latest",
+        "current/sample",
+    ] {
+        catalog
+            .insert(KindSignature {
+                kind: kind.into(),
+                startup_parameters: vec![],
+            })
+            .unwrap();
+        catalog
+            .insert_fore(
+                kind,
+                CheckedFront::new(
+                    vec![],
+                    vec![
+                        text_port("left", PortDirection::Input),
+                        text_port("right", PortDirection::Input),
+                    ],
+                    vec![text_port("result", PortDirection::Output)],
+                    None,
+                ),
+            )
+            .unwrap();
+    }
+    catalog
+}
+
 #[test]
 fn completion_policy_is_exact_checked_meaning() {
     let live = check("form example {\n tick: time/every(1s)\n}\n");
@@ -155,7 +188,7 @@ fn configured_gear_occurrence_may_have_a_glyph_name() {
 #[test]
 fn fixed_arity_relational_glyph_binds_operands_in_checked_fore_order() {
     let checked = check(
-        "use pair as &>\nform pair (\n >> left: Text\n >> right: Text\n result: Text >>\n) {\n}\nform example (\n >> a: Text\n >> b: Text\n paired: Text >>\n) {\n a &> b >> paired\n}\n",
+        "without glyphs\nuse pair as &>\nform pair (\n >> left: Text\n >> right: Text\n result: Text >>\n) {\n}\nform example (\n >> a: Text\n >> b: Text\n paired: Text >>\n) {\n a &> b >> paired\n}\n",
     );
     let crate::CheckedCordStage::RelationalGear {
         operands,
@@ -173,13 +206,64 @@ fn fixed_arity_relational_glyph_binds_operands_in_checked_fore_order() {
 }
 
 #[test]
+fn standard_glyph_prelude_resolves_every_reviewed_binding_lazily() {
+    let catalog = standard_glyph_catalog();
+    for (glyph, kind) in [
+        ("><", "flow/merge"),
+        ("&>", "flow/zip"),
+        ("?>", "flow/race"),
+        ("<>", "state/combine-latest"),
+        ("@", "current/sample"),
+    ] {
+        let source = format!(
+            "form example (\n >> a: Text\n >> b: Text\n result: Text >>\n) {{\n a {glyph} b >> result\n}}\n"
+        );
+        let checked = check_syntax_document(&parse_syntax_document(&source), &catalog).unwrap();
+        assert_eq!(checked.forms[0].gears[0].kind, kind);
+    }
+
+    check_syntax_document(
+        &parse_syntax_document("form unrelated {\n}\n"),
+        &StartupCatalog::new(),
+    )
+    .expect("unused prelude bindings do not require installed Kinds");
+}
+
+#[test]
+fn without_glyphs_removes_only_the_standard_prelude() {
+    let catalog = standard_glyph_catalog();
+    let body =
+        "form example (\n >> a: Text\n >> b: Text\n result: Text >>\n) {\n a &> b >> result\n}\n";
+    let missing = check_syntax_document(
+        &parse_syntax_document(&format!("without glyphs\n{body}")),
+        &catalog,
+    )
+    .expect_err("opt-out removes the standard binding");
+    assert!(missing.message.contains("did not resolve in lexical scope"));
+
+    let explicit = check_syntax_document(
+        &parse_syntax_document(&format!("without glyphs\nuse flow/zip as &>\n{body}")),
+        &catalog,
+    )
+    .expect("an explicit glyph import remains legal after opt-out");
+    assert_eq!(explicit.forms[0].gears[0].kind, "flow/zip");
+
+    let occupied = check_syntax_document(
+        &parse_syntax_document(&format!("use flow/zip as &>\n{body}")),
+        &catalog,
+    )
+    .expect_err("a standard glyph must be opted out before rebinding");
+    assert!(occupied.message.contains("use 'without glyphs'"));
+}
+
+#[test]
 fn relational_glyph_refuses_wrong_arity_and_mixed_adjacent_meanings() {
-    let wrong_arity = "use pair as &>\nform pair (\n >> left: Text\n >> right: Text\n result: Text >>\n) {\n}\nform example (\n >> a: Text\n paired: Text >>\n) {\n a &> a &> a >> paired\n}\n";
+    let wrong_arity = "without glyphs\nuse pair as &>\nform pair (\n >> left: Text\n >> right: Text\n result: Text >>\n) {\n}\nform example (\n >> a: Text\n paired: Text >>\n) {\n a &> a &> a >> paired\n}\n";
     let error = check_syntax_document(&parse_syntax_document(wrong_arity), &catalog())
         .expect_err("fixed arity comes from the exact checked Fore");
     assert!(error.message.contains("supplies 3 operands"));
 
-    let mixed = "use pair as &>\nuse time/default as ?>\nform pair (\n >> left: Text\n >> right: Text\n result: Text >>\n) {\n}\nform example (\n >> a: Text\n >> b: Text\n >> c: Text\n paired: Text >>\n) {\n a &> b ?> c >> paired\n}\n";
+    let mixed = "without glyphs\nuse pair as &>\nuse time/default as ?>\nform pair (\n >> left: Text\n >> right: Text\n result: Text >>\n) {\n}\nform example (\n >> a: Text\n >> b: Text\n >> c: Text\n paired: Text >>\n) {\n a &> b ?> c >> paired\n}\n";
     let parsed = parse_syntax_document(mixed);
     assert!(parsed.diagnostics[0]
         .message
