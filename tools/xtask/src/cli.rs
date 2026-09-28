@@ -536,7 +536,7 @@ mod tests {
         let icons = Cli::try_parse_from([
             "xtask",
             "palette-icons",
-            "products/patchbay/native/assets/icons/lucide/svg",
+            "mechanisms/implementations/bounded-lucide/svg",
             "icons.rs",
         ])
         .expect("palette-icons command parses");
