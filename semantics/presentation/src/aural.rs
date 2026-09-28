@@ -7,6 +7,8 @@
 use alloc::{format, string::String, vec::Vec};
 use sha2::{Digest, Sha256};
 
+use conduit_core::{IntervalEndpoint, ValueConstraint};
+
 use crate::{
     Presentation, PresentationActionAvailability, PresentationCompositionKind, PresentationError,
     PresentationRelationshipKind, PresentationRole,
@@ -19,11 +21,25 @@ pub const MAX_FACE_UTTERANCE_PLAN_BYTES: usize = 2 * 1024 * 1024;
 /// Exact Face record from which one deterministic utterance clause was made.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum FaceUtteranceProvenance {
-    Subject { identity: String },
-    Relationship { index: u32 },
-    Composition { identity: String },
-    Text { index: u32 },
-    Action { identity: String },
+    Subject {
+        identity: String,
+    },
+    Relationship {
+        index: u32,
+    },
+    Composition {
+        identity: String,
+    },
+    Text {
+        index: u32,
+    },
+    Action {
+        identity: String,
+    },
+    ActionArgument {
+        action_identity: String,
+        argument_name: String,
+    },
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -33,6 +49,7 @@ pub enum FaceUtteranceClauseKind {
     Composition,
     Text,
     Action,
+    ActionArgument,
 }
 
 /// One bounded sentence or exact Face wording item.
@@ -156,6 +173,16 @@ pub fn plan_face_utterances(
                 identity: action.identity.clone(),
             },
         })?;
+        for argument in &action.arguments {
+            builder.push(FaceUtteranceClause {
+                kind: FaceUtteranceClauseKind::ActionArgument,
+                text: action_argument_clause(action, argument),
+                provenance: FaceUtteranceProvenance::ActionArgument {
+                    action_identity: action.identity.clone(),
+                    argument_name: argument.name.clone(),
+                },
+            })?;
+        }
     }
 
     Ok(builder.finish())
@@ -332,6 +359,114 @@ fn action_clause(face: &Presentation, action: &crate::PresentationAction) -> Str
     }
 }
 
+fn action_argument_clause(
+    action: &crate::PresentationAction,
+    argument: &crate::FaceActionArgument,
+) -> String {
+    let mut constraints = argument
+        .contract
+        .constraints
+        .iter()
+        .map(constraint_clause)
+        .collect::<Vec<_>>()
+        .join("; ");
+    if constraints.is_empty() {
+        constraints = "no additional value constraint".into();
+    }
+    format!(
+        "For action {}, the argument {} has kind {} and permits at most {} bytes: {}.",
+        action.name,
+        argument.value_name,
+        argument.contract.value_kind.as_str(),
+        argument.contract.maximum_bytes,
+        constraints
+    )
+}
+
+fn constraint_clause(constraint: &ValueConstraint) -> String {
+    match constraint {
+        ValueConstraint::ByteLength { minimum, maximum } => {
+            format!("between {minimum} and {maximum} bytes")
+        }
+        ValueConstraint::UnsignedRange {
+            minimum,
+            maximum,
+            minimum_endpoint,
+            maximum_endpoint,
+        } => range_clause(*minimum, *maximum, *minimum_endpoint, *maximum_endpoint),
+        ValueConstraint::SignedRange {
+            minimum,
+            maximum,
+            minimum_endpoint,
+            maximum_endpoint,
+        } => range_clause(*minimum, *maximum, *minimum_endpoint, *maximum_endpoint),
+        ValueConstraint::QuantityRange {
+            minimum,
+            maximum,
+            minimum_endpoint,
+            maximum_endpoint,
+        } => format!(
+            "a quantity from {} {} {} through {} {} {}",
+            endpoint_word(*minimum_endpoint),
+            minimum.value(),
+            minimum.unit().semantic_id(),
+            endpoint_word(*maximum_endpoint),
+            maximum.value(),
+            maximum.unit().semantic_id(),
+        ),
+        ValueConstraint::CanonicalMembership { members } => format!(
+            "one of the canonical values {}",
+            members
+                .iter()
+                .map(|member| canonical_member(member))
+                .collect::<Vec<_>>()
+                .join(", ")
+        ),
+        ValueConstraint::TextPattern(pattern) => format!(
+            "the exact checked portable text pattern with {} states, start state {}, at most {} characters, and at most {} match steps",
+            pattern.states.len(),
+            pattern.start_state,
+            pattern.maximum_input_characters,
+            pattern.maximum_match_steps,
+        ),
+    }
+}
+
+fn range_clause<T: core::fmt::Display>(
+    minimum: T,
+    maximum: T,
+    minimum_endpoint: IntervalEndpoint,
+    maximum_endpoint: IntervalEndpoint,
+) -> String {
+    format!(
+        "a value from {} {minimum} through {} {maximum}",
+        endpoint_word(minimum_endpoint),
+        endpoint_word(maximum_endpoint)
+    )
+}
+
+fn endpoint_word(endpoint: IntervalEndpoint) -> &'static str {
+    match endpoint {
+        IntervalEndpoint::Inclusive => "inclusive",
+        IntervalEndpoint::Exclusive => "exclusive",
+    }
+}
+
+fn canonical_member(member: &[u8]) -> String {
+    match core::str::from_utf8(member) {
+        Ok(text) if !text.chars().any(char::is_control) => format!("{text:?}"),
+        _ => {
+            let mut encoded = String::with_capacity(member.len() * 2 + 2);
+            encoded.push_str("0x");
+            for byte in member {
+                use core::fmt::Write;
+                write!(&mut encoded, "{byte:02x}").expect("writing to String cannot fail");
+            }
+            encoded
+        }
+    }
+}
+
 struct UtteranceBuilder {
     source_face_identity: String,
     source_face_revision: u64,
@@ -409,6 +544,14 @@ fn hash_provenance(digest: &mut Sha256, provenance: &FaceUtteranceProvenance) {
         FaceUtteranceProvenance::Action { identity } => {
             digest.update([4]);
             hash_bytes(digest, identity.as_bytes());
+        }
+        FaceUtteranceProvenance::ActionArgument {
+            action_identity,
+            argument_name,
+        } => {
+            digest.update([5]);
+            hash_bytes(digest, action_identity.as_bytes());
+            hash_bytes(digest, argument_name.as_bytes());
         }
     }
 }
