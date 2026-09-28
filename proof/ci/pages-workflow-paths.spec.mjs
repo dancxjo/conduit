@@ -23,21 +23,6 @@ test("affected product proof begins after cheap PR entry while promotion stays p
   assert.doesNotMatch(closedTrigger, /^    paths(?:-ignore)?:/m);
 });
 
-test("host-local audio admission extends one exact documentary carrier without model downloads", () => {
-  const workflow = readFileSync(".github/workflows/admit-hears-speaks.yml", "utf8");
-  assert.match(workflow, /workflow_dispatch:/);
-  assert.match(workflow, /test "\$\(jq -r \.conclusion <<<"\$run"\)" = success/);
-  assert.match(workflow, /name <<<"\$run"\)" = journey-documentary-publication/);
-  assert.match(workflow, /git rev-parse origin\/main\^\{tree\}/);
-  assert.match(workflow, /name: conduit-documentary-pages-carrier-/);
-  assert.match(workflow, /gh release download "journey-evidence\/\$ACCEPTED_SOURCE_SHA"/);
-  assert.match(workflow, /sha256sum --check --strict/);
-  assert.match(workflow, /--proof journey-hears-speaks --suite journey-gallery/);
-  assert.match(workflow, /--hears-speaks-evidence-root/);
-  assert.match(workflow, /verify-pages-carrier\.mjs "\$RUNNER_TEMP\/provider-carrier"/);
-  assert.doesNotMatch(workflow, /curl|wget|ollama pull|git clone/);
-});
-
 test("every browser product admits the complete shared presentation theme", () => {
   const themeBytes = readFileSync("products/shared/browser/conduit.css").byteLength;
   for (const path of [

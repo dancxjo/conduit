@@ -403,14 +403,14 @@ mod tests {
             conduit_std_offers::body_chat_prompt_std_offer(),
             conduit_std_offers::generated_chunk_to_text_std_offer(),
             conduit_std_offers::generated_speech_commit_offer(),
-            conduit_std_offers::piper_streaming_speech_offer(),
+            conduit_std_offers::deterministic_streaming_speech_offer(),
         ];
         offers.extend(model.capability_offers().unwrap());
         offers
     }
 
     #[test]
-    fn actual_std_voice_offers_cover_every_expanded_remote_conversation_gear() {
+    fn reviewed_fixture_voice_offers_cover_every_expanded_remote_conversation_gear() {
         let source = include_str!("../../../../../../forms/live-conversation/main.conduit");
         let (startup, mut profile) = crate::installed_browser::catalogs_for_presentation(
             crate::installed_browser::PresentationProfile::Annotation,

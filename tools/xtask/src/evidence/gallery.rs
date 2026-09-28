@@ -10,13 +10,11 @@ use super::{
 };
 
 mod conduitos;
-mod hears_speaks;
 mod little_life;
 mod retention;
 mod two_fronts;
 
 use conduitos::{write_conduitos_commit, write_conduitos_current};
-use hears_speaks::{write_hears_speaks_commit, write_hears_speaks_current};
 use little_life::{write_little_life_commit, write_little_life_current};
 use retention::{trim_indexed_history_to_bounds, validate_existing_tree};
 use two_fronts::{write_two_fronts_commit, write_two_fronts_current};
@@ -39,7 +37,6 @@ const SCENARIOS: &[(&str, &str)] = &[
 pub struct GalleryRequest {
     pub evidence_root: Option<PathBuf>,
     pub conduitos_evidence_root: Option<PathBuf>,
-    pub hears_speaks_evidence_root: Option<PathBuf>,
     pub two_fronts_evidence_root: Option<PathBuf>,
     pub little_life_evidence_root: Option<PathBuf>,
     pub site_root: PathBuf,
@@ -59,7 +56,6 @@ pub fn publish_gallery(request: &GalleryRequest) -> Result<(), String> {
     validate_commit(&request.commit)?;
     if request.evidence_root.is_none()
         && request.conduitos_evidence_root.is_none()
-        && request.hears_speaks_evidence_root.is_none()
         && request.two_fronts_evidence_root.is_none()
         && request.little_life_evidence_root.is_none()
     {
@@ -88,19 +84,6 @@ pub fn publish_gallery(request: &GalleryRequest) -> Result<(), String> {
                 result: ExpectedEvidenceResult::Complete,
                 proof_id: "conduitos-x86_64".into(),
                 suite_id: "conduitos.prove.x86_64".into(),
-            })
-        })
-        .transpose()?;
-    let hears_speaks = request
-        .hears_speaks_evidence_root
-        .as_ref()
-        .map(|root| {
-            verify(&VerificationRequest {
-                root: root.clone(),
-                commit: request.commit.clone(),
-                result: ExpectedEvidenceResult::Complete,
-                proof_id: "journey-hears-speaks".into(),
-                suite_id: "journey-gallery".into(),
             })
         })
         .transpose()?;
@@ -178,17 +161,6 @@ pub fn publish_gallery(request: &GalleryRequest) -> Result<(), String> {
         if current.exists() {
             fs::remove_dir_all(current).map_err(|error| {
                 format!("cannot clear stale ConduitOS current evidence: {error}")
-            })?;
-        }
-    }
-    if let (Some(root), Some(evidence)) = (&request.hears_speaks_evidence_root, &hears_speaks) {
-        write_hears_speaks_commit(&site_root, root, evidence)?;
-        write_hears_speaks_current(&site_root, root, evidence)?;
-    } else {
-        let current = site_root.join("current/hears-speaks");
-        if current.exists() {
-            fs::remove_dir_all(current).map_err(|error| {
-                format!("cannot clear stale Hears and Speaks evidence: {error}")
             })?;
         }
     }
@@ -368,23 +340,15 @@ fn write_root_index(root: &Path, index: &GalleryIndex, has_conduitos: bool) -> R
             } else {
                 String::new()
             };
-            let hears_speaks = if root
-                .join("commits")
-                .join(commit)
-                .join("hears-speaks/index.html")
-                .is_file()
-            {
-                format!(" · <a href=\"commits/{commit}/hears-speaks/\">Hears and Speaks</a>")
-            } else {
-                String::new()
-            };
             let two_fronts = if root
                 .join("commits")
                 .join(commit)
                 .join("one-form-two-fronts/index.html")
                 .is_file()
             {
-                format!(" · <a href=\"commits/{commit}/one-form-two-fronts/\">One form, Two Fronts</a>")
+                format!(
+                    " · <a href=\"commits/{commit}/one-form-two-fronts/\">One form, Two Fronts</a>"
+                )
             } else {
                 String::new()
             };
@@ -408,19 +372,12 @@ fn write_root_index(root: &Path, index: &GalleryIndex, has_conduitos: bool) -> R
             } else {
                 String::new()
             };
-            format!(
-                "<li><code>{commit}</code>{patchbay}{conduitos}{hears_speaks}{two_fronts}{little_life}</li>"
-            )
+            format!("<li><code>{commit}</code>{patchbay}{conduitos}{two_fronts}{little_life}</li>")
         })
         .collect::<Vec<_>>()
         .join("\n");
     let conduitos = if has_conduitos {
         "\n<p><a href=\"current/conduitos/x86_64/\">Current x86_64 ConduitOS emulator console evidence</a></p>"
-    } else {
-        ""
-    };
-    let hears_speaks = if root.join("current/hears-speaks/index.html").is_file() {
-        "\n<p><a href=\"current/hears-speaks/\">Current Hears and Speaks audio journey</a></p>"
     } else {
         ""
     };
@@ -439,11 +396,6 @@ fn write_root_index(root: &Path, index: &GalleryIndex, has_conduitos: bool) -> R
     };
     let patchbay = if root.join("current/patchbay/index.html").is_file() {
         "\n<p><a href=\"current/patchbay/\">Current Patchbay evidence</a></p>"
-    } else {
-        ""
-    };
-    let audio_card = if root.join("current/hears-speaks/index.html").is_file() {
-        "<article class=\"journey-card audio\"><p class=\"eyebrow\">Recorded audio · local providers</p><h2>It hears and speaks</h2><p>Hear one admitted recording become recognized language, an addressed answer, and a newly synthesized WAV.</p><audio controls preload=\"metadata\" src=\"current/hears-speaks/output.wav\"></audio><p class=\"card-boundary\">Boundary: hosted provider execution over recorded audio; not a live microphone or speaker claim.</p><p><a class=\"primary\" href=\"current/hears-speaks/\">Follow the evidence</a></p></article>"
     } else {
         ""
     };
@@ -466,7 +418,7 @@ fn write_root_index(root: &Path, index: &GalleryIndex, has_conduitos: bool) -> R
         "<!-- conduit-conduitos-journey-card@1 -->"
     };
     let body = format!(
-        "<header class=\"gallery-hero\"><p class=\"eyebrow\">Conduit's flagship proof</p><h1>One Journey.<br><em>Three Bodies.</em></h1><p class=\"lede\">One portable meaning, lived independently through radically different machinery. Follow a Body from birth to fulfillment—or turn the view sideways and compare the same semantic moment across all three.</p><div class=\"thesis\" aria-label=\"The Conduit thesis\"><span>Meaning stays</span><i aria-hidden=\"true\">→</i><span>machinery changes</span><i aria-hidden=\"true\">→</i><span>truth remains exact</span></div></header><main><!-- conduit-three-body-flagship@2 --><section class=\"flagship awaiting\" aria-labelledby=\"flagship-title\"><div><p class=\"eyebrow\">The shared semantic spine</p><h2 id=\"flagship-title\">Birth to fulfillment, three times honestly</h2><p class=\"lede\">The publication appears here only when three independently verified biographies belong to this exact accepted commit.</p></div><div class=\"body-lanes\"><article><b>A</b><h3>ConduitOS</h3><p>Native, freestanding, graphical</p></article><article><b>B</b><h3>Browser</h3><p>DOM, WASM, interactive</p></article><article><b>C</b><h3>Screen-free</h3><p>Spoken, multi-Host, generative</p></article></div><ol class=\"semantic-spine\"><li>Bootstrap</li><li>Birth</li><li>Useful work</li><li>Inspect initial Show</li><li>Wear alternate Mask</li><li>Prefer alternate Mask</li><li>Withdraw selected route</li><li>Inspect no Show</li><li>Add presentation Host</li><li>Admit replacement Plan</li><li>Inspect replanned Show</li><li>Doff alternate Mask</li><li>Inspect restored Show</li><li>Break / recover</li><li>Rest / finish</li></ol><p class=\"boundary\"><strong>Evidence not yet admitted for this commit.</strong> No neighboring proof is promoted to fill an empty track.</p></section><!-- conduit-three-body-flagship:end --><section class=\"evidence-library\" aria-labelledby=\"library-title\"><p class=\"eyebrow\">The evidence library</p><h2 id=\"library-title\">Other true stories</h2><p class=\"section-intro\">Smaller proofs of particular boundaries. Each says exactly what happened—and what did not.</p><section class=\"cards\">{audio_card}{two_fronts_card}{little_life_card}{conduitos_card}</section></section><details class=\"history\"><summary>Provenance, accepted evidence, and history</summary><p>Current accepted main: <code>{}</code></p>{patchbay}{conduitos}{hears_speaks}{two_fronts}{little_life}<ul>{history}</ul><p>History retains the latest {RETAINED_COMMITS} published main commits. Semantic proof remains authoritative; media are documentary evidence.</p></details></main>",
+        "<header class=\"gallery-hero\"><p class=\"eyebrow\">Conduit's flagship proof</p><h1>One Journey.<br><em>Three Bodies.</em></h1><p class=\"lede\">One portable meaning, lived independently through radically different machinery. Follow a Body from birth to fulfillment—or turn the view sideways and compare the same semantic moment across all three.</p><div class=\"thesis\" aria-label=\"The Conduit thesis\"><span>Meaning stays</span><i aria-hidden=\"true\">→</i><span>machinery changes</span><i aria-hidden=\"true\">→</i><span>truth remains exact</span></div></header><main><!-- conduit-three-body-flagship@2 --><section class=\"flagship awaiting\" aria-labelledby=\"flagship-title\"><div><p class=\"eyebrow\">The shared semantic spine</p><h2 id=\"flagship-title\">Birth to fulfillment, three times honestly</h2><p class=\"lede\">The publication appears here only when three independently verified biographies belong to this exact accepted commit.</p></div><div class=\"body-lanes\"><article><b>A</b><h3>ConduitOS</h3><p>Native, freestanding, graphical</p></article><article><b>B</b><h3>Browser</h3><p>DOM, WASM, interactive</p></article><article><b>C</b><h3>Screen-free</h3><p>Spoken, multi-Host, generative</p></article></div><ol class=\"semantic-spine\"><li>Bootstrap</li><li>Birth</li><li>Useful work</li><li>Inspect initial Show</li><li>Wear alternate Mask</li><li>Prefer alternate Mask</li><li>Withdraw selected route</li><li>Inspect no Show</li><li>Add presentation Host</li><li>Admit replacement Plan</li><li>Inspect replanned Show</li><li>Doff alternate Mask</li><li>Inspect restored Show</li><li>Break / recover</li><li>Rest / finish</li></ol><p class=\"boundary\"><strong>Evidence not yet admitted for this commit.</strong> No neighboring proof is promoted to fill an empty track.</p></section><!-- conduit-three-body-flagship:end --><section class=\"evidence-library\" aria-labelledby=\"library-title\"><p class=\"eyebrow\">The evidence library</p><h2 id=\"library-title\">Other true stories</h2><p class=\"section-intro\">Smaller proofs of particular boundaries. Each says exactly what happened—and what did not.</p><section class=\"cards\">{two_fronts_card}{little_life_card}{conduitos_card}</section></section><details class=\"history\"><summary>Provenance, accepted evidence, and history</summary><p>Current accepted main: <code>{}</code></p>{patchbay}{conduitos}{two_fronts}{little_life}<ul>{history}</ul><p>History retains the latest {RETAINED_COMMITS} published main commits. Semantic proof remains authoritative; media are documentary evidence.</p></details></main>",
         escape_html(&index.current_commit)
     );
     write_html(&root.join("index.html"), "Conduit evidence gallery", &body)
