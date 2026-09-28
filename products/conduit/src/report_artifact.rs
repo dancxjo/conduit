@@ -265,14 +265,6 @@ pub fn write_report(path: &Path, snapshot: &ObservatorySnapshot) -> Result<(), S
     Ok(())
 }
 
-pub fn read_report(path: &Path) -> Result<ObservatorySnapshot, String> {
-    let encoded = fs::read(path).map_err(|error| error.to_string())?;
-    let snapshot = serde_json::from_slice::<ObservatorySnapshot>(&encoded)
-        .map_err(|error| error.to_string())?;
-    validate_snapshot(&snapshot)?;
-    Ok(snapshot)
-}
-
 fn temporary_path(path: &Path) -> PathBuf {
     let mut temporary = path.as_os_str().to_owned();
     temporary.push(format!(".tmp-{}", std::process::id()));

@@ -6,6 +6,7 @@ mod durable_host;
 mod durable_host_control;
 mod form_source;
 mod host_rendezvous;
+mod inspection;
 mod native_package_install;
 mod product_execution;
 #[cfg(test)]
@@ -20,7 +21,6 @@ mod std_websocket_line;
 mod two_std_line_tests;
 
 use clap::Parser;
-use conduit_observatory::{build_report, render_text_report};
 use std::io;
 use std::io::{BufRead, Write};
 use std::path::{Path, PathBuf};
@@ -98,7 +98,7 @@ fn enter_birth() -> Result<(), String> {
         .ok_or_else(|| format!("{executable} exited with {status}"))
 }
 
-use crate::report_artifact::{read_report, snapshot_from_execution, write_report};
+use crate::report_artifact::{snapshot_from_execution, write_report};
 
 fn run_with_placements(
     path: &str,
@@ -157,26 +157,6 @@ fn run_with_placements(
         write_report(report_path, &snapshot)?;
     }
     Ok(())
-}
-
-fn inspect_artifact(path: &Path) -> Result<String, String> {
-    let bytes = std::fs::read(path)
-        .map_err(|error| format!("read inspection artifact {}: {error}", path.display()))?;
-    if bytes.len() > 8 * 1024 * 1024 {
-        return Err("inspection artifact exceeds the 8 MiB product bound".into());
-    }
-    let value: serde_json::Value = serde_json::from_slice(&bytes)
-        .map_err(|error| format!("decode inspection artifact {}: {error}", path.display()))?;
-    let schema = value
-        .get("schema")
-        .and_then(serde_json::Value::as_str)
-        .ok_or("inspection artifact does not identify its schema")?;
-    if schema != conduit_observatory::SNAPSHOT_SCHEMA {
-        return Err(format!("inspection does not yet support schema {schema}"));
-    }
-    let snapshot = read_report(path)?;
-    let report = build_report(&snapshot)?;
-    Ok(render_text_report(&report))
 }
 
 fn main() {
@@ -294,7 +274,7 @@ fn main() {
             Ok(false) => std::process::exit(1),
             Err(error) => Err(error),
         },
-        Some(cli::Command::Inspect { thing }) => inspect_artifact(&thing).map(|rendered| {
+        Some(cli::Command::Inspect { thing }) => inspection::inspect(&thing).map(|rendered| {
             print!("{rendered}");
         }),
     };
