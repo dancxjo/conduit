@@ -59,7 +59,7 @@ struct HomeCrossFrontArgs {
 
 #[derive(Args, Debug)]
 struct ThreeBodyJourneyArgs {
-    /// Separately retained real-model documentary; its exact Presenter inputs must match.
+    /// Separately retained real-model documentary; its exact Mask inputs must match.
     #[arg(long)]
     recorded_generative: Option<PathBuf>,
     /// Exact commit whose three Body tracks are being verified.
@@ -70,7 +70,7 @@ struct ThreeBodyJourneyArgs {
     #[arg(long)]
     contract: PathBuf,
 
-    /// One conduit.evidence/body-journey-track@4 manifest; exactly three are required.
+    /// One conduit.evidence/body-journey-track@5 manifest; exactly three are required.
     #[arg(long = "track", required = true)]
     tracks: Vec<PathBuf>,
 

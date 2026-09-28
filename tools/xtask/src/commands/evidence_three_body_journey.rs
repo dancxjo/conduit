@@ -6,7 +6,7 @@ use std::collections::{BTreeMap, BTreeSet};
 use std::path::{Path, PathBuf};
 
 const CONTRACT_SCHEMA: &str = "conduit.evidence/semantic-journey-contract@4";
-const TRACK_SCHEMA: &str = "conduit.evidence/body-journey-track@4";
+const TRACK_SCHEMA: &str = "conduit.evidence/body-journey-track@5";
 const INDEX_SCHEMA: &str = "conduit.evidence/three-body-journey-index@6";
 const MAXIMUM_DOCUMENT_BYTES: usize = 1024 * 1024;
 const MAXIMUM_MEDIA_BYTES: u64 = 64 * 1024 * 1024;
@@ -102,14 +102,14 @@ enum EvidenceRung {
     DeterministicObservation,
     ModelDerivedInterpretation,
     CurrentExperience,
-    PresenterPolicy,
+    MaskPolicy,
     PurposeState,
     FulfillmentReadiness,
     BodyBiography,
     RuntimeReceipt,
-    SemanticPresentation,
-    GeneratedManifestation,
-    AudioManifestation,
+    SemanticFace,
+    GeneratedShow,
+    AudioShow,
     LifecycleAction,
     FulfilledTransition,
     HumanAssessment,
@@ -123,14 +123,14 @@ impl EvidenceRung {
             Self::DeterministicObservation => "deterministic-observation",
             Self::ModelDerivedInterpretation => "model-derived-interpretation",
             Self::CurrentExperience => "current-experience",
-            Self::PresenterPolicy => "presenter-policy",
+            Self::MaskPolicy => "mask-policy",
             Self::PurposeState => "purpose-state",
             Self::FulfillmentReadiness => "fulfillment-readiness",
             Self::BodyBiography => "body-biography",
             Self::RuntimeReceipt => "runtime-receipt",
-            Self::SemanticPresentation => "semantic-presentation",
-            Self::GeneratedManifestation => "generated-manifestation",
-            Self::AudioManifestation => "audio-manifestation",
+            Self::SemanticFace => "semantic-face",
+            Self::GeneratedShow => "generated-show",
+            Self::AudioShow => "audio-show",
             Self::LifecycleAction => "lifecycle-action",
             Self::FulfilledTransition => "fulfilled-transition",
             Self::HumanAssessment => "human-assessment",
@@ -147,7 +147,7 @@ struct BodyTrack {
     track_id: String,
     embodiment: String,
     body_id: String,
-    presenter_id: String,
+    mask_form_id: String,
     hosts: Vec<HostIdentity>,
     line_ids: Vec<String>,
     distributed_plan_ids: Vec<String>,
@@ -170,7 +170,7 @@ struct TrackActionObservation {
 struct MaskActionObservation {
     action_id: String,
     concrete_event: String,
-    presentation_id: String,
+    face_id: String,
     selected_mask_form_id: Option<String>,
     plan_id: String,
     selected_route_id: Option<String>,
@@ -203,8 +203,8 @@ struct StepProvenance {
     boot_id: Option<String>,
     plan_id: Option<String>,
     play_id: Option<String>,
-    presentation_id: Option<String>,
-    manifestation_id: Option<String>,
+    face_id: Option<String>,
+    show_id: Option<String>,
     line_id: Option<String>,
     sign_id: Option<String>,
 }
@@ -243,7 +243,7 @@ struct JourneyBodyCell {
     track_id: String,
     embodiment: String,
     body_id: String,
-    presenter_id: String,
+    mask_form_id: String,
     hosts: Vec<HostIdentity>,
     line_ids: Vec<String>,
     distributed_plan_ids: Vec<String>,
@@ -258,7 +258,7 @@ struct JourneyBodyCell {
 struct RecordedGenerativeObservation {
     git_commit: String,
     embodiment: String,
-    presenter_id: String,
+    mask_form_id: String,
     observed: TrackActionObservation,
     receipts: Vec<TrackStep>,
 }
@@ -382,7 +382,7 @@ pub(super) fn stage(
         .map_err(|error| format!("read journeys gallery entrance: {error}"))?;
     let start_marker = "<!-- conduit-three-body-flagship@2 -->";
     let end_marker = "<!-- conduit-three-body-flagship:end -->";
-    let insertion = "<!-- conduit-three-body-flagship@2 --><section class=\"flagship admitted\" aria-labelledby=\"flagship-title\"><div><p class=\"eyebrow\">Accepted three-Body Journey</p><h2 id=\"flagship-title\">The same meaning. Three radically different lives.</h2><p class=\"lede\">Three independently born Bodies traverse one shared semantic contract, each retaining its own machinery, identity, biography, and evidence.</p><p><a class=\"primary\" href=\"current/three-bodies/\">Enter the Journey</a></p></div><div class=\"body-lanes\"><article><b>A</b><h3>ConduitOS</h3><p>Native, freestanding, graphical</p></article><article><b>B</b><h3>Browser</h3><p>DOM, WASM, interactive</p></article><article><b>C</b><h3>Screen-free</h3><p>Spoken, multi-Host, generative</p></article></div><ol class=\"semantic-spine\"><li>Bootstrap</li><li>Birth</li><li>Useful work</li><li>Inspect initial Show</li><li>Wear alternate Mask</li><li>Prefer alternate Mask</li><li>Withdraw selected route</li><li>Inspect no Show</li><li>Add presentation Host</li><li>Admit replacement Plan</li><li>Inspect replanned Show</li><li>Doff alternate Mask</li><li>Inspect restored Show</li><li>Break and recover</li><li>Rest and finish</li></ol><p class=\"boundary\"><strong>What this establishes:</strong> semantic portability with independent realization identities. It does not claim equal pixels, prose, timing, placement, or Body identity.</p></section><!-- conduit-three-body-flagship:end -->";
+    let insertion = "<!-- conduit-three-body-flagship@2 --><section class=\"flagship admitted\" aria-labelledby=\"flagship-title\"><div><p class=\"eyebrow\">Accepted three-Body Journey</p><h2 id=\"flagship-title\">The same meaning. Three radically different lives.</h2><p class=\"lede\">Three independently born Bodies traverse one shared semantic contract, each retaining its own machinery, identity, biography, and evidence.</p><p><a class=\"primary\" href=\"current/three-bodies/\">Enter the Journey</a></p></div><div class=\"body-lanes\"><article><b>A</b><h3>ConduitOS</h3><p>Native, freestanding, graphical</p></article><article><b>B</b><h3>Browser</h3><p>DOM, WASM, interactive</p></article><article><b>C</b><h3>Screen-free</h3><p>Spoken, multi-Host, generative</p></article></div><ol class=\"semantic-spine\"><li>Bootstrap</li><li>Birth</li><li>Useful work</li><li>Inspect initial Show</li><li>Wear alternate Mask</li><li>Prefer alternate Mask</li><li>Withdraw selected route</li><li>Inspect no Show</li><li>Add Face Host</li><li>Admit replacement Plan</li><li>Inspect replanned Show</li><li>Doff alternate Mask</li><li>Inspect restored Show</li><li>Break and recover</li><li>Rest and finish</li></ol><p class=\"boundary\"><strong>What this establishes:</strong> semantic portability with independent realization identities. It does not claim equal pixels, prose, timing, placement, or Body identity.</p></section><!-- conduit-three-body-flagship:end -->";
     let start = html
         .find(start_marker)
         .ok_or("journeys gallery entrance lacks its flagship marker")?;
@@ -432,7 +432,7 @@ fn assemble_index(
                         track_id: track.track_id.clone(),
                         embodiment: track.embodiment.clone(),
                         body_id: track.body_id.clone(),
-                        presenter_id: track.presenter_id.clone(),
+                        mask_form_id: track.mask_form_id.clone(),
                         hosts: track.hosts.clone(),
                         line_ids: track.line_ids.clone(),
                         distributed_plan_ids: track.distributed_plan_ids.clone(),
@@ -446,7 +446,7 @@ fn assemble_index(
                                 RecordedGenerativeObservation {
                                     git_commit: recording.git_commit.clone(),
                                     embodiment: recording.embodiment.clone(),
-                                    presenter_id: recording.presenter_id.clone(),
+                                    mask_form_id: recording.mask_form_id.clone(),
                                     observed: observed.clone(),
                                     receipts: select_receipts(recording, &observed.receipt_ids),
                                 }
@@ -541,7 +541,7 @@ fn validate_index(
                 .ok_or("three-Body Journey action omitted a Body cell")?;
             if cell.embodiment != basis.embodiment
                 || cell.body_id != basis.body_id
-                || cell.presenter_id != basis.presenter_id
+                || cell.mask_form_id != basis.mask_form_id
                 || cell.hosts != basis.hosts
                 || cell.line_ids != basis.line_ids
                 || cell.distributed_plan_ids != basis.distributed_plan_ids
@@ -559,7 +559,7 @@ fn validate_index(
                 if cell.track_id != "hosted-generative"
                     || recorded.git_commit != basis_recorded.git_commit
                     || recorded.embodiment != basis_recorded.embodiment
-                    || recorded.presenter_id != basis_recorded.presenter_id
+                    || recorded.mask_form_id != basis_recorded.mask_form_id
                     || recorded.observed.action_id != action.action.action_id
                 {
                     return Err("recorded generative observation changed identity or action".into());
@@ -575,7 +575,7 @@ fn validate_index(
             track_id: basis.track_id.clone(),
             embodiment: basis.embodiment.clone(),
             body_id: basis.body_id.clone(),
-            presenter_id: basis.presenter_id.clone(),
+            mask_form_id: basis.mask_form_id.clone(),
             hosts: basis.hosts.clone(),
             line_ids: basis.line_ids.clone(),
             distributed_plan_ids: basis.distributed_plan_ids.clone(),
@@ -598,7 +598,7 @@ fn validate_index(
                 track_id: basis.track_id.clone(),
                 embodiment: recorded.embodiment.clone(),
                 body_id: basis.body_id.clone(),
-                presenter_id: recorded.presenter_id.clone(),
+                mask_form_id: recorded.mask_form_id.clone(),
                 hosts: basis.hosts.clone(),
                 line_ids: basis.line_ids.clone(),
                 distributed_plan_ids: basis.distributed_plan_ids.clone(),
@@ -678,13 +678,13 @@ fn validate(
     let mut track_ids = BTreeSet::new();
     let mut body_ids = BTreeSet::new();
     let mut embodiments = BTreeSet::new();
-    let mut presenter_ids = BTreeSet::new();
+    let mut mask_form_ids = BTreeSet::new();
     let mut global_host_ids = BTreeSet::new();
     let mut global_boot_ids = BTreeSet::new();
     let mut plans = BTreeMap::new();
     let mut plays = BTreeMap::new();
-    let mut presentations = BTreeMap::new();
-    let mut manifestations = BTreeMap::new();
+    let mut faces = BTreeMap::new();
+    let mut shows = BTreeMap::new();
     let mut has_distributed_body = false;
     for track in tracks {
         if track.schema != TRACK_SCHEMA
@@ -693,11 +693,11 @@ fn validate(
             || !track_ids.insert(track.track_id.as_str())
             || !body_ids.insert(track.body_id.as_str())
             || !embodiments.insert(track.embodiment.as_str())
-            || !presenter_ids.insert(track.presenter_id.as_str())
+            || !mask_form_ids.insert(track.mask_form_id.as_str())
             || !valid_identity(&track.track_id)
             || !valid_identity(&track.embodiment)
             || !valid_identity(&track.body_id)
-            || !valid_identity(&track.presenter_id)
+            || !valid_identity(&track.mask_form_id)
             || track.hosts.is_empty()
             || track.hosts.len() > MAXIMUM_HOSTS_PER_BODY
             || track.receipts.is_empty()
@@ -826,13 +826,13 @@ fn validate(
                 &track.body_id,
             )?;
             claim_identity(
-                &mut presentations,
-                observed.provenance.presentation_id.as_deref(),
+                &mut faces,
+                observed.provenance.face_id.as_deref(),
                 &track.body_id,
             )?;
             claim_identity(
-                &mut manifestations,
-                observed.provenance.manifestation_id.as_deref(),
+                &mut shows,
+                observed.provenance.show_id.as_deref(),
                 &track.body_id,
             )?;
         }
@@ -860,7 +860,7 @@ fn validate_mask_journey(track: &BodyTrack) -> Result<(), String> {
     {
         if observed.action_id != expected.id()
             || !valid_narrative(&observed.concrete_event)
-            || !valid_identity(&observed.presentation_id)
+            || !valid_identity(&observed.face_id)
             || !valid_identity(&observed.plan_id)
             || observed
                 .selected_mask_form_id
@@ -895,10 +895,10 @@ fn validate_mask_journey(track: &BodyTrack) -> Result<(), String> {
     if track
         .mask_actions
         .iter()
-        .any(|action| action.presentation_id != first.presentation_id)
+        .any(|action| action.face_id != first.face_id)
     {
         return Err(format!(
-            "{} changes Presentation identity during its Mask journey",
+            "{} changes Face identity during its Mask journey",
             track.track_id
         ));
     }

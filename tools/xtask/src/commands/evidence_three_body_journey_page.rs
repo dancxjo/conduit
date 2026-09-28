@@ -50,7 +50,7 @@ pub(super) fn render(index: &ThreeBodyJourneyIndex) -> String {
                     &recording.receipts,
                     "live-conformance",
                     &recording.git_commit,
-                    &recording.presenter_id,
+                    &recording.mask_form_id,
                 );
                 html.push_str("<details><summary>Current release contract check</summary>");
                 render_receipts(
@@ -59,7 +59,7 @@ pub(super) fn render(index: &ThreeBodyJourneyIndex) -> String {
                     &body.receipts,
                     &body.track_id,
                     &index.git_commit,
-                    &body.presenter_id,
+                    &body.mask_form_id,
                 );
                 html.push_str("</details>");
             } else {
@@ -69,7 +69,7 @@ pub(super) fn render(index: &ThreeBodyJourneyIndex) -> String {
                     &body.receipts,
                     &body.track_id,
                     &index.git_commit,
-                    &body.presenter_id,
+                    &body.mask_form_id,
                 );
             }
             let _ = write!(
@@ -107,11 +107,11 @@ fn render_receipts(
     receipts: &[TrackStep],
     root: &str,
     git_commit: &str,
-    presenter_id: &str,
+    mask_form_id: &str,
 ) {
     for receipt in receipts {
         render_media(html, body, receipt, root);
-        render_evidence(html, body, receipt, root, git_commit, presenter_id);
+        render_evidence(html, body, receipt, root, git_commit, mask_form_id);
     }
 }
 
@@ -172,14 +172,14 @@ fn render_evidence(
     observed: &TrackStep,
     root: &str,
     git_commit: &str,
-    presenter_id: &str,
+    mask_form_id: &str,
 ) {
     html.push_str("<details class=\"evidence\"><summary>Evidence</summary><ul>");
     let _ = write!(
         html,
-        "<li>Recorded source: {} · Presenter: {}</li>",
+        "<li>Recorded source: {} · Mask Form: {}</li>",
         escape(git_commit),
-        escape(presenter_id)
+        escape(mask_form_id)
     );
     for evidence in &observed.evidence {
         let _ = write!(

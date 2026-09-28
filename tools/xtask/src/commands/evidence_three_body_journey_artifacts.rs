@@ -67,12 +67,12 @@ pub(super) fn read_recording(
             .evidence
             .iter()
             .find(|item| item.evidence_class == "presenter-receipt")
-            .ok_or("live documentary lacks its original Presenter request")?;
+            .ok_or("live documentary lacks its original Mask request")?;
         let observed = release
             .evidence
             .iter()
             .find(|item| item.evidence_class == "presenter-receipt")
-            .ok_or("release must retain every documentary Presenter request")?;
+            .ok_or("release must retain every documentary Mask request")?;
         let original: serde_json::Value = read_bounded_json(&root.join(&original.path))?;
         let observed: serde_json::Value = read_bounded_json(&current_root.join(&observed.path))?;
         if original["proof_class"] != "live-local-model"
@@ -80,7 +80,7 @@ pub(super) fn read_recording(
             || original["request"] != observed["request"]
         {
             return Err(format!(
-                "{} live recording has stale Presenter inputs",
+                "{} live recording has stale Mask inputs",
                 recorded.step_id
             ));
         }

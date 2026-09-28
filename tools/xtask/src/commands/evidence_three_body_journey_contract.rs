@@ -57,7 +57,7 @@ fn canonical_action(action: JourneyActionKind) -> ContractAction {
         JourneyActionKind::MaskInspectInitialShow => mask_action(
             "mask.inspect-initial-show",
             "Inspect the initial Show",
-            "The Body inspected its exact current Presentation, Mask route, Plan, and Show.",
+            "The Body inspected its exact current Face, Mask route, Plan, and Show.",
             "The initial human-facing realization is producer evidence, not an inferred screenshot label.",
         ),
         JourneyActionKind::MaskWearAlternate => mask_action(
@@ -86,7 +86,7 @@ fn canonical_action(action: JourneyActionKind) -> ContractAction {
         ),
         JourneyActionKind::MaskAddPresentationHost => mask_action(
             "mask.add-presentation-host",
-            "Add a presentation Host",
+            "Add a Face Host",
             "A new Host or Boot offered a possible Mask realization.",
             "Availability alone did not mutate the old Plan or create a Show.",
         ),
@@ -100,7 +100,7 @@ fn canonical_action(action: JourneyActionKind) -> ContractAction {
             "mask.inspect-replanned-show",
             "Inspect the replanned Show",
             "The Body inspected the Show realized by the replacement Plan.",
-            "Presentation identity remained stable while realization identity changed.",
+            "Face identity remained stable while realization identity changed.",
         ),
         JourneyActionKind::MaskDoffAlternate => mask_action(
             "mask.doff-alternate",

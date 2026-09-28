@@ -11,7 +11,7 @@ const STEPS: [(&str, &str, &str); 13] = [
     ("body.born", "body-born", "body-biography"),
     ("body.awake", "body-awake", "body-biography"),
     ("form.used", "standing-form-used", "runtime-receipt"),
-    ("body.inspected", "body-inspected", "semantic-presentation"),
+    ("body.inspected", "body-inspected", "semantic-face"),
     ("workload.revised", "workload-revised", "body-biography"),
     ("host.added", "host-added", "runtime-receipt"),
     ("fault.observed", "fault-observed", "stream-disposition"),
@@ -30,8 +30,8 @@ pub(crate) struct TrackIdentities {
     pub plan: String,
     pub distributed_plan: Option<String>,
     pub play: String,
-    pub presentation: String,
-    pub manifestation: String,
+    pub face: String,
+    pub show: String,
     pub line: Option<String>,
     pub signs: BTreeMap<&'static str, String>,
 }
@@ -40,7 +40,7 @@ pub(crate) struct TrackSource {
     pub commit: String,
     pub track_id: &'static str,
     pub embodiment: &'static str,
-    pub presenter_id: &'static str,
+    pub mask_form_id: &'static str,
     pub identities: TrackIdentities,
     pub facts: Vec<Value>,
     /// Exact producer-owned outcomes from the shared ordered Mask journey.
@@ -122,8 +122,8 @@ pub(crate) fn write(mut source: TrackSource, output: &Path) -> Result<(), String
                 "boot_id": if index < 3 { Some(&source.identities.boot) } else if host_added { Some(&source.identities.peer_boot) } else { None },
                 "plan_id": plan,
                 "play_id": play,
-                "presentation_id": (*step_id == "body.inspected").then_some(&source.identities.presentation),
-                "manifestation_id": (*step_id == "body.inspected").then_some(&source.identities.manifestation),
+                "face_id": (*step_id == "body.inspected").then_some(&source.identities.face),
+                "show_id": (*step_id == "body.inspected").then_some(&source.identities.show),
                 "line_id": (host_added).then_some(source.identities.line.as_ref()).flatten(),
                 "sign_id": sign,
             },
@@ -141,6 +141,13 @@ pub(crate) fn write(mut source: TrackSource, output: &Path) -> Result<(), String
         .mask_actions
         .as_array_mut()
         .expect("Mask action length was checked above");
+    for outcome in mask_actions.iter_mut() {
+        let face = outcome
+            .as_object_mut()
+            .and_then(|object| object.remove("presentation_id"))
+            .ok_or("Body track Mask action lacks its exact Face identity")?;
+        outcome["face_id"] = face;
+    }
     for (index, (expected, outcome)) in conduit_presentation::MASK_JOURNEY_ACTIONS
         .iter()
         .zip(mask_actions.iter_mut())
@@ -176,15 +183,15 @@ pub(crate) fn write(mut source: TrackSource, output: &Path) -> Result<(), String
                 "boot_id": null,
                 "plan_id": outcome["plan_id"],
                 "play_id": null,
-                "presentation_id": outcome["presentation_id"],
-                "manifestation_id": outcome["show_id"],
+                "face_id": outcome["face_id"],
+                "show_id": outcome["show_id"],
                 "line_id": null,
                 "sign_id": null,
             },
             "evidence": [{
                 "artifact_id": format!("{}/mask-action-{index}", source.track_id),
                 "evidence_class": "semantic-receipt",
-                "assertion_rung": "semantic-presentation",
+                "assertion_rung": "semantic-face",
                 "documentary_description": format!("{} producer outcome for {}.", source.embodiment, expected.id()),
                 "path": relative,
                 "sha256": format!("sha256:{:x}", Sha256::digest(&bytes)),
@@ -246,13 +253,13 @@ pub(crate) fn write(mut source: TrackSource, output: &Path) -> Result<(), String
         "boot_id": source.identities.peer_boot,
     }));
     let document = serde_json::json!({
-        "schema": "conduit.evidence/body-journey-track@4",
+        "schema": "conduit.evidence/body-journey-track@5",
         "journey_id": "orifina/tutorial@1",
         "git_commit": source.commit,
         "track_id": source.track_id,
         "embodiment": source.embodiment,
         "body_id": source.identities.body,
-        "presenter_id": source.presenter_id,
+        "mask_form_id": source.mask_form_id,
         "hosts": hosts,
         "line_ids": source.identities.line.into_iter().collect::<Vec<_>>(),
         "distributed_plan_ids": source.identities.distributed_plan.into_iter().collect::<Vec<_>>(),
