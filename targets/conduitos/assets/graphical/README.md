@@ -48,6 +48,6 @@ counts, and storage. `LICENSE.txt` retains the font redistribution license.
 `rasterize.py` is the maintenance generator; it checks the three exact source
 hashes and uses Pillow's basic FreeType layout. Ordinary builds consume the
 checked-in atlas bytes and need neither Python nor installed system fonts.
-The Unifont fallback license and provenance remain in
-`products/patchbay/native/assets/unifont` at the repository root. No archived
-subsystem was recovered for this profile.
+The shared bounded Unifont corpus, license, and provenance live in
+`mechanisms/implementations/bounded-unifont` at the repository root. No
+archived subsystem was recovered for this profile.

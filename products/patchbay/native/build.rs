@@ -3,7 +3,8 @@ use std::fmt::Write as _;
 use std::fs;
 use std::path::PathBuf;
 
-const SUBSET_PATH: &str = "assets/unifont/unifont-17.0.04-patchbay.hex";
+const SUBSET_PATH: &str =
+    "../../../mechanisms/implementations/bounded-unifont/unifont-17.0.04-bounded.hex";
 
 fn main() {
     println!("cargo:rerun-if-changed={SUBSET_PATH}");

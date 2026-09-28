@@ -1,6 +1,6 @@
-# Patchbay GNU Unifont subset
+# Bounded GNU Unifont realization asset
 
-`unifont-17.0.04-patchbay.hex` is a mechanically extracted, bounded subset of
+`unifont-17.0.04-bounded.hex` is a mechanically extracted, bounded subset of
 GNU Unifont 17.0.04. It contains ASCII, Latin-1, Greek and Coptic, Cyrillic,
 the em dash used by renderer-neutral titled text, arrows, box drawing,
 geometric shapes, one double-width CJK demonstration glyph (`U+4E2D`), and
@@ -28,7 +28,7 @@ Regenerate from the downloaded, checksum-verified asset:
 ```sh
 cargo xtask unifont-subset \
   unifont_all-17.0.04.hex.gz \
-  products/patchbay/native/assets/unifont/unifont-17.0.04-patchbay.hex
+  mechanisms/implementations/bounded-unifont/unifont-17.0.04-bounded.hex
 ```
 
 Upstream dual-licenses its font glyphs under SIL Open Font License 1.1 and

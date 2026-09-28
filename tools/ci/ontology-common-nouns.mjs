@@ -11,7 +11,6 @@ const extensions = /\.(?:conduit|html|js|json|md|mjs|rs|sh|svg|toml|txt|ya?ml)$/
 const excluded = [
   ".github/workflows/",
   "docs/history/",
-  "products/patchbay/native/assets/",
   "tools/ci/ontology-common-nouns.mjs",
 ];
 
