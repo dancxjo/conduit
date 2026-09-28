@@ -154,7 +154,7 @@ fn punctuation(text: &str) -> Option<(usize, SyntaxHighlightKind)> {
         '(' | ')' | '{' | '}' | '[' | ']' | ',' => {
             Some((character.len_utf8(), SyntaxHighlightKind::Delimiter))
         }
-        ':' | '=' | '>' | '|' | '$' | '?' => {
+        ':' | '=' | '>' | '|' | '!' | '~' | '$' | '?' => {
             Some((character.len_utf8(), SyntaxHighlightKind::Operator))
         }
         '.' if following
@@ -298,13 +298,15 @@ mod tests {
 
     #[test]
     fn punctuation_and_literals_remain_finite_without_regex_rewriting() {
-        let source = "body demo { enabled=true list=[1,2] current=$value stream=value/text...| }";
+        let source = "body demo { enabled=true list=[1,2] current=$value stream=value/text...| abnormal=work! cancellation=work~ }";
         let spans = highlight_syntax(source).unwrap();
         let pieces = pieces(source, &spans);
         assert!(pieces.contains(&(SyntaxHighlightKind::Keyword, "body")));
         assert!(pieces.contains(&(SyntaxHighlightKind::Literal, "true")));
         assert!(pieces.contains(&(SyntaxHighlightKind::Operator, "$")));
         assert!(pieces.contains(&(SyntaxHighlightKind::Operator, "...|")));
+        assert!(pieces.contains(&(SyntaxHighlightKind::Operator, "!")));
+        assert!(pieces.contains(&(SyntaxHighlightKind::Operator, "~")));
         assert!(pieces.contains(&(SyntaxHighlightKind::Delimiter, "[")));
         assert_eq!(
             spans.len(),
