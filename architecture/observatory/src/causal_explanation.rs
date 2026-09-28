@@ -119,8 +119,41 @@ pub fn explain_terminal<const CORRELATIONS: usize, const EDGES: usize>(
     cause_digest: [u8; 32],
     visibility: CausalExplanationVisibility,
 ) -> Result<CausalTraceExplanation, CausalExplanationRefusal> {
-    explain_trace(
+    struct NoMetadata;
+    impl EvidenceMetadataLookup for NoMetadata {
+        fn visit<'a>(
+            &'a self,
+            _evidence: EvidenceIdentity,
+            _visitor: &mut dyn FnMut(EvidenceMetadataFact<'a>) -> bool,
+        ) -> EvidenceMetadataVisit {
+            EvidenceMetadataVisit::Missing
+        }
+    }
+    explain_terminal_with_metadata(
+        correlations,
         evidence,
+        &NoMetadata,
+        cause_digest,
+        visibility,
+    )
+}
+
+/// Resolves a compact semantic-terminal correlation and projects the exact
+/// retained metadata owned by the execution layer in one bounded operation.
+///
+/// The lookup lends inspection facts only. It cannot grant authority or alter
+/// the causal graph, and public projection redacts those exact identities while
+/// preserving graph shape and semantic outcome.
+pub fn explain_terminal_with_metadata<const CORRELATIONS: usize, const EDGES: usize>(
+    correlations: &TerminalEvidenceIndex<CORRELATIONS>,
+    evidence: &CausalEvidence<EDGES>,
+    metadata: &impl EvidenceMetadataLookup,
+    cause_digest: [u8; 32],
+    visibility: CausalExplanationVisibility,
+) -> Result<CausalTraceExplanation, CausalExplanationRefusal> {
+    explain_trace_with_metadata(
+        evidence,
+        metadata,
         correlations.terminal_for(cause_digest)?,
         visibility,
     )

@@ -15,6 +15,10 @@ use conduit_kernel::{
     },
     KernelEventKind,
 };
+use conduit_observatory::{
+    explain_terminal_with_metadata, CausalExplanationMetadata, CausalExplanationMetadataFact,
+    CausalExplanationVisibility,
+};
 use conduit_planner::{default_placements, plan_with_options, PlanningOptions};
 use std::collections::BTreeMap;
 
@@ -50,6 +54,89 @@ fn real_body_failure_correlates_typed_terminal_with_exact_execution_evidence() {
         EvidenceOutcome::SemanticTerminal
     )));
     assert_exact_execution_facts(&facts, &body_plan, &report);
+
+    let operator = explain_terminal_with_metadata(
+        evidence.terminals(),
+        evidence.graph(),
+        &evidence,
+        [71; 32],
+        CausalExplanationVisibility::Operator,
+    )
+    .unwrap();
+    let terminal = operator
+        .nodes
+        .iter()
+        .find(|node| node.terminal)
+        .expect("the correlated semantic terminal remains the explanation root");
+    assert_eq!(terminal.evidence, Some(root));
+    assert_eq!(terminal.outcome, Some(EvidenceOutcome::SemanticTerminal));
+    let consumed = operator
+        .nodes
+        .iter()
+        .find(|node| node.outcome == Some(EvidenceOutcome::InfoConsumed))
+        .expect("the semantic terminal retains the exact consumed control input");
+    assert!(operator.edges.iter().any(|edge| {
+        edge.effect == terminal.ordinal
+            && edge.cause == consumed.ordinal
+            && edge.relationship == CausalRelationship::TerminatedBecause
+    }));
+    let routed = operator
+        .nodes
+        .iter()
+        .find(|node| node.outcome == Some(EvidenceOutcome::InfoRouted))
+        .expect("the consumed control input retains its exact planned Cord source");
+    assert!(operator.edges.iter().any(|edge| {
+        edge.effect == consumed.ordinal
+            && edge.cause == routed.ordinal
+            && edge.relationship == CausalRelationship::DerivedFrom
+    }));
+    let CausalExplanationMetadata::Visible(facts) = &terminal.metadata else {
+        panic!("an authorized operator receives exact retained execution facts");
+    };
+    assert!(facts.iter().any(|fact| matches!(
+        fact,
+        CausalExplanationMetadataFact::Source { document, .. }
+            if body_plan.forms.iter().any(|form| form.plan.source_document_id.as_str() == document)
+    )));
+    assert!(facts.iter().any(|fact| matches!(
+        fact,
+        CausalExplanationMetadataFact::Plan(value) if value == body_plan.plan_id.as_str()
+    )));
+    assert!(facts.iter().any(|fact| matches!(
+        fact,
+        CausalExplanationMetadataFact::Play(value)
+            if value == report.play.active_play_id.as_str()
+    )));
+    assert!(facts
+        .iter()
+        .any(|fact| matches!(fact, CausalExplanationMetadataFact::Implementation(_))));
+    assert!(facts.iter().any(|fact| matches!(
+        fact,
+        CausalExplanationMetadataFact::Host(value)
+            if value == report.terminal_sign.host_id.as_str()
+    )));
+    assert!(facts.iter().any(|fact| matches!(
+        fact,
+        CausalExplanationMetadataFact::Boot(value)
+            if value == report.terminal_sign.boot_id.as_str()
+    )));
+
+    let public = explain_terminal_with_metadata(
+        evidence.terminals(),
+        evidence.graph(),
+        &evidence,
+        [71; 32],
+        CausalExplanationVisibility::Public,
+    )
+    .unwrap();
+    assert_eq!(public.edges, operator.edges);
+    assert_eq!(public.completeness, operator.completeness);
+    assert!(public.nodes.iter().all(|node| node.evidence.is_none()));
+    assert_eq!(public.nodes[0].outcome, operator.nodes[0].outcome);
+    assert_eq!(
+        public.nodes[0].metadata,
+        CausalExplanationMetadata::Redacted
+    );
 }
 
 #[test]

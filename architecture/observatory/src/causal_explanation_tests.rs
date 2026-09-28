@@ -146,6 +146,55 @@ fn resolves_terminal_and_marks_compacted_history_incomplete() {
 }
 
 #[test]
+fn terminal_resolution_and_exact_metadata_projection_are_one_bounded_operation() {
+    let digest = [8; 32];
+    let terminal = identity(2);
+    let mut correlations = TerminalEvidenceIndex::<1>::default();
+    correlations
+        .record(TerminalEvidenceCorrelation {
+            cause_digest: digest,
+            terminal,
+        })
+        .unwrap();
+    let mut evidence = CausalEvidence::<1>::default();
+    evidence
+        .record(CausalEdge {
+            effect: terminal,
+            relationship: CausalRelationship::TerminatedBecause,
+            cause: identity(1),
+        })
+        .unwrap();
+
+    let explanation = explain_terminal_with_metadata(
+        &correlations,
+        &evidence,
+        &ExactMetadata(terminal),
+        digest,
+        CausalExplanationVisibility::Operator,
+    )
+    .unwrap();
+
+    assert_eq!(explanation.nodes[0].evidence, Some(terminal));
+    assert_eq!(
+        explanation.nodes[0].outcome,
+        Some(EvidenceOutcome::SemanticTerminal)
+    );
+    assert!(matches!(
+        &explanation.nodes[0].metadata,
+        CausalExplanationMetadata::Visible(facts)
+            if facts.contains(&CausalExplanationMetadataFact::Source {
+                document: "source/exact".into(),
+                start: Some(4),
+                end: Some(12),
+                line: Some(2),
+                column: Some(3),
+                end_line: Some(2),
+                end_column: Some(11),
+            })
+    ));
+}
+
+#[test]
 fn refuses_projection_beyond_inspection_envelope() {
     let terminal = identity(MAXIMUM_CAUSAL_EXPLANATION_EDGES as u64 + 2);
     let mut evidence = CausalEvidence::<{ MAXIMUM_CAUSAL_EXPLANATION_EDGES + 1 }>::default();

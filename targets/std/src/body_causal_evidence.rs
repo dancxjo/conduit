@@ -19,7 +19,7 @@ use conduit_plan_lowering::lowering::KernelIdentityMap;
 mod continuity;
 use continuity::validate_recovery_continuity;
 mod graph;
-use graph::{record_intra_run_edges, record_planned_recovery_edges};
+use graph::{record_intra_run_edges, record_planned_recovery_edges, record_planned_transfer_edges};
 mod identity;
 use identity::{digest_u64, evidence_sign, execution_envelope};
 
@@ -89,6 +89,7 @@ impl BodyRunCausalRecord {
         }
         let mut graph = CausalEvidence::default();
         record_intra_run_edges(&mut graph, &nodes)?;
+        record_planned_transfer_edges(&mut graph, &nodes, plan, &report.partitions)?;
         record_planned_recovery_edges(&mut graph, &nodes, plan, &report.partitions)?;
         Ok(Self {
             graph,
@@ -143,8 +144,15 @@ impl BodyRunCausalRecord {
 
         let mut graph = CausalEvidence::default();
         record_intra_run_edges(&mut graph, &prior)?;
+        record_planned_transfer_edges(&mut graph, &prior, prior_plan, &prior_report.partitions)?;
         record_planned_recovery_edges(&mut graph, &prior, prior_plan, &prior_report.partitions)?;
         record_intra_run_edges(&mut graph, &replacement)?;
+        record_planned_transfer_edges(
+            &mut graph,
+            &replacement,
+            replacement_plan,
+            &replacement_report.partitions,
+        )?;
         record_planned_recovery_edges(
             &mut graph,
             &replacement,
@@ -463,7 +471,10 @@ fn resolve_event<'a>(
 fn is_relevant(kind: KernelEventKind) -> bool {
     matches!(
         kind,
-        KernelEventKind::BackFailed
+        KernelEventKind::ValueRouted
+            | KernelEventKind::ValueConsumed
+            | KernelEventKind::CancellationRequested
+            | KernelEventKind::BackFailed
             | KernelEventKind::SemanticAbnormal
             | KernelEventKind::SemanticAbnormalRecovered
             | KernelEventKind::BackCompleted
@@ -486,6 +497,9 @@ fn is_completion(kind: KernelEventKind) -> bool {
 
 fn outcome(kind: KernelEventKind) -> EvidenceOutcome {
     match kind {
+        KernelEventKind::ValueRouted => EvidenceOutcome::InfoRouted,
+        KernelEventKind::ValueConsumed => EvidenceOutcome::InfoConsumed,
+        KernelEventKind::CancellationRequested => EvidenceOutcome::CancellationRequested,
         KernelEventKind::BackFailed | KernelEventKind::SemanticAbnormal => {
             EvidenceOutcome::RealizationUnsatisfied
         }

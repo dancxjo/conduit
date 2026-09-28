@@ -26,6 +26,11 @@ pub struct EvidenceIdentity {
 /// fabricating a semantic abnormal terminal.
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum EvidenceOutcome {
+    InfoRouted,
+    InfoConsumed,
+    /// An admitted semantic cancellation was requested. This is causal control
+    /// evidence, not proof that cancellation succeeded or terminal truth.
+    CancellationRequested,
     RealizationUnsatisfied,
     ReplacementAdmitted,
     PlayCompleted,
