@@ -1,15 +1,17 @@
 use conduit_core::{
-    kind_id, CheckedValueContract, IntervalEndpoint, Quantity, QuantityUnit, ValueConstraint,
-    COUNT_ENCODED_LEN, COUNT_INFO_ID, DISTANCE_INFO_ID, QUANTITY_ENCODED_LEN, SCALAR_ENCODED_LEN,
-    SCALAR_INFO_ID,
+    kind_id, BaseImplementationId, BoundedResourceRef, CheckedValueContract, IntervalEndpoint,
+    Quantity, QuantityUnit, ResourceClassId, ResourceExtent, ResourceLifetime,
+    ResourceSemanticIdentity, ResourceVersionIdentity, ValueConstraint, COUNT_ENCODED_LEN,
+    COUNT_INFO_ID, DISTANCE_INFO_ID, QUANTITY_ENCODED_LEN, SCALAR_ENCODED_LEN, SCALAR_INFO_ID,
 };
 use conduit_form::TextPatternExpression;
 use conduit_presentation::{
     plan_face_utterances, FaceActionArgument, FaceUtteranceClauseKind, FaceUtteranceProvenance,
     Presentation, PresentationAction, PresentationActionAvailability, PresentationBasis,
     PresentationCompositionKind, PresentationCompositionRelation, PresentationDisclosureLevel,
-    PresentationRelationship, PresentationRelationshipKind, PresentationRole, PresentationSubject,
-    PresentationText, UTF8_TEXT_VALUE_KIND,
+    PresentationProperty, PresentationPropertyValue, PresentationRelationship,
+    PresentationRelationshipKind, PresentationRole, PresentationSubject, PresentationText,
+    UTF8_TEXT_VALUE_KIND,
 };
 
 fn basis() -> PresentationBasis {
@@ -417,4 +419,136 @@ fn exact_inward_participation_contract_survives_aural_projection() {
     let changed = plan_face_utterances(&participation_face(7)).unwrap();
     assert_ne!(plan.source_face_identity, changed.source_face_identity);
     assert_ne!(plan.digest, changed.digest);
+}
+
+fn content_reference() -> Vec<u8> {
+    BoundedResourceRef {
+        identity: ResourceSemanticIdentity::from_digest([7; 32]),
+        content_profile: kind_id("biology/diagram@1"),
+        access_class: ResourceClassId::from("content/public@1"),
+        extent: ResourceExtent {
+            bytes: 4_096,
+            items: Some(1),
+        },
+        lifetime: ResourceLifetime {
+            version: ResourceVersionIdentity::from_digest([8; 32]),
+            expires_at: None,
+        },
+    }
+    .encode()
+    .unwrap()
+}
+
+fn property_face(count: u64) -> Presentation {
+    Presentation::new_with_semantics(
+        2,
+        basis(),
+        vec![subject("sample", "Sample", "example/sample")],
+        vec![],
+        vec![
+            PresentationProperty {
+                subject: "sample".into(),
+                name: "identity".into(),
+                value: PresentationPropertyValue::Identity("sample/exact@1".into()),
+            },
+            PresentationProperty {
+                subject: "sample".into(),
+                name: "implementation".into(),
+                value: PresentationPropertyValue::BaseImplementationId(BaseImplementationId::from(
+                    "sample/std@1",
+                )),
+            },
+            PresentationProperty {
+                subject: "sample".into(),
+                name: "description".into(),
+                value: PresentationPropertyValue::Text("Retain exact wording".into()),
+            },
+            PresentationProperty {
+                subject: "sample".into(),
+                name: "observations".into(),
+                value: PresentationPropertyValue::Count(count),
+            },
+            PresentationProperty {
+                subject: "sample".into(),
+                name: "offset".into(),
+                value: PresentationPropertyValue::Signed(-3),
+            },
+            PresentationProperty {
+                subject: "sample".into(),
+                name: "ready".into(),
+                value: PresentationPropertyValue::Flag(true),
+            },
+            PresentationProperty {
+                subject: "sample".into(),
+                name: "name-contract".into(),
+                value: PresentationPropertyValue::ValueContract(
+                    CheckedValueContract::new(
+                        UTF8_TEXT_VALUE_KIND.into(),
+                        12,
+                        vec![ValueConstraint::ByteLength {
+                            minimum: 1,
+                            maximum: 12,
+                        }],
+                    )
+                    .unwrap(),
+                ),
+            },
+            PresentationProperty {
+                subject: "sample".into(),
+                name: "diagram".into(),
+                value: PresentationPropertyValue::Content(content_reference()),
+            },
+        ],
+        vec![],
+        vec![],
+        vec![],
+    )
+    .unwrap()
+}
+
+#[test]
+fn exact_properties_survive_both_linear_and_aural_masks() {
+    let face = property_face(4);
+    let aural = plan_face_utterances(&face).unwrap();
+    let properties = aural
+        .clauses
+        .iter()
+        .filter(|clause| clause.kind == FaceUtteranceClauseKind::Property)
+        .collect::<Vec<_>>();
+    assert_eq!(properties.len(), face.properties.len());
+    for (index, expected) in [
+        "identity sample/exact@1",
+        "base implementation sample/std@1",
+        "text \"Retain exact wording\"",
+        "count 4",
+        "signed value -3",
+        "flag true",
+        "a value contract of kind value/text permitting at most 12 bytes: between 1 and 12 bytes",
+        "bounded content of profile biology/diagram@1, access class content/public@1, 4096 bytes, and 1 item",
+    ]
+    .into_iter()
+    .enumerate()
+    {
+        let clause = properties
+            .iter()
+            .find(|clause| {
+                clause.provenance == FaceUtteranceProvenance::Property { index: index as u32 }
+            })
+            .unwrap_or_else(|| panic!("missing aural property {index}"));
+        assert!(clause.text.contains(expected), "{}", clause.text);
+    }
+
+    let linear = conduit_presentation::render_linear_presentation(&face).unwrap();
+    assert_eq!(
+        linear
+            .lines
+            .iter()
+            .filter(|line| line.starts_with("PROPERTY "))
+            .count(),
+        face.properties.len()
+    );
+
+    let changed = plan_face_utterances(&property_face(5)).unwrap();
+    assert_ne!(aural.source_face_identity, changed.source_face_identity);
+    assert_ne!(aural.digest, changed.digest);
 }

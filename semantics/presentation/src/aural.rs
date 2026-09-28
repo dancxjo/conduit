@@ -27,6 +27,9 @@ pub enum FaceUtteranceProvenance {
     Relationship {
         index: u32,
     },
+    Property {
+        index: u32,
+    },
     Composition {
         identity: String,
     },
@@ -46,6 +49,7 @@ pub enum FaceUtteranceProvenance {
 pub enum FaceUtteranceClauseKind {
     Subject,
     Relationship,
+    Property,
     Composition,
     Text,
     Action,
@@ -123,6 +127,24 @@ pub fn plan_face_utterances(
             kind: FaceUtteranceClauseKind::Relationship,
             text: relationship_clause(face, relationship),
             provenance: FaceUtteranceProvenance::Relationship {
+                index: index as u32,
+            },
+        })?;
+    }
+
+    let mut properties = face.properties.iter().enumerate().collect::<Vec<_>>();
+    properties.sort_by_key(|(index, property)| {
+        (
+            subject_rank(&subject_order, &property.subject),
+            property.name.as_str(),
+            *index,
+        )
+    });
+    for (index, property) in properties {
+        builder.push(FaceUtteranceClause {
+            kind: FaceUtteranceClauseKind::Property,
+            text: property_clause(face, property),
+            provenance: FaceUtteranceProvenance::Property {
                 index: index as u32,
             },
         })?;
@@ -307,6 +329,44 @@ fn relationship_clause(
     }
 }
 
+fn property_clause(face: &Presentation, property: &crate::PresentationProperty) -> String {
+    let subject = subject_name(face, &property.subject);
+    let value = match &property.value {
+        crate::PresentationPropertyValue::Identity(value) => format!("identity {value}"),
+        crate::PresentationPropertyValue::BaseImplementationId(value) => {
+            format!("base implementation {}", value.as_str())
+        }
+        crate::PresentationPropertyValue::Text(value) => format!("text {value:?}"),
+        crate::PresentationPropertyValue::Count(value) => format!("count {value}"),
+        crate::PresentationPropertyValue::Signed(value) => format!("signed value {value}"),
+        crate::PresentationPropertyValue::Flag(value) => format!("flag {value}"),
+        crate::PresentationPropertyValue::ValueContract(contract) => format!(
+            "a value contract of kind {} permitting at most {} bytes: {}",
+            contract.value_kind.as_str(),
+            contract.maximum_bytes,
+            contract_constraints_clause(contract)
+        ),
+        crate::PresentationPropertyValue::Content(encoded) => {
+            let content = conduit_core::BoundedResourceRef::validate_encoded(encoded)
+                .expect("validated Face content remains canonical");
+            match content.extent.items {
+                Some(items) => {
+                    let item_word = if items == 1 { "item" } else { "items" };
+                    format!(
+                        "bounded content of profile {}, access class {}, {} bytes, and {items} {item_word}",
+                        content.content_profile, content.access_class, content.extent.bytes
+                    )
+                }
+                None => format!(
+                    "bounded content of profile {}, access class {}, and {} bytes",
+                    content.content_profile, content.access_class, content.extent.bytes
+                ),
+            }
+        }
+    };
+    format!("{subject} has property {}: {value}.", property.name)
+}
+
 fn composition_clause(
     face: &Presentation,
     relation: &crate::PresentationCompositionRelation,
@@ -363,24 +423,28 @@ fn action_argument_clause(
     action: &crate::PresentationAction,
     argument: &crate::FaceActionArgument,
 ) -> String {
-    let mut constraints = argument
-        .contract
-        .constraints
-        .iter()
-        .map(constraint_clause)
-        .collect::<Vec<_>>()
-        .join("; ");
-    if constraints.is_empty() {
-        constraints = "no additional value constraint".into();
-    }
     format!(
         "For action {}, the argument {} has kind {} and permits at most {} bytes: {}.",
         action.name,
         argument.value_name,
         argument.contract.value_kind.as_str(),
         argument.contract.maximum_bytes,
-        constraints
+        contract_constraints_clause(&argument.contract)
     )
+}
+
+fn contract_constraints_clause(contract: &conduit_core::CheckedValueContract) -> String {
+    let constraints = contract
+        .constraints
+        .iter()
+        .map(constraint_clause)
+        .collect::<Vec<_>>()
+        .join("; ");
+    if constraints.is_empty() {
+        "no additional value constraint".into()
+    } else {
+        constraints
+    }
 }
 
 fn constraint_clause(constraint: &ValueConstraint) -> String {
@@ -531,6 +595,10 @@ fn hash_provenance(digest: &mut Sha256, provenance: &FaceUtteranceProvenance) {
         }
         FaceUtteranceProvenance::Relationship { index } => {
             digest.update([1]);
+            digest.update(index.to_le_bytes());
+        }
+        FaceUtteranceProvenance::Property { index } => {
+            digest.update([6]);
             digest.update(index.to_le_bytes());
         }
         FaceUtteranceProvenance::Composition { identity } => {
