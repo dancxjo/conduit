@@ -7,4 +7,4 @@ edition = "2021"
 conduit-core = { path = "../../../architecture/core" }
 conduit-form = { path = "../../../architecture/form" }
 conduit-std-host = { path = ".." }
-patchbay-model = { path = "../../../products/patchbay/model" }
+patchbay-workbench-host-contract = { path = "../../../forms/patchbay/workbench/host-contract" }

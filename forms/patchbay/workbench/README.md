@@ -9,3 +9,9 @@ The current native workbench consumes `examples/maker-workbench.json` for the
 environment and PREWAKE journeys. Keeping that authored input with the resident
 Patchbay Form family avoids making a particular native product shell its
 semantic owner.
+
+`host-contract` is the narrow Host-neutral boundary used by concrete workbench
+realizations. It names the requested profile and returns exact bounded Play,
+receipt and output evidence. The contract owns neither a Host implementation
+nor planning policy; hosted targets implement it without depending upward on a
+legacy Patchbay product model.
