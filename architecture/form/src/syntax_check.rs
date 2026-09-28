@@ -450,6 +450,7 @@ fn form_signatures(
                 .diagnostic(form.name.span));
         }
         let mut names = BTreeSet::new();
+        let mut type_names = BTreeSet::new();
         for parameter in &form.front.type_parameters {
             if !names.insert(parameter.name.text.clone()) {
                 return Err(
@@ -457,6 +458,7 @@ fn form_signatures(
                         .diagnostic(parameter.span),
                 );
             }
+            type_names.insert(parameter.name.text.clone());
         }
         let mut startup_parameters = Vec::new();
         for parameter in &form.front.startup_parameters {
@@ -471,6 +473,16 @@ fn form_signatures(
                 value_type: parameter.value_type.text.clone(),
                 default: parameter.default.as_ref().map(|value| value.text.clone()),
             });
+        }
+        if let Some(port) = form
+            .front
+            .runtime_ports
+            .iter()
+            .find(|port| type_names.contains(&port.name.text))
+        {
+            return Err(
+                SyntaxCheckError::AmbiguousFrontName(port.name.text.clone()).diagnostic(port.span)
+            );
         }
         signatures.insert(
             form.name.text.clone(),

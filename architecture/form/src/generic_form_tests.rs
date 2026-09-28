@@ -232,3 +232,11 @@ fn runtime_startup_values_remain_after_compile_time_type_arguments_disappear() {
         "the compile-time argument survives only in exact specialization identity"
     );
 }
+
+#[test]
+fn type_parameter_cannot_masquerade_as_a_runtime_front_name() {
+    let parsed = parse_syntax_document("form bad (\n item: type\n >> item: Text\n) {\n}\n");
+    let error = check_syntax_document(&parsed, &StartupCatalog::new()).unwrap_err();
+    assert_eq!(error.code, "CND-FRM-050");
+    assert!(error.message.contains("item"));
+}
