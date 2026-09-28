@@ -36,14 +36,14 @@ ambient effect authority.
 Open the repository browser experience:
 
 ```sh
-cargo xtask demo workspace
+cargo xtask prove journey workspace
 ```
 
 Run its pinned Chromium acceptance journey after installing the prerequisites in
 [the browser proof guide](../../proof/browser/README.md):
 
 ```sh
-cargo xtask demo workspace --check
+cargo xtask prove journey workspace --check
 ```
 
 The journey births Memory Lantern and Desk Telegraph, confirms the newborn body

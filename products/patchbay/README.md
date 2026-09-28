@@ -4,8 +4,8 @@ Patchbay lets you work with forms and inspect their realized execution. Open it
 from a checkout with:
 
 ```sh
-cargo xtask demo patchbay
-cargo xtask demo patchbay --on browser
+cargo xtask prove journey patchbay
+cargo xtask prove journey patchbay --on browser
 ```
 
 The installed product entrance is now simply `conduit`; Patchbay is not a

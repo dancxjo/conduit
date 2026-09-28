@@ -27,7 +27,7 @@ implementation, base denial, base loss, and output failure remain distinct outco
 Run the focused repository proof with:
 
 ```text
-cargo xtask demo tongues --json
+cargo xtask prove journey tongues --json
 ```
 
 The speech stack is opt-in; generic workspace tooling does not link the

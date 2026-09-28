@@ -80,7 +80,7 @@ fn quiet_dry_runs_emit_no_ordinary_stdout() {
 
 #[test]
 fn demo_tour_dry_run_uses_the_canonical_tour_product_route() {
-    let output = xtask(&["--dry-run", "demo", "tour"]);
+    let output = xtask(&["--dry-run", "prove", "journey", "tour"]);
     assert!(
         output.status.success(),
         "{:?}",
