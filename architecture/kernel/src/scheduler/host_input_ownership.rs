@@ -50,12 +50,7 @@ where
             if available_host_value == Some(value) && !consumed_host_completion {
                 return Err(SchedulerError::InvalidHostCallAccess);
             }
-            if discards.iter().flatten().any(|discard| *discard == value)
-                || retained_values
-                    .iter()
-                    .flatten()
-                    .any(|retained| *retained == value)
-            {
+            if discards.iter().flatten().any(|discard| *discard == value) {
                 return Err(SchedulerError::InvalidHostCallAccess);
             }
             if !outputs.iter().flatten().any(|output| *output == value) {
@@ -79,7 +74,13 @@ where
                     .count();
                 // A consumed reference transfers to the pending request. Other
                 // aliases stay owned by their queues; they need not be consumed.
-                if input_matches > 0 && consumed_references == 0 {
+                if input_matches > 0
+                    && consumed_references == 0
+                    && !retained_values
+                        .iter()
+                        .flatten()
+                        .any(|retained| *retained == value)
+                {
                     return Err(SchedulerError::InvalidHostCallAccess);
                 }
                 let current = usize::from(self.values.reference_count(value)?);

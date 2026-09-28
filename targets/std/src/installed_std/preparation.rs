@@ -10,6 +10,7 @@ pub(super) fn prepare_operations(
     values: &mut HostedValueStore,
     play: &conduit_core::ActivePlayIdentity,
     mut retained: Option<&mut Vec<crate::state_value::RetainedTypedState>>,
+    durable_body: Option<&conduit_body::BodyId>,
 ) -> Result<[InstalledBack; MAX_NODES], String> {
     if lowered.identity.plan_id != fragment.plan_id
         || lowered.identity.fragment_id != fragment.fragment_id
@@ -50,9 +51,31 @@ pub(super) fn prepare_operations(
             if state.contract.retained.is_some() {
                 continue;
             }
-            operations[usize::from(node.node.0)] = InstalledBack::TypedState(Box::new(
-                crate::state_value::TypedStateBack::prepare_for_play(fragment, state, play)?,
-            ));
+            operations[usize::from(node.node.0)] = if node.placement_id.as_str().is_empty() {
+                return Err("State placement identity is empty".into());
+            } else if fragment
+                .placements
+                .iter()
+                .find(|placement| placement.placement_id == node.placement_id)
+                .is_some_and(|placement| {
+                    placement.implementation_id.as_str()
+                        == conduit_std_offers::STATE_VALUE_DURABLE_STD_IMPLEMENTATION
+                })
+            {
+                InstalledBack::DurableState(Box::new(crate::state_value::prepare_durable_state(
+                    fragment,
+                    state,
+                    play,
+                    durable_body
+                        .map(conduit_body::BodyId::as_str)
+                        .ok_or("Body-durable State requires an exact Body execution binding")?,
+                    values,
+                )?))
+            } else {
+                InstalledBack::TypedState(Box::new(
+                    crate::state_value::TypedStateBack::prepare_for_play(fragment, state, play)?,
+                ))
+            };
         } else {
             operations[usize::from(node.node.0)] =
                 prepare_ordinary_operation(fragment, &node.placement_id, values)?;
@@ -151,6 +174,16 @@ pub(super) fn back_budget(
             host_requests: 0,
             sign_items: 16,
             maximum_value_bytes: 64,
+        })
+    } else if placement.implementation_id.as_str()
+        == conduit_std_offers::STATE_VALUE_DURABLE_STD_IMPLEMENTATION
+    {
+        Ok(super::factory::BackBudget {
+            value_items: 5,
+            value_bytes: 400,
+            host_requests: 2,
+            sign_items: 24,
+            maximum_value_bytes: conduit_std_offers::STATE_VALUE_DURABLE_RECOVERY_BYTES,
         })
     } else {
         let factory = factory(&placement.implementation_id)

@@ -149,7 +149,7 @@ impl TypedStateBack {
     }
 }
 
-fn bind<'a>(
+pub(super) fn bind<'a>(
     fragment: &'a PlanFragment,
     state: &LoweredState,
     play: &ActivePlayIdentity,

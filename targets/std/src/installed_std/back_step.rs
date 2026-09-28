@@ -12,6 +12,7 @@ macro_rules! installed_step_dispatch {
             fn terminal_transduction(&self) -> Option<AssignedTerminalTransduction> {
                 match self {
                     Self::TypedState(operation) => StepBack::<PORTS>::terminal_transduction(operation.as_ref()),
+                    Self::DurableState(operation) => StepBack::<PORTS>::terminal_transduction(operation.as_ref()),
                     Self::ButtonMapper(operation) => StepBack::<PORTS>::terminal_transduction(operation.as_ref()),
                     Self::MidiInput(operation) => StepBack::<PORTS>::terminal_transduction(operation.as_ref()),
                     Self::TestPcmSource(operation) => StepBack::<PORTS>::terminal_transduction(operation.as_ref()),
@@ -28,6 +29,7 @@ macro_rules! installed_step_dispatch {
             fn step_committed(&mut self) {
                 match self {
                     Self::TypedState(operation) => StepBack::<PORTS>::step_committed(operation.as_mut()),
+                    Self::DurableState(operation) => StepBack::<PORTS>::step_committed(operation.as_mut()),
                     Self::ButtonMapper(operation) => StepBack::<PORTS>::step_committed(operation.as_mut()),
                     Self::MidiInput(operation) => StepBack::<PORTS>::step_committed(operation.as_mut()),
                     Self::TestPcmSource(operation) => StepBack::<PORTS>::step_committed(operation.as_mut()),
@@ -46,6 +48,7 @@ macro_rules! installed_step_dispatch {
             ) -> StepOutcome {
                 match self {
                     Self::TypedState(operation) => StepBack::<PORTS>::step(operation.as_mut(), io, input_bytes),
+                    Self::DurableState(operation) => StepBack::<PORTS>::step(operation.as_mut(), io, input_bytes),
                     Self::ButtonMapper(operation) => StepBack::<PORTS>::step(operation.as_mut(), io, input_bytes),
                     Self::MidiInput(operation) => StepBack::<PORTS>::step(operation.as_mut(), io, input_bytes),
                     Self::TestPcmSource(operation) => StepBack::<PORTS>::step(operation.as_mut(), io, input_bytes),
@@ -60,6 +63,7 @@ macro_rules! installed_step_dispatch {
             fn accepts_input_while_host_call_pending(&self) -> bool {
                 match self {
                     Self::TypedState(operation) => StepBack::<PORTS>::accepts_input_while_host_call_pending(operation.as_ref()),
+                    Self::DurableState(operation) => StepBack::<PORTS>::accepts_input_while_host_call_pending(operation.as_ref()),
                     Self::ButtonMapper(operation) => StepBack::<PORTS>::accepts_input_while_host_call_pending(operation.as_ref()),
                     Self::MidiInput(operation) => StepBack::<PORTS>::accepts_input_while_host_call_pending(operation.as_ref()),
                     Self::TestPcmSource(operation) => StepBack::<PORTS>::accepts_input_while_host_call_pending(operation.as_ref()),
@@ -80,6 +84,7 @@ macro_rules! installed_step_dispatch {
             ) -> bool {
                 match self {
                     Self::TypedState(operation) => StepBack::<PORTS>::retains_host_call_input(operation.as_ref(), request, value),
+                    Self::DurableState(operation) => StepBack::<PORTS>::retains_host_call_input(operation.as_ref(), request, value),
                     Self::ButtonMapper(operation) => StepBack::<PORTS>::retains_host_call_input(operation.as_ref(), request, value),
                     Self::MidiInput(operation) => StepBack::<PORTS>::retains_host_call_input(operation.as_ref(), request, value),
                     Self::TestPcmSource(operation) => StepBack::<PORTS>::retains_host_call_input(operation.as_ref(), request, value),
@@ -94,6 +99,7 @@ macro_rules! installed_step_dispatch {
             fn cancel(&mut self) {
                 match self {
                     Self::TypedState(operation) => StepBack::<PORTS>::cancel(operation.as_mut()),
+                    Self::DurableState(operation) => StepBack::<PORTS>::cancel(operation.as_mut()),
                     Self::ButtonMapper(operation) => StepBack::<PORTS>::cancel(operation.as_mut()),
                     Self::MidiInput(operation) => StepBack::<PORTS>::cancel(operation.as_mut()),
                     Self::TestPcmSource(operation) => StepBack::<PORTS>::cancel(operation.as_mut()),

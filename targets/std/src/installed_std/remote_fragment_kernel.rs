@@ -120,7 +120,7 @@ impl InstalledRemoteFragment {
             play_sequence,
         );
         let drivers =
-            preparation::prepare_operations(fragment, &lowered, &mut values, &play, None)?;
+            preparation::prepare_operations(fragment, &lowered, &mut values, &play, None, None)?;
         let tables = KernelTables::prepare(&[&lowered])?;
         let sign_bytes = u32::from(sign_items)
             .checked_mul(core::mem::size_of::<conduit_kernel::KernelEvent>() as u32)

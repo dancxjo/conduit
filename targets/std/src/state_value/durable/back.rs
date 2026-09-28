@@ -27,6 +27,7 @@ pub struct DurableStateBack {
     recovery_probe: ValueRef,
     generation: u64,
     next_request: u32,
+    pending_value: Option<ValueRef>,
     phase: Phase,
 }
 
@@ -47,6 +48,7 @@ impl DurableStateBack {
             recovery_probe,
             generation: 0,
             next_request: 1,
+            pending_value: None,
             phase: Phase::Recovering,
         })
     }
@@ -71,7 +73,12 @@ impl<const PORTS: usize> StepBack<PORTS> for DurableStateBack {
     }
 
     fn cancel(&mut self) {
+        self.pending_value = None;
         self.phase = Phase::Terminal;
+    }
+
+    fn retains_host_call_input(&self, _request: RequestId, value: ValueRef) -> bool {
+        self.pending_value == Some(value)
     }
 }
 
@@ -84,7 +91,7 @@ impl DurableStateBack {
         let Some((request, outcome)) = io.host_completion() else {
             let input = BoundedValueRef::new(self.recovery_probe, self.recovery_probe.byte_len)
                 .expect("probe bound equals prepared probe");
-            io.request_host_call(RequestId(0), HostCallId(0), input)
+            io.request_host_call(RequestId(0), HostCallId(1), input)
                 .expect("prepared recovery Host Call");
             return StepOutcome::Progress;
         };
@@ -132,13 +139,17 @@ impl DurableStateBack {
             let Some(next_request) = self.next_request.checked_add(1) else {
                 return fail(FailureCode::StorageExhausted, 6);
             };
+            let owned = io
+                .borrow_input_for_call(PortId(0))
+                .expect("pin present durable State transition");
             io.request_host_call(
                 request,
-                HostCallId(1),
-                BoundedValueRef::new(value, self.binding.maximum_value_bytes)
+                HostCallId(0),
+                BoundedValueRef::new(owned, self.binding.maximum_value_bytes)
                     .expect("checked durable State value bound"),
             )
             .expect("prepared commit Host Call");
+            self.pending_value = Some(owned);
             self.next_request = next_request;
             self.phase = Phase::Committing {
                 request,
@@ -178,7 +189,7 @@ impl DurableStateBack {
         if decode_receipt(receipt) != Some((generation, expected_digest)) {
             return fail(FailureCode::InvalidInput, 10);
         }
-        let Some(value) = io.input(PortId(0)) else {
+        let Some(value) = self.pending_value else {
             return fail(FailureCode::InvalidLifecycle, 11);
         };
         if !io.output_ready(PortId(0)) {
@@ -186,9 +197,11 @@ impl DurableStateBack {
         }
         io.consume_host_completion()
             .expect("observed exact commit receipt");
-        io.consume(PortId(0)).expect("commit-receipted State input");
+        io.consume(PortId(0))
+            .expect("consume commit-receipted State transition");
         io.send(PortId(0), value)
             .expect("ready committed State output");
+        self.pending_value = None;
         self.generation = generation;
         self.phase = Phase::Current;
         StepOutcome::Progress

@@ -71,6 +71,7 @@ mod lifecycle;
 mod retained_run;
 #[cfg(test)]
 pub(super) use retained_run::run_fragment;
+pub(crate) use retained_run::DurableStateRun;
 pub(super) use retained_run::{InstalledRunHost, RunLifecycle};
 mod presentation_composition;
 mod presentation_construction_host;
@@ -248,6 +249,7 @@ pub(super) fn run_fragment_retaining<W: Write, T: TimerAdapter>(
         mut vision,
         mut external_fore,
         spoken_mask,
+        durable_state,
     } = lifecycle;
     let InstalledRunHost {
         advertisement,
@@ -340,8 +342,39 @@ pub(super) fn run_fragment_retaining<W: Write, T: TimerAdapter>(
         .as_ref()
         .map(|preparation| preparation.prepare_session(active_play.clone()))
         .transpose()?;
-    let drivers =
-        preparation::prepare_operations(fragment, &lowered, &mut values, &active_play, retained)?;
+    let drivers = preparation::prepare_operations(
+        fragment,
+        &lowered,
+        &mut values,
+        &active_play,
+        retained,
+        durable_state.as_ref().map(|state| state.body),
+    )?;
+    let mut durable_state_hosts = (0..MAX_NODES).map(|_| None).collect::<Vec<_>>();
+    for state in &lowered.states {
+        let placement = fragment
+            .placements
+            .get(usize::from(state.node.0))
+            .ok_or_else(|| "durable State node has no exact placement".to_string())?;
+        if placement.implementation_id.as_str()
+            != conduit_std_offers::STATE_VALUE_DURABLE_STD_IMPLEMENTATION
+        {
+            continue;
+        }
+        let durable = durable_state.as_ref().ok_or_else(|| {
+            "Body-durable State has no admitted residence execution binding".to_string()
+        })?;
+        let binding = crate::state_value::DurableStateBinding {
+            body: durable.body.as_str().into(),
+            state: state.contract.state_id.clone(),
+            value_kind: state.contract.value_kind.clone(),
+            maximum_value_bytes: state.contract.maximum_value_bytes,
+        };
+        durable_state_hosts[usize::from(state.node.0)] = Some(
+            crate::state_value::InstalledDurableStateHost::open(durable.root, binding)
+                .map_err(|error| format!("open durable State residence: {error:?}"))?,
+        );
+    }
     let driver_capacity_before = drivers
         .iter()
         .map(InstalledBack::allocation_capacity)
@@ -903,7 +936,71 @@ pub(super) fn run_fragment_retaining<W: Write, T: TimerAdapter>(
                 .find(|operation| operation.node == request.node && operation.call == request.call)
                 .ok_or_else(|| "host request has no lowered contract identity".to_string())?;
             let contract = &lowered_operation.contract_id;
-            if contract.as_str() == conduit_std_offers::MICROPHONE_CLIP_OPERATION {
+            if matches!(
+                contract.as_str(),
+                conduit_std_offers::STATE_VALUE_DURABLE_RECOVER_HOST_CALL
+                    | conduit_std_offers::STATE_VALUE_DURABLE_COMMIT_HOST_CALL
+            ) {
+                let host = durable_state_hosts
+                    .get_mut(usize::from(request.node.0))
+                    .and_then(Option::as_mut)
+                    .ok_or_else(|| {
+                        "durable State request has no exact admitted residence".to_string()
+                    })?;
+                let result = if contract.as_str()
+                    == conduit_std_offers::STATE_VALUE_DURABLE_RECOVER_HOST_CALL
+                {
+                    if input != [1] {
+                        Err(crate::state_value::DurableStateRefusal::InvalidBinding)
+                    } else {
+                        host.recover()
+                    }
+                } else {
+                    host.commit(input).map(|receipt| receipt.to_vec())
+                };
+                let outcome = match result {
+                    Ok(encoded) => {
+                        let value = scheduler
+                            .store_host_value(&encoded)
+                            .map_err(|error| format!("store durable State receipt: {error:?}"))?;
+                        HostCallOutcome {
+                            disposition: HostCallDisposition::Completed,
+                            output: Some(
+                                BoundedValueRef::new(
+                                    value,
+                                    lowered_operation.binding.maximum_output_bytes,
+                                )
+                                .map_err(|error| {
+                                    format!("bound durable State receipt: {error:?}")
+                                })?,
+                            ),
+                            failure: None,
+                        }
+                    }
+                    Err(refusal) => HostCallOutcome {
+                        disposition: HostCallDisposition::Failed,
+                        output: None,
+                        failure: Some(conduit_kernel::Failure {
+                            code: conduit_kernel::FailureCode::HostCallFailed,
+                            detail: match refusal {
+                                crate::state_value::DurableStateRefusal::InvalidBinding => 1,
+                                crate::state_value::DurableStateRefusal::ValueTooLarge => 2,
+                                crate::state_value::DurableStateRefusal::GenerationGap => 3,
+                                crate::state_value::DurableStateRefusal::ConflictingDigest => 4,
+                                crate::state_value::DurableStateRefusal::Corrupt => 5,
+                                crate::state_value::DurableStateRefusal::Incompatible => 6,
+                                crate::state_value::DurableStateRefusal::Lost => 7,
+                                crate::state_value::DurableStateRefusal::InvalidReceipt => 8,
+                            },
+                        }),
+                    },
+                };
+                record_request(&mut requests, request);
+                scheduler
+                    .complete_host_call(request.node, request.request, outcome)
+                    .map_err(|error| format!("complete durable State operation: {error:?}"))?;
+                continue;
+            } else if contract.as_str() == conduit_std_offers::MICROPHONE_CLIP_OPERATION {
                 if input != b"capture" {
                     return Err("microphone clip capture request is not exact".into());
                 }
@@ -3500,5 +3597,19 @@ pub(super) fn run_fragment_retaining<W: Write, T: TimerAdapter>(
             post_play_start_allocations,
         }),
     };
-    retained_run::finish(report, scheduler, fragment.states.len())
+    let graceful_state_count = fragment
+        .states
+        .iter()
+        .filter(|state| {
+            fragment
+                .placements
+                .iter()
+                .find(|placement| placement.gear_id == state.gear_id)
+                .is_some_and(|placement| {
+                    placement.implementation_id.as_str()
+                        == conduit_std_offers::STATE_VALUE_STD_IMPLEMENTATION
+                })
+        })
+        .count();
+    retained_run::finish(report, scheduler, graceful_state_count)
 }

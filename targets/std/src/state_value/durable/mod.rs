@@ -240,6 +240,9 @@ fn encode_absent() -> Vec<u8> {
 
 mod back;
 pub use back::DurableStateBack;
+mod residence;
+pub use residence::FileDurableStateResidence;
+pub(crate) use residence::InstalledDurableStateHost;
 
 #[cfg(test)]
 mod tests {
@@ -318,7 +321,7 @@ mod tests {
         );
         assert_eq!(
             recover_request.test_host_request().map(|item| item.1),
-            Some(HostCallId(0))
+            Some(HostCallId(1))
         );
 
         let absent = encode_absent();

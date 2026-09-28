@@ -440,6 +440,27 @@ impl<const PORTS: usize> StepIo<PORTS> {
         self.consume_input(port, true)
     }
 
+    /// Pin the presented input as one admitted Host Call's request without
+    /// consuming it from its cord. A later step must consume or otherwise
+    /// resolve the same input after the exact completion is observed.
+    pub fn borrow_input_for_call(&mut self, port: PortId) -> Result<ValueRef, SchedulerError> {
+        self.consume_fuel(1)?;
+        let index = usize::from(port.0);
+        let value = self
+            .inputs
+            .get(index)
+            .copied()
+            .flatten()
+            .ok_or(SchedulerError::InvalidPortAccess)?;
+        if self.consumed.get(index).copied().unwrap_or(true)
+            || self.retained_inputs.get(index).copied().unwrap_or(true)
+        {
+            return self.fail(SchedulerError::InvalidPortAccess);
+        }
+        self.retained_inputs[index] = true;
+        Ok(value)
+    }
+
     pub fn consume_closed(&mut self, port: PortId) -> Result<(), SchedulerError> {
         self.consume_fuel(1)?;
         let index = usize::from(port.0);
@@ -2753,6 +2774,16 @@ where
                     .filter(|candidate| **candidate == value)
                     .count()
                     + usize::from(consumed_host_value == Some(value));
+                if consumed_references == 0
+                    && retained_values
+                        .iter()
+                        .flatten()
+                        .any(|retained| *retained == value)
+                {
+                    // The cord keeps its reference while the admitted Host Call
+                    // owns one additional pinned reference until completion.
+                    self.values.retain(value)?;
+                }
                 let base_references = consumed_references.max(1);
                 if base_references > 1 {
                     for _ in 0..(base_references - 1) {
@@ -2880,11 +2911,13 @@ where
         if consumed_host_completion && host_cancellation.is_some() {
             return Err(SchedulerError::InvalidHostCallAccess);
         }
-        if retained_inputs
-            .iter()
-            .zip(consumed)
-            .any(|(retained, consumed)| *retained && !*consumed)
-        {
+        if retained_inputs.iter().enumerate().any(|(port, retained)| {
+            *retained
+                && !consumed[port]
+                && host_request.map(|request| request.2.value)
+                    != self.node_specs[node].input_cords[port]
+                        .and_then(|cord| self.peek(usize::from(cord.0)).ok().flatten())
+        }) {
             return Err(SchedulerError::InvalidPortAccess);
         }
         let completed_pending = self.pending_host_calls.iter().flatten().find(|pending| {
