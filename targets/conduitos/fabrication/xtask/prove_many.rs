@@ -435,7 +435,6 @@ fn stop_running(running: &mut [RunningProof]) {
 fn kernel_verification_arguments(evidence_root: &Path, commit: &str) -> Vec<String> {
     vec![
         "prove".to_owned(),
-        "evidence".to_owned(),
         "verify".to_owned(),
         "--root".to_owned(),
         evidence_root.display().to_string(),

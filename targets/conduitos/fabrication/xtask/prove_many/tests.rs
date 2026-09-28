@@ -63,13 +63,10 @@ fn kernel_verifier_binds_the_exact_commit_and_evidence_root() {
         .windows(2)
         .any(|pair| pair == ["--root", "batch/runs/kernel/evidence"]));
     assert_eq!(
-        command.get(..3),
-        Some(
-            ["prove", "evidence", "verify"]
-                .map(str::to_owned)
-                .as_slice()
-        )
+        command.get(..2),
+        Some(["prove", "verify"].map(str::to_owned).as_slice())
     );
+    assert!(!command.iter().any(|argument| argument == "evidence"));
 }
 
 #[test]

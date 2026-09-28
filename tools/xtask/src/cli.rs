@@ -826,6 +826,23 @@ mod tests {
             Command::Prove(args)
                 if matches!(args.evidence, Some(EvidenceCommand::DocsVerify(_)))
         ));
+        let verify = Cli::try_parse_from([
+            "xtask",
+            "prove",
+            "verify",
+            "--root",
+            "target/evidence",
+            "--commit",
+            "0123456789012345678901234567890123456789",
+            "--result",
+            "complete",
+        ])
+        .expect("proof evidence verifier parses without an intermediate noun");
+        assert!(matches!(
+            verify.command,
+            Command::Prove(args) if matches!(args.evidence, Some(EvidenceCommand::Verify(_)))
+        ));
+        assert!(Cli::try_parse_from(["xtask", "prove", "evidence", "verify"]).is_err());
         assert!(Cli::try_parse_from(["xtask", "evidence", "docs-verify"]).is_err());
 
         let conduitos = Cli::try_parse_from([
