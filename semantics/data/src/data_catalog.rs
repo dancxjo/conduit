@@ -2,14 +2,20 @@
 
 use alloc::{string::ToString, vec};
 use conduit_core::{
-    data_reference_kind, kind_id, port_id, CapabilityLimits, Kind, KindIdentity, PortDescriptor,
+    data_reference_kind, kind_id, port_id, CapabilityLimits, CheckedValueContract,
+    FrontValueContract, FrontValueLocation, Kind, KindIdentity, KindSemanticLaw, PortDescriptor,
     PortDirection, PortTemporal,
 };
 use conduit_form::{KindProjection, KindSignature, ProfileCatalog, StartupCatalog};
 
 pub const DATA_SAVE_TEXT_KIND: &str = "data/save/text";
 pub const DATA_LOAD_TEXT_KIND: &str = "data/load/text";
-pub const DATA_TEXT_CONTRACT_REVISION: &str = "conduit.data/text-generation@1";
+use crate::{
+    maximum_data_reference_encoded_bytes, DATA_LOAD_TEXT_TERMINAL_INFO_ID,
+    DATA_SAVE_TEXT_TERMINAL_INFO_ID, DATA_TEXT_TERMINAL_ENCODED_LEN,
+};
+
+pub const DATA_TEXT_CONTRACT_REVISION: &str = "conduit.data/text-generation@2";
 pub const MAXIMUM_DATA_TEXT_BYTES: u32 = 4 * 1024;
 
 pub fn install_data_text_catalogs(
@@ -37,10 +43,11 @@ pub fn data_save_text_projection() -> KindProjection {
         kind_id: kind_id(DATA_SAVE_TEXT_KIND),
         kind_contract_revision: KindIdentity::from(DATA_TEXT_CONTRACT_REVISION),
         inputs: vec![port("value", text.clone(), PortDirection::Input)],
-        outputs: vec![port(
+        outputs: vec![terminal_port(
             "data",
             data_reference_kind(&text),
             PortDirection::Output,
+            DATA_SAVE_TEXT_TERMINAL_INFO_ID,
         )],
         configuration: vec![],
     }
@@ -56,7 +63,12 @@ pub fn data_load_text_projection() -> KindProjection {
             data_reference_kind(&text),
             PortDirection::Input,
         )],
-        outputs: vec![port("value", text, PortDirection::Output)],
+        outputs: vec![terminal_port(
+            "value",
+            text,
+            PortDirection::Output,
+            DATA_LOAD_TEXT_TERMINAL_INFO_ID,
+        )],
         configuration: vec![],
     }
 }
@@ -70,6 +82,53 @@ pub fn data_load_text_contract() -> Kind {
 }
 
 fn contract(projection: KindProjection) -> Kind {
+    let text = kind_id("value/text");
+    let reference = data_reference_kind(&text);
+    let reference_bytes = maximum_data_reference_encoded_bytes(text.as_str())
+        .expect("canonical Text identity has an exact reference envelope")
+        as u32;
+    let value_contract = |location, value_kind, maximum_bytes| FrontValueContract {
+        location,
+        contract: CheckedValueContract::new(value_kind, maximum_bytes, vec![])
+            .expect("data Text Fore value envelope is finite"),
+    };
+    let value_contracts = match projection.kind_id.as_str() {
+        DATA_SAVE_TEXT_KIND => vec![
+            value_contract(
+                FrontValueLocation::Input(port_id("value")),
+                text,
+                MAXIMUM_DATA_TEXT_BYTES,
+            ),
+            value_contract(
+                FrontValueLocation::Output(port_id("data")),
+                reference,
+                reference_bytes,
+            ),
+            value_contract(
+                FrontValueLocation::OutputAbnormal(port_id("data")),
+                kind_id(DATA_SAVE_TEXT_TERMINAL_INFO_ID),
+                DATA_TEXT_TERMINAL_ENCODED_LEN as u32,
+            ),
+        ],
+        DATA_LOAD_TEXT_KIND => vec![
+            value_contract(
+                FrontValueLocation::Input(port_id("data")),
+                reference,
+                reference_bytes,
+            ),
+            value_contract(
+                FrontValueLocation::Output(port_id("value")),
+                text,
+                MAXIMUM_DATA_TEXT_BYTES,
+            ),
+            value_contract(
+                FrontValueLocation::OutputAbnormal(port_id("value")),
+                kind_id(DATA_LOAD_TEXT_TERMINAL_INFO_ID),
+                DATA_TEXT_TERMINAL_ENCODED_LEN as u32,
+            ),
+        ],
+        _ => unreachable!("data Text contract only accepts reviewed projections"),
+    };
     Kind {
         startup_parameters: vec![],
         shorthand: None,
@@ -78,12 +137,27 @@ fn contract(projection: KindProjection) -> Kind {
         inputs: projection.inputs,
         outputs: projection.outputs,
         configuration: projection.configuration,
-        semantic_laws: Default::default(),
+        semantic_laws: vec![KindSemanticLaw::ValueContracts(value_contracts)],
         limits: CapabilityLimits {
             max_active_instances: 1,
             max_queue_items: 1,
             max_queue_bytes: MAXIMUM_DATA_TEXT_BYTES,
         },
+    }
+}
+
+fn terminal_port(
+    name: &str,
+    value_kind: conduit_core::KindId,
+    direction: PortDirection,
+    abnormal_kind: &str,
+) -> PortDescriptor {
+    PortDescriptor {
+        port_id: port_id(name),
+        value_kind,
+        direction,
+        temporal: PortTemporal::Value,
+        abnormal_kind: Some(kind_id(abnormal_kind)),
     }
 }
 

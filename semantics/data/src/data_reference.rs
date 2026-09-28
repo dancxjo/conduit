@@ -3,10 +3,30 @@
 use alloc::vec::Vec;
 use conduit_core::{
     data_reference_kind, BoundedResourceRef, KindId, ResourceClassId, ResourceReferenceRefusal,
-    ValuePayload,
+    ValuePayload, MAXIMUM_RESOURCE_REFERENCE_IDENTITY_BYTES, RESOURCE_REFERENCE_DIGEST_BYTES,
 };
 
 pub const DATA_GENERATION_ACCESS_CLASS: &str = "data/immutable-generation@1";
+/// Fixed fields in an immutable, non-expiring data reference, excluding the
+/// content-Kind and access-class identity bytes themselves.
+pub const DATA_REFERENCE_ENCODING_OVERHEAD_BYTES: usize =
+    1 + (2 * RESOURCE_REFERENCE_DIGEST_BYTES) + 2 + 2 + 8 + 1 + 1;
+/// Maximum encoded size for any valid immutable data-generation reference.
+pub const MAXIMUM_DATA_REFERENCE_ENCODED_BYTES: usize = DATA_REFERENCE_ENCODING_OVERHEAD_BYTES
+    + MAXIMUM_RESOURCE_REFERENCE_IDENTITY_BYTES
+    + DATA_GENERATION_ACCESS_CLASS.len();
+
+pub const fn maximum_data_reference_encoded_bytes(content_kind: &str) -> Option<usize> {
+    if content_kind.is_empty() || content_kind.len() > MAXIMUM_RESOURCE_REFERENCE_IDENTITY_BYTES {
+        None
+    } else {
+        Some(
+            DATA_REFERENCE_ENCODING_OVERHEAD_BYTES
+                + content_kind.len()
+                + DATA_GENERATION_ACCESS_CLASS.len(),
+        )
+    }
+}
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct DataReference {

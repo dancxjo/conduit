@@ -9,6 +9,38 @@ use conduit_core::{
 use crate::{data_access_class, DataReference, DataReferenceRefusal};
 
 const DATA_VERSION_DIGEST_DOMAIN: &str = "data/immutable-generation-version@1";
+const DATA_NAMESPACE_DIGEST_DOMAIN: &str = "data/generation-namespace@1";
+pub const MAXIMUM_DATA_GENERATION_NAMESPACE_BYTES: usize = 128;
+
+#[derive(Debug, Copy, Clone, PartialEq, Eq)]
+pub struct DataGenerationNamespace([u8; 32]);
+
+#[derive(Debug, Copy, Clone, PartialEq, Eq)]
+pub enum DataGenerationNamespaceRefusal {
+    Empty,
+    TooLarge,
+}
+
+impl DataGenerationNamespace {
+    /// Names one semantic publication scope. This identity is deliberately
+    /// storage-neutral: it is not a path, pool, Host, provider, or authority.
+    pub fn new(semantic_identity: &str) -> Result<Self, DataGenerationNamespaceRefusal> {
+        if semantic_identity.is_empty() {
+            return Err(DataGenerationNamespaceRefusal::Empty);
+        }
+        if semantic_identity.len() > MAXIMUM_DATA_GENERATION_NAMESPACE_BYTES {
+            return Err(DataGenerationNamespaceRefusal::TooLarge);
+        }
+        Ok(Self(semantic_digest(
+            DATA_NAMESPACE_DIGEST_DOMAIN,
+            semantic_identity.as_bytes(),
+        )))
+    }
+
+    pub const fn digest(self) -> [u8; 32] {
+        self.0
+    }
+}
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 struct RetainedGeneration {
@@ -18,6 +50,7 @@ struct RetainedGeneration {
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct DataGenerationStore {
+    namespace: DataGenerationNamespace,
     content_kind: KindId,
     maximum_generations: usize,
     maximum_total_bytes: usize,
@@ -39,6 +72,7 @@ pub enum DataGenerationRefusal {
 
 impl DataGenerationStore {
     pub fn new(
+        namespace: DataGenerationNamespace,
         content_kind: KindId,
         maximum_generations: usize,
         maximum_total_bytes: usize,
@@ -48,6 +82,7 @@ impl DataGenerationStore {
             return Err(DataGenerationRefusal::InvalidBounds);
         }
         Ok(Self {
+            namespace,
             content_kind,
             maximum_generations,
             maximum_total_bytes,
@@ -80,7 +115,8 @@ impl DataGenerationStore {
             .ok()
             .and_then(|value| value.checked_add(1))
             .ok_or(DataGenerationRefusal::GenerationCapacityExhausted)?;
-        let mut version_source = Vec::with_capacity(content_digest.len() + 8);
+        let mut version_source = Vec::with_capacity(32 + content_digest.len() + 8);
+        version_source.extend_from_slice(&self.namespace.digest());
         version_source.extend_from_slice(&content_digest);
         version_source.extend_from_slice(&sequence.to_le_bytes());
         let version_digest = semantic_digest(DATA_VERSION_DIGEST_DOMAIN, &version_source);
