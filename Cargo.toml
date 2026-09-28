@@ -55,7 +55,6 @@ members = [
 	"products/home/model",
 	"products/workspace/model",
 	"products/tour/model",
-	"products/tour/native",
 	"targets/std/patchbay-workbench",
 	"products/patchbay/html",
 	"products/patchbay/model",
