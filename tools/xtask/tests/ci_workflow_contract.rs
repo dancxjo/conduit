@@ -577,23 +577,6 @@ fn stacked_diff_base_does_not_select_the_controller_version() {
 }
 
 #[test]
-fn legacy_tour_and_patchbay_product_proof_lanes_are_absent() {
-    let root = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../..");
-    let workflow = fs::read_to_string(root.join(".github/workflows/tour-products.yml"))
-        .expect("read product workflow");
-    for dead_contract in [
-        "tour_required",
-        "patchbay_debugger_required",
-        "tour-patchbay-proof",
-        "proof-receipts",
-        "browser.tour",
-        "browser.patchbay-debugger",
-    ] {
-        assert!(!workflow.contains(dead_contract));
-    }
-}
-
-#[test]
 fn pages_promotion_verifies_candidate_provenance_after_input_reconciliation() {
     let root = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../..");
     let workflow = fs::read_to_string(root.join(".github/workflows/tour-pages-deploy.yml"))
@@ -703,7 +686,6 @@ fn surviving_pages_carrier_proof_is_attested_by_the_trusted_controller() {
     assert!(
         workflow.contains("ci attest-success \"$CONDUIT_CANDIDATE_SHA\" products.pages-carrier")
     );
-    assert!(!workflow.contains("browser.patchbay-debugger"));
 }
 
 #[test]

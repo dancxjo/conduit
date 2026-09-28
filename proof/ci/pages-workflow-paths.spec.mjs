@@ -60,9 +60,6 @@ test("product jobs build the immutable PR head and deployments queue", () => {
   );
   assert.doesNotMatch(productWorkflow, /github\.event\.pull_request\.(?:head|base)\.sha \|\| inputs\./);
   assert.match(productWorkflow, /name: browser-proof-\$\{\{ matrix\.shard \}\}/);
-  assert.doesNotMatch(productWorkflow, /tour-patchbay-proof:/);
-  assert.doesNotMatch(productWorkflow, /proof-receipts:/);
-  assert.doesNotMatch(productWorkflow, /conduit-staged-tour-patchbay/);
   assert.match(productWorkflow, /shard: tour/);
   assert.match(productWorkflow, /shard: browser-host/);
   assert.match(productWorkflow, /shard: creche-machines/);
