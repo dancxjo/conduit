@@ -8,6 +8,26 @@ test("browser Host has no Tour or Creche product source", () => {
   assert.ok(existsSync("products/patchbay/html/assets/patchbay.application.template.json"));
 });
 
+test("browser WebRTC realization is owned by the browser Host", () => {
+  const names = [
+    "body-webrtc-session.mjs",
+    "body-webrtc-sessions.mjs",
+    "webrtc-datachannel-line.mjs",
+    "webrtc-session-runtime.mjs",
+  ];
+  for (const name of names) {
+    assert.ok(existsSync(`targets/browser/host/assets/${name}`), `browser Host is missing ${name}`);
+    assert.ok(!existsSync(`products/patchbay/html/assets/${name}`), `Patchbay still owns ${name}`);
+  }
+  const descriptor = JSON.parse(
+    readFileSync("products/patchbay/html/assets/patchbay.application.template.json", "utf8"),
+  );
+  for (const role of ["body-webrtc-sessions", "body-webrtc-session", "webrtc-line", "webrtc-runtime"]) {
+    const resource = descriptor.resources.find((candidate) => candidate.role === role);
+    assert.match(resource.source, /^targets\/browser\/host\/assets\//);
+  }
+});
+
 test("Crèche compatibility entrance cannot run parallel product state", () => {
   const source = readFileSync("products/creche/browser/creche.mjs", "utf8");
   assert.match(source, /location\.replace\(workspace\.href\)/);

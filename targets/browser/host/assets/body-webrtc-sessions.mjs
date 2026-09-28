@@ -10,7 +10,7 @@ function negotiationIdentity(value) {
   return value;
 }
 
-/** Finite product-side composition of Body grants, signals, and peer sessions. */
+/** Finite browser Host composition of Body grants, signals, and peer sessions. */
 export class BodyWebRtcSessions {
   #wasmBytes;
   #sendSignal;
