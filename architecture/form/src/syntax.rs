@@ -239,6 +239,8 @@ pub struct Cord {
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum CordStage {
     Reference(SpannedText),
+    /// A punctuation Gear name awaiting lexical resolution during checking.
+    Glyph(SpannedText),
     TerminalProjection {
         endpoint: SpannedText,
         terminal: TerminalProjection,

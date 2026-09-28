@@ -43,6 +43,27 @@ fn use_headers_and_glyph_opt_out_are_lossless_document_structure() {
 }
 
 #[test]
+fn punctuation_gear_names_are_lossless_but_core_tokens_remain_grammar() {
+    let source = "use time/default as ^^\nform example {\n  @: current/sample\n  input >> ^^ >> @ >> output\n}\n";
+    let parsed = parse_syntax_document(source);
+    assert!(parsed.diagnostics.is_empty(), "{:?}", parsed.diagnostics);
+    assert_eq!(parsed.round_trip(), source);
+    assert_eq!(parsed.uses[0].alias.text, "^^");
+    let BackStatement::NamedGear(named) = &parsed.forms[0].back[0] else {
+        panic!("expected configured glyph Gear")
+    };
+    assert_eq!(named.name.text, "@");
+
+    for reserved in [">>", ">", "?", "!", "~", "."] {
+        let source = alloc::format!("use time/default as {reserved}\nform example {{\n}}\n");
+        assert!(
+            !parse_syntax_document(&source).diagnostics.is_empty(),
+            "{reserved}"
+        );
+    }
+}
+
+#[test]
 fn authored_uses_have_one_explicit_finite_document_bound() {
     let mut source = alloc::string::String::new();
     for index in 0..=crate::MAXIMUM_USE_DECLARATIONS {
