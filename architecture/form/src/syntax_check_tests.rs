@@ -3,6 +3,7 @@ use crate::{
     StartupCatalog, StartupParameterSignature,
 };
 use alloc::vec::Vec;
+use conduit_core::{kind_id, port_id, CheckedFront, PortDescriptor, PortDirection, PortTemporal};
 
 fn catalog() -> StartupCatalog {
     let mut catalog = StartupCatalog::new();
@@ -17,6 +18,12 @@ fn catalog() -> StartupCatalog {
                 value_type: "Duration".into(),
                 default: None,
             }],
+        })
+        .unwrap();
+    catalog
+        .insert(KindSignature {
+            kind: "text/upper".into(),
+            startup_parameters: vec![],
         })
         .unwrap();
     catalog
@@ -52,6 +59,16 @@ fn catalog() -> StartupCatalog {
 fn check(source: &str) -> crate::CheckedSyntaxDocument {
     let parsed = parse_syntax_document(source);
     check_syntax_document(&parsed, &catalog()).expect("canonical syntax checks")
+}
+
+fn text_port(name: &str, direction: PortDirection) -> PortDescriptor {
+    PortDescriptor {
+        port_id: port_id(name),
+        value_kind: kind_id("value/text"),
+        direction,
+        temporal: PortTemporal::Value,
+        abnormal_kind: None,
+    }
 }
 
 #[test]
@@ -96,6 +113,31 @@ fn explicit_glyph_alias_lowers_to_the_same_ordinary_inline_gear() {
         direct.forms[0].checked_form_id
     );
     assert_ne!(glyph.source_document_id, direct.source_document_id);
+}
+
+#[test]
+fn installed_kind_glyph_requires_and_uses_its_exact_checked_fore() {
+    let source = "use text/upper as ^^\nform example (\n input: Text >> output: Text\n) {\n input ^^ output\n}\n";
+    let missing = check_syntax_document(&parse_syntax_document(source), &catalog())
+        .expect_err("a startup signature alone is not an exact runtime Fore");
+    assert!(missing.message.contains("exact checked Fore"));
+
+    let mut catalog = catalog();
+    let input = text_port("input", PortDirection::Input);
+    let output = text_port("output", PortDirection::Output);
+    catalog
+        .insert_fore(
+            "text/upper",
+            CheckedFront::new(
+                vec![],
+                vec![input.clone()],
+                vec![output.clone()],
+                Some((input.port_id, output.port_id)),
+            ),
+        )
+        .unwrap();
+    let checked = check_syntax_document(&parse_syntax_document(source), &catalog).unwrap();
+    assert_eq!(checked.forms[0].gears[0].kind, "text/upper");
 }
 
 #[test]

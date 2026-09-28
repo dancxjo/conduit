@@ -36,15 +36,16 @@ pub(crate) fn check_document(
         });
     }
     let unresolved_form_signatures = form_signatures(&document.forms)?;
-    let forms = resolve_use_declarations(document, catalog, &unresolved_form_signatures)?;
-    let form_signatures = form_signatures(&forms)?;
     let mut form_fronts = BTreeMap::new();
-    for form in &forms {
+    for form in &document.forms {
         form_fronts.insert(
             form.name.text.clone(),
             crate::value_type::checked_front(form, catalog)?,
         );
     }
+    let forms =
+        resolve_use_declarations(document, catalog, &unresolved_form_signatures, &form_fronts)?;
+    let form_signatures = form_signatures(&forms)?;
     let mut checked_forms = Vec::with_capacity(forms.len());
     for form in &forms {
         checked_forms.push(check_form(form, catalog, &form_signatures, &form_fronts)?);
@@ -140,6 +141,7 @@ fn resolve_use_declarations(
     document: &SyntaxDocument,
     catalog: &StartupCatalog,
     forms: &BTreeMap<String, KindSignature>,
+    form_fronts: &BTreeMap<String, CheckedFront>,
 ) -> Result<Vec<FormSyntax>, SyntaxCheckDiagnostic> {
     let mut aliases = BTreeMap::<String, (String, crate::Span, bool)>::new();
     for declaration in &document.uses {
@@ -181,10 +183,12 @@ fn resolve_use_declarations(
                 BackStatement::NamedGear(gear) => {
                     resolve_invocation_alias(&mut gear.invocation, &mut aliases)
                 }
-                BackStatement::Cord(cord) => resolve_stage_aliases(&mut cord.stages, &mut aliases),
+                BackStatement::Cord(cord) => {
+                    resolve_stage_aliases(&mut cord.stages, &mut aliases, catalog, form_fronts)?
+                }
                 BackStatement::MatchedRoute(route) => {
                     for arm in &mut route.arms {
-                        resolve_stage_aliases(&mut arm.stages, &mut aliases);
+                        resolve_stage_aliases(&mut arm.stages, &mut aliases, catalog, form_fronts)?;
                     }
                 }
                 BackStatement::Pool(_) | BackStatement::LocalValue(_) => {}
@@ -200,7 +204,9 @@ fn resolve_use_declarations(
 fn resolve_stage_aliases(
     stages: &mut [CordStage],
     aliases: &mut BTreeMap<String, (String, crate::Span, bool)>,
-) {
+    catalog: &StartupCatalog,
+    form_fronts: &BTreeMap<String, CheckedFront>,
+) -> Result<(), SyntaxCheckDiagnostic> {
     for stage in stages {
         match stage {
             CordStage::InlineGear(invocation) => resolve_invocation_alias(invocation, aliases),
@@ -220,6 +226,27 @@ fn resolve_stage_aliases(
             }
             CordStage::Glyph(glyph) => {
                 if let Some((canonical, _, used)) = aliases.get_mut(&glyph.text) {
+                    let fore = form_fronts
+                        .get(canonical)
+                        .or_else(|| catalog.fore(canonical))
+                        .ok_or_else(|| {
+                            use_diagnostic(
+                                glyph.span,
+                                format!(
+                                    "glyph '{}' requires the exact checked Fore for '{}'",
+                                    glyph.text, canonical
+                                ),
+                            )
+                        })?;
+                    if fore.shorthand().is_none() {
+                        return Err(use_diagnostic(
+                            glyph.span,
+                            format!(
+                                "unary glyph '{}' requires exactly one shorthand input and output",
+                                glyph.text
+                            ),
+                        ));
+                    }
                     let span = glyph.span;
                     *stage = CordStage::InlineGear(Invocation {
                         kind: crate::syntax::SpannedText {
@@ -242,6 +269,7 @@ fn resolve_stage_aliases(
             | CordStage::StructuredSelector(_) => {}
         }
     }
+    Ok(())
 }
 
 fn resolve_invocation_alias(
