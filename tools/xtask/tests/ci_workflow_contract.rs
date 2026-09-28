@@ -35,7 +35,7 @@ fn required_check_waits_for_every_selectable_proof_aggregate() {
     let required_gate = workflow
         .split("\n  check:\n")
         .nth(1)
-        .and_then(|tail| tail.split("\n  browser-tools:\n").next())
+        .and_then(|tail| tail.split("\n  conduitos-proof-image:\n").next())
         .expect("locate the stable required check job");
 
     let declared_join = required_gate
@@ -48,7 +48,6 @@ fn required_check_waits_for_every_selectable_proof_aggregate() {
         "local-integration",
         "workspace-check",
         "esp32-firmware",
-        "browser-host",
         "conduitos-limine",
         "conduitos-tools",
         "conduitos-x86",
@@ -62,7 +61,6 @@ fn required_check_waits_for_every_selectable_proof_aggregate() {
     }
 
     for result in [
-        "BROWSER_HOST_RESULT",
         "LIMINE_RESULT",
         "TOOLS_RESULT",
         "X86_RESULT",
@@ -90,7 +88,7 @@ fn conduitos_result_join_is_folded_into_the_existing_final_gate() {
     let join = workflow
         .split("\n  check:\n")
         .nth(1)
-        .and_then(|tail| tail.split("\n  browser-tools:\n").next())
+        .and_then(|tail| tail.split("\n  conduitos-proof-image:\n").next())
         .expect("locate final result gate");
     for result in [
         "LIMINE_RESULT",
@@ -579,6 +577,11 @@ fn legacy_tour_and_patchbay_product_proof_lanes_are_absent() {
     ] {
         assert!(!workflow.contains(dead_contract));
     }
+
+    let check =
+        fs::read_to_string(root.join(".github/workflows/check.yml")).expect("read check workflow");
+    assert!(!check.contains("\n  browser-tools:\n"));
+    assert!(!check.contains("\n  browser-host:\n"));
 }
 
 #[test]
