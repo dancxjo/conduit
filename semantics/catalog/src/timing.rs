@@ -7,7 +7,7 @@ use alloc::string::ToString;
 use alloc::vec;
 use conduit_core::{
     kind_id, port_id, CapabilityLimits, ConfigurationValue, Kind, PortDescriptor, PortDirection,
-    PortTemporal, BOOL_INFO_ID,
+    PortTemporal, BOOL_INFO_ID, CANCELLATION_REQUEST_INFO_ID, UNIT_INFO_ID,
 };
 
 pub const TIME_DEBOUNCE_KIND: &str = "time/debounce";
@@ -21,6 +21,9 @@ pub const TIME_DELAY_CONTRACT_REVISION: &str = "conduit.std/time-delay-bool@1";
 
 pub const TIME_THROTTLE_KIND: &str = "time/throttle";
 pub const TIME_THROTTLE_CONTRACT_REVISION: &str = "conduit.std/time-throttle-bool-leading@1";
+
+pub const TIME_DEADLINE_KIND: &str = "time/deadline";
+pub const TIME_DEADLINE_CONTRACT_REVISION: &str = "conduit.std/time-deadline-cancellation@1";
 
 pub const TIME_POLICY_TRAILING: &str = "trailing";
 pub const TIME_POLICY_LEADING: &str = "leading";
@@ -143,6 +146,35 @@ pub fn time_throttle_contract() -> StandardKindContract {
     }
 }
 
+pub fn time_deadline_contract() -> StandardKindContract {
+    StandardKindContract {
+        kind_id: kind_id(TIME_DEADLINE_KIND),
+        plain_name: "One armed cancellation deadline".to_string(),
+        summary: "After one Unit arm, emit one cancellation request when the exact admitted duration elapses; closing before the arm completes without output, while closing after the arm does not revoke the deadline. The output requests cancellation and does not claim that cancellation occurred."
+            .to_string(),
+        inputs: vec![port(
+            "arm",
+            UNIT_INFO_ID,
+            PortDirection::Input,
+            PortTemporal::Flow { closes: true },
+        )],
+        outputs: vec![port(
+            "request",
+            CANCELLATION_REQUEST_INFO_ID,
+            PortDirection::Output,
+            PortTemporal::Value,
+        )],
+        configuration: vec![duration_field()],
+        limits: limits(),
+        terminal_behavior:
+            KindTerminalBehavior::EmitsOneDecisionOrCompletesWhenDecisionBecomesImpossible,
+        hosted_implementation_required: true,
+        browser_manifestation_honest: false,
+        pico_manifestation_honest: false,
+        example: "deadline: time/deadline(duration-ms = 2000)".to_string(),
+    }
+}
+
 pub fn time_debounce_semantic_contract() -> Kind {
     semantic_contract(time_debounce_contract(), TIME_DEBOUNCE_CONTRACT_REVISION)
 }
@@ -157,6 +189,10 @@ pub fn time_delay_semantic_contract() -> Kind {
 
 pub fn time_throttle_semantic_contract() -> Kind {
     semantic_contract(time_throttle_contract(), TIME_THROTTLE_CONTRACT_REVISION)
+}
+
+pub fn time_deadline_semantic_contract() -> Kind {
+    semantic_contract(time_deadline_contract(), TIME_DEADLINE_CONTRACT_REVISION)
 }
 
 fn semantic_contract(contract: StandardKindContract, revision: &str) -> Kind {
@@ -188,6 +224,7 @@ pub fn install_timing_catalogs(
         time_timeout_contract(),
         time_delay_contract(),
         time_throttle_contract(),
+        time_deadline_contract(),
     ] {
         startup.insert(KindSignature {
             kind: contract.kind_id.as_str().to_string(),
@@ -211,6 +248,7 @@ pub fn install_timing_catalogs(
             TIME_TIMEOUT_KIND => TIME_TIMEOUT_CONTRACT_REVISION,
             TIME_DELAY_KIND => TIME_DELAY_CONTRACT_REVISION,
             TIME_THROTTLE_KIND => TIME_THROTTLE_CONTRACT_REVISION,
+            TIME_DEADLINE_KIND => TIME_DEADLINE_CONTRACT_REVISION,
             _ => unreachable!("timing catalog loop contains only timing contracts"),
         };
         profile
@@ -292,6 +330,7 @@ mod tests {
             time_timeout_contract(),
             time_delay_contract(),
             time_throttle_contract(),
+            time_deadline_contract(),
         ] {
             assert_eq!(contract.limits.max_queue_items, 1);
         }
@@ -300,6 +339,7 @@ mod tests {
             time_timeout_contract(),
             time_delay_contract(),
             time_throttle_contract(),
+            time_deadline_contract(),
         ] {
             assert!(matches!(
                 contract.configuration[0].rule,

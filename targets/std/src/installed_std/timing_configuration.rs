@@ -52,6 +52,24 @@ pub(super) fn parse(
     })
 }
 
+pub(super) fn parse_deadline(placement: &PlannedGear) -> Result<u64, String> {
+    if placement.configuration.len() != 1 {
+        return Err("time/deadline has an incomplete exact configuration".to_string());
+    }
+    let entry = &placement.configuration[0];
+    let ConfigurationValue::Quantity(value) = entry.value else {
+        return Err("time/deadline duration is invalid".to_string());
+    };
+    if entry.key != "duration-ms" {
+        return Err("time/deadline configuration field is invalid".to_string());
+    }
+    let duration_ms = quantity_milliseconds(value)?;
+    if duration_ms > conduit_semantic_catalog::TIME_MAXIMUM_DURATION_MS {
+        return Err("time/deadline duration exceeds the reviewed maximum".to_string());
+    }
+    Ok(duration_ms)
+}
+
 pub(super) fn parse_pacing(
     placement: &PlannedGear,
     policy: Option<&str>,
