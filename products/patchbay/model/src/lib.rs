@@ -42,7 +42,6 @@ mod form_editor_catalogs;
 mod form_editor_error;
 mod form_edits;
 mod front_configuration;
-mod front_controls;
 mod front_door;
 mod front_door_projection;
 mod front_door_session;
@@ -50,7 +49,6 @@ mod front_door_topology;
 mod front_door_transition;
 mod gear_realization;
 mod generated_validation_inspection;
-mod graphical_patchbay;
 mod host_adapter;
 mod interaction;
 mod layout;
@@ -101,7 +99,8 @@ mod presentation_layout;
 mod prewake;
 pub mod proof;
 mod readable_body_history;
-mod recursive_form_projection;
+#[cfg(test)]
+mod recursive_form_projection_tests;
 mod recursive_recovery_explanation;
 mod renderer_conformance;
 mod renderer_execution;
@@ -208,7 +207,6 @@ pub use form_editor::{
     CheckedRevision, EditorDiagnostic, FormDocumentView, FormEditor, FormEditorError, GraphCord,
     GraphCordStage, GraphForm, GraphItem, GraphItemKind, SourceSelection,
 };
-pub use front_controls::{FaceControl, FaceControlKind, FaceInteraction, MAX_FACE_CONTROLS};
 pub use front_door::{
     EntranceAction, EntranceLayer, EntranceRefusal, EntranceUpdateDisposition,
     PatchbayEntranceState, MAX_ENTRANCE_ACTIONS,
@@ -221,12 +219,6 @@ pub use gear_realization::{
     LearnedImplementationSelection, RealizationDisposition, MAX_GEAR_REALIZATION_ALTERNATIVES,
 };
 pub use generated_validation_inspection::project_generated_validation_receipt;
-pub use graphical_patchbay::{
-    PatchbayComposition, PatchbayCompositionBinding, PatchbayConnectionCandidate, PatchbayCord,
-    PatchbayFrontPort, PatchbayGear, PatchbayGraph, PatchbayGraphError, PatchbayInspection,
-    PatchbayPort, PatchbayPortCompatibility, PatchbaySubjectKind, PatchbaySubjectRef,
-    MAX_PATCHBAY_CORDS, MAX_PATCHBAY_GEARS, MAX_PATCHBAY_PORTS, MAX_PATCHBAY_SUBJECTS,
-};
 pub use host_adapter::{PatchbayHostAdapter, PatchbayHostExecution, PatchbayHostProfile};
 pub use interaction::{
     InteractionDisposition, InteractionError, InteractionReceipt, PatchbayAction, PatchbayEdit,
@@ -281,6 +273,16 @@ pub use palette::{
 };
 pub use parts_view::*;
 pub use patchbay_backs::*;
+pub use patchbay_graph::{
+    project_recursive_form_gear, RecursiveFormGearProjection, RecursiveFormProjectionError,
+};
+pub use patchbay_graph::{FaceControl, FaceControlKind, FaceInteraction, MAX_FACE_CONTROLS};
+pub use patchbay_graph::{
+    PatchbayComposition, PatchbayCompositionBinding, PatchbayConnectionCandidate, PatchbayCord,
+    PatchbayFrontPort, PatchbayGear, PatchbayGraph, PatchbayGraphError, PatchbayInspection,
+    PatchbayPort, PatchbayPortCompatibility, PatchbaySubjectKind, PatchbaySubjectRef,
+    MAX_PATCHBAY_CORDS, MAX_PATCHBAY_GEARS, MAX_PATCHBAY_PORTS, MAX_PATCHBAY_SUBJECTS,
+};
 pub use policy_explanation::{
     PolicyChoiceDetails, PolicyChoiceDomain, PolicyChoiceExplanation, PolicyChoiceSummary,
     PolicyExplanationError, PolicyReplanRequest, MAX_POLICY_EXPLANATIONS,
@@ -309,9 +311,6 @@ pub use readable_body_history::{
     BodyHistoryManifestation, BodyHistoryMoment, ReadableArchivedBodyHistory, ReadableBodyHistory,
     ReadableBodyHistoryError, ReadableBodyHistorySlot, MAX_BODY_HISTORY_LINEAR_BYTES,
     MAX_BODY_HISTORY_TITLE_BYTES,
-};
-pub use recursive_form_projection::{
-    project_recursive_form_gear, RecursiveFormGearProjection, RecursiveFormProjectionError,
 };
 pub use recursive_recovery_explanation::{
     explain_recursive_recovery, RecursiveRecoveryExplanation, RecursiveRecoveryExplanationError,
