@@ -1,0 +1,462 @@
+//! Portable finite constraints over exact canonical Info encodings.
+//!
+//! Patterns are carried as checked deterministic automata. Source regex syntax
+//! belongs to checking; Play never compiles a pattern or selects a Host regex
+//! dialect.
+
+use alloc::vec::Vec;
+use serde::{Deserialize, Serialize};
+
+use crate::{validate_primitive_info, KindId, PrimitiveInfoRefusal};
+
+pub const MAX_VALUE_CONSTRAINTS: usize = 16;
+pub const MAX_MEMBERSHIP_VALUES: usize = 64;
+pub const MAX_MEMBERSHIP_BYTES: usize = 4_096;
+pub const MAX_PATTERN_STATES: usize = 256;
+pub const MAX_PATTERN_TRANSITIONS: usize = 1_024;
+pub const MAX_PATTERN_MATCH_STEPS: u32 = 65_536;
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct CheckedValueContract {
+    pub value_kind: KindId,
+    pub maximum_bytes: u32,
+    pub constraints: Vec<ValueConstraint>,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub enum ValueConstraint {
+    ByteLength { minimum: u32, maximum: u32 },
+    UnsignedRange { minimum: u64, maximum: u64 },
+    CanonicalMembership { members: Vec<Vec<u8>> },
+    TextPattern(CheckedTextPattern),
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct CheckedTextPattern {
+    pub states: Vec<TextPatternState>,
+    pub start_state: u16,
+    pub maximum_input_characters: u32,
+    pub maximum_match_steps: u32,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct TextPatternState {
+    pub accepting: bool,
+    pub transitions: Vec<TextPatternTransition>,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct TextPatternTransition {
+    pub first_scalar: u32,
+    pub last_scalar: u32,
+    pub target_state: u16,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum ConstraintDefinitionError {
+    TooManyConstraints,
+    NonCanonicalConstraintOrder,
+    InvalidByteRange,
+    InvalidUnsignedRange,
+    EmptyMembership,
+    TooManyMembershipValues,
+    MembershipBytesExceeded,
+    NonCanonicalMembership,
+    EmptyPattern,
+    TooManyPatternStates,
+    TooManyPatternTransitions,
+    InvalidStartState,
+    InvalidTransitionRange,
+    InvalidTransitionTarget,
+    NondeterministicTransitions,
+    NonCanonicalTransitions,
+    MatchWorkExceeded,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum ValueConstraintRefusal {
+    Oversize { actual: u32, maximum: u32 },
+    MalformedPrimitive(PrimitiveInfoRefusal),
+    WrongConstraintKind,
+    ByteLength,
+    UnsignedRange,
+    Membership,
+    TextPattern,
+}
+
+impl CheckedValueContract {
+    pub fn new(
+        value_kind: KindId,
+        maximum_bytes: u32,
+        constraints: Vec<ValueConstraint>,
+    ) -> Result<Self, ConstraintDefinitionError> {
+        if constraints.len() > MAX_VALUE_CONSTRAINTS {
+            return Err(ConstraintDefinitionError::TooManyConstraints);
+        }
+        if constraints
+            .windows(2)
+            .any(|pair| pair[0].rank() >= pair[1].rank())
+        {
+            return Err(ConstraintDefinitionError::NonCanonicalConstraintOrder);
+        }
+        for constraint in &constraints {
+            constraint.validate_definition(maximum_bytes)?;
+        }
+        Ok(Self {
+            value_kind,
+            maximum_bytes,
+            constraints,
+        })
+    }
+
+    pub fn validate(&self, canonical: &[u8]) -> Result<(), ValueConstraintRefusal> {
+        if canonical.len() > self.maximum_bytes as usize {
+            return Err(ValueConstraintRefusal::Oversize {
+                actual: u32::try_from(canonical.len()).unwrap_or(u32::MAX),
+                maximum: self.maximum_bytes,
+            });
+        }
+        validate_primitive_info(self.value_kind.as_str(), canonical)
+            .map_err(ValueConstraintRefusal::MalformedPrimitive)?;
+        for constraint in &self.constraints {
+            constraint.validate_value(self.value_kind.as_str(), canonical)?;
+        }
+        Ok(())
+    }
+}
+
+impl ValueConstraint {
+    fn rank(&self) -> u8 {
+        match self {
+            Self::ByteLength { .. } => 0,
+            Self::UnsignedRange { .. } => 1,
+            Self::CanonicalMembership { .. } => 2,
+            Self::TextPattern(_) => 3,
+        }
+    }
+
+    fn validate_definition(&self, maximum_bytes: u32) -> Result<(), ConstraintDefinitionError> {
+        match self {
+            Self::ByteLength { minimum, maximum }
+                if minimum > maximum || *maximum > maximum_bytes =>
+            {
+                Err(ConstraintDefinitionError::InvalidByteRange)
+            }
+            Self::UnsignedRange { minimum, maximum } if minimum > maximum => {
+                Err(ConstraintDefinitionError::InvalidUnsignedRange)
+            }
+            Self::CanonicalMembership { members } if members.is_empty() => {
+                Err(ConstraintDefinitionError::EmptyMembership)
+            }
+            Self::CanonicalMembership { members } if members.len() > MAX_MEMBERSHIP_VALUES => {
+                Err(ConstraintDefinitionError::TooManyMembershipValues)
+            }
+            Self::CanonicalMembership { members }
+                if members
+                    .iter()
+                    .any(|member| member.len() > maximum_bytes as usize)
+                    || members.iter().map(Vec::len).sum::<usize>() > MAX_MEMBERSHIP_BYTES =>
+            {
+                Err(ConstraintDefinitionError::MembershipBytesExceeded)
+            }
+            Self::CanonicalMembership { members }
+                if members.windows(2).any(|pair| pair[0] >= pair[1]) =>
+            {
+                Err(ConstraintDefinitionError::NonCanonicalMembership)
+            }
+            Self::TextPattern(pattern) => pattern.validate_definition(),
+            _ => Ok(()),
+        }
+    }
+
+    fn validate_value(
+        &self,
+        value_kind: &str,
+        canonical: &[u8],
+    ) -> Result<(), ValueConstraintRefusal> {
+        match self {
+            Self::ByteLength { minimum, maximum } => {
+                let length = canonical.len() as u32;
+                (length >= *minimum && length <= *maximum)
+                    .then_some(())
+                    .ok_or(ValueConstraintRefusal::ByteLength)
+            }
+            Self::UnsignedRange { minimum, maximum } => {
+                if value_kind != crate::COUNT_INFO_ID {
+                    return Err(ValueConstraintRefusal::WrongConstraintKind);
+                }
+                let value = crate::decode_count(canonical)
+                    .map_err(ValueConstraintRefusal::MalformedPrimitive)?;
+                (value >= *minimum && value <= *maximum)
+                    .then_some(())
+                    .ok_or(ValueConstraintRefusal::UnsignedRange)
+            }
+            Self::CanonicalMembership { members } => members
+                .iter()
+                .any(|member| member.as_slice() == canonical)
+                .then_some(())
+                .ok_or(ValueConstraintRefusal::Membership),
+            Self::TextPattern(pattern) => {
+                if value_kind != crate::TEXT_INFO_ID {
+                    return Err(ValueConstraintRefusal::WrongConstraintKind);
+                }
+                let text = core::str::from_utf8(canonical)
+                    .map_err(|_| ValueConstraintRefusal::TextPattern)?;
+                pattern
+                    .is_match(text)
+                    .then_some(())
+                    .ok_or(ValueConstraintRefusal::TextPattern)
+            }
+        }
+    }
+}
+
+impl CheckedTextPattern {
+    pub fn new(
+        states: Vec<TextPatternState>,
+        start_state: u16,
+        maximum_input_characters: u32,
+        maximum_match_steps: u32,
+    ) -> Result<Self, ConstraintDefinitionError> {
+        let pattern = Self {
+            states,
+            start_state,
+            maximum_input_characters,
+            maximum_match_steps,
+        };
+        pattern.validate_definition()?;
+        Ok(pattern)
+    }
+
+    fn validate_definition(&self) -> Result<(), ConstraintDefinitionError> {
+        if self.states.is_empty() {
+            return Err(ConstraintDefinitionError::EmptyPattern);
+        }
+        if self.states.len() > MAX_PATTERN_STATES {
+            return Err(ConstraintDefinitionError::TooManyPatternStates);
+        }
+        if usize::from(self.start_state) >= self.states.len() {
+            return Err(ConstraintDefinitionError::InvalidStartState);
+        }
+        let transition_count = self
+            .states
+            .iter()
+            .map(|state| state.transitions.len())
+            .sum::<usize>();
+        if transition_count > MAX_PATTERN_TRANSITIONS {
+            return Err(ConstraintDefinitionError::TooManyPatternTransitions);
+        }
+        let maximum_fanout = self
+            .states
+            .iter()
+            .map(|state| state.transitions.len() as u32)
+            .max()
+            .unwrap_or(0);
+        let required_steps = self
+            .maximum_input_characters
+            .checked_mul(maximum_fanout.max(1))
+            .ok_or(ConstraintDefinitionError::MatchWorkExceeded)?;
+        if self.maximum_match_steps < required_steps
+            || self.maximum_match_steps > MAX_PATTERN_MATCH_STEPS
+        {
+            return Err(ConstraintDefinitionError::MatchWorkExceeded);
+        }
+        for state in &self.states {
+            if state
+                .transitions
+                .windows(2)
+                .any(|pair| pair[0].first_scalar >= pair[1].first_scalar)
+            {
+                return Err(ConstraintDefinitionError::NonCanonicalTransitions);
+            }
+            for (index, transition) in state.transitions.iter().enumerate() {
+                if char::from_u32(transition.first_scalar).is_none()
+                    || char::from_u32(transition.last_scalar).is_none()
+                    || transition.first_scalar > transition.last_scalar
+                {
+                    return Err(ConstraintDefinitionError::InvalidTransitionRange);
+                }
+                if usize::from(transition.target_state) >= self.states.len() {
+                    return Err(ConstraintDefinitionError::InvalidTransitionTarget);
+                }
+                if state.transitions[index + 1..].iter().any(|candidate| {
+                    transition.first_scalar <= candidate.last_scalar
+                        && candidate.first_scalar <= transition.last_scalar
+                }) {
+                    return Err(ConstraintDefinitionError::NondeterministicTransitions);
+                }
+            }
+        }
+        Ok(())
+    }
+
+    pub fn is_match(&self, input: &str) -> bool {
+        let mut state = usize::from(self.start_state);
+        let mut characters = 0_u32;
+        let mut steps = 0_u32;
+        for character in input.chars() {
+            characters = characters.saturating_add(1);
+            if characters > self.maximum_input_characters {
+                return false;
+            }
+            let scalar = character as u32;
+            let mut target = None;
+            for transition in &self.states[state].transitions {
+                steps = steps.saturating_add(1);
+                if steps > self.maximum_match_steps {
+                    return false;
+                }
+                if scalar >= transition.first_scalar && scalar <= transition.last_scalar {
+                    target = Some(usize::from(transition.target_state));
+                    break;
+                }
+            }
+            let Some(next) = target else {
+                return false;
+            };
+            state = next;
+        }
+        self.states[state].accepting
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use alloc::vec;
+
+    fn literal_ab() -> CheckedTextPattern {
+        CheckedTextPattern::new(
+            vec![
+                TextPatternState {
+                    accepting: false,
+                    transitions: vec![TextPatternTransition {
+                        first_scalar: 'a' as u32,
+                        last_scalar: 'a' as u32,
+                        target_state: 1,
+                    }],
+                },
+                TextPatternState {
+                    accepting: false,
+                    transitions: vec![TextPatternTransition {
+                        first_scalar: 'b' as u32,
+                        last_scalar: 'b' as u32,
+                        target_state: 2,
+                    }],
+                },
+                TextPatternState {
+                    accepting: true,
+                    transitions: Vec::new(),
+                },
+            ],
+            0,
+            2,
+            2,
+        )
+        .unwrap()
+    }
+
+    #[test]
+    fn deterministic_text_pattern_is_full_match_and_work_bounded() {
+        let pattern = literal_ab();
+        assert!(pattern.is_match("ab"));
+        assert!(!pattern.is_match("a"));
+        assert!(!pattern.is_match("abc"));
+        assert!(!pattern.is_match("xb"));
+    }
+
+    #[test]
+    fn zero_byte_unit_and_exact_empty_text_remain_expressible() {
+        let unit = CheckedValueContract::new(crate::kind_id(crate::UNIT_INFO_ID), 0, vec![])
+            .expect("unit has an exact zero-byte canonical encoding");
+        assert_eq!(unit.validate(&[]), Ok(()));
+
+        let empty = CheckedTextPattern::new(
+            vec![TextPatternState {
+                accepting: true,
+                transitions: vec![],
+            }],
+            0,
+            0,
+            0,
+        )
+        .expect("an exact empty-text language requires no matching work");
+        assert!(empty.is_match(""));
+        assert!(!empty.is_match("x"));
+    }
+
+    #[test]
+    fn overlapping_transitions_refuse_as_nondeterministic() {
+        let error = CheckedTextPattern::new(
+            vec![TextPatternState {
+                accepting: true,
+                transitions: vec![
+                    TextPatternTransition {
+                        first_scalar: 'a' as u32,
+                        last_scalar: 'z' as u32,
+                        target_state: 0,
+                    },
+                    TextPatternTransition {
+                        first_scalar: 'm' as u32,
+                        last_scalar: 'q' as u32,
+                        target_state: 0,
+                    },
+                ],
+            }],
+            0,
+            8,
+            16,
+        )
+        .unwrap_err();
+        assert_eq!(
+            error,
+            ConstraintDefinitionError::NondeterministicTransitions
+        );
+    }
+
+    #[test]
+    fn exact_contract_distinguishes_structure_from_constraint_refusal() {
+        let count = CheckedValueContract::new(
+            crate::kind_id(crate::COUNT_INFO_ID),
+            crate::COUNT_ENCODED_LEN as u32,
+            vec![ValueConstraint::UnsignedRange {
+                minimum: 2,
+                maximum: 4,
+            }],
+        )
+        .unwrap();
+        assert_eq!(count.validate(&crate::encode_count(3)), Ok(()));
+        assert_eq!(
+            count.validate(&crate::encode_count(7)),
+            Err(ValueConstraintRefusal::UnsignedRange)
+        );
+        assert!(matches!(
+            count.validate(&[0]),
+            Err(ValueConstraintRefusal::MalformedPrimitive(_))
+        ));
+    }
+
+    #[test]
+    fn text_contract_combines_bound_membership_and_pattern() {
+        let contract = CheckedValueContract::new(
+            crate::kind_id(crate::TEXT_INFO_ID),
+            2,
+            vec![
+                ValueConstraint::CanonicalMembership {
+                    members: vec![b"ab".to_vec(), b"xy".to_vec()],
+                },
+                ValueConstraint::TextPattern(literal_ab()),
+            ],
+        )
+        .unwrap();
+        assert_eq!(contract.validate(b"ab"), Ok(()));
+        assert_eq!(
+            contract.validate(b"xy"),
+            Err(ValueConstraintRefusal::TextPattern)
+        );
+        assert_eq!(
+            contract.validate(b"zz"),
+            Err(ValueConstraintRefusal::Membership)
+        );
+    }
+}
