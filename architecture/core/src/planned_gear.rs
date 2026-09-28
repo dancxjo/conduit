@@ -20,6 +20,7 @@ impl PlannedGear {
             && !self.gear_id.as_str().is_empty()
             && !self.kind_id.as_str().is_empty()
             && !self.kind_contract_revision.as_str().is_empty()
+            && self.source_span.is_none_or(crate::SourceSpan::is_valid)
             && !self.execution_profile_id.as_str().is_empty()
             && !self.host_id.as_str().is_empty()
             && !self.boot_id.as_str().is_empty()
@@ -37,7 +38,10 @@ impl PlannedGear {
 #[macro_export]
 macro_rules! planned_gear_from_parts {
     ($($fields:tt)*) => {{
-        let gear = $crate::PlannedGear { $($fields)* };
+        let gear = $crate::PlannedGear {
+            source_span: None,
+            $($fields)*
+        };
         assert!(
             gear.validate_constructed_identity(),
             "PlannedGear requires complete semantic and realization identities"

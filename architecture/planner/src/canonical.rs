@@ -367,7 +367,8 @@ pub fn plan_expanded_canonical_with_options(
         exports: Vec::new(),
         nested_forms: Vec::new(),
     };
-    let plan = plan_validated_form(&planning_form, hosts, placements, bases, options)?;
+    let mut plan = plan_validated_form(&planning_form, hosts, placements, bases, options)?;
+    attach_source_spans(form, &mut plan)?;
     Ok(
         conduit_core::seal_plan_with_realization_backs_and_completion(
             conduit_core::FormIdentity {
@@ -403,7 +404,7 @@ pub fn plan_expanded_canonical_with_connection_limits(
         exports: Vec::new(),
         nested_forms: Vec::new(),
     };
-    let plan = plan_validated_form_with_connection_limits(
+    let mut plan = plan_validated_form_with_connection_limits(
         &planning_form,
         hosts,
         placements,
@@ -411,6 +412,7 @@ pub fn plan_expanded_canonical_with_connection_limits(
         options,
         connection_limits,
     )?;
+    attach_source_spans(form, &mut plan)?;
     Ok(
         conduit_core::seal_plan_with_realization_backs_and_completion(
             conduit_core::FormIdentity {
@@ -423,6 +425,53 @@ pub fn plan_expanded_canonical_with_connection_limits(
             plan.fragments,
         ),
     )
+}
+
+fn attach_source_spans(form: &ExpandedCanonicalForm, plan: &mut Plan) -> Result<(), PlannerError> {
+    for placement in plan
+        .fragments
+        .iter_mut()
+        .flat_map(|fragment| &mut fragment.placements)
+    {
+        let provenance = form
+            .provenance
+            .iter()
+            .find(|entry| entry.gear_id == placement.gear_id.as_str())
+            .ok_or_else(|| {
+                PlannerError::InvalidFormIdentity(format!(
+                    "expanded Gear '{}' has no exact source provenance",
+                    placement.gear_id.as_str()
+                ))
+            })?;
+        let span = provenance.source_span;
+        let span = conduit_core::SourceSpan {
+            start: span.start.try_into().map_err(|_| {
+                PlannerError::InvalidFormIdentity("source span start exceeds u64".into())
+            })?,
+            end: span.end.try_into().map_err(|_| {
+                PlannerError::InvalidFormIdentity("source span end exceeds u64".into())
+            })?,
+            line: span.line.try_into().map_err(|_| {
+                PlannerError::InvalidFormIdentity("source span line exceeds u64".into())
+            })?,
+            column: span.column.try_into().map_err(|_| {
+                PlannerError::InvalidFormIdentity("source span column exceeds u64".into())
+            })?,
+            end_line: span.end_line.try_into().map_err(|_| {
+                PlannerError::InvalidFormIdentity("source span end line exceeds u64".into())
+            })?,
+            end_column: span.end_column.try_into().map_err(|_| {
+                PlannerError::InvalidFormIdentity("source span end column exceeds u64".into())
+            })?,
+        };
+        if !span.is_valid() {
+            return Err(PlannerError::InvalidFormIdentity(
+                "expanded Gear source span is invalid".into(),
+            ));
+        }
+        placement.source_span = Some(span);
+    }
+    Ok(())
 }
 
 pub fn plan_expanded_canonical_with_shared_pools(

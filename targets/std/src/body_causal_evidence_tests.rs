@@ -24,6 +24,14 @@ fn node(
         evidence,
         outcome,
         source_document_id: "source/test".into(),
+        source_span: Some(conduit_core::SourceSpan {
+            start: 4,
+            end: 12,
+            line: 2,
+            column: 3,
+            end_line: 2,
+            end_column: 11,
+        }),
         wake_id: wake().wake_id,
         plan_id: "plan/test".into(),
         play_id: "play/test".into(),
@@ -200,5 +208,36 @@ fn lookup_is_exact_and_honors_bounded_visitor_refusal() {
     assert_eq!(
         record.visit(evidence, &mut |_| false),
         EvidenceMetadataVisit::VisitorRefused
+    );
+    let mut source = None;
+    assert_eq!(
+        record.visit(evidence, &mut |fact| {
+            if let EvidenceMetadataFact::Source {
+                document,
+                start,
+                end,
+                line,
+                column,
+                end_line,
+                end_column,
+            } = fact
+            {
+                source = Some((document, start, end, line, column, end_line, end_column));
+            }
+            true
+        }),
+        EvidenceMetadataVisit::Visited
+    );
+    assert_eq!(
+        source,
+        Some((
+            "source/test",
+            Some(4),
+            Some(12),
+            Some(2),
+            Some(3),
+            Some(2),
+            Some(11),
+        ))
     );
 }
