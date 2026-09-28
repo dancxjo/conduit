@@ -6,9 +6,9 @@
 //! boundary and retains its exact ordinary Form identity.
 
 use alloc::string::String;
-use conduit_core::{
-    FormIdentity, GearId, Plan, PortDescriptor, PortDirection, PortId, PortTemporal,
-};
+#[cfg(feature = "form-catalog")]
+use conduit_core::PortDescriptor;
+use conduit_core::{FormIdentity, GearId, Plan, PortDirection, PortId, PortTemporal};
 use serde::{Deserialize, Serialize};
 
 use crate::{FACE_INTERACTION_VALUE_KIND, PRESENTATION_VALUE_KIND, SHOW_VALUE_KIND};
@@ -177,6 +177,7 @@ impl PlannedMaskForm {
     }
 }
 
+#[cfg(feature = "form-catalog")]
 fn required_port<'a>(
     ports: &'a [PortDescriptor],
     name: &str,
