@@ -49,7 +49,6 @@ mod front_door_topology;
 mod front_door_transition;
 mod gear_realization;
 mod generated_validation_inspection;
-mod graphical_patchbay;
 mod host_adapter;
 mod interaction;
 mod layout;
@@ -219,12 +218,6 @@ pub use gear_realization::{
     LearnedImplementationSelection, RealizationDisposition, MAX_GEAR_REALIZATION_ALTERNATIVES,
 };
 pub use generated_validation_inspection::project_generated_validation_receipt;
-pub use graphical_patchbay::{
-    PatchbayComposition, PatchbayCompositionBinding, PatchbayConnectionCandidate, PatchbayCord,
-    PatchbayFrontPort, PatchbayGear, PatchbayGraph, PatchbayGraphError, PatchbayInspection,
-    PatchbayPort, PatchbayPortCompatibility, PatchbaySubjectKind, PatchbaySubjectRef,
-    MAX_PATCHBAY_CORDS, MAX_PATCHBAY_GEARS, MAX_PATCHBAY_PORTS, MAX_PATCHBAY_SUBJECTS,
-};
 pub use host_adapter::{PatchbayHostAdapter, PatchbayHostExecution, PatchbayHostProfile};
 pub use interaction::{
     InteractionDisposition, InteractionError, InteractionReceipt, PatchbayAction, PatchbayEdit,
@@ -280,6 +273,12 @@ pub use palette::{
 pub use parts_view::*;
 pub use patchbay_backs::*;
 pub use patchbay_graph::{FaceControl, FaceControlKind, FaceInteraction, MAX_FACE_CONTROLS};
+pub use patchbay_graph::{
+    PatchbayComposition, PatchbayCompositionBinding, PatchbayConnectionCandidate, PatchbayCord,
+    PatchbayFrontPort, PatchbayGear, PatchbayGraph, PatchbayGraphError, PatchbayInspection,
+    PatchbayPort, PatchbayPortCompatibility, PatchbaySubjectKind, PatchbaySubjectRef,
+    MAX_PATCHBAY_CORDS, MAX_PATCHBAY_GEARS, MAX_PATCHBAY_PORTS, MAX_PATCHBAY_SUBJECTS,
+};
 pub use policy_explanation::{
     PolicyChoiceDetails, PolicyChoiceDomain, PolicyChoiceExplanation, PolicyChoiceSummary,
     PolicyExplanationError, PolicyReplanRequest, MAX_POLICY_EXPLANATIONS,
