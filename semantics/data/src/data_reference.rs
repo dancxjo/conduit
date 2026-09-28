@@ -2,8 +2,9 @@
 
 use alloc::vec::Vec;
 use conduit_core::{
-    data_reference_kind, BoundedResourceRef, KindId, ResourceClassId, ResourceReferenceRefusal,
-    ValuePayload, MAXIMUM_RESOURCE_REFERENCE_IDENTITY_BYTES, RESOURCE_REFERENCE_DIGEST_BYTES,
+    data_reference_kind, BoundedResourceRef, EncodedResourceReference, KindId, ResourceClassId,
+    ResourceReferenceRefusal, ValuePayload, MAXIMUM_RESOURCE_REFERENCE_IDENTITY_BYTES,
+    RESOURCE_REFERENCE_DIGEST_BYTES,
 };
 
 pub const DATA_GENERATION_ACCESS_CLASS: &str = "data/immutable-generation@1";
@@ -57,6 +58,28 @@ impl DataReference {
         Ok(value)
     }
 
+    /// Validate and inspect one encoded data reference without allocating.
+    pub fn validate_encoded_for<'a>(
+        content_kind: &KindId,
+        encoded: &'a [u8],
+    ) -> Result<EncodedResourceReference<'a>, DataReferenceRefusal> {
+        let reference =
+            BoundedResourceRef::validate_encoded(encoded).map_err(map_reference_refusal)?;
+        if reference.content_profile != content_kind.as_str() {
+            return Err(DataReferenceRefusal::WrongContentKind);
+        }
+        if reference.access_class != DATA_GENERATION_ACCESS_CLASS {
+            return Err(DataReferenceRefusal::WrongAccessClass);
+        }
+        if reference.has_expiry {
+            return Err(DataReferenceRefusal::ExpiringGeneration);
+        }
+        if reference.extent.items.is_some() {
+            return Err(DataReferenceRefusal::ItemExtent);
+        }
+        Ok(reference)
+    }
+
     pub fn from_value_for(
         content_kind: &KindId,
         value: &ValuePayload,
@@ -94,6 +117,12 @@ impl DataReference {
 
     pub fn encode(&self) -> Result<Vec<u8>, DataReferenceRefusal> {
         self.reference.encode().map_err(map_reference_refusal)
+    }
+
+    pub fn encode_into(&self, encoded: &mut Vec<u8>) -> Result<(), DataReferenceRefusal> {
+        self.reference
+            .encode_into(encoded)
+            .map_err(map_reference_refusal)
     }
 
     pub fn to_value(&self) -> Result<ValuePayload, DataReferenceRefusal> {

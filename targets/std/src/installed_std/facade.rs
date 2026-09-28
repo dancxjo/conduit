@@ -112,6 +112,21 @@ pub(crate) fn test_normal_close_sink_offer() -> conduit_core::CapabilityOffer {
 }
 
 #[cfg(test)]
+pub(crate) fn test_data_terminal_recovery_offers() -> [conduit_core::CapabilityOffer; 2] {
+    super::test_data_terminal_recovery::offers()
+}
+
+#[cfg(test)]
+pub(crate) fn test_data_text_sink_offer() -> conduit_core::CapabilityOffer {
+    super::test_data_terminal_recovery::text_sink_offer()
+}
+
+#[cfg(test)]
+pub(crate) fn test_data_text_source_offer() -> conduit_core::CapabilityOffer {
+    super::test_data_terminal_recovery::text_source_offer()
+}
+
+#[cfg(test)]
 pub(crate) fn test_gate_script_offer() -> conduit_core::CapabilityOffer {
     super::test_gate::source_offer()
 }

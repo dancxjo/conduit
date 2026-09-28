@@ -5,10 +5,10 @@ use conduit_data::{
     data_load_text_contract, data_load_text_projection, data_save_text_contract,
     data_save_text_projection, DataGenerationNamespace, DataGenerationNamespaceRefusal,
     DataGenerationRefusal, DataGenerationStore, DataLoadTextTerminal, DataReference,
-    DataReferenceRefusal, DataSaveTextTerminal, DATA_LOAD_TEXT_TERMINAL_INFO_ID,
-    DATA_SAVE_TEXT_TERMINAL_INFO_ID, DATA_TEXT_CONTRACT_REVISION, DATA_TEXT_TERMINAL_ENCODED_LEN,
-    MAXIMUM_DATA_GENERATION_NAMESPACE_BYTES, MAXIMUM_DATA_REFERENCE_ENCODED_BYTES,
-    MAXIMUM_DATA_TEXT_BYTES,
+    DataReferenceRefusal, DataSaveTextTerminal, PreparedDataGenerationStore,
+    DATA_LOAD_TEXT_TERMINAL_INFO_ID, DATA_SAVE_TEXT_TERMINAL_INFO_ID, DATA_TEXT_CONTRACT_REVISION,
+    DATA_TEXT_TERMINAL_ENCODED_LEN, MAXIMUM_DATA_GENERATION_NAMESPACE_BYTES,
+    MAXIMUM_DATA_REFERENCE_ENCODED_BYTES, MAXIMUM_DATA_TEXT_BYTES,
 };
 
 fn namespace(name: &str) -> DataGenerationNamespace {
@@ -261,4 +261,82 @@ fn generation_namespace_is_explicit_and_bounded() {
         namespace("test/notebook/first"),
         namespace("test/notebook/second")
     );
+}
+
+#[test]
+fn prepared_store_publishes_and_loads_without_growing_storage() {
+    let kind = kind_id("value/text");
+    let reference_bytes =
+        conduit_data::maximum_data_reference_encoded_bytes(kind.as_str()).unwrap();
+    let mut store =
+        PreparedDataGenerationStore::new(namespace("test/prepared"), kind.clone(), 2, 8, 16)
+            .unwrap();
+    let capacities = store.allocation_capacities();
+    let mut first = Vec::with_capacity(reference_bytes);
+    let mut second = Vec::with_capacity(reference_bytes);
+    let first_capacity = first.capacity();
+    let second_capacity = second.capacity();
+
+    store.publish_into(&kind, b"same", &mut first).unwrap();
+    store.publish_into(&kind, b"same", &mut second).unwrap();
+
+    assert_ne!(first, second);
+    assert_eq!(store.load_encoded(&first), Ok(b"same".as_slice()));
+    assert_eq!(store.load_encoded(&second), Ok(b"same".as_slice()));
+    assert_eq!(store.generation_count(), 2);
+    assert_eq!(store.retained_bytes(), 8);
+    assert_eq!(store.allocation_capacities(), capacities);
+    assert_eq!(first.capacity(), first_capacity);
+    assert_eq!(second.capacity(), second_capacity);
+}
+
+#[test]
+fn prepared_store_refuses_pressure_atomically_and_keeps_namespaces_distinct() {
+    let kind = kind_id("value/text");
+    let reference_bytes =
+        conduit_data::maximum_data_reference_encoded_bytes(kind.as_str()).unwrap();
+    let mut first =
+        PreparedDataGenerationStore::new(namespace("test/prepared/first"), kind.clone(), 2, 4, 4)
+            .unwrap();
+    let mut second =
+        PreparedDataGenerationStore::new(namespace("test/prepared/second"), kind.clone(), 2, 4, 4)
+            .unwrap();
+    let mut first_reference = Vec::with_capacity(reference_bytes);
+    let mut second_reference = Vec::with_capacity(reference_bytes);
+    first
+        .publish_into(&kind, b"same", &mut first_reference)
+        .unwrap();
+    second
+        .publish_into(&kind, b"same", &mut second_reference)
+        .unwrap();
+    assert_ne!(first_reference, second_reference);
+
+    let mut output = Vec::with_capacity(reference_bytes);
+    assert_eq!(
+        first.publish_into(&kind, b"x", &mut output),
+        Err(DataGenerationRefusal::ByteCapacityExhausted)
+    );
+    assert_eq!(first.generation_count(), 1);
+    assert_eq!(first.retained_bytes(), 4);
+    assert_eq!(first.load_encoded(&first_reference), Ok(b"same".as_slice()));
+    assert_eq!(
+        first.load_encoded(&second_reference),
+        Err(DataGenerationRefusal::GenerationNotRetained)
+    );
+}
+
+#[test]
+fn prepared_store_requires_prepared_reference_output() {
+    let kind = kind_id("value/text");
+    let mut store =
+        PreparedDataGenerationStore::new(namespace("test/prepared"), kind.clone(), 1, 8, 8)
+            .unwrap();
+    let mut unprepared = Vec::new();
+
+    assert_eq!(
+        store.publish_into(&kind, b"A", &mut unprepared),
+        Err(DataGenerationRefusal::ReferenceOutputCapacity)
+    );
+    assert_eq!(store.generation_count(), 0);
+    assert_eq!(store.retained_bytes(), 0);
 }

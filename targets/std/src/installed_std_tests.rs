@@ -12,6 +12,7 @@ mod body_causal_evidence_conformance;
 mod bool_presentation_conformance;
 mod calendar_proposal_conformance;
 mod calendar_provider_conformance;
+mod data_text_conformance;
 mod external_fore_conformance;
 mod final_normalized_pattern_conformance;
 mod gate_conformance;

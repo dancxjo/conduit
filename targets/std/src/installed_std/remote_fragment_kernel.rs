@@ -23,6 +23,17 @@ use conduit_wire::SessionMessage;
 
 mod vision;
 
+fn semantic_data_refusal(detail: u16) -> HostCallOutcome {
+    HostCallOutcome {
+        disposition: HostCallDisposition::Denied,
+        output: None,
+        failure: Some(conduit_kernel::Failure {
+            code: conduit_kernel::FailureCode::HostCallDenied,
+            detail,
+        }),
+    }
+}
+
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct RemoteValueTransfer {
     pub endpoint: RemoteEndpointId,
@@ -62,6 +73,7 @@ pub struct InstalledRemoteFragment {
     vision_clock_basis: String,
     pending_body_context: Option<HostCallRequest>,
     delivered_body_context: Option<[u8; 32]>,
+    data_text_hosts: super::data_text_host::DataTextGenerationHosts,
 }
 
 impl InstalledRemoteFragment {
@@ -119,6 +131,11 @@ impl InstalledRemoteFragment {
             &fragment.boot_id,
             play_sequence,
         );
+        let data_text_hosts = super::data_text_host::DataTextGenerationHosts::prepare(
+            fragment,
+            &lowered.identity,
+            &play,
+        )?;
         let drivers =
             preparation::prepare_operations(fragment, &lowered, &mut values, &play, None, None)?;
         let tables = KernelTables::prepare(&[&lowered])?;
@@ -184,6 +201,7 @@ impl InstalledRemoteFragment {
             vision_clock_basis,
             pending_body_context: None,
             delivered_body_context: None,
+            data_text_hosts,
         })
     }
 
@@ -256,6 +274,51 @@ impl InstalledRemoteFragment {
             if self.pending_body_context.replace(request).is_some() {
                 return Err("remote body context has two pending requests".into());
             }
+            return Ok(true);
+        }
+        if matches!(
+            contract,
+            conduit_std_offers::DATA_SAVE_TEXT_HOST_CALL
+                | conduit_std_offers::DATA_LOAD_TEXT_HOST_CALL
+        ) {
+            let operation = if contract == conduit_std_offers::DATA_SAVE_TEXT_HOST_CALL {
+                super::data_text_back::DataTextOperation::Save
+            } else {
+                super::data_text_back::DataTextOperation::Load
+            };
+            let completion = self.data_text_hosts.execute(request.node, operation, input);
+            let outcome = match completion {
+                super::data_text_host::DataTextCompletion::Output(encoded) => {
+                    let value = self
+                        .scheduler
+                        .store_host_value(encoded)
+                        .map_err(|error| format!("store remote data Text output: {error:?}"))?;
+                    HostCallOutcome {
+                        disposition: HostCallDisposition::Completed,
+                        output: Some(BoundedValueRef::new(value, maximum_output_bytes).map_err(
+                            |error| format!("bound remote data Text output: {error:?}"),
+                        )?),
+                        failure: None,
+                    }
+                }
+                super::data_text_host::DataTextCompletion::SaveTerminal(terminal) => {
+                    semantic_data_refusal(u16::from(terminal.encode()[0]))
+                }
+                super::data_text_host::DataTextCompletion::LoadTerminal(terminal) => {
+                    semantic_data_refusal(u16::from(terminal.encode()[0]))
+                }
+                super::data_text_host::DataTextCompletion::Failed(detail) => HostCallOutcome {
+                    disposition: HostCallDisposition::Failed,
+                    output: None,
+                    failure: Some(conduit_kernel::Failure {
+                        code: conduit_kernel::FailureCode::HostCallFailed,
+                        detail,
+                    }),
+                },
+            };
+            self.scheduler
+                .complete_host_call(request.node, request.request, outcome)
+                .map_err(|error| format!("complete remote data Text operation: {error:?}"))?;
             return Ok(true);
         }
         if matches!(

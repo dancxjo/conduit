@@ -171,6 +171,8 @@ installed_step_dispatch!(
     TimedPattern,
     TimedButtonAttempt,
     TemplateStorage,
+    DataSaveText,
+    DataLoadText,
     LogicCompareScalar,
     LogicNot,
     LogicSelectScalar,
@@ -270,6 +272,12 @@ installed_step_dispatch!(
     TestToneTerminalRecovery,
     #[cfg(test)]
     TestNormalCloseSink,
+    #[cfg(test)]
+    TestDataTerminalRecovery,
+    #[cfg(test)]
+    TestDataTextSink,
+    #[cfg(test)]
+    TestDataTextSource,
     #[cfg(test)]
     TestGateScript,
     #[cfg(test)]

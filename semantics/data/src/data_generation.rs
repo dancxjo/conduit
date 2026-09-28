@@ -6,7 +6,9 @@ use conduit_core::{
     ResourceSemanticIdentity, ResourceVersionIdentity, ValuePayload,
 };
 
-use crate::{data_access_class, DataReference, DataReferenceRefusal};
+use crate::{
+    data_access_class, maximum_data_reference_encoded_bytes, DataReference, DataReferenceRefusal,
+};
 
 const DATA_VERSION_DIGEST_DOMAIN: &str = "data/immutable-generation-version@1";
 const DATA_NAMESPACE_DIGEST_DOMAIN: &str = "data/generation-namespace@1";
@@ -58,6 +60,29 @@ pub struct DataGenerationStore {
     generations: Vec<RetainedGeneration>,
 }
 
+#[derive(Debug, Clone, PartialEq, Eq)]
+struct PreparedGeneration {
+    published: bool,
+    reference: BoundedResourceRef,
+    encoded: Vec<u8>,
+}
+
+/// Allocation-prepared append-only residence for one exact content Kind.
+///
+/// All slots and value buffers exist before Play. Publication and loading use
+/// borrowed bytes and caller-prepared reference output, so neither operation
+/// grows storage after preparation.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct PreparedDataGenerationStore {
+    namespace: DataGenerationNamespace,
+    content_kind: KindId,
+    maximum_value_bytes: usize,
+    maximum_total_bytes: usize,
+    retained_bytes: usize,
+    generation_count: usize,
+    generations: Vec<PreparedGeneration>,
+}
+
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
 pub enum DataGenerationRefusal {
     InvalidBounds,
@@ -65,6 +90,7 @@ pub enum DataGenerationRefusal {
     ValueTooLarge,
     GenerationCapacityExhausted,
     ByteCapacityExhausted,
+    ReferenceOutputCapacity,
     Reference(DataReferenceRefusal),
     GenerationNotRetained,
     ExtentMismatch,
@@ -115,11 +141,7 @@ impl DataGenerationStore {
             .ok()
             .and_then(|value| value.checked_add(1))
             .ok_or(DataGenerationRefusal::GenerationCapacityExhausted)?;
-        let mut version_source = Vec::with_capacity(32 + content_digest.len() + 8);
-        version_source.extend_from_slice(&self.namespace.digest());
-        version_source.extend_from_slice(&content_digest);
-        version_source.extend_from_slice(&sequence.to_le_bytes());
-        let version_digest = semantic_digest(DATA_VERSION_DIGEST_DOMAIN, &version_source);
+        let version_digest = generation_version(self.namespace, content_digest, sequence);
         let reference = DataReference::new(BoundedResourceRef {
             identity: ResourceSemanticIdentity::from_digest(content_digest),
             content_profile: self.content_kind.clone(),
@@ -171,4 +193,154 @@ impl DataGenerationStore {
     pub fn retained_bytes(&self) -> usize {
         self.retained_bytes
     }
+}
+
+impl PreparedDataGenerationStore {
+    pub fn new(
+        namespace: DataGenerationNamespace,
+        content_kind: KindId,
+        maximum_generations: usize,
+        maximum_value_bytes: usize,
+        maximum_total_bytes: usize,
+    ) -> Result<Self, DataGenerationRefusal> {
+        if content_kind.as_str().is_empty()
+            || maximum_generations == 0
+            || maximum_value_bytes == 0
+            || maximum_value_bytes > maximum_total_bytes
+        {
+            return Err(DataGenerationRefusal::InvalidBounds);
+        }
+        let mut generations = Vec::with_capacity(maximum_generations);
+        for _ in 0..maximum_generations {
+            generations.push(PreparedGeneration {
+                published: false,
+                reference: BoundedResourceRef {
+                    identity: ResourceSemanticIdentity::from_digest([1; 32]),
+                    content_profile: content_kind.clone(),
+                    access_class: data_access_class(),
+                    extent: ResourceExtent {
+                        bytes: 0,
+                        items: None,
+                    },
+                    lifetime: ResourceLifetime {
+                        version: ResourceVersionIdentity::from_digest([1; 32]),
+                        expires_at: None,
+                    },
+                },
+                encoded: Vec::with_capacity(maximum_value_bytes),
+            });
+        }
+        Ok(Self {
+            namespace,
+            content_kind,
+            maximum_value_bytes,
+            maximum_total_bytes,
+            retained_bytes: 0,
+            generation_count: 0,
+            generations,
+        })
+    }
+
+    pub fn publish_into(
+        &mut self,
+        value_kind: &KindId,
+        encoded: &[u8],
+        reference_output: &mut Vec<u8>,
+    ) -> Result<(), DataGenerationRefusal> {
+        if value_kind != &self.content_kind {
+            return Err(DataGenerationRefusal::WrongContentKind);
+        }
+        if encoded.len() > self.maximum_value_bytes {
+            return Err(DataGenerationRefusal::ValueTooLarge);
+        }
+        if self.generation_count == self.generations.len() {
+            return Err(DataGenerationRefusal::GenerationCapacityExhausted);
+        }
+        let new_total = self
+            .retained_bytes
+            .checked_add(encoded.len())
+            .ok_or(DataGenerationRefusal::ByteCapacityExhausted)?;
+        if new_total > self.maximum_total_bytes {
+            return Err(DataGenerationRefusal::ByteCapacityExhausted);
+        }
+        let required_reference_bytes =
+            maximum_data_reference_encoded_bytes(self.content_kind.as_str())
+                .ok_or(DataGenerationRefusal::InvalidBounds)?;
+        if reference_output.capacity() < required_reference_bytes {
+            return Err(DataGenerationRefusal::ReferenceOutputCapacity);
+        }
+
+        let content_digest = semantic_digest(self.content_kind.as_str(), encoded);
+        let sequence = u64::try_from(self.generation_count)
+            .ok()
+            .and_then(|value| value.checked_add(1))
+            .ok_or(DataGenerationRefusal::GenerationCapacityExhausted)?;
+        let generation = &mut self.generations[self.generation_count];
+        generation.reference.identity = ResourceSemanticIdentity::from_digest(content_digest);
+        generation.reference.extent.bytes = encoded.len() as u64;
+        generation.reference.lifetime.version = ResourceVersionIdentity::from_digest(
+            generation_version(self.namespace, content_digest, sequence),
+        );
+        generation.encoded.clear();
+        generation.encoded.extend_from_slice(encoded);
+        generation
+            .reference
+            .encode_into(reference_output)
+            .map_err(|_| DataGenerationRefusal::ReferenceOutputCapacity)?;
+        generation.published = true;
+        self.generation_count += 1;
+        self.retained_bytes = new_total;
+        Ok(())
+    }
+
+    pub fn load_encoded(&self, encoded_reference: &[u8]) -> Result<&[u8], DataGenerationRefusal> {
+        let reference = DataReference::validate_encoded_for(&self.content_kind, encoded_reference)
+            .map_err(DataGenerationRefusal::Reference)?;
+        let retained = self
+            .generations
+            .iter()
+            .take(self.generation_count)
+            .find(|candidate| {
+                candidate.published
+                    && candidate.reference.identity == reference.identity
+                    && candidate.reference.lifetime.version == reference.version
+            })
+            .ok_or(DataGenerationRefusal::GenerationNotRetained)?;
+        if retained.reference.extent != reference.extent
+            || retained.encoded.len() as u64 != reference.extent.bytes
+        {
+            return Err(DataGenerationRefusal::ExtentMismatch);
+        }
+        Ok(retained.encoded.as_slice())
+    }
+
+    pub fn generation_count(&self) -> usize {
+        self.generation_count
+    }
+
+    pub fn retained_bytes(&self) -> usize {
+        self.retained_bytes
+    }
+
+    pub fn allocation_capacities(&self) -> (usize, usize) {
+        (
+            self.generations.capacity(),
+            self.generations
+                .iter()
+                .map(|generation| generation.encoded.capacity())
+                .sum(),
+        )
+    }
+}
+
+fn generation_version(
+    namespace: DataGenerationNamespace,
+    content_digest: [u8; 32],
+    sequence: u64,
+) -> [u8; 32] {
+    let mut source = [0_u8; 72];
+    source[..32].copy_from_slice(&namespace.digest());
+    source[32..64].copy_from_slice(&content_digest);
+    source[64..].copy_from_slice(&sequence.to_le_bytes());
+    semantic_digest(DATA_VERSION_DIGEST_DOMAIN, &source)
 }

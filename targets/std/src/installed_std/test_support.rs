@@ -69,6 +69,7 @@ pub(crate) fn test_catalog() -> conduit_form::ProfileCatalog {
     test_text_source::install_catalog(&mut catalog);
     test_audio_source::install_catalog(&mut catalog);
     super::test_audio_tone::install_catalog(&mut catalog);
+    super::test_data_terminal_recovery::install_catalog(&mut catalog);
     super::test_speech_sink::install_catalog(&mut catalog);
     test_midi_source::install_catalog(&mut catalog);
     test_scalar_flow::install_catalog(&mut catalog);
@@ -82,6 +83,8 @@ pub(crate) fn test_catalog() -> conduit_form::ProfileCatalog {
         .expect("JSON catalogs are exact and unique");
     conduit_semantic_catalog::install_text_pipeline_catalogs(&mut startup, &mut catalog)
         .expect("text catalogs are exact and unique");
+    conduit_data::install_data_text_catalogs(&mut startup, &mut catalog)
+        .expect("data Text catalogs are exact and unique");
     conduit_semantic_catalog::install_timing_catalogs(&mut startup, &mut catalog)
         .expect("timing catalogs are exact and unique");
     conduit_semantic_catalog::install_bool_presentation_catalog(&mut catalog)

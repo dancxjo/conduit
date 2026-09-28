@@ -37,6 +37,9 @@ pub(super) fn extend(capabilities: &mut Vec<CapabilityOffer>) {
         conduit_std_offers::deterministic_streaming_speech_offer(),
         installed_std::test_speech_sink_offer(),
     ]);
+    capabilities.extend(installed_std::test_data_terminal_recovery_offers());
+    capabilities.push(installed_std::test_data_text_sink_offer());
+    capabilities.push(installed_std::test_data_text_source_offer());
     let catalog = installed_std::test_catalog();
     for offer in &mut capabilities[first..] {
         if let Some(kind) = catalog.canonical_kind(&offer.kind_id) {

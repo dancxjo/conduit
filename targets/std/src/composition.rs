@@ -22,6 +22,7 @@ pub struct StdHostComposition {
     pub text: bool,
     pub input: bool,
     pub state: bool,
+    pub data: bool,
     pub logic: bool,
     pub math: bool,
     pub layout: bool,
@@ -46,6 +47,7 @@ impl StdHostComposition {
             text: true,
             input: true,
             state: true,
+            data: true,
             logic: true,
             math: true,
             layout: true,
@@ -71,6 +73,7 @@ impl StdHostComposition {
             text: false,
             input: false,
             state: false,
+            data: false,
             logic: false,
             math: false,
             layout: false,
@@ -113,6 +116,11 @@ impl StdHostComposition {
 
     pub const fn with_state(mut self) -> Self {
         self.state = true;
+        self
+    }
+
+    pub const fn with_data(mut self) -> Self {
+        self.data = true;
         self
     }
 
@@ -273,6 +281,12 @@ pub(super) fn build_advertisement(
             conduit_std_offers::state_value_std_offer("Boolean", &boolean_type, &boolean_default)
                 .expect("Boolean State has a finite canonical Front"),
         );
+    }
+    if composition.data {
+        capabilities.extend([
+            conduit_std_offers::data_save_text_std_offer(),
+            conduit_std_offers::data_load_text_std_offer(),
+        ]);
     }
     if composition.logic {
         capabilities.extend([
