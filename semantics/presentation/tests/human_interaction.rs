@@ -5,6 +5,8 @@ mod common;
 use common::{
     available_mask_show, checked_renderer_form, host, plan_for, presentation, WAYLAND_RESOURCE,
 };
+use conduit_core::{CheckedValueContract, ValueConstraint};
+use conduit_form::TextPatternExpression;
 use conduit_presentation::{
     FaceActionArgument, FaceInteraction, FaceInteractionArgument, FaceInteractionDisposition,
     FaceInteractionFailure, FaceInteractionLedger, FaceInteractionRefusal, MaskShow, Presentation,
@@ -62,6 +64,38 @@ fn argument(name: &str, value: &[u8]) -> FaceInteractionArgument {
         name: name.into(),
         value_kind: UTF8_TEXT_VALUE_KIND.into(),
         value: value.to_vec(),
+    }
+}
+
+fn bounded_lowercase_pattern(maximum: u16) -> conduit_core::CheckedTextPattern {
+    TextPatternExpression::Repeat {
+        expression: Box::new(TextPatternExpression::ScalarRange {
+            first: 'a' as u32,
+            last: 'z' as u32,
+        }),
+        minimum: 1,
+        maximum,
+    }
+    .compile(u32::from(maximum))
+    .expect("reviewed bounded lowercase pattern compiles during checking")
+}
+
+fn patterned_argument(maximum: u16) -> FaceActionArgument {
+    FaceActionArgument {
+        name: "message/input".into(),
+        value_name: "Lowercase message".into(),
+        contract: CheckedValueContract::new(
+            UTF8_TEXT_VALUE_KIND.into(),
+            u32::from(maximum),
+            vec![
+                ValueConstraint::ByteLength {
+                    minimum: 1,
+                    maximum: u32::from(maximum),
+                },
+                ValueConstraint::TextPattern(bounded_lowercase_pattern(maximum)),
+            ],
+        )
+        .expect("reviewed Face pattern contract is canonical"),
     }
 }
 
@@ -314,4 +348,85 @@ fn stale_wrong_empty_oversize_malformed_duplicate_and_pressure_refuse_distinctly
         ),
         Err(FaceInteractionRefusal::StaleShow)
     );
+}
+
+#[test]
+fn checked_text_pattern_is_face_truth_across_admission_identity_and_linear_inspection() {
+    let (base, _) = available_interaction_basis();
+    let mut actions = base.actions.clone();
+    actions[0].arguments = vec![patterned_argument(8)];
+    let face = rebuild_with_interactions(&base, actions);
+    let show = available_mask_show(&face);
+
+    FaceInteraction::new(
+        &face,
+        &show,
+        "message/send",
+        "patchbay/form",
+        vec![argument("message/input", b"conduit")],
+        1,
+    )
+    .expect("an exact full pattern match is admitted");
+    assert_eq!(
+        FaceInteraction::new(
+            &face,
+            &show,
+            "message/send",
+            "patchbay/form",
+            vec![argument("message/input", b"Conduit")],
+            2,
+        ),
+        Err(FaceInteractionRefusal::ViolatedConstraint)
+    );
+    assert_eq!(
+        FaceInteraction::new(
+            &face,
+            &show,
+            "message/send",
+            "patchbay/form",
+            vec![argument("message/input", b"toolonggg")],
+            3,
+        ),
+        Err(FaceInteractionRefusal::OversizeValue)
+    );
+    assert_eq!(
+        FaceInteraction::new(
+            &face,
+            &show,
+            "message/send",
+            "patchbay/form",
+            vec![argument("message/input", &[0xff])],
+            4,
+        ),
+        Err(FaceInteractionRefusal::MalformedEncoding)
+    );
+
+    let mut stale_show = show.clone();
+    stale_show.presentation_revision += 1;
+    assert_eq!(
+        FaceInteraction::new(
+            &face,
+            &stale_show,
+            "message/send",
+            "patchbay/form",
+            vec![argument("message/input", b"Conduit")],
+            5,
+        ),
+        Err(FaceInteractionRefusal::StaleShow),
+        "Show correlation is checked before value admission"
+    );
+
+    let mut other_actions = face.actions.clone();
+    other_actions[0].arguments = vec![patterned_argument(7)];
+    let other_face = rebuild_with_interactions(&face, other_actions);
+    assert_ne!(face.identity, other_face.identity);
+
+    let linear = conduit_presentation::render_linear_presentation(&face).unwrap();
+    let action = linear
+        .lines
+        .iter()
+        .find(|line| line.starts_with("ACTION "))
+        .expect("deterministic-linear Mask exposes the action contract");
+    assert!(action.contains("TextPattern"));
+    assert!(action.contains("maximum_input_characters: 8"));
 }
