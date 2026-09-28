@@ -335,5 +335,5 @@ pub(super) const PROOFS: &[ProofSpec] = &[
     conduitos_proof!("conduitos.architecture.ia32", Selection::ConduitosArchitecture("ia32"), "ubuntu-qemu-ia32-v1", "cargo xtask conduitos architecture-matrix --locked && cargo xtask conduitos prove --arch ia32 --locked"),
     conduitos_proof!("conduitos.architecture.riscv64", Selection::ConduitosArchitecture("riscv64"), "ubuntu-qemu-riscv64-v1", "cargo xtask conduitos prove --arch riscv64 --locked"),
     conduitos_proof!("conduitos.architecture.loongarch64", Selection::ConduitosArchitecture("loongarch64"), "ubuntu-qemu-loongarch64-v1", "cargo xtask conduitos prove --arch loongarch64 --locked"),
-    conduitos_proof!("conduitos.aarch64-product", Selection::ConduitosAarch64Product, "ubuntu-qemu-aarch64-product-v1", "cargo xtask host build targets/conduitos/profiles/conduitos-aarch64-headless.profile.json --locked"),
+    conduitos_proof!("conduitos.aarch64-product", Selection::ConduitosAarch64Product, "ubuntu-qemu-aarch64-product-v1", "cargo xtask host build targets/conduitos/profiles/conduitos-aarch64-virt.host.conduit --locked"),
 ];

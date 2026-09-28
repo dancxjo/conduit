@@ -1,10 +1,10 @@
-use crate::test_packages::{test_build_host_image, test_catalog};
+use crate::test_packages::{test_build_host_image, test_catalog, test_checked_host_profile};
 use crate::*;
 
 const CONDUITOS_NATIVE: &str =
-    include_str!("../../../targets/conduitos/profiles/conduitos-native.profile.json");
+    include_str!("../../../targets/conduitos/profiles/conduitos-native.host.conduit");
 const CONDUITOS_HEADLESS: &str =
-    include_str!("../../../targets/conduitos/profiles/conduitos-headless.profile.json");
+    include_str!("../../../targets/conduitos/profiles/conduitos-x86_64-pc.host.conduit");
 
 #[test]
 fn native_presenter_offer_requires_exact_image_and_live_compositor_stack() {
@@ -13,8 +13,8 @@ fn native_presenter_offer_requires_exact_image_and_live_compositor_stack() {
         source_identity: "git:46275f67".into(),
         toolchain_available: true,
     };
-    let native_profile = serde_json::from_str(CONDUITOS_NATIVE).unwrap();
-    let headless_profile = serde_json::from_str(CONDUITOS_HEADLESS).unwrap();
+    let native_profile = test_checked_host_profile(CONDUITOS_NATIVE);
+    let headless_profile = test_checked_host_profile(CONDUITOS_HEADLESS);
     let (native, native_bytes) = test_build_host_image(native_profile, &catalog, &inputs).unwrap();
     let (headless, headless_bytes) =
         test_build_host_image(headless_profile, &catalog, &inputs).unwrap();

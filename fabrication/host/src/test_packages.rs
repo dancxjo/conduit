@@ -297,6 +297,16 @@ pub(crate) fn test_catalog() -> FabricationCatalog {
         .with_catalog_contribution(&test_catalog_metadata())
 }
 
+pub(crate) fn test_checked_host_profile(source: &str) -> crate::HostProfile {
+    crate::check_host_configuration(
+        crate::parse_host_configuration_conduit(source).expect("host source must parse"),
+        &test_catalog(),
+        &test_package_set(),
+    )
+    .expect("host source must check")
+    .into_profile()
+}
+
 fn test_catalog_metadata() -> PackageCatalogContribution {
     let mut implementations = conduit_std_offers::supported_nucleus_offers()
         .into_iter()

@@ -131,6 +131,18 @@ fn rejects_each_required_invalid_class() {
 }
 
 #[test]
+fn zero_heap_is_an_exact_absence_not_unbounded_capacity() {
+    let source = HOSTED.replace("heap_arena_bytes: 1048576", "heap_arena_bytes: 0");
+    let checked = check_host_configuration(
+        parse_host_configuration_conduit(&source).unwrap(),
+        &FabricationCatalog::canonical().with_packages(&test_package_set()),
+        &test_package_set(),
+    )
+    .unwrap();
+    assert_eq!(checked.profile().bounds.heap_arena_bytes, 0);
+}
+
+#[test]
 fn checked_in_configurations_cover_every_catalog_target_with_exact_provenance() {
     let root = std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("../..");
     let fixtures = [
@@ -141,13 +153,18 @@ fn checked_in_configurations_cover_every_catalog_target_with_exact_provenance() 
         ),
         (
             "targets/conduitos/profiles/conduitos-aarch64-virt.host.conduit",
-            "sha256:9cc965dac8190afab6afc54b1d265ed39e5ac8255642a055c61f87c32f1e848c",
-            "sha256:e26eab043c52c45117cad48342b570d63cf05c54410b4b7bf6ff421b10dd40c6",
+            "sha256:71fc9606071b9c54889f893f7ba8d5e343786387500d56480579058ace404d99",
+            "sha256:4971b8216a9fd9180a00a6113c741143d85202e157ed7d02b6cddef25582b936",
+        ),
+        (
+            "targets/conduitos/profiles/conduitos-native.host.conduit",
+            "sha256:5df112bf7039ed264faae5da7fc824558166cf6f66111a57f9bb60d60995f586",
+            "sha256:c817b0db0f2290d3c4a31dbc2c14f28fffce3d6449675ad1e8e65d9064aaa3d3",
         ),
         (
             "targets/conduitos/profiles/conduitos-x86_64-pc.host.conduit",
-            "sha256:9ba54ff0fb5cf22a4b2b031bf24580a244305fd1036110bd23bf05ab30b76738",
-            "sha256:063f375b6a42358e5650bc6c0502315cdc9d0973df6962446c46a15b97e9fc85",
+            "sha256:f8210a6ca39760a6ee86cb001ddcba428b815fbba9490debd86d72a5afd66d6d",
+            "sha256:3afd9b6f8e0814f0fc2862563e427640d49c6c5359e5cc08fd0b116af5d54d39",
         ),
         (
             "targets/rp2040/profiles/pico-w.host.conduit",

@@ -95,6 +95,9 @@ pub enum ConfigurationDiagnostic {
     ConflictingResourceAssignment {
         resource: String,
     },
+    AmbiguousPresentationRealization {
+        implementations: Vec<String>,
+    },
     DuplicateResource {
         id: String,
     },
@@ -320,6 +323,52 @@ pub fn check_host_configuration(
     let configuration_id = format!("sha256:{:x}", Sha256::digest(canonical.as_bytes()));
     let mut resolved_bases = selected.into_iter().collect::<Vec<_>>();
     resolved_bases.sort();
+    let mut derived_presenters = if descriptor.presenter.is_none() {
+        catalog
+            .presenters
+            .iter()
+            .filter(|(_, metadata)| target_matches(&metadata.targets, &target_key))
+            .filter(|(_, metadata)| {
+                presenter_roots_are_selected(
+                    &metadata.prerequisites,
+                    catalog,
+                    &resolved_bases,
+                    &configuration.resources,
+                    &mut BTreeSet::new(),
+                )
+            })
+            .map(|(implementation, metadata)| (implementation.clone(), metadata))
+            .collect::<Vec<_>>()
+    } else {
+        Vec::new()
+    };
+    derived_presenters.sort_by(|left, right| left.0.cmp(&right.0));
+    if derived_presenters.len() > 1 {
+        return Err(vec![
+            ConfigurationDiagnostic::AmbiguousPresentationRealization {
+                implementations: derived_presenters
+                    .into_iter()
+                    .map(|(implementation, _)| implementation)
+                    .collect(),
+            },
+        ]);
+    }
+    let derived_presenter = derived_presenters.pop();
+    let mut host_calls = descriptor.host_calls.clone();
+    let mut facilities = Vec::new();
+    if let Some((_, metadata)) = &derived_presenter {
+        collect_derived_presentation_requirements(
+            &metadata.prerequisites,
+            catalog,
+            &mut host_calls,
+            &mut facilities,
+            &mut BTreeSet::new(),
+        );
+    }
+    host_calls.sort();
+    host_calls.dedup();
+    facilities.sort();
+    facilities.dedup();
     let profile = HostProfile {
         schema: HOST_PROFILE_SCHEMA.into(),
         name: configuration.name.clone(),
@@ -334,7 +383,7 @@ pub fn check_host_configuration(
         host_core: descriptor.host_core.clone(),
         fragments: Vec::new(),
         capabilities: Vec::new(),
-        host_calls: descriptor.host_calls.clone(),
+        host_calls,
         resources: configuration.resources.clone(),
         bases: resolved_bases
             .iter()
@@ -362,9 +411,16 @@ pub fn check_host_configuration(
                 implementation: presenter.implementation_id.clone(),
                 interactive: presenter.interactive,
             })
+            .or_else(|| {
+                derived_presenter.map(|(implementation, _)| PresenterSelection {
+                    id: "presenter/main".into(),
+                    implementation,
+                    interactive: true,
+                })
+            })
             .into_iter()
             .collect(),
-        facilities: Vec::new(),
+        facilities,
         exclusions: Vec::new(),
         policy: HostPolicy {
             authority_profile: "authority/explicit@1".into(),
@@ -388,6 +444,63 @@ pub fn check_host_configuration(
         configuration_id,
         resolved_bases,
     })
+}
+
+fn presenter_roots_are_selected(
+    roots: &[crate::PrerequisiteNode],
+    catalog: &FabricationCatalog,
+    bases: &[(String, String)],
+    resources: &[ResourceBudget],
+    visited: &mut BTreeSet<crate::PrerequisiteNode>,
+) -> bool {
+    roots.iter().all(|node| {
+        if !visited.insert(node.clone()) {
+            return true;
+        }
+        let selected = match node {
+            crate::PrerequisiteNode::Base(value) => bases.iter().any(|(kind, _)| kind == value),
+            crate::PrerequisiteNode::Driver(value) => bases
+                .iter()
+                .any(|(_, implementation)| implementation == value),
+            crate::PrerequisiteNode::Resource(value) => {
+                resources.iter().any(|resource| resource.class == *value)
+            }
+            crate::PrerequisiteNode::HostCall(_) | crate::PrerequisiteNode::Facility(_) => true,
+            crate::PrerequisiteNode::Implementation(_) => false,
+        };
+        selected
+            && catalog.dependencies.get(node).is_none_or(|dependencies| {
+                presenter_roots_are_selected(dependencies, catalog, bases, resources, visited)
+            })
+    })
+}
+
+fn collect_derived_presentation_requirements(
+    roots: &[crate::PrerequisiteNode],
+    catalog: &FabricationCatalog,
+    host_calls: &mut Vec<String>,
+    facilities: &mut Vec<String>,
+    visited: &mut BTreeSet<crate::PrerequisiteNode>,
+) {
+    for node in roots {
+        if !visited.insert(node.clone()) {
+            continue;
+        }
+        match node {
+            crate::PrerequisiteNode::HostCall(value) => host_calls.push(value.clone()),
+            crate::PrerequisiteNode::Facility(value) => facilities.push(value.clone()),
+            _ => {}
+        }
+        if let Some(dependencies) = catalog.dependencies.get(node) {
+            collect_derived_presentation_requirements(
+                dependencies,
+                catalog,
+                host_calls,
+                facilities,
+                visited,
+            );
+        }
+    }
 }
 
 fn target_matches(patterns: &[String], target: &str) -> bool {
@@ -429,11 +542,6 @@ fn validate_limits(
             maxima.static_memory_bytes,
         ),
         (
-            "heap_arena_bytes",
-            limits.heap_arena_bytes,
-            maxima.heap_arena_bytes,
-        ),
-        (
             "buffered_bytes",
             limits.buffered_bytes,
             maxima.buffered_bytes,
@@ -448,6 +556,16 @@ fn validate_limits(
                 maximum,
             });
         }
+    }
+    // Unlike the mandatory capacities above, zero heap bytes is an exact
+    // declaration that this Host has no heap arena. ConduitOS then uses its
+    // admitted static arena; zero is not an unbounded-capacity sentinel here.
+    if limits.heap_arena_bytes > maxima.heap_arena_bytes {
+        diagnostics.push(ConfigurationDiagnostic::LimitExceeded {
+            field: "heap_arena_bytes",
+            requested: limits.heap_arena_bytes,
+            maximum: maxima.heap_arena_bytes,
+        });
     }
     limit!(queue_items);
     limit!(active_instances);

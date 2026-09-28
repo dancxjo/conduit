@@ -91,3 +91,49 @@ impl HostFabricationPackage for Esp32FabricationPackage {
         })
     }
 }
+
+#[cfg(test)]
+fn headless_test_profile() -> conduit_host_fabrication::HostProfile {
+    use conduit_host_fabrication::{HostBounds, HostPolicy, TargetSelection, HOST_PROFILE_SCHEMA};
+
+    conduit_host_fabrication::HostProfile {
+        schema: HOST_PROFILE_SCHEMA.into(),
+        name: "headless-test-fixture".into(),
+        source_configuration_id: None,
+        target: TargetSelection {
+            family: "fixture".into(),
+            architecture: "fixture".into(),
+            machine: "fixture".into(),
+            build_profile: "release".into(),
+            fabrication_descriptor: None,
+        },
+        host_core: "host-core/conduitos@1".into(),
+        fragments: Vec::new(),
+        capabilities: Vec::new(),
+        host_calls: Vec::new(),
+        resources: Vec::new(),
+        bases: Vec::new(),
+        drivers: Vec::new(),
+        lines: Vec::new(),
+        presenters: Vec::new(),
+        facilities: Vec::new(),
+        exclusions: Vec::new(),
+        policy: HostPolicy {
+            authority_profile: "authority/explicit@1".into(),
+            trust_profile: "trust/local-explicit@1".into(),
+            update_profile: "update/rebuild@1".into(),
+            ambient_defaults: false,
+        },
+        bounds: HostBounds {
+            static_memory_bytes: 8 * 1024 * 1024,
+            heap_arena_bytes: 1,
+            queue_items: 64,
+            buffered_bytes: 16 * 1024,
+            active_instances: 16,
+            operation_slots: 8,
+            timer_slots: 4,
+            line_sessions: 1,
+            evidence_items: 64,
+        },
+    }
+}

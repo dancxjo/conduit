@@ -111,7 +111,7 @@ The x86 headless profile excludes the native graphical Presenter, compositor,
 and display resources. Build and inspect its exact final artifact with:
 
 ```sh
-cargo xtask host build targets/conduitos/profiles/conduitos-headless.profile.json --output target/headless-proof
+cargo xtask host build targets/conduitos/profiles/conduitos-x86_64-pc.host.conduit --output target/headless-proof
 cargo xtask conduitos headless-proof target/headless-proof
 ```
 

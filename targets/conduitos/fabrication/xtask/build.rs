@@ -1,7 +1,10 @@
 use std::{fs, path::Path, process::Command};
 
 use conduit_host_conduitos_fabrication::ConduitOsProductArtifact;
-use conduit_host_fabrication::{build_default_host_image, BuildInputs, BuildManifest, HostProfile};
+use conduit_host_fabrication::{
+    build_default_host_image, check_host_configuration, parse_host_configuration_conduit,
+    BuildInputs, BuildManifest, HostProfile,
+};
 
 use crate::cli::GlobalOpts;
 
@@ -19,7 +22,7 @@ pub fn execute_architecture_proof(
     if arch == ConduitosArch::X86_64 {
         execute_embedded_profile(
             arch,
-            include_str!("../../profiles/conduitos-native.profile.json"),
+            include_str!("../../profiles/conduitos-native.host.conduit"),
             ArtifactRole::ArchitectureProofAppliance,
             opts,
         )
@@ -179,8 +182,20 @@ fn resolve_embedded_profile(
     source: &str,
 ) -> Result<BuildManifest, ConduitosError> {
     let paths = Paths::new(arch)?;
-    let profile: HostProfile = serde_json::from_str(source)
-        .map_err(|error| ConduitosError::refusal("proof-profile-invalid", error.to_string()))?;
+    let profile: HostProfile = if source.trim_start().starts_with("host ") {
+        check_host_configuration(
+            parse_host_configuration_conduit(source).map_err(|error| {
+                ConduitosError::refusal("host-source-invalid", format!("{error:?}"))
+            })?,
+            &conduit_workspace_fabrication::catalog(),
+            &conduit_workspace_fabrication::package_set(),
+        )
+        .map_err(|errors| ConduitosError::refusal("host-source-refused", format!("{errors:?}")))?
+        .into_profile()
+    } else {
+        serde_json::from_str(source)
+            .map_err(|error| ConduitosError::refusal("proof-profile-invalid", error.to_string()))?
+    };
     if profile.target.architecture != arch.as_str() {
         return Err(ConduitosError::refusal(
             "profile-target-mismatch",
@@ -498,9 +513,16 @@ mod tests {
 
     #[test]
     fn native_fabrication_uses_the_admitted_heap_arena_ceiling() {
-        let profile: HostProfile =
-            serde_json::from_str(include_str!("../../profiles/conduitos-native.profile.json"))
-                .unwrap();
+        let profile = check_host_configuration(
+            parse_host_configuration_conduit(include_str!(
+                "../../profiles/conduitos-native.host.conduit"
+            ))
+            .unwrap(),
+            &conduit_workspace_fabrication::catalog(),
+            &conduit_workspace_fabrication::package_set(),
+        )
+        .unwrap()
+        .into_profile();
         let (checked, _) = build_default_host_image(
             profile,
             &conduit_workspace_fabrication::catalog(),
@@ -520,10 +542,17 @@ mod tests {
 
     #[test]
     fn headless_fabrication_retains_its_static_arena_ceiling() {
-        let profile: HostProfile = serde_json::from_str(include_str!(
-            "../../profiles/conduitos-aarch64-headless.profile.json"
-        ))
-        .unwrap();
+        let packages = conduit_workspace_fabrication::package_set();
+        let profile = check_host_configuration(
+            parse_host_configuration_conduit(include_str!(
+                "../../profiles/conduitos-aarch64-virt.host.conduit"
+            ))
+            .unwrap(),
+            &conduit_workspace_fabrication::catalog(),
+            &packages,
+        )
+        .unwrap()
+        .into_profile();
         let (checked, _) = build_default_host_image(
             profile,
             &conduit_workspace_fabrication::catalog(),

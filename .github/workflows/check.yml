@@ -948,9 +948,9 @@ jobs:
           expected-digest: ${{ needs.conduitos-tools.outputs.artifact_digest }}
       - name: Install the exact ConduitOS tool bundle without mirror access
         run: targets/conduitos/tools/conduitos-tools.sh install target/conduitos/tool-bundle
-      - name: Build the checked AArch64 product PROFILE and prove two fresh boots
+      - name: Build the checked AArch64 Host source and prove two fresh boots
         run: |
-          cargo xtask host build targets/conduitos/profiles/conduitos-aarch64-headless.profile.json \
+          cargo xtask host build targets/conduitos/profiles/conduitos-aarch64-virt.host.conduit \
             --output target/conduitos/aarch64-product-host \
             --source-identity "$CONDUIT_CHECKOUT_SHA" \
             --locked

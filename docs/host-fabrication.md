@@ -80,7 +80,8 @@ execution fact.
 A versioned `*.host.conduit` document is the small structural recipe from
 which the checked PROFILE is derived. It names one target, a finite set of
 bases, an explicit implementation (or finite ordered preferences) for each
-base, authorable finite `need` templates, and complete finite host limits. It contains no form,
+base, authorable finite `need` templates, and complete finite host limits.
+Resource capacity and bases remain explicit in the source. It contains no form,
 application pin meaning, current presence, or authority truth.
 
 host construction uses the same lossless tokenizer, declaration syntax,
