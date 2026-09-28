@@ -62,6 +62,7 @@ pub fn run(args: &WorkspaceArgs, opts: &GlobalOpts) -> Result<(), Box<dyn std::e
             "cargo",
             &[
                 "xtask",
+                "fabricate",
                 "host",
                 "release",
                 "--platform",
@@ -80,6 +81,7 @@ pub fn run(args: &WorkspaceArgs, opts: &GlobalOpts) -> Result<(), Box<dyn std::e
             "cargo",
             &[
                 "xtask",
+                "fabricate",
                 "host",
                 "release-catalog",
                 "--root",

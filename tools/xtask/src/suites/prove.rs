@@ -41,6 +41,7 @@ pub const PROVE_EMERGENCY_CONTROL_STEPS: &[Step] = &[
         "cargo",
         &[
             "xtask",
+            "fabricate",
             "conduitos",
             "emergency-halt-proof",
             "--locked",
@@ -54,7 +55,13 @@ pub const PROVE_EMERGENCY_CONTROL_STEPS: &[Step] = &[
         "prove.emergency-control.machine-effect.rescue",
         "Prove recovery remains separate authority and creates an exact fresh Boot",
         "cargo",
-        &["xtask", "conduitos", "rescue-proof", "--locked"],
+        &[
+            "xtask",
+            "fabricate",
+            "conduitos",
+            "rescue-proof",
+            "--locked",
+        ],
         None,
         None,
         Some(ProofClass::FreestandingEmulator),
