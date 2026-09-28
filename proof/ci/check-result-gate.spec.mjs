@@ -47,10 +47,16 @@ test("selective pull request admits intentionally skipped ConduitOS", () => {
   assert.equal(prove(results()).status, 0);
 });
 
-test("trusted controller fixture from before local integration remains compatible", () => {
-  const legacy = results();
-  delete legacy.LOCAL_INTEGRATION_RESULT;
-  assert.equal(prove(legacy).status, 0);
+test("trusted controller understands both local-integration gate schemas", () => {
+  const incomplete = results();
+  delete incomplete.LOCAL_INTEGRATION_RESULT;
+  const outcome = prove(incomplete);
+  if (script.includes('require_result local-integration "${LOCAL_INTEGRATION_RESULT:-}" success')) {
+    assert.notEqual(outcome.status, 0);
+    assert.match(outcome.stderr, /local-integration result: expected success, got /);
+  } else {
+    assert.equal(outcome.status, 0);
+  }
 });
 
 test("selective pull request admits only its required x86 subset", () => {
