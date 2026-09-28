@@ -460,13 +460,6 @@ fn instantiate_gear(
             value_kind.as_str(),
             conduit_core::DISTANCE_INFO_ID | conduit_core::FREQUENCY_INFO_ID
         ) {
-            if retained.optional {
-                return Err(CanonicalExpansionDiagnostic::new(
-                    "CND-FRM-041",
-                    "dimensioned KEEP optionality is not yet lowered; use a non-optional retained value"
-                        .into(),
-                ));
-            }
             let gear_id = GearId::from(child_path.join("/"));
             if !gear_ids.insert(gear_id.clone()) {
                 return Err(CanonicalExpansionDiagnostic::new(

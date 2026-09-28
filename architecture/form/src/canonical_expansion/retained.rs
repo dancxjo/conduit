@@ -32,6 +32,20 @@ pub(super) fn initialized_structured_state(
                     )
                 })?,
             ),
+            Some(CanonicalStartupValue::Quantity(quantity)) => (
+                "some",
+                conduit_core::StructuredInfoValue::leaf(
+                    payload_type.clone(),
+                    quantity.encode().to_vec(),
+                )
+                .map_err(|_| {
+                    CanonicalExpansionDiagnostic::new(
+                        "CND-FRM-041",
+                        "retained optional quantity initializer does not match its exact payload type"
+                            .into(),
+                    )
+                })?,
+            ),
             None => (
                 "none",
                 conduit_core::StructuredInfoValue::leaf(
@@ -93,7 +107,7 @@ pub(super) fn initialized_structured_state(
     })?;
     let optional_value_bytes = if retained.optional {
         Some(
-            canonical_optional_boolean_some_bytes(&retained.value_type)?
+            canonical_optional_some_bytes(&retained.value_type)?
                 .unwrap_or(conduit_core::MAXIMUM_STRUCTURED_CANONICAL_BYTES as u64),
         )
     } else {
@@ -192,7 +206,7 @@ pub(super) fn initialized_structured_state(
     Ok(Some((gear, input, output)))
 }
 
-fn canonical_optional_boolean_some_bytes(
+fn canonical_optional_some_bytes(
     optional: &conduit_core::StructuredInfoType,
 ) -> Result<Option<u64>, CanonicalExpansionDiagnostic> {
     let conduit_core::StructuredInfoTypeShape::Variant { cases, .. } = optional.shape() else {
@@ -208,36 +222,44 @@ fn canonical_optional_boolean_some_bytes(
     let conduit_core::StructuredInfoTypeShape::Leaf(kind) = payload_type.shape() else {
         return Ok(None);
     };
-    if kind.as_str() != conduit_core::BOOL_INFO_ID {
-        return Ok(None);
-    }
-    let payload = conduit_core::StructuredInfoValue::leaf(
-        payload_type.clone(),
-        conduit_core::InfoBool::FALSE.encode().to_vec(),
-    )
-    .map_err(|_| {
-        CanonicalExpansionDiagnostic::new(
-            "CND-FRM-041",
-            "canonical optional Boolean payload is invalid".into(),
-        )
-    })?;
+    let encoded = match kind.as_str() {
+        conduit_core::BOOL_INFO_ID => conduit_core::InfoBool::FALSE.encode().to_vec(),
+        conduit_core::DISTANCE_INFO_ID => {
+            conduit_core::Quantity::new(0, conduit_core::QuantityUnit::Meter)
+                .encode()
+                .to_vec()
+        }
+        conduit_core::FREQUENCY_INFO_ID => {
+            conduit_core::Quantity::new(0, conduit_core::QuantityUnit::Hertz)
+                .encode()
+                .to_vec()
+        }
+        _ => return Ok(None),
+    };
+    let payload =
+        conduit_core::StructuredInfoValue::leaf(payload_type.clone(), encoded).map_err(|_| {
+            CanonicalExpansionDiagnostic::new(
+                "CND-FRM-041",
+                "canonical optional payload is invalid".into(),
+            )
+        })?;
     let some = conduit_core::StructuredInfoValue::variant(optional.clone(), "some", payload)
         .map_err(|_| {
             CanonicalExpansionDiagnostic::new(
                 "CND-FRM-041",
-                "canonical optional Boolean some value is invalid".into(),
+                "canonical optional some value is invalid".into(),
             )
         })?;
     let bytes = some.canonical_bytes().map_err(|_| {
         CanonicalExpansionDiagnostic::new(
             "CND-FRM-041",
-            "canonical optional Boolean exceeds finite bounds".into(),
+            "canonical optional some value exceeds finite bounds".into(),
         )
     })?;
     u64::try_from(bytes.len()).map(Some).map_err(|_| {
         CanonicalExpansionDiagnostic::new(
             "CND-FRM-041",
-            "canonical optional Boolean bound exceeds Plan capacity".into(),
+            "canonical optional bound exceeds Plan capacity".into(),
         )
     })
 }

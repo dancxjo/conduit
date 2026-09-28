@@ -299,6 +299,102 @@ fn optional_keep_refuses_an_explicit_bound_smaller_than_some_payload() {
 }
 
 #[test]
+fn optional_dimensioned_keep_preserves_none_some_identity_bound_and_duration() {
+    let mut startup = StartupCatalog::new();
+    startup
+        .insert(KindSignature {
+            kind: "state/latest".into(),
+            startup_parameters: vec![],
+        })
+        .unwrap();
+
+    for (value_type, literal, quantity) in [
+        (
+            "Distance",
+            "150cm",
+            Quantity::new(150, QuantityUnit::Centimeter),
+        ),
+        (
+            "Frequency",
+            "440Hz",
+            Quantity::new(440, QuantityUnit::Hertz),
+        ),
+    ] {
+        let mut variants = Vec::new();
+        let mut value_kinds = Vec::new();
+        let mut maximums = Vec::new();
+        for initializer in [String::new(), format!("({literal})")] {
+            let source = format!(
+                "form retained {{\n cell: keep {value_type}?{initializer} for this wake\n}}\n"
+            );
+            let checked = check_syntax_document(&parse_syntax_document(&source), &startup).unwrap();
+            let expanded =
+                expand_canonical_form(&checked, "retained", &ProfileCatalog::new()).unwrap();
+            let [state] = expanded.gears.as_slice() else {
+                panic!("optional dimensioned KEEP must lower to one typed State Gear")
+            };
+            let ConfigurationValue::Structured(initial) = &state
+                .configuration
+                .iter()
+                .find(|entry| entry.key == "initial")
+                .unwrap()
+                .value
+            else {
+                panic!("optional dimensioned KEEP initializer must be structured")
+            };
+            let value =
+                conduit_core::StructuredInfoValue::from_canonical_bytes(initial.canonical_value())
+                    .unwrap();
+            let conduit_core::StructuredInfoValueShape::Variant { tag, payload } = value.shape()
+            else {
+                panic!("optional dimensioned KEEP must be canonical none|some(T)")
+            };
+            if tag == "some" {
+                let conduit_core::StructuredInfoValueShape::Leaf(bytes) = payload.shape() else {
+                    panic!("optional quantity payload must remain one exact primitive leaf")
+                };
+                assert_eq!(bytes, quantity.encode());
+            }
+            variants.push(tag.to_string());
+            assert_eq!(state.inputs[0].value_kind, state.outputs[0].value_kind);
+            value_kinds.push(state.inputs[0].value_kind.clone());
+            assert_eq!(
+                state
+                    .configuration
+                    .iter()
+                    .find(|entry| entry.key == "retained-duration")
+                    .map(|entry| &entry.value),
+                Some(&ConfigurationValue::Text("wake".into()))
+            );
+            maximums.push(
+                state
+                    .configuration
+                    .iter()
+                    .find(|entry| entry.key == "maximum-bytes")
+                    .and_then(|entry| match entry.value {
+                        ConfigurationValue::U64(value) => Some(value),
+                        _ => None,
+                    })
+                    .unwrap(),
+            );
+        }
+        assert_eq!(variants, ["none", "some"]);
+        assert_eq!(value_kinds[0], value_kinds[1]);
+        assert_eq!(maximums[0], maximums[1]);
+
+        let source = format!(
+            "form retained {{\n cell: keep {value_type}? <= {}B for this wake\n}}\n",
+            maximums[0] - 1
+        );
+        let checked = check_syntax_document(&parse_syntax_document(&source), &startup).unwrap();
+        let refusal =
+            expand_canonical_form(&checked, "retained", &ProfileCatalog::new()).unwrap_err();
+        assert_eq!(refusal.code, "CND-FRM-041");
+        assert!(refusal.message.contains("admitted value envelope"));
+    }
+}
+
+#[test]
 fn pure_expression_lowers_to_one_exact_ordinary_gear() {
     let mut startup = StartupCatalog::new();
     for kind in ["test/u8-source", "test/u8-sink"] {
