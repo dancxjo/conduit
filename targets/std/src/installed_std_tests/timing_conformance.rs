@@ -39,6 +39,8 @@ const DELAY_FORM: &str = "form ordinary-delay {\n    source: test/timing-bool-so
 
 const THROTTLE_FORM: &str = "form patchbay-refresh-throttle {\n    edits: test/timing-bool-source\n    refresh: time/throttle(duration-ms = 5ms, policy = \"leading\", maximum-values = 3)\n    presenter: test/timing-bool-sink\n    edits >> refresh >> presenter\n}\n";
 
+const SAMPLE_FORM: &str = "form explicit-cadence-sample {\n    source: test/timing-bool-source\n    clock: time/tick(count = 2, period-ms = 10)\n    sampler: time/sample\n    sink: test/timing-bool-sink\n    source.out >> sampler.value\n    clock.tick >> sampler.cadence\n    sampler.sample >> sink.in\n}\n";
+
 fn fragment(host: &StdHost, source: &str) -> conduit_core::PlanFragment {
     let mut startup = conduit_form::StartupCatalog::new();
     let mut startup_profile = conduit_form::ProfileCatalog::new();
@@ -130,6 +132,11 @@ fn representative_robot_debounce_and_timeout_run_through_one_production_kernel()
             "patchbay-refresh-throttle",
             conduit_semantic_catalog::TIME_THROTTLE_KIND,
         ),
+        (
+            SAMPLE_FORM,
+            "explicit-cadence-sample",
+            conduit_semantic_catalog::TIME_SAMPLE_KIND,
+        ),
     ] {
         let mut planned_host = host(id);
         let planned = fragment(&planned_host, source);
@@ -138,12 +145,17 @@ fn representative_robot_debounce_and_timeout_run_through_one_production_kernel()
             .iter()
             .find(|placement| placement.kind_id.as_str() == kind)
             .expect("canonical timing placement exists");
-        assert_eq!(timing.host_calls.len(), 1);
-        assert_eq!(
-            timing.host_calls[0].contract_id,
-            conduit_core::MONOTONIC_TIMER_HOST_CALL_CONTRACT.into()
-        );
-        assert_eq!(timing.resources.len(), 1);
+        if kind == conduit_semantic_catalog::TIME_SAMPLE_KIND {
+            assert!(timing.host_calls.is_empty());
+            assert!(timing.resources.is_empty());
+        } else {
+            assert_eq!(timing.host_calls.len(), 1);
+            assert_eq!(
+                timing.host_calls[0].contract_id,
+                conduit_core::MONOTONIC_TIMER_HOST_CALL_CONTRACT.into()
+            );
+            assert_eq!(timing.resources.len(), 1);
+        }
 
         let mut output = Vec::with_capacity(4_096);
         let mut timer = ScheduledTimer {
@@ -177,6 +189,7 @@ fn identical_simulated_schedules_have_identical_normalized_output_and_signs() {
         (TIMEOUT_FORM, "repeat-timeout"),
         (DELAY_FORM, "repeat-delay"),
         (THROTTLE_FORM, "repeat-throttle"),
+        (SAMPLE_FORM, "repeat-sample"),
     ] {
         let (left, left_timer) = run(source, id);
         let (right, right_timer) = run(source, id);

@@ -244,6 +244,7 @@ pub fn supported_nucleus_offers() -> Vec<CapabilityOffer> {
         time_timeout_offer(),
         time_delay_offer(),
         time_throttle_offer(),
+        time_sample_offer(),
         tick_presentation_offer(),
         bool_presentation_offer(),
         text_literal_offer(),

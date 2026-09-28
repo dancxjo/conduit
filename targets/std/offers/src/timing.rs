@@ -30,6 +30,9 @@ pub const TIME_THROTTLE_EXECUTION_PROFILE: &str =
     "conduit.std/time-throttle-bool-leading-kernel-hosted@1";
 pub const TIME_THROTTLE_IMPLEMENTATION: &str = "std/kernel-time-throttle-bool-leading@1";
 pub const TIME_THROTTLE_ARTIFACT: &str = "conduit-std-host/time-throttle-bool-leading@1";
+pub const TIME_SAMPLE_EXECUTION_PROFILE: &str = "conduit.std/time-sample-bool-kernel-hosted@1";
+pub const TIME_SAMPLE_IMPLEMENTATION: &str = "std/kernel-time-sample-bool@1";
+pub const TIME_SAMPLE_ARTIFACT: &str = "conduit-std-host/time-sample-bool@1";
 
 pub fn tick_capability_offer() -> CapabilityOffer {
     offer(
@@ -108,6 +111,20 @@ pub fn time_throttle_offer() -> CapabilityOffer {
         TIME_THROTTLE_EXECUTION_PROFILE,
         TIME_THROTTLE_IMPLEMENTATION,
         TIME_THROTTLE_ARTIFACT,
+    )
+}
+
+pub fn time_sample_offer() -> CapabilityOffer {
+    offer(
+        conduit_semantic_catalog::time_sample_semantic_contract(),
+        Identity {
+            capability: "time-sample-bool-v1",
+            profile: TIME_SAMPLE_EXECUTION_PROFILE,
+            implementation: TIME_SAMPLE_IMPLEMENTATION,
+            artifact: TIME_SAMPLE_ARTIFACT,
+        },
+        Vec::new(),
+        Vec::new(),
     )
 }
 
@@ -193,5 +210,9 @@ mod tests {
         assert!(!time_every_offer().startup_parameters[0].has_default);
         assert_eq!(tick_capability_offer().host_calls.len(), 1);
         assert_eq!(audio_render_demand_offer().host_calls.len(), 1);
+        let sample = time_sample_offer();
+        assert!(sample.startup_parameters.is_empty());
+        assert!(sample.host_calls.is_empty());
+        assert!(sample.resource_requirements.is_empty());
     }
 }

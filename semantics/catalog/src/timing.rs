@@ -22,6 +22,9 @@ pub const TIME_DELAY_CONTRACT_REVISION: &str = "conduit.std/time-delay-bool@1";
 pub const TIME_THROTTLE_KIND: &str = "time/throttle";
 pub const TIME_THROTTLE_CONTRACT_REVISION: &str = "conduit.std/time-throttle-bool-leading@1";
 
+pub const TIME_SAMPLE_KIND: &str = "time/sample";
+pub const TIME_SAMPLE_CONTRACT_REVISION: &str = "conduit.std/time-sample-bool@1";
+
 pub const TIME_POLICY_TRAILING: &str = "trailing";
 pub const TIME_POLICY_LEADING: &str = "leading";
 pub const TIME_MAXIMUM_DURATION_MS: u64 = 86_400_000;
@@ -143,6 +146,38 @@ pub fn time_throttle_contract() -> StandardKindContract {
     }
 }
 
+pub fn time_sample_contract() -> StandardKindContract {
+    StandardKindContract {
+        kind_id: kind_id(TIME_SAMPLE_KIND),
+        plain_name: "Cadence-sampled Boolean".to_string(),
+        summary: "Retain the latest exact Boolean and emit it only when an explicit cadence Tick arrives; complete when cadence closes."
+            .to_string(),
+        inputs: vec![
+            port("value", BOOL_INFO_ID, PortDirection::Input, PortTemporal::Current),
+            port(
+                "cadence",
+                conduit_time::TICK_VALUE_KIND,
+                PortDirection::Input,
+                PortTemporal::Flow { closes: true },
+            ),
+        ],
+        outputs: vec![port(
+            "sample",
+            BOOL_INFO_ID,
+            PortDirection::Output,
+            PortTemporal::Current,
+        )],
+        configuration: vec![],
+        limits: limits(),
+        terminal_behavior:
+            KindTerminalBehavior::SamplesLatestValueOnCadenceAndCompletesWhenCadenceCloses,
+        hosted_implementation_required: true,
+        browser_manifestation_honest: false,
+        pico_manifestation_honest: false,
+        example: "sample: time/sample".to_string(),
+    }
+}
+
 pub fn time_debounce_semantic_contract() -> Kind {
     semantic_contract(time_debounce_contract(), TIME_DEBOUNCE_CONTRACT_REVISION)
 }
@@ -157,6 +192,10 @@ pub fn time_delay_semantic_contract() -> Kind {
 
 pub fn time_throttle_semantic_contract() -> Kind {
     semantic_contract(time_throttle_contract(), TIME_THROTTLE_CONTRACT_REVISION)
+}
+
+pub fn time_sample_semantic_contract() -> Kind {
+    semantic_contract(time_sample_contract(), TIME_SAMPLE_CONTRACT_REVISION)
 }
 
 fn semantic_contract(contract: StandardKindContract, revision: &str) -> Kind {
@@ -188,6 +227,7 @@ pub fn install_timing_catalogs(
         time_timeout_contract(),
         time_delay_contract(),
         time_throttle_contract(),
+        time_sample_contract(),
     ] {
         startup.insert(KindSignature {
             kind: contract.kind_id.as_str().to_string(),
@@ -211,6 +251,7 @@ pub fn install_timing_catalogs(
             TIME_TIMEOUT_KIND => TIME_TIMEOUT_CONTRACT_REVISION,
             TIME_DELAY_KIND => TIME_DELAY_CONTRACT_REVISION,
             TIME_THROTTLE_KIND => TIME_THROTTLE_CONTRACT_REVISION,
+            TIME_SAMPLE_KIND => TIME_SAMPLE_CONTRACT_REVISION,
             _ => unreachable!("timing catalog loop contains only timing contracts"),
         };
         profile
@@ -292,6 +333,7 @@ mod tests {
             time_timeout_contract(),
             time_delay_contract(),
             time_throttle_contract(),
+            time_sample_contract(),
         ] {
             assert_eq!(contract.limits.max_queue_items, 1);
         }

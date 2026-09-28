@@ -48,6 +48,7 @@ use super::render_demand_back::AudioRenderDemandBack;
 use super::rhythm_compare_back::RhythmCompareBack;
 use super::robotics_backs::{RoboticsDriveBack, RoboticsSourceBack};
 use super::robotics_effect::SimulatedDriveEffect;
+use super::sample_back::SampleBoolBack;
 use super::sequence_normalization_back::SequenceNormalizationBack;
 use super::speech_recognition_adapter_back::{
     SpeechResultToEventStreamBack, SpeechWindowToClipBack,
@@ -105,6 +106,7 @@ pub(super) enum InstalledBack {
     TimeTimeout(TimeoutBack),
     TimeDelay(DelayBack),
     TimeThrottle(ThrottleBack),
+    TimeSample(SampleBoolBack),
     Recurrence(RecurrenceBack),
     CalendarProposal(CalendarProposalBack),
     CalendarProvider(CalendarProviderBack),

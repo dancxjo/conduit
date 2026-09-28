@@ -95,6 +95,7 @@ mod rhythm_compare_back;
 pub(super) mod rhythm_compare_host;
 mod robotics_backs;
 mod robotics_effect;
+mod sample_back;
 mod sequence_normalization_back;
 mod simple_presentation_host;
 mod speech_recognition_adapter_back;

@@ -40,6 +40,7 @@ pub(crate) fn supported_nucleus_contracts_with_revisions(
             time_throttle_contract(),
             "conduit.std/time-throttle-bool-leading@1",
         ),
+        (time_sample_contract(), TIME_SAMPLE_CONTRACT_REVISION),
         (
             tick_presentation_contract(),
             TICK_PRESENTATION_CONTRACT_REVISION,
