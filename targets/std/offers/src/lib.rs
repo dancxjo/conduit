@@ -44,6 +44,8 @@ mod copy_file;
 pub use copy_file::*;
 mod structured_values;
 pub use structured_values::*;
+mod state_snapshot;
+pub use state_snapshot::*;
 mod image_text;
 pub use image_text::*;
 mod typed_record;

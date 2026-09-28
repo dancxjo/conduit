@@ -236,6 +236,8 @@ mod state_count;
 pub use state_count::*;
 mod state_toggle;
 pub use state_toggle::*;
+mod state_snapshot;
+pub use state_snapshot::*;
 mod flow_state;
 pub use flow_state::*;
 mod flow_first;

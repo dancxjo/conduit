@@ -57,6 +57,7 @@ use super::speech_recognition_adapter_back::{
 use super::speech_synthesis_back::SpeechSynthesisBack;
 use super::spoken_mask_backs::SpokenArtifactBack;
 use super::state_select_back::StateSelectScalarBack;
+use super::state_snapshot_back::StateSnapshotBack;
 use super::structured_selector_back::StructuredSelectorBack;
 use super::structured_values_back::{StructuredLiteralBack, StructuredPresentationBack};
 use super::synth_back::MusicSynthBack;
@@ -133,6 +134,7 @@ pub(super) enum InstalledBack {
     StateLatestScalar(StateLatestScalarBack),
     FlowTeeScalar(FlowTeeScalarBack),
     StateSelectScalar(StateSelectScalarBack),
+    StateSnapshot(StateSnapshotBack),
     FlowGateScalar(FlowGateScalarBack),
     FlowFirst(FlowFirstBack),
     KeyEventTee(KeyEventTeeBack),

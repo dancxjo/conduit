@@ -105,6 +105,7 @@ mod speech_recognition_adapter_back;
 mod speech_synthesis_back;
 mod spoken_mask_backs;
 mod state_select_back;
+mod state_snapshot_back;
 mod structured_presentation_host;
 mod structured_selector_back;
 mod structured_values_back;
