@@ -106,7 +106,7 @@ changes normally need correct links, runnable examples, and patch hygiene, not
 hardware builds. The visual-reference check is:
 
 ```sh
-cargo xtask evidence docs-verify
+cargo xtask prove docs-verify
 ```
 
 Describe any check you could not run and the specific reason. A firmware build,

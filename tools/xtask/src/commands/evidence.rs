@@ -11,14 +11,8 @@ mod three_body_journey;
 #[path = "evidence_two_fronts.rs"]
 mod two_fronts;
 
-#[derive(Args, Debug)]
-pub struct EvidenceArgs {
-    #[command(subcommand)]
-    command: EvidenceCommand,
-}
-
 #[derive(Subcommand, Debug)]
-enum EvidenceCommand {
+pub(crate) enum EvidenceCommand {
     /// Check the assembled documentary's images, playback, navigation and mobile layout.
     CheckThreeBodyJourney(three_body_browser::BrowserArgs),
     /// Verify three independently born Bodies against one semantic Journey contract.
@@ -40,7 +34,7 @@ enum EvidenceCommand {
 }
 
 #[derive(Args, Debug)]
-struct ThreeBodyJourneyArgs {
+pub(crate) struct ThreeBodyJourneyArgs {
     /// Exact commit whose three Body tracks are being verified.
     #[arg(long)]
     commit: String,
@@ -59,7 +53,7 @@ struct ThreeBodyJourneyArgs {
 }
 
 #[derive(Args, Debug)]
-struct ThreeBodyJourneyContractArgs {
+pub(crate) struct ThreeBodyJourneyContractArgs {
     /// Exact commit the future track evidence must match.
     #[arg(long)]
     commit: String,
@@ -70,7 +64,7 @@ struct ThreeBodyJourneyContractArgs {
 }
 
 #[derive(Args, Debug)]
-struct StageThreeBodyJourneyArgs {
+pub(crate) struct StageThreeBodyJourneyArgs {
     /// Complete three-Body publication root containing the index, tracks, and artifacts.
     #[arg(long)]
     publication_root: PathBuf,
@@ -85,21 +79,21 @@ struct StageThreeBodyJourneyArgs {
 }
 
 #[derive(Args, Debug)]
-struct TwoFrontsArgs {
+pub(crate) struct TwoFrontsArgs {
     /// New directory that will receive the bounded sibling evidence manifest.
     #[arg(long, default_value = "target/journeys/one-form-two-fronts")]
     output: PathBuf,
 }
 
 #[derive(Args, Debug)]
-struct EvidenceLittleLifeArgs {
+pub(crate) struct EvidenceLittleLifeArgs {
     /// New directory that will receive the exact bounded evidence inventory.
     #[arg(long, default_value = "target/journeys/little-life")]
     output: PathBuf,
 }
 
 #[derive(Args, Debug)]
-struct EvidenceDocsVerifyArgs {
+pub(crate) struct EvidenceDocsVerifyArgs {
     /// Repository root containing README.md and docs/visual-evidence.md.
     #[arg(long, default_value = ".")]
     workspace_root: PathBuf,
@@ -114,7 +108,7 @@ struct EvidenceDocsVerifyArgs {
 }
 
 #[derive(Args, Debug)]
-struct EvidenceGalleryArgs {
+pub(crate) struct EvidenceGalleryArgs {
     /// Optional complete Patchbay evidence directory bound to the checked commit.
     #[arg(long)]
     evidence_root: Option<PathBuf>,
@@ -141,7 +135,7 @@ struct EvidenceGalleryArgs {
 }
 
 #[derive(Args, Debug)]
-struct EvidenceVerifyArgs {
+pub(crate) struct EvidenceVerifyArgs {
     /// Evidence directory containing manifest.json and its declared outputs.
     #[arg(long)]
     root: PathBuf,
@@ -169,8 +163,8 @@ enum EvidenceResultArg {
     DiagnosticIncomplete,
 }
 
-pub fn run(args: EvidenceArgs) -> Result<(), Box<dyn std::error::Error>> {
-    match args.command {
+pub fn run(command: EvidenceCommand) -> Result<(), Box<dyn std::error::Error>> {
+    match command {
         EvidenceCommand::CheckThreeBodyJourney(args) => three_body_browser::run(args),
         EvidenceCommand::ThreeBodyJourney(args) => {
             three_body_journey::run(args.commit, args.contract, args.tracks, args.output)

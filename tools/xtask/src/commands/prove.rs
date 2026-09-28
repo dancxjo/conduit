@@ -16,6 +16,7 @@ use crate::{
 };
 
 pub fn run(args: ProveArgs, opts: &GlobalOpts) -> Result<(), StepError> {
+    debug_assert!(args.evidence.is_none());
     let proof = args.proof.ok_or_else(|| {
         StepError::prereq(
             "prove.target",
@@ -76,7 +77,9 @@ pub fn run(args: ProveArgs, opts: &GlobalOpts) -> Result<(), StepError> {
                         if let Err(error) = declare_patchbay_capture_manifest(&mut evidence)
                             .and_then(|()| import_patchbay_captures(&mut evidence, false))
                         {
-                            eprintln!("xtask evidence import error after proof failure: {error}");
+                            eprintln!(
+                                "xtask proof evidence import error after proof failure: {error}"
+                            );
                         }
                     }
                     if [
@@ -95,7 +98,9 @@ pub fn run(args: ProveArgs, opts: &GlobalOpts) -> Result<(), StepError> {
                     if let Err(evidence_error) =
                         evidence.finish(EvidenceResult::DiagnosticIncomplete)
                     {
-                        eprintln!("xtask evidence error after proof failure: {evidence_error}");
+                        eprintln!(
+                            "xtask proof evidence error after proof failure: {evidence_error}"
+                        );
                     }
                     Err(proof_error)
                 }
@@ -477,7 +482,7 @@ fn run_patchbay_front_door(
             .map_err(|error| StepError::prereq("prove.patchbay-front-door.evidence", error)),
         Err(proof_error) => {
             if let Err(error) = evidence.finish(EvidenceResult::DiagnosticIncomplete) {
-                eprintln!("xtask evidence error after proof failure: {error}");
+                eprintln!("xtask proof evidence error after proof failure: {error}");
             }
             Err(proof_error)
         }

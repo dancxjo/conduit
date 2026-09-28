@@ -607,7 +607,7 @@ fn gallery_publishes_current_history_and_provenance() {
     assert!(two_fronts_page.contains("Pixel equality, physical display output"));
     assert!(two_fronts_page.contains("What Conduit established"));
     assert!(two_fronts_page.contains("What it does not prove"));
-    assert!(two_fronts_page.contains("cargo xtask evidence one-form-two-fronts"));
+    assert!(two_fronts_page.contains("cargo xtask prove one-form-two-fronts"));
     assert!(two_fronts_page.contains("presentation/two-fronts"));
     assert_eq!(
         fs::read(site_root.join("current/one-form-two-fronts/native.png")).unwrap(),
@@ -637,7 +637,7 @@ fn gallery_publishes_current_history_and_provenance() {
     assert!(life_page.contains("Four accepted artifacts, no invented frames"));
     assert!(life_page.contains("not a native graphical renderer"));
     assert!(life_page.contains("What Conduit established"));
-    assert!(life_page.contains("cargo xtask evidence little-life"));
+    assert!(life_page.contains("cargo xtask prove little-life"));
     assert_eq!(
         fs::read(site_root.join("current/little-life/t032.png")).unwrap(),
         fs::read(site_root.join(format!("commits/{commit}/little-life/t032.png"))).unwrap()
