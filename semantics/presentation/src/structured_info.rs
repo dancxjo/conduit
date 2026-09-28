@@ -202,7 +202,11 @@ fn add_node_properties(
             "collection-item-count",
             PresentationPropertyValue::Count(u64::from(*length)),
         )),
-        StructuredInfoInspectionShape::Sequence { length, capacity } => {
+        StructuredInfoInspectionShape::Sequence {
+            length,
+            minimum_items,
+            maximum_items,
+        } => {
             properties.push(property(
                 subject,
                 "sequence-item-count",
@@ -210,8 +214,13 @@ fn add_node_properties(
             ));
             properties.push(property(
                 subject,
-                "sequence-capacity",
-                PresentationPropertyValue::Count(u64::from(*capacity)),
+                "sequence-minimum-items",
+                PresentationPropertyValue::Count(u64::from(*minimum_items)),
+            ));
+            properties.push(property(
+                subject,
+                "sequence-maximum-items",
+                PresentationPropertyValue::Count(u64::from(*maximum_items)),
             ));
         }
         StructuredInfoInspectionShape::Record {

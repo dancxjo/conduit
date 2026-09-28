@@ -130,11 +130,15 @@ pub(crate) fn check_structured_expression(
             )),
         },
         ExpressionSyntax::Collection { values, span } => {
-            let (element, limit, exact) = match expected.shape() {
-                StructuredInfoTypeShape::Collection { element, length } => (element, length, true),
-                StructuredInfoTypeShape::Sequence { element, capacity } => {
-                    (element, capacity, false)
+            let (element, minimum, maximum) = match expected.shape() {
+                StructuredInfoTypeShape::Collection { element, length } => {
+                    (element, length, length)
                 }
+                StructuredInfoTypeShape::Sequence {
+                    element,
+                    minimum_items,
+                    maximum_items,
+                } => (element, minimum_items, maximum_items),
                 _ => {
                     return Err(structured_diagnostic(
                         *span,
@@ -142,19 +146,17 @@ pub(crate) fn check_structured_expression(
                     ));
                 }
             };
-            if (exact && values.len() != usize::from(limit))
-                || (!exact && values.len() > usize::from(limit))
-            {
+            if values.len() < usize::from(minimum) || values.len() > usize::from(maximum) {
+                let constraint = if minimum == maximum {
+                    format!("requires exactly {minimum}")
+                } else {
+                    format!("permits {minimum}..={maximum}")
+                };
                 return Err(structured_diagnostic(
                     *span,
                     &format!(
-                        "collection literal has {} items but the type {} {limit}",
+                        "collection literal has {} items but the type {constraint}",
                         values.len(),
-                        if exact {
-                            "requires exactly"
-                        } else {
-                            "permits at most"
-                        }
                     ),
                 ));
             }

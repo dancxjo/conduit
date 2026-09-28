@@ -45,6 +45,7 @@ pub enum StructuredInfoRefusal {
     NameTooLong,
     DuplicateName,
     EmptyShape,
+    InvalidCollectionBounds,
     UnboundedCollection,
     CollectionTooLarge,
     TooManyFields,
@@ -78,7 +79,8 @@ pub enum StructuredInfoTypeShape<'a> {
     },
     Sequence {
         element: &'a StructuredInfoType,
-        capacity: u16,
+        minimum_items: u16,
+        maximum_items: u16,
     },
     Record {
         schema: &'a KindId,
@@ -99,7 +101,8 @@ enum StructuredInfoTypeNode {
     },
     Sequence {
         element: alloc::boxed::Box<StructuredInfoType>,
-        capacity: u16,
+        minimum_items: u16,
+        maximum_items: u16,
     },
     Record {
         schema: KindId,
@@ -171,12 +174,15 @@ impl StructuredInfoType {
                     length: *length,
                 }
             }
-            StructuredInfoTypeNode::Sequence { element, capacity } => {
-                StructuredInfoTypeShape::Sequence {
-                    element,
-                    capacity: *capacity,
-                }
-            }
+            StructuredInfoTypeNode::Sequence {
+                element,
+                minimum_items,
+                maximum_items,
+            } => StructuredInfoTypeShape::Sequence {
+                element,
+                minimum_items: *minimum_items,
+                maximum_items: *maximum_items,
+            },
             StructuredInfoTypeNode::Record { schema, fields } => {
                 StructuredInfoTypeShape::Record { schema, fields }
             }
@@ -211,17 +217,30 @@ impl StructuredInfoType {
     /// A finite variable-length sequence whose actual length is carried by each value.
     pub fn sequence(
         element: StructuredInfoType,
-        capacity: u16,
+        maximum_items: u16,
     ) -> Result<Self, StructuredInfoRefusal> {
-        if capacity == 0 {
+        Self::bounded_sequence(element, 0, maximum_items)
+    }
+
+    /// A finite variable-length sequence with exact cardinality bounds.
+    pub fn bounded_sequence(
+        element: StructuredInfoType,
+        minimum_items: u16,
+        maximum_items: u16,
+    ) -> Result<Self, StructuredInfoRefusal> {
+        if maximum_items == 0 {
             return Err(StructuredInfoRefusal::EmptyShape);
         }
-        if usize::from(capacity) > MAXIMUM_STRUCTURED_COLLECTION_ITEMS {
+        if minimum_items > maximum_items {
+            return Err(StructuredInfoRefusal::InvalidCollectionBounds);
+        }
+        if usize::from(maximum_items) > MAXIMUM_STRUCTURED_COLLECTION_ITEMS {
             return Err(StructuredInfoRefusal::CollectionTooLarge);
         }
         let value = Self(StructuredInfoTypeNode::Sequence {
             element: alloc::boxed::Box::new(element),
-            capacity,
+            minimum_items,
+            maximum_items,
         });
         value.validate_limits()?;
         Ok(value)
@@ -535,10 +554,16 @@ impl StructuredInfoValue {
         value_type: StructuredInfoType,
         values: Vec<StructuredInfoValue>,
     ) -> Result<Self, StructuredInfoRefusal> {
-        let StructuredInfoTypeNode::Sequence { element, capacity } = &value_type.0 else {
+        let StructuredInfoTypeNode::Sequence {
+            element,
+            minimum_items,
+            maximum_items,
+        } = &value_type.0
+        else {
             return Err(StructuredInfoRefusal::WrongType);
         };
-        if values.len() > usize::from(*capacity) {
+        if values.len() < usize::from(*minimum_items) || values.len() > usize::from(*maximum_items)
+        {
             return Err(StructuredInfoRefusal::WrongCollectionLength);
         }
         if values.iter().any(|value| value.value_type != **element) {

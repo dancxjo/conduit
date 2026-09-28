@@ -62,10 +62,10 @@ fn prepared_validation_walks_exact_record_members() {
 }
 
 #[test]
-fn prepared_validation_accepts_actual_sequence_length_up_to_capacity() {
+fn prepared_validation_enforces_exact_sequence_cardinality_bounds() {
     let leaf = StructuredInfoType::leaf(kind_id(BOOL_INFO_ID)).unwrap();
-    let ty = StructuredInfoType::sequence(leaf.clone(), 3).unwrap();
-    for length in 0..=3 {
+    let ty = StructuredInfoType::bounded_sequence(leaf.clone(), 2, 3).unwrap();
+    for length in 2..=3 {
         let value = StructuredInfoValue::sequence(
             ty.clone(),
             (0..length)
@@ -83,6 +83,25 @@ fn prepared_validation_accepts_actual_sequence_length_up_to_capacity() {
             .validate(&value)
             .unwrap();
     }
+
+    let value = StructuredInfoValue::sequence(
+        ty.clone(),
+        vec![
+            StructuredInfoValue::leaf(leaf.clone(), InfoBool::TRUE.encode().to_vec()).unwrap(),
+            StructuredInfoValue::leaf(leaf, InfoBool::TRUE.encode().to_vec()).unwrap(),
+        ],
+    )
+    .unwrap()
+    .canonical_bytes()
+    .unwrap();
+    let validator = PreparedStructuredValueValidator::new(&ty, 256).unwrap();
+    let mut below_minimum = value;
+    let length = ty.canonical_bytes().unwrap().len() + 1;
+    below_minimum[length..length + 4].copy_from_slice(&1_u32.to_le_bytes());
+    assert_eq!(
+        validator.validate(&below_minimum),
+        Err(StructuredInfoRefusal::MalformedCanonicalEncoding)
+    );
 }
 
 #[test]

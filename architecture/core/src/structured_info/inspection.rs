@@ -50,7 +50,8 @@ pub enum StructuredInfoInspectionShape {
     },
     Sequence {
         length: u16,
-        capacity: u16,
+        minimum_items: u16,
+        maximum_items: u16,
     },
     Record {
         schema: KindId,
@@ -223,11 +224,16 @@ fn inspection_shape(
             StructuredInfoValueShape::Collection(_),
         ) => Ok(StructuredInfoInspectionShape::Collection { length }),
         (
-            StructuredInfoTypeShape::Sequence { capacity, .. },
+            StructuredInfoTypeShape::Sequence {
+                minimum_items,
+                maximum_items,
+                ..
+            },
             StructuredInfoValueShape::Collection(values),
         ) => Ok(StructuredInfoInspectionShape::Sequence {
             length: values.len() as u16,
-            capacity,
+            minimum_items,
+            maximum_items,
         }),
         (
             StructuredInfoTypeShape::Record { schema, fields },

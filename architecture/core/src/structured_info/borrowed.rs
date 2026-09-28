@@ -64,11 +64,20 @@ fn split_type<'a>(
         0 => {
             checked_name(cursor.text()?)?;
         }
-        tag @ (1 | 4) => {
+        1 => {
             if usize::from(cursor.u16()?) > MAXIMUM_STRUCTURED_COLLECTION_ITEMS {
                 return Err(malformed());
             }
-            if tag == 4 && input.get(1..3) == Some(&[0, 0]) {
+            let (_, rest) = split_type(cursor.remaining, depth + 1, nodes)?;
+            cursor.remaining = rest;
+        }
+        4 => {
+            let minimum_items = usize::from(cursor.u16()?);
+            let maximum_items = usize::from(cursor.u16()?);
+            if maximum_items == 0
+                || minimum_items > maximum_items
+                || maximum_items > MAXIMUM_STRUCTURED_COLLECTION_ITEMS
+            {
                 return Err(malformed());
             }
             let (_, rest) = split_type(cursor.remaining, depth + 1, nodes)?;
@@ -138,9 +147,10 @@ fn validate_value(
             }
         }
         (4, 1) => {
-            let capacity = usize::from(kind.u16()?);
+            let minimum_items = usize::from(kind.u16()?);
+            let maximum_items = usize::from(kind.u16()?);
             let count = value.length()?;
-            if count > capacity {
+            if count < minimum_items || count > maximum_items {
                 return Err(malformed());
             }
             let mut scratch = MAXIMUM_STRUCTURED_INFO_NODES;

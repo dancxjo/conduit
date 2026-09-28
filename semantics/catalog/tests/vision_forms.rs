@@ -78,10 +78,15 @@ fn continuous_vision_ports_carry_exact_observation_and_model_provenance() {
     }
 
     let texts = conduit_semantic_catalog::vision_texts_type();
-    let StructuredInfoTypeShape::Sequence { element, capacity } = texts.shape() else {
+    let StructuredInfoTypeShape::Sequence {
+        element,
+        minimum_items,
+        maximum_items,
+    } = texts.shape()
+    else {
         panic!("visible text must be a bounded sequence")
     };
-    assert_eq!(capacity, 8);
+    assert_eq!((minimum_items, maximum_items), (0, 8));
     assert_eq!(
         record_fields(element),
         [
@@ -94,10 +99,15 @@ fn continuous_vision_ports_carry_exact_observation_and_model_provenance() {
     );
 
     let tracks = conduit_semantic_catalog::vision_tracks_type();
-    let StructuredInfoTypeShape::Sequence { element, capacity } = tracks.shape() else {
+    let StructuredInfoTypeShape::Sequence {
+        element,
+        minimum_items,
+        maximum_items,
+    } = tracks.shape()
+    else {
         panic!("tracks must be a bounded sequence")
     };
-    assert_eq!(capacity, 4);
+    assert_eq!((minimum_items, maximum_items), (0, 4));
     assert_eq!(
         record_fields(element),
         [
