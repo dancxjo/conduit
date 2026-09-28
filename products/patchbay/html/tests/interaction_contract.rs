@@ -1,7 +1,6 @@
 use conduit_core::ExpandedFormId;
-use patchbay_model::{
-    PatchbayAction, PatchbayInteractionRequest, PatchbayInteractionRequestId, PatchbaySubjectRef,
-};
+use patchbay_graph::PatchbaySubjectRef;
+use patchbay_model::{PatchbayAction, PatchbayInteractionRequest, PatchbayInteractionRequestId};
 
 fn presentation() -> conduit_presentation::Presentation {
     conduit_presentation::Presentation::new_with_semantics(
