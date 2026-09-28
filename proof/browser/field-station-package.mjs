@@ -1,5 +1,5 @@
 import { spawnSync } from "node:child_process";
-import { mkdir, readFile, rm, writeFile } from "node:fs/promises";
+import { access, mkdir, readFile, rm, writeFile } from "node:fs/promises";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { buildBrowserBundleImage } from "../../targets/browser/deployment/browser/browser-bundle.mjs";
@@ -7,21 +7,27 @@ import { buildBrowserBundleImage } from "../../targets/browser/deployment/browse
 const repository = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../..");
 const target = path.join(repository, "target");
 const distributionRoot = path.join(target, "field-station-distribution");
+const stagedDistributionRoot = path.join(target, "workspace-product", "artifacts");
 const bundleRoot = path.join(target, "field-station-bundle");
 const packageRoot = path.join(target, "field-station-sdk");
 const identity = `sha256:${"4".repeat(64)}`;
 
 export async function prepareFieldStationPackage() {
-  await Promise.all([distributionRoot, bundleRoot, packageRoot].map((directory) =>
+  await Promise.all([bundleRoot, packageRoot].map((directory) =>
     rm(directory, { recursive: true, force: true })));
-  runCargo(["xtask", "host", "release", "--platform", "browser", "--output", distributionRoot,
-    "--source-identity", "field-station-clock@1"]);
-  const manifest = JSON.parse(await readFile(path.join(distributionRoot, "browser-page.json"), "utf8"));
+  const staged = await exists(path.join(stagedDistributionRoot, "browser-page.json"));
+  if (!staged) {
+    await rm(distributionRoot, { recursive: true, force: true });
+    run("cargo", ["+stable", "xtask", "host", "release", "--platform", "browser", "--output",
+      distributionRoot, "--source-identity", "field-station-clock@1"]);
+  }
+  const source = staged ? stagedDistributionRoot : distributionRoot;
+  const manifest = JSON.parse(await readFile(path.join(source, "browser-page.json"), "utf8"));
   const distribution = {
     manifest,
     payloads: await Promise.all(manifest.files.map(async (file) => ({
       ...file,
-      bytes: new Uint8Array(await readFile(path.join(distributionRoot, file.path))),
+      bytes: new Uint8Array(await readFile(path.join(source, file.path))),
     }))),
   };
   const release = await buildBrowserBundleImage({
@@ -41,14 +47,21 @@ export async function prepareFieldStationPackage() {
     writeFile(path.join(bundleRoot, "browser-page.json"), JSON.stringify(manifest, null, 2)),
     writeFile(path.join(bundleRoot, "browser-bundle-release.json"), JSON.stringify(release.manifest, null, 2)),
   ]);
-  runCargo(["xtask", "host", "browser-sdk-package", "--bundle", bundleRoot, "--output", packageRoot]);
+  run("node", ["targets/browser/sdk/package-browser-bundle.mjs", bundleRoot, packageRoot]);
 }
 
-function runCargo(arguments_) {
-  const result = spawnSync("cargo", ["+stable", ...arguments_], {
+async function exists(file) {
+  try { await access(file); return true; } catch { return false; }
+}
+
+function run(command, arguments_) {
+  const result = spawnSync(command, arguments_, {
     cwd: repository,
     encoding: "utf8",
     env: { ...process.env, CARGO_TERM_COLOR: "never" },
   });
-  if (result.status !== 0) throw new Error(`${result.stderr}\n${result.stdout}`.trim());
+  if (result.error) throw result.error;
+  if (result.status !== 0) {
+    throw new Error(`${command} exited ${result.status}\n${result.stderr ?? ""}\n${result.stdout ?? ""}`.trim());
+  }
 }

@@ -33,6 +33,23 @@ const participation = await host.participate({
 });
 ```
 
+The Body remains the authority for planning and claiming a Play. Once that
+authority supplies an exact proposal and Play identity, the participation can
+acquire this Host's page resources and run the Play without exposing raw WASM
+exports or Host implementation modules to HTML:
+
+```js
+const preparation = participation.prepare({ proposal, inputTarget, outputRoot });
+renderPlanInspection(preparation.inspection());
+const { play, wakeAtStart } = preparation.start(claimedPlay);
+await reportStarted(claimedPlay, wakeAtStart);
+const receipt = await play.dispatch();
+```
+
+`inspection()` is the immutable SDK boundary for an HTML workbench. It exposes
+the exact selected Plan without exposing raw Wasm exports, Host implementation
+modules, or the mutable execution owner.
+
 ## Source, checked meaning, and Body work
 
 Conduit keeps authorship separate from realization. A Form says what a

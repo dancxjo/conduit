@@ -10,6 +10,8 @@ const encoder = new TextEncoder();
 const decoder = new TextDecoder("utf-8", { fatal: true });
 const mounted = new WeakMap();
 const BROWSER_HOST_KEY = Symbol("Conduit BrowserHost");
+const BROWSER_PARTICIPATION_KEY = Symbol("Conduit BrowserBodyParticipation");
+const BROWSER_PREPARATION_KEY = Symbol("Conduit BrowserBodyPreparation");
 import { BrowserForm, birthBrowserBody, recoverBrowserBody, reviewBrowserForms, sdkRefusal, setBrowserSdkErrors } from "./browser-sdk-forms.mjs";
 import { acquireBrowserBodyHost } from "../host/assets/browser-body-host.mjs";
 import { openBrowserApplicationStorage } from "../host/assets/browser-application-storage.mjs";
@@ -95,7 +97,7 @@ export class BrowserHost {
     if (typeof invitation !== "string" || invitation.length < 1 || invitation.length > 2048) {
       throw new TypeError("BrowserHost.participate requires one bounded Body invitation URL");
     }
-    return joinBrowserBody({
+    const membership = await joinBrowserBody({
       bodyUrl: invitation,
       wasmBytes: this.#state.runtimeBytes,
       admittedHost: {
@@ -112,6 +114,10 @@ export class BrowserHost {
       onOfferEvidence,
       renewPresence,
       reconnectPresence,
+    });
+    return new BrowserBodyParticipation(BROWSER_PARTICIPATION_KEY, {
+      host: this.#state,
+      membership,
     });
   }
 
@@ -150,6 +156,137 @@ export class BrowserHost {
       storage: this.#state.storage,
     });
   }
+}
+
+/** Current participation of this SDK Host incarnation in one external Body. */
+export class BrowserBodyParticipation {
+  #state;
+
+  constructor(key, state) {
+    if (key !== BROWSER_PARTICIPATION_KEY) {
+      throw new TypeError("BrowserBodyParticipation values come from BrowserHost.participate()");
+    }
+    this.#state = state;
+    Object.freeze(this);
+  }
+
+  get hostId() { return this.#state.membership.hostId; }
+  get bootId() { return this.#state.membership.bootId; }
+  get advertisement() { return this.#state.membership.advertisement; }
+  membershipCredential() { return this.#state.membership.membershipCredential(); }
+  biographyEvidence() { return this.#state.membership.biographyEvidence(); }
+  offerEvidence() { return this.#state.membership.offerEvidence(); }
+  state() { return this.#state.membership.state(); }
+  presenceState() { return this.#state.membership.presenceState(); }
+  pageLifecycle() { return this.#state.membership.pageLifecycle(); }
+  freshnessProfile() { return this.#state.membership.freshnessProfile(); }
+  requestOfferEvidence(options) { return this.#state.membership.requestOfferEvidence(options); }
+  signalWebRtc(options) { return this.#state.membership.signalWebRtc(options); }
+  requestWebRtcGrant(index, generation = 0) { return this.#state.membership.requestWebRtcGrant(index, generation); }
+  webRtcSessions() { return this.#state.membership.webRtcSessions(); }
+  offerWebRtcValue(identity, bytes) { return this.#state.membership.offerWebRtcValue(identity, bytes); }
+  receiveWebRtcValue(identity) { return this.#state.membership.receiveWebRtcValue(identity); }
+  pressureNextWebRtcValue(identity) { return this.#state.membership.pressureNextWebRtcValue(identity); }
+  deliverWebRtcValue(identity, sequence) { return this.#state.membership.deliverWebRtcValue(identity, sequence); }
+  waitWebRtcValueDelivered(identity, sequence) { return this.#state.membership.waitWebRtcValueDelivered(identity, sequence); }
+  closeWebRtcLine(identity) { return this.#state.membership.closeWebRtcLine(identity); }
+  replanWebRtc() { return this.#state.membership.replanWebRtc(); }
+  publishMediaResource(evidence) { return this.#state.membership.publishMediaResource(evidence); }
+  close() { return this.#state.membership.close(); }
+
+  /** Exact capability identities executable by this SDK Host runtime. */
+  executionCapabilities() {
+    const api = this.#state.host.api;
+    if (api.conduit_browser_body_capabilities() < 0) {
+      throw new Error("external Body execution capabilities unavailable");
+    }
+    const value = this.#state.host.bridge.browserFormReadOutputJson();
+    if (value?.schema !== "conduit.browser/body-capabilities@1"
+        || !Array.isArray(value.capability_ids) || value.capability_ids.length > 112
+        || value.capability_ids.some(identity => typeof identity !== "string"
+          || identity.length < 1 || identity.length > 256)) {
+      throw new Error("invalid external Body execution capabilities");
+    }
+    return Object.freeze([...value.capability_ids]);
+  }
+
+  /** Acquire this page's exact resources for an authority-owned external Body proposal. */
+  prepare({ proposal, inputTarget, outputRoot, foregroundForm, presentationRootFor,
+    onApplicationEvent, onTutorialPresenterRequest, externallyManagedPlanIds = [] } = {}) {
+    const credential = this.membershipCredential();
+    if (this.presenceState() !== "available" || !credential
+        || proposal?.plan?.body_id !== credential.body_id) {
+      throw new Error("current external Body participation does not match the proposal");
+    }
+    const owner = acquireBrowserBodyHost({
+      api: this.#state.host.api,
+      hostId: this.hostId,
+      bootId: this.bootId,
+      proposal,
+      inputTarget,
+      outputRoot,
+      foregroundForm,
+      presentationRootFor,
+      onApplicationEvent,
+      onTutorialPresenterRequest,
+      externallyManagedPlanIds,
+    });
+    return new BrowserBodyPreparation(BROWSER_PREPARATION_KEY, { owner, proposal });
+  }
+}
+
+/** Page resources acquired for one exact external Body proposal, before Play admission. */
+export class BrowserBodyPreparation {
+  #state;
+
+  constructor(key, state) {
+    if (key !== BROWSER_PREPARATION_KEY) {
+      throw new TypeError("BrowserBodyPreparation values come from BrowserBodyParticipation.prepare()");
+    }
+    this.#state = state;
+    Object.freeze(this);
+  }
+
+  observations() { return Object.freeze(this.#state.owner.observations().map(item => Object.freeze({ ...item }))); }
+  evidence() { return this.#state.owner.evidence(); }
+
+  /** Immutable, read-only Plan truth suitable for a workbench Mask. */
+  inspection() {
+    const proposal = this.#state.proposal;
+    return freezeSdkJson({
+      schema: "conduit.browser/body-plan-inspection@1",
+      bodyId: proposal.plan.body_id,
+      wakeId: proposal.wake.wake_id,
+      planId: proposal.plan.plan_id,
+      plan: structuredClone(proposal.plan),
+    });
+  }
+
+  start(playIdentity) {
+    if (!playIdentity || !Number.isSafeInteger(playIdentity.play_sequence)
+        || playIdentity.play_sequence < 1 || playIdentity.plan_id !== this.#state.proposal.plan.plan_id
+        || playIdentity.wake_id !== this.#state.proposal.wake.wake_id
+        || playIdentity.body_id !== this.#state.proposal.plan.body_id) {
+      throw new Error("external Body Play identity does not match the prepared proposal");
+    }
+    const started = this.#state.owner.start(playIdentity.play_sequence);
+    if (Object.keys(playIdentity).some(key => started.play[key] !== playIdentity[key])) {
+      this.#state.owner.close();
+      throw new Error("external Body runtime started a different Play identity");
+    }
+    return Object.freeze({
+      wakeAtStart: Object.freeze(structuredClone(started.wake_at_start)),
+      play: new BrowserPlay(BROWSER_HOST_KEY, { started, adapter: this.#state.owner }),
+    });
+  }
+
+  close() { return this.#state.owner.close(); }
+}
+
+function freezeSdkJson(value) {
+  if (!value || typeof value !== "object" || Object.isFrozen(value)) return value;
+  for (const child of Object.values(value)) freezeSdkJson(child);
+  return Object.freeze(value);
 }
 
 export class BrowserPlay {

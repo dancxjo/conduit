@@ -68,7 +68,8 @@ export class BrowserHost {
   recover(): Promise<BrowserBody | null>;
 }
 
-export interface BrowserBodyParticipation {
+export class BrowserBodyParticipation {
+  private constructor();
   readonly hostId: string;
   readonly bootId: string;
   readonly advertisement: Readonly<Record<string, unknown>>;
@@ -77,8 +78,47 @@ export interface BrowserBodyParticipation {
   offerEvidence(): Readonly<Record<string, unknown>> | null;
   state(): string;
   presenceState(): string;
+  pageLifecycle(): string;
+  freshnessProfile(): Readonly<Record<string, unknown>>;
   requestOfferEvidence(options: { capabilityIds?: readonly string[]; resourcePoolIds?: readonly string[] }): void;
+  signalWebRtc(options: Readonly<Record<string, unknown>>): void;
+  requestWebRtcGrant(index: number, generation?: number): void;
+  webRtcSessions(): Readonly<Record<string, unknown>>;
+  offerWebRtcValue(identity: string, bytes: Uint8Array | readonly number[]): Promise<Readonly<Record<string, unknown>>>;
+  receiveWebRtcValue(identity: string): Promise<unknown>;
+  pressureNextWebRtcValue(identity: string): unknown;
+  deliverWebRtcValue(identity: string, sequence: number): unknown;
+  waitWebRtcValueDelivered(identity: string, sequence: number): Promise<unknown>;
+  closeWebRtcLine(identity: string): unknown;
+  replanWebRtc(): unknown;
+  publishMediaResource(evidence: Readonly<Record<string, unknown>>): Promise<Readonly<Record<string, unknown>>>;
+  executionCapabilities(): readonly string[];
+  prepare(options: {
+    proposal: Readonly<Record<string, unknown>>;
+    inputTarget: Element;
+    outputRoot: Element;
+    externallyManagedPlanIds?: readonly string[];
+  }): BrowserBodyPreparation;
   close(): number;
+}
+
+export class BrowserBodyPreparation {
+  private constructor();
+  observations(): readonly Readonly<Record<string, unknown>>[];
+  evidence(): Readonly<Record<string, unknown>> | null;
+  /** Immutable exact Plan truth for read-only workbench Masks. */
+  inspection(): Readonly<{
+    schema: "conduit.browser/body-plan-inspection@1";
+    bodyId: string;
+    wakeId: string;
+    planId: string;
+    plan: Readonly<Record<string, unknown>>;
+  }>;
+  start(playIdentity: Readonly<Record<string, unknown>>): {
+    readonly wakeAtStart: Readonly<Record<string, unknown>>;
+    readonly play: BrowserPlay;
+  };
+  close(): Readonly<Record<string, unknown>> | undefined;
 }
 
 export interface FormDiagnostic {
