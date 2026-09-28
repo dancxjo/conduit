@@ -33,9 +33,14 @@ fn main() {
             .map_err(|error| Box::new(error) as Box<dyn std::error::Error>),
         Command::Integrate => commands::integrate::run(&opts),
         Command::Ci(args) => commands::ci::run(args),
-        Command::Prove(args) => commands::prove::run(*args, &opts)
-            .map_err(|error| Box::new(error) as Box<dyn std::error::Error>),
-        Command::Proofs(args) => commands::proofs::run(args, opts.json),
+        Command::Prove(args) => {
+            if args.list || args.verify_record.is_some() || args.run_obligation {
+                commands::proofs::run(&args, opts.json)
+            } else {
+                commands::prove::run(*args, &opts)
+                    .map_err(|error| Box::new(error) as Box<dyn std::error::Error>)
+            }
+        }
         Command::Evidence(args) => commands::evidence::run(args),
         Command::Forms(args) => commands::forms::run(args, &opts)
             .map_err(|error| Box::new(std::io::Error::other(error)) as Box<dyn std::error::Error>),

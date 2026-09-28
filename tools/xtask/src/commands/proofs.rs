@@ -1,13 +1,13 @@
 use crate::{
-    cli::ProofsArgs,
+    cli::ProveArgs,
     proof::{current_catalog, ProofRecord, ProofRequirement, CURRENT_PROOF_COMMANDS},
 };
 
-pub fn run(args: ProofsArgs, json: bool) -> Result<(), Box<dyn std::error::Error>> {
+pub fn run(args: &ProveArgs, json: bool) -> Result<(), Box<dyn std::error::Error>> {
     if args.run_obligation {
         return run_obligation_command(args, json);
     }
-    if let Some(path) = args.validate_record {
+    if let Some(path) = &args.verify_record {
         let record: ProofRecord = serde_json::from_str(&std::fs::read_to_string(path)?)?;
         let contract = CURRENT_PROOF_COMMANDS
             .iter()
@@ -52,7 +52,7 @@ pub fn run(args: ProofsArgs, json: bool) -> Result<(), Box<dyn std::error::Error
     Ok(())
 }
 
-fn run_obligation_command(args: ProofsArgs, json: bool) -> Result<(), Box<dyn std::error::Error>> {
+fn run_obligation_command(args: &ProveArgs, json: bool) -> Result<(), Box<dyn std::error::Error>> {
     let commit = std::process::Command::new("git")
         .args(["rev-parse", "HEAD"])
         .output()?;
@@ -64,6 +64,7 @@ fn run_obligation_command(args: ProofsArgs, json: bool) -> Result<(), Box<dyn st
     );
     let prior = args
         .resume
+        .as_ref()
         .map(std::fs::read_to_string)
         .transpose()?
         .map(|value| serde_json::from_str(&value))
@@ -71,7 +72,7 @@ fn run_obligation_command(args: ProofsArgs, json: bool) -> Result<(), Box<dyn st
     let record =
         crate::obligation::run_obligation(basis, prior, args.interrupt_after_checkpoint, || {
             std::process::Command::new(std::env::current_exe().expect("current xtask executable"))
-                .args(["--json", "proofs"])
+                .args(["--json", "prove", "--list"])
                 .output()
                 .is_ok_and(|output| {
                     output.status.success()
@@ -85,7 +86,7 @@ fn run_obligation_command(args: ProofsArgs, json: bool) -> Result<(), Box<dyn st
         })
         .map_err(|refusal| format!("obligation refused: {refusal:?}"))?;
     let encoded = serde_json::to_string_pretty(&record)?;
-    if let Some(path) = args.obligation_record {
+    if let Some(path) = &args.obligation_record {
         std::fs::write(path, format!("{encoded}\n"))?;
     }
     if json {

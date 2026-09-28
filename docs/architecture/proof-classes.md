@@ -3,7 +3,7 @@
 Conduit proof records use schema version 1 and exactly the vocabulary emitted by:
 
 ```text
-cargo xtask --json proofs
+cargo xtask --json prove --list
 ```
 
 The checked contract lives in `tools/xtask/src/proof.rs`. It distinguishes contract

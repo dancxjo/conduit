@@ -16,15 +16,21 @@ use crate::{
 };
 
 pub fn run(args: ProveArgs, opts: &GlobalOpts) -> Result<(), StepError> {
+    let proof = args.proof.ok_or_else(|| {
+        StepError::prereq(
+            "prove.target",
+            "name a proof target, or use `cargo xtask prove --list`",
+        )
+    })?;
     let root = workspace_root().map_err(|error| StepError::prereq("workspace-root", error))?;
-    if args.live_receipt.is_some() && args.proof != ProveTarget::LocalModelPool {
+    if args.live_receipt.is_some() && proof != ProveTarget::LocalModelPool {
         return Err(StepError::prereq(
             "prove.live-receipt",
             "--live-receipt is valid only for prove local-model-pool",
         ));
     }
 
-    match args.proof {
+    match proof {
         ProveTarget::BluetoothLine => crate::commands::bluetooth::run(&args, &root, opts),
         ProveTarget::BluetoothPico => crate::commands::bluetooth::run_pico(&args, &root, opts),
         ProveTarget::BodyMembership => run_suite(PROVE_BODY_MEMBERSHIP_STEPS, &root, opts),

@@ -65,8 +65,6 @@ pub enum Command {
     Ci(CiArgs),
     /// Execute platform and protocol proof suites.
     Prove(Box<ProveArgs>),
-    /// Print the versioned machine-readable proof command contract.
-    Proofs(ProofsArgs),
     /// Verify bounded proof evidence before transport or review.
     Evidence(EvidenceArgs),
     /// Check and report the explicit reviewed form inventory.
@@ -120,7 +118,31 @@ pub struct PaletteIconsArgs {
 #[derive(Args, Debug)]
 pub struct ProveArgs {
     /// Which proof suite to execute.
-    pub proof: ProveTarget,
+    pub proof: Option<ProveTarget>,
+
+    /// List the versioned proof command contract instead of executing a proof.
+    #[arg(long, conflicts_with_all = ["proof", "verify_record", "run_obligation"])]
+    pub list: bool,
+
+    /// Validate one JSON proof record against its exact registered command contract.
+    #[arg(long, conflicts_with_all = ["proof", "list", "run_obligation"])]
+    pub verify_record: Option<std::path::PathBuf>,
+
+    /// Run the one pinned finite proof-catalog validation obligation.
+    #[arg(long, conflicts_with_all = ["proof", "list", "verify_record"])]
+    pub run_obligation: bool,
+
+    /// Stop after emitting the reviewed checkpoint and residual obligation.
+    #[arg(long, requires = "run_obligation")]
+    pub interrupt_after_checkpoint: bool,
+
+    /// Resume from one bounded checkpoint JSON file.
+    #[arg(long, requires = "run_obligation")]
+    pub resume: Option<std::path::PathBuf>,
+
+    /// Write the checkpoint or terminal obligation record as bounded JSON.
+    #[arg(long, requires = "run_obligation")]
+    pub obligation_record: Option<std::path::PathBuf>,
 
     /// Override the bounded evidence root for proofs that declare evidence outputs.
     #[arg(long)]
@@ -248,29 +270,6 @@ pub struct ProveArgs {
 pub enum BluetoothProofRole {
     Source,
     Sink,
-}
-
-#[derive(Args, Debug)]
-pub struct ProofsArgs {
-    /// Validate one JSON proof record against its exact registered command contract.
-    #[arg(long)]
-    pub validate_record: Option<std::path::PathBuf>,
-
-    /// Run the one pinned finite proof-catalog validation obligation.
-    #[arg(long)]
-    pub run_obligation: bool,
-
-    /// Stop after emitting the reviewed checkpoint and residual obligation.
-    #[arg(long, requires = "run_obligation")]
-    pub interrupt_after_checkpoint: bool,
-
-    /// Resume from one bounded checkpoint JSON file.
-    #[arg(long, requires = "run_obligation")]
-    pub resume: Option<std::path::PathBuf>,
-
-    /// Write the checkpoint or terminal obligation record as bounded JSON.
-    #[arg(long, requires = "run_obligation")]
-    pub obligation_record: Option<std::path::PathBuf>,
 }
 
 #[derive(ValueEnum, Debug, Clone, Copy, PartialEq, Eq)]
@@ -572,7 +571,7 @@ mod tests {
         .expect("calendar live proof command parses");
         assert!(matches!(
             calendar.command,
-            Command::Prove(args) if args.proof == ProveTarget::CalendarGoogle
+            Command::Prove(args) if args.proof == Some(ProveTarget::CalendarGoogle)
         ));
 
         let messaging = Cli::try_parse_from([
@@ -587,7 +586,7 @@ mod tests {
         .expect("GitHub messaging live proof command parses");
         assert!(matches!(
             messaging.command,
-            Command::Prove(args) if args.proof == ProveTarget::MessagingGithub
+            Command::Prove(args) if args.proof == Some(ProveTarget::MessagingGithub)
         ));
 
         let planning_advice = Cli::try_parse_from([
@@ -602,7 +601,7 @@ mod tests {
         .expect("live Ollama planning-advice command parses");
         assert!(matches!(
             planning_advice.command,
-            Command::Prove(args) if args.proof == ProveTarget::LlmPlanningAdvice
+            Command::Prove(args) if args.proof == Some(ProveTarget::LlmPlanningAdvice)
         ));
 
         let embodiment = Cli::try_parse_from([
@@ -617,14 +616,14 @@ mod tests {
         .expect("live Ollama embodiment command parses");
         assert!(matches!(
             embodiment.command,
-            Command::Prove(args) if args.proof == ProveTarget::LlmEmbodiment
+            Command::Prove(args) if args.proof == Some(ProveTarget::LlmEmbodiment)
         ));
 
         let cross_host = Cli::try_parse_from(["xtask", "prove", "llm-cross-host"])
             .expect("cross-host LLM proof command parses");
         assert!(matches!(
             cross_host.command,
-            Command::Prove(args) if args.proof == ProveTarget::LlmCrossHost
+            Command::Prove(args) if args.proof == Some(ProveTarget::LlmCrossHost)
         ));
 
         let local_model_pool = Cli::try_parse_from([
@@ -637,7 +636,7 @@ mod tests {
         .expect("local-model pool proof command parses");
         assert!(matches!(
             local_model_pool.command,
-            Command::Prove(args) if args.proof == ProveTarget::LocalModelPool
+            Command::Prove(args) if args.proof == Some(ProveTarget::LocalModelPool)
                 && args.live_receipt.as_deref() == Some(std::path::Path::new("live.json"))
         ));
 
@@ -645,21 +644,21 @@ mod tests {
             .expect("degraded-profile proof command parses");
         assert!(matches!(
             degraded.command,
-            Command::Prove(args) if args.proof == ProveTarget::DegradedProfiles
+            Command::Prove(args) if args.proof == Some(ProveTarget::DegradedProfiles)
         ));
 
         let diversity =
             Cli::try_parse_from(["xtask", "prove", "diversity"]).expect("diversity proof parses");
         assert!(matches!(
             diversity.command,
-            Command::Prove(args) if args.proof == ProveTarget::Diversity
+            Command::Prove(args) if args.proof == Some(ProveTarget::Diversity)
         ));
 
         let dormant = Cli::try_parse_from(["xtask", "prove", "dormant-readmission"])
             .expect("dormant-readmission proof parses");
         assert!(matches!(
             dormant.command,
-            Command::Prove(args) if args.proof == ProveTarget::DormantReadmission
+            Command::Prove(args) if args.proof == Some(ProveTarget::DormantReadmission)
         ));
 
         let capture_restart = Cli::try_parse_from([
@@ -686,10 +685,14 @@ mod tests {
             Command::Prove(args) if args.induce_pre_capture_failure
         ));
 
-        let proofs = Cli::try_parse_from(["xtask", "--json", "proofs"])
+        let proofs = Cli::try_parse_from(["xtask", "--json", "prove", "--list"])
             .expect("proof catalog command parses");
         assert!(proofs.global.json);
-        assert!(matches!(proofs.command, Command::Proofs(_)));
+        assert!(matches!(
+            proofs.command,
+            Command::Prove(args) if args.list && args.proof.is_none()
+        ));
+        assert!(Cli::try_parse_from(["xtask", "proofs"]).is_err());
 
         let docs =
             Cli::try_parse_from(["xtask", "evidence", "docs-verify", "--workspace-root", "."])
