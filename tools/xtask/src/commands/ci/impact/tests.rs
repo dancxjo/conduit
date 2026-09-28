@@ -320,6 +320,64 @@ fn registered_form_commands_do_not_fabricate_unrelated_machines() {
 }
 
 #[test]
+fn canonical_form_sources_retain_repository_form_proof() {
+    let root = crate::workspace::workspace_root().unwrap();
+    let packages = discover(&root).unwrap();
+
+    for path in [
+        "forms/hello/main.conduit",
+        "forms/not-yet-inventory/main.conduit",
+    ] {
+        let plan = plan_for_paths(&root, vec![path.to_owned()], &packages).unwrap();
+        assert_eq!(
+            plan.repository_command_proofs,
+            ["repository.forms"],
+            "{path}"
+        );
+        assert!(!plan.full_fallback, "{path}");
+        assert!(plan.browser_required, "{path}");
+        assert_eq!(plan.changed_packages, ["xtask"], "{path}");
+    }
+}
+
+#[test]
+fn form_fixture_code_uses_cargo_package_impact() {
+    let root = crate::workspace::workspace_root().unwrap();
+    let packages = discover(&root).unwrap();
+
+    for (path, browser_required) in [
+        ("forms/little-seismograph/fixture/Cargo.toml", true),
+        ("forms/little-seismograph/fixture/src/lib.rs", true),
+        (
+            "forms/little-seismograph/fixture/tests/little_seismograph.rs",
+            false,
+        ),
+    ] {
+        let plan = plan_for_paths(&root, vec![path.to_owned()], &packages).unwrap();
+        assert!(plan.repository_command_proofs.is_empty(), "{path}");
+        assert!(!plan.full_fallback, "{path}");
+        assert_eq!(plan.browser_required, browser_required, "{path}");
+        assert_eq!(
+            plan.changed_packages,
+            ["conduit-little-seismograph-fixture"],
+            "{path}"
+        );
+        if browser_required {
+            assert_eq!(
+                plan.suite_reasons["browser"],
+                ["package-dependency:conduit-little-seismograph-fixture"],
+                "{path}"
+            );
+        } else {
+            assert!(plan.suite_reasons["browser"].is_empty(), "{path}");
+        }
+        assert!(plan.workspace_shards["lint"], "{path}");
+        assert!(plan.workspace_shards["test-hosts"], "{path}");
+        assert!(plan.workspace_shards["test-products"], "{path}");
+    }
+}
+
+#[test]
 fn complete_tongues_analysis_slice_avoids_unrelated_machine_fabrication() {
     let root = crate::workspace::workspace_root().unwrap();
     let packages = discover(&root).unwrap();
