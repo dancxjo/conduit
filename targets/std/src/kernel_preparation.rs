@@ -451,6 +451,7 @@ fn validate_exact_profile(
             });
         if capability.kind_id != placement.kind_id
             || capability.kind_contract_revision != placement.kind_contract_revision
+            || capability.semantic_contract != placement.semantic_contract
             || capability.implementation.execution_profile_id != placement.execution_profile_id
             || capability.implementation.implementation_id != placement.implementation_id
             || capability.implementation.artifact_id != placement.artifact_id
@@ -500,7 +501,8 @@ mod tests {
     use super::KernelResourceLedger;
     use crate::kernel_multivalue::{advertisement, plan_local, profile_catalog};
     use conduit_core::{
-        seal_plan, BootId, FormIdentity, HostId, ImplementationId, OfferGeneration, ResourcePoolId,
+        seal_plan, BootId, ExternalEffectBehavior, FormIdentity, HostId, ImplementationId,
+        KindSemanticLaw, OfferGeneration, ResourcePoolId,
     };
     use conduit_form::parse;
 
@@ -552,6 +554,16 @@ mod tests {
         let error = ledger
             .prepare_and_reserve(&host, &wrong_implementation.fragments[0])
             .expect_err("resealed implementation lie must fail before reservation");
+        assert!(error.contains("installed exact capability"), "{error}");
+
+        let mut wrong_semantics = fragment.clone();
+        wrong_semantics.placements[0].semantic_contract.laws.push(
+            KindSemanticLaw::ExternalEffects(ExternalEffectBehavior::Observable),
+        );
+        let wrong_semantics = seal_plan(identity.clone(), vec![wrong_semantics]);
+        let error = ledger
+            .prepare_and_reserve(&host, &wrong_semantics.fragments[0])
+            .expect_err("resealed semantic-contract lie must fail before reservation");
         assert!(error.contains("installed exact capability"), "{error}");
 
         let mut wrong_pool = fragment.clone();
