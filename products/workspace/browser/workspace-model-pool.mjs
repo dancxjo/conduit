@@ -40,9 +40,9 @@ export function prepareWorkspaceModelPool({
       capability?.capability_id === realization.capability_id
         && capability.implementation_id === realization.implementation_id
         && capability.artifact_id === realization.artifact_id) ?? [];
-    if (offered.length !== 1 || offered[0].kind_id !== "ai/generate-text"
-      || offered[0].kind_contract_revision !== "conduit.ai/generate-text@1") {
-      throw new Error("planned model realization lacks one exact ai/generate-text front/back");
+    if (offered.length !== 1 || offered[0].kind_id !== "llm/generate"
+      || offered[0].kind_contract_revision !== "conduit.llm/generate@1") {
+      throw new Error("planned model realization lacks one exact llm/generate front/back");
     }
     capabilities.push(offered[0]);
     return matches[0];

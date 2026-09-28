@@ -222,7 +222,7 @@ pub const PROVE_LLM_CROSS_HOST_STEPS: &[Step] = &[
 pub const PROVE_LOCAL_MODEL_POOL_STEPS: &[Step] = &[
     Step::typed(
         "prove.local-model-pool.plan-play",
-        "Prove two exact ai/generate-text Hosts use bounded in-Plan selection, refusal, and fresh replanning truth",
+        "Prove two exact llm/generate Hosts use bounded in-Plan selection, refusal, and fresh replanning truth",
         "cargo",
         &["test", "-p", "conduit-planner", "--test", "local_model_pool"],
         None,
