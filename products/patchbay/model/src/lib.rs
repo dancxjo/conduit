@@ -99,7 +99,8 @@ mod presentation_layout;
 mod prewake;
 pub mod proof;
 mod readable_body_history;
-mod recursive_form_projection;
+#[cfg(test)]
+mod recursive_form_projection_tests;
 mod recursive_recovery_explanation;
 mod renderer_conformance;
 mod renderer_execution;
@@ -272,6 +273,9 @@ pub use palette::{
 };
 pub use parts_view::*;
 pub use patchbay_backs::*;
+pub use patchbay_graph::{
+    project_recursive_form_gear, RecursiveFormGearProjection, RecursiveFormProjectionError,
+};
 pub use patchbay_graph::{FaceControl, FaceControlKind, FaceInteraction, MAX_FACE_CONTROLS};
 pub use patchbay_graph::{
     PatchbayComposition, PatchbayCompositionBinding, PatchbayConnectionCandidate, PatchbayCord,
@@ -307,9 +311,6 @@ pub use readable_body_history::{
     BodyHistoryManifestation, BodyHistoryMoment, ReadableArchivedBodyHistory, ReadableBodyHistory,
     ReadableBodyHistoryError, ReadableBodyHistorySlot, MAX_BODY_HISTORY_LINEAR_BYTES,
     MAX_BODY_HISTORY_TITLE_BYTES,
-};
-pub use recursive_form_projection::{
-    project_recursive_form_gear, RecursiveFormGearProjection, RecursiveFormProjectionError,
 };
 pub use recursive_recovery_explanation::{
     explain_recursive_recovery, RecursiveRecoveryExplanation, RecursiveRecoveryExplanationError,
