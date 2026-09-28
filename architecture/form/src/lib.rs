@@ -65,6 +65,7 @@ pub use value_pattern::*;
 
 pub const MAXIMUM_FORM_SOURCE_BYTES: usize = 1024 * 1024;
 pub const MAXIMUM_FORM_TOKENS: usize = 131_072;
+pub const MAXIMUM_USE_DECLARATIONS: usize = 256;
 pub const MAXIMUM_FORM_NESTING_DEPTH: usize = 16;
 
 /// Exact UTF-8 byte extent plus one-based source locations.

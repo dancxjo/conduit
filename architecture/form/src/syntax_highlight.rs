@@ -177,7 +177,9 @@ fn punctuation(text: &str) -> Option<(usize, SyntaxHighlightKind)> {
 
 fn classify_word(word: &str) -> SyntaxHighlightKind {
     match word {
-        "form" | "host" | "body" | "pool" => SyntaxHighlightKind::Keyword,
+        "form" | "host" | "body" | "pool" | "use" | "as" | "without" | "glyphs" => {
+            SyntaxHighlightKind::Keyword
+        }
         "true" | "false" => SyntaxHighlightKind::Literal,
         _ if word.parse::<i128>().is_ok() || word.parse::<u128>().is_ok() => {
             SyntaxHighlightKind::Number
@@ -213,6 +215,20 @@ mod tests {
     use super::*;
     use crate::{parse_syntax_document, MAXIMUM_FORM_TOKENS};
     use alloc::{string::String, vec};
+
+    #[test]
+    fn use_and_glyph_header_words_are_language_keywords() {
+        let source = "without glyphs\nuse text/upper as loud\nform example {\n}\n";
+        let spans = highlight_syntax(source).unwrap();
+        let pieces = spans
+            .iter()
+            .map(|span| (span.kind, &source[span.start..span.end]))
+            .collect::<Vec<_>>();
+        for keyword in ["without", "glyphs", "use", "as", "form"] {
+            assert!(pieces.contains(&(SyntaxHighlightKind::Keyword, keyword)));
+        }
+        assert!(pieces.contains(&(SyntaxHighlightKind::Identity, "text/upper")));
+    }
 
     fn pieces<'a>(
         source: &'a str,

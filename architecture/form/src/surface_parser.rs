@@ -7,10 +7,11 @@ use crate::syntax::{
     Argument, BackStatement, ConstructionRole, ConstructionSyntax, Cord, CordStage, Expression,
     FormCompletionPolicy, FormFront, FormSyntax, Invocation, LocalValue, MatchedRoute,
     MatchedRouteArm, MatchedRoutePattern, NamedGear, RetainedDuration, RetainedValue,
-    RuntimePortTemporal, SpannedText, SyntaxDocument,
+    RuntimePortTemporal, SpannedText, SyntaxDocument, UseDeclaration,
 };
 use crate::{
     diagnostic, eof_span, tokenize_losslessly, FormError, Span, MAXIMUM_FORM_SOURCE_BYTES,
+    MAXIMUM_USE_DECLARATIONS,
 };
 
 mod construction;
@@ -26,6 +27,8 @@ pub(crate) fn parse_surface(source: &str) -> SyntaxDocument {
             String::new(),
             Vec::new(),
             Vec::new(),
+            true,
+            Vec::new(),
             Vec::new(),
             vec![diagnostic(
                 FormError::SourceLimitExceeded,
@@ -40,18 +43,28 @@ pub(crate) fn parse_surface(source: &str) -> SyntaxDocument {
                 source.to_string(),
                 Vec::new(),
                 Vec::new(),
+                true,
+                Vec::new(),
                 Vec::new(),
                 vec![diagnostic(FormError::TokenLimitExceeded, span)],
             );
         }
     };
     match Parser::new(source).parse_document() {
-        Ok((forms, constructions)) => {
-            SyntaxDocument::new(source.to_string(), tokens, forms, constructions, Vec::new())
-        }
+        Ok(parsed) => SyntaxDocument::new(
+            source.to_string(),
+            tokens,
+            parsed.uses,
+            parsed.standard_glyphs,
+            parsed.forms,
+            parsed.constructions,
+            Vec::new(),
+        ),
         Err((error, span)) => SyntaxDocument::new(
             source.to_string(),
             tokens,
+            Vec::new(),
+            true,
             Vec::new(),
             Vec::new(),
             vec![diagnostic(error, span)],
@@ -63,6 +76,13 @@ struct Parser<'a> {
     source: &'a str,
     lines: Vec<SourceLine<'a>>,
     index: usize,
+}
+
+struct ParsedSurface {
+    uses: Vec<UseDeclaration>,
+    standard_glyphs: bool,
+    forms: Vec<FormSyntax>,
+    constructions: Vec<ConstructionSyntax>,
 }
 
 impl<'a> Parser<'a> {
@@ -84,12 +104,41 @@ impl<'a> Parser<'a> {
         }
     }
 
-    fn parse_document(
-        mut self,
-    ) -> Result<(Vec<FormSyntax>, Vec<ConstructionSyntax>), (FormError, Span)> {
+    fn parse_document(mut self) -> Result<ParsedSurface, (FormError, Span)> {
+        let mut uses = Vec::new();
+        let mut standard_glyphs = true;
         let mut forms = Vec::new();
         let mut constructions = Vec::new();
         self.skip_empty();
+        while self.index < self.lines.len() {
+            let (text, start) = self.lines[self.index].statement();
+            if text == "without glyphs" {
+                if !standard_glyphs {
+                    return Err((
+                        FormError::InvalidSyntax("duplicate 'without glyphs' header".into()),
+                        self.line_span(self.lines[self.index]),
+                    ));
+                }
+                standard_glyphs = false;
+                self.index += 1;
+                self.skip_empty();
+                continue;
+            }
+            let Some(import) = text.strip_prefix("use ") else {
+                break;
+            };
+            uses.extend(self.parse_use(import, text, start)?);
+            if uses.len() > MAXIMUM_USE_DECLARATIONS {
+                return Err((
+                    FormError::InvalidSyntax(alloc::format!(
+                        "source exceeds the {MAXIMUM_USE_DECLARATIONS}-use bound"
+                    )),
+                    self.line_span(self.lines[self.index]),
+                ));
+            }
+            self.index += 1;
+            self.skip_empty();
+        }
         while self.index < self.lines.len() {
             let (text, _) = self.lines[self.index].statement();
             if text.starts_with("form ") {
@@ -119,7 +168,69 @@ impl<'a> Parser<'a> {
         if forms.is_empty() && constructions.is_empty() {
             return Err((FormError::IncompleteForm, eof_span(self.source)));
         }
-        Ok((forms, constructions))
+        Ok(ParsedSurface {
+            uses,
+            standard_glyphs,
+            forms,
+            constructions,
+        })
+    }
+
+    fn parse_use(
+        &self,
+        import: &str,
+        line: &str,
+        start: usize,
+    ) -> Result<Vec<UseDeclaration>, (FormError, Span)> {
+        let import = import.trim();
+        if import.is_empty() {
+            return Err(self.invalid_statement(line, start));
+        }
+        if let Some(open) = import.find("/{") {
+            let prefix = &import[..open];
+            let members = import[open + 2..].strip_suffix('}').ok_or_else(|| {
+                (
+                    FormError::InvalidSyntax("grouped use requires a final '}'".into()),
+                    self.line_span(self.lines[self.index]),
+                )
+            })?;
+            if !is_operation(prefix) || members.trim().is_empty() {
+                return Err(self.invalid_statement(line, start));
+            }
+            let mut declarations = Vec::new();
+            for member in split_top_level(members, ',') {
+                let member = member.trim();
+                if !is_name(member) {
+                    return Err(self.invalid_statement(line, start));
+                }
+                let path = alloc::format!("{prefix}/{member}");
+                let member_offset = start + line.find(member).unwrap_or(0);
+                declarations.push(UseDeclaration {
+                    path,
+                    path_span: self.span(member_offset, member_offset + member.len()),
+                    alias: self.spanned(member, member_offset),
+                    span: self.line_span(self.lines[self.index]),
+                });
+            }
+            return Ok(declarations);
+        }
+        let (path, alias) = import
+            .split_once(" as ")
+            .map_or((import, None), |(path, alias)| {
+                (path.trim(), Some(alias.trim()))
+            });
+        if !is_operation(path) || alias.is_some_and(|alias| !is_name(alias)) {
+            return Err(self.invalid_statement(line, start));
+        }
+        let alias = alias.unwrap_or_else(|| path.rsplit('/').next().unwrap_or(path));
+        let path_offset = start + line.find(path).unwrap_or(0);
+        let alias_offset = start + line.rfind(alias).unwrap_or(0);
+        Ok(vec![UseDeclaration {
+            path: path.to_string(),
+            path_span: self.span(path_offset, path_offset + path.len()),
+            alias: self.spanned(alias, alias_offset),
+            span: self.line_span(self.lines[self.index]),
+        }])
     }
 
     fn parse_form(&mut self) -> Result<FormSyntax, (FormError, Span)> {

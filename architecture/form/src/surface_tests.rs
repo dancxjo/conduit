@@ -23,6 +23,38 @@ fn forms_are_live_by_default_and_completion_is_explicit() {
 }
 
 #[test]
+fn use_headers_and_glyph_opt_out_are_lossless_document_structure() {
+    let source = "without glyphs\nuse time/every as cadence\nuse math/geometry/{vector2, matrix2}\n\nform example {\n    tick: cadence(1s)\n}\n";
+    let document = parse_syntax_document(source);
+    assert!(
+        document.diagnostics.is_empty(),
+        "{:?}",
+        document.diagnostics
+    );
+    assert!(!document.standard_glyphs);
+    assert_eq!(document.uses.len(), 3);
+    assert_eq!(document.uses[0].path, "time/every");
+    assert_eq!(document.uses[0].alias.text, "cadence");
+    assert_eq!(document.uses[1].path, "math/geometry/vector2");
+    assert_eq!(document.uses[1].alias.text, "vector2");
+    assert_eq!(document.uses[2].path, "math/geometry/matrix2");
+    assert_eq!(document.uses[2].alias.text, "matrix2");
+    assert_eq!(document.round_trip(), source);
+}
+
+#[test]
+fn authored_uses_have_one_explicit_finite_document_bound() {
+    let mut source = alloc::string::String::new();
+    for index in 0..=crate::MAXIMUM_USE_DECLARATIONS {
+        source.push_str(&alloc::format!("use test/kind-{index}\n"));
+    }
+    source.push_str("form example {\n}\n");
+    let document = parse_syntax_document(&source);
+    assert!(document.forms().is_err());
+    assert!(document.diagnostics[0].message.contains("use bound"));
+}
+
+#[test]
 fn freestanding_completion_full_stop_is_rejected() {
     let document = parse_syntax_document("form invalid {\n    .\n}\n");
     assert_eq!(document.diagnostics.len(), 1);
