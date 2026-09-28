@@ -317,6 +317,7 @@ pub struct SpeechRecognitionExecutionReceipt {
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct StdKernelExecutionReport {
+    pub active_play: conduit_core::ActivePlayIdentity,
     pub active_play_id: conduit_core::ActivePlayId,
     pub decisions: u32,
     pub kernel_events: u16,

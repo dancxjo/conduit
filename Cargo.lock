@@ -1109,6 +1109,7 @@ dependencies = [
  "conduit-signal",
  "conduit-signal-conformance",
  "serde",
+ "serde_json",
 ]
 
 [[package]]

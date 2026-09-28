@@ -3655,7 +3655,8 @@ pub(super) fn run_fragment_retaining<W: Write, T: TimerAdapter>(
             .collect(),
         external_fore_deliveries,
         kernel: Some(StdKernelExecutionReport {
-            active_play_id: active_play.active_play_id,
+            active_play_id: active_play.active_play_id.clone(),
+            active_play,
             decisions: scheduler.decisions(),
             kernel_events: scheduler.signs().len(),
             kernel_sign: scheduler.signs().events().collect(),
