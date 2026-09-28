@@ -1201,10 +1201,48 @@ fn verify_fragment_fore_ports(fragment: &PlanFragment) -> bool {
                         }
                         .iter()
                         .any(|port| {
-                            port.port_id == boundary.gear_port_id
-                                && port.value_kind == boundary.value_kind
-                                && port.abnormal_kind == boundary.abnormal_kind
-                                && port.temporal == boundary.temporal
+                            if port.port_id != boundary.gear_port_id {
+                                return false;
+                            }
+                            let port_contract_matches = match boundary.track {
+                                ConnectionTrack::Payload => {
+                                    port.value_kind == boundary.value_kind
+                                        && port.abnormal_kind == boundary.abnormal_kind
+                                        && port.temporal == boundary.temporal
+                                }
+                                ConnectionTrack::AbnormalTerminal => {
+                                    port.abnormal_kind.as_ref() == Some(&boundary.value_kind)
+                                        && boundary.temporal == PortTemporal::Value
+                                }
+                                ConnectionTrack::NormalClose => {
+                                    port.temporal == (PortTemporal::Flow { closes: true })
+                                        && boundary.value_kind.as_str() == UNIT_INFO_ID
+                                        && boundary.temporal == PortTemporal::Value
+                                }
+                            };
+                            if !port_contract_matches {
+                                return false;
+                            }
+                            let location = match (boundary.direction, boundary.track) {
+                                (PortDirection::Input, ConnectionTrack::AbnormalTerminal) => {
+                                    FrontValueLocation::InputAbnormal(port.port_id.clone())
+                                }
+                                (PortDirection::Output, ConnectionTrack::AbnormalTerminal) => {
+                                    FrontValueLocation::OutputAbnormal(port.port_id.clone())
+                                }
+                                (PortDirection::Input, _) => {
+                                    FrontValueLocation::Input(port.port_id.clone())
+                                }
+                                (PortDirection::Output, _) => {
+                                    FrontValueLocation::Output(port.port_id.clone())
+                                }
+                            };
+                            let internal_contract = placement
+                                .checked_port_front()
+                                .value_contract(&location)
+                                .cloned();
+                            boundary.track == ConnectionTrack::NormalClose
+                                || internal_contract == boundary.value_contract
                         })
                 })
         })

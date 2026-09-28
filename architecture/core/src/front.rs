@@ -11,6 +11,10 @@ pub enum FrontValueLocation {
     Startup(String),
     Input(PortId),
     Output(PortId),
+    /// Value carried by one input endpoint's abnormal (`!`) track.
+    InputAbnormal(PortId),
+    /// Value carried by one output endpoint's abnormal (`!`) track.
+    OutputAbnormal(PortId),
 }
 
 /// Semantic value envelope. This constrains info; it does not promise
@@ -75,6 +79,19 @@ impl CheckedFront {
                     .expect("canonical default value contract is finite"),
                 });
             }
+            if let Some(abnormal_kind) = &port.abnormal_kind {
+                if let Some(maximum_bytes) = default_maximum_bytes(abnormal_kind) {
+                    value_contracts.push(FrontValueContract {
+                        location: FrontValueLocation::InputAbnormal(port.port_id.clone()),
+                        contract: CheckedValueContract::new(
+                            abnormal_kind.clone(),
+                            maximum_bytes as u32,
+                            Vec::new(),
+                        )
+                        .expect("canonical default abnormal value contract is finite"),
+                    });
+                }
+            }
         }
         for port in &outputs {
             if let Some(maximum_bytes) = default_maximum_bytes(&port.value_kind) {
@@ -87,6 +104,19 @@ impl CheckedFront {
                     )
                     .expect("canonical default value contract is finite"),
                 });
+            }
+            if let Some(abnormal_kind) = &port.abnormal_kind {
+                if let Some(maximum_bytes) = default_maximum_bytes(abnormal_kind) {
+                    value_contracts.push(FrontValueContract {
+                        location: FrontValueLocation::OutputAbnormal(port.port_id.clone()),
+                        contract: CheckedValueContract::new(
+                            abnormal_kind.clone(),
+                            maximum_bytes as u32,
+                            Vec::new(),
+                        )
+                        .expect("canonical default abnormal value contract is finite"),
+                    });
+                }
             }
         }
         value_contracts.sort();
@@ -220,6 +250,71 @@ mod tests {
                         .unwrap(),
                 },
             ]
+        );
+    }
+
+    #[test]
+    fn abnormal_tracks_receive_independent_canonical_finite_envelopes() {
+        let port = |id: &str, direction| PortDescriptor {
+            port_id: PortId::from(id),
+            value_kind: KindId::from("value/bytes"),
+            direction,
+            temporal: crate::PortTemporal::Flow { closes: true },
+            abnormal_kind: Some(KindId::from("value/text")),
+        };
+        let front = CheckedFront::new(
+            Vec::new(),
+            vec![port("work", crate::PortDirection::Input)],
+            vec![port("result", crate::PortDirection::Output)],
+            None,
+        );
+
+        let at = |location| {
+            front
+                .value_contract(&location)
+                .expect("canonical variable-sized contract")
+                .maximum_bytes
+        };
+        assert_eq!(at(FrontValueLocation::Input(PortId::from("work"))), 65_536);
+        assert_eq!(
+            at(FrontValueLocation::InputAbnormal(PortId::from("work"))),
+            256
+        );
+        assert_eq!(
+            at(FrontValueLocation::Output(PortId::from("result"))),
+            65_536
+        );
+        assert_eq!(
+            at(FrontValueLocation::OutputAbnormal(PortId::from("result"))),
+            256
+        );
+    }
+
+    #[test]
+    fn abnormal_contract_changes_exact_fore_identity_without_changing_payload() {
+        let output = PortDescriptor {
+            port_id: PortId::from("work"),
+            value_kind: KindId::from("value/bytes"),
+            direction: crate::PortDirection::Output,
+            temporal: crate::PortTemporal::Flow { closes: true },
+            abnormal_kind: Some(KindId::from("value/text")),
+        };
+        let canonical = CheckedFront::new(Vec::new(), Vec::new(), vec![output], None);
+        let narrowed = canonical
+            .clone()
+            .with_value_contracts(vec![FrontValueContract {
+                location: FrontValueLocation::OutputAbnormal(PortId::from("work")),
+                contract: CheckedValueContract::new(KindId::from("value/text"), 32, vec![])
+                    .unwrap(),
+            }]);
+
+        assert_eq!(
+            canonical.value_contract(&FrontValueLocation::Output(PortId::from("work"))),
+            narrowed.value_contract(&FrontValueLocation::Output(PortId::from("work")))
+        );
+        assert_ne!(
+            crate::compute_checked_front_fingerprint(&canonical),
+            crate::compute_checked_front_fingerprint(&narrowed)
         );
     }
 

@@ -120,7 +120,7 @@ pub fn plan_expanded_authoring_with_options(
                 .ok_or_else(|| {
                     PlannerError::InvalidFormIdentity("external Fore descriptor is missing".into())
                 })?;
-            let value_contract = (binding.track == conduit_core::ConnectionTrack::Payload)
+            let value_contract = (binding.track != conduit_core::ConnectionTrack::NormalClose)
                 .then(|| {
                     let location = match direction {
                         conduit_core::PortDirection::Input => {
@@ -163,22 +163,49 @@ pub fn plan_expanded_authoring_with_options(
             .ok_or_else(|| {
                 PlannerError::InvalidFormIdentity("external Fore internal port is missing".into())
             })?;
-            if internal.value_kind != descriptor.value_kind
-                || internal.temporal != descriptor.temporal
-                || internal.abnormal_kind != descriptor.abnormal_kind
-            {
+            let internal_matches = match binding.track {
+                conduit_core::ConnectionTrack::Payload => {
+                    internal.value_kind == descriptor.value_kind
+                        && internal.temporal == descriptor.temporal
+                        && internal.abnormal_kind == descriptor.abnormal_kind
+                }
+                conduit_core::ConnectionTrack::AbnormalTerminal => {
+                    internal.abnormal_kind.as_ref() == Some(&descriptor.value_kind)
+                        && descriptor.temporal == conduit_core::PortTemporal::Value
+                }
+                conduit_core::ConnectionTrack::NormalClose => {
+                    matches!(
+                        internal.temporal,
+                        conduit_core::PortTemporal::Flow { closes: true }
+                    ) && descriptor.value_kind.as_str() == conduit_core::UNIT_INFO_ID
+                        && descriptor.temporal == conduit_core::PortTemporal::Value
+                }
+            };
+            if !internal_matches {
                 return Err(PlannerError::InvalidFormIdentity(format!(
                     "external Fore port '{}' does not match its selected Back",
                     binding.front_port_id.as_str(),
                 )));
             }
-            if binding.track == conduit_core::ConnectionTrack::Payload {
+            if binding.track != conduit_core::ConnectionTrack::NormalClose {
                 let internal_front = placement.checked_port_front();
-                let internal_location = match direction {
-                    conduit_core::PortDirection::Input => {
+                let internal_location = match (direction, binding.track) {
+                    (
+                        conduit_core::PortDirection::Input,
+                        conduit_core::ConnectionTrack::AbnormalTerminal,
+                    ) => conduit_core::FrontValueLocation::InputAbnormal(
+                        binding.gear_port_id.clone(),
+                    ),
+                    (
+                        conduit_core::PortDirection::Output,
+                        conduit_core::ConnectionTrack::AbnormalTerminal,
+                    ) => conduit_core::FrontValueLocation::OutputAbnormal(
+                        binding.gear_port_id.clone(),
+                    ),
+                    (conduit_core::PortDirection::Input, _) => {
                         conduit_core::FrontValueLocation::Input(binding.gear_port_id.clone())
                     }
-                    conduit_core::PortDirection::Output => {
+                    (conduit_core::PortDirection::Output, _) => {
                         conduit_core::FrontValueLocation::Output(binding.gear_port_id.clone())
                     }
                 };

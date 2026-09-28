@@ -141,6 +141,8 @@ pub struct LoweredPort {
     pub temporal: conduit_core::PortTemporal,
     pub abnormal_kind: Option<KindId>,
     pub maximum_value_bytes: Option<u64>,
+    /// Independent finite envelope for the endpoint's abnormal (`!`) value.
+    pub maximum_abnormal_value_bytes: Option<u64>,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -276,7 +278,7 @@ pub struct LoweredForePort {
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum ForeValueRefusal {
-    NotPayload,
+    NotValueTrack,
     CordCapacity,
     Malformed(conduit_core::PrimitiveInfoRefusal),
     Constraint(conduit_core::ValueConstraintRefusal),
@@ -286,9 +288,13 @@ impl LoweredForePort {
     /// Revalidates one committed external value against the exact sealed Fore
     /// contract before the kernel observes it.
     pub fn validate_value(&self, canonical: &[u8]) -> Result<(), ForeValueRefusal> {
-        if self.track != conduit_core::ConnectionTrack::Payload {
-            return Err(ForeValueRefusal::NotPayload);
-        }
+        let value_kind = match self.track {
+            conduit_core::ConnectionTrack::Payload
+            | conduit_core::ConnectionTrack::AbnormalTerminal => &self.value_kind,
+            conduit_core::ConnectionTrack::NormalClose => {
+                return Err(ForeValueRefusal::NotValueTrack);
+            }
+        };
         if canonical.len() > self.byte_capacity as usize {
             return Err(ForeValueRefusal::CordCapacity);
         }
@@ -297,7 +303,7 @@ impl LoweredForePort {
                 .validate(canonical)
                 .map_err(ForeValueRefusal::Constraint);
         }
-        conduit_core::validate_primitive_info(self.value_kind.as_str(), canonical)
+        conduit_core::validate_primitive_info(value_kind.as_str(), canonical)
             .map_err(ForeValueRefusal::Malformed)
     }
 }
@@ -949,12 +955,17 @@ pub fn lower_plan_fragment_for_profile(
         }
         let slot_start = value_slots;
         let source_value_bound = source_node.zip(source_port).and_then(|(node, port)| {
-            nodes[usize::from(node.0)].outputs[usize::from(port.0)].maximum_value_bytes
+            let descriptor = &nodes[usize::from(node.0)].outputs[usize::from(port.0)];
+            match connection.track {
+                ConnectionTrack::AbnormalTerminal => descriptor.maximum_abnormal_value_bytes,
+                ConnectionTrack::Payload => descriptor.maximum_value_bytes,
+                ConnectionTrack::NormalClose => None,
+            }
         });
         let sink_value_bound = sink_node.zip(sink_port).and_then(|(node, port)| {
             nodes[usize::from(node.0)].inputs[usize::from(port.0)].maximum_value_bytes
         });
-        if connection.track == ConnectionTrack::Payload
+        if connection.track != ConnectionTrack::NormalClose
             && source_value_bound
                 .zip(sink_value_bound)
                 .is_some_and(|(source, sink)| source != sink)
@@ -963,7 +974,7 @@ pub fn lower_plan_fragment_for_profile(
                 connection.connection_id.clone(),
             ));
         }
-        let maximum_value_bytes = if connection.track == ConnectionTrack::Payload {
+        let maximum_value_bytes = if connection.track != ConnectionTrack::NormalClose {
             admitted_maximum_value_bytes(
                 source_value_bound
                     .or(sink_value_bound)
@@ -1092,7 +1103,22 @@ pub fn lower_plan_fragment_for_profile(
             LoweringError::UnknownConnectionPort(ConnectionId::from(planned.front_port_id.as_str()))
         })?;
         let descriptor = &ports[usize::from(port.0)];
-        if descriptor.value_kind != planned.value_kind || descriptor.temporal != planned.temporal {
+        let descriptor_matches = match planned.track {
+            ConnectionTrack::Payload => {
+                descriptor.value_kind == planned.value_kind
+                    && descriptor.temporal == planned.temporal
+            }
+            ConnectionTrack::AbnormalTerminal => {
+                descriptor.abnormal_kind.as_ref() == Some(&planned.value_kind)
+                    && planned.temporal == PortTemporal::Value
+            }
+            ConnectionTrack::NormalClose => {
+                descriptor.temporal == (PortTemporal::Flow { closes: true })
+                    && planned.value_kind.as_str() == conduit_core::UNIT_INFO_ID
+                    && planned.temporal == PortTemporal::Value
+            }
+        };
+        if !descriptor_matches {
             return Err(LoweringError::ConnectionContractMismatch(
                 ConnectionId::from(planned.front_port_id.as_str()),
             ));
@@ -1111,6 +1137,17 @@ pub fn lower_plan_fragment_for_profile(
         value_bytes = value_bytes
             .checked_add(planned.byte_capacity)
             .ok_or(LoweringError::CapacityOverflow)?;
+        let maximum_value_bytes = if planned.track == ConnectionTrack::NormalClose {
+            planned.byte_capacity
+        } else {
+            admitted_maximum_value_bytes(
+                planned
+                    .value_contract
+                    .as_ref()
+                    .map(|contract| contract.maximum_bytes),
+                planned.byte_capacity,
+            )
+        };
         let spec = match planned.direction {
             PortDirection::Input => {
                 let input = &mut node_specs[usize::from(node.0)].input_cords[usize::from(port.0)];
@@ -1126,7 +1163,8 @@ pub fn lower_plan_fragment_for_profile(
                 CordSpec::remote_egress(cord, (node, port), endpoint, capacity)
             }
         }
-        .with_track(lower_connection_track(planned.track));
+        .with_track(lower_connection_track(planned.track))
+        .with_maximum_value_bytes(maximum_value_bytes);
         cords.push(LoweredCord {
             connection_id: ConnectionId::from(alloc::format!(
                 "front/{}/{}/{}/{}",
@@ -1357,6 +1395,7 @@ mod terminal_track_tests {
             temporal: PortTemporal::Flow { closes: true },
             abnormal_kind: abnormal.map(kind_id),
             maximum_value_bytes: None,
+            maximum_abnormal_value_bytes: None,
         }
     }
 
@@ -1443,6 +1482,15 @@ mod terminal_track_tests {
         assert_eq!(port.validate_value(&conduit_core::encode_count(3)), Ok(()));
         assert_eq!(
             port.validate_value(&conduit_core::encode_count(7)),
+            Err(ForeValueRefusal::Constraint(
+                conduit_core::ValueConstraintRefusal::UnsignedRange
+            ))
+        );
+
+        let mut abnormal = port;
+        abnormal.track = ConnectionTrack::AbnormalTerminal;
+        assert_eq!(
+            abnormal.validate_value(&conduit_core::encode_count(7)),
             Err(ForeValueRefusal::Constraint(
                 conduit_core::ValueConstraintRefusal::UnsignedRange
             ))

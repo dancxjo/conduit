@@ -52,6 +52,20 @@ pub(super) fn lower_ports(
                             }
                     })
                     .map(|contract| u64::from(contract.contract.maximum_bytes)),
+                maximum_abnormal_value_bytes: value_contracts
+                    .iter()
+                    .find(|bound| {
+                        bound.location
+                            == match expected_direction {
+                                PortDirection::Input => {
+                                    FrontValueLocation::InputAbnormal(descriptor.port_id.clone())
+                                }
+                                PortDirection::Output => {
+                                    FrontValueLocation::OutputAbnormal(descriptor.port_id.clone())
+                                }
+                            }
+                    })
+                    .map(|contract| u64::from(contract.contract.maximum_bytes)),
             })
         })
         .collect()
@@ -62,4 +76,43 @@ pub(super) fn find_port(ports: &[LoweredPort], id: &PlanPortId) -> Option<PortId
         .iter()
         .find(|port| &port.port_id == id)
         .map(|port| port.port)
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use alloc::vec;
+    use conduit_core::{kind_id, port_id, CheckedValueContract, PortTemporal};
+
+    #[test]
+    fn lowering_keeps_payload_and_abnormal_bounds_independent() {
+        let descriptor = PortDescriptor {
+            port_id: port_id("work"),
+            value_kind: kind_id("value/bytes"),
+            direction: PortDirection::Output,
+            temporal: PortTemporal::Flow { closes: true },
+            abnormal_kind: Some(kind_id("value/text")),
+        };
+        let contracts = vec![
+            FrontValueContract {
+                location: FrontValueLocation::Output(port_id("work")),
+                contract: CheckedValueContract::new(kind_id("value/bytes"), 4_096, vec![]).unwrap(),
+            },
+            FrontValueContract {
+                location: FrontValueLocation::OutputAbnormal(port_id("work")),
+                contract: CheckedValueContract::new(kind_id("value/text"), 37, vec![]).unwrap(),
+            },
+        ];
+
+        let lowered = lower_ports(
+            NodeId(0),
+            &PlacementId::from("worker"),
+            &[descriptor],
+            PortDirection::Output,
+            &contracts,
+        )
+        .unwrap();
+        assert_eq!(lowered[0].maximum_value_bytes, Some(4_096));
+        assert_eq!(lowered[0].maximum_abnormal_value_bytes, Some(37));
+    }
 }
