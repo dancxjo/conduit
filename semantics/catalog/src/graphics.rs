@@ -232,6 +232,7 @@ pub fn install_graphics_catalogs(
 #[cfg(test)]
 mod tests {
     use super::*;
+    use conduit_core::{FrontValueLocation, KindSemanticLaw};
     #[test]
     fn reduced_family_is_exact_and_toolkit_free() {
         let contracts = [
@@ -255,5 +256,27 @@ mod tests {
             }
             assert!(graphics_contract_for(contract.kind_id.as_str()).is_some());
         }
+    }
+
+    #[test]
+    fn scene_transforms_publish_exact_finite_port_envelopes() {
+        let kind =
+            graphics_icon_contract().into_semantic_contract(GRAPHICS_SCENE_CONTRACT_REVISION);
+        let bounds = kind
+            .semantic_laws
+            .iter()
+            .find_map(|law| match law {
+                KindSemanticLaw::ValueBounds(bounds) => Some(bounds),
+                _ => None,
+            })
+            .expect("variable-size Face values require explicit envelopes");
+        assert!(bounds.iter().any(|bound| {
+            bound.location == FrontValueLocation::Input(port_id(GRAPHICS_INPUT_PORT))
+                && bound.maximum_bytes == conduit_presentation::MAX_GRAPHICS_SCENE_BYTES as u64
+        }));
+        assert!(bounds.iter().any(|bound| {
+            bound.location == FrontValueLocation::Output(port_id(GRAPHICS_OUTPUT_PORT))
+                && bound.maximum_bytes == conduit_presentation::MAX_GRAPHICS_SCENE_BYTES as u64
+        }));
     }
 }
