@@ -9,6 +9,10 @@ use std::collections::BTreeMap;
 use std::collections::BTreeSet;
 use std::io::Write;
 
+mod artifact_identity;
+
+use artifact_identity::{from_std_report, RuntimeArtifactIdentity};
+
 const MAXIMUM_PRODUCT_HOSTS: usize = 16;
 const MAXIMUM_PRODUCT_CONNECTION_BASES: usize = 8;
 
@@ -17,6 +21,12 @@ pub(crate) struct ProductExecution {
     pub(crate) line_offers: Vec<LineOffer>,
     pub(crate) plan: Plan,
     pub(crate) observations: Vec<Observation>,
+    // The library entrance currently returns its older aggregate execution type;
+    // the installed binary consumes these exact identities for artifact retention.
+    #[allow(dead_code)]
+    pub(crate) active_plays: Vec<conduit_core::ActivePlayIdentity>,
+    #[allow(dead_code)]
+    pub(crate) sign_identities: Vec<conduit_core::SignIdentity>,
 }
 
 pub(crate) enum ProductRuntime {
@@ -44,7 +54,7 @@ impl ProductRuntime {
         fragment: PlanFragment,
         output: &mut W,
         control: Option<&conduit_std_host::RunControl>,
-    ) -> Result<Vec<Observation>, String> {
+    ) -> Result<RuntimeArtifactIdentity, String> {
         match self {
             Self::Std(host) => match control {
                 Some(control) => host.run_fragment_attached_controlled_to(
@@ -55,7 +65,7 @@ impl ProductRuntime {
                 ),
                 None => host.run_fragment_to(fragment, output, &mut ThreadTimer),
             }
-            .map(|report| report.observations),
+            .and_then(from_std_report),
         }
     }
 }
@@ -400,22 +410,31 @@ impl ProductExecutionContext {
                 line_offers: self.line_offers.clone(),
                 plan,
                 observations,
+                active_plays: Vec::new(),
+                sign_identities: Vec::new(),
             });
         }
         let mut observations = Vec::new();
+        let mut active_plays = Vec::new();
+        let mut sign_identities = Vec::new();
         for fragment in plan.fragments.iter().cloned() {
             let runtime = self
                 .runtimes
                 .iter_mut()
                 .find(|runtime| runtime.advertisement().host_id == fragment.host_id)
                 .expect("every runtime was admitted before execution");
-            observations.extend(runtime.execute(fragment, output, control)?);
+            let execution = runtime.execute(fragment, output, control)?;
+            observations.extend(execution.observations);
+            active_plays.extend(execution.active_play);
+            sign_identities.extend(execution.sign_identities);
         }
         Ok(ProductExecution {
             advertisements: self.advertisements.clone(),
             line_offers: self.line_offers.clone(),
             plan,
             observations,
+            active_plays,
+            sign_identities,
         })
     }
 
