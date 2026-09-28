@@ -6,4 +6,3 @@
 extern crate alloc;
 
 pub mod invitation;
-pub mod library;

@@ -1,0 +1,9 @@
+[package]
+name = "conduit-form-library"
+version = "0.1.0"
+edition = "2024"
+publish = false
+
+[dependencies]
+conduit-body = { path = "../../architecture/body", default-features = false }
+conduit-presentation = { path = "../presentation", default-features = false }

@@ -54,6 +54,7 @@ members = [
 	"products/creche/model",
 	"forms/birth",
 	"semantics/home",
+	"semantics/form-library",
 	"semantics/tutorial",
 	"products/workspace/model",
 	"forms/tour",

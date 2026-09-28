@@ -22,6 +22,7 @@ conduit-birth-form = { path = "../../../forms/birth" }
 conduit-creche-model = { path = "../../../products/creche/model" }
 conduit-data = { path = "../../../semantics/data" }
 conduit-little-seismograph-fixture = { path = "../../../forms/little-seismograph/fixture" }
+conduit-form-library = { path = "../../../semantics/form-library" }
 conduit-human = { path = "../../../semantics/human" }
 conduit-body = { path = "../../../architecture/body" }
 conduit-body-fabrication = { path = "../../../fabrication/body" }
