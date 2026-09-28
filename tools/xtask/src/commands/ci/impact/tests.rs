@@ -812,6 +812,7 @@ fn esp32_paths_select_exact_target_obligations() {
     )
     .unwrap();
     assert_eq!(c3.esp32_targets, ["c3"]);
+    assert!(!c3.pages_products_required);
     assert!(c3
         .affected_test_packages
         .contains(&"conduit-esp32-c3-signal".to_owned()));
@@ -842,6 +843,7 @@ fn esp32_paths_select_exact_target_obligations() {
     )
     .unwrap();
     assert_eq!(shared_fabrication.esp32_targets.len(), 3);
+    assert!(!shared_fabrication.pages_products_required);
 
     let shared_dependency = plan_for_paths(
         &root,
@@ -867,6 +869,7 @@ fn conduitos_paths_select_exact_proof_obligations() {
     )
     .unwrap();
     assert_eq!(xhci.conduitos_x86_proofs.len(), 9);
+    assert!(!xhci.pages_products_required);
     assert!(xhci.conduitos_x86_proofs.contains(&"xhci".to_owned()));
     assert!(xhci
         .conduitos_x86_proofs
@@ -901,6 +904,7 @@ fn conduitos_paths_select_exact_proof_obligations() {
     )
     .unwrap();
     assert_eq!(common.conduitos_x86_proofs.len(), 9);
+    assert!(!common.pages_products_required);
     assert_eq!(common.conduitos_architectures.len(), 4);
     assert!(common.conduitos_aarch64_product_required);
 }

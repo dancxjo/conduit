@@ -73,7 +73,7 @@ test("target source moves preserve declared browser resource URLs and relative d
   const resources = new Map(descriptor.resources.map((resource) => [resource.role, resource]));
   const entry = descriptor.resources.find((resource) => resource.path === "creche-installed-targets.mjs");
   const packageRoot = new URL("https://conduit.invalid/creche/");
-  let adapters = 0;
+  const adapters = [];
   for (const dependency of entry.dependencies.filter((dependency) => dependency.role.endsWith("-adapter"))) {
     const source = resolve(root, dependency.specifier);
     assert.ok(existsSync(source), `target source owner is absent: ${dependency.specifier}`);
@@ -90,7 +90,16 @@ test("target source moves preserve declared browser resource URLs and relative d
       assert.ok(new URL(match[1], resourceUrl).href.startsWith(new URL("artifacts/", packageRoot).href),
         `target artifact URL escaped its package artifacts: ${match[1]}`);
     }
-    adapters += 1;
+    adapters.push(dependency.role.replace(/-adapter$/, ""));
   }
-  assert.ok(adapters > 0, "Crèche must consume declared target adapters");
+  assert.deepEqual(adapters, [
+    "avr",
+    "rp2040",
+    "esp32",
+    "std",
+    "browser",
+    "orange-pi",
+    "raspberry-pi",
+    "conduitos",
+  ]);
 });
