@@ -3,9 +3,9 @@
 //! of the same bounded evidence document.
 
 use crate::arguments::NativeBodyEntrance;
+use patchbay_graph::PatchbayGraph;
 use patchbay_model::{
-    CurrentBodyFrame, PatchbayBodyApplicationEntrance, PatchbayBodyAttachment, PatchbayGraph,
-    ReadableBodyHistory,
+    CurrentBodyFrame, PatchbayBodyApplicationEntrance, PatchbayBodyAttachment, ReadableBodyHistory,
 };
 use winit::keyboard::{Key, NamedKey};
 

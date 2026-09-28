@@ -60,8 +60,8 @@ impl PatchbayApplication {
                 .map(|inspection| inspection.subject_kind);
             match subject_kind {
                 Some(
-                    patchbay_model::PatchbaySubjectKind::PortOutput
-                    | patchbay_model::PatchbaySubjectKind::FaceInput,
+                    patchbay_graph::PatchbaySubjectKind::PortOutput
+                    | patchbay_graph::PatchbaySubjectKind::FaceInput,
                 ) => {
                     self.cord_drag = Some(subject.clone());
                     let candidates = self
@@ -73,7 +73,7 @@ impl PatchbayApplication {
                         .iter()
                         .filter(|candidate| {
                             candidate.compatibility
-                                == patchbay_model::PatchbayPortCompatibility::Compatible
+                                == patchbay_graph::PatchbayPortCompatibility::Compatible
                         })
                         .count();
                     self.publish_gesture(format!(
@@ -82,7 +82,7 @@ impl PatchbayApplication {
                         candidates.len().saturating_sub(compatible)
                     ));
                 }
-                Some(patchbay_model::PatchbaySubjectKind::Composition) => {
+                Some(patchbay_graph::PatchbaySubjectKind::Composition) => {
                     let now = std::time::Instant::now();
                     let double_click =
                         self.last_gear_click
@@ -99,7 +99,7 @@ impl PatchbayApplication {
                         return self.handle_gui_action(GuiAction::OpenBack);
                     }
                 }
-                Some(patchbay_model::PatchbaySubjectKind::Gear) => {
+                Some(patchbay_graph::PatchbaySubjectKind::Gear) => {
                     let now = std::time::Instant::now();
                     let double_click =
                         self.last_gear_click
@@ -122,7 +122,7 @@ impl PatchbayApplication {
                         subject.subject_identity
                     ));
                 }
-                Some(patchbay_model::PatchbaySubjectKind::Cord) => {
+                Some(patchbay_graph::PatchbaySubjectKind::Cord) => {
                     self.cord_route_drag = Some(subject.clone());
                     self.publish_gesture(format!(
                         "Routing Cord {}; release on a Port to reroute its endpoint",
@@ -194,9 +194,9 @@ impl PatchbayApplication {
                         .and_then(|graph| graph.inspect(&subject.subject_identity).ok())
                         .is_some_and(|inspection| {
                             inspection.subject_kind
-                                == patchbay_model::PatchbaySubjectKind::PortInput
+                                == patchbay_graph::PatchbaySubjectKind::PortInput
                                 || inspection.subject_kind
-                                    == patchbay_model::PatchbaySubjectKind::FaceOutput
+                                    == patchbay_graph::PatchbaySubjectKind::FaceOutput
                         })
                 });
             if let Some(sink) = sink {
@@ -222,9 +222,9 @@ impl PatchbayApplication {
                         .and_then(|graph| graph.inspect(&subject.subject_identity).ok())
                         .is_some_and(|inspection| {
                             inspection.subject_kind
-                                == patchbay_model::PatchbaySubjectKind::PortInput
+                                == patchbay_graph::PatchbaySubjectKind::PortInput
                                 || inspection.subject_kind
-                                    == patchbay_model::PatchbaySubjectKind::PortOutput
+                                    == patchbay_graph::PatchbaySubjectKind::PortOutput
                         })
                 });
             if let Some(endpoint) = endpoint {

@@ -10,7 +10,7 @@ pub(super) const MAX_ELAPSED_MILLIS: u128 = 30_000;
 
 #[derive(Debug)]
 pub(super) struct ShortTextEdit {
-    pub(super) subject: patchbay_model::PatchbaySubjectRef,
+    pub(super) subject: patchbay_graph::PatchbaySubjectRef,
     pub(super) key: String,
     pub(super) value: String,
     pub(super) maximum_bytes: usize,

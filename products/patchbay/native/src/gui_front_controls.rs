@@ -8,7 +8,8 @@ use embedded_graphics::{
     pixelcolor::Rgb888,
     prelude::{DrawTarget, Point},
 };
-use patchbay_model::{ApplicationTheme, PatchbayGear, PatchbayGraph};
+use patchbay_graph::{PatchbayGear, PatchbayGraph};
+use patchbay_model::ApplicationTheme;
 
 pub(super) fn draw_front_controls<D: DrawTarget<Color = Rgb888>>(
     target: &mut D,
@@ -40,7 +41,7 @@ pub(super) fn draw_front_controls<D: DrawTarget<Color = Rgb888>>(
         );
         let actions = control_actions(control);
         if let (
-            Some(patchbay_model::FaceInteraction {
+            Some(patchbay_graph::FaceInteraction {
                 contract:
                     conduit_human::InteractionContract {
                         family: conduit_human::InteractionFamily::Text { maximum_bytes, .. },
@@ -152,7 +153,7 @@ pub(super) fn front_action_count(graph: &PatchbayGraph, subject_identity: &str) 
 }
 
 fn action_label(
-    control: &patchbay_model::FaceControl,
+    control: &patchbay_graph::FaceControl,
     value: &conduit_core::ConfigurationValue,
     side: usize,
     count: usize,
@@ -197,34 +198,34 @@ fn displayed_value(value: &conduit_core::ConfigurationValue) -> String {
     }
 }
 
-fn displayed_contract(kind: &patchbay_model::FaceControlKind) -> String {
+fn displayed_contract(kind: &patchbay_graph::FaceControlKind) -> String {
     match kind {
-        patchbay_model::FaceControlKind::BooleanChoice { choices } => {
+        patchbay_graph::FaceControlKind::BooleanChoice { choices } => {
             format!("{}|{}", choices[0], choices[1])
         }
-        patchbay_model::FaceControlKind::TextChoice { choices } => choices.join("|"),
-        patchbay_model::FaceControlKind::Number {
+        patchbay_graph::FaceControlKind::TextChoice { choices } => choices.join("|"),
+        patchbay_graph::FaceControlKind::Number {
             minimum,
             maximum,
             unit,
         }
-        | patchbay_model::FaceControlKind::Range {
+        | patchbay_graph::FaceControlKind::Range {
             minimum,
             maximum,
             unit,
         } => format!("{minimum}..{maximum}{}", unit.unwrap_or("")),
-        patchbay_model::FaceControlKind::ScalarNumber {
+        patchbay_graph::FaceControlKind::ScalarNumber {
             minimum,
             maximum,
             unit,
         } => format!("{minimum}..{maximum}{unit}"),
-        patchbay_model::FaceControlKind::ShortText { maximum_bytes } => {
+        patchbay_graph::FaceControlKind::ShortText { maximum_bytes } => {
             format!("max {maximum_bytes}B")
         }
     }
 }
 
-fn control_actions(control: &patchbay_model::FaceControl) -> Vec<conduit_core::ConfigurationValue> {
+fn control_actions(control: &patchbay_graph::FaceControl) -> Vec<conduit_core::ConfigurationValue> {
     match (
         control
             .interaction

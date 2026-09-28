@@ -229,7 +229,7 @@ impl PatchbayApplication {
 
     pub(super) fn open_navigator_composition(
         &mut self,
-        subject: patchbay_model::PatchbaySubjectRef,
+        subject: patchbay_graph::PatchbaySubjectRef,
     ) -> Result<(), String> {
         self.dispatch_selection(subject.clone())?;
         if self.selected_graphical_subject().as_ref() != Some(&subject) {

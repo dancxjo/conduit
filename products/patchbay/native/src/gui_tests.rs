@@ -6,7 +6,8 @@ use crate::{
     icon::Icon,
     render::BACKGROUND,
 };
-use patchbay_model::{FormEditor, PatchbayGraph, CONDUIT_APPLICATION_THEME};
+use patchbay_graph::PatchbayGraph;
+use patchbay_model::{FormEditor, CONDUIT_APPLICATION_THEME};
 use std::path::PathBuf;
 
 fn graph() -> PatchbayGraph {

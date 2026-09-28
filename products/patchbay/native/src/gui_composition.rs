@@ -11,7 +11,8 @@ use embedded_graphics::{
     prelude::{DrawTarget, Point, Size},
     primitives::Rectangle,
 };
-use patchbay_model::{ApplicationTheme, PatchbayGraph};
+use patchbay_graph::PatchbayGraph;
+use patchbay_model::ApplicationTheme;
 
 const HEADER_HEIGHT: i32 = 52;
 const NAV_WIDTH: i32 = 176;
@@ -20,7 +21,7 @@ const NODE_WIDTH: i32 = 190;
 
 #[derive(Clone)]
 pub(super) struct CompositionLayout<'a> {
-    pub(super) composition: &'a patchbay_model::PatchbayComposition,
+    pub(super) composition: &'a patchbay_graph::PatchbayComposition,
     pub(super) bounds: PixelRect,
     pub(super) inputs: Vec<(String, Point)>,
     pub(super) outputs: Vec<(String, Point)>,
