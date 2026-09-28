@@ -41,6 +41,7 @@ mod membership;
 mod offers;
 #[cfg(feature = "authenticated-admission")]
 mod pico_admission;
+mod planning_session;
 mod presence;
 mod provenance;
 mod rendezvous;
@@ -86,6 +87,7 @@ pub use membership::*;
 pub use offers::*;
 #[cfg(feature = "authenticated-admission")]
 pub use pico_admission::*;
+pub use planning_session::*;
 pub use presence::*;
 pub use provenance::*;
 pub use rendezvous::*;

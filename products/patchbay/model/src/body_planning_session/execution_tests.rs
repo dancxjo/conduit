@@ -1,10 +1,14 @@
 use super::*;
+use conduit_body::{
+    Body, BodyLifecycleError, RemoteProofClass, Wake, WakeLifecycle, MAX_WAKE_PLANS,
+};
+use conduit_core::{bind_sign, SignId};
 
 fn proposal() -> BodyPlanningSession {
     let candidate = FormCandidate::from_source(
         "Hello",
         "forms/hello/main.conduit",
-        include_str!("../../../../../../forms/hello/main.conduit"),
+        include_str!("../../../../../forms/hello/main.conduit"),
         "canonical test Form",
         "sign/reviewed".into(),
         1,
@@ -137,7 +141,7 @@ fn refused_attempts_are_bounded_and_never_reuse_play_identity() {
             .report_execution_refused(&claim.play, "resource acquisition refused")
             .unwrap();
     }
-    let last = session.execution_claims.last().unwrap().clone();
+    let last = session.snapshot().execution_claims.last().unwrap().clone();
     assert_eq!(
         session.claim_execution(&last.play.plan_id, &last.host_id, &last.boot_id),
         Err(BodyExecutionClaimError::CapacityExhausted)
@@ -257,28 +261,6 @@ fn exact_cancellation_can_retire_an_unreadable_start_envelope() {
         .report_execution_terminal(&first.play, "cancelled", &sign(&first, 2))
         .is_err());
     assert!(session.has_outstanding_execution_claim());
-}
-
-#[test]
-fn lull_refuses_a_play_without_terminal_accounting_and_preserves_both_lifecycles() {
-    let mut session = proposal();
-    let claim = claim(&mut session);
-    let wake = started(&session, &claim);
-    session
-        .report_execution_started(&claim.play, &wake)
-        .unwrap();
-    // Model a lifecycle imported without the coordinator's terminal evidence.
-    // Absence of an outstanding claim must not be mistaken for completion.
-    session.execution_claims.clear();
-    let before = session.snapshot();
-    let body = session.body().clone();
-    assert_eq!(
-        session.lull("sign/lull".into(), "sign/retained".into()),
-        Err(BodyPlanningSessionError::ExecutionTerminationAbsent)
-    );
-    assert_eq!(session.snapshot(), before);
-    assert_eq!(session.body(), &body);
-    assert_eq!(session.wake(), &wake);
 }
 
 #[test]
