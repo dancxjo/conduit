@@ -572,7 +572,7 @@ export async function joinBrowserBody({ bodyUrl, wasmBytes, expectedBodyId = nul
       webRtcSessions.reset("presence-closed");
       if (!credential || presenceState !== "available" || socket?.readyState !== WebSocket.OPEN) {
         deliberateClose = true;
-        socket?.close(1000, "Patchbay browser Host leaving");
+        socket?.close(1000, "Browser Host leaving");
         return renewalSequence;
       }
       deliberateClose = true;
