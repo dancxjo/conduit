@@ -110,18 +110,18 @@ enum Request {
     },
     TutorialView {
         revision: u32,
-        playback: conduit_workspace_model::tutorial::TutorialPlayback,
+        playback: conduit_tutorial_form::TutorialPlayback,
     },
     TutorialPresenterInput {
         request_identity: String,
         presentation_revision: u64,
-        playback: conduit_workspace_model::tutorial::TutorialPlayback,
+        playback: conduit_tutorial_form::TutorialPlayback,
     },
     PresentTutorialMask {
         host_id: HostId,
         boot_id: BootId,
         revision: u64,
-        playback: conduit_workspace_model::tutorial::TutorialPlayback,
+        playback: conduit_tutorial_form::TutorialPlayback,
     },
     AcknowledgeTutorialMask {
         acknowledgement: crate::workspace_mask::BrowserMaskAcknowledgement,
@@ -562,7 +562,7 @@ fn dispatch(request: Request) -> Result<Vec<u8>, Refusal> {
                     });
             }
             Request::TutorialView { revision, playback } => {
-                let semantic = conduit_workspace_model::tutorial::presentation(current, revision, playback)
+                let semantic = conduit_tutorial_form::presentation(current, revision, playback)
                     .map_err(|error| Refusal::new("TutorialPresentation", format!("{error:?}")))?;
                 let view = semantic.lower()
                     .map_err(|error| Refusal::new("TutorialPresentation", format!("{error:?}")))?;
@@ -574,7 +574,7 @@ fn dispatch(request: Request) -> Result<Vec<u8>, Refusal> {
                 presentation_revision,
                 playback,
             } => {
-                let request = conduit_workspace_model::tutorial::generative_request(
+                let request = conduit_tutorial_form::generative_request(
                     current,
                     request_identity,
                     presentation_revision,
@@ -587,7 +587,7 @@ fn dispatch(request: Request) -> Result<Vec<u8>, Refusal> {
             }
             Request::PresentTutorialMask { host_id, boot_id, revision, playback } => {
                 let realization = current.realization().ok_or_else(|| Refusal::new("TutorialMaskPrepare", "Body has no active realization"))?;
-                let presentation = conduit_workspace_model::tutorial::face_presentation(
+                let presentation = conduit_tutorial_form::face_presentation(
                     current, revision, playback,
                 ).map_err(|error| Refusal::new("TutorialMaskPresentation", format!("{error:?}")))?;
                 let (runtime, effect) = crate::workspace_mask::BrowserMaskRuntime::prepare(

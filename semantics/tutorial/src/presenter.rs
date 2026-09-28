@@ -1,4 +1,4 @@
-//! Workspace-owned semantic edges around the portable `llm/present` Front.
+//! Resident Tutorial semantic edges around the portable `llm/present` Front.
 
 use alloc::{
     string::{String, ToString},
@@ -10,9 +10,9 @@ use conduit_core::{
     PortTemporal,
 };
 
-pub const REQUEST_KIND: &str = "workspace/tutorial-presenter-request";
-pub const MANIFESTATION_KIND: &str = "workspace/tutorial-manifestation";
-pub const CONTRACT_REVISION: &str = "conduit.workspace/tutorial-presenter@2";
+pub const REQUEST_KIND: &str = "tutorial/presenter-request";
+pub const MANIFESTATION_KIND: &str = "tutorial/manifestation";
+pub const CONTRACT_REVISION: &str = "conduit.form/tutorial-presenter@1";
 
 pub fn request_contract() -> Kind {
     contract(

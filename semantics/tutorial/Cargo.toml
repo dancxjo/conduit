@@ -1,0 +1,13 @@
+[package]
+name = "conduit-tutorial-form"
+version = "0.1.0"
+edition = "2024"
+publish = false
+
+[dependencies]
+conduit-ai = { path = "../ai", default-features = false }
+conduit-body = { path = "../../architecture/body", default-features = false, features = ["authenticated-admission"] }
+conduit-core = { path = "../../architecture/core" }
+conduit-form = { path = "../../architecture/form" }
+conduit-presentation = { path = "../presentation", default-features = false }
+serde = { version = "1", default-features = false, features = ["derive", "alloc"] }

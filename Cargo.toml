@@ -54,6 +54,7 @@ members = [
 	"products/creche/model",
 	"forms/birth",
 	"semantics/home",
+	"semantics/tutorial",
 	"products/workspace/model",
 	"forms/tour",
 	"targets/std/patchbay-workbench",
