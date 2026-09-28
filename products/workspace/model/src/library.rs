@@ -1,12 +1,10 @@
 //! Portable presentation of reviewed forms beside the authoritative Body workset.
 use alloc::{format, string::String, vec, vec::Vec};
-use conduit_body::{MAX_BODY_FORMS, ResidentForm};
+use conduit_body::{BodyLifecycleSession, MAX_BODY_FORMS, ResidentForm};
 use conduit_presentation::{
     ActionAvailability, ApplicationEventKind, FieldKind, FormField, PresentationMechanism,
     SemanticAction, SemanticApplicationView, SemanticPresentationNode, StatusKind,
 };
-
-use crate::WorkspaceBody;
 
 pub const LIBRARY_SEARCH_BYTES: usize = 128;
 /// Finite reviewed catalog headroom; Body residence remains independently 16.
@@ -82,7 +80,7 @@ impl FormLibrary {
     /// Installed state is always projected from this body, never retained here.
     pub fn presentation(
         &self,
-        body: &WorkspaceBody,
+        body: &BodyLifecycleSession,
         revision: u32,
         query: &str,
     ) -> Result<SemanticApplicationView, LibraryRefusal> {

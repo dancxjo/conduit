@@ -1,7 +1,7 @@
-use crate::WorkspaceBody;
+use crate::BodyLifecycleSession;
 use alloc::{format, string::String, vec::Vec};
 
-impl WorkspaceBody {
+impl BodyLifecycleSession {
     /// A quiet read-only description of the foreground form's exact plan.
     /// Arrows describe only a proved single chain; branches remain explicit.
     pub fn foreground_flow(&self) -> String {
@@ -82,6 +82,10 @@ impl WorkspaceBody {
         } else {
             labels.join(" → ")
         };
-        if label.len() > 256 { fallback() } else { label }
+        if label.len() > 256 {
+            fallback()
+        } else {
+            label
+        }
     }
 }
