@@ -92,7 +92,7 @@ const CHECKS: &[IntegrationCheck] = &[
     IntegrationCheck {
         label: "planner/kernel, std Host, representative Form",
         step: &STD_STEP,
-        reproduce: "cargo xtask demo std",
+        reproduce: "cargo xtask prove journey std",
     },
     IntegrationCheck {
         label: "Body lifecycle",
@@ -102,7 +102,7 @@ const CHECKS: &[IntegrationCheck] = &[
     IntegrationCheck {
         label: "local multi-placement",
         step: &TRIPLE_STEP,
-        reproduce: "cargo xtask demo triple",
+        reproduce: "cargo xtask prove journey triple",
     },
     IntegrationCheck {
         label: "failure/recovery",
@@ -289,8 +289,8 @@ mod tests {
 
     #[test]
     fn integration_checks_reuse_the_supported_entrances() {
-        assert_eq!(CHECKS[1].step.id, "demo.std");
-        assert_eq!(CHECKS[3].step.id, "demo.triple");
+        assert_eq!(CHECKS[1].step.id, "journey.std");
+        assert_eq!(CHECKS[3].step.id, "journey.triple");
         assert!(CHECKS[3].step.args.contains(&"--await-terminal"));
         assert_eq!(
             CHECKS[4].reproduce,

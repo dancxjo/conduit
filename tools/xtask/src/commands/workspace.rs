@@ -16,7 +16,7 @@ pub fn run(args: &WorkspaceArgs, opts: &GlobalOpts) -> Result<(), Box<dyn std::e
     if args.check {
         run_step(
             &Step::new(
-                "demo.workspace.rendezvous-host",
+                "journey.workspace.rendezvous-host",
                 "Build the installed host entrance used by running-Host proof",
                 "cargo",
                 &["build", "-p", "conduit"],
@@ -26,7 +26,7 @@ pub fn run(args: &WorkspaceArgs, opts: &GlobalOpts) -> Result<(), Box<dyn std::e
         )?;
         run_step(
             &Step::new(
-                "demo.workspace.browser-proof-helpers",
+                "journey.workspace.browser-proof-helpers",
                 "Build the supported Workspace execution and membership proof helpers",
                 "cargo",
                 &[
@@ -57,7 +57,7 @@ pub fn run(args: &WorkspaceArgs, opts: &GlobalOpts) -> Result<(), Box<dyn std::e
     }
     run_step(
         &Step::new(
-            "demo.workspace.browser-release",
+            "journey.workspace.browser-release",
             "Seal the reviewed compiler-free browser Host distribution",
             "cargo",
             &[
@@ -75,7 +75,7 @@ pub fn run(args: &WorkspaceArgs, opts: &GlobalOpts) -> Result<(), Box<dyn std::e
     )?;
     run_step(
         &Step::new(
-            "demo.workspace.release-catalog",
+            "journey.workspace.release-catalog",
             "Seal the Workspace browser Host release catalog",
             "cargo",
             &[
@@ -96,7 +96,7 @@ pub fn run(args: &WorkspaceArgs, opts: &GlobalOpts) -> Result<(), Box<dyn std::e
     // the staging input cannot be replaced by that intermediate artifact.
     run_step(
         &Step::new(
-            "demo.workspace.runtime",
+            "journey.workspace.runtime",
             "Build the shared Crèche and ordinary body execution runtime",
             "cargo",
             &[
@@ -120,7 +120,7 @@ pub fn run(args: &WorkspaceArgs, opts: &GlobalOpts) -> Result<(), Box<dyn std::e
     }
     run_step(
         &Step::new(
-            "demo.workspace.package",
+            "journey.workspace.package",
             "Stage the exact body arrival application",
             "sh",
             &[
@@ -136,7 +136,7 @@ pub fn run(args: &WorkspaceArgs, opts: &GlobalOpts) -> Result<(), Box<dyn std::e
     if args.check {
         run_step(
             &Step::new(
-                "demo.workspace.input",
+                "journey.workspace.input",
                 "Check foreground routing and Host retirement",
                 "node",
                 &[
@@ -152,7 +152,7 @@ pub fn run(args: &WorkspaceArgs, opts: &GlobalOpts) -> Result<(), Box<dyn std::e
         )?;
         run_step(
             &Step::new(
-                "demo.workspace.arrival",
+                "journey.workspace.arrival",
                 "Prove Birth, listening Forms, continuity, and storage refusal",
                 "node",
                 &[
@@ -181,7 +181,7 @@ pub fn run(args: &WorkspaceArgs, opts: &GlobalOpts) -> Result<(), Box<dyn std::e
     } else {
         run_step(
             &Step::new(
-                "demo.workspace.host",
+                "journey.workspace.host",
                 "Open the body arrival experience",
                 "cargo",
                 &[

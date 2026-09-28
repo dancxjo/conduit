@@ -68,6 +68,7 @@ fn main() {
                             commands::body_coordination::run(args, &opts)
                         }
                         ProveCommand::Pete(args) => commands::pete_std_observe::run(args, &opts),
+                        ProveCommand::Journey(args) => run_journey(args, &opts),
                         ProveCommand::Evidence(evidence) => commands::evidence::run(evidence),
                     }
                 }
@@ -85,29 +86,32 @@ fn main() {
                 .map_err(|error| Box::new(error) as Box<dyn std::error::Error>),
         },
         Command::Setup(args) => commands::setup::run(args, &opts),
-        Command::Demo(args) => match args.command {
-            DemoCommand::Tour => commands::demo::run_tour(&opts),
-            DemoCommand::Workspace(args) => commands::workspace::run(&args, &opts),
-            DemoCommand::Std => commands::demo::run_std(&opts),
-            DemoCommand::Triple => commands::demo::run_triple(&opts),
-            DemoCommand::Patchbay(args) => commands::demo::run_patchbay(&args, &opts),
-            DemoCommand::BodyMembership => commands::demo::run_body_membership(&opts),
-            DemoCommand::Environment => commands::demo::run_environment(&opts),
-            DemoCommand::Prewake => commands::demo::run_prewake(&opts),
-            DemoCommand::TextLab => commands::demo::run_text_lab(&opts),
-            DemoCommand::Toggle => commands::toggle::run(),
-            DemoCommand::LightSwitch(args) => commands::light_switch::run(args),
-            DemoCommand::ButtonIndicator(args) => commands::button_indicator::run(args, &opts),
-            DemoCommand::Site => commands::toggle::run_site(),
-            DemoCommand::Tongues => commands::tongues::run(&opts),
-            DemoCommand::TonguesResearch => commands::tongues::run_research(&opts),
-            DemoCommand::TonguesAnalysis => commands::tongues::run_analysis(&opts),
-        },
     };
 
     if let Err(error) = result {
         eprintln!("xtask error: {error}");
         std::process::exit(1);
+    }
+}
+
+fn run_journey(args: cli::DemoArgs, opts: &GlobalOpts) -> Result<(), Box<dyn std::error::Error>> {
+    match args.command {
+        DemoCommand::Tour => commands::demo::run_tour(opts),
+        DemoCommand::Workspace(args) => commands::workspace::run(&args, opts),
+        DemoCommand::Std => commands::demo::run_std(opts),
+        DemoCommand::Triple => commands::demo::run_triple(opts),
+        DemoCommand::Patchbay(args) => commands::demo::run_patchbay(&args, opts),
+        DemoCommand::BodyMembership => commands::demo::run_body_membership(opts),
+        DemoCommand::Environment => commands::demo::run_environment(opts),
+        DemoCommand::Prewake => commands::demo::run_prewake(opts),
+        DemoCommand::TextLab => commands::demo::run_text_lab(opts),
+        DemoCommand::Toggle => commands::toggle::run(),
+        DemoCommand::LightSwitch(args) => commands::light_switch::run(args),
+        DemoCommand::ButtonIndicator(args) => commands::button_indicator::run(args, opts),
+        DemoCommand::Site => commands::toggle::run_site(),
+        DemoCommand::Tongues => commands::tongues::run(opts),
+        DemoCommand::TonguesResearch => commands::tongues::run_research(opts),
+        DemoCommand::TonguesAnalysis => commands::tongues::run_analysis(opts),
     }
 }
 

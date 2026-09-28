@@ -20,7 +20,7 @@ xtask *args:
 
 # Friendly front doors; all behavior remains owned by cargo xtask / conduit.
 patchbay:
-    cargo xtask demo patchbay --on native
+    cargo xtask prove journey patchbay --on native
 
 browser:
     cargo xtask fabricate host browser
@@ -32,7 +32,7 @@ demo-std:
     cargo xtask fabricate host std
 
 demo-triple-local:
-    cargo xtask demo triple
+    cargo xtask prove journey triple
 
 body:
     cargo xtask check workspace-test-foundation
@@ -65,7 +65,7 @@ prove proof *args:
     cargo xtask prove {{proof}} {{args}}
 
 demo demonstration *args:
-    cargo xtask demo {{demonstration}} {{args}}
+    cargo xtask prove journey {{demonstration}} {{args}}
 
 conduitos *args:
     cargo xtask fabricate conduitos {{args}}
@@ -102,11 +102,11 @@ prove-std-browser-s4:
 
 # Interactive S4 toggle demo: Enter presses drive Play starts through a real WebSocket to the browser.
 toggle:
-    cargo xtask demo toggle
+    cargo xtask prove journey toggle
 
 # Conduit project homepage driven by the real distributed toggle program.
 site:
-    cargo xtask demo site
+    cargo xtask prove journey site
 
 # One live loopback std-kernel to browser-WASM-kernel toggle proof.
 prove-std-browser-toggle:

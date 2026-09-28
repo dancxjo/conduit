@@ -46,7 +46,7 @@ form count (
 For an interactive authoring surface, open the native Text Lab:
 
 ```bash
-cargo xtask demo text-lab
+cargo xtask prove journey text-lab
 ```
 
 It begins with an effect-free rehearsal; inspect the selected environment and

@@ -1,4 +1,4 @@
-//! `xtask demo toggle` — operator command for the distributed toggle demo.
+//! `xtask prove journey toggle` — operator command for the distributed toggle journey.
 //!
 //! Builds the browser WASM runtime, spawns the distributed-toggle-server,
 //! starts the static file server, and pipes stdin through so the operator

@@ -59,8 +59,6 @@ pub enum Command {
     Doctor(DoctorArgs),
     /// Install explicit prerequisites for a repository workflow.
     Setup(SetupArgs),
-    /// Run interactive demonstrations.
-    Demo(DemoArgs),
 }
 
 #[derive(Args, Debug)]
@@ -285,6 +283,8 @@ pub enum ProveCommand {
     BodyCoordination(BodyCoordinationArgs),
     /// Exercise explicit Pete hardware proof entrances.
     Pete(PeteArgs),
+    /// Exercise one reviewed Form or journey through its exact repository proof path.
+    Journey(DemoArgs),
     /// Produce, verify, or publish bounded proof evidence.
     #[command(flatten)]
     Evidence(EvidenceCommand),
@@ -597,18 +597,22 @@ mod tests {
             panic!("expected Command::Pico");
         }
 
-        let toggle =
-            Cli::try_parse_from(["xtask", "demo", "toggle"]).expect("demo toggle command parses");
+        let toggle = Cli::try_parse_from(["xtask", "prove", "journey", "toggle"])
+            .expect("toggle journey command parses");
         assert!(matches!(
             toggle.command,
-            Command::Demo(DemoArgs {
-                command: DemoCommand::Toggle
-            })
+            Command::Prove(args)
+                if matches!(
+                    args.command,
+                    Some(ProveCommand::Journey(DemoArgs {
+                        command: DemoCommand::Toggle
+                    }))
+                )
         ));
 
         for command in ["tour", "std", "triple", "patchbay", "body-membership"] {
-            Cli::try_parse_from(["xtask", "demo", command])
-                .unwrap_or_else(|error| panic!("demo {command} must parse: {error}"));
+            Cli::try_parse_from(["xtask", "prove", "journey", command])
+                .unwrap_or_else(|error| panic!("journey {command} must parse: {error}"));
         }
         let browser =
             Cli::try_parse_from(["xtask", "fabricate", "browser"]).expect("browser Host parses");
@@ -618,16 +622,21 @@ mod tests {
                 target: FabricateTarget::Browser
             })
         ));
-        assert!(Cli::try_parse_from(["xtask", "demo", "browser"]).is_err());
+        assert!(Cli::try_parse_from(["xtask", "prove", "journey", "browser"]).is_err());
 
-        let site =
-            Cli::try_parse_from(["xtask", "demo", "site"]).expect("demo site command parses");
+        let site = Cli::try_parse_from(["xtask", "prove", "journey", "site"])
+            .expect("site journey command parses");
         assert!(matches!(
             site.command,
-            Command::Demo(DemoArgs {
-                command: DemoCommand::Site
-            })
+            Command::Prove(args)
+                if matches!(
+                    args.command,
+                    Some(ProveCommand::Journey(DemoArgs {
+                        command: DemoCommand::Site
+                    }))
+                )
         ));
+        assert!(Cli::try_parse_from(["xtask", "demo", "site"]).is_err());
 
         let subset = Cli::try_parse_from([
             "xtask",
