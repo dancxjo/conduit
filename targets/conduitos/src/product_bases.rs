@@ -1,16 +1,18 @@
 //! Narrow product-facing adapter over the canonical registry of external-effect Bases.
 
-use alloc::{borrow::ToOwned, format, vec::Vec};
+use alloc::{borrow::ToOwned, format, vec, vec::Vec};
 
 use conduit_core::{
     BaseEnforcementClass, BaseImplementationId, BaseInstanceId, BaseLifecycle, BaseProviderEntry,
-    BaseRegistry, BaseRegistryLimits, HostBaseId, HostBaseKindId,
+    BaseRegistry, BaseRegistryLimits, HostBaseId, HostBaseKindId, ResourceClassId, ResourceOffer,
+    ResourcePoolId,
 };
 
 use crate::{arch::UsbDevice, identity, offer::HostOffer};
 
 const MAXIMUM_EFFECT_BASES: u16 = 5;
 const INPUT_CONTROLLER_FAMILY: &str = "conduitos.base/input-controller@1";
+pub const FRAMEBUFFER_RESOURCE_CLASS: &str = "conduitos.resource/framebuffer@1";
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum EffectFamily {
@@ -49,7 +51,7 @@ impl NativeProductBases {
         let mut registry = BaseRegistry::new(BaseRegistryLimits {
             maximum_bases: MAXIMUM_EFFECT_BASES,
             maximum_capabilities_per_base: 0,
-            maximum_resources_per_base: 0,
+            maximum_resources_per_base: 1,
             maximum_advertised_capabilities: 1,
             maximum_advertised_resources: 1,
         })
@@ -65,6 +67,7 @@ impl NativeProductBases {
                 offer.generation,
                 value.realization.mechanism.base_implementation(),
                 INPUT_CONTROLLER_FAMILY,
+                Vec::new(),
             )?;
         }
         if let Some(value) = offer.pointer {
@@ -77,6 +80,7 @@ impl NativeProductBases {
                 offer.generation,
                 value.realization.mechanism.base_implementation(),
                 INPUT_CONTROLLER_FAMILY,
+                Vec::new(),
             )?;
         }
         if let Some(value) = offer.pc_speaker {
@@ -90,6 +94,7 @@ impl NativeProductBases {
                 offer.generation,
                 crate::pc_speaker_offer::PC_SPEAKER_IMPLEMENTATION,
                 family_kind(EffectFamily::Audio),
+                Vec::new(),
             )?;
         }
         let framebuffer_base = framebuffer.base_id.as_str().to_owned();
@@ -106,6 +111,7 @@ impl NativeProductBases {
                 u64::from(device.attachment_epoch),
                 crate::usb_line_offer::USB_FTDI_BASE,
                 family_kind(EffectFamily::Line),
+                Vec::new(),
             )?;
         }
         register_effect(
@@ -117,6 +123,7 @@ impl NativeProductBases {
             1,
             "conduitos/framebuffer@1",
             family_kind(EffectFamily::Framebuffer),
+            vec![framebuffer_resource(&framebuffer_base)],
         )?;
         Ok(Self { registry, effects })
     }
@@ -137,6 +144,37 @@ impl NativeProductBases {
             .find(|entry| entry.base_id == binding.base_id)
             .ok_or(EffectBaseRefusal::Unavailable)
     }
+
+    /// Returns current typed resource truth owned by the discovered Base.
+    ///
+    /// A matching class elsewhere in the registry is deliberately insufficient:
+    /// the resource must belong to the exact Base selected for this effect family.
+    pub fn require_resource(
+        &self,
+        family: EffectFamily,
+        class_id: &str,
+    ) -> Result<&ResourceOffer, EffectBaseRefusal> {
+        let entry = self.require(family)?;
+        let mut resources = entry
+            .resources
+            .iter()
+            .filter(|resource| resource.class_id.as_str() == class_id);
+        let resource = resources.next().ok_or(EffectBaseRefusal::Unavailable)?;
+        if resources.next().is_some() {
+            return Err(EffectBaseRefusal::InvalidProvider);
+        }
+        Ok(resource)
+    }
+}
+
+fn framebuffer_resource(base_id: &str) -> ResourceOffer {
+    ResourceOffer {
+        pool_id: ResourcePoolId::from(format!("{base_id}/surface")),
+        class_id: ResourceClassId::from(FRAMEBUFFER_RESOURCE_CLASS),
+        capacity_units: 1,
+        compute: None,
+        content: None,
+    }
 }
 
 #[allow(clippy::too_many_arguments)]
@@ -149,6 +187,7 @@ fn register_effect(
     provider_generation: u64,
     implementation_id: &'static str,
     mechanism_family: &'static str,
+    resources: Vec<ResourceOffer>,
 ) -> Result<(), EffectBaseRefusal> {
     let entry = BaseProviderEntry {
         base_id: HostBaseId::from(base_id),
@@ -159,7 +198,7 @@ fn register_effect(
         enforcement_class: BaseEnforcementClass::ConduitOsKernelEnforced,
         lifecycle: BaseLifecycle::Ready,
         capabilities: Vec::new(),
-        resources: Vec::new(),
+        resources,
     };
     if let Some(current) = registry
         .entries()
@@ -204,11 +243,19 @@ mod tests {
     use super::*;
 
     #[test]
+    fn framebuffer_resource_identity_is_derived_from_the_discovered_base() {
+        let resource = framebuffer_resource("boot-7/framebuffer-0");
+        assert_eq!(resource.pool_id.as_str(), "boot-7/framebuffer-0/surface");
+        assert_eq!(resource.class_id.as_str(), FRAMEBUFFER_RESOURCE_CLASS);
+        assert_eq!(resource.capacity_units, 1);
+    }
+
+    #[test]
     fn unavailable_families_are_absent_and_authority_does_not_cross_entries() {
         let mut registry = BaseRegistry::new(BaseRegistryLimits {
             maximum_bases: 2,
             maximum_capabilities_per_base: 0,
-            maximum_resources_per_base: 0,
+            maximum_resources_per_base: 1,
             maximum_advertised_capabilities: 1,
             maximum_advertised_resources: 1,
         })
@@ -223,6 +270,7 @@ mod tests {
             4,
             "conduitos/key@1",
             family_kind(EffectFamily::Keyboard),
+            Vec::new(),
         )
         .unwrap();
         register_effect(
@@ -234,6 +282,13 @@ mod tests {
             2,
             "conduitos/frame@1",
             family_kind(EffectFamily::Framebuffer),
+            vec![ResourceOffer {
+                pool_id: ResourcePoolId::from("pool/frame"),
+                class_id: ResourceClassId::from(FRAMEBUFFER_RESOURCE_CLASS),
+                capacity_units: 1,
+                compute: None,
+                content: None,
+            }],
         )
         .unwrap();
         let bases = NativeProductBases { registry, effects };
@@ -261,6 +316,15 @@ mod tests {
             bases.require(EffectFamily::Storage),
             Err(EffectBaseRefusal::Unavailable)
         );
+        let framebuffer = bases
+            .require_resource(EffectFamily::Framebuffer, FRAMEBUFFER_RESOURCE_CLASS)
+            .unwrap();
+        assert_eq!(framebuffer.pool_id.as_str(), "pool/frame");
+        assert_eq!(framebuffer.capacity_units, 1);
+        assert_eq!(
+            bases.require_resource(EffectFamily::Keyboard, FRAMEBUFFER_RESOURCE_CLASS),
+            Err(EffectBaseRefusal::Unavailable)
+        );
     }
 
     #[test]
@@ -268,7 +332,7 @@ mod tests {
         let mut registry = BaseRegistry::new(BaseRegistryLimits {
             maximum_bases: 1,
             maximum_capabilities_per_base: 0,
-            maximum_resources_per_base: 0,
+            maximum_resources_per_base: 1,
             maximum_advertised_capabilities: 1,
             maximum_advertised_resources: 1,
         })
@@ -284,6 +348,7 @@ mod tests {
                 7,
                 crate::keyboard_offer::XHCI_BASE_IMPLEMENTATION,
                 INPUT_CONTROLLER_FAMILY,
+                Vec::new(),
             )
             .unwrap();
         }

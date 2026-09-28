@@ -29,7 +29,7 @@ use crate::{
     native_compositor::InputRoute,
     offer::CAPABILITY_COUNT,
     offer_fabrication::ImageBoundHostOffer,
-    product_bases::{EffectFamily, NativeProductBases},
+    product_bases::{EffectFamily, FRAMEBUFFER_RESOURCE_CLASS, NativeProductBases},
     product_journey::{JourneyStatus, ProductJourney},
     rescue_guest,
     tour_product::TourProduct,
@@ -66,6 +66,9 @@ pub fn run(
     effect_bases
         .require(EffectFamily::Framebuffer)
         .map_err(|_| "product-framebuffer-base-unavailable")?;
+    effect_bases
+        .require_resource(EffectFamily::Framebuffer, FRAMEBUFFER_RESOURCE_CLASS)
+        .map_err(|_| "product-framebuffer-resource-unavailable")?;
     if hid_session.is_some() || ps2_input.is_some() {
         effect_bases
             .require(EffectFamily::Keyboard)
