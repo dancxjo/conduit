@@ -5,7 +5,9 @@
 //! current. Recovery never consults the candidate path, so an interrupted
 //! write cannot acquire committed-generation truth.
 
-use super::{digest, DurableStateBinding, DurableStateRefusal, RecoveryDisposition};
+use super::{
+    digest, DurableStateBinding, DurableStateRefusal, RecoveryDisposition, RECOVERY_HEADER_BYTES,
+};
 use sha2::{Digest, Sha256};
 use std::{
     fs::{self, File, OpenOptions},
@@ -39,13 +41,38 @@ impl InstalledDurableStateHost {
         })
     }
 
-    pub(crate) fn recover(&mut self) -> Result<Vec<u8>, DurableStateRefusal> {
+    pub(crate) fn recover_metadata(&mut self) -> Result<Vec<u8>, DurableStateRefusal> {
         let (disposition, encoded) = self.residence.recover()?;
-        self.generation = match disposition {
-            RecoveryDisposition::Absent => 0,
-            RecoveryDisposition::Recovered { generation } => generation,
-        };
-        Ok(encoded)
+        match disposition {
+            RecoveryDisposition::Absent => {
+                self.generation = 0;
+                Ok(encoded)
+            }
+            RecoveryDisposition::Recovered { .. } => Ok(encoded[..RECOVERY_HEADER_BYTES].to_vec()),
+        }
+    }
+
+    pub(crate) fn recover_exact(
+        &mut self,
+        expected_metadata: &[u8],
+    ) -> Result<Vec<u8>, DurableStateRefusal> {
+        if expected_metadata.len() != RECOVERY_HEADER_BYTES
+            || expected_metadata[0] != 1
+            || expected_metadata[1] != 1
+        {
+            return Err(DurableStateRefusal::InvalidReceipt);
+        }
+        let (disposition, encoded) = self.residence.recover()?;
+        match disposition {
+            RecoveryDisposition::Absent => Err(DurableStateRefusal::StaleRecovery),
+            RecoveryDisposition::Recovered { generation }
+                if &encoded[..RECOVERY_HEADER_BYTES] == expected_metadata =>
+            {
+                self.generation = generation;
+                Ok(encoded[RECOVERY_HEADER_BYTES..].to_vec())
+            }
+            RecoveryDisposition::Recovered { .. } => Err(DurableStateRefusal::StaleRecovery),
+        }
     }
 
     pub(crate) fn commit(&mut self, value: &[u8]) -> Result<[u8; 41], DurableStateRefusal> {
@@ -279,7 +306,7 @@ mod tests {
             body: "body/notebook".into(),
             state: StateId::from("note/current"),
             value_kind: KindId::from("value/text"),
-            maximum_value_bytes: 48,
+            maximum_value_bytes: conduit_data::MAXIMUM_DATA_TEXT_BYTES,
         }
     }
 
@@ -360,6 +387,23 @@ mod tests {
         assert_eq!(
             residence.commit(3, b"C"),
             Err(DurableStateRefusal::GenerationGap)
+        );
+        fs::remove_dir_all(&root).unwrap();
+    }
+
+    #[test]
+    fn exact_recovery_refuses_drift_and_carries_the_full_text_bound() {
+        let root = temporary_root("exact-four-kib");
+        let mut installed = InstalledDurableStateHost::open(&root, binding()).unwrap();
+        let value = vec![b'n'; conduit_data::MAXIMUM_DATA_TEXT_BYTES as usize];
+        installed.commit(&value).unwrap();
+        let metadata = installed.recover_metadata().unwrap();
+        assert_eq!(installed.recover_exact(&metadata).unwrap(), value);
+
+        installed.commit(b"new generation").unwrap();
+        assert_eq!(
+            installed.recover_exact(&metadata),
+            Err(DurableStateRefusal::StaleRecovery)
         );
         fs::remove_dir_all(&root).unwrap();
     }

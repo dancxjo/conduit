@@ -7,7 +7,6 @@
 //! can truthfully provide the required residence and synchronization.
 
 use conduit_core::{KindId, StateId};
-use conduit_kernel::CanonicalValue;
 use sha2::{Digest, Sha256};
 
 const PROTOCOL_VERSION: u8 = 1;
@@ -16,7 +15,7 @@ const RECOVERY_PRESENT: u8 = 1;
 const RECEIPT_BYTES: usize = 1 + 8 + 32;
 const RECOVERY_HEADER_BYTES: usize = 2 + 8 + 32;
 pub const MAXIMUM_DURABLE_STATE_BYTES: u32 =
-    (CanonicalValue::MAXIMUM_BYTES - RECOVERY_HEADER_BYTES) as u32;
+    conduit_std_offers::STATE_VALUE_DURABLE_STD_MAXIMUM_BYTES;
 
 /// Exact semantic owner of one durable State journal.
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -64,6 +63,7 @@ pub enum DurableStateRefusal {
     Corrupt,
     Incompatible,
     Lost,
+    StaleRecovery,
     InvalidReceipt,
 }
 
@@ -257,7 +257,7 @@ mod tests {
             body: "body/notebook".into(),
             state: StateId::from("note/current"),
             value_kind: KindId::from("Text"),
-            maximum_value_bytes: 48,
+            maximum_value_bytes: conduit_data::MAXIMUM_DATA_TEXT_BYTES,
         }
     }
 
@@ -310,7 +310,12 @@ mod tests {
             generation: 1,
             byte_len: 1,
         };
-        let mut back = DurableStateBack::new(binding(), b"initial", probe).unwrap();
+        let initial = ValueRef {
+            slot: 10,
+            generation: 1,
+            byte_len: 7,
+        };
+        let mut back = DurableStateBack::new(binding(), initial, probe).unwrap();
         let mut recover_request = StepIo::test_frame([None], [false], [Some(48)], None, 8);
         assert_eq!(
             back.step(
@@ -349,10 +354,7 @@ mod tests {
             ),
             StepOutcome::Progress
         );
-        assert_eq!(
-            recovered.test_canonical_output().unwrap().1.as_slice(),
-            b"initial"
-        );
+        assert_eq!(recovered.test_output(PortId(0)), Some(initial));
 
         let value = b"next";
         let value_ref = ValueRef {
@@ -386,7 +388,7 @@ mod tests {
             [Some(value_ref)],
             [false],
             [Some(48)],
-            Some((RequestId(1), completion)),
+            Some((RequestId(2), completion)),
             8,
         );
         assert_eq!(
@@ -402,13 +404,118 @@ mod tests {
     }
 
     #[test]
+    fn four_kib_recovery_is_bound_to_metadata_and_forwards_the_hosted_value() {
+        let probe = ValueRef {
+            slot: 9,
+            generation: 1,
+            byte_len: 1,
+        };
+        let initial = ValueRef {
+            slot: 10,
+            generation: 1,
+            byte_len: 0,
+        };
+        let mut back = DurableStateBack::new(binding(), initial, probe).unwrap();
+        let mut metadata_request = StepIo::test_frame([None], [false], [Some(4096)], None, 8);
+        assert_eq!(
+            back.step(
+                &mut metadata_request,
+                &StepInputBytes::test_frame([None], None)
+            ),
+            StepOutcome::Progress
+        );
+
+        let value = vec![b'n'; conduit_data::MAXIMUM_DATA_TEXT_BYTES as usize];
+        let mut metadata = Vec::with_capacity(RECOVERY_HEADER_BYTES);
+        metadata.extend_from_slice(&[PROTOCOL_VERSION, RECOVERY_PRESENT]);
+        metadata.extend_from_slice(&7_u64.to_be_bytes());
+        metadata.extend_from_slice(&digest(&value));
+        let metadata_ref = ValueRef {
+            slot: 8,
+            generation: 1,
+            byte_len: metadata.len() as u32,
+        };
+        let metadata_outcome = conduit_kernel::HostCallOutcome {
+            disposition: HostCallDisposition::Completed,
+            output: Some(BoundedValueRef::new(metadata_ref, metadata.len() as u32).unwrap()),
+            failure: None,
+        };
+        let mut metadata_step = StepIo::test_frame(
+            [None],
+            [false],
+            [Some(4096)],
+            Some((RequestId(0), metadata_outcome)),
+            8,
+        );
+        assert_eq!(
+            back.step(
+                &mut metadata_step,
+                &StepInputBytes::test_frame([None], Some(&metadata))
+            ),
+            StepOutcome::Progress
+        );
+        assert!(metadata_step.test_host_completion_consumed());
+        assert_eq!(
+            metadata_step.test_host_request(),
+            Some((
+                RequestId(1),
+                HostCallId(1),
+                BoundedValueRef::new(metadata_ref, metadata.len() as u32).unwrap()
+            ))
+        );
+
+        let value_ref = ValueRef {
+            slot: 7,
+            generation: 1,
+            byte_len: value.len() as u32,
+        };
+        let value_outcome = conduit_kernel::HostCallOutcome {
+            disposition: HostCallDisposition::Completed,
+            output: Some(BoundedValueRef::new(value_ref, value.len() as u32).unwrap()),
+            failure: None,
+        };
+        let mut value_step = StepIo::test_frame(
+            [None],
+            [false],
+            [Some(4096)],
+            Some((RequestId(1), value_outcome)),
+            8,
+        );
+        assert_eq!(
+            back.step(
+                &mut value_step,
+                &StepInputBytes::test_frame([None], Some(&value))
+            ),
+            StepOutcome::Progress
+        );
+        assert_eq!(value_step.test_output(PortId(0)), Some(value_ref));
+        assert_eq!(value_step.test_discards()[0], Some(initial));
+        assert_eq!(back.generation(), 7);
+    }
+
+    #[test]
+    fn durable_binding_refuses_more_than_the_canonical_text_bound() {
+        let mut too_large = binding();
+        too_large.maximum_value_bytes = conduit_data::MAXIMUM_DATA_TEXT_BYTES + 1;
+        assert_eq!(
+            too_large.validate(),
+            Err(DurableStateRefusal::InvalidBinding)
+        );
+    }
+
+    #[test]
     fn mismatched_receipt_never_publishes_candidate() {
         let probe = ValueRef {
             slot: 9,
             generation: 1,
             byte_len: 1,
         };
-        let mut back = DurableStateBack::new(binding(), b"initial", probe).unwrap();
+        let initial = ValueRef {
+            slot: 10,
+            generation: 1,
+            byte_len: 7,
+        };
+        let mut back = DurableStateBack::new(binding(), initial, probe).unwrap();
         let mut request = StepIo::test_frame([None], [false], [Some(48)], None, 8);
         back.step(&mut request, &StepInputBytes::test_frame([None], None));
         let absent = encode_absent();
@@ -460,7 +567,7 @@ mod tests {
             [Some(value_ref)],
             [false],
             [Some(48)],
-            Some((RequestId(1), completion)),
+            Some((RequestId(2), completion)),
             8,
         );
         assert!(matches!(

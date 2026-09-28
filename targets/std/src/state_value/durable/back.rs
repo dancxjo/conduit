@@ -4,12 +4,16 @@ use super::{
 };
 use conduit_kernel::{
     scheduler::{StepBack, StepInputBytes, StepIo, StepOutcome},
-    BoundedValueRef, CanonicalValue, Failure, FailureCode, HostCallDisposition, HostCallId, PortId,
-    RequestId, ValueRef,
+    BoundedValueRef, Failure, FailureCode, HostCallDisposition, HostCallId, PortId, RequestId,
+    ValueRef,
 };
 
 enum Phase {
-    Recovering,
+    RecoveringMetadata,
+    RecoveringValue {
+        generation: u64,
+        digest: [u8; 32],
+    },
     Current,
     Committing {
         request: RequestId,
@@ -19,12 +23,13 @@ enum Phase {
     Terminal,
 }
 
-/// Ordinary Step driver for the transactional boundary. Call 0 recovers and
-/// call 1 commits. This is groundwork, not an installed or advertised Back.
+/// Installed Step driver for the transactional boundary. Recovery request 0
+/// obtains bounded generation/digest metadata; request 1 binds that exact
+/// metadata to the recovered hosted value. Commit requests begin at 2.
 pub struct DurableStateBack {
     binding: DurableStateBinding,
-    initial: CanonicalValue,
-    recovery_probe: ValueRef,
+    initial: Option<ValueRef>,
+    recovery_metadata_probe: ValueRef,
     generation: u64,
     next_request: u32,
     pending_value: Option<ValueRef>,
@@ -34,34 +39,40 @@ pub struct DurableStateBack {
 impl DurableStateBack {
     pub fn new(
         binding: DurableStateBinding,
-        initial: &[u8],
-        recovery_probe: ValueRef,
+        initial: ValueRef,
+        recovery_metadata_probe: ValueRef,
     ) -> Result<Self, DurableStateRefusal> {
         binding.validate()?;
-        if initial.len() > binding.maximum_value_bytes as usize {
+        if initial.byte_len > binding.maximum_value_bytes || recovery_metadata_probe.byte_len != 1 {
             return Err(DurableStateRefusal::ValueTooLarge);
         }
         Ok(Self {
             binding,
-            initial: CanonicalValue::new(initial)
-                .map_err(|_| DurableStateRefusal::ValueTooLarge)?,
-            recovery_probe,
+            initial: Some(initial),
+            recovery_metadata_probe,
             generation: 0,
-            next_request: 1,
+            next_request: 2,
             pending_value: None,
-            phase: Phase::Recovering,
+            phase: Phase::RecoveringMetadata,
         })
     }
 
     pub const fn generation(&self) -> u64 {
         self.generation
     }
+
+    pub(crate) const fn expects_recovered_value(&self) -> bool {
+        matches!(self.phase, Phase::RecoveringValue { .. })
+    }
 }
 
 impl<const PORTS: usize> StepBack<PORTS> for DurableStateBack {
     fn step(&mut self, io: &mut StepIo<PORTS>, bytes: &StepInputBytes<'_, PORTS>) -> StepOutcome {
         match self.phase {
-            Phase::Recovering => self.recover(io, bytes),
+            Phase::RecoveringMetadata => self.recover_metadata(io, bytes),
+            Phase::RecoveringValue { generation, digest } => {
+                self.recover_value(io, bytes, generation, digest)
+            }
             Phase::Current => self.current(io, bytes),
             Phase::Committing {
                 request,
@@ -83,14 +94,17 @@ impl<const PORTS: usize> StepBack<PORTS> for DurableStateBack {
 }
 
 impl DurableStateBack {
-    fn recover<const PORTS: usize>(
+    fn recover_metadata<const PORTS: usize>(
         &mut self,
         io: &mut StepIo<PORTS>,
         bytes: &StepInputBytes<'_, PORTS>,
     ) -> StepOutcome {
         let Some((request, outcome)) = io.host_completion() else {
-            let input = BoundedValueRef::new(self.recovery_probe, self.recovery_probe.byte_len)
-                .expect("probe bound equals prepared probe");
+            let input = BoundedValueRef::new(
+                self.recovery_metadata_probe,
+                self.recovery_metadata_probe.byte_len,
+            )
+            .expect("probe bound equals prepared probe");
             io.request_host_call(RequestId(0), HostCallId(1), input)
                 .expect("prepared recovery Host Call");
             return StepOutcome::Progress;
@@ -98,20 +112,75 @@ impl DurableStateBack {
         if request != RequestId(0) {
             return fail(FailureCode::InvalidLifecycle, 1);
         }
-        let Some(response) = bytes.host_output() else {
+        if outcome.disposition != HostCallDisposition::Completed || outcome.failure.is_some() {
             return host_failure(outcome, 2);
+        }
+        let Some(metadata_value) = outcome.output else {
+            return fail(FailureCode::InvalidInput, 2);
+        };
+        let Some(metadata) = bytes.host_output() else {
+            return host_failure(outcome, 2);
+        };
+        match decode_recovery_metadata(metadata) {
+            Ok(None) => {
+                if !io.output_ready(PortId(0)) {
+                    return StepOutcome::Await;
+                }
+                io.consume_host_completion()
+                    .expect("observed absent recovery receipt");
+                let initial = self.initial.take().expect("prepared initial State value");
+                io.send(PortId(0), initial)
+                    .expect("ready initial State output");
+                self.generation = 0;
+                self.phase = Phase::Current;
+                StepOutcome::Progress
+            }
+            Ok(Some((generation, digest))) => {
+                io.consume_host_completion()
+                    .expect("observed recovery metadata");
+                io.request_host_call(RequestId(1), HostCallId(1), metadata_value)
+                    .expect("prepared recovery value Host Call");
+                self.phase = Phase::RecoveringValue { generation, digest };
+                StepOutcome::Progress
+            }
+            Err(_) => fail(FailureCode::InvalidInput, 3),
+        }
+    }
+
+    fn recover_value<const PORTS: usize>(
+        &mut self,
+        io: &mut StepIo<PORTS>,
+        bytes: &StepInputBytes<'_, PORTS>,
+        generation: u64,
+        expected_digest: [u8; 32],
+    ) -> StepOutcome {
+        let Some((request, outcome)) = io.host_completion() else {
+            return StepOutcome::Await;
+        };
+        if request != RequestId(1) {
+            return fail(FailureCode::InvalidLifecycle, 13);
+        }
+        if outcome.disposition != HostCallDisposition::Completed || outcome.failure.is_some() {
+            return host_failure(outcome, 14);
+        }
+        let (Some(value), Some(value_bytes)) = (outcome.output, bytes.host_output()) else {
+            return fail(FailureCode::InvalidInput, 15);
         };
         if !io.output_ready(PortId(0)) {
             return StepOutcome::Await;
         }
-        let (generation, value) = match decode_recovery(response, &self.binding) {
-            Ok(value) => value.unwrap_or((0, self.initial)),
-            Err(_) => return fail(FailureCode::InvalidInput, 3),
-        };
+        if value.value.byte_len > self.binding.maximum_value_bytes
+            || value.value.byte_len as usize != value_bytes.len()
+            || digest(value_bytes) != expected_digest
+        {
+            return fail(FailureCode::InvalidInput, 16);
+        }
         io.consume_host_completion()
-            .expect("observed recovery receipt");
-        io.send_canonical(PortId(0), value)
-            .expect("ready State output");
+            .expect("observed exact recovered value");
+        io.discard(self.initial.take().expect("unused initial State value"))
+            .expect("discard replaced initial State value");
+        io.send(PortId(0), value.value)
+            .expect("ready recovered State output");
         self.generation = generation;
         self.phase = Phase::Current;
         StepOutcome::Progress
@@ -208,14 +277,11 @@ impl DurableStateBack {
     }
 }
 
-fn decode_recovery(
-    bytes: &[u8],
-    binding: &DurableStateBinding,
-) -> Result<Option<(u64, CanonicalValue)>, DurableStateRefusal> {
+fn decode_recovery_metadata(bytes: &[u8]) -> Result<Option<(u64, [u8; 32])>, DurableStateRefusal> {
     if bytes == [PROTOCOL_VERSION, RECOVERY_ABSENT] {
         return Ok(None);
     }
-    if bytes.len() < RECOVERY_HEADER_BYTES
+    if bytes.len() != RECOVERY_HEADER_BYTES
         || bytes[0] != PROTOCOL_VERSION
         || bytes[1] != RECOVERY_PRESENT
     {
@@ -232,14 +298,7 @@ fn decode_recovery(
     let expected: [u8; 32] = bytes[10..42]
         .try_into()
         .map_err(|_| DurableStateRefusal::InvalidReceipt)?;
-    let value = &bytes[42..];
-    if value.len() > binding.maximum_value_bytes as usize || digest(value) != expected {
-        return Err(DurableStateRefusal::Corrupt);
-    }
-    Ok(Some((
-        generation,
-        CanonicalValue::new(value).map_err(|_| DurableStateRefusal::ValueTooLarge)?,
-    )))
+    Ok(Some((generation, expected)))
 }
 
 fn host_failure(outcome: conduit_kernel::HostCallOutcome, detail: u16) -> StepOutcome {
