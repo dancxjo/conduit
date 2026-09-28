@@ -3,7 +3,7 @@ use alloc::vec::Vec;
 use crate::{
     FORM_RUN_STEP_ID, FORM_SELECTED_STEP_ID, FORMS_OPENED_STEP_ID, HOME_ARRIVED_STEP_ID,
     HOME_RETURNED_STEP_ID, HomeAction, HomeModel, HomeView, JOURNEY_STEP_IDS,
-    PATCHBAY_OPENED_STEP_ID, PLAY_OBSERVED_STEP_ID, PROMPT_OPENED_STEP_ID,
+    PATCHBAY_REQUESTED_STEP_ID, PLAY_OBSERVED_STEP_ID, PROMPT_OPENED_STEP_ID,
 };
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
@@ -20,7 +20,6 @@ pub enum HomeJourneyRefusal {
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct HomeJourney {
     observed: Vec<&'static str>,
-    patchbay_requested: bool,
 }
 
 impl HomeJourney {
@@ -30,7 +29,6 @@ impl HomeJourney {
         }
         Ok(Self {
             observed: alloc::vec![HOME_ARRIVED_STEP_ID],
-            patchbay_requested: false,
         })
     }
 
@@ -65,9 +63,8 @@ impl HomeJourney {
             FORM_RUN_STEP_ID if matches!(action, HomeAction::RunForm(_)) => {
                 self.push(FORM_RUN_STEP_ID)
             }
-            PATCHBAY_OPENED_STEP_ID if matches!(action, HomeAction::OpenPatchbay) => {
-                self.patchbay_requested = true;
-                Ok(())
+            PATCHBAY_REQUESTED_STEP_ID if matches!(action, HomeAction::OpenPatchbay) => {
+                self.push(PATCHBAY_REQUESTED_STEP_ID)
             }
             HOME_RETURNED_STEP_ID
                 if model.view() == HomeView::Launcher && matches!(action, HomeAction::Changed) =>
@@ -83,14 +80,6 @@ impl HomeJourney {
             return Err(HomeJourneyRefusal::OutOfOrder);
         }
         self.push(PLAY_OBSERVED_STEP_ID)
-    }
-
-    pub fn observe_patchbay_opened(&mut self) -> Result<(), HomeJourneyRefusal> {
-        if self.next()? != PATCHBAY_OPENED_STEP_ID || !self.patchbay_requested {
-            return Err(HomeJourneyRefusal::OutOfOrder);
-        }
-        self.patchbay_requested = false;
-        self.push(PATCHBAY_OPENED_STEP_ID)
     }
 
     fn next(&self) -> Result<&'static str, HomeJourneyRefusal> {
@@ -131,7 +120,6 @@ mod tests {
         journey.observe_play_completed().unwrap();
         let action = home.submit_text("open patchbay", &FORMS);
         journey.observe_action(&home, &action).unwrap();
-        journey.observe_patchbay_opened().unwrap();
         let action = home.submit_text("home", &FORMS);
         journey.observe_action(&home, &action).unwrap();
 
@@ -149,9 +137,10 @@ mod tests {
             journey.observe_play_completed(),
             Err(HomeJourneyRefusal::OutOfOrder)
         );
+        let action = home.submit_text("open patchbay", &FORMS);
         assert_eq!(
-            journey.observe_patchbay_opened(),
-            Err(HomeJourneyRefusal::OutOfOrder)
+            journey.observe_action(&home, &action),
+            Err(HomeJourneyRefusal::WrongTransition)
         );
     }
 }

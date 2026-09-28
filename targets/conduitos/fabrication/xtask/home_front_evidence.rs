@@ -63,7 +63,7 @@ pub(super) fn retain(target: &Path) -> Result<(), ConduitosError> {
         ),
         (
             "home-patchbay-open",
-            &[conduit_home_model::PATCHBAY_OPENED_STEP_ID][..],
+            &[conduit_home_model::PATCHBAY_REQUESTED_STEP_ID][..],
         ),
         (
             "home-returned",
@@ -104,7 +104,7 @@ pub(super) fn retain(target: &Path) -> Result<(), ConduitosError> {
     fs::create_dir_all(&output).map_err(io_error)?;
     fs::write(output.join("home-conduitos.png"), &artifact).map_err(io_error)?;
     let receipt = HomeFrontReceipt {
-        schema: "conduit.evidence/home-front@1",
+        schema: "conduit.evidence/home-front@2",
         front_id: "conduitos",
         proof_class: "freestanding-emulator",
         step_ids: conduit_home_model::JOURNEY_STEP_IDS,
@@ -191,7 +191,7 @@ mod tests {
             ),
             (
                 "home-patchbay-open",
-                vec![conduit_home_model::PATCHBAY_OPENED_STEP_ID],
+                vec![conduit_home_model::PATCHBAY_REQUESTED_STEP_ID],
             ),
             (
                 "home-returned",

@@ -56,7 +56,7 @@ pub fn retain(journey: &NativeHomeJourneyReceipt, root: &Path) -> Result<PathBuf
     let renderer_id = format!("presentation/renderer-native-software-{front}@1");
     let manifestation_id = format!("manifestation/home/{front}/{}", &digest[7..]);
     let receipt = HomeFrontReceipt {
-        schema: "conduit.evidence/home-front@1",
+        schema: "conduit.evidence/home-front@2",
         front_id: front,
         proof_class: "native-software-renderer",
         step_ids: &journey.step_ids,
