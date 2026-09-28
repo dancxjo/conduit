@@ -1,32 +1,35 @@
-use alloc::{vec, vec::Vec};
-use conduit_body::{
+use crate::{
     AdmissionManager, AdmissionRefusal, AdmissionSigns, BodyBiographyArchiveSegment,
     BodyBiographyError, BodyBiographyEvidence, BodyFormPlan, BodyFulfillment, BodyLifecycleError,
     BodyLifecycleEvent, BodyPlan, BodyPlanError, BodyPlayIdentity, BodyState,
     FulfillmentObligation, MembershipCredential, MembershipRefusal, MembershipState, ResidentForm,
     SpawnAdmissionProof, Wake,
 };
-use conduit_core::{AuthorityGrantId, BootId, HostAdvertisement, HostId, SignId, bind_sign};
+use alloc::{vec, vec::Vec};
+use conduit_core::{bind_sign, AuthorityGrantId, BootId, HostAdvertisement, HostId, SignId};
 use serde::{Deserialize, Serialize};
+
+mod continuity;
+mod flow;
 
 /// An exact current proposal and its optional admitted play, never a scheduler.
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
-pub struct WorkspaceRealization {
+pub struct BodyLifecycleRealization {
     pub wake: Wake,
     pub plan: BodyPlan,
     pub play: Option<BodyPlayIdentity>,
 }
 
 #[derive(Clone, Debug)]
-pub struct WorkspaceBody {
+pub struct BodyLifecycleSession {
     evidence: BodyBiographyEvidence,
-    realization: Option<WorkspaceRealization>,
+    realization: Option<BodyLifecycleRealization>,
     foreground: Option<ResidentForm>,
     pub(crate) pending_archives: Vec<BodyBiographyArchiveSegment>,
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
-pub enum WorkspaceBodyError {
+pub enum BodyLifecycleSessionError {
     Biography(BodyBiographyError),
     Admission(AdmissionRefusal),
     Lifecycle(BodyLifecycleError),
@@ -44,17 +47,19 @@ pub enum WorkspaceBodyError {
     ArchivePersistenceRequired,
 }
 
-impl WorkspaceBody {
+impl BodyLifecycleSession {
     /// A Crèche handoff or retained body may be opened for inspection. Only a
     /// Lulled Body can subsequently mutate; Fulfilled remains terminal.
     /// An Awake snapshot alone never proves its previous Play has ended.
-    pub fn open(evidence: BodyBiographyEvidence) -> Result<Self, WorkspaceBodyError> {
-        evidence.validate().map_err(WorkspaceBodyError::Biography)?;
+    pub fn open(evidence: BodyBiographyEvidence) -> Result<Self, BodyLifecycleSessionError> {
+        evidence
+            .validate()
+            .map_err(BodyLifecycleSessionError::Biography)?;
         if !matches!(
             evidence.body.state,
             BodyState::Lulled | BodyState::Fulfilled { .. }
         ) {
-            return Err(WorkspaceBodyError::UnreconciledWake);
+            return Err(BodyLifecycleSessionError::UnreconciledWake);
         }
         let foreground = evidence.body.workset.forms().first().cloned();
         Ok(Self {
@@ -71,7 +76,7 @@ impl WorkspaceBody {
         evidence: BodyBiographyEvidence,
         host: &HostId,
         boot: &BootId,
-    ) -> Result<Self, WorkspaceBodyError> {
+    ) -> Result<Self, BodyLifecycleSessionError> {
         let body = Self::open(evidence)?;
         body.require_host(host, boot)?;
         Ok(body)
@@ -80,7 +85,7 @@ impl WorkspaceBody {
     pub fn evidence(&self) -> &BodyBiographyEvidence {
         &self.evidence
     }
-    pub fn realization(&self) -> Option<&WorkspaceRealization> {
+    pub fn realization(&self) -> Option<&BodyLifecycleRealization> {
         self.realization.as_ref()
     }
 
@@ -97,9 +102,9 @@ impl WorkspaceBody {
     pub fn acknowledge_archives(
         &mut self,
         head_digest: [u8; 32],
-    ) -> Result<(), WorkspaceBodyError> {
+    ) -> Result<(), BodyLifecycleSessionError> {
         if self.pending_archives.last().map(|segment| segment.digest) != Some(head_digest) {
-            return Err(WorkspaceBodyError::ArchivePersistenceRequired);
+            return Err(BodyLifecycleSessionError::ArchivePersistenceRequired);
         }
         self.pending_archives.clear();
         Ok(())
@@ -109,18 +114,18 @@ impl WorkspaceBody {
     pub fn issue_invitation(
         &self,
         admissions: &mut AdmissionManager,
-        secret: conduit_body::SpawnInvitationSecret,
+        secret: crate::SpawnInvitationSecret,
         nonce: [u8; 32],
         now_millis: u64,
         expires_at_millis: u64,
         authority_host: &HostId,
         authority_boot: &BootId,
-    ) -> Result<conduit_body::SpawnInvitationClaim, WorkspaceBodyError> {
+    ) -> Result<crate::SpawnInvitationClaim, BodyLifecycleSessionError> {
         self.require_host(authority_host, authority_boot)?;
         admissions
             .issue_spawn_invitation(secret, nonce, now_millis, expires_at_millis)
             .map(|invitation| invitation.claim())
-            .map_err(WorkspaceBodyError::Admission)
+            .map_err(BodyLifecycleSessionError::Admission)
     }
 
     /// Complete one canonical single-use invitation at the body authority.
@@ -134,13 +139,13 @@ impl WorkspaceBody {
         now_millis: u64,
         authority_host: &HostId,
         authority_boot: &BootId,
-    ) -> Result<MembershipCredential, WorkspaceBodyError> {
+    ) -> Result<MembershipCredential, BodyLifecycleSessionError> {
         self.require_host(authority_host, authority_boot)?;
         self.make_membership_room(2)?;
         let first_sequence = self.next_sequence()?;
         let second_sequence = first_sequence
             .checked_add(1)
-            .ok_or(WorkspaceBodyError::SequenceExhausted)?;
+            .ok_or(BodyLifecycleSessionError::SequenceExhausted)?;
         let signs = AdmissionSigns {
             part_admitted: sign(authority_host, authority_boot, first_sequence),
             host_attached: sign(authority_host, authority_boot, second_sequence),
@@ -151,21 +156,21 @@ impl WorkspaceBody {
         let prior_events = membership.events.len();
         let credential = next_admissions
             .complete_spawn(&mut membership, advertisement, proof, now_millis, signs)
-            .map_err(WorkspaceBodyError::Admission)?;
+            .map_err(BodyLifecycleSessionError::Admission)?;
         let events = membership.events[prior_events..]
             .iter()
             .zip([first_sequence, second_sequence])
             .map(|(event, sequence)| (event.change_id.clone(), sequence))
             .collect::<Vec<_>>();
         if events.len() != 2 {
-            return Err(WorkspaceBodyError::Biography(
+            return Err(BodyLifecycleSessionError::Biography(
                 BodyBiographyError::InvalidEvidence,
             ));
         }
         let mut evidence = self.evidence.clone();
         evidence
             .append_membership_events(membership, &events)
-            .map_err(WorkspaceBodyError::Biography)?;
+            .map_err(BodyLifecycleSessionError::Biography)?;
         self.evidence = evidence;
         *admissions = next_admissions;
         Ok(credential)
@@ -181,7 +186,7 @@ impl WorkspaceBody {
         lost_boot: &BootId,
         authority_host: &HostId,
         authority_boot: &BootId,
-    ) -> Result<(), WorkspaceBodyError> {
+    ) -> Result<(), BodyLifecycleSessionError> {
         self.require_host(authority_host, authority_boot)?;
         let part_id = self
             .evidence
@@ -195,7 +200,7 @@ impl WorkspaceBody {
                     })
             })
             .map(|part| part.part_id.clone())
-            .ok_or(WorkspaceBodyError::StaleHost)?;
+            .ok_or(BodyLifecycleSessionError::StaleHost)?;
         self.make_membership_room(1)?;
         let sequence = self.next_sequence()?;
         let mut membership = self.evidence.membership.clone();
@@ -208,25 +213,25 @@ impl WorkspaceBody {
                 lost_boot,
                 sign(authority_host, authority_boot, sequence),
             )
-            .map_err(WorkspaceBodyError::Membership)?;
+            .map_err(BodyLifecycleSessionError::Membership)?;
         if membership.events.len() != prior_events + 1 {
-            return Err(WorkspaceBodyError::Biography(
+            return Err(BodyLifecycleSessionError::Biography(
                 BodyBiographyError::InvalidEvidence,
             ));
         }
         let mut evidence = self.evidence.clone();
         evidence
             .append_membership_events(membership, &[(change, sequence)])
-            .map_err(WorkspaceBodyError::Biography)?;
+            .map_err(BodyLifecycleSessionError::Biography)?;
         self.evidence = evidence;
         Ok(())
     }
 
     /// Foreground is presentation focus within the current workset. Selecting a
     /// surface changes neither its body lifecycle nor the exact admitted play.
-    pub fn select_form(&mut self, form: &ResidentForm) -> Result<(), WorkspaceBodyError> {
+    pub fn select_form(&mut self, form: &ResidentForm) -> Result<(), BodyLifecycleSessionError> {
         if !self.evidence.body.workset.forms().contains(form) {
-            return Err(WorkspaceBodyError::UninstalledForm);
+            return Err(BodyLifecycleSessionError::UninstalledForm);
         }
         self.foreground = Some(form.clone());
         Ok(())
@@ -240,10 +245,10 @@ impl WorkspaceBody {
         forms: Vec<BodyFormPlan>,
         host: &HostId,
         boot: &BootId,
-    ) -> Result<&WorkspaceRealization, WorkspaceBodyError> {
+    ) -> Result<&BodyLifecycleRealization, BodyLifecycleSessionError> {
         self.require_mutable()?;
         if self.evidence.body.state != BodyState::Lulled || self.realization.is_some() {
-            return Err(WorkspaceBodyError::NotLulled);
+            return Err(BodyLifecycleSessionError::NotLulled);
         }
         self.require_host(host, boot)?;
         for partition in &forms {
@@ -259,14 +264,14 @@ impl WorkspaceBody {
             .evidence
             .body
             .wake(sequence, sign(host, boot, sequence))
-            .map_err(WorkspaceBodyError::Lifecycle)?;
-        let plan = BodyPlan::seal(&wake, forms).map_err(WorkspaceBodyError::Plan)?;
+            .map_err(BodyLifecycleSessionError::Lifecycle)?;
+        let plan = BodyPlan::seal(&wake, forms).map_err(BodyLifecycleSessionError::Plan)?;
         let mut evidence = self.evidence.clone();
         evidence
             .append_wake(body, wake.clone(), sequence)
-            .map_err(WorkspaceBodyError::Biography)?;
+            .map_err(BodyLifecycleSessionError::Biography)?;
         self.evidence = evidence;
-        self.realization = Some(WorkspaceRealization {
+        self.realization = Some(BodyLifecycleRealization {
             wake,
             plan,
             play: None,
@@ -281,17 +286,17 @@ impl WorkspaceBody {
         boot: &BootId,
         play: BodyPlayIdentity,
         wake_at_start: Wake,
-    ) -> Result<(), WorkspaceBodyError> {
+    ) -> Result<(), BodyLifecycleSessionError> {
         self.require_host(host, boot)?;
         let current = self
             .realization
             .as_ref()
-            .ok_or(WorkspaceBodyError::NoProposal)?;
+            .ok_or(BodyLifecycleSessionError::NoProposal)?;
         if current.play.is_some() {
-            return Err(WorkspaceBodyError::AlreadyPlaying);
+            return Err(BodyLifecycleSessionError::AlreadyPlaying);
         }
         if !play.validate_for(&current.plan) {
-            return Err(WorkspaceBodyError::StalePlay);
+            return Err(BodyLifecycleSessionError::StalePlay);
         }
         let evidence_sign =
             |sequence| bind_sign(host, boot, Some(&play.active_play_id), sequence).sign_id;
@@ -299,9 +304,9 @@ impl WorkspaceBody {
             .wake
             .body_plan_ready(&current.plan, evidence_sign(0))
             .and_then(|wake| wake.body_play_started(&current.plan, &play, evidence_sign(1)))
-            .map_err(WorkspaceBodyError::Lifecycle)?;
+            .map_err(BodyLifecycleSessionError::Lifecycle)?;
         if expected != wake_at_start {
-            return Err(WorkspaceBodyError::StalePlay);
+            return Err(BodyLifecycleSessionError::StalePlay);
         }
         let mut evidence = self.evidence.clone();
         evidence
@@ -310,7 +315,7 @@ impl WorkspaceBody {
                 expected.clone(),
                 self.next_sequence()?,
             )
-            .map_err(WorkspaceBodyError::Biography)?;
+            .map_err(BodyLifecycleSessionError::Biography)?;
         self.evidence = evidence;
         let realization = self.realization.as_mut().expect("validated realization");
         realization.wake = expected;
@@ -325,32 +330,32 @@ impl WorkspaceBody {
         host: &HostId,
         boot: &BootId,
         terminated_play: Option<&BodyPlayIdentity>,
-    ) -> Result<(), WorkspaceBodyError> {
+    ) -> Result<(), BodyLifecycleSessionError> {
         self.require_host(host, boot)?;
         let current = self
             .realization
             .as_ref()
-            .ok_or(WorkspaceBodyError::NoProposal)?;
+            .ok_or(BodyLifecycleSessionError::NoProposal)?;
         if current.play.as_ref() != terminated_play {
-            return Err(WorkspaceBodyError::StalePlay);
+            return Err(BodyLifecycleSessionError::StalePlay);
         }
         let sequence = self.next_sequence()?;
         let retain_sequence = sequence
             .checked_add(1)
-            .ok_or(WorkspaceBodyError::SequenceExhausted)?;
+            .ok_or(BodyLifecycleSessionError::SequenceExhausted)?;
         let wake = current
             .wake
             .lull(sign(host, boot, sequence))
-            .map_err(WorkspaceBodyError::Lifecycle)?;
+            .map_err(BodyLifecycleSessionError::Lifecycle)?;
         let body = self
             .evidence
             .body
             .retain_after_lull(&wake, sign(host, boot, retain_sequence))
-            .map_err(WorkspaceBodyError::Lifecycle)?;
+            .map_err(BodyLifecycleSessionError::Lifecycle)?;
         let mut evidence = self.evidence.clone();
         evidence
             .append_wake(body, wake, sequence)
-            .map_err(WorkspaceBodyError::Biography)?;
+            .map_err(BodyLifecycleSessionError::Biography)?;
         self.evidence = evidence;
         self.realization = None;
         Ok(())
@@ -362,15 +367,15 @@ impl WorkspaceBody {
         &mut self,
         host: &HostId,
         boot: &BootId,
-        rejections: Vec<conduit_body::WakeRejectionEvidence>,
-    ) -> Result<(), WorkspaceBodyError> {
+        rejections: Vec<crate::WakeRejectionEvidence>,
+    ) -> Result<(), BodyLifecycleSessionError> {
         self.require_host(host, boot)?;
         let current = self
             .realization
             .as_ref()
-            .ok_or(WorkspaceBodyError::NoProposal)?;
+            .ok_or(BodyLifecycleSessionError::NoProposal)?;
         if current.play.is_some() {
-            return Err(WorkspaceBodyError::StalePlay);
+            return Err(BodyLifecycleSessionError::StalePlay);
         }
         if rejections.is_empty()
             || rejections.iter().any(|rejection| {
@@ -387,31 +392,31 @@ impl WorkspaceBody {
                     })
             })
         {
-            return Err(WorkspaceBodyError::StalePlay);
+            return Err(BodyLifecycleSessionError::StalePlay);
         }
         let plan_sequence = self.next_sequence()?;
         let failure_sequence = plan_sequence
             .checked_add(1)
-            .ok_or(WorkspaceBodyError::SequenceExhausted)?;
+            .ok_or(BodyLifecycleSessionError::SequenceExhausted)?;
         let retain_sequence = failure_sequence
             .checked_add(1)
-            .ok_or(WorkspaceBodyError::SequenceExhausted)?;
+            .ok_or(BodyLifecycleSessionError::SequenceExhausted)?;
         let wake = current
             .wake
             .body_plan_ready(&current.plan, sign(host, boot, plan_sequence))
             .and_then(|wake| {
                 wake.fail_with_rejections(sign(host, boot, failure_sequence), rejections)
             })
-            .map_err(WorkspaceBodyError::Lifecycle)?;
+            .map_err(BodyLifecycleSessionError::Lifecycle)?;
         let body = self
             .evidence
             .body
             .retain_after_lull(&wake, sign(host, boot, retain_sequence))
-            .map_err(WorkspaceBodyError::Lifecycle)?;
+            .map_err(BodyLifecycleSessionError::Lifecycle)?;
         let mut evidence = self.evidence.clone();
         evidence
             .append_wake(body, wake, plan_sequence)
-            .map_err(WorkspaceBodyError::Biography)?;
+            .map_err(BodyLifecycleSessionError::Biography)?;
         self.evidence = evidence;
         self.realization = None;
         Ok(())
@@ -425,11 +430,11 @@ impl WorkspaceBody {
         boot: &BootId,
         authority_grant_id: AuthorityGrantId,
         attribution: alloc::string::String,
-    ) -> Result<(), WorkspaceBodyError> {
+    ) -> Result<(), BodyLifecycleSessionError> {
         self.require_mutable()?;
         self.require_host(host, boot)?;
         if self.evidence.body.state != BodyState::Lulled || self.realization.is_some() {
-            return Err(WorkspaceBodyError::NotLulled);
+            return Err(BodyLifecycleSessionError::NotLulled);
         }
         self.make_lifecycle_room(1, 0)?;
         let sequence = self.next_sequence()?;
@@ -457,11 +462,11 @@ impl WorkspaceBody {
             .evidence
             .body
             .fulfill(fulfillment, sign_id.clone())
-            .map_err(WorkspaceBodyError::Lifecycle)?;
+            .map_err(BodyLifecycleSessionError::Lifecycle)?;
         let mut evidence = self.evidence.clone();
         evidence
             .append_body_lifecycle_events(body, &[(sign_id, sequence)])
-            .map_err(WorkspaceBodyError::Biography)?;
+            .map_err(BodyLifecycleSessionError::Biography)?;
         self.evidence = evidence;
         Ok(())
     }
@@ -474,14 +479,14 @@ impl WorkspaceBody {
         form: ResidentForm,
         host: &HostId,
         boot: &BootId,
-    ) -> Result<(), WorkspaceBodyError> {
+    ) -> Result<(), BodyLifecycleSessionError> {
         self.require_mutable()?;
         self.require_host(host, boot)?;
         if self.evidence.body.state != BodyState::Lulled {
-            return Err(WorkspaceBodyError::NotLulled);
+            return Err(BodyLifecycleSessionError::NotLulled);
         }
         if self.evidence.body.workload_revision != expected_revision {
-            return Err(WorkspaceBodyError::StaleWorkload);
+            return Err(BodyLifecycleSessionError::StaleWorkload);
         }
         self.make_lifecycle_room(1, 0)?;
         let sequence = self.next_sequence()?;
@@ -490,11 +495,11 @@ impl WorkspaceBody {
             .evidence
             .body
             .admit_form(form, sign_id.clone())
-            .map_err(WorkspaceBodyError::Lifecycle)?;
+            .map_err(BodyLifecycleSessionError::Lifecycle)?;
         let mut evidence = self.evidence.clone();
         evidence
             .append_body_workload_events(body, &[(sign_id, sequence)])
-            .map_err(WorkspaceBodyError::Biography)?;
+            .map_err(BodyLifecycleSessionError::Biography)?;
         self.evidence = evidence;
         Ok(())
     }
@@ -507,14 +512,14 @@ impl WorkspaceBody {
         form: &ResidentForm,
         host: &HostId,
         boot: &BootId,
-    ) -> Result<(), WorkspaceBodyError> {
+    ) -> Result<(), BodyLifecycleSessionError> {
         self.require_mutable()?;
         self.require_host(host, boot)?;
         if self.evidence.body.state != BodyState::Lulled || self.realization.is_some() {
-            return Err(WorkspaceBodyError::NotLulled);
+            return Err(BodyLifecycleSessionError::NotLulled);
         }
         if self.evidence.body.workload_revision != expected_revision {
-            return Err(WorkspaceBodyError::StaleWorkload);
+            return Err(BodyLifecycleSessionError::StaleWorkload);
         }
         self.make_lifecycle_room(1, 0)?;
         let sequence = self.next_sequence()?;
@@ -523,11 +528,11 @@ impl WorkspaceBody {
             .evidence
             .body
             .remove_form(form, sign_id.clone())
-            .map_err(WorkspaceBodyError::Lifecycle)?;
+            .map_err(BodyLifecycleSessionError::Lifecycle)?;
         let mut evidence = self.evidence.clone();
         evidence
             .append_body_workload_events(body, &[(sign_id, sequence)])
-            .map_err(WorkspaceBodyError::Biography)?;
+            .map_err(BodyLifecycleSessionError::Biography)?;
         if self.foreground.as_ref() == Some(form) {
             self.foreground = evidence.body.workset.forms().first().cloned();
         }
@@ -535,7 +540,7 @@ impl WorkspaceBody {
         Ok(())
     }
 
-    fn require_host(&self, host: &HostId, boot: &BootId) -> Result<(), WorkspaceBodyError> {
+    fn require_host(&self, host: &HostId, boot: &BootId) -> Result<(), BodyLifecycleSessionError> {
         if self.evidence.membership.parts.iter().any(|part| {
             part.state == MembershipState::Admitted
                 && part
@@ -545,59 +550,56 @@ impl WorkspaceBody {
         }) {
             Ok(())
         } else {
-            Err(WorkspaceBodyError::StaleHost)
+            Err(BodyLifecycleSessionError::StaleHost)
         }
     }
 
-    fn require_mutable(&self) -> Result<(), WorkspaceBodyError> {
+    fn require_mutable(&self) -> Result<(), BodyLifecycleSessionError> {
         self.evidence
             .body
             .ensure_mutable()
-            .map_err(WorkspaceBodyError::Lifecycle)
+            .map_err(BodyLifecycleSessionError::Lifecycle)
     }
 
-    fn next_sequence(&self) -> Result<u64, WorkspaceBodyError> {
+    fn next_sequence(&self) -> Result<u64, BodyLifecycleSessionError> {
         self.evidence
             .last_sequence()
             .checked_add(1)
-            .ok_or(WorkspaceBodyError::SequenceExhausted)
+            .ok_or(BodyLifecycleSessionError::SequenceExhausted)
     }
 
     fn make_lifecycle_room(
         &mut self,
         body_signs: usize,
         wakes: usize,
-    ) -> Result<(), WorkspaceBodyError> {
-        while self.evidence.body.sign_ids.len().saturating_add(body_signs)
-            > conduit_body::MAX_BODY_SIGNS
-            || self.evidence.wakes.len().saturating_add(wakes)
-                > conduit_body::MAX_BODY_BIOGRAPHY_WAKES
-            || self.evidence.records.len().saturating_add(5)
-                > conduit_body::MAX_BODY_BIOGRAPHY_RECORDS
+    ) -> Result<(), BodyLifecycleSessionError> {
+        while self.evidence.body.sign_ids.len().saturating_add(body_signs) > crate::MAX_BODY_SIGNS
+            || self.evidence.wakes.len().saturating_add(wakes) > crate::MAX_BODY_BIOGRAPHY_WAKES
+            || self.evidence.records.len().saturating_add(5) > crate::MAX_BODY_BIOGRAPHY_RECORDS
         {
-            if self.pending_archives.len() >= conduit_body::MAX_BODY_BIOGRAPHY_WAKES {
-                return Err(WorkspaceBodyError::ArchivePersistenceRequired);
+            if self.pending_archives.len() >= crate::MAX_BODY_BIOGRAPHY_WAKES {
+                return Err(BodyLifecycleSessionError::ArchivePersistenceRequired);
             }
             let segment = self
                 .evidence
                 .seal_oldest_terminal_wake()
-                .map_err(WorkspaceBodyError::Biography)?;
+                .map_err(BodyLifecycleSessionError::Biography)?;
             let segment = match segment {
                 Some(segment) => Some(segment),
                 None => self
                     .evidence
                     .seal_body_workload_history()
-                    .map_err(WorkspaceBodyError::Biography)?,
+                    .map_err(BodyLifecycleSessionError::Biography)?,
             };
             let segment = match segment {
                 Some(segment) => Some(segment),
                 None => self
                     .evidence
                     .seal_membership_history()
-                    .map_err(WorkspaceBodyError::Biography)?,
+                    .map_err(BodyLifecycleSessionError::Biography)?,
             };
             let Some(segment) = segment else {
-                return Err(WorkspaceBodyError::Biography(
+                return Err(BodyLifecycleSessionError::Biography(
                     BodyBiographyError::CapacityExhausted,
                 ));
             };
@@ -606,22 +608,22 @@ impl WorkspaceBody {
         Ok(())
     }
 
-    fn make_membership_room(&mut self, events: usize) -> Result<(), WorkspaceBodyError> {
+    fn make_membership_room(&mut self, events: usize) -> Result<(), BodyLifecycleSessionError> {
         if self.evidence.membership.events.len().saturating_add(events)
-            <= conduit_body::MAX_MEMBERSHIP_EVENTS
+            <= crate::MAX_MEMBERSHIP_EVENTS
             && self.evidence.records.len().saturating_add(events)
-                <= conduit_body::MAX_BODY_BIOGRAPHY_RECORDS
+                <= crate::MAX_BODY_BIOGRAPHY_RECORDS
         {
             return Ok(());
         }
-        if self.pending_archives.len() >= conduit_body::MAX_BODY_BIOGRAPHY_WAKES {
-            return Err(WorkspaceBodyError::ArchivePersistenceRequired);
+        if self.pending_archives.len() >= crate::MAX_BODY_BIOGRAPHY_WAKES {
+            return Err(BodyLifecycleSessionError::ArchivePersistenceRequired);
         }
         let segment = self
             .evidence
             .seal_membership_history()
-            .map_err(WorkspaceBodyError::Biography)?
-            .ok_or(WorkspaceBodyError::Biography(
+            .map_err(BodyLifecycleSessionError::Biography)?
+            .ok_or(BodyLifecycleSessionError::Biography(
                 BodyBiographyError::CapacityExhausted,
             ))?;
         self.pending_archives.push(segment);

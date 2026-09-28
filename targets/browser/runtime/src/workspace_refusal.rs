@@ -1,5 +1,5 @@
 //! Stable machine-readable categories at the workspace lifecycle boundary.
-use conduit_workspace_model::WorkspaceBodyError;
+use conduit_body::BodyLifecycleSessionError;
 
 pub(super) struct Refusal {
     pub code: String,
@@ -15,9 +15,9 @@ impl Refusal {
     }
 }
 
-impl From<WorkspaceBodyError> for Refusal {
-    fn from(error: WorkspaceBodyError) -> Self {
-        use WorkspaceBodyError::*;
+impl From<BodyLifecycleSessionError> for Refusal {
+    fn from(error: BodyLifecycleSessionError) -> Self {
+        use BodyLifecycleSessionError::*;
         let code = match error {
             Biography(error) => format!("Biography.{error:?}"),
             Admission(error) => format!("Admission.{error:?}"),
