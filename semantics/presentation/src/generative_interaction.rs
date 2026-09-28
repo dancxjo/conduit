@@ -7,8 +7,8 @@ use alloc::{string::String, vec::Vec};
 use serde::{Deserialize, Serialize};
 
 use crate::{
-    presentation::validate_id, Manifestation, Presentation, PresentationInteraction,
-    PresentationInteractionRefusal,
+    presentation::validate_id, FaceInteraction, FaceInteractionArgument, FaceInteractionRefusal,
+    MaskShow, Presentation,
 };
 
 pub const GENERATIVE_INTERACTION_PROPOSAL_KIND: &str =
@@ -17,17 +17,15 @@ pub const MAX_GENERATIVE_INTERACTION_REASON_BYTES: usize = 256;
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
-pub struct ProposedPresentationInteraction {
-    pub input_id: String,
+pub struct ProposedFaceInteraction {
     pub action_id: String,
     pub target: String,
-    pub value_kind: String,
-    pub value: Vec<u8>,
+    pub arguments: Vec<FaceInteractionArgument>,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub enum GenerativeInteractionDisposition {
-    Proposed(ProposedPresentationInteraction),
+    Proposed(ProposedFaceInteraction),
     ClarificationRequired { reason_code: String },
     Refused { reason_code: String },
     Failed { reason_code: String },
@@ -38,9 +36,9 @@ pub enum GenerativeInteractionDisposition {
 pub struct GenerativeInteractionProposal {
     pub proposal_identity: String,
     pub interpretation_run_identity: String,
-    pub source_presentation_identity: String,
-    pub source_presentation_revision: u64,
-    pub manifestation_identity: String,
+    pub source_face_identity: String,
+    pub source_face_revision: u64,
+    pub show_identity: String,
     pub interpreter_implementation_identity: String,
     pub provider_identity: String,
     pub model_identity: String,
@@ -49,7 +47,7 @@ pub struct GenerativeInteractionProposal {
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum ResolvedGenerativeInteraction {
-    Interaction(PresentationInteraction),
+    Interaction(FaceInteraction),
     ClarificationRequired { reason_code: String },
     Refused { reason_code: String },
     Failed { reason_code: String },
@@ -59,9 +57,9 @@ pub enum ResolvedGenerativeInteraction {
 pub enum GenerativeInteractionRefusal {
     InvalidIdentity,
     InvalidReason,
-    StalePresentation,
-    StaleManifestation,
-    Interaction(PresentationInteractionRefusal),
+    StaleFace,
+    StaleShow,
+    Interaction(FaceInteractionRefusal),
 }
 
 impl GenerativeInteractionProposal {
@@ -69,38 +67,31 @@ impl GenerativeInteractionProposal {
     /// contract. Returning `Interaction` does not enqueue or execute it.
     pub fn resolve(
         &self,
-        presentation: &Presentation,
-        manifestation: &Manifestation,
+        face: &Presentation,
+        show: &MaskShow,
         sequence: u64,
     ) -> Result<ResolvedGenerativeInteraction, GenerativeInteractionRefusal> {
         self.validate_identities()?;
-        if self.source_presentation_identity != presentation.identity.as_str()
-            || self.source_presentation_revision != presentation.revision
+        if self.source_face_identity != face.identity.as_str()
+            || self.source_face_revision != face.revision
         {
-            return Err(GenerativeInteractionRefusal::StalePresentation);
+            return Err(GenerativeInteractionRefusal::StaleFace);
         }
-        if self.manifestation_identity != manifestation.manifestation_id.as_str() {
-            return Err(GenerativeInteractionRefusal::StaleManifestation);
+        if self.show_identity != show.show_id.as_str() {
+            return Err(GenerativeInteractionRefusal::StaleShow);
         }
         match &self.disposition {
             GenerativeInteractionDisposition::Proposed(proposal) => {
-                for value in [
-                    &proposal.input_id,
-                    &proposal.action_id,
-                    &proposal.target,
-                    &proposal.value_kind,
-                ] {
+                for value in [&proposal.action_id, &proposal.target] {
                     validate_id(value)
                         .map_err(|_| GenerativeInteractionRefusal::InvalidIdentity)?;
                 }
-                PresentationInteraction::new(
-                    presentation,
-                    manifestation,
-                    &proposal.input_id,
+                FaceInteraction::new(
+                    face,
+                    show,
                     &proposal.action_id,
                     &proposal.target,
-                    &proposal.value_kind,
-                    &proposal.value,
+                    proposal.arguments.clone(),
                     sequence,
                 )
                 .map(ResolvedGenerativeInteraction::Interaction)
@@ -131,8 +122,8 @@ impl GenerativeInteractionProposal {
         for value in [
             &self.proposal_identity,
             &self.interpretation_run_identity,
-            &self.source_presentation_identity,
-            &self.manifestation_identity,
+            &self.source_face_identity,
+            &self.show_identity,
             &self.interpreter_implementation_identity,
             &self.provider_identity,
             &self.model_identity,

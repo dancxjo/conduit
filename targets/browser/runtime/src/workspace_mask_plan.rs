@@ -38,7 +38,7 @@ pub(super) fn planned_mask(
         outputs: vec![
             port(
                 "interaction",
-                PRESENTATION_INTERACTION_VALUE_KIND,
+                FACE_INTERACTION_VALUE_KIND,
                 PortDirection::Output,
                 PortTemporal::Flow { closes: true },
             ),

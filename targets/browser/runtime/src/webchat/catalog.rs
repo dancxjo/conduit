@@ -55,8 +55,6 @@ mod tests {
         for kind in [
             conduit_semantic_catalog::CAMERA_ACQUIRE_KIND,
             conduit_semantic_catalog::MICROPHONE_ACQUIRE_KIND,
-            conduit_presentation::INTERACTION_KIND,
-            conduit_presentation::RENDERER_KIND,
             conduit_semantic_catalog::TEXT_PRESENTATION_KIND,
             conduit_semantic_catalog::GRAPHICS_RECT_KIND,
             conduit_semantic_catalog::CAMERA_FRAME_SINK_KIND,

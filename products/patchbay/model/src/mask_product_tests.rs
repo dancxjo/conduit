@@ -17,7 +17,7 @@ use conduit_presentation::{
     ManifestationLifecycle, MaskForm, MaskPlanningDisposition, MaskShow, MaskShowDisposition,
     MaskWardrobe, MaskWardrobeLifetime, PlannedMaskForm, Presentation, PresentationBasis,
     PresentationRole, PresentationSubject, PresentationText, SealedMaskFormRoute,
-    PRESENTATION_INTERACTION_VALUE_KIND, PRESENTATION_VALUE_KIND, SHOW_VALUE_KIND,
+    FACE_INTERACTION_VALUE_KIND, PRESENTATION_VALUE_KIND, SHOW_VALUE_KIND,
 };
 
 use crate::{project_mask_inspection, MaskWardrobeAction, MaskWardrobeControl};
@@ -59,7 +59,7 @@ fn fixture(available: bool) -> Fixture {
         outputs: vec![
             port(
                 "interaction",
-                PRESENTATION_INTERACTION_VALUE_KIND,
+                FACE_INTERACTION_VALUE_KIND,
                 PortDirection::Output,
                 PortTemporal::Flow { closes: true },
             ),

@@ -90,7 +90,6 @@ impl Presentation {
             properties,
             text,
             actions,
-            inputs: Vec::new(),
             disclosures,
             temporal_references,
             temporal_facts,

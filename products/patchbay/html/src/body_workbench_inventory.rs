@@ -105,6 +105,7 @@ pub(crate) fn project(
             intent: "conduit.intent/add-form@1".into(),
             target: identity.clone(),
             name: "Add to Body".into(),
+            arguments: vec![],
             disclosure: PresentationDisclosureLevel::CurrentAction,
             availability: match state {
                 BodyState::Awake { .. } => PresentationActionAvailability::Unavailable {

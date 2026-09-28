@@ -123,18 +123,21 @@ export async function startApplication(application) {
     };
     const submitMaskInteraction = event => {
       const mask = currentMask;
-      const input = mask?.inputs.find(candidate => candidate.submit_action === event.action);
-      if (!input) throw new Error('The Mask did not expose an input for this action');
+      const action = mask?.actions.find(candidate => candidate.identity === event.action);
+      if (!action) throw new Error('The Mask did not expose this action');
+      if (action.arguments.length !== 1) throw new Error('The tutorial action does not have one exact argument');
+      const argument = action.arguments[0];
       return session.interactWithTutorialMask({
         show_id: mask.show_id,
-        manifestation_id: mask.manifestation_id,
         presentation_id: mask.presentation_id,
         presentation_revision: mask.presentation_revision,
-        input_id: input.identity,
         action_id: event.action,
-        target: input.target,
-        value_kind: input.contract.value_kind,
-        value: Array.from(event.value ?? []),
+        target: action.target,
+        arguments: [{
+          name: argument.name,
+          value_kind: argument.contract.value_kind,
+          value: Array.from(event.value ?? []),
+        }],
         sequence: Number(event.sequence ?? 1),
       });
     };

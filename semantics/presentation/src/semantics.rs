@@ -1,6 +1,7 @@
 //! Bounded semantic actions and progressive disclosure for a Presentation.
 
-use alloc::string::String;
+use alloc::{string::String, vec::Vec};
+use conduit_core::{kind_id, CheckedValueContract, ValueConstraint};
 use serde::{Deserialize, Serialize};
 use sha2::{Digest, Sha256};
 
@@ -12,6 +13,39 @@ pub const MAX_PRESENTATION_ACTIONS: usize = 1_024;
 pub const MAX_PRESENTATION_DISCLOSURES: usize = 1_024;
 pub const MAX_PRESENTATION_REASON_BYTES: usize = 1_024;
 
+/// One exact, finite named value committed atomically with its owning action.
+///
+/// This is semantic participation truth, not a field, widget, or Mask-local
+/// edit buffer. Optionality belongs in the checked value contract itself.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct FaceActionArgument {
+    pub name: String,
+    pub value_name: String,
+    pub contract: CheckedValueContract,
+}
+
+impl FaceActionArgument {
+    pub fn text(
+        name: String,
+        value_name: String,
+        minimum_bytes: u32,
+        maximum_bytes: u32,
+    ) -> Result<Self, conduit_core::ConstraintDefinitionError> {
+        Ok(Self {
+            name,
+            value_name,
+            contract: CheckedValueContract::new(
+                kind_id(crate::UTF8_TEXT_VALUE_KIND),
+                maximum_bytes,
+                alloc::vec![ValueConstraint::ByteLength {
+                    minimum: minimum_bytes,
+                    maximum: maximum_bytes,
+                }],
+            )?,
+        })
+    }
+}
+
 /// One ordinary Conduit intent offered by a Presentation.
 ///
 /// This record describes an action. It neither grants authority nor invokes it.
@@ -22,6 +56,8 @@ pub struct PresentationAction {
     pub target: String,
     /// The one ordinary bounded human name for this semantic action.
     pub name: String,
+    /// The complete ordered contract committed by one interaction occurrence.
+    pub arguments: Vec<FaceActionArgument>,
     pub disclosure: PresentationDisclosureLevel,
     pub availability: PresentationActionAvailability,
 }
@@ -112,6 +148,24 @@ impl Presentation {
             validate_id(&action.identity)?;
             validate_id(&action.intent)?;
             validate_text(&action.name)?;
+            if action.arguments.len() > crate::MAX_FACE_ACTION_ARGUMENTS {
+                return Err(PresentationError::TooManyInputs);
+            }
+            for (argument_index, argument) in action.arguments.iter().enumerate() {
+                validate_id(&argument.name)?;
+                validate_text(&argument.value_name)?;
+                if argument.contract.maximum_bytes > crate::MAX_FACE_ACTION_ARGUMENT_BYTES
+                    || argument.contract.validate_definition().is_err()
+                {
+                    return Err(PresentationError::InvalidInputContract);
+                }
+                if action.arguments[argument_index + 1..]
+                    .iter()
+                    .any(|candidate| candidate.name == argument.name)
+                {
+                    return Err(PresentationError::DuplicateInput);
+                }
+            }
             if !self.has_subject(&action.target) {
                 return Err(PresentationError::UnknownActionTarget);
             }
@@ -160,6 +214,15 @@ impl Presentation {
                     + action.intent.len()
                     + action.target.len()
                     + action.name.len()
+                    + action
+                        .arguments
+                        .iter()
+                        .map(|argument| {
+                            argument.name.len()
+                                + argument.value_name.len()
+                                + argument.contract.identity_bytes().len()
+                        })
+                        .sum::<usize>()
                     + 1
                     + availability_len(&action.availability)
             })
@@ -177,6 +240,14 @@ impl Presentation {
             hash_string(digest, &action.intent);
             hash_string(digest, &action.target);
             hash_string(digest, &action.name);
+            digest.update((action.arguments.len() as u32).to_le_bytes());
+            for argument in &action.arguments {
+                hash_string(digest, &argument.name);
+                hash_string(digest, &argument.value_name);
+                let contract = argument.contract.identity_bytes();
+                digest.update((contract.len() as u32).to_le_bytes());
+                digest.update(contract);
+            }
             digest.update([action.disclosure as u8]);
             match &action.availability {
                 PresentationActionAvailability::Available => digest.update([0]),

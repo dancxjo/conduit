@@ -29,6 +29,7 @@ fn presentation() -> conduit_presentation::Presentation {
             intent: PatchbayAction::Birth.presentation_intent().into(),
             target: "body/example".into(),
             name: "Birth".into(),
+            arguments: vec![],
             disclosure: conduit_presentation::PresentationDisclosureLevel::CurrentAction,
             availability: conduit_presentation::PresentationActionAvailability::Available,
         }],

@@ -72,6 +72,7 @@ fn fixture() -> (Presentation, PresentationNavigation) {
             intent: "conduit.intent/birth@1".into(),
             target: "program".into(),
             name: "Birth".into(),
+            arguments: vec![],
             disclosure: PresentationDisclosureLevel::CurrentAction,
             availability: PresentationActionAvailability::Available,
         }],

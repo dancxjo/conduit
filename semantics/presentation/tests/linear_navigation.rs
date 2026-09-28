@@ -55,6 +55,7 @@ fn fixture() -> (
             intent: "conduit.intent/inspect@1".into(),
             target: "gear/upper".into(),
             name: "Inspect Uppercase".into(),
+            arguments: vec![],
             disclosure: PresentationDisclosureLevel::SelectedDetail,
             availability: PresentationActionAvailability::Unavailable {
                 reason_code: "authority/not-admitted".into(),

@@ -77,7 +77,6 @@ pub fn project_generated_validation_receipt(
         properties: content.properties,
         text: content.text,
         actions: Vec::new(),
-        inputs: Vec::new(),
         disclosures: vec![PresentationDisclosure {
             subject: validation,
             level: PresentationDisclosureLevel::ExactProvenance,

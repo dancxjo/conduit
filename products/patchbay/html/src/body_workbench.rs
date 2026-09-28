@@ -272,6 +272,7 @@ fn workbench_presentation(
                 intent: action_intent.into(),
                 target: body_identity.clone(),
                 name: action_label.into(),
+                arguments: vec![],
                 disclosure: PresentationDisclosureLevel::CurrentAction,
                 availability: PresentationActionAvailability::Available,
             },
@@ -309,6 +310,7 @@ fn workbench_presentation(
             intent: "conduit.intent/remove-form@1".into(),
             target: form_identity.clone(),
             name: "Remove from Body".into(),
+            arguments: vec![],
             disclosure: PresentationDisclosureLevel::CurrentAction,
             availability: match &evidence.body.state {
                 conduit_body::BodyState::Lulled => PresentationActionAvailability::Available,

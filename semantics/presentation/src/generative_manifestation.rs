@@ -79,12 +79,11 @@ pub enum GeneratedSemanticCorrelation {
         intent: String,
         target: String,
     },
-    Input {
-        index: u32,
-        identity: String,
-        target: String,
+    ActionArgument {
+        action_index: u32,
+        argument_index: u32,
+        name: String,
         value_kind: String,
-        submit_action: String,
     },
     Disclosure {
         index: u32,

@@ -334,6 +334,7 @@ fn append_ordinary_path(
         intent: "conduit.intent/observe-line-loss@1".into(),
         target: path,
         name: "Observe browser loss".into(),
+        arguments: vec![],
         disclosure: PresentationDisclosureLevel::CurrentAction,
         availability: if loss.is_some() {
             PresentationActionAvailability::Unavailable {

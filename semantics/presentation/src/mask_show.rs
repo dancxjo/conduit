@@ -1,4 +1,4 @@
-//! One exact Show of one Presentation through one planned ordinary Mask Form.
+//! One exact Show of one Face through one planned ordinary Mask Form.
 
 use alloc::{format, string::String};
 use conduit_core::{ActivePlayIdentity, FormIdentity, PlanId, SignId};
@@ -6,8 +6,8 @@ use serde::{Deserialize, Serialize};
 use sha2::{Digest, Sha256};
 
 use crate::{
-    Manifestation, ManifestationError, ManifestationFailure, ManifestationLifecycle,
-    PlannedMaskForm, Presentation, PresentationContentId, PresentationInteraction, Show,
+    FaceInteraction, Manifestation, ManifestationError, ManifestationFailure,
+    ManifestationLifecycle, PlannedMaskForm, Presentation, PresentationContentId, Show,
 };
 
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]
@@ -40,7 +40,7 @@ pub struct MaskInteractionCorrelation {
     pub mask_form: FormIdentity,
     pub presentation_id: PresentationContentId,
     pub presentation_revision: u64,
-    pub interaction: PresentationInteraction,
+    pub interaction: FaceInteraction,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -135,11 +135,11 @@ impl MaskShow {
 
     pub fn correlate_interaction(
         &self,
-        interaction: PresentationInteraction,
+        interaction: FaceInteraction,
     ) -> Result<MaskInteractionCorrelation, MaskShowError> {
-        if interaction.presentation_id != self.presentation_id.as_str()
-            || interaction.presentation_revision != self.presentation_revision
-            || interaction.manifestation_id != self.show.manifestation_id.as_str()
+        if interaction.face_id != self.presentation_id.as_str()
+            || interaction.face_revision != self.presentation_revision
+            || interaction.show_id != self.show_id.as_str()
         {
             return Err(MaskShowError::StaleInteraction);
         }

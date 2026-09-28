@@ -49,6 +49,7 @@ impl PatchbayApplication {
                     intent: action.presentation_intent().into(),
                     target: target.clone(),
                     name: action.as_str().replace('-', " "),
+                    arguments: vec![],
                     disclosure: PresentationDisclosureLevel::CurrentAction,
                     availability: unavailable.map_or(
                         PresentationActionAvailability::Available,

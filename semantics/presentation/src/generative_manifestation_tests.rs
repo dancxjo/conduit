@@ -3,11 +3,10 @@ use crate::{
     GenerativeNarratorRole, GenerativePresenterBounds, GenerativePresenterPolicy, Presentation,
     PresentationAction, PresentationActionAvailability, PresentationBasis,
     PresentationCompositionKind, PresentationCompositionRelation, PresentationContextBasis,
-    PresentationDisclosure, PresentationDisclosureLevel, PresentationInput,
-    PresentationInteractionContext, PresentationProperty, PresentationPropertyValue,
-    PresentationRelationship, PresentationRelationshipKind, PresentationRole, PresentationSubject,
-    PresentationTemporalFact, PresentationTemporalRole, PresentationText, TemporalInstant,
-    TemporalReference, TemporalScale,
+    PresentationDisclosure, PresentationDisclosureLevel, PresentationInteractionContext,
+    PresentationProperty, PresentationPropertyValue, PresentationRelationship,
+    PresentationRelationshipKind, PresentationRole, PresentationSubject, PresentationTemporalFact,
+    PresentationTemporalRole, PresentationText, TemporalInstant, TemporalReference, TemporalScale,
 };
 use alloc::{string::String, vec};
 use conduit_core::{
@@ -35,7 +34,7 @@ fn request() -> GenerativePresenterRequest {
     }
     .encode()
     .unwrap();
-    let presentation = Presentation::new_with_interactions(
+    let presentation = Presentation::new_with_semantics(
         4,
         PresentationBasis {
             body_id: None,
@@ -78,18 +77,16 @@ fn request() -> GenerativePresenterRequest {
             intent: "education/answer@1".into(),
             target: "concept/mitochondrion".into(),
             name: "Answer".into(),
+            arguments: vec![crate::FaceActionArgument::text(
+                "lesson/answer-input".into(),
+                "Answer".into(),
+                1,
+                128,
+            )
+            .unwrap()],
             disclosure: PresentationDisclosureLevel::CurrentAction,
             availability: PresentationActionAvailability::Available,
         }],
-        vec![PresentationInput::text(
-            "lesson/answer-input".into(),
-            "concept/mitochondrion".into(),
-            128,
-            false,
-            "Answer".into(),
-            "lesson/answer".into(),
-        )
-        .unwrap()],
         vec![PresentationDisclosure {
             subject: "concept/mitochondrion".into(),
             level: PresentationDisclosureLevel::SelectedDetail,
@@ -179,12 +176,11 @@ fn candidate(request: &GenerativePresenterRequest) -> GeneratedManifestationCand
                 intent: "education/answer@1".into(),
                 target: "concept/mitochondrion".into(),
             },
-            GeneratedSemanticCorrelation::Input {
-                index: 0,
-                identity: "lesson/answer-input".into(),
-                target: "concept/mitochondrion".into(),
+            GeneratedSemanticCorrelation::ActionArgument {
+                action_index: 0,
+                argument_index: 0,
+                name: "lesson/answer-input".into(),
                 value_kind: "value/text".into(),
-                submit_action: "lesson/answer".into(),
             },
             GeneratedSemanticCorrelation::Disclosure {
                 index: 0,

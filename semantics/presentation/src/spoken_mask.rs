@@ -292,7 +292,7 @@ pub fn spoken_mask_kinds() -> alloc::vec::Vec<conduit_core::Kind> {
             alloc::vec![],
             alloc::vec![port(
                 "interaction",
-                crate::PRESENTATION_INTERACTION_VALUE_KIND,
+                crate::FACE_INTERACTION_VALUE_KIND,
                 PortDirection::Output,
                 PortTemporal::Flow { closes: true },
             )],

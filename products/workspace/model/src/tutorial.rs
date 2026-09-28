@@ -10,10 +10,10 @@ use conduit_presentation::{
     ActionAvailability, ApplicationEventKind, Face, FaceContext, FaceFocus, FaceRefusal,
     GenerativePresenterBounds, GenerativePresenterRefusal, GenerativePresenterRequest,
     OrifinaPresentationRefusal, Presentation, PresentationAction, PresentationActionAvailability,
-    PresentationDisclosureLevel, PresentationError, PresentationInput, PresentationMechanism,
-    PresentationProperty, PresentationPropertyValue, PresentationText, SemanticAction,
-    SemanticApplicationView, SemanticPresentationNode, StatusKind,
-    orifina_completion_presenter_policy, project_orifina_purpose_presentation,
+    PresentationDisclosureLevel, PresentationError, PresentationMechanism, PresentationProperty,
+    PresentationPropertyValue, PresentationText, SemanticAction, SemanticApplicationView,
+    SemanticPresentationNode, StatusKind, orifina_completion_presenter_policy,
+    project_orifina_purpose_presentation,
 };
 use serde::{Deserialize, Serialize};
 
@@ -199,21 +199,19 @@ fn tutorial_face(
         intent: intent.into(),
         target: body_subject.clone(),
         name: label.into(),
+        arguments: vec![
+            conduit_presentation::FaceActionArgument::text(
+                "input/tutorial-action".into(),
+                label.into(),
+                0,
+                256,
+            )
+            .expect("tutorial action has a finite text contract"),
+        ],
         disclosure: PresentationDisclosureLevel::CurrentAction,
         availability: PresentationActionAvailability::Available,
     });
-    face.presentation.inputs.push(
-        PresentationInput::text(
-            "input/tutorial-action".into(),
-            body_subject.clone(),
-            256,
-            true,
-            label.into(),
-            identity.into(),
-        )
-        .expect("tutorial action has a finite text contract"),
-    );
-    face.presentation = Presentation::new_with_interactions(
+    face.presentation = Presentation::new_with_semantics(
         face.presentation.revision,
         face.presentation.basis,
         face.presentation.subjects,
@@ -221,7 +219,6 @@ fn tutorial_face(
         face.presentation.properties,
         face.presentation.text,
         face.presentation.actions,
-        face.presentation.inputs,
         face.presentation.disclosures,
     )
     .map_err(TutorialPresenterRefusal::InvalidActionPresentation)?;

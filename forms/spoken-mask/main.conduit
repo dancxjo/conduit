@@ -6,7 +6,7 @@ form spoken (
 ) {
     spread: presentation/tee
     render: presentation/renderer
-    human: presentation/interaction
+    human: face/interaction
 
     presentation >> spread.presentation
     spread.presentation >> render.presentation

@@ -81,19 +81,17 @@ pub(crate) fn hash_correlation(state: &mut Sha256, value: &GeneratedSemanticCorr
             bytes(state, intent);
             bytes(state, target);
         }
-        GeneratedSemanticCorrelation::Input {
-            index,
-            identity,
-            target,
+        GeneratedSemanticCorrelation::ActionArgument {
+            action_index,
+            argument_index,
+            name,
             value_kind,
-            submit_action,
         } => {
             state.update([7]);
-            state.update(index.to_be_bytes());
-            bytes(state, identity);
-            bytes(state, target);
+            state.update(action_index.to_be_bytes());
+            state.update(argument_index.to_be_bytes());
+            bytes(state, name);
             bytes(state, value_kind);
-            bytes(state, submit_action);
         }
         GeneratedSemanticCorrelation::Disclosure {
             index,
@@ -252,106 +250,108 @@ pub(crate) fn validate_correlation(
     correlation: &GeneratedSemanticCorrelation,
 ) -> Result<(), GenerativePresenterRefusal> {
     let p = &request.semantic_data.presentation;
-    let valid =
-        match correlation {
-            GeneratedSemanticCorrelation::Subject { index, identity } => p
-                .subjects
-                .get(*index as usize)
-                .is_some_and(|v| &v.identity == identity),
-            GeneratedSemanticCorrelation::Relationship {
-                index,
-                source,
-                target,
-                kind,
-            } => p
-                .relationships
-                .get(*index as usize)
-                .is_some_and(|v| &v.source == source && &v.target == target && &v.kind == kind),
-            GeneratedSemanticCorrelation::Text { index, subject } => p
-                .text
-                .get(*index as usize)
-                .is_some_and(|v| &v.subject == subject),
-            GeneratedSemanticCorrelation::Property {
-                index,
-                subject,
-                name,
-            } => p
-                .properties
-                .get(*index as usize)
-                .is_some_and(|v| &v.subject == subject && &v.name == name),
-            GeneratedSemanticCorrelation::TypedContent {
-                index,
-                subject,
-                name,
-                content_profile,
-            } => p.properties.get(*index as usize).is_some_and(|v| {
-                &v.subject == subject
-                    && &v.name == name
-                    && match &v.value {
-                        crate::PresentationPropertyValue::Content(encoded) => {
-                            conduit_core::BoundedResourceRef::validate_encoded(encoded)
-                                .is_ok_and(|reference| reference.content_profile == content_profile)
-                        }
-                        _ => false,
+    let valid = match correlation {
+        GeneratedSemanticCorrelation::Subject { index, identity } => p
+            .subjects
+            .get(*index as usize)
+            .is_some_and(|v| &v.identity == identity),
+        GeneratedSemanticCorrelation::Relationship {
+            index,
+            source,
+            target,
+            kind,
+        } => p
+            .relationships
+            .get(*index as usize)
+            .is_some_and(|v| &v.source == source && &v.target == target && &v.kind == kind),
+        GeneratedSemanticCorrelation::Text { index, subject } => p
+            .text
+            .get(*index as usize)
+            .is_some_and(|v| &v.subject == subject),
+        GeneratedSemanticCorrelation::Property {
+            index,
+            subject,
+            name,
+        } => p
+            .properties
+            .get(*index as usize)
+            .is_some_and(|v| &v.subject == subject && &v.name == name),
+        GeneratedSemanticCorrelation::TypedContent {
+            index,
+            subject,
+            name,
+            content_profile,
+        } => p.properties.get(*index as usize).is_some_and(|v| {
+            &v.subject == subject
+                && &v.name == name
+                && match &v.value {
+                    crate::PresentationPropertyValue::Content(encoded) => {
+                        conduit_core::BoundedResourceRef::validate_encoded(encoded)
+                            .is_ok_and(|reference| reference.content_profile == content_profile)
                     }
+                    _ => false,
+                }
+        }),
+        GeneratedSemanticCorrelation::Composition { index, identity } => p
+            .composition
+            .get(*index as usize)
+            .is_some_and(|v| &v.identity == identity),
+        GeneratedSemanticCorrelation::Action {
+            index,
+            identity,
+            intent,
+            target,
+        } => p
+            .actions
+            .get(*index as usize)
+            .is_some_and(|v| &v.identity == identity && &v.intent == intent && &v.target == target),
+        GeneratedSemanticCorrelation::ActionArgument {
+            action_index,
+            argument_index,
+            name,
+            value_kind,
+        } => p.actions.get(*action_index as usize).is_some_and(|action| {
+            action
+                .arguments
+                .get(*argument_index as usize)
+                .is_some_and(|argument| {
+                    &argument.name == name && argument.contract.value_kind.as_str() == value_kind
+                })
+        }),
+        GeneratedSemanticCorrelation::Disclosure {
+            index,
+            subject,
+            level,
+        } => p
+            .disclosures
+            .get(*index as usize)
+            .is_some_and(|v| &v.subject == subject && &v.level == level),
+        GeneratedSemanticCorrelation::TemporalReference { index, identity } => p
+            .temporal_references
+            .get(*index as usize)
+            .is_some_and(|v| &v.identity == identity),
+        GeneratedSemanticCorrelation::TemporalFact {
+            index,
+            subject,
+            reference,
+            role,
+        } => p
+            .temporal_facts
+            .get(*index as usize)
+            .is_some_and(|v| &v.subject == subject && &v.reference == reference && &v.role == role),
+        GeneratedSemanticCorrelation::Context {
+            index,
+            source,
+            target,
+            relationship,
+        } => p
+            .interaction_context
+            .basis
+            .get(*index as usize)
+            .is_some_and(|v| {
+                &v.source == source && &v.target == target && &v.relationship == relationship
             }),
-            GeneratedSemanticCorrelation::Composition { index, identity } => p
-                .composition
-                .get(*index as usize)
-                .is_some_and(|v| &v.identity == identity),
-            GeneratedSemanticCorrelation::Action {
-                index,
-                identity,
-                intent,
-                target,
-            } => p.actions.get(*index as usize).is_some_and(|v| {
-                &v.identity == identity && &v.intent == intent && &v.target == target
-            }),
-            GeneratedSemanticCorrelation::Input {
-                index,
-                identity,
-                target,
-                value_kind,
-                submit_action,
-            } => p.inputs.get(*index as usize).is_some_and(|v| {
-                &v.identity == identity
-                    && &v.target == target
-                    && v.contract.value_kind.as_str() == value_kind
-                    && &v.submit_action == submit_action
-            }),
-            GeneratedSemanticCorrelation::Disclosure {
-                index,
-                subject,
-                level,
-            } => p
-                .disclosures
-                .get(*index as usize)
-                .is_some_and(|v| &v.subject == subject && &v.level == level),
-            GeneratedSemanticCorrelation::TemporalReference { index, identity } => p
-                .temporal_references
-                .get(*index as usize)
-                .is_some_and(|v| &v.identity == identity),
-            GeneratedSemanticCorrelation::TemporalFact {
-                index,
-                subject,
-                reference,
-                role,
-            } => p.temporal_facts.get(*index as usize).is_some_and(|v| {
-                &v.subject == subject && &v.reference == reference && &v.role == role
-            }),
-            GeneratedSemanticCorrelation::Context {
-                index,
-                source,
-                target,
-                relationship,
-            } => p
-                .interaction_context
-                .basis
-                .get(*index as usize)
-                .is_some_and(|v| {
-                    &v.source == source && &v.target == target && &v.relationship == relationship
-                }),
-        };
+    };
     if valid {
         Ok(())
     } else {

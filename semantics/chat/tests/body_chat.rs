@@ -223,7 +223,13 @@ fn canonical_body_chat_is_an_ordinary_checked_form() {
     install_body_chat_catalog(&mut startup, &mut profile).unwrap();
     let checked = check_syntax_document(&parse_syntax_document(source), &startup).unwrap();
     let authored = expand_canonical_form_for_authoring(&checked, "body-chat", &profile).unwrap();
-    assert!(authored.input_bindings.is_empty());
+    assert_eq!(authored.input_bindings.len(), 1);
+    assert_eq!(
+        authored.input_bindings[0].front_port_id.as_str(),
+        "interaction"
+    );
+    assert_eq!(authored.output_bindings.len(), 1);
+    assert_eq!(authored.output_bindings[0].front_port_id.as_str(), "face");
     assert!(authored
         .expanded
         .gears

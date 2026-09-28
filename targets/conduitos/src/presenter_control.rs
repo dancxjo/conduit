@@ -20,11 +20,11 @@ use conduit_planner::{
     plan_expanded_authoring_with_options,
 };
 use conduit_presentation::{
-    BodyMaskWardrobe, InteractionRealizationOffer, MAX_RENDERER_VALUE_BYTES,
+    BodyMaskWardrobe, FaceInteractionRealizationOffer, MAX_RENDERER_VALUE_BYTES,
     ManifestationLifecycle, MaskForm, MaskShow, MaskWardrobe, MaskWardrobeLifetime,
     PlannedMaskForm, Presentation, PresentationBasis, PresentationRole, PresentationSubject,
-    RendererRealizationOffer, install_mask_form_value_aliases, interaction_kind_projection,
-    interaction_offer, presentation_tee_kind_projection, presentation_tee_offer,
+    RendererRealizationOffer, face_interaction_kind_projection, face_interaction_offer,
+    install_mask_form_value_aliases, presentation_tee_kind_projection, presentation_tee_offer,
     renderer_kind_projection, renderer_offer,
 };
 use patchbay_application::{
@@ -452,7 +452,7 @@ pub(super) fn prepare_stage(
     install_mask_form_value_aliases(&mut startup).map_err(|_| ())?;
     for projection in [
         renderer_kind_projection(),
-        interaction_kind_projection(),
+        face_interaction_kind_projection(),
         presentation_tee_kind_projection(),
     ] {
         startup
@@ -498,7 +498,7 @@ pub(super) fn prepare_stage(
             ConnectionQueueLimits {
                 item_capacity: 1,
                 byte_capacity: if name == "interaction" {
-                    conduit_presentation::MAX_PRESENTATION_INTERACTION_BYTES as u32
+                    conduit_presentation::MAX_FACE_INTERACTION_BYTES as u32
                 } else {
                     crate::native_mask_play::MAX_MASK_VALUE_BYTES as u32
                 },
@@ -608,7 +608,7 @@ fn renderer_host(
                     max_queue_bytes: MAX_RENDERER_VALUE_BYTES,
                 },
             }),
-            interaction_offer(InteractionRealizationOffer {
+            face_interaction_offer(FaceInteractionRealizationOffer {
                 capability_id: CapabilityId::from(format!("{capability}-input")),
                 execution_profile_id: ExecutionProfileId::from("conduitos/bounded-interaction@1"),
                 implementation_id: ImplementationId::from(match adapter {
@@ -623,21 +623,16 @@ fn renderer_host(
                     contract_id: HostCallContractId::from(
                         "conduit.host/presentation-interaction@1",
                     ),
-                    target_kind: Some(kind_id(
-                        conduit_presentation::PRESENTATION_INTERACTION_VALUE_KIND,
-                    )),
+                    target_kind: Some(kind_id(conduit_presentation::FACE_INTERACTION_VALUE_KIND)),
                     maximum_in_flight: 1,
                     maximum_input_bytes: MAX_RENDERER_VALUE_BYTES,
-                    maximum_output_bytes: conduit_presentation::MAX_PRESENTATION_INTERACTION_BYTES
-                        as u32,
+                    maximum_output_bytes: conduit_presentation::MAX_FACE_INTERACTION_BYTES as u32,
                 },
                 resource_requirement: resource_requirement(input_resource, 1),
                 limits: CapabilityLimits {
                     max_active_instances: 1,
                     max_queue_items: 8,
-                    max_queue_bytes: conduit_presentation::MAX_PRESENTATION_INTERACTION_BYTES
-                        as u32
-                        * 8,
+                    max_queue_bytes: conduit_presentation::MAX_FACE_INTERACTION_BYTES as u32 * 8,
                 },
             }),
         ],

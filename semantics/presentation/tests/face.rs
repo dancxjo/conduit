@@ -12,9 +12,9 @@ use conduit_presentation::{
     PresentationAction, PresentationActionAvailability, PresentationAspect,
     PresentationCompositionKind, PresentationCompositionRelation, PresentationContributionBasis,
     PresentationCursor, PresentationDepth, PresentationDisclosure, PresentationDisclosureLevel,
-    PresentationFragment, PresentationInput, PresentationNavigation, PresentationPlace,
-    PresentationProjection, PresentationPropertyValue, PresentationRole, PresentationSubject,
-    ProjectionItem, ProjectionMembership,
+    PresentationFragment, PresentationNavigation, PresentationPlace, PresentationProjection,
+    PresentationPropertyValue, PresentationRole, PresentationSubject, ProjectionItem,
+    ProjectionMembership,
 };
 
 fn born_body() -> Body {
@@ -323,7 +323,6 @@ fn minimal_fragment(
         properties: vec![],
         text: vec![],
         actions: vec![],
-        inputs: vec![],
         disclosures: vec![],
         temporal_references: vec![],
         temporal_facts: vec![],
@@ -410,18 +409,16 @@ fn ordinary_form_contributes_universal_truth_without_an_application_view() {
                 intent: "education/answer@1".into(),
                 target: "concept/mitochondrion".into(),
                 name: "Answer".into(),
+                arguments: vec![conduit_presentation::FaceActionArgument::text(
+                    "lesson/answer-text".into(),
+                    "Answer".into(),
+                    1,
+                    128,
+                )
+                .unwrap()],
                 disclosure: PresentationDisclosureLevel::CurrentAction,
                 availability: PresentationActionAvailability::Available,
             }],
-            inputs: vec![PresentationInput::text(
-                "lesson/answer-text".into(),
-                "concept/mitochondrion".into(),
-                128,
-                false,
-                "Answer".into(),
-                "lesson/answer".into(),
-            )
-            .unwrap()],
             disclosures: vec![PresentationDisclosure {
                 subject: "concept/mitochondrion".into(),
                 level: PresentationDisclosureLevel::Primary,
