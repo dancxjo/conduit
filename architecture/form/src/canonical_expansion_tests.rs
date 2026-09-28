@@ -90,6 +90,36 @@ fn profile_startup_catalog_preserves_quantity_dimensions() {
     );
 }
 
+#[test]
+fn canonical_kind_fore_owns_callable_default_truth() {
+    let projection = KindProjection {
+        kind_id: kind_id("test/required-prefix"),
+        kind_contract_revision: KindIdentity::from("test/required-prefix@1"),
+        inputs: vec![],
+        outputs: vec![],
+        configuration: vec![KindConfigurationField {
+            key: "prefix".into(),
+            default_value: ConfigurationValue::Text("provider-default".into()),
+            rule: KindConfigurationRule::TextBytes { maximum: 64 },
+        }],
+    };
+    let mut kind = canonical_kind(projection);
+    kind.startup_parameters[0].has_default = false;
+    let mut profile = ProfileCatalog::new();
+    profile.insert_kind(kind).unwrap();
+
+    let startup = profile.startup_catalog().unwrap();
+    let signature = startup.signature("test/required-prefix").unwrap();
+    assert_eq!(signature.startup_parameters[0].default, None);
+    assert!(
+        !startup
+            .fore("test/required-prefix")
+            .unwrap()
+            .startup_parameters()[0]
+            .has_default
+    );
+}
+
 fn port(name: &str, direction: PortDirection) -> PortDescriptor {
     PortDescriptor {
         port_id: port_id(name),
