@@ -76,7 +76,7 @@ use super::tick_backs::TickBack;
 use super::tick_presentation::TickPresentationBack;
 use super::timed_button_attempt_back::TimedButtonAttemptBack;
 use super::timed_pattern_back::TimedPatternBack;
-use super::timing_backs::{DebounceBack, TimeoutBack};
+use super::timing_backs::{DeadlineBack, DebounceBack, TimeoutBack};
 use super::toggle_back::StateToggleBack;
 use super::typed_record_back::TypedRecordBack;
 use super::vector_search_back::VectorSearchBack;
@@ -106,6 +106,7 @@ pub(super) enum InstalledBack {
     TimeTimeout(TimeoutBack),
     TimeDelay(DelayBack),
     TimeThrottle(ThrottleBack),
+    TimeDeadline(DeadlineBack),
     Recurrence(RecurrenceBack),
     CalendarProposal(CalendarProposalBack),
     CalendarProvider(CalendarProviderBack),

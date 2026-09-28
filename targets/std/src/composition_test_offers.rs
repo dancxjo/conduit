@@ -29,6 +29,7 @@ pub(super) fn extend(capabilities: &mut Vec<CapabilityOffer>) {
         installed_std::test_slow_scalar_sink_offer(),
         installed_std::test_timing_sink_offer(),
         installed_std::test_timing_source_offer(),
+        installed_std::test_timing_unit_source_offer(),
         installed_std::test_json_source_offer(),
         installed_std::test_json_sink_offer(),
         conduit_std_offers::deterministic_speech_offer(),

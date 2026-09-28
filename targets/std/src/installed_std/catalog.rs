@@ -159,7 +159,9 @@ use super::test_structured_selector::{
 #[cfg(test)]
 use super::test_text_source::TEST_TEXT_SOURCE_FACTORY;
 #[cfg(test)]
-use super::test_timing_sink::{TEST_TIMING_SINK_FACTORY, TEST_TIMING_SOURCE_FACTORY};
+use super::test_timing_sink::{
+    TEST_TIMING_SINK_FACTORY, TEST_TIMING_SOURCE_FACTORY, TEST_TIMING_UNIT_SOURCE_FACTORY,
+};
 use super::text_backs::{
     TEXT_JOIN_FACTORY, TEXT_LITERAL_FACTORY, TEXT_PRESENTATION_FACTORY, TEXT_UPPER_FACTORY,
 };
@@ -172,7 +174,7 @@ use super::tick_backs::{EVERY_FACTORY, TICK_FACTORY};
 use super::tick_presentation::TICK_PRESENTATION_FACTORY;
 use super::timed_button_attempt_back::FACTORY as TIMED_BUTTON_ATTEMPT_FACTORY;
 use super::timed_pattern_back::FACTORY as TIMED_PATTERN_FACTORY;
-use super::timing_backs::{TIME_DEBOUNCE_FACTORY, TIME_TIMEOUT_FACTORY};
+use super::timing_backs::{TIME_DEADLINE_FACTORY, TIME_DEBOUNCE_FACTORY, TIME_TIMEOUT_FACTORY};
 use super::toggle_back::STATE_TOGGLE_FACTORY;
 use super::typed_record_back::{
     DEFRAME as TYPED_RECORD_DEFRAME_FACTORY, FRAME as TYPED_RECORD_FRAME_FACTORY,
@@ -223,6 +225,7 @@ const FACTORIES: &[&BackFactory] = &[
     &TIME_TIMEOUT_FACTORY,
     &TIME_DELAY_FACTORY,
     &TIME_THROTTLE_FACTORY,
+    &TIME_DEADLINE_FACTORY,
     &RECURRENCE_FACTORY,
     &CALENDAR_PROPOSAL_FACTORY,
     &CALENDAR_READ_FACTORY,
@@ -402,6 +405,8 @@ const FACTORIES: &[&BackFactory] = &[
     &TEST_TIMING_SINK_FACTORY,
     #[cfg(test)]
     &TEST_TIMING_SOURCE_FACTORY,
+    #[cfg(test)]
+    &TEST_TIMING_UNIT_SOURCE_FACTORY,
     #[cfg(test)]
     &TEST_JSON_SOURCE_FACTORY,
     #[cfg(test)]

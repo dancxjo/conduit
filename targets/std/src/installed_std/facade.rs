@@ -135,3 +135,8 @@ pub(crate) fn test_timing_sink_offer() -> conduit_core::CapabilityOffer {
 pub(crate) fn test_timing_source_offer() -> conduit_core::CapabilityOffer {
     super::test_timing_sink::source_offer()
 }
+
+#[cfg(test)]
+pub(crate) fn test_timing_unit_source_offer() -> conduit_core::CapabilityOffer {
+    super::test_timing_sink::unit_source_offer()
+}

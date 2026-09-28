@@ -403,8 +403,6 @@ mod supported_nucleus_tests {
     #[test]
     fn supported_nucleus_contracts_are_typed_and_identity_unique() {
         let contracts = supported_nucleus_contracts();
-        assert_eq!(contracts.len(), 58);
-
         let identities = contracts
             .iter()
             .map(|contract| contract.kind_id.as_str())

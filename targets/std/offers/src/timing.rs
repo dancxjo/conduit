@@ -30,6 +30,10 @@ pub const TIME_THROTTLE_EXECUTION_PROFILE: &str =
     "conduit.std/time-throttle-bool-leading-kernel-hosted@1";
 pub const TIME_THROTTLE_IMPLEMENTATION: &str = "std/kernel-time-throttle-bool-leading@1";
 pub const TIME_THROTTLE_ARTIFACT: &str = "conduit-std-host/time-throttle-bool-leading@1";
+pub const TIME_DEADLINE_EXECUTION_PROFILE: &str =
+    "conduit.std/time-deadline-cancellation-kernel-hosted@1";
+pub const TIME_DEADLINE_IMPLEMENTATION: &str = "std/kernel-time-deadline-cancellation@1";
+pub const TIME_DEADLINE_ARTIFACT: &str = "conduit-std-host/time-deadline-cancellation@1";
 
 pub fn tick_capability_offer() -> CapabilityOffer {
     offer(
@@ -111,6 +115,16 @@ pub fn time_throttle_offer() -> CapabilityOffer {
     )
 }
 
+pub fn time_deadline_offer() -> CapabilityOffer {
+    timing_offer(
+        conduit_semantic_catalog::time_deadline_semantic_contract(),
+        "time-deadline-cancellation-v1",
+        TIME_DEADLINE_EXECUTION_PROFILE,
+        TIME_DEADLINE_IMPLEMENTATION,
+        TIME_DEADLINE_ARTIFACT,
+    )
+}
+
 fn timing_offer(
     contract: Kind,
     capability: &str,
@@ -178,6 +192,7 @@ mod tests {
             time_timeout_offer(),
             time_delay_offer(),
             time_throttle_offer(),
+            time_deadline_offer(),
         ] {
             assert_eq!(offer.host_calls.len(), 1);
             assert_eq!(offer.resource_requirements.len(), 1);

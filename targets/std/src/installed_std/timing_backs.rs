@@ -1,6 +1,9 @@
 use super::back::{BackBudget, BackFactory, InstalledBack};
 use super::timing_configuration::{self, TimingConfiguration};
-use conduit_core::{encode_monotonic_duration, InfoBool, PlannedGear, PortDirection, BOOL_INFO_ID};
+use conduit_core::{
+    encode_monotonic_duration, InfoBool, PlannedGear, PortDirection, BOOL_INFO_ID,
+    CANCELLATION_REQUEST_INFO_ID, UNIT_INFO_ID,
+};
 use conduit_kernel::{
     scheduler::{StepBack, StepInputBytes, StepIo, StepOutcome},
     BoundedValueRef, Failure, FailureCode, HostCallDisposition, HostCallId, PortId, RequestId,
@@ -17,6 +20,12 @@ pub(super) static TIME_TIMEOUT_FACTORY: BackFactory = BackFactory {
     implementation_id: conduit_std_offers::TIME_TIMEOUT_IMPLEMENTATION,
     budget: timeout_budget,
     prepare: prepare_timeout,
+};
+
+pub(super) static TIME_DEADLINE_FACTORY: BackFactory = BackFactory {
+    implementation_id: conduit_std_offers::TIME_DEADLINE_IMPLEMENTATION,
+    budget: deadline_budget,
+    prepare: prepare_deadline,
 };
 
 pub(super) struct DebounceBack {
@@ -47,6 +56,91 @@ pub(super) struct TimeoutBack {
     timed_out: bool,
     closing: bool,
     arm_after_emit: bool,
+}
+
+pub(super) struct DeadlineBack {
+    duration: Option<ValueRef>,
+    request_value: Option<ValueRef>,
+    pending: bool,
+    armed: bool,
+    input_closed: bool,
+    closing_unarmed: bool,
+}
+
+impl<const PORTS: usize> StepBack<PORTS> for DeadlineBack {
+    fn step(&mut self, io: &mut StepIo<PORTS>, inputs: &StepInputBytes<'_, PORTS>) -> StepOutcome {
+        if self.closing_unarmed {
+            return self.finish_unarmed(io);
+        }
+        if let Some((request, outcome)) = io.host_completion() {
+            if !self.pending
+                || request != RequestId(1)
+                || outcome.disposition != HostCallDisposition::Completed
+                || outcome.output.is_some()
+                || outcome.failure.is_some()
+            {
+                return outcome
+                    .failure
+                    .map_or_else(|| step_fail(783), StepOutcome::Fail);
+            }
+            if !io.output_ready(PortId(0)) {
+                return StepOutcome::Await;
+            }
+            let Some(value) = self.request_value.take() else {
+                return step_fail(784);
+            };
+            io.consume_host_completion()
+                .expect("observed time/deadline completion");
+            io.send(PortId(0), value)
+                .expect("ready cancellation-request output");
+            self.pending = false;
+            self.duration = None;
+            return StepOutcome::Complete;
+        }
+
+        if io.input(PortId(0)).is_some() {
+            if self.armed || self.input_closed || inputs.input(PortId(0)) != Some(&[]) {
+                return step_fail(785);
+            }
+            io.consume(PortId(0)).expect("present Unit deadline arm");
+            let Some(duration) = self.duration else {
+                return step_fail(786);
+            };
+            io.request_host_call(
+                RequestId(1),
+                HostCallId(0),
+                BoundedValueRef::new(duration, 8)
+                    .expect("time/deadline duration is exactly eight bytes"),
+            )
+            .expect("time/deadline monotonic Host Call");
+            self.armed = true;
+            self.pending = true;
+            return StepOutcome::Progress;
+        }
+
+        if io.input_closed(PortId(0)) && !self.input_closed {
+            io.consume_closed(PortId(0))
+                .expect("observed time/deadline arm closure");
+            self.input_closed = true;
+            if !self.armed {
+                self.closing_unarmed = true;
+                return self.finish_unarmed(io);
+            }
+            return StepOutcome::Progress;
+        }
+
+        StepOutcome::Await
+    }
+
+    fn accepts_input_while_host_call_pending(&self) -> bool {
+        true
+    }
+
+    fn cancel(&mut self) {
+        self.pending = false;
+        self.duration = None;
+        self.request_value = None;
+    }
 }
 
 impl<const PORTS: usize> StepBack<PORTS> for DebounceBack {
@@ -374,6 +468,25 @@ impl TimeoutBack {
     }
 }
 
+impl DeadlineBack {
+    pub(super) const fn allocation_capacity(&self) -> usize {
+        0
+    }
+
+    fn finish_unarmed<const PORTS: usize>(&mut self, io: &mut StepIo<PORTS>) -> StepOutcome {
+        if let Some(value) = self.duration.take() {
+            io.discard(value).expect("unused deadline duration");
+            return StepOutcome::Progress;
+        }
+        if let Some(value) = self.request_value.take() {
+            io.discard(value).expect("unused cancellation request");
+            return StepOutcome::Progress;
+        }
+        self.closing_unarmed = false;
+        StepOutcome::Complete
+    }
+}
+
 const fn step_fail(detail: u16) -> StepOutcome {
     StepOutcome::Fail(Failure {
         code: FailureCode::InvalidLifecycle,
@@ -425,6 +538,12 @@ fn timeout_budget(placement: &PlannedGear) -> Result<BackBudget, String> {
     let configuration = timing_configuration::parse(placement, false)?;
     let requests = configuration.maximum_values + 1;
     timing_configuration::budget(requests, requests, requests + configuration.maximum_values)
+}
+
+fn deadline_budget(placement: &PlannedGear) -> Result<BackBudget, String> {
+    validate_deadline(placement)?;
+    let _ = timing_configuration::parse_deadline(placement)?;
+    timing_configuration::budget(1, 1, 1)
 }
 
 fn prepare_debounce(
@@ -479,6 +598,28 @@ fn prepare_timeout(
     }))
 }
 
+fn prepare_deadline(
+    placement: &PlannedGear,
+    values: &mut conduit_kernel::HostedValueStore,
+) -> Result<InstalledBack, String> {
+    validate_deadline(placement)?;
+    let duration_ms = timing_configuration::parse_deadline(placement)?;
+    let duration = values
+        .store(&encode_monotonic_duration(duration_ms))
+        .map_err(|error| format!("store admitted time/deadline duration: {error:?}"))?;
+    let request_value = values
+        .store(&[])
+        .map_err(|error| format!("store admitted cancellation request: {error:?}"))?;
+    Ok(InstalledBack::TimeDeadline(DeadlineBack {
+        duration: Some(duration),
+        request_value: Some(request_value),
+        pending: false,
+        armed: false,
+        input_closed: false,
+        closing_unarmed: false,
+    }))
+}
+
 fn store_durations(
     values: &mut conduit_kernel::HostedValueStore,
     configuration: TimingConfiguration,
@@ -511,6 +652,7 @@ fn validate_debounce(placement: &PlannedGear) -> Result<(), String> {
         placement,
         &conduit_std_offers::time_debounce_offer(),
         conduit_semantic_catalog::TIME_DEBOUNCE_KIND,
+        BOOL_INFO_ID,
     )
 }
 
@@ -519,13 +661,28 @@ fn validate_timeout(placement: &PlannedGear) -> Result<(), String> {
         placement,
         &conduit_std_offers::time_timeout_offer(),
         conduit_semantic_catalog::TIME_TIMEOUT_KIND,
+        BOOL_INFO_ID,
     )
+}
+
+fn validate_deadline(placement: &PlannedGear) -> Result<(), String> {
+    validate(
+        placement,
+        &conduit_std_offers::time_deadline_offer(),
+        conduit_semantic_catalog::TIME_DEADLINE_KIND,
+        CANCELLATION_REQUEST_INFO_ID,
+    )?;
+    if placement.inputs.len() != 1 || placement.inputs[0].value_kind.as_str() != UNIT_INFO_ID {
+        return Err("planned time/deadline arm is not exact Unit".to_string());
+    }
+    Ok(())
 }
 
 fn validate(
     placement: &PlannedGear,
     offer: &conduit_core::CapabilityOffer,
     kind: &str,
+    output_kind: &str,
 ) -> Result<(), String> {
     if placement.kind_id != offer.kind_id
         || placement.kind_contract_revision != offer.kind_contract_revision
@@ -550,7 +707,7 @@ fn validate(
             .iter()
             .any(|port| port.direction != PortDirection::Input)
         || placement.outputs.iter().any(|port| {
-            port.direction != PortDirection::Output || port.value_kind.as_str() != BOOL_INFO_ID
+            port.direction != PortDirection::Output || port.value_kind.as_str() != output_kind
         })
     {
         return Err(format!(
