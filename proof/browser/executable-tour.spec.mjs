@@ -1522,7 +1522,6 @@ test("a native Linux target produces an exact spore but refuses to execute an un
   expect(hostedPackage.files).toEqual([
     "conduit-linux-x86_64",
     "conduit-tour-linux-x86_64",
-    "conduit-home-linux-x86_64",
     "install-linux-x86_64.sh",
     "conduit-spore.json",
   ]);
