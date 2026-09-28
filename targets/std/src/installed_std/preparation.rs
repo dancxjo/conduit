@@ -157,7 +157,7 @@ pub(crate) fn state_storage_profile() -> conduit_plan_lowering::lowering::Kernel
     conduit_plan_lowering::lowering::FIXED_KERNEL_STORAGE_PROFILE
         .with_state_storage(
             MAX_NODES as u16,
-            conduit_std_offers::STATE_VALUE_STD_MAXIMUM_BYTES,
+            conduit_std_offers::STATE_VALUE_DURABLE_STD_MAXIMUM_BYTES,
         )
         .expect("the installed State storage profile has fixed positive capacities")
 }
@@ -180,10 +180,13 @@ pub(super) fn back_budget(
     {
         Ok(super::factory::BackBudget {
             value_items: 5,
-            value_bytes: 400,
+            value_bytes: conduit_std_offers::STATE_VALUE_DURABLE_STD_MAXIMUM_BYTES * 2
+                + conduit_std_offers::STATE_VALUE_DURABLE_RECOVERY_METADATA_BYTES
+                + conduit_std_offers::STATE_VALUE_DURABLE_RECEIPT_BYTES
+                + 1,
             host_requests: 2,
             sign_items: 24,
-            maximum_value_bytes: conduit_std_offers::STATE_VALUE_DURABLE_RECOVERY_BYTES,
+            maximum_value_bytes: conduit_std_offers::STATE_VALUE_DURABLE_STD_MAXIMUM_BYTES,
         })
     } else {
         let factory = factory(&placement.implementation_id)

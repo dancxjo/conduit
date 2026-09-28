@@ -598,6 +598,7 @@ dependencies = [
  "conduit-audio",
  "conduit-chat",
  "conduit-core",
+ "conduit-data",
  "conduit-form",
  "conduit-human",
  "conduit-midi",

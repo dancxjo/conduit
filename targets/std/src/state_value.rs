@@ -45,6 +45,16 @@ impl<const PORTS: usize> StepBack<PORTS> for InstalledDurableStateBack {
                 });
             }
         }
+        if self.back.expects_recovered_value()
+            && bytes
+                .host_output()
+                .is_some_and(|value| self.validator.validate(value).is_err())
+        {
+            return StepOutcome::Fail(Failure {
+                code: FailureCode::InvalidInput,
+                detail: 22,
+            });
+        }
         self.back.step(io, bytes)
     }
 
@@ -261,16 +271,19 @@ pub(crate) fn prepare_durable_state(
     conduit_semantic_catalog::state_value::validate_state_placement(placement, &state.contract)
         .map_err(|error| format!("durable State semantic admission: {error:?}"))?;
     let validator = TypedStateBack::prepare_value_validator(placement, &state.contract)?;
-    let recovery_probe = values
+    let initial_value = values
+        .store(initial)
+        .map_err(|error| format!("store durable State initial value: {error:?}"))?;
+    let recovery_metadata_probe = values
         .store(&[1])
-        .map_err(|error| format!("store durable State recovery probe: {error:?}"))?;
+        .map_err(|error| format!("store durable State recovery metadata probe: {error:?}"))?;
     let binding = DurableStateBinding {
         body: body.into(),
         state: state.contract.state_id.clone(),
         value_kind: state.contract.value_kind.clone(),
         maximum_value_bytes: state.contract.maximum_value_bytes,
     };
-    let back = DurableStateBack::new(binding, initial, recovery_probe)
+    let back = DurableStateBack::new(binding, initial_value, recovery_metadata_probe)
         .map_err(|error| format!("prepare durable State: {error:?}"))?;
     Ok(InstalledDurableStateBack { back, validator })
 }

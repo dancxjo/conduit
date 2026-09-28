@@ -952,10 +952,9 @@ pub(super) fn run_fragment_retaining<W: Write, T: TimerAdapter>(
                 let result = if contract.as_str()
                     == conduit_std_offers::STATE_VALUE_DURABLE_RECOVER_HOST_CALL
                 {
-                    if input != [1] {
-                        Err(crate::state_value::DurableStateRefusal::InvalidBinding)
-                    } else {
-                        host.recover()
+                    match input {
+                        [1] => host.recover_metadata(),
+                        metadata => host.recover_exact(metadata),
                     }
                 } else {
                     host.commit(input).map(|receipt| receipt.to_vec())
@@ -992,7 +991,8 @@ pub(super) fn run_fragment_retaining<W: Write, T: TimerAdapter>(
                                 crate::state_value::DurableStateRefusal::Corrupt => 5,
                                 crate::state_value::DurableStateRefusal::Incompatible => 6,
                                 crate::state_value::DurableStateRefusal::Lost => 7,
-                                crate::state_value::DurableStateRefusal::InvalidReceipt => 8,
+                                crate::state_value::DurableStateRefusal::StaleRecovery => 8,
+                                crate::state_value::DurableStateRefusal::InvalidReceipt => 9,
                             },
                         }),
                     },

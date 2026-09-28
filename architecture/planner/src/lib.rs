@@ -888,6 +888,14 @@ fn planned_keep_state(
                 placement.gear_id.as_str()
             ))
         })?;
+    if maximum > placement.limits.max_queue_bytes {
+        return Err(PlannerError::InvalidStateContract(format!(
+            "gear '{}' requires {} retained value bytes, but its selected Back admits {}",
+            placement.gear_id.as_str(),
+            maximum,
+            placement.limits.max_queue_bytes
+        )));
+    }
     let [input] = placement.inputs.as_slice() else {
         return Err(PlannerError::InvalidStateContract(format!(
             "gear '{}' retained State must have one input",

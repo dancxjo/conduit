@@ -484,6 +484,88 @@ fn body_durable_keep_selects_and_executes_only_the_sealed_durable_back() {
 }
 
 #[test]
+fn canonical_four_kib_text_keep_plans_on_the_durable_back_and_larger_refuses() {
+    let text_type = StructuredInfoType::leaf(kind_id(TEXT_INFO_ID)).unwrap();
+    let initial = StructuredInfoValue::leaf(text_type.clone(), Vec::new()).unwrap();
+    let mut startup = conduit_form::StartupCatalog::new();
+    let mut profile = conduit_form::ProfileCatalog::new();
+    install_state_value_kind("Text", &text_type, &initial, &mut startup, &mut profile).unwrap();
+    startup
+        .insert(KindSignature {
+            kind: "state/latest".into(),
+            startup_parameters: vec![],
+        })
+        .unwrap();
+    let source = |maximum| {
+        format!(
+            "form durable-note (\n >> write: Text <= {maximum}B\n current: $Text <= {maximum}B >>\n) {{\n note: keep Text(\"\") <= {maximum}B for life\n write >> note\n note >> current\n}}\n"
+        )
+    };
+    let checked = conduit_form::parse_with_startup(&source(4096), &startup, &profile).unwrap();
+    let mut advertisement = host("durable-text-host").advertisement().clone();
+    advertisement
+        .capabilities
+        .retain(|offer| offer.kind_id.as_str() != STATE_VALUE_KIND);
+    advertisement.capabilities.push(
+        conduit_std_offers::state_value_durable_std_offer("Text", &text_type, &initial).unwrap(),
+    );
+    advertisement.resources.push(ResourceOffer {
+        pool_id: ResourcePoolId::from("pool/durable-text-state"),
+        class_id: ResourceClassId::from(conduit_std_offers::STATE_VALUE_DURABLE_RESOURCE_CLASS),
+        capacity_units: 1,
+        compute: None,
+        content: None,
+    });
+    advertisement
+        .capabilities
+        .sort_by(|left, right| left.capability_id.cmp(&right.capability_id));
+    advertisement
+        .resources
+        .sort_by(|left, right| left.pool_id.cmp(&right.pool_id));
+    let hosts = [advertisement];
+    let placements = conduit_planner::default_placements(&checked, &hosts).unwrap();
+    let plan = conduit_planner::plan_with_connection_limits(
+        &checked,
+        &hosts,
+        &placements,
+        &[BaseImplementationId::from(LOCAL_BASE_IMPLEMENTATION_ID)],
+        1,
+        conduit_data::MAXIMUM_DATA_TEXT_BYTES,
+    )
+    .unwrap();
+    assert_eq!(plan.fragments[0].states[0].maximum_value_bytes, 4096);
+    assert_eq!(
+        plan.fragments[0]
+            .placements
+            .iter()
+            .find(|placement| placement.gear_id.as_str() == "durable-note/note")
+            .unwrap()
+            .implementation_id
+            .as_str(),
+        conduit_std_offers::STATE_VALUE_DURABLE_STD_IMPLEMENTATION
+    );
+    assert_eq!(
+        crate::installed_std::state_storage_profile()
+            .state_storage()
+            .unwrap()
+            .1,
+        conduit_data::MAXIMUM_DATA_TEXT_BYTES
+    );
+
+    let oversized = conduit_form::parse_with_startup(&source(4097), &startup, &profile).unwrap();
+    let placements = conduit_planner::default_placements(&oversized, &hosts).unwrap();
+    assert!(conduit_planner::plan_with_connection_limits(
+        &oversized,
+        &hosts,
+        &placements,
+        &[BaseImplementationId::from(LOCAL_BASE_IMPLEMENTATION_ID)],
+        1,
+        conduit_data::MAXIMUM_DATA_TEXT_BYTES + 1,
+    )
+    .is_err());
+}
+
+#[test]
 fn optional_keep_plans_runs_and_retains_canonical_some_value() {
     let (form, advertisement, _next) = fixture(false, true, true, "for this play");
     let state_gear = form

@@ -10,17 +10,17 @@ pub const STATE_VALUE_STD_PROFILE: &str = "std/state-value-kernel-64@1";
 pub const STATE_VALUE_STD_IMPLEMENTATION: &str = "std/kernel-state-value-64@1";
 pub const STATE_VALUE_STD_ARTIFACT: &str = "conduit-kernel/state-delay@1";
 pub const STATE_VALUE_STD_MAXIMUM_BYTES: u32 = 100;
-pub const STATE_VALUE_DURABLE_STD_MAXIMUM_BYTES: u32 = STATE_VALUE_STD_MAXIMUM_BYTES - (2 + 8 + 32);
-pub const STATE_VALUE_DURABLE_STD_PROFILE: &str = "std/state-value-body-durable-100@1";
-pub const STATE_VALUE_DURABLE_STD_IMPLEMENTATION: &str = "std/state-value-body-durable@1";
+pub const STATE_VALUE_DURABLE_STD_MAXIMUM_BYTES: u32 = conduit_data::MAXIMUM_DATA_TEXT_BYTES;
+pub const STATE_VALUE_DURABLE_STD_PROFILE: &str = "std/state-value-body-durable-4096@1";
+pub const STATE_VALUE_DURABLE_STD_IMPLEMENTATION: &str = "std/state-value-body-durable@2";
 pub const STATE_VALUE_DURABLE_STD_ARTIFACT: &str = "conduit-std-host/durable-state@1";
 pub const STATE_VALUE_DURABLE_RECOVER_HOST_CALL: &str =
     "conduit.host/state-value-durable-recover@1";
 pub const STATE_VALUE_DURABLE_COMMIT_HOST_CALL: &str = "conduit.host/state-value-durable-commit@1";
 pub const STATE_VALUE_DURABLE_RESOURCE_CLASS: &str = "conduit.resource/body-durable-state-slot@1";
 pub const STATE_VALUE_DURABLE_RECEIPT_BYTES: u32 = 1 + 8 + 32;
-pub const STATE_VALUE_DURABLE_RECOVERY_BYTES: u32 =
-    2 + 8 + 32 + STATE_VALUE_DURABLE_STD_MAXIMUM_BYTES;
+pub const STATE_VALUE_DURABLE_RECOVERY_METADATA_BYTES: u32 = 2 + 8 + 32;
+pub const STATE_VALUE_DURABLE_RECOVERY_VALUE_BYTES: u32 = STATE_VALUE_DURABLE_STD_MAXIMUM_BYTES;
 
 /// Construct the exact offer for the kernel's finite canonical-value envelope.
 /// This does not register a capability or authorize an effect. The installation
@@ -99,8 +99,8 @@ pub fn state_value_durable_std_offer(
             contract_id: HostCallContractId::from(STATE_VALUE_DURABLE_RECOVER_HOST_CALL),
             target_kind: Some(offer.kind_id.clone()),
             maximum_in_flight: 1,
-            maximum_input_bytes: 1,
-            maximum_output_bytes: STATE_VALUE_DURABLE_RECOVERY_BYTES,
+            maximum_input_bytes: STATE_VALUE_DURABLE_RECOVERY_METADATA_BYTES,
+            maximum_output_bytes: STATE_VALUE_DURABLE_RECOVERY_VALUE_BYTES,
         },
     ];
     offer.resource_requirements = vec![ResourceRequirement {
@@ -169,6 +169,14 @@ mod tests {
         assert_ne!(durable.implementation, ordinary.implementation);
         assert_eq!(durable.host_calls.len(), 2);
         assert_eq!(durable.resource_requirements.len(), 1);
+        assert_eq!(
+            durable.limits.max_queue_bytes,
+            conduit_data::MAXIMUM_DATA_TEXT_BYTES
+        );
+        assert_eq!(
+            durable.host_calls[1].maximum_output_bytes,
+            conduit_data::MAXIMUM_DATA_TEXT_BYTES
+        );
         assert_eq!(
             durable.state_retention,
             Some(StateRetentionSupport {
