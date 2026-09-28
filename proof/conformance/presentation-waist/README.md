@@ -13,15 +13,9 @@ Each specimen keeps five owners explicit:
 4. each Mask's medium technique; and
 5. the finite Show occurrence.
 
-The suite deliberately proposes no new grammar primitive. Its current result is
-that subjects, open semantic relationships and roles, rhetorical composition,
-and exact actions can preserve the selected pressures. A future failure must
-identify the lost cross-medium meaning before changing the core grammar.
-
-Each named human understanding has its own explicit semantic requirements,
-written independently of the Face graph. All three diagnostic projections must
-retain those requirements and the exact independently stated actions. Copying a
-Face into three encodings is therefore no longer sufficient evidence by itself.
+The suite deliberately proposes no new grammar primitive. Its fixtures state
+the meanings that real Masks must attempt to preserve, but fixture shape alone
+does not prove that a person encounters those meanings.
 
 Run the deterministic model proof with:
 
@@ -29,11 +23,15 @@ Run the deterministic model proof with:
 node --test proof/conformance/presentation-waist/presentation-waist.test.mjs
 ```
 
-`specimens.json` is also consumed by a `conduit-presentation` integration test.
-That test constructs and validates the migration-era Rust `Presentation` type for all
-ten specimens, then exercises the production deterministic-linear projector.
+`specimens.json` is consumed by a `conduit-presentation` integration test. That
+test constructs and validates the migration-era Rust `Presentation` type for
+all ten specimens, then exercises the production deterministic-linear Mask.
+The browser runtime also carries every specimen through an ordinary graphical
+Mask Form into a current Show.
 
-The graphical and spoken projectors remain transparent contract models. This is
-not actual graphical-Mask, speech-device, physical, or human-enactment evidence.
-Those two real Mask integrations remain required before this matrix can support
-closing #4167.
+There is no transparent JavaScript stand-in for either Mask. In particular, the
+current spoken Mask can ground generated wording in exact Face text, but this
+matrix has not proved that it traverses Face relationships, rhetorical
+composition, or action availability. Actual spoken conformance remains open.
+Neither the browser nor deterministic-linear checks are physical or independent
+human-enactment evidence.
