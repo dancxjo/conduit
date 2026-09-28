@@ -5,4 +5,4 @@ edition = "2024"
 publish = false
 
 [dependencies]
-conduit-presentation = { path = "../../../semantics/presentation", default-features = false }
+conduit-presentation = { path = "../presentation", default-features = false }

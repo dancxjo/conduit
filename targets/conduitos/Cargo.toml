@@ -206,7 +206,7 @@ loongarch64-product = []
 [dependencies]
 conduit-birth-form = { path = "../../forms/birth" }
 conduit-creche-model = { path = "../../products/creche/model" }
-conduit-home-model = { path = "../../products/home/model" }
+conduit-home-model = { path = "../../semantics/home" }
 conduit-audio = { path = "../../semantics/audio" }
 conduit-body = { path = "../../architecture/body", default-features = false, features = ["authenticated-admission"] }
 conduit-core = { path = "../../architecture/core" }
