@@ -60,7 +60,7 @@ members = [
 	"targets/std/patchbay-workbench",
 	"products/patchbay/html",
 	"products/patchbay/model",
-	"products/patchbay/application",
+	"forms/patchbay/application",
 	"forms/patchbay/graph",
 	"forms/patchbay",
 	"products/patchbay/native",
