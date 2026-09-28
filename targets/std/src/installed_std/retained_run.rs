@@ -8,6 +8,12 @@ use conduit_core::HostAdvertisement;
 use conduit_core::PlanFragment;
 #[cfg(test)]
 use std::io::Write;
+use std::path::Path;
+
+pub(crate) struct DurableStateRun<'a> {
+    pub body: &'a conduit_body::BodyId,
+    pub root: &'a Path,
+}
 
 pub(crate) struct RunLifecycle<'a, 'indicator, 'external> {
     pub control: &'a super::RunControl,
@@ -20,6 +26,7 @@ pub(crate) struct RunLifecycle<'a, 'indicator, 'external> {
     pub vision: Option<&'a mut crate::hosted_vision::FiniteHostedVisionBase>,
     pub external_fore: Option<crate::host_execution::ExternalForeRun<'external>>,
     pub spoken_mask: Option<crate::spoken_mask_runtime::SpokenMaskPreparation>,
+    pub durable_state: Option<DurableStateRun<'a>>,
 }
 
 pub(crate) struct InstalledRunHost<'a, 'keyboard, 'model> {
@@ -64,6 +71,7 @@ pub(crate) fn run_fragment<W: Write, T: TimerAdapter>(
             vision: None,
             external_fore: None,
             spoken_mask: None,
+            durable_state: None,
         },
     )
     .map(|run| run.report)

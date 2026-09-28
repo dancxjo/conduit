@@ -54,6 +54,7 @@ fn real_partition_operations_use_global_slots_and_original_placement_identity() 
             &mut values,
             &play,
             None,
+            None,
         )
         .unwrap();
         let offset = index * 2;
@@ -189,7 +190,14 @@ fn wrong_partition_and_out_of_range_nodes_refuse_before_value_preparation() {
     let play =
         conduit_core::bind_active_play(&fragment.plan_id, &fragment.host_id, &fragment.boot_id, 1);
     let mut values = HostedValueStore::new(32, 64, 2048).unwrap();
-    let result = prepare_operations(&plans[1].fragments[0], &lowered, &mut values, &play, None);
+    let result = prepare_operations(
+        &plans[1].fragments[0],
+        &lowered,
+        &mut values,
+        &play,
+        None,
+        None,
+    );
     assert!(matches!(result, Err(reason) if reason.contains("exact partition")));
     // A body-wide Play or any unrelated Play cannot be relabeled as this
     // constituent Plan merely by copying its plan/Host/Boot fields.
@@ -201,12 +209,12 @@ fn wrong_partition_and_out_of_range_nodes_refuse_before_value_preparation() {
         play.play_sequence,
     )
     .active_play_id;
-    let result = prepare_operations(fragment, &lowered, &mut values, &relabeled, None);
+    let result = prepare_operations(fragment, &lowered, &mut values, &relabeled, None, None);
     assert!(matches!(result, Err(reason) if reason.contains("exact partition")));
     lowered.nodes[0].node.0 = MAX_NODES as u16;
-    let result = prepare_operations(fragment, &lowered, &mut values, &play, None);
+    let result = prepare_operations(fragment, &lowered, &mut values, &play, None, None);
     assert!(matches!(result, Err(reason) if reason.contains("driver capacity")));
     lowered.nodes[0].node = lowered.nodes[1].node;
-    let result = prepare_operations(fragment, &lowered, &mut values, &play, None);
+    let result = prepare_operations(fragment, &lowered, &mut values, &play, None, None);
     assert!(matches!(result, Err(reason) if reason.contains("duplicate")));
 }

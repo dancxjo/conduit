@@ -17,6 +17,7 @@ struct HostRunInputs<'a> {
     attach_live: bool,
     external_fore: Option<ExternalForeRun<'a>>,
     spoken_mask: Option<crate::spoken_mask_runtime::SpokenMaskPreparation>,
+    durable_state: Option<installed_std::DurableStateRun<'a>>,
 }
 
 pub struct ExternalForeRun<'a> {
@@ -84,6 +85,7 @@ impl StdHost {
                 attach_live: false,
                 external_fore: None,
                 spoken_mask: None,
+                durable_state: None,
             },
         )
         .map(|run| run.report)
@@ -109,8 +111,42 @@ impl StdHost {
                 attach_live: false,
                 external_fore: None,
                 spoken_mask: None,
+                durable_state: None,
             },
         )
+    }
+
+    /// Execute a fragment whose Plan selected the Body-durable State Back.
+    /// The Body identity and host-selected residence enter explicitly here;
+    /// neither is inferred from the Form, Plan id, or filesystem path.
+    pub fn run_body_durable_fragment_to<W: Write, T: TimerAdapter>(
+        &mut self,
+        body: &conduit_body::BodyId,
+        residence_root: &std::path::Path,
+        fragment: PlanFragment,
+        output: &mut W,
+        timer: &mut T,
+        control: &RunControl,
+    ) -> Result<StdRunReport, String> {
+        self.run_fragment_owned_with_keyboard_to(
+            fragment,
+            output,
+            timer,
+            control,
+            HostRunInputs {
+                keyboard: None,
+                indicator: None,
+                retained: None,
+                attach_live: false,
+                external_fore: None,
+                spoken_mask: None,
+                durable_state: Some(installed_std::DurableStateRun {
+                    body,
+                    root: residence_root,
+                }),
+            },
+        )
+        .map(|run| run.report)
     }
 
     /// Execute one product Play without treating drained work as completion.
@@ -133,6 +169,7 @@ impl StdHost {
                 attach_live: true,
                 external_fore: None,
                 spoken_mask: None,
+                durable_state: None,
             },
         )
         .map(|run| run.report)
@@ -161,6 +198,7 @@ impl StdHost {
                     output: output_adapter,
                 }),
                 spoken_mask: None,
+                durable_state: None,
             },
         )
         .map(|run| run.report)
@@ -190,6 +228,7 @@ impl StdHost {
                     output: output_adapter,
                 }),
                 spoken_mask: Some(preparation),
+                durable_state: None,
             },
         )
         .map(|run| run.report)
@@ -210,6 +249,7 @@ impl StdHost {
             attach_live,
             external_fore,
             spoken_mask,
+            durable_state,
         } = inputs;
         write_operator_report(output, self.advertisement(), &fragment.plan_id, &fragment)?;
 
@@ -266,6 +306,7 @@ impl StdHost {
                         vision: self.vision.as_mut(),
                         external_fore,
                         spoken_mask,
+                        durable_state,
                     },
                 )
             } else {

@@ -405,6 +405,85 @@ fn keep_duration_requires_exact_back_support_before_planning() {
 }
 
 #[test]
+fn body_durable_keep_selects_and_executes_only_the_sealed_durable_back() {
+    let (form, mut advertisement, initial) = fixture(false, true, false, "for life");
+    advertisement
+        .capabilities
+        .retain(|offer| offer.kind_id.as_str() != STATE_VALUE_KIND);
+    let value_type = StructuredInfoType::leaf(kind_id(BOOL_INFO_ID)).unwrap();
+    advertisement.capabilities.push(
+        conduit_std_offers::state_value_durable_std_offer("Cell", &value_type, &initial).unwrap(),
+    );
+    advertisement.resources.push(ResourceOffer {
+        pool_id: ResourcePoolId::from("pool/body-durable-state"),
+        class_id: ResourceClassId::from(conduit_std_offers::STATE_VALUE_DURABLE_RESOURCE_CLASS),
+        capacity_units: 1,
+        compute: None,
+        content: None,
+    });
+    advertisement
+        .capabilities
+        .sort_by(|left, right| left.capability_id.cmp(&right.capability_id));
+    advertisement
+        .resources
+        .sort_by(|left, right| left.pool_id.cmp(&right.pool_id));
+
+    let hosts = [advertisement.clone()];
+    let placements = conduit_planner::default_placements(&form, &hosts).unwrap();
+    let plan = conduit_planner::plan_with_connection_limits(
+        &form,
+        &hosts,
+        &placements,
+        &[BaseImplementationId::from(LOCAL_BASE_IMPLEMENTATION_ID)],
+        1,
+        48,
+    )
+    .unwrap();
+    let [state] = plan.fragments[0].states.as_slice() else {
+        panic!("Body-lived keep must seal one State boundary")
+    };
+    assert_eq!(state.lifetime, StateLifetime::Body);
+    let placement = plan.fragments[0]
+        .placements
+        .iter()
+        .find(|placement| placement.gear_id == state.gear_id)
+        .unwrap();
+    assert_eq!(
+        placement.implementation_id.as_str(),
+        conduit_std_offers::STATE_VALUE_DURABLE_STD_IMPLEMENTATION
+    );
+    assert_eq!(placement.host_calls.len(), 2);
+    assert_eq!(placement.resources.len(), 1);
+
+    let root = std::env::temp_dir().join(format!(
+        "conduit-installed-durable-state-{}",
+        std::process::id()
+    ));
+    let _ = std::fs::remove_dir_all(&root);
+    let mut execution_host = host("typed-state-host");
+    execution_host.advertisement = advertisement.clone();
+    execution_host.kernel_resources =
+        crate::kernel_preparation::KernelResourceLedger::new(&advertisement).unwrap();
+    let mut output = Vec::with_capacity(2048);
+    let mut timer = RecordingTimer {
+        waits: Vec::with_capacity(2),
+    };
+    let body: conduit_body::BodyId = serde_json::from_str("\"body/durable-notebook\"").unwrap();
+    let report = execution_host
+        .run_body_durable_fragment_to(
+            &body,
+            &root,
+            plan.fragments[0].clone(),
+            &mut output,
+            &mut timer,
+            &crate::RunControl::default(),
+        )
+        .expect("Body-durable State executes through its exact installed Back");
+    assert!(report.kernel.is_some());
+    std::fs::remove_dir_all(root).unwrap();
+}
+
+#[test]
 fn optional_keep_plans_runs_and_retains_canonical_some_value() {
     let (form, advertisement, _next) = fixture(false, true, true, "for this play");
     let state_gear = form

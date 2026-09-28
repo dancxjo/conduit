@@ -97,6 +97,7 @@ pub(super) enum InstalledBack {
     SpeechWindowToClip(SpeechWindowToClipBack),
     SpeechResultToEventStream(SpeechResultToEventStreamBack),
     TypedState(Box<crate::state_value::TypedStateBack>),
+    DurableState(Box<crate::state_value::InstalledDurableStateBack>),
     KeyboardInput(KeyboardInputBack),
     ButtonInput(super::keyboard_input_back::button::ButtonBack),
     ButtonMapper(Box<super::keyboard_input_back::button::indicator::Mapper>),
