@@ -74,6 +74,11 @@ mod button_attempt_back;
 pub use button_attempt_back::TimedButtonAttemptBack;
 
 #[cfg(feature = "kernel-step")]
+mod debounce_back;
+#[cfg(feature = "kernel-step")]
+pub use debounce_back::{DebouncePreparationError, TrailingDebounceBack};
+
+#[cfg(feature = "kernel-step")]
 mod pulse_observation_back;
 #[cfg(feature = "kernel-step")]
 pub use pulse_observation_back::PulseObservationBack;
