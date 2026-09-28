@@ -569,6 +569,14 @@ fn push_semantic_contract(canonical: &mut Vec<u8>, contract: &crate::KindSemanti
                             canonical.push(2);
                             push_string(canonical, port.as_str());
                         }
+                        crate::FrontValueLocation::InputAbnormal(port) => {
+                            canonical.push(3);
+                            push_string(canonical, port.as_str());
+                        }
+                        crate::FrontValueLocation::OutputAbnormal(port) => {
+                            canonical.push(4);
+                            push_string(canonical, port.as_str());
+                        }
                     }
                     push_value_contract(canonical, &value_contract.contract);
                 }
@@ -689,6 +697,14 @@ fn push_checked_front(canonical: &mut Vec<u8>, front: &CheckedFront) {
             }
             crate::FrontValueLocation::Output(port) => {
                 canonical.push(2);
+                push_string(canonical, port.as_str());
+            }
+            crate::FrontValueLocation::InputAbnormal(port) => {
+                canonical.push(3);
+                push_string(canonical, port.as_str());
+            }
+            crate::FrontValueLocation::OutputAbnormal(port) => {
+                canonical.push(4);
                 push_string(canonical, port.as_str());
             }
         }

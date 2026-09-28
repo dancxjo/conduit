@@ -168,6 +168,16 @@ fn validate_value_contracts(
                 .iter()
                 .find(|candidate| &candidate.port_id == port)
                 .map(|candidate| &candidate.value_kind),
+            crate::FrontValueLocation::InputAbnormal(port) => kind
+                .inputs
+                .iter()
+                .find(|candidate| &candidate.port_id == port)
+                .and_then(|candidate| candidate.abnormal_kind.as_ref()),
+            crate::FrontValueLocation::OutputAbnormal(port) => kind
+                .outputs
+                .iter()
+                .find(|candidate| &candidate.port_id == port)
+                .and_then(|candidate| candidate.abnormal_kind.as_ref()),
         };
         let Some(expected_kind) = expected_kind else {
             return Err(KindValidationError::UnknownValueBoundLocation);
@@ -640,6 +650,49 @@ mod tests {
         contracts[0].location = crate::FrontValueLocation::Input(port_id("missing"));
         assert_eq!(
             unknown.validate(),
+            Err(KindValidationError::UnknownValueBoundLocation)
+        );
+    }
+
+    #[test]
+    fn abnormal_value_contract_must_name_the_exact_declared_terminal_kind() {
+        let mut bounded = contract();
+        bounded.inputs[0].abnormal_kind = Some(kind_id("value/text"));
+        bounded
+            .semantic_laws
+            .push(KindSemanticLaw::ValueContracts(vec![
+                crate::FrontValueContract {
+                    location: crate::FrontValueLocation::InputAbnormal(port_id("in")),
+                    contract: crate::CheckedValueContract::new(kind_id("value/text"), 24, vec![])
+                        .unwrap(),
+                },
+            ]));
+        assert_eq!(bounded.validate(), Ok(()));
+        assert_eq!(
+            bounded
+                .checked_front()
+                .value_contract(&crate::FrontValueLocation::InputAbnormal(port_id("in")))
+                .unwrap()
+                .maximum_bytes,
+            24
+        );
+
+        let mut payload_kind = bounded.clone();
+        let KindSemanticLaw::ValueContracts(contracts) =
+            payload_kind.semantic_laws.last_mut().unwrap()
+        else {
+            unreachable!()
+        };
+        contracts[0].contract.value_kind = kind_id("value/count");
+        assert_eq!(
+            payload_kind.validate(),
+            Err(KindValidationError::InvalidValueBound)
+        );
+
+        let mut undeclared = bounded;
+        undeclared.inputs[0].abnormal_kind = None;
+        assert_eq!(
+            undeclared.validate(),
             Err(KindValidationError::UnknownValueBoundLocation)
         );
     }
