@@ -123,6 +123,11 @@ struct RelayRuntime {
     terminal: Option<RelaySlotDisposition>,
 }
 
+enum RelayQueuePoll {
+    Frame(Option<Vec<u8>>),
+    Terminal(RelaySlotDisposition),
+}
+
 pub(crate) fn serve(options: ServeOptions) -> Result<(), String> {
     if !options.authorize_network {
         return Err("relay network listening requires --authorize-network".into());
@@ -312,16 +317,52 @@ fn serve_endpoint(
             },
             Err(error) => return Err(format!("relay attachment ended: {error:?}")),
         }
-        while let Some(frame) = {
-            runtime
-                .lock()
-                .map_err(|_| "relay state lock poisoned".to_string())?
-                .service
-                .receive(&attachment.route_id, role, connection_id, now)
-                .map_err(debug("receive queued relay frame"))?
-        } {
-            line.send_binary(&frame)
-                .map_err(debug("send relayed opaque frame"))?;
+        loop {
+            let queued = {
+                let mut runtime = runtime
+                    .lock()
+                    .map_err(|_| "relay state lock poisoned".to_string())?;
+                match runtime
+                    .service
+                    .receive(&attachment.route_id, role, connection_id, now)
+                {
+                    Ok(frame) => RelayQueuePoll::Frame(frame),
+                    Err(RelayServiceError::UnknownRoute) => match runtime.terminal {
+                        Some(
+                            disposition @ (RelaySlotDisposition::Closed
+                            | RelaySlotDisposition::Lost),
+                        ) => RelayQueuePoll::Terminal(disposition),
+                        _ => {
+                            return Err(
+                                "relay slot disappeared without terminal truth while receiving"
+                                    .into(),
+                            );
+                        }
+                    },
+                    Err(error) => {
+                        return Err(format!("receive queued relay frame: {error:?}"));
+                    }
+                }
+            };
+            match queued {
+                RelayQueuePoll::Frame(Some(frame)) => line
+                    .send_binary(&frame)
+                    .map_err(debug("send relayed opaque frame"))?,
+                RelayQueuePoll::Frame(None) => break,
+                RelayQueuePoll::Terminal(disposition) => {
+                    let (status, code) = match disposition {
+                        RelaySlotDisposition::Closed => {
+                            (OutcomeStatus::Closed, "peer-explicit-close")
+                        }
+                        RelaySlotDisposition::Lost => (OutcomeStatus::Lost, "peer-connection-lost"),
+                        _ => unreachable!("queue polling only returns terminal dispositions"),
+                    };
+                    let _terminal_notice =
+                        send_outcome(&mut line, &attachment.route_id, status, Some(code));
+                    let _outer_close = line.close();
+                    return Ok(());
+                }
+            }
         }
         match line.receive_binary(&mut buffer) {
             Ok(length) => {
