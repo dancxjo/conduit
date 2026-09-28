@@ -3868,6 +3868,7 @@ dependencies = [
  "conduit-std-host",
  "conduit-tongues",
  "conduit-wire",
+ "patchbay-graph",
  "patchbay-hosted",
  "patchbay-model",
  "serde",

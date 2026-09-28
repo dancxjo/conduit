@@ -1,9 +1,10 @@
 //! Typed interaction decoding and execution for the HTML delivery adapter.
 
 use super::{PatchbayHtmlServer, ServerError};
+use patchbay_graph::PatchbaySubjectRef;
 use patchbay_model::{
     InteractionDisposition, PatchbayAction, PatchbayEdit, PatchbayEditBasis,
-    PatchbayInteractionRequest, PatchbayInvocationOutcome, PatchbayRefusal, PatchbaySubjectRef,
+    PatchbayInteractionRequest, PatchbayInvocationOutcome, PatchbayRefusal,
 };
 use serde::Deserialize;
 
