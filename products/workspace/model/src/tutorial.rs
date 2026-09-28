@@ -122,16 +122,21 @@ fn tutorial_face(
                         })
                 })
         });
-        if let Some(tutorial_plan) = tutorial_plans
+        let basis = tutorial_plans
             .next()
             .filter(|_| tutorial_plans.next().is_none())
-        {
+            .or_else(|| {
+                // A one-Form Body has one unambiguous semantic basis even when
+                // that Form does not carry the optional tutorial application
+                // marker. Multi-Form Bodies remain ungrounded unless exactly
+                // one tutorial contribution owns the Face.
+                (realization.plan.forms.len() == 1).then(|| &realization.plan.forms[0])
+            });
+        if let Some(basis) = basis {
             face.presentation.basis.source_document_id =
-                Some(tutorial_plan.form.source_document_id.clone());
-            face.presentation.basis.checked_form_id =
-                Some(tutorial_plan.form.checked_form_id.clone());
-            face.presentation.basis.expanded_form_id =
-                Some(tutorial_plan.plan.expanded_form_id.clone());
+                Some(basis.form.source_document_id.clone());
+            face.presentation.basis.checked_form_id = Some(basis.form.checked_form_id.clone());
+            face.presentation.basis.expanded_form_id = Some(basis.plan.expanded_form_id.clone());
             face.presentation.basis.plan_id = Some(realization.plan.plan_id.clone());
             face.presentation.basis.active_play_id = realization
                 .play

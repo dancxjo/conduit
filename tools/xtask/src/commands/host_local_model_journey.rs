@@ -52,12 +52,23 @@ pub(super) fn write(
         .ok_or("Orifina biography lacks its repair sign")?
         .as_str()
         .to_owned();
+    let request = journey
+        .requests
+        .iter()
+        .find(|request| {
+            let basis = &request.semantic_data.presentation.basis;
+            basis.source_document_id.is_some()
+                && basis.checked_form_id.is_some()
+                && basis.expanded_form_id.is_some()
+                && basis.plan_id.is_some()
+        })
+        .ok_or("Orifina live proof lacks a planned Face for its spoken Mask")?;
     let manifestation = receipt
         .presenter_requests
         .iter()
-        .find(|candidate| candidate.request_identity == journey.requests[0].request_identity)
-        .ok_or("Orifina live proof lacks its generative Mask Show")?;
-    let presentation = journey.requests[0].semantic_data.presentation.clone();
+        .find(|candidate| candidate.request_identity == request.request_identity)
+        .ok_or("Orifina live proof lacks its planned generative Mask Show")?;
+    let presentation = request.semantic_data.presentation.clone();
     let retained = manifestation.manifestation.clone();
     let initial = conduit_std_host::spoken_mask_journey::execute_retained_manifestation_mask(
         "spoken-initial",
@@ -73,13 +84,13 @@ pub(super) fn write(
     )?;
     let replacement_alternate =
         conduit_std_host::spoken_mask_journey::execute_retained_manifestation_mask(
-            "spoken-generative-replanned",
+            "spoken-generative",
             "orifina-spoken-replanned",
             presentation.clone(),
             retained.clone(),
         )?;
     let restored = conduit_std_host::spoken_mask_journey::execute_retained_manifestation_mask(
-        "spoken-restored",
+        "spoken-initial",
         "orifina-spoken-restored",
         presentation.clone(),
         retained,
@@ -88,72 +99,180 @@ pub(super) fn write(
         &[initial.clone(), alternate.clone()],
         "orifina-spoken-initial-plan",
     )?;
-    let replacement_routes = conduit_std_host::spoken_mask_journey::admit_spoken_mask_routes(
-        &[replacement_alternate.clone(), restored.clone()],
-        "orifina-spoken-replacement-plan",
-    )?;
-    let observation =
-        |action: conduit_presentation::MaskJourneyAction,
-         event: &str,
-         execution: Option<&conduit_std_host::spoken_mask_journey::SpokenMaskExecution>,
-         plan: &conduit_core::PlanId,
-         route: Option<&str>| {
+    let replacement_routes =
+        conduit_std_host::spoken_mask_journey::admit_replacement_spoken_mask_routes(
+            &[replacement_alternate.clone(), restored.clone()],
+            "orifina-spoken-replacement-plan",
+            &[true, true],
+            &initial_routes.wake,
+        )?;
+    use conduit_presentation::MaskJourneyAction as A;
+    struct HostedSpokenJourney {
+        presentation_id: String,
+        initial: Vec<conduit_std_host::spoken_mask_journey::SpokenMaskExecution>,
+        replacement: Vec<conduit_std_host::spoken_mask_journey::SpokenMaskExecution>,
+        initial_routes: conduit_std_host::spoken_mask_journey::SpokenMaskRouteSet,
+        replacement_routes: conduit_std_host::spoken_mask_journey::SpokenMaskRouteSet,
+        control: conduit_presentation::MaskWardrobeControl,
+        current: Option<(bool, usize)>,
+    }
+
+    impl HostedSpokenJourney {
+        fn observation(
+            &self,
+            action: A,
+            event: &str,
+            receipts: Vec<String>,
+        ) -> conduit_std_host::spoken_mask_journey::SpokenMaskJourneyObservation {
+            let execution = self.current.map(|(replacement, index)| {
+                if replacement {
+                    &self.replacement[index]
+                } else {
+                    &self.initial[index]
+                }
+            });
             conduit_std_host::spoken_mask_journey::SpokenMaskJourneyObservation {
                 action_id: action.id().into(),
                 concrete_event: event.into(),
-                presentation_id: presentation.identity.as_str().into(),
-                selected_mask_form_id: execution
-                    .map(|item| item.mask.form_identity.checked_form_id.as_str().into()),
-                plan_id: plan.as_str().into(),
-                selected_route_id: route.map(str::to_owned),
+                presentation_id: self.presentation_id.clone(),
+                selected_mask_form_id: self
+                    .control
+                    .selected
+                    .as_ref()
+                    .map(|selected| selected.mask_form.checked_form_id.as_str().into()),
+                plan_id: self.control.active_plan_id.as_str().into(),
+                selected_route_id: self
+                    .control
+                    .selected
+                    .as_ref()
+                    .map(|selected| selected.route_id.clone()),
                 show_id: execution.map(|item| item.shown.show.show_id.as_str().into()),
-                receipt_ids: vec![action.id().into()],
+                receipt_ids: receipts,
             }
-        };
-    use conduit_presentation::MaskJourneyAction as A;
-    let initial_plan = &initial_routes.body_plan.plan_id;
-    let replacement_plan = &replacement_routes.body_plan.plan_id;
-    let initial_route = initial_routes.routes.routes()[0].route_id.as_str();
-    let alternate_route = initial_routes.routes.routes()[1].route_id.as_str();
-    let replacement_alternate_route = replacement_routes.routes.routes()[0].route_id.as_str();
-    let restored_route = replacement_routes.routes.routes()[1].route_id.as_str();
-    let prepared_actions = vec![
-        observation(A::InspectInitialShow, "initial spoken Mask completed language, synthesis, artifact, and acknowledged Show Host Calls", Some(&initial), initial_plan, Some(initial_route)),
-        observation(A::WearAlternateMask, "alternate spoken Mask was worn while the selected sealed route remained current", Some(&initial), initial_plan, Some(initial_route)),
-        observation(A::PreferAlternateMask, "preference selected the alternate sealed route under the same immutable Body Plan", Some(&alternate), initial_plan, Some(alternate_route)),
-        observation(A::WithdrawSelectedRoute, "selected route was withdrawn without inventing a Show", None, initial_plan, None),
-        observation(A::InspectUnavailableShow, "no current Show; retained WAV is stale artifact evidence only", None, initial_plan, None),
-        observation(A::AddFaceHost, "replacement Face Host became available but the old Plan selected no route on it", None, initial_plan, None),
-        observation(A::AdmitReplacementPlan, "replacement Body Plan sealed the replacement Host routes", None, replacement_plan, None),
-        observation(A::InspectReplannedShow, "replacement spoken route completed language, synthesis, artifact, and acknowledged Show Host Calls", Some(&replacement_alternate), replacement_plan, Some(replacement_alternate_route)),
-        observation(A::DoffAlternateMask, "alternate Mask was doffed and its Show ceased being current", None, replacement_plan, None),
-        observation(A::InspectRestoredShow, "initial-role spoken Mask was restored through the replacement Body Plan", Some(&restored), replacement_plan, Some(restored_route)),
-    ];
-    struct HostedSpokenJourney(
-        std::collections::VecDeque<
-            conduit_std_host::spoken_mask_journey::SpokenMaskJourneyObservation,
-        >,
-    );
+        }
+
+        fn artifact_receipts(&self) -> Result<Vec<String>, String> {
+            let execution = self
+                .current
+                .map(|(replacement, index)| {
+                    if replacement {
+                        &self.replacement[index]
+                    } else {
+                        &self.initial[index]
+                    }
+                })
+                .ok_or("hosted spoken journey has no current Show")?;
+            Ok(vec![
+                execution.shown.artifact.artifact_identity.clone(),
+                execution.shown.artifact.content_sha256.clone(),
+                execution.shown.artifact.completion_sign_id.as_str().into(),
+            ])
+        }
+
+        fn initial_routes(
+            &self,
+            availability: [bool; 2],
+        ) -> Result<conduit_std_host::spoken_mask_journey::SpokenMaskRouteSet, String> {
+            conduit_std_host::spoken_mask_journey::admit_replacement_spoken_mask_routes(
+                &self.initial,
+                "orifina-spoken-initial-plan",
+                &availability,
+                &self.initial_routes.wake,
+            )
+        }
+    }
+
     impl conduit_presentation::MaskJourneyEmbodiment for HostedSpokenJourney {
         type Outcome = conduit_std_host::spoken_mask_journey::SpokenMaskJourneyObservation;
         type Error = String;
 
         fn perform(&mut self, action: A) -> Result<Self::Outcome, Self::Error> {
-            let outcome = self
-                .0
-                .pop_front()
-                .ok_or("hosted spoken Mask outcome missing")?;
-            if outcome.action_id != action.id() {
-                return Err(format!(
-                    "hosted spoken Mask outcome {} does not match {}",
-                    outcome.action_id,
-                    action.id()
-                ));
-            }
-            Ok(outcome)
+            use conduit_presentation::{MaskShowDisposition, MaskWardrobeAction};
+            Ok(match action {
+                A::InspectInitialShow => {
+                    self.current = Some((false, 0));
+                    self.observation(action, "initial ordinary spoken Mask completed Tongues synthesis and an acknowledged artifact Show", self.artifact_receipts()?)
+                }
+                A::WearAlternateMask => {
+                    let revision = self.control.scoped_wardrobe.wardrobe.revision;
+                    let evidence = self.control.apply(revision, MaskWardrobeAction::Wear(self.initial[1].mask.form_identity.clone()), &self.initial_routes.routes).map_err(|error| format!("wear hosted spoken Mask: {error:?}"))?;
+                    self.observation(action, "alternate ordinary spoken Mask became eligible while the selected route remained current", vec![format!("wardrobe/revision/{}", evidence.resulting_wardrobe.revision)])
+                }
+                A::PreferAlternateMask => {
+                    let routes = self.initial_routes([false, true])?;
+                    let revision = self.control.scoped_wardrobe.wardrobe.revision;
+                    let evidence = self.control.apply(revision, MaskWardrobeAction::Prefer(vec![self.initial[1].mask.form_identity.clone()]), &routes.routes).map_err(|error| format!("prefer hosted spoken Mask: {error:?}"))?;
+                    if !matches!(evidence.reconciliation.show, MaskShowDisposition::SelectSealed { .. }) { return Err("spoken preference did not select the available sealed alternate".into()); }
+                    self.initial_routes = routes;
+                    self.current = Some((false, 1));
+                    self.observation(action, "preference selected the available alternate route under the same immutable Body Plan", vec![format!("wardrobe/revision/{}", evidence.resulting_wardrobe.revision)])
+                }
+                A::WithdrawSelectedRoute => {
+                    let routes = self.initial_routes([false, false])?;
+                    let reconciliation = self.control.reconcile_routes(&routes.routes).map_err(|error| format!("withdraw hosted spoken route: {error:?}"))?;
+                    if !matches!(reconciliation.show, MaskShowDisposition::NoCurrentShow { .. }) { return Err("spoken route withdrawal retained a current Show".into()); }
+                    self.initial_routes = routes;
+                    self.current = None;
+                    self.observation(action, "the selected route became unavailable and live reconciliation produced NoShow", vec!["route-availability/none".into()])
+                }
+                A::InspectUnavailableShow => {
+                    if self.control.selected.is_some() || self.current.is_some() { return Err("unavailable spoken interval retained a current selection or Show".into()); }
+                    self.observation(action, "no current Show; prior WAV artifacts remain stale effect evidence only", vec!["show/current/none".into()])
+                }
+                A::AddFaceHost => self.observation(action, "replacement Face Host routes became available but remained outside the old immutable Plan", vec![self.replacement_routes.routes.routes()[0].route_id.clone()]),
+                A::AdmitReplacementPlan => {
+                    let old_plan = self.control.active_plan_id.clone();
+                    let reconciliation = self.control.admit_replacement_plan(&old_plan, &self.replacement_routes.body_plan, &self.replacement_routes.routes).map_err(|error| format!("admit hosted spoken replacement Plan: {error:?}"))?;
+                    if !matches!(reconciliation.show, MaskShowDisposition::SelectSealed { .. }) { return Err("replacement spoken Plan did not select a sealed route".into()); }
+                    self.current = Some((true, 0));
+                    self.observation(action, "authorized planning admitted a distinct Body Plan and selected its available spoken route", vec![format!("supersedes/{}", old_plan.as_str())])
+                }
+                A::InspectReplannedShow => self.observation(action, "replacement ordinary spoken Mask completed Tongues synthesis and an acknowledged artifact Show", self.artifact_receipts()?),
+                A::DoffAlternateMask => {
+                    let revision = self.control.scoped_wardrobe.wardrobe.revision;
+                    let evidence = self.control.apply(revision, MaskWardrobeAction::Doff(self.initial[1].mask.form_identity.clone()), &self.replacement_routes.routes).map_err(|error| format!("doff hosted spoken Mask: {error:?}"))?;
+                    if !matches!(evidence.reconciliation.show, MaskShowDisposition::SelectSealed { .. }) { return Err("doffing spoken alternate did not select the restored route".into()); }
+                    self.current = Some((true, 1));
+                    self.observation(action, "doffing the alternate reconciled the still-worn initial-role Mask to its replacement-Plan route", vec![format!("wardrobe/revision/{}", evidence.resulting_wardrobe.revision)])
+                }
+                A::InspectRestoredShow => self.observation(action, "restored ordinary spoken Mask completed Tongues synthesis and an acknowledged artifact Show", self.artifact_receipts()?),
+            })
         }
     }
-    let mut journey_run = HostedSpokenJourney(prepared_actions.into());
+    let initial_identity = initial.mask.form_identity.clone();
+    let selected = conduit_presentation::SelectedMaskFormRoute {
+        route_id: initial_routes.routes.routes()[0].route_id.clone(),
+        mask_form: initial_identity.clone(),
+        plan_id: initial_routes.body_plan.plan_id.clone(),
+    };
+    let wardrobe = conduit_presentation::MaskWardrobe::new(
+        conduit_presentation::MaskWardrobeLifetime::Body,
+        vec![initial_identity],
+        vec![],
+    )
+    .map_err(|error| format!("create hosted spoken wardrobe: {error:?}"))?;
+    let control = conduit_presentation::MaskWardrobeControl::new(
+        &initial_routes.body_plan.body_id,
+        conduit_presentation::BodyMaskWardrobe::new(
+            initial_routes.body_plan.body_id.clone(),
+            None,
+            wardrobe,
+        )
+        .map_err(|error| format!("scope hosted spoken wardrobe: {error:?}"))?,
+        &initial_routes.body_plan,
+        &initial_routes.routes,
+        Some(selected),
+    )
+    .map_err(|error| format!("initialize hosted spoken wardrobe control: {error:?}"))?;
+    let mut journey_run = HostedSpokenJourney {
+        presentation_id: presentation.identity.as_str().into(),
+        initial: vec![initial, alternate],
+        replacement: vec![replacement_alternate, restored],
+        initial_routes,
+        replacement_routes,
+        control,
+        current: None,
+    };
     let mut mask_actions = Vec::new();
     conduit_presentation::actualize_mask_journey(&mut journey_run, |_, outcome| {
         mask_actions.push(outcome.clone());

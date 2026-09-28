@@ -144,17 +144,20 @@ jobs:
             --commit "$CONDUIT_CHECKOUT_SHA" --result complete \
             --proof journey-little-life --suite journey-gallery
       - name: Run the structured-Face generative Body journey through real HTTP
+        env:
+          CONDUIT_FIXTURE_OLLAMA_PORT: "11435"
         run: |
           node proof/fixtures/ollama-http-service.mjs >"$RUNNER_TEMP/ollama-fixture.log" 2>&1 &
           fixture_pid=$!
           trap 'kill "$fixture_pid" 2>/dev/null || true' EXIT
           for attempt in $(seq 1 30); do
-            if curl --fail --silent http://127.0.0.1:11434/api/version >/dev/null; then break; fi
+            if curl --fail --silent http://127.0.0.1:11435/api/version >/dev/null; then break; fi
             test "$attempt" -lt 30
             sleep 1
           done
           chmod 755 proof/fixtures/ollama
           PATH="$PWD/proof/fixtures:$PATH" cargo xtask --json host prove-local-model --locked \
+            --ollama-endpoint http://127.0.0.1:11435 \
             --model conduit-fixture:latest --admitted-memory-mib 64 --orifina-presenter --journey-documentary \
             > "$RUNNER_TEMP/model-body.json"
       - name: Verify the exact three-Body documentary from producer-owned evidence

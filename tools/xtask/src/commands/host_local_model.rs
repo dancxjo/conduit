@@ -11,14 +11,18 @@ use conduit_core::{
 use conduit_std_host::hosted_local_model::{HostedLocalModelAdapter, OllamaDiscovery};
 use serde::Serialize;
 
-pub(super) fn inspect(model: &str, opts: &GlobalOpts) -> Result<(), Box<dyn std::error::Error>> {
+pub(super) fn inspect(
+    model: &str,
+    ollama_endpoint: &str,
+    opts: &GlobalOpts,
+) -> Result<(), Box<dyn std::error::Error>> {
     if opts.dry_run {
         if !opts.quiet {
             println!("would inspect already-local model {model} without loading it");
         }
         return Ok(());
     }
-    let discovery = OllamaDiscovery::discover(model)?;
+    let discovery = OllamaDiscovery::discover_at(ollama_endpoint, model)?;
     if opts.json {
         println!("{}", serde_json::to_string(&discovery)?);
     } else if !opts.quiet {
@@ -41,6 +45,7 @@ pub(super) fn inspect(model: &str, opts: &GlobalOpts) -> Result<(), Box<dyn std:
 
 pub(super) fn prove(
     model: &str,
+    ollama_endpoint: &str,
     admitted_memory_mib: u32,
     orifina_presenter: bool,
     journey_documentary: bool,
@@ -54,7 +59,7 @@ pub(super) fn prove(
         }
         return Ok(());
     }
-    let adapter = OllamaDiscovery::discover(model)?.initialize(
+    let adapter = OllamaDiscovery::discover_at(ollama_endpoint, model)?.initialize(
         admitted_memory_mib,
         vec![
             LocalModelKindProfile::Generate,

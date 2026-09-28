@@ -9,6 +9,7 @@ const MAXIMUM_VISUAL_CONTEXT_BYTES: usize = 16 * 1024;
 const MAXIMUM_VISUAL_OUTPUT_BYTES: usize = 4 * 1024;
 
 pub struct OllamaVisualModelAdapter {
+    endpoint: String,
     model_name: String,
     model_content_identity: String,
     runtime_version: String,
@@ -67,6 +68,7 @@ impl OllamaDiscovery {
             .and_then(|groups| groups.checked_mul(4))
             .ok_or_else(|| "visual model image bound overflow".to_string())?;
         Ok(OllamaVisualModelAdapter {
+            endpoint: self.endpoint.clone(),
             model_name: self.model_name.clone(),
             model_content_identity: self.model_content_identity.clone(),
             runtime_version: self.runtime_version.clone(),
@@ -84,7 +86,7 @@ impl HostedVisualModelAdapter for OllamaVisualModelAdapter {
     ) -> Result<VisualModelOutput, String> {
         let request = self.request_body(image, selected_context)?;
         let generated: GenerateResponse =
-            serde_json::from_slice(&curl_json("/api/generate", Some(&request))?)
+            serde_json::from_slice(&curl_json(&self.endpoint, "/api/generate", Some(&request))?)
                 .map_err(|error| format!("decode local Ollama Vision inference: {error}"))?;
         if generated.response.is_empty() || generated.response.len() > MAXIMUM_VISUAL_OUTPUT_BYTES {
             return Err("local Ollama Vision output is empty or exceeds its bound".into());
@@ -180,6 +182,7 @@ mod tests {
     #[test]
     fn request_contains_one_exact_image_and_tentative_context() {
         let mut adapter = OllamaVisualModelAdapter {
+            endpoint: crate::hosted_local_model::ollama::DEFAULT_OLLAMA_ENDPOINT.into(),
             model_name: "vision-model".into(),
             model_content_identity: "sha256:model".into(),
             runtime_version: "1.0".into(),
