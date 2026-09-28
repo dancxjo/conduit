@@ -47,16 +47,12 @@ test("selective pull request admits intentionally skipped ConduitOS", () => {
   assert.equal(prove(results()).status, 0);
 });
 
-test("trusted controller understands both local-integration gate schemas", () => {
+test("missing local integration truth refuses admission", () => {
   const incomplete = results();
   delete incomplete.LOCAL_INTEGRATION_RESULT;
-  const outcome = prove(incomplete);
-  if (script.includes('require_result local-integration "${LOCAL_INTEGRATION_RESULT:-}" success')) {
-    assert.notEqual(outcome.status, 0);
-    assert.match(outcome.stderr, /local-integration result: expected success, got /);
-  } else {
-    assert.equal(outcome.status, 0);
-  }
+  const refusal = prove(incomplete);
+  assert.notEqual(refusal.status, 0);
+  assert.match(refusal.stderr, /local-integration result: expected success, got /);
 });
 
 test("selective pull request admits only its required x86 subset", () => {
@@ -88,7 +84,7 @@ test("exhaustive integration requires every ConduitOS aggregate", () => {
     "ARCHITECTURE_RESULT",
     "AARCH64_PRODUCT_RESULT",
   ];
-  if (script.includes("LOCAL_INTEGRATION_RESULT")) requiredResults.unshift("LOCAL_INTEGRATION_RESULT");
+  requiredResults.unshift("LOCAL_INTEGRATION_RESULT");
   for (const field of requiredResults) {
     const failed = prove({ ...exhaustive, [field]: "failure" });
     assert.notEqual(failed.status, 0, field);
