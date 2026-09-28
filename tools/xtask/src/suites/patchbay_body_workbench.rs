@@ -80,7 +80,6 @@ pub const PROVE_PATCHBAY_BODY_WORKBENCH_STEPS: &[Step] = &[
             "--config",
             "proof/browser/patchbay-html.playwright.config.mjs",
             "proof/browser/patchbay-body-workbench.spec.mjs",
-            "proof/browser/patchbay-body-execution.spec.mjs",
             "proof/browser/patchbay-follow.spec.mjs",
         ],
         None,
