@@ -9,19 +9,17 @@ const headTree = "27a9e0f98339fce62fc8360095b2f1ea0d5a9b92";
 const mergedTree = "bd48b1d15eab5989a6b452ff23e0b47cde8c67a7";
 const integrationBase = "20ce4bc5448faebb5d0874041e9c0887a273681f";
 
-test("admits promotion, candidate, and legacy product carrier producers only", () => {
+test("admits current product carrier producers only", () => {
   const promotion = { id: 5, path: ".github/workflows/promotion.yml" };
   const candidate = { id: 1, path: ".github/workflows/candidate.yml" };
-  const legacy = { id: 2, path: ".github/workflows/executable-book-pages.yml" };
   const current = { id: 6, path: ".github/workflows/tour-products.yml" };
   assert.deepEqual(productCarrierRuns([
     promotion,
     { id: 3, path: ".github/workflows/check.yml" },
     candidate,
     { id: 4 },
-    legacy,
     current,
-  ]), [promotion, candidate, legacy, current]);
+  ]), [promotion, candidate, current]);
   assert.deepEqual(productCarrierRuns(undefined), []);
 });
 
