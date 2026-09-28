@@ -535,7 +535,7 @@ pub fn run(args: ConduitosArgs, opts: &GlobalOpts) -> Result<(), ConduitosError>
 mod tests {
     use clap::Parser;
 
-    use crate::cli::{Cli, Command};
+    use crate::cli::{Cli, Command, FabricateArgs, FabricateTarget};
 
     use super::*;
 
@@ -550,34 +550,64 @@ mod tests {
     #[test]
     fn every_pinned_matrix_name_is_architecture_valued() {
         for name in ["ia32", "x86-64", "aarch64", "riscv64", "loongarch64"] {
-            let parsed = Cli::try_parse_from(["xtask", "conduitos", "build", "--arch", name])
-                .unwrap_or_else(|error| panic!("{name}: {error}"));
-            assert!(matches!(parsed.command, Command::Conduitos(_)));
+            let parsed =
+                Cli::try_parse_from(["xtask", "fabricate", "conduitos", "build", "--arch", name])
+                    .unwrap_or_else(|error| panic!("{name}: {error}"));
+            assert!(matches!(
+                parsed.command,
+                Command::Fabricate(FabricateArgs {
+                    target: FabricateTarget::Conduitos(_)
+                })
+            ));
         }
     }
 
     #[test]
     fn visible_demo_is_an_explicit_conduitos_entrance() {
-        let parsed =
-            Cli::try_parse_from(["xtask", "conduitos", "demo", "--arch", "x86-64"]).unwrap();
-        assert!(matches!(parsed.command, Command::Conduitos(_)));
-        let error =
-            Cli::try_parse_from(["xtask", "conduitos", "demo", "--arch", "aarch64"]).unwrap_err();
+        let parsed = Cli::try_parse_from([
+            "xtask",
+            "fabricate",
+            "conduitos",
+            "demo",
+            "--arch",
+            "x86-64",
+        ])
+        .unwrap();
+        assert!(matches!(
+            parsed.command,
+            Command::Fabricate(FabricateArgs {
+                target: FabricateTarget::Conduitos(_)
+            })
+        ));
+        let error = Cli::try_parse_from([
+            "xtask",
+            "fabricate",
+            "conduitos",
+            "demo",
+            "--arch",
+            "aarch64",
+        ])
+        .unwrap_err();
         assert!(error.to_string().contains("x86-64"));
     }
 
     #[test]
     fn live_media_build_boot_and_matrix_are_memorable_typed_entrances() {
         for arguments in [
-            vec!["xtask", "conduitos", "live"],
-            vec!["xtask", "conduitos", "live", "x86_64"],
-            vec!["xtask", "conduitos", "live", "riscv64"],
-            vec!["xtask", "conduitos", "live-boot", "aarch64"],
-            vec!["xtask", "conduitos", "ia32-legacy-bios-proof"],
-            vec!["xtask", "conduitos", "live-matrix"],
+            vec!["xtask", "fabricate", "conduitos", "live"],
+            vec!["xtask", "fabricate", "conduitos", "live", "x86_64"],
+            vec!["xtask", "fabricate", "conduitos", "live", "riscv64"],
+            vec!["xtask", "fabricate", "conduitos", "live-boot", "aarch64"],
+            vec!["xtask", "fabricate", "conduitos", "ia32-legacy-bios-proof"],
+            vec!["xtask", "fabricate", "conduitos", "live-matrix"],
         ] {
             let parsed = Cli::try_parse_from(arguments).unwrap();
-            assert!(matches!(parsed.command, Command::Conduitos(_)));
+            assert!(matches!(
+                parsed.command,
+                Command::Fabricate(FabricateArgs {
+                    target: FabricateTarget::Conduitos(_)
+                })
+            ));
         }
     }
 
@@ -585,6 +615,7 @@ mod tests {
     fn ia32_flash_requires_one_explicit_repeated_whole_device() {
         let parsed = Cli::try_parse_from([
             "xtask",
+            "fabricate",
             "conduitos",
             "flash",
             "--arch",
@@ -598,6 +629,7 @@ mod tests {
 
         let missing_confirmation = Cli::try_parse_from([
             "xtask",
+            "fabricate",
             "conduitos",
             "flash",
             "--arch",
@@ -612,6 +644,7 @@ mod tests {
     fn mabel_physical_proof_requires_two_attended_boots() {
         let parsed = Cli::try_parse_from([
             "xtask",
+            "fabricate",
             "conduitos",
             "ia32-mabel-physical-proof",
             "--flash-record",
@@ -639,7 +672,7 @@ mod tests {
 
     #[test]
     fn prepared_image_build_and_play_flags_are_explicit() {
-        let build = Cli::try_parse_from(["xtask", "conduitos", "prepare-proof-image"]);
+        let build = Cli::try_parse_from(["xtask", "fabricate", "conduitos", "prepare-proof-image"]);
         assert!(build.is_ok());
         for proof in [
             "xhci-proof",
@@ -648,7 +681,8 @@ mod tests {
             "keyboard-proof",
             "rescue-proof",
         ] {
-            let play = Cli::try_parse_from(["xtask", "conduitos", proof, "--prepared-image"]);
+            let play =
+                Cli::try_parse_from(["xtask", "fabricate", "conduitos", proof, "--prepared-image"]);
             assert!(play.is_ok(), "{proof}");
         }
     }

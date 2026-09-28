@@ -67,7 +67,7 @@ pub fn run_prove_std_pico_usb(
     let identity = read_identity_manifest(&root)?;
     if identity.firmware_mode != "usb-remote" {
         return Err(format!(
-            "std-to-Pico USB proof requires a usb-remote image, but the current artifact is {}; rebuild with `cargo xtask pico build --usb-remote` and flash it with `cargo xtask pico flash --usb-remote`",
+            "std-to-Pico USB proof requires a usb-remote image, but the current artifact is {}; rebuild with `cargo xtask fabricate pico build --usb-remote` and flash it with `cargo xtask fabricate pico flash --usb-remote`",
             identity.firmware_mode
         )
         .into());

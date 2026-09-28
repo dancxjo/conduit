@@ -1,6 +1,6 @@
 # Raspberry Pi fabrication family
 
-This project owns exact Raspberry Pi board descriptors plus the firmware acquisition, `config.txt`, FAT partition, SD-image verification, UART proof, and guarded removable-media FLASH mechanics used by `cargo xtask conduitos ... --arch armv6`.
+This project owns exact Raspberry Pi board descriptors plus the firmware acquisition, `config.txt`, FAT partition, SD-image verification, UART proof, and guarded removable-media FLASH mechanics used by `cargo xtask fabricate conduitos ... --arch armv6`.
 
 The fabrication package keeps two intentions distinct. Raspberry Pi OS Bookworm 64-bit on the exact Pi 4 Model B rev 1.5 (4 GB) profile installs a reviewed aarch64 native package onto existing machinery. Bare-metal ConduitOS fabricates an SD image; the current Crèche path names only the ARMv6 Model B+ v1.2 substrate. The underlying builder also retains its exact original Zero v1 descriptor, but the Crèche does not infer that or any other Pi model from the B+ path.
 
@@ -30,7 +30,7 @@ cargo xtask doctor linux-release
 Then compile and seal the Linux and Raspberry Pi OS host releases:
 
 ```sh
-cargo xtask host release --platform linux --output target/creche-host-releases
+cargo xtask fabricate host release --platform linux --output target/creche-host-releases
 ```
 
 The setup command installs the native build toolchain and CMake, both GNU AArch64

@@ -18,11 +18,11 @@ It is not a planner, runtime, package manager, or source of live body presence. 
 Use the checked example with:
 
 ```text
-cargo xtask body check bodies/pete/profiles/pete-r1.body.conduit
-cargo xtask body show bodies/pete/profiles/pete-r1.body.conduit
-cargo xtask body build bodies/pete/profiles/pete-r1.body.conduit
-cargo xtask body build bodies/pete/profiles/pete-r1.body.conduit --host brainstem
-cargo xtask body deploy bodies/pete/profiles/pete-r1.body.conduit --host forebrain
+cargo xtask fabricate body check bodies/pete/profiles/pete-r1.body.conduit
+cargo xtask fabricate body show bodies/pete/profiles/pete-r1.body.conduit
+cargo xtask fabricate body build bodies/pete/profiles/pete-r1.body.conduit
+cargo xtask fabricate body build bodies/pete/profiles/pete-r1.body.conduit --host brainstem
+cargo xtask fabricate body deploy bodies/pete/profiles/pete-r1.body.conduit --host forebrain
 ```
 
 `check` and `show` parse descriptors and reuse host-configuration validation without invoking target builders. `build` emits `image.json`, `build-manifest.json`, and `spore-manifest.json` beneath one directory per selected host. `--host` selects one named host declaration and its fabrication package. The checked example covers hosted native, Pico W, and browser targets, and both prejoined and self-joining bindings.

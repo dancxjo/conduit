@@ -990,8 +990,8 @@ fn workflow_keeps_focused_candidates_and_exhaustive_promotions_distinct() {
     assert!(workflow
         .contains("inputs.full_suite && '[\"aarch64\",\"ia32\",\"riscv64\",\"loongarch64\"]'"));
     assert!(workflow.contains("conduitos-proof-image:"));
-    assert!(workflow.contains("cargo xtask conduitos prepare-proof-image --locked"));
-    assert!(workflow.contains("cargo xtask conduitos prove-many"));
+    assert!(workflow.contains("cargo xtask fabricate conduitos prepare-proof-image --locked"));
+    assert!(workflow.contains("cargo xtask fabricate conduitos prove-many"));
     assert!(
         workflow.contains("--max-parallel 4 --output-root \"$CONDUIT_X86_BATCH_ROOT\" --locked")
     );

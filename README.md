@@ -791,7 +791,7 @@ You need Git and Rust installed through `rustup`.
 ```sh
 git clone --branch dev https://github.com/dancxjo/conduit.git
 cd conduit
-cargo xtask host std
+cargo xtask fabricate host std
 ```
 
 That builds and runs the local example through the repository development tooling.

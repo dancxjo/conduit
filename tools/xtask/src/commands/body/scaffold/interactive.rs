@@ -210,7 +210,7 @@ pub(super) fn finish(report: &CreationReport) -> Result<(), Box<dyn std::error::
     cliclack::outro_note(
         format!("Created {}", report.body_id),
         format!(
-            "{created}\n\nNext\n  cargo xtask body show {}",
+            "{created}\n\nNext\n  cargo xtask fabricate body show {}",
             report.output
         ),
     )?;

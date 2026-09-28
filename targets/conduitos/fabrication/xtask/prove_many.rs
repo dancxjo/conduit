@@ -93,7 +93,7 @@ impl X86Proof {
     }
 
     fn arguments(self, evidence_root: &Path) -> Vec<String> {
-        let mut arguments = vec!["conduitos".to_owned()];
+        let mut arguments = vec!["fabricate".to_owned(), "conduitos".to_owned()];
         match self {
             Self::Kernel => arguments.extend([
                 "prove".to_owned(),

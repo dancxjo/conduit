@@ -42,7 +42,7 @@ pub fn run_verify(args: &PicoArgs) -> PicoResult<()> {
     let identity = read_identity_manifest(&repo_root())?;
     if identity.firmware_mode != "pico-local" {
         return Err(format!(
-            "pico verify requires a pico-local image, but the current artifact is {}; rebuild with `cargo xtask pico build`",
+            "pico verify requires a pico-local image, but the current artifact is {}; rebuild with `cargo xtask fabricate pico build`",
             identity.firmware_mode
         )
         .into());

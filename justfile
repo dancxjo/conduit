@@ -23,13 +23,13 @@ patchbay:
     cargo xtask demo patchbay --on native
 
 browser:
-    cargo xtask host browser
+    cargo xtask fabricate host browser
 
 std-host:
-    cargo xtask host std
+    cargo xtask fabricate host std
 
 demo-std:
-    cargo xtask host std
+    cargo xtask fabricate host std
 
 demo-triple-local:
     cargo xtask demo triple
@@ -68,33 +68,33 @@ demo demonstration *args:
     cargo xtask demo {{demonstration}} {{args}}
 
 conduitos *args:
-    cargo xtask conduitos {{args}}
+    cargo xtask fabricate conduitos {{args}}
 
 # Canonical product media; x86_64 is the graphical default.
 conduitos-live host="x86_64":
-    cargo xtask conduitos live {{host}} --locked
+    cargo xtask fabricate conduitos live {{host}} --locked
 
 # Boot the exact artifact emitted by conduitos-live.
 conduitos-boot host="x86_64":
-    cargo xtask conduitos live-boot {{host}} --locked
+    cargo xtask fabricate conduitos live-boot {{host}} --locked
 
 rpi-b-plus-image:
-    cargo xtask conduitos image --arch armv6 --board rpi-b-plus-v1.2 --locked
+    cargo xtask fabricate conduitos image --arch armv6 --board rpi-b-plus-v1.2 --locked
 
 rpi-b-plus-flash device:
-    cargo xtask conduitos flash --arch armv6 --board rpi-b-plus-v1.2 --device {{device}} --confirm-device {{device}} --locked
+    cargo xtask fabricate conduitos flash --arch armv6 --board rpi-b-plus-v1.2 --device {{device}} --confirm-device {{device}} --locked
 
 rpi-b-plus-prove serial_device:
-    cargo xtask conduitos rpi-physical-proof --board rpi-b-plus-v1.2 --serial-device {{serial_device}} --locked
+    cargo xtask fabricate conduitos rpi-physical-proof --board rpi-b-plus-v1.2 --serial-device {{serial_device}} --locked
 
 rpi-zero-image:
-    cargo xtask conduitos image --arch armv6 --board rpi-zero-v1 --locked
+    cargo xtask fabricate conduitos image --arch armv6 --board rpi-zero-v1 --locked
 
 rpi-zero-flash device:
-    cargo xtask conduitos flash --arch armv6 --board rpi-zero-v1 --device {{device}} --confirm-device {{device}} --locked
+    cargo xtask fabricate conduitos flash --arch armv6 --board rpi-zero-v1 --device {{device}} --confirm-device {{device}} --locked
 
 rpi-zero-prove serial_device:
-    cargo xtask conduitos rpi-physical-proof --board rpi-zero-v1 --serial-device {{serial_device}} --locked
+    cargo xtask fabricate conduitos rpi-physical-proof --board rpi-zero-v1 --serial-device {{serial_device}} --locked
 
 # One live loopback std-kernel to browser-WASM-kernel Signal proof.
 prove-std-browser-s4:
@@ -153,28 +153,28 @@ doctor target="all" *args:
 
 # Pico W local LED proof — full workflow (doctor -> build -> flash -> verify).
 pico *args:
-    cargo xtask pico {{args}}
+    cargo xtask fabricate pico {{args}}
 
 pico-local *args:
-    cargo xtask pico-local {{args}}
+    cargo xtask fabricate pico-local {{args}}
 
 pico-doctor:
-    cargo xtask pico doctor
+    cargo xtask fabricate pico doctor
 
 pico-build *args:
-    cargo xtask pico build {{args}}
+    cargo xtask fabricate pico build {{args}}
 
 pico-flash *args:
-    cargo xtask pico flash {{args}}
+    cargo xtask fabricate pico flash {{args}}
 
 pico-verify *args:
-    cargo xtask pico verify {{args}}
+    cargo xtask fabricate pico verify {{args}}
 
 pico-build-remote *args:
-    cargo xtask pico build --usb-remote {{args}}
+    cargo xtask fabricate pico build --usb-remote {{args}}
 
 pico-flash-remote *args:
-    cargo xtask pico flash --usb-remote {{args}}
+    cargo xtask fabricate pico flash --usb-remote {{args}}
 
 pico-local-run:
-    cargo xtask pico local
+    cargo xtask fabricate pico local

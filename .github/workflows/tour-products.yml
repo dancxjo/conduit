@@ -347,7 +347,7 @@ jobs:
             target/avr-promicro/arduino
           key: avr-promicro-arduino-cli-1.5.1-arduino-avr-1.8.8-sparkfun-avr-1.1.13
       - name: Compile and seal the exact generic Pro Micro release
-        run: cargo +1.98.1 xtask avr release --output target/creche-avr-release
+        run: cargo +1.98.1 xtask fabricate avr release --output target/creche-avr-release
       - uses: ./.github/actions/upload-artifact-retry
         with:
           name: conduit-avr-promicro-release
@@ -372,8 +372,8 @@ jobs:
           cache-on-failure: false
       - name: Compile and seal the reviewed browser distribution
         run: |
-          cargo +1.98.1 xtask host release --platform browser --output target/creche-host-releases
-          cargo +1.98.1 xtask host release-catalog --root target/creche-host-releases --generation "${{ github.run_number }}"
+          cargo +1.98.1 xtask fabricate host release --platform browser --output target/creche-host-releases
+          cargo +1.98.1 xtask fabricate host release-catalog --root target/creche-host-releases --generation "${{ github.run_number }}"
       - uses: ./.github/actions/upload-artifact-retry
         with:
           name: conduit-existing-computer-releases-browser
@@ -412,7 +412,7 @@ jobs:
         if: matrix.platform == 'linux'
         run: cargo +1.98.1 xtask setup linux-release
       - name: Compile and seal the reviewed generic existing-computer releases
-        run: cargo +1.98.1 xtask host release --platform ${{ matrix.platform }} --output target/creche-host-releases
+        run: cargo +1.98.1 xtask fabricate host release --platform ${{ matrix.platform }} --output target/creche-host-releases
       - uses: ./.github/actions/upload-artifact-retry
         with:
           name: conduit-existing-computer-releases-${{ matrix.artifact }}
@@ -443,7 +443,7 @@ jobs:
         run: |
           mkdir -p target/creche-rpi-release
           for board in rpi-b-plus-v1.2 rpi-zero-v1 rpi-zero-w-v1.1 rpi-zero-wh-v1.1; do
-            cargo +1.98.1 xtask host rpi --board "$board" image --locked
+            cargo +1.98.1 xtask fabricate host rpi --board "$board" image --locked
           done
           cp target/conduitos/armv6/conduitos-rpi-*.img target/creche-rpi-release/
           cp target/conduitos/armv6/rpi-*-image.json target/creche-rpi-release/
@@ -476,7 +476,7 @@ jobs:
           sudo apt-get install -y --no-install-recommends dosfstools
       - name: Compile and seal the exact Orange Pi 5 ConduitOS SD image
         run: |
-          cargo +1.98.1 xtask --locked conduitos orange-pi5-image
+          cargo +1.98.1 xtask --locked fabricate conduitos orange-pi5-image
           mkdir -p target/creche-orange-pi-release
           cp target/conduitos/aarch64/orange-pi-5/conduitos-orange-pi-5.img target/creche-orange-pi-release/
           cp target/conduitos/aarch64/orange-pi-5/orange-pi-5-image.json target/creche-orange-pi-release/
@@ -535,7 +535,7 @@ jobs:
       - name: Compile the exact ${{ matrix.architecture }} ConduitOS product Host release
         if: steps.image-cache.outputs.cache-hit != 'true'
         run: >-
-          cargo +1.98.1 xtask host build ${{ matrix.profile }}
+          cargo +1.98.1 xtask fabricate host build ${{ matrix.profile }}
           --output target/creche-conduitos-build/${{ matrix.architecture }} --locked
       - uses: ./.github/actions/upload-artifact-retry
         with:
@@ -678,7 +678,7 @@ jobs:
             targets/esp32/firmware/${{ matrix.target }}-signal -> target
       - name: Build and seal the exact generic release IMAGE
         run: >-
-          cargo +1.98.1 xtask esp32-firmware build
+          cargo +1.98.1 xtask fabricate esp32-firmware build
           --target "${{ matrix.target }}"
           --locked
           --receipt "target/esp32-release/${{ matrix.target }}-build.json"
@@ -766,7 +766,7 @@ jobs:
       - name: Seal the bounded installed release catalog
         run: |
           rm -f target/creche-release-artifacts/release-catalog.json
-          cargo +1.98.1 xtask host release-catalog \
+          cargo +1.98.1 xtask fabricate host release-catalog \
             --root target/creche-release-artifacts \
             --generation "${{ github.run_number }}"
       - name: Stage the exact browser products
