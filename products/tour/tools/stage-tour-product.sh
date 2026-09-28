@@ -40,7 +40,7 @@ for asset in react.min.js react-dom.min.js react-flow.min.js react-flow.css; do
     cp "targets/browser/host/assets/vendor/react-flow/$asset" "$destination/assets/$asset"
 done
 for asset in flow.css flow.js flow-scene.js flow-layout.js flow-frontplate.js portable-navigation.js; do
-    cp "products/patchbay/html/assets/$asset" "$destination/assets/$asset"
+    cp "forms/patchbay/workbench/browser/$asset" "$destination/assets/$asset"
 done
 
 chapters='chapter-1.md
