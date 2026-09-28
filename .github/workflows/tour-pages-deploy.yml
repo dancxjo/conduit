@@ -14,18 +14,6 @@ on:
         description: Exact current main commit to fabricate and promote
         required: false
         type: string
-  # Installing the accepted release's audit record in protected dev activates
-  # this one recovery. It never publishes arbitrary development source.
-  push:
-    branches: [dev]
-    paths: [.github/release-audit/47372-publication.md]
-  # GITHUB_TOKEN merges do not emit a push-triggered run. The pre-sync
-  # finalizer's completion is the bounded recovery trigger for that path.
-  workflow_run:
-    workflows: [Finalize trusted release automation]
-    types: [completed]
-    branches: [dev]
-
 concurrency:
   group: tour-and-creche-pages
   cancel-in-progress: false
@@ -43,8 +31,7 @@ jobs:
       github.event_name == 'workflow_dispatch' ||
       (github.event.pull_request.merged == true &&
        github.event.pull_request.base.ref == 'main' &&
-       startsWith(github.event.pull_request.head.ref, 'release/') &&
-       github.event.pull_request.head.ref != 'release/47372b96d31ca8a04e9868a88bdd1919a9cad986')
+       startsWith(github.event.pull_request.head.ref, 'release/'))
     runs-on: ubuntu-24.04
     timeout-minutes: 8
     outputs:
@@ -244,125 +231,3 @@ jobs:
         run: >-
           gh workflow run journey-publication.yml --ref main
           -f pages_run_id="$GITHUB_RUN_ID"
-
-  deploy-first-rescue:
-    if: >-
-      (github.event_name == 'push' && github.ref == 'refs/heads/dev') ||
-      (github.event_name == 'workflow_run' &&
-       github.event.workflow_run.name == 'Finalize trusted release automation' &&
-       github.event.workflow_run.event == 'workflow_run' &&
-       github.event.workflow_run.conclusion == 'success' &&
-       github.event.workflow_run.head_branch == 'dev' &&
-       github.event.workflow_run.head_sha == '1ccfd24b2713fbb571630a57addc2551f6b3dd4a' &&
-       github.event.workflow_run.head_repository.full_name == github.repository) ||
-      (github.event_name == 'pull_request_target' &&
-       github.event.pull_request.merged == true &&
-       github.event.pull_request.base.ref == 'main' &&
-       github.event.pull_request.head.ref == 'release/47372b96d31ca8a04e9868a88bdd1919a9cad986')
-    runs-on: ubuntu-24.04
-    timeout-minutes: 25
-    environment:
-      name: github-pages
-      url: ${{ steps.deployment.outputs.page_url }}
-    env:
-      EXPECTED_MAIN_SHA: 69b39d54c5294f0c2781dded213d52789eff953e
-      RELEASE_SOURCE_SHA: f1e0245a8a55116a91c334d4e6f2719d81bc2ff3
-    steps:
-      - name: Check out the exact released product source
-        uses: actions/checkout@v7
-        with:
-          ref: f1e0245a8a55116a91c334d4e6f2719d81bc2ff3
-          fetch-depth: 0
-      - name: Refuse a stale recovery or changed released product source
-        run: |
-          git fetch --no-tags origin main
-          test "$(git rev-parse FETCH_HEAD)" = "$EXPECTED_MAIN_SHA"
-          git merge-base --is-ancestor "$RELEASE_SOURCE_SHA" FETCH_HEAD
-          git diff --exit-code "$RELEASE_SOURCE_SHA" FETCH_HEAD -- . \
-            ':(exclude).github/workflows/tour-pages-deploy.yml' \
-            ':(exclude).github/release-audit/47372-publication.md'
-      - name: Reuse the exact already-built staged release payload
-        id: staged-products
-        continue-on-error: true
-        uses: actions/download-artifact@v8
-        with:
-          name: conduit-staged-browser-products
-          path: target
-          repository: ${{ github.repository }}
-          run-id: 34522795014
-          github-token: ${{ github.token }}
-          digest-mismatch: error
-      - uses: dtolnay/rust-toolchain@1.98.1
-        if: steps.staged-products.outcome != 'success'
-        with:
-          targets: wasm32-unknown-unknown
-      - uses: Swatinem/rust-cache@v2
-        if: steps.staged-products.outcome != 'success'
-        with:
-          cache-on-failure: false
-      - name: Rebuild the exact staged release payload after artifact expiry
-        if: steps.staged-products.outcome != 'success'
-        run: |
-          mkdir -p target/browser-product-runtimes
-          cargo build --locked -p conduit-browser-host
-          cp target/debug/conduit-browser-host target/browser-product-runtimes/conduit-browser-host
-          cargo build --locked -p conduit-browser-runtime --target wasm32-unknown-unknown --release --no-default-features --features tour-surface
-          cp target/wasm32-unknown-unknown/release/conduit_browser_runtime.wasm target/browser-product-runtimes/tour-runtime.wasm
-          cargo build --locked -p conduit-browser-runtime --target wasm32-unknown-unknown --release --no-default-features --features creche-surface
-          cp target/wasm32-unknown-unknown/release/conduit_browser_runtime.wasm target/browser-product-runtimes/creche-runtime.wasm
-          cargo build --locked -p conduit-browser-runtime --target wasm32-unknown-unknown --release --no-default-features --features creche-surface,form-runner
-          cp target/wasm32-unknown-unknown/release/conduit_browser_runtime.wasm target/browser-product-runtimes/workspace-runtime.wasm
-          cargo build --locked -p conduit-browser-runtime --target wasm32-unknown-unknown --release
-          cp target/wasm32-unknown-unknown/release/conduit_browser_runtime.wasm target/browser-product-runtimes/patchbay-runtime.wasm
-          cargo build --locked -p patchbay-html --bin patchbay-static-assets
-          cp target/debug/patchbay-static-assets target/browser-product-runtimes/patchbay-static-assets
-          cargo build --locked -p patchbay-html --bin patchbay-html -p conduit-std-host --bin browser-admission-probe
-          cargo +1.98.1 xtask host release --platform browser --output target/workspace-release-artifacts
-          cargo +1.98.1 xtask host release-catalog --root target/workspace-release-artifacts --generation "${{ github.run_number }}"
-          rm -rf target/pages-root target/tour-product target/creche-product target/workspace-product target/patchbay-product
-          site/tools/stage-pages-root.sh target/pages-root
-          products/tour/tools/stage-tour-product.sh target/browser-product-runtimes/tour-runtime.wasm target/tour-product
-          products/creche/tools/stage-creche-product.sh target/browser-product-runtimes/creche-runtime.wasm target/creche-product unused browser-proof
-          products/workspace/tools/stage-workspace-product.sh target/browser-product-runtimes/workspace-runtime.wasm target/workspace-product target/workspace-release-artifacts
-          products/patchbay/tools/stage-patchbay-product.sh target/browser-product-runtimes/patchbay-runtime.wasm target/browser-product-runtimes/patchbay-static-assets target/patchbay-product
-      - name: Seal the deploy-first Pages carrier without the stale browser-proof veto
-        run: |
-          rm -rf target/pages-site target/pages-carrier
-          mkdir -p target/pages-site/tour target/pages-site/book target/pages-site/creche target/pages-site/workspace target/pages-site/patchbay
-          cp -a target/pages-root/. target/pages-site/
-          cp -a target/tour-product/. target/pages-site/tour/
-          cp -a target/creche-product/. target/pages-site/creche/
-          cp -a target/workspace-product/. target/pages-site/workspace/
-          cp -a target/patchbay-product/. target/pages-site/patchbay/
-          node products/tour/tools/stage-legacy-routes.mjs target/pages-site
-          node products/creche/tools/stage-legacy-routes.mjs target/pages-site
-          echo 'conduit.pages/nojekyll@1' > target/pages-site/.nojekyll
-          test -f target/pages-site/tour/tour.application.json
-          grep -Fq 'Redirecting to your body' target/pages-site/tour/index.html
-          grep -Fq '../../workspace/' target/pages-site/tour/meet-one-gear/index.html
-          test -f target/pages-site/book/index.html
-          test -f target/pages-site/creche/index.html
-          grep -Fq 'Redirecting to your body' target/pages-site/creche/index.html
-          test -f target/pages-site/creche/creche.application.json
-          test -f target/pages-site/workspace/workspace.application.json
-          test -f target/pages-site/creche/runtime.wasm
-          test -f target/pages-site/patchbay/patchbay.application.json
-          test -f target/pages-site/patchbay/api/snapshot
-          source_commit=$(git rev-parse HEAD)
-          source_tree=$(git rev-parse 'HEAD^{tree}')
-          test "$source_commit" = f1e0245a8a55116a91c334d4e6f2719d81bc2ff3
-          node tools/ci/seal-pages-carrier.mjs target/pages-site target/pages-carrier "$source_commit" "$source_tree"
-          node tools/ci/verify-pages-carrier.mjs target/pages-carrier "$source_tree"
-      - name: Upload the deploy-first Pages carrier
-        uses: actions/upload-pages-artifact@v5
-        with:
-          path: target/pages-carrier/site
-      - name: Configure GitHub Pages
-        uses: actions/configure-pages@v6
-      - name: Recheck current main immediately before publication
-        run: |
-          read -r current_main _ < <(git ls-remote --exit-code origin refs/heads/main)
-          test "$current_main" = "$EXPECTED_MAIN_SHA"
-      - name: Deploy Conduit Pages
-        id: deployment
-        uses: actions/deploy-pages@v5
