@@ -563,7 +563,7 @@ mod tests {
             },
         )
         .unwrap();
-        assert_eq!(checked.manifest.bounds.heap_arena_bytes, 1);
+        assert_eq!(checked.manifest.bounds.heap_arena_bytes, 0);
         assert_eq!(
             runtime_arena_ceiling(&checked.manifest),
             checked.manifest.bounds.static_memory_bytes

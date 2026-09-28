@@ -542,11 +542,6 @@ fn validate_limits(
             maxima.static_memory_bytes,
         ),
         (
-            "heap_arena_bytes",
-            limits.heap_arena_bytes,
-            maxima.heap_arena_bytes,
-        ),
-        (
             "buffered_bytes",
             limits.buffered_bytes,
             maxima.buffered_bytes,
@@ -561,6 +556,16 @@ fn validate_limits(
                 maximum,
             });
         }
+    }
+    // Unlike the mandatory capacities above, zero heap bytes is an exact
+    // declaration that this Host has no heap arena. ConduitOS then uses its
+    // admitted static arena; zero is not an unbounded-capacity sentinel here.
+    if limits.heap_arena_bytes > maxima.heap_arena_bytes {
+        diagnostics.push(ConfigurationDiagnostic::LimitExceeded {
+            field: "heap_arena_bytes",
+            requested: limits.heap_arena_bytes,
+            maximum: maxima.heap_arena_bytes,
+        });
     }
     limit!(queue_items);
     limit!(active_instances);
