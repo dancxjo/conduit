@@ -52,10 +52,10 @@ proposals do not override the current canon.
 - [Structured diagnostics v1](structured-diagnostics.md)
 - [Machine-readable proof classes](proof-classes.md)
 
-## Browser and presentation
+## Browser and Face
 
-- [Face, Presentation, Mask, and Show](../presenter-hourglass.md)
-- [Universal Presentation grammar conformance](presentation-grammar-conformance.md)
+- [Face, Mask, and Show](../presenter-hourglass.md)
+- [Universal Face grammar conformance](presentation-grammar-conformance.md)
 - [Browser host fabrication inventory](browser-fabrication-inventory.md)
 - [Browser host identity and body membership](browser-host-membership.md)
 - [Portable presentation renderer contract](presentation-renderer.md)

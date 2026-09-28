@@ -1,6 +1,6 @@
-# Face, Presentation, Mask, and Show
+# Face, Mask, and Show
 
-Conduit presentation has one canonical narrow waist:
+Conduit has one canonical human-semantic waist:
 
 ```text
 Body/application truth --------+
@@ -10,8 +10,6 @@ tutorial and inspection -------+
                                 v
                               Face
                                 |
-                         Presentation
-                                |
                   +-------------+-------------+
                   |             |             |
              graphical       spoken       generative/...
@@ -20,9 +18,10 @@ tutorial and inspection -------+
                   +------------ Show ----------+
 ```
 
-The waist is the bounded, renderer-neutral
-`conduit_presentation::Presentation` value and its exact basis. It describes
-humanly relevant semantic truth and control:
+The waist is **Face**: bounded, renderer-neutral humanly relevant semantic
+truth and control. The current Rust implementation is the migration-era
+`conduit_presentation::Presentation` value; that type name is not a second
+architectural altitude.
 
 ```text
 basis and provenance
@@ -62,7 +61,7 @@ may be a diagram, image, audio excerpt, structured model, or document, but the
 association names no file path, URL, image element, provider resource, or
 framebuffer. Planning and the selected mask own how—or whether—it is realized.
 
-When order is meaning, Presentation states it explicitly. Vector order,
+When order is meaning, Face states it explicitly. Vector order,
 serialization order, x/y position, DOM position, and spoken delivery order are
 not semantic order by accident.
 
@@ -75,14 +74,14 @@ rhetoric as slide regions, panes,
 typography, speech structure, braille grouping, or another medium, but those
 mechanisms never enter the universal grammar.
 
-Accessibility is not another presentation mode. Presentation supplies ordinary
+Accessibility is not another presentation mode. Face supplies ordinary
 human names and descriptions. Graphical, spoken, braille, browser, and future
 masks realize that same semantic truth through their respective media.
 
 ## Context and portable navigation
 
-One Body Face may compose several distinct Presentations for several exact
-interaction contexts. The context identity participates in Presentation
+One Body may compose several distinct Face projections for several exact
+interaction contexts. The context identity participates in Face
 identity and stale-safe interaction correlation; it is not invisible audience
 state owned by a Mask or Host. Domain meanings such as teacher, participant, or
 room remain domain truth rather than universal presentation roles.
@@ -103,7 +102,7 @@ their local mechanics are materially different.
 These identities remain distinct:
 
 ```text
-presentation meaning and content identity
+Face meaning and content identity
 != mask form source/checked/expanded identity
 != mask plan, implementation, and artifact identity
 != Show identity
@@ -112,10 +111,10 @@ presentation meaning and content identity
 != mask-local objects
 ```
 
-The same presentation may therefore reach several materially different
+The same Face may therefore reach several materially different
 masks. Each mask joins at the highest seam it can truthfully satisfy:
 
-- a browser mask implements the presentation front directly with DOM/SVG/CSS and
+- a browser mask implements the Face Fore directly with DOM/SVG/CSS and
   browser accessibility mechanisms;
 - a native mask implements the same front directly with its own bounded
   layout and raster work;
@@ -124,7 +123,7 @@ masks. Each mask joins at the highest seam it can truthfully satisfy:
 - a constrained mask may expand an ordinary canonical form back and realize
   admitted layout, composition, and graphics operations recursively.
 
-The linear path is a complete nonvisual presentation, not a fake framebuffer.
+The linear path is a complete nonvisual realization, not a fake framebuffer.
 Direct masks do not advertise lower layers they do not implement.
 
 ## Ordinary recursive realization
@@ -145,7 +144,7 @@ There is no mask scheduler, private recursive executor, or second semantic
 graph. The exact expanded form and plan record every selected back, leaf
 implementation, host, boot, operation, and resource. Direct and recursive plans
 must differ because their realization differs; the presented user form and its
-presentation meaning do not change.
+Face meaning does not change.
 
 The mechanically generated `cargo xtask catalog matrix` report is the static
 coverage view. It distinguishes a direct browser implementation from an
@@ -168,20 +167,20 @@ graph merely because Patchbay can inspect its own plan.
 ## Interaction and failure
 
 Meaningful input returns through the same semantic interaction boundary as
-presentation output. Pointer, keyboard, touch, hit testing, and focus are local
+Face output. Pointer, keyboard, touch, hit testing, and focus are local
 mechanisms; they produce the bounded interaction requests owned by #694. A
 mask back does not gain edit authority from owning geometry.
 
 Mask failures remain realization facts. A lost browser document, native
 surface, display resource, font/icon implementation, or recursive leaf cannot
-rewrite the presentation or the user's form. Replanning or fallback is permitted
+rewrite the Face or the user's form. Replanning or fallback is permitted
 only through ordinary plan rules and exact current offers. A still-available
 linear mask remains a separate truthful realization, not evidence that a
 failed graphical realization succeeded.
 
 ## Conformance proof
 
-Cross-mask conformance compares the exact presentation basis and normalized
+Cross-mask conformance compares the exact Face basis and normalized
 interaction context, subjects, roles, relationships, properties, typed content,
 wording, actions, inputs, projection/navigation, disclosure, semantic order,
 time, and provenance. It deliberately does not compare pixels, coordinates,
@@ -193,7 +192,8 @@ and multiple disclosure depths to graphical, deterministic-linear, and
 generative masks. It must preserve the same semantic identities without
 application-specific rewiring. Separate plan proof establishes that direct and
 recursive masks select distinct exact realizations without changing the source
-Presentation.
+Face. Current tests may name the serialized Rust value `Presentation`; that is
+an implementation migration marker, not architectural vocabulary.
 
 The [grammar conformance method](architecture/presentation-grammar-conformance.md)
 pressure-tests that claim against heterogeneous encounters. It distinguishes a

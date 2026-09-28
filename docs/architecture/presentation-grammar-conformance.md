@@ -1,6 +1,6 @@
-# Universal Presentation grammar conformance
+# Universal Face grammar conformance
 
-Conduit Presentation is a universal semantic waist for human encounter. It is
+Face is Conduit's universal semantic waist for human encounter. It is
 not a universal description of finished interfaces, and it does not promise
 that an arbitrary existing interface can be encoded and reconstructed
 identically.
@@ -28,9 +28,9 @@ that both locations matter now is projection; that they are being contrasted is
 semantic composition; two side-by-side panes are one graphical Mask's
 realization; and the particular rendered frame is a Show.
 
-Do not move execution law into Presentation merely because it affects an
+Do not move execution law into Face merely because it affects an
 encounter. Choice, concurrency, synchronization, interruption, iteration, and
-resume normally remain Form truth. Presentation states their current humanly
+resume normally remain Form truth. Face states their current humanly
 relevant consequences: an action is available or refused, one subject follows
 another, or a current activity has been interrupted. A proposal for richer
 encounter structure must say why current actions, relationships, order, and
@@ -55,11 +55,11 @@ Before adding or changing a grammar construct, answer all of these:
 7. Does it prescribe application behavior across time rather than describe the
    present encounter? If so, it belongs in the Form.
 8. Is the value finite, exact, provenance-bearing, and safe to correlate back to
-   the Presentation that authorized interaction?
+   the Face that authorized interaction?
 
 Semantic composition is admitted sparingly. `contrast` and `emphasize` can
 change what is communicated across media. `two-column`, `bold`, `window`, and
-`spoken-first` prescribe realizations. The former may belong in Presentation;
+`spoken-first` prescribe realizations. The former may belong in Face;
 the latter do not.
 
 A rhetorical primitive is admissible only when removing it can change what a
@@ -97,7 +97,7 @@ and leave a construct out when it merely reproduces a familiar interface.
 For every specimen, compare semantic reconstruction rather than artifacts:
 
 ```text
-authoritative specimen -> proposed Presentation -> several Masks
+authoritative specimen -> proposed Face -> several Masks
                                               -> what can the human understand?
                                               -> what can the human now do?
 ```
@@ -115,7 +115,7 @@ Every conformance record must show that the proposed construct avoids both.
 ## Mask realization is planned design
 
 Semantic preservation is necessary and insufficient for design quality. A Mask
-may treat realization as an ordinary planned problem over the Presentation,
+may treat realization as an ordinary planned problem over the Face,
 medium, available implementations and resources, context, policy, user needs,
 conventions, and aesthetic knowledge. It need not be a fixed table from role to
 widget.
@@ -124,7 +124,7 @@ That freedom grants no semantic authority. A Mask may select typography,
 layout, speech structure, tactile grouping, interaction techniques, or a design
 system; it may not invent facts, actions, relationships, availability, or
 authority. Hand-authored and adaptive design remain possible downstream of the
-waist so long as the resulting Show is correlated with the exact Presentation
+waist so long as the resulting Show is correlated with the exact Face
 and interactions return through its bounded semantic contract.
 
 ## Proof record
@@ -138,7 +138,12 @@ before the change and passes afterward. Record:
 - graphical, spoken, and linear preservation evidence;
 - finite bounds, identity, provenance, and stale-interaction behavior; and
 - a negative test showing that nearby medium-specific machinery remains outside
-  Presentation.
+  Face.
 
 The grammar earns the word *universal* by surviving varied encounters while
 remaining narrow, not by accumulating the nouns of every interface examined.
+
+The current conformance fixtures and Rust crate still use `presentation` and
+`Presentation` as migration-era serialized and implementation names. They
+exercise Face; they do not establish a Presentation layer between Face and
+Mask.
