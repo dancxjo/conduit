@@ -164,6 +164,7 @@ pub struct GeneratedStaticCord {
     pub slot_start: u16,
     pub item_capacity: u16,
     pub byte_capacity: u32,
+    pub maximum_value_bytes: u32,
     pub pressure_policy: AssignedPressurePolicy,
     pub track: AssignedConnectionTrack,
 }

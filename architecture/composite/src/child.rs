@@ -146,6 +146,7 @@ impl ChildKernel {
             slot_start: u16::MAX,
             item_capacity: 0,
             byte_capacity: 0,
+            maximum_value_bytes: 0,
             pressure_policy: Default::default(),
             track: Default::default(),
         };
