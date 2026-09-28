@@ -265,3 +265,33 @@ fn specialization_propagates_finite_bounds_into_startup_and_retained_state() {
     assert_eq!(retained.value_kind, conduit_core::kind_id("value/text"));
     assert_eq!(retained.maximum_bytes, Some(256));
 }
+
+#[test]
+fn named_parameters_specialize_independently_to_structured_and_scalar_types() {
+    let parsed = parse_syntax_document(
+        "form pair (\n left: type\n right: type\n >> a: left\n >> b: right\n first: left >>\n second: right >>\n) {\n a >> first\n b >> second\n}\n\
+         form main {\n pair: pair(left = Pair, right = Count)\n}\n",
+    );
+    let pair_type = conduit_core::StructuredInfoType::collection(
+        conduit_core::StructuredInfoType::leaf(conduit_core::kind_id("value/text")).unwrap(),
+        Some(2),
+    )
+    .unwrap();
+    let pair_kind = pair_type.profile().unwrap().value_kind().clone();
+    let mut catalog = StartupCatalog::new();
+    catalog.insert_structured_type("Pair", pair_type).unwrap();
+    let checked = check_syntax_document(&parsed, &catalog).unwrap();
+    let pair = checked
+        .forms
+        .iter()
+        .find(|form| {
+            form.name
+                .contains(&format!("left={},right=value/count", pair_kind.as_str()))
+        })
+        .unwrap();
+    assert_eq!(pair.runtime_front.inputs()[0].value_kind, pair_kind);
+    assert_eq!(
+        pair.runtime_front.inputs()[1].value_kind,
+        conduit_core::kind_id("value/count")
+    );
+}
