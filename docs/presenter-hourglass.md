@@ -146,7 +146,7 @@ implementation, host, boot, operation, and resource. Direct and recursive plans
 must differ because their realization differs; the presented user form and its
 Face meaning does not change.
 
-The mechanically generated `cargo xtask catalog matrix` report is the static
+The mechanically generated `cargo xtask check catalog matrix` report is the static
 coverage view. It distinguishes a direct browser implementation from an
 installed constrained recursive realization and does not promote installed
 coverage into a claim about a current boot.

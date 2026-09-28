@@ -1,7 +1,7 @@
 //! Compatibility entrance for the authoritative ConduitOS catalog profile gap.
 //!
 //! This command deliberately consumes the same exact profile advertisement as
-//! `cargo xtask catalog gap --host conduitos`; it must never reconstruct a
+//! `cargo xtask check catalog gap --host conduitos`; it must never reconstruct a
 //! second, smaller implementation inventory from the legacy fixed HostOffer.
 
 use std::process::Command;
