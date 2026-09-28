@@ -21,7 +21,6 @@ use crate::cli::GlobalOpts;
 use crate::commands::pete_std_drive::{self, StdDriveArgs};
 use crate::commands::pete_std_indicator::{self, StdIndicatorArgs};
 use crate::commands::pete_std_speaker::{self, StdSpeakerArgs};
-use crate::commands::pete_workload_check;
 
 const EVIDENCE_SCHEMA: &str = "conduit.pete/std-create-observation-evidence@4";
 const MAXIMUM_ID_BYTES: usize = 128;
@@ -31,14 +30,11 @@ const MAXIMUM_READ_TIMEOUT_MS: u32 = 5_000;
 #[derive(Args, Debug)]
 pub struct PeteArgs {
     #[command(subcommand)]
-    command: PeteCommand,
+    command: PeteProofCommand,
 }
 
 #[derive(Subcommand, Debug)]
-enum PeteCommand {
-    /// Check Pete's reviewed workload and Host fabrication closure without physical access.
-    #[command(name = "workload-check")]
-    WorkloadCheck,
+enum PeteProofCommand {
     /// Observe one bounded correlated Create sensor frame without actuation.
     #[command(name = "std-observe")]
     Observe(StdObserveArgs),
@@ -153,11 +149,10 @@ struct StartLocalOdometry {
 
 pub fn run(args: PeteArgs, opts: &GlobalOpts) -> Result<(), Box<dyn std::error::Error>> {
     match args.command {
-        PeteCommand::WorkloadCheck => pete_workload_check::run(opts),
-        PeteCommand::Observe(args) => run_std_observe(args, opts),
-        PeteCommand::Speaker(args) => pete_std_speaker::run(args, opts),
-        PeteCommand::Indicator(args) => pete_std_indicator::run(args, opts),
-        PeteCommand::Drive(args) => pete_std_drive::run(args, opts),
+        PeteProofCommand::Observe(args) => run_std_observe(args, opts),
+        PeteProofCommand::Speaker(args) => pete_std_speaker::run(args, opts),
+        PeteProofCommand::Indicator(args) => pete_std_indicator::run(args, opts),
+        PeteProofCommand::Drive(args) => pete_std_drive::run(args, opts),
     }
 }
 
