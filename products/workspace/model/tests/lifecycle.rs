@@ -1,15 +1,14 @@
 use conduit_body::{
     AuthenticatedHostObservation, Body, BodyBiographyEvidence, BodyFormPlan, BodyMembership,
-    BodyPlayIdentity, BodyState, FulfillmentReadiness, MembershipProofId, PartId,
-    PurposeObligationState, ResidentForm, WakeLifecycle, derive_fulfillment_readiness,
+    BodyPlayIdentity, BodyState, CurrentHostOfferError, CurrentHostOffers, FulfillmentReadiness,
+    MembershipProofId, PartId, PurposeObligationState, ResidentForm, WakeLifecycle,
+    derive_fulfillment_readiness,
 };
 use conduit_core::{
     AuthorityGrantId, BootId, ExpandedFormId, FormIdentity, HostAdvertisement, HostId,
     HostProfileId, OfferGeneration, PROTOCOL_VERSION, SignId, bind_sign, seal_plan,
 };
-use conduit_workspace_model::{
-    CurrentHostOfferError, CurrentHostOffers, WorkspaceBody, WorkspaceBodyError,
-};
+use conduit_workspace_model::{WorkspaceBody, WorkspaceBodyError};
 
 #[test]
 fn tutorial_builds_an_exact_orifina_request_from_current_body_truth() {

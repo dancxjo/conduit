@@ -1,11 +1,16 @@
-//! Fresh Host offers available to one Workspace planning interval.
+//! Fresh Host offers observed for one Body planning interval.
 //!
 //! Membership proves which Host incarnation is a current Part. An advertisement
 //! describes what that incarnation offers now. Keeping those facts separate
 //! prevents durable membership from becoming stale capability truth.
+
 use alloc::vec::Vec;
-use conduit_body::{BodyBiographyEvidence, MAX_BODY_PARTS, MembershipState};
 use conduit_core::{HostAdvertisement, PROTOCOL_VERSION};
+
+use crate::{
+    BodyBiographyEvidence, MembershipState, MAX_BODY_PARTS, MAX_CANDIDATE_CAPABILITIES,
+    MAX_CANDIDATE_PLANNER_CAPABILITIES, MAX_CANDIDATE_RESOURCES,
+};
 
 #[derive(Clone, Debug, Default, PartialEq, Eq)]
 pub struct CurrentHostOffers {
@@ -28,8 +33,8 @@ impl CurrentHostOffers {
         &self.hosts
     }
 
-    /// Observe one exact offer only while its host/Boot/generation is the
-    /// authenticated current incarnation of an admitted body Part.
+    /// Observe one exact offer only while its Host/Boot/generation is the
+    /// authenticated current incarnation of an admitted Body Part.
     pub fn observe(
         &mut self,
         evidence: &BodyBiographyEvidence,
@@ -84,10 +89,9 @@ fn validate_shape(advertisement: &HostAdvertisement) -> Result<(), CurrentHostOf
         || advertisement.host_id.as_str().is_empty()
         || advertisement.boot_id.as_str().is_empty()
         || advertisement.profile.as_str().is_empty()
-        || advertisement.resources.len() > conduit_body::MAX_CANDIDATE_RESOURCES
-        || advertisement.capabilities.len() > conduit_body::MAX_CANDIDATE_CAPABILITIES
-        || advertisement.planner_capabilities.len()
-            > conduit_body::MAX_CANDIDATE_PLANNER_CAPABILITIES
+        || advertisement.resources.len() > MAX_CANDIDATE_RESOURCES
+        || advertisement.capabilities.len() > MAX_CANDIDATE_CAPABILITIES
+        || advertisement.planner_capabilities.len() > MAX_CANDIDATE_PLANNER_CAPABILITIES
     {
         return Err(CurrentHostOfferError::MalformedAdvertisement);
     }

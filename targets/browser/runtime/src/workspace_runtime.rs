@@ -1,11 +1,10 @@
 //! Workspace lifecycle orchestration. The existing browser Body slot executes.
 use conduit_body::{
     AdmissionManager, BodyBiographyEvidence, BodyConversationContext, BodyConversationContextBasis,
-    BodyConversationHost, BodyPlayIdentity, BodyState, ResidentForm, SpawnAdmissionProof,
-    SpawnInvitationClaim, SpawnInvitationSecret, Wake,
+    BodyConversationHost, BodyPlayIdentity, BodyState, CurrentHostOfferError, CurrentHostOffers,
+    ResidentForm, SpawnAdmissionProof, SpawnInvitationClaim, SpawnInvitationSecret, Wake,
 };
 use conduit_core::{AuthorityGrantId, BootId, HostAdvertisement, HostId};
-use conduit_workspace_model::CurrentHostOffers;
 use conduit_workspace_model::WorkspaceBody;
 use serde::{Deserialize, Serialize};
 use std::cell::RefCell;
@@ -956,7 +955,7 @@ fn current_host_offers() -> Vec<HostAdvertisement> {
     HOST_OFFERS.with(|offers| offers.borrow().hosts().to_vec())
 }
 
-fn host_offer_refusal(error: conduit_workspace_model::CurrentHostOfferError) -> Refusal {
+fn host_offer_refusal(error: CurrentHostOfferError) -> Refusal {
     Refusal::new(
         "HostOffer",
         format!("current host offer refused: {error:?}"),
