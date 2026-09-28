@@ -23,11 +23,13 @@ Run the deterministic model proof with:
 node --test proof/conformance/presentation-waist/presentation-waist.test.mjs
 ```
 
-`specimens.json` is consumed by a `conduit-presentation` integration test. That
-test constructs and validates the migration-era Rust `Presentation` type for
-all ten specimens, then exercises the production deterministic-linear Mask.
-The browser runtime also carries every specimen through an ordinary graphical
-Mask Form into a current Show.
+`specimens.json` is a bounded reconstruction matrix, not authoritative domain
+truth and not Face conformance evidence. It therefore is not projected into
+Face records by a test: doing so would manufacture the truth the suite is meant
+to audit. Production Mask proof must start from a Face derived through an
+ordinary domain-owned contribution. The browser runtime carries the specimens
+through an ordinary graphical Mask Form into a current Show, but that remains
+Mask-mechanism coverage rather than evidence that a domain derived the Face.
 
 There is no transparent JavaScript stand-in for either Mask. In particular, the
 current spoken Mask can ground generated wording in exact Face text, but this
