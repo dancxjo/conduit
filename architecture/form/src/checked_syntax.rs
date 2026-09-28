@@ -19,6 +19,7 @@ pub struct KindSignature {
 #[derive(Debug, Clone, Default, PartialEq, Eq)]
 pub struct StartupCatalog {
     kinds: BTreeMap<String, KindSignature>,
+    fores: BTreeMap<String, CheckedFront>,
     structured_types: BTreeMap<String, conduit_core::StructuredInfoType>,
     value_kind_aliases: BTreeMap<String, conduit_core::KindId>,
 }
@@ -58,6 +59,33 @@ impl StartupCatalog {
     /// substitution checks the complete Front, including startup parameters.
     pub fn signature(&self, kind: &str) -> Option<&KindSignature> {
         self.kinds.get(kind)
+    }
+
+    /// Installs the complete checked Fore for source-time laws which depend on
+    /// runtime port shape, such as glyph operand binding. This is not a Back or
+    /// planning profile: it carries no implementation or availability truth.
+    pub fn insert_fore(&mut self, kind: &str, fore: CheckedFront) -> Result<(), String> {
+        let signature = self
+            .kinds
+            .get(kind)
+            .ok_or_else(|| format!("cannot install a Fore for unknown Kind '{kind}'"))?;
+        let expected = self
+            .canonical_startup_parameters(signature)
+            .map_err(|error| format!("invalid startup Fore for Kind '{kind}': {error:?}"))?;
+        if fore.startup_parameters() != expected {
+            return Err(format!(
+                "checked Fore startup parameters differ from Kind '{kind}' signature"
+            ));
+        }
+        if self.fores.contains_key(kind) {
+            return Err(format!("duplicate checked Fore for Kind '{kind}'"));
+        }
+        self.fores.insert(kind.to_string(), fore);
+        Ok(())
+    }
+
+    pub fn fore(&self, kind: &str) -> Option<&CheckedFront> {
+        self.fores.get(kind)
     }
 
     /// Resolves authoring spellings into the canonical startup type identities
