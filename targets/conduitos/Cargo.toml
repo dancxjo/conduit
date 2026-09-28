@@ -211,7 +211,7 @@ conduit-body = { path = "../../architecture/body", default-features = false, fea
 conduit-core = { path = "../../architecture/core" }
 conduit-human = { path = "../../semantics/human" }
 conduit-robotics = { path = "../../semantics/robotics" }
-patchbay-control = { path = "../../products/patchbay/control" }
+patchbay-control = { path = "../../forms/patchbay" }
 patchbay-application = { path = "../../products/patchbay/application" }
 conduit-form = { path = "../../architecture/form" }
 conduit-kernel = { path = "../../architecture/kernel" }

@@ -67,6 +67,7 @@ package_test_shard!(
         "conduit-time",
         "conduit-system-continuity",
         "conduit-observatory",
+        "patchbay-control",
     ],
     []
 );
@@ -112,7 +113,6 @@ package_test_shard!(
         "conduit-tour-model",
         "conduit-tour-native",
         "patchbay-application",
-        "patchbay-control",
         "conduit",
         "conduit-xtask-dispatch",
         "xtask",

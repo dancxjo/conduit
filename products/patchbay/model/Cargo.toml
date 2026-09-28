@@ -7,7 +7,7 @@ edition = "2021"
 patchbay-graph = { path = "../graph" }
 conduit-core = { path = "../../../architecture/core" }
 conduit-human = { path = "../../../semantics/human" }
-patchbay-control = { path = "../control" }
+patchbay-control = { path = "../../../forms/patchbay" }
 conduit-form = { path = "../../../architecture/form" }
 conduit-kernel = { path = "../../../architecture/kernel", features = ["alloc"] }
 conduit-net = { path = "../../../semantics/net" }
