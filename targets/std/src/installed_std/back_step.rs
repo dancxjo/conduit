@@ -150,6 +150,7 @@ installed_step_dispatch!(
     FlowTeeScalar,
     StateSelectScalar,
     FlowGateScalar,
+    FlowFirst,
     KeyEventTee,
     InputKeymap,
     InputChords,

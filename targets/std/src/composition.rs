@@ -264,6 +264,7 @@ pub(super) fn build_advertisement(
             conduit_std_offers::count_presentation_offer(),
             conduit_std_offers::state_latest_scalar_offer(),
             conduit_std_offers::flow_tee_scalar_offer(),
+            conduit_std_offers::flow_first_scalar_offer(),
             conduit_std_offers::flow_gate_scalar_offer(),
             conduit_std_offers::state_select_scalar_offer(),
         ]);

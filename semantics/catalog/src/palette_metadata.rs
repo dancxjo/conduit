@@ -11,7 +11,7 @@ use conduit_presentation::BITMAP_PRESENTATION_KIND;
 use crate::{
     APPLICATION_EVENT_SOURCE_KIND, APPLICATION_VIEW_PRESENTATION_KIND, AUDIO_RENDER_DEMAND_KIND,
     AUDIO_TONE_KIND, BOOL_PRESENTATION_KIND, CHORDS_KIND, COPY_FILE_KIND, COUNT_PRESENTATION_KIND,
-    GATE_KIND, GRAPHICS_ICON_KIND, GRAPHICS_PRESENTATION_KIND, GRAPHICS_RECT_KIND,
+    FIRST_KIND, GATE_KIND, GRAPHICS_ICON_KIND, GRAPHICS_PRESENTATION_KIND, GRAPHICS_RECT_KIND,
     GRAPHICS_TEXT_KIND, KEYBOARD_KIND, KEYMAP_KIND, KEY_EVENT_TEE_KIND, LATEST_KIND,
     LAYOUT_ALIGN_KIND, LAYOUT_COLUMN_KIND, LAYOUT_INSET_KIND, LAYOUT_ROW_KIND, LAYOUT_STACK_KIND,
     LAYOUT_VIEWPORT_KIND, LOGIC_COMPARE_KIND, LOGIC_NOT_KIND, LOGIC_SELECT_KIND, MATH_CLAMP_KIND,
@@ -209,6 +209,11 @@ pub fn palette_metadata(kind_id: &KindId) -> Option<PaletteMetadata> {
         TEE_KIND => metadata(
             PaletteCategory::TimeAndFlow,
             &["split", "tee", "fan-out"],
+            PaletteIconKey::Combine,
+        ),
+        FIRST_KIND => metadata(
+            PaletteCategory::TimeAndFlow,
+            &["first", "race", "arbitrate", "cancel"],
             PaletteIconKey::Combine,
         ),
         GATE_KIND => metadata(
@@ -501,7 +506,7 @@ mod tests {
     #[test]
     fn every_supported_kind_has_non_fallback_legibility_metadata() {
         let contracts = crate::palette_contracts();
-        assert_eq!(contracts.len(), 75);
+        assert_eq!(contracts.len(), 76);
         assert_eq!(
             contracts
                 .iter()

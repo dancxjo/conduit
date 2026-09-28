@@ -18,6 +18,7 @@ use super::calendar_provider_back::{
 use super::count_backs::{COUNT_PRESENTATION_FACTORY, STATE_COUNT_FACTORY};
 use super::external_websocket::EXTERNAL_WEBSOCKET_LISTENER_FACTORY;
 use super::final_normalized_pattern_back::FACTORY as FINAL_NORMALIZED_PATTERN_FACTORY;
+use super::flow_first_back::FLOW_FIRST_FACTORY;
 use super::flow_gate_back::FLOW_GATE_SCALAR_FACTORY;
 use super::flow_pressure_backs::{FLOW_BACKPRESSURE_FACTORY, FLOW_COALESCE_LATEST_FACTORY};
 use super::flow_state_backs::{FLOW_TEE_SCALAR_FACTORY, STATE_LATEST_SCALAR_FACTORY};
@@ -257,6 +258,7 @@ const FACTORIES: &[&BackFactory] = &[
     &FLOW_TEE_SCALAR_FACTORY,
     &STATE_SELECT_SCALAR_FACTORY,
     &FLOW_GATE_SCALAR_FACTORY,
+    &FLOW_FIRST_FACTORY,
     &KEY_EVENT_TEE_FACTORY,
     &KEYMAP_FACTORY,
     &CHORDS_FACTORY,

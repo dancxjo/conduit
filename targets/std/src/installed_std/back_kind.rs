@@ -10,6 +10,7 @@ use super::calendar_proposal_back::CalendarProposalBack;
 use super::calendar_provider_back::CalendarProviderBack;
 use super::count_backs::{CountPresentationBack, StateCountBack};
 use super::final_normalized_pattern_back::FinalNormalizedPatternBack;
+use super::flow_first_back::FlowFirstBack;
 use super::flow_gate_back::FlowGateScalarBack;
 use super::flow_pressure_backs::FlowPressureBack;
 use super::flow_state_backs::{FlowTeeScalarBack, StateLatestScalarBack};
@@ -127,6 +128,7 @@ pub(super) enum InstalledBack {
     FlowTeeScalar(FlowTeeScalarBack),
     StateSelectScalar(StateSelectScalarBack),
     FlowGateScalar(FlowGateScalarBack),
+    FlowFirst(FlowFirstBack),
     KeyEventTee(KeyEventTeeBack),
     InputKeymap(InputSemanticBack),
     InputChords(InputSemanticBack),
