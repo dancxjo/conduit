@@ -25,6 +25,10 @@ enum Driver {
         values: [Option<ValueRef>; 4],
         next: usize,
     },
+    PreparedSource {
+        bytes: [u8; 256],
+        emitted: bool,
+    },
     Tee,
     Filter,
     Latest {
@@ -65,6 +69,13 @@ enum Driver {
 }
 
 impl StepBack<PORTS> for Driver {
+    fn prepared_output(&self, port: PortId) -> Option<&[u8]> {
+        match self {
+            Self::PreparedSource { bytes, .. } if port == PortId(0) => Some(bytes),
+            _ => None,
+        }
+    }
+
     fn terminal_transduction(&self) -> Option<AssignedTerminalTransduction> {
         match self {
             Self::TerminalPropagator { .. } | Self::TerminalEvader => {
@@ -146,6 +157,17 @@ impl StepBack<PORTS> for Driver {
                 }
                 io.send(PortId(0), value).unwrap();
                 *next += 1;
+                StepOutcome::Progress
+            }
+            Self::PreparedSource { emitted, .. } => {
+                if *emitted {
+                    return StepOutcome::Complete;
+                }
+                if !io.output_ready(PortId(0)) {
+                    return StepOutcome::Await;
+                }
+                io.send_prepared(PortId(0), 256).unwrap();
+                *emitted = true;
                 StepOutcome::Progress
             }
             Self::Tee => {
@@ -362,6 +384,64 @@ impl StepBack<PORTS> for Driver {
             _ => {}
         }
     }
+}
+
+#[test]
+fn prepared_back_storage_emits_beyond_the_inline_derived_value_envelope() {
+    let mut routes = FixedRoutes::<2, 1>::new(PORTS as u16);
+    routes
+        .install(
+            NodeId(0),
+            PortId(0),
+            RouteRange { start: 0, len: 1 },
+            &[RouteTarget {
+                cord: CordId(0),
+                sink: crate::CordEndpoint::local(NodeId(1), PortId(0)),
+            }],
+        )
+        .unwrap();
+    routes.seal().unwrap();
+    let signs =
+        FixedSignLog::<16>::new((16 * core::mem::size_of::<crate::KernelEvent>()) as u32).unwrap();
+    let mut scheduler = FixedScheduler::<_, _, _, 2, 1, PORTS, 1, 2, 1>::new(
+        [node([None, None]), node([Some(CordId(0)), None])],
+        [CordSpec::local(
+            CordId(0),
+            (NodeId(0), PortId(0)),
+            (NodeId(1), PortId(0)),
+            CordCapacity {
+                slot_start: 0,
+                item_capacity: 1,
+                byte_capacity: 256,
+                pressure_policy: Default::default(),
+            },
+        )],
+        routes,
+        [
+            Driver::PreparedSource {
+                bytes: [0x5a; 256],
+                emitted: false,
+            },
+            Driver::TerminalSink {
+                observed_bytes: None,
+            },
+        ],
+        FixedValueStore::<2, 256>::new(256).unwrap(),
+        signs,
+    )
+    .unwrap();
+
+    for _ in 0..6 {
+        if scheduler.step().unwrap() == SchedulerStatus::Drained {
+            break;
+        }
+    }
+    assert_eq!(scheduler.step().unwrap(), SchedulerStatus::Drained);
+    let Driver::TerminalSink { observed_bytes } = scheduler.drivers()[1] else {
+        panic!("terminal sink")
+    };
+    assert_eq!(observed_bytes, Some(256));
+    assert_eq!(scheduler.values().used_items(), 0);
 }
 
 #[test]

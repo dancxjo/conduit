@@ -306,6 +306,13 @@ pub trait StepBack<const PORTS: usize> {
         io: &mut StepIo<PORTS>,
         input_bytes: &StepInputBytes<'_, PORTS>,
     ) -> StepOutcome;
+    /// Bytes for one output staged by [`StepIo::send_prepared`]. The storage
+    /// belongs to this already-prepared Back and must remain unchanged until
+    /// `step_committed`; the scheduler copies it into admitted value storage
+    /// only after the Step has passed transactional validation.
+    fn prepared_output(&self, _port: PortId) -> Option<&[u8]> {
+        None
+    }
     fn accepts_input_while_host_call_pending(&self) -> bool {
         false
     }
@@ -367,6 +374,7 @@ pub struct StepIo<const PORTS: usize> {
     consumed_closed: [bool; PORTS],
     outputs: [Option<ValueRef>; PORTS],
     canonical_output: Option<(PortId, CanonicalValue)>,
+    prepared_output: Option<(PortId, u32)>,
     discards: [Option<ValueRef>; PORTS],
     host_completion: Option<(RequestId, HostCallOutcome)>,
     consumed_host_completion: bool,
@@ -539,10 +547,37 @@ impl<const PORTS: usize> StepIo<PORTS> {
             || self.outputs.get(index).is_none()
             || self.outputs[index].is_some()
             || self.canonical_output.is_some()
+            || self.prepared_output.is_some()
         {
             return self.fail(SchedulerError::OutputBlocked);
         }
         self.canonical_output = Some((port, value));
+        Ok(())
+    }
+
+    /// Stage one value held in allocation-prepared Back storage.
+    ///
+    /// The Back exposes the exact bytes through [`StepBack::prepared_output`].
+    /// This records no pointer and grants no storage authority; it only binds
+    /// the output port and byte length into the current Step transaction.
+    pub fn send_prepared(&mut self, port: PortId, byte_len: u32) -> Result<(), SchedulerError> {
+        self.consume_fuel(1)?;
+        let index = usize::from(port.0);
+        let maximum = self
+            .output_maximum_bytes
+            .get(index)
+            .copied()
+            .flatten()
+            .ok_or(SchedulerError::OutputBlocked)?;
+        if byte_len > maximum
+            || self.outputs.get(index).is_none()
+            || self.outputs[index].is_some()
+            || self.canonical_output.is_some()
+            || self.prepared_output.is_some()
+        {
+            return self.fail(SchedulerError::OutputBlocked);
+        }
+        self.prepared_output = Some((port, byte_len));
         Ok(())
     }
 
@@ -642,6 +677,7 @@ impl<const PORTS: usize> StepIo<PORTS> {
         self.consumed.iter().any(|value| *value)
             || self.outputs.iter().any(Option::is_some)
             || self.canonical_output.is_some()
+            || self.prepared_output.is_some()
             || self.discards.iter().any(Option::is_some)
             || self.consumed_host_completion
             || self.host_request.is_some()
@@ -683,6 +719,7 @@ impl<const PORTS: usize> StepIo<PORTS> {
             consumed_closed: [false; PORTS],
             outputs: [None; PORTS],
             canonical_output: None,
+            prepared_output: None,
             discards: [None; PORTS],
             host_completion,
             consumed_host_completion: false,
@@ -721,6 +758,10 @@ impl<const PORTS: usize> StepIo<PORTS> {
 
     pub fn test_canonical_output(&self) -> Option<&(PortId, CanonicalValue)> {
         self.canonical_output.as_ref()
+    }
+
+    pub const fn test_prepared_output(&self) -> Option<(PortId, u32)> {
+        self.prepared_output
     }
 
     pub fn test_discards(&self) -> &[Option<ValueRef>; PORTS] {
@@ -764,6 +805,7 @@ impl StepIo<1> {
             consumed_closed: [false],
             outputs: [None],
             canonical_output: None,
+            prepared_output: None,
             discards: [None],
             host_completion,
             consumed_host_completion: false,
@@ -783,6 +825,7 @@ impl StepIo<1> {
             && !self.consumed_host_completion
             && self.outputs[0].is_none()
             && self.canonical_output.is_none()
+            && self.prepared_output.is_none()
             && self.discards[0].is_none()
             && self.host_cancellation.is_none()
         {
@@ -797,6 +840,7 @@ impl StepIo<1> {
             && self.consumed_host_completion
             && self.host_request.is_none()
             && self.canonical_output.is_none()
+            && self.prepared_output.is_none()
             && self.discards[0].is_none()
             && self.host_cancellation.is_none()
         {
@@ -2091,6 +2135,7 @@ where
             consumed_closed: [false; PORTS],
             outputs: [None; PORTS],
             canonical_output: None,
+            prepared_output: None,
             discards: [None; PORTS],
             host_completion,
             consumed_host_completion: false,
@@ -2140,7 +2185,8 @@ where
                 if io.host_request.is_some()
                     || io.host_cancellation.is_some()
                     || ((io.outputs.iter().any(Option::is_some)
-                        || io.canonical_output.is_some())
+                        || io.canonical_output.is_some()
+                        || io.prepared_output.is_some())
                         && !matches!(
                             (
                                 self.terminal_phases[node],
@@ -2191,8 +2237,27 @@ where
                 .checked_add(usize::from(io.host_cancellation.is_some()))
                 .and_then(|count| count.checked_add(complete_sign_records))
                 .ok_or(SchedulerError::InvalidPlan)?;
-            let generated =
-                derived_value::materialize(&mut self.values, io.canonical_output, &mut io.outputs)?;
+            let generated = if let Some((port, declared_len)) = io.prepared_output {
+                let bytes = self.drivers[node]
+                    .prepared_output(port)
+                    .ok_or(SchedulerError::InvalidPlan)?;
+                if u32::try_from(bytes.len()).ok() != Some(declared_len) {
+                    return Err(SchedulerError::InvalidPlan);
+                }
+                let value = self.values.store(bytes)?;
+                let output = io
+                    .outputs
+                    .get_mut(usize::from(port.0))
+                    .ok_or(SchedulerError::InvalidPortAccess)?;
+                if output.is_some() {
+                    self.values.release(value)?;
+                    return Err(SchedulerError::InvalidPortAccess);
+                }
+                *output = Some(value);
+                Some(value)
+            } else {
+                derived_value::materialize(&mut self.values, io.canonical_output, &mut io.outputs)?
+            };
             let mut sign_records =
                 match self.commit_event_count(node, &io.consumed, &io.consumed_closed, &io.outputs)
                 {
@@ -2603,6 +2668,12 @@ where
                     u32::try_from(value.as_slice().len())
                         .map_err(|_| SchedulerError::InvalidPlan)?,
                 )
+                .ok_or(SchedulerError::InvalidPlan)?;
+        }
+        if let Some((_, byte_len)) = io.prepared_output {
+            items = items.checked_add(1).ok_or(SchedulerError::InvalidPlan)?;
+            bytes = bytes
+                .checked_add(byte_len)
                 .ok_or(SchedulerError::InvalidPlan)?;
         }
         if items > bound.maximum_items || bytes > bound.maximum_bytes {
