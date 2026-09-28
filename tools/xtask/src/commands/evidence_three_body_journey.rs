@@ -1,5 +1,6 @@
 //! Cross-Body semantic Journey verification for three independent biographies.
 
+use crate::three_body_actions::{JourneyActionKind, REQUIRED_ACTIONS};
 use serde::{Deserialize, Serialize};
 use sha2::{Digest, Sha256};
 use std::collections::{BTreeMap, BTreeSet};
@@ -51,44 +52,6 @@ struct ContractAction {
     required_receipt_assertions: Vec<String>,
     non_claims: Vec<String>,
 }
-
-#[derive(Clone, Copy, Debug, Deserialize, Eq, PartialEq, Serialize)]
-#[serde(rename_all = "kebab-case")]
-enum JourneyActionKind {
-    Bootstrap,
-    Birth,
-    UsefulWork,
-    MaskInspectInitialShow,
-    MaskWearAlternate,
-    MaskPreferAlternate,
-    MaskWithdrawSelectedRoute,
-    MaskInspectUnavailableShow,
-    MaskAddFaceHost,
-    MaskAdmitReplacementPlan,
-    MaskInspectReplannedShow,
-    MaskDoffAlternate,
-    MaskInspectRestoredShow,
-    BreakAndRecover,
-    RestAndFinish,
-}
-
-const REQUIRED_ACTIONS: [JourneyActionKind; 15] = [
-    JourneyActionKind::Bootstrap,
-    JourneyActionKind::Birth,
-    JourneyActionKind::UsefulWork,
-    JourneyActionKind::MaskInspectInitialShow,
-    JourneyActionKind::MaskWearAlternate,
-    JourneyActionKind::MaskPreferAlternate,
-    JourneyActionKind::MaskWithdrawSelectedRoute,
-    JourneyActionKind::MaskInspectUnavailableShow,
-    JourneyActionKind::MaskAddFaceHost,
-    JourneyActionKind::MaskAdmitReplacementPlan,
-    JourneyActionKind::MaskInspectReplannedShow,
-    JourneyActionKind::MaskDoffAlternate,
-    JourneyActionKind::MaskInspectRestoredShow,
-    JourneyActionKind::BreakAndRecover,
-    JourneyActionKind::RestAndFinish,
-];
 
 pub(super) fn write_contract(commit: String, output: PathBuf) -> Result<(), String> {
     contract::write(commit, output)
