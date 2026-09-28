@@ -69,18 +69,14 @@ pub(super) const PRODUCT_PROOFS: &[ProductProofSpec] = &[ProductProofSpec {
         "products/home/tools/stage-home-product",
         "targets/browser/host/",
         "targets/browser/runtime/",
-        "targets/avr/",
-        "targets/esp32/",
-        "targets/orange-pi/",
-        "targets/raspberry-pi/",
+        "targets/avr/deployment/browser/",
+        "targets/rp2040/deployment/browser/",
+        "targets/esp32/deployment/browser/",
         "targets/std/deployment/browser/",
-        "targets/std/fabrication/",
-        "targets/conduitos/",
-        "targets/std/profiles/",
-        "targets/rp2040/profiles/",
-        "targets/browser/profiles/",
-        "fabrication/host/",
-        "fabrication/workspace/",
+        "targets/browser/deployment/browser/",
+        "targets/orange-pi/deployment/browser/",
+        "targets/raspberry-pi/deployment/browser/",
+        "targets/conduitos/deployment/browser/",
     ],
 }];
 
@@ -250,6 +246,49 @@ mod product_source_tests {
             "products/patchbay/html/tests/server.rs",
         ] {
             assert!(proofs_for_paths(&[path.to_owned()]).is_empty(), "{path}");
+        }
+    }
+
+    #[test]
+    fn directly_staged_target_adapters_require_the_product_carrier() {
+        for target in [
+            "avr",
+            "rp2040",
+            "esp32",
+            "std",
+            "browser",
+            "orange-pi",
+            "raspberry-pi",
+            "conduitos",
+        ] {
+            let path = format!("targets/{target}/deployment/browser/creche-adapter.mjs");
+            assert_eq!(
+                proofs_for_paths(&[path.clone()]),
+                ["products.pages-carrier"],
+                "{path}"
+            );
+        }
+    }
+
+    #[test]
+    fn machine_and_fabrication_sources_do_not_select_the_browser_carrier() {
+        for path in [
+            "targets/conduitos/src/main.rs",
+            "targets/conduitos/fabrication/xtask/journey_body_track.rs",
+            "targets/esp32/firmware/s3-signal/build.rs",
+            "targets/esp32/fabrication/src/lib.rs",
+            "targets/avr/firmware/promicro-host/Cargo.toml",
+            "targets/avr/fabrication/src/lib.rs",
+            "targets/raspberry-pi/fabrication/src/lib.rs",
+            "targets/orange-pi/fabrication/src/lib.rs",
+            "targets/std/fabrication/src/lib.rs",
+            "targets/std/profiles/linux-computer.host.conduit",
+            "targets/browser/profiles/browser-page.host.conduit",
+            "targets/rp2040/profiles/pico-w.host.conduit",
+            "fabrication/host/src/lib.rs",
+            "fabrication/workspace/src/lib.rs",
+        ] {
+            assert!(proofs_for_paths(&[path.into()]).is_empty(), "{path}");
         }
     }
 }
