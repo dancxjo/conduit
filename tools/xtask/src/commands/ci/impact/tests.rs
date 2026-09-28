@@ -35,6 +35,57 @@ fn representative_changes_select_only_owned_heavy_suites() {
 }
 
 #[test]
+fn browser_admission_runs_only_owned_surfaces() {
+    let paths = |values: &[&str]| {
+        values
+            .iter()
+            .map(|value| (*value).to_owned())
+            .collect::<Vec<_>>()
+    };
+
+    assert_eq!(
+        browser_admission_shards(
+            &paths(&["forms/patchbay/workbench/browser/flow-scene.js"]),
+            true,
+            false,
+        ),
+        ["browser-host"]
+    );
+    assert_eq!(
+        browser_admission_shards(
+            &paths(&["forms/tutorial/src/lib.rs", "Cargo.lock"]),
+            true,
+            false,
+        ),
+        ["creche-workspace"]
+    );
+    assert_eq!(
+        browser_admission_shards(
+            &paths(&["site/index.html", "products/shared/browser/masthead.mjs"]),
+            true,
+            false,
+        ),
+        ["pages"]
+    );
+    assert_eq!(
+        browser_admission_shards(
+            &paths(&[
+                "targets/browser/sdk/browser-sdk.mjs",
+                "forms/tutorial/src/lib.rs"
+            ]),
+            true,
+            false,
+        ),
+        ["browser-host", "creche-workspace"]
+    );
+    assert_eq!(
+        browser_admission_shards(&paths(&["architecture/kernel/src/lib.rs"]), true, false,),
+        ALL_BROWSER_ADMISSION_SHARDS
+    );
+    assert!(browser_admission_shards(&paths(&["site/index.html"]), false, false).is_empty());
+}
+
+#[test]
 fn rust_test_only_face_changes_stay_in_workspace_proof() {
     let root = crate::workspace::workspace_root().unwrap();
     let packages = discover(&root).unwrap();

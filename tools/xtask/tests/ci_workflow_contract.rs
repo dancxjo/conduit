@@ -813,3 +813,24 @@ fn browser_proof_reuses_the_staged_carrier_and_retains_its_own_journey_track() {
     assert!(staged.contains("compression-level: 6"));
     assert!(!staged.contains("compression-level: 0"));
 }
+
+#[test]
+fn development_browser_admission_runs_only_impact_owned_shards() {
+    let root = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../..");
+    let workflow = fs::read_to_string(root.join(".github/workflows/product-carrier.yml"))
+        .expect("read product workflow");
+
+    assert!(workflow
+        .contains("browser_admission_shards: ${{ steps.impact.outputs.browser_admission_shards"));
+    assert!(
+        workflow.contains("shard: ${{ fromJSON(needs.plan.outputs.browser_admission_shards) }}")
+    );
+    let admission = workflow
+        .split("  browser-admission-proof:\n")
+        .nth(1)
+        .and_then(|tail| tail.split("\n  avr-release:\n").next())
+        .expect("locate browser admission proof job");
+    assert!(!admission.contains("- shard: browser-host\n"));
+    assert!(workflow.contains("case '${{ matrix.shard }}' in"));
+    assert!(workflow.contains("echo \"BROWSER_PROOF_SPECS=$specs\" >> \"$GITHUB_ENV\""));
+}

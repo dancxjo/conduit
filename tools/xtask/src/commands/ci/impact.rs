@@ -267,6 +267,7 @@ struct ImpactPlan {
     esp32_required: bool,
     esp32_targets: Vec<String>,
     browser_required: bool,
+    browser_admission_shards: Vec<&'static str>,
     conduitos_required: bool,
     conduitos_x86_proofs: Vec<String>,
     conduitos_architectures: Vec<String>,
@@ -391,6 +392,7 @@ fn retain_only_workspace_proofs_for_test_extraction(plan: &mut ImpactPlan, paths
     plan.esp32_required = false;
     plan.esp32_targets.clear();
     plan.browser_required = false;
+    plan.browser_admission_shards.clear();
     plan.conduitos_required = false;
     plan.conduitos_x86_proofs.clear();
     plan.conduitos_architectures.clear();
@@ -986,6 +988,8 @@ fn plan(
         } else {
             Vec::new()
         };
+    let browser_admission_shards =
+        browser_admission_shards(&changed_paths, selected["browser"], full_fallback);
     ImpactPlan {
         requested_base_sha: None,
         candidate_sha: None,
@@ -997,6 +1001,7 @@ fn plan(
         esp32_required: selected["esp32"],
         esp32_targets: machine.esp32.targets.into_iter().collect(),
         browser_required: selected["browser"],
+        browser_admission_shards,
         conduitos_required: selected["conduitos"],
         conduitos_x86_proofs: machine.conduitos.x86_proofs.into_iter().collect(),
         conduitos_architectures: machine.conduitos.architectures.into_iter().collect(),
@@ -1011,6 +1016,92 @@ fn plan(
         workspace_lint_packages,
         workspace_shards: workspace.shards,
         suite_reasons,
+    }
+}
+
+const ALL_BROWSER_ADMISSION_SHARDS: [&str; 3] = ["browser-host", "creche-workspace", "pages"];
+
+/// Select only browser proof surfaces whose owned inputs changed. Shared or
+/// unknown browser substrate remains conservative and proves every surface.
+fn browser_admission_shards(
+    paths: &[String],
+    browser_required: bool,
+    full_fallback: bool,
+) -> Vec<&'static str> {
+    if !browser_required {
+        return Vec::new();
+    }
+    if full_fallback {
+        return ALL_BROWSER_ADMISSION_SHARDS.into();
+    }
+
+    let mut selected = BTreeSet::new();
+    for path in paths {
+        let shard = if starts_with_any(
+            path,
+            &[
+                "forms/patchbay/workbench/browser/",
+                "targets/browser/host/",
+                "targets/browser/sdk/",
+                "targets/browser/deployment/browser/",
+            ],
+        ) || matches!(
+            path.as_str(),
+            "proof/browser/presentation-nucleus.spec.mjs"
+                | "proof/browser/browser-bundle-build.spec.mjs"
+                | "proof/browser/browser-boot-profile.spec.mjs"
+                | "proof/browser/browser-human-input.spec.mjs"
+                | "proof/browser/protected-line.spec.mjs"
+                | "proof/browser/native-webrtc-line.spec.mjs"
+        ) {
+            Some("browser-host")
+        } else if starts_with_any(
+            path,
+            &[
+                "products/creche/",
+                "products/workspace/",
+                "forms/library/",
+                "forms/tutorial/",
+            ],
+        ) || matches!(
+            path.as_str(),
+            "proof/browser/workspace-arrival.spec.mjs"
+                | "proof/browser/workspace-birth-naming.spec.mjs"
+                | "proof/browser/sdk-external-body-execution.spec.mjs"
+                | "proof/browser/workspace-mixed-membership.spec.mjs"
+                | "proof/browser/workspace-library.spec.mjs"
+                | "proof/browser/creche-workspace-continuity.spec.mjs"
+        ) {
+            Some("creche-workspace")
+        } else if starts_with_any(
+            path,
+            &[
+                "site/",
+                "products/shared/browser/",
+                "semantics/presentation/assets/",
+            ],
+        ) || matches!(
+            path.as_str(),
+            "proof/browser/pages-front-door.spec.mjs" | "proof/browser/web-accessibility.spec.mjs"
+        ) {
+            Some("pages")
+        } else if path == "Cargo.lock" || path.ends_with("/Cargo.toml") || path == "Cargo.toml" {
+            None
+        } else {
+            return ALL_BROWSER_ADMISSION_SHARDS.into();
+        };
+        if let Some(shard) = shard {
+            selected.insert(shard);
+        }
+    }
+
+    if selected.is_empty() {
+        ALL_BROWSER_ADMISSION_SHARDS.into()
+    } else {
+        ALL_BROWSER_ADMISSION_SHARDS
+            .into_iter()
+            .filter(|shard| selected.contains(shard))
+            .collect()
     }
 }
 
@@ -1066,6 +1157,11 @@ fn write_github_outputs(plan: &ImpactPlan) {
         serde_json::to_string(&plan.esp32_targets).expect("ESP32 target matrix serializes")
     );
     println!("browser_required={}", plan.browser_required);
+    println!(
+        "browser_admission_shards={}",
+        serde_json::to_string(&plan.browser_admission_shards)
+            .expect("browser admission shard list serializes")
+    );
     println!("conduitos_required={}", plan.conduitos_required);
     println!(
         "conduitos_x86_matrix={}",
