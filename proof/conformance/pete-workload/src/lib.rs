@@ -16,9 +16,10 @@ mod tests {
     };
     use conduit_form::{CompositeFrontTerminal, ExpandedAuthoringForm};
     use conduit_human::{
-        body_self_experience, BodySelfObservation, CurrentExperience, ExperienceCertainty,
-        ExperienceLimits, ExperienceSourceRef, ExperienceTemporalPolicy, ExperienceTemporalRole,
-        SourceAvailability, SourceObservation, MAXIMUM_BODY_SELF_STATE_BYTES,
+        body_self_experience, inspect_current_experience_item, BodySelfObservation,
+        CurrentExperience, ExperienceCertainty, ExperienceLimits, ExperienceSourceRef,
+        ExperienceTemporalPolicy, ExperienceTemporalRole, SourceAvailability, SourceObservation,
+        MAXIMUM_BODY_SELF_STATE_BYTES,
     };
     use conduit_pete::{
         reviewed_pete_workload, BoundedAutobiography, CapabilityCondition, ExperienceCandidate,
@@ -33,10 +34,6 @@ mod tests {
         PresentationRole, PresentationSubject, PresentationText,
     };
     use conduit_std_host::StdHost;
-    use patchbay_model::{
-        inspect_presented_current_experience, project_body_plan, BodyPlanningSession,
-        BodyPlanningTransition,
-    };
 
     #[test]
     fn one_body_spans_three_required_hosts_and_survives_optional_browser_loss() {
@@ -81,23 +78,26 @@ mod tests {
             SignId::from("proof/pete-body-born"),
         )
         .unwrap();
-        let mut session = BodyPlanningSession::start(
-            &body,
-            1,
-            SignId::from("proof/pete-wake"),
-            proof_plans(&workload, &initial_hosts, true),
-            SignId::from("proof/pete-plan-a-ready"),
-            1,
-            SignId::from("proof/pete-play-a-started"),
-        )
-        .unwrap();
-        let first = project_body_plan(session.current_plan());
+        let (_, wake) = body.wake(1, SignId::from("proof/pete-wake")).unwrap();
+        let first = BodyPlan::seal(&wake, proof_plans(&workload, &initial_hosts, true)).unwrap();
+        let wake = wake
+            .body_plan_ready(&first, SignId::from("proof/pete-plan-a-ready"))
+            .unwrap();
+        let first_play = BodyPlayIdentity::bind(&first, 1);
+        let wake = wake
+            .body_play_started(
+                &first,
+                &first_play,
+                SignId::from("proof/pete-play-a-started"),
+            )
+            .unwrap();
         assert_eq!(first.body_id, body.body_id);
-        assert_eq!(first.active_forms.len(), 5);
-        assert!(first
-            .active_forms
+        assert_eq!(first.forms.len(), 5);
+        assert!(first.forms.iter().all(|form| form
+            .plan
+            .fragments
             .iter()
-            .all(|form| !form.placements.is_empty()));
+            .any(|fragment| !fragment.placements.is_empty())));
         assert_eq!(hosts_in(&first).len(), 4);
         assert!(hosts_in(&first).contains("proof/pete-forebrain"));
         assert!(hosts_in(&first).contains("proof/pete-motherbrain"));
@@ -106,21 +106,28 @@ mod tests {
 
         let old_plan = first.clone();
         let required_hosts = [forebrain, motherbrain, brainstem];
-        session
-            .replan(
-                proof_plans(&workload, &required_hosts, false),
-                BodyPlanningTransition {
-                    unsatisfied_sign_id: Some(SignId::from("proof/pete-browser-offers-left")),
-                    plan_ready_sign_id: SignId::from("proof/pete-plan-b-ready"),
-                    play_sequence: 2,
-                    play_started_sign_id: SignId::from("proof/pete-play-b-started"),
-                },
+        let wake = wake
+            .became_unsatisfied(
+                &first.plan_id,
+                SignId::from("proof/pete-browser-offers-left"),
             )
             .unwrap();
-        let replacement = project_body_plan(session.current_plan());
+        let replacement =
+            BodyPlan::seal(&wake, proof_plans(&workload, &required_hosts, false)).unwrap();
+        let wake = wake
+            .body_plan_ready(&replacement, SignId::from("proof/pete-plan-b-ready"))
+            .unwrap();
+        let replacement_play = BodyPlayIdentity::bind(&replacement, 2);
+        let _wake = wake
+            .body_play_started(
+                &replacement,
+                &replacement_play,
+                SignId::from("proof/pete-play-b-started"),
+            )
+            .unwrap();
         assert_eq!(replacement.body_id, first.body_id);
         assert_ne!(replacement.plan_id, first.plan_id);
-        assert_eq!(replacement.active_forms.len(), 5);
+        assert_eq!(replacement.forms.len(), 5);
         assert_eq!(hosts_in(&replacement).len(), 3);
         assert!(!hosts_in(&replacement).contains("proof/pete-optional-browser"));
         assert!(hosts_in(&replacement).contains("proof/pete-forebrain"));
@@ -295,7 +302,15 @@ mod tests {
                 }],
             )
             .unwrap();
-            inspect_presented_current_experience(&experience, &presentation, &subject).unwrap();
+            let trace = inspect_current_experience_item(&experience, &subject).unwrap();
+            assert!(presentation
+                .subjects
+                .iter()
+                .any(|candidate| candidate.identity == subject));
+            assert!(trace.item.sources.iter().all(|source| match source {
+                ExperienceSourceRef::Sign(sign_id) => presentation.basis.sign_ids.contains(sign_id),
+                _ => true,
+            }));
             let manifestation =
                 conduit_presentation::render_linear_presentation(&presentation).unwrap();
             assert!(format!("{manifestation:?}").contains("structured self-state"));
@@ -736,10 +751,11 @@ mod tests {
         }
     }
 
-    fn hosts_in(plan: &patchbay_model::BodyPlanProjection) -> std::collections::BTreeSet<&str> {
-        plan.active_forms
+    fn hosts_in(plan: &BodyPlan) -> std::collections::BTreeSet<&str> {
+        plan.forms
             .iter()
-            .flat_map(|form| &form.placements)
+            .flat_map(|form| &form.plan.fragments)
+            .flat_map(|fragment| &fragment.placements)
             .map(|placement| placement.host_id.as_str())
             .collect()
     }

@@ -1183,7 +1183,6 @@ dependencies = [
  "conduit-planner",
  "conduit-presentation",
  "conduit-std-host",
- "patchbay-model",
 ]
 
 [[package]]
