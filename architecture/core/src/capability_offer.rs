@@ -24,6 +24,16 @@ pub struct Kind {
 }
 
 impl Kind {
+    pub fn value_bounds(&self) -> &[crate::FrontValueBound] {
+        self.semantic_laws
+            .iter()
+            .find_map(|law| match law {
+                KindSemanticLaw::ValueBounds(bounds) => Some(bounds.as_slice()),
+                _ => None,
+            })
+            .unwrap_or_default()
+    }
+
     pub fn resource_ports(&self) -> &[crate::ResourcePortContract] {
         self.semantic_laws
             .iter()
@@ -56,6 +66,7 @@ impl Kind {
             self.shorthand.clone(),
         )
         .with_resource_ports(self.resource_ports().to_vec())
+        .with_value_bounds(self.value_bounds().to_vec())
     }
 
     pub fn validate(&self) -> Result<(), KindValidationError> {
@@ -104,6 +115,7 @@ impl Kind {
         }
         let mut terminal_transduction = None;
         let mut resource_ports = None;
+        let mut value_bounds = None;
         for law in &self.semantic_laws {
             match law {
                 KindSemanticLaw::TerminalTransduction(profile) => {
@@ -118,11 +130,47 @@ impl Kind {
                     }
                     validate_resource_ports(self, ports)?;
                 }
+                KindSemanticLaw::ValueBounds(bounds) => {
+                    if value_bounds.replace(bounds).is_some() {
+                        return Err(KindValidationError::DuplicateValueBounds);
+                    }
+                    validate_value_bounds(self, bounds)?;
+                }
                 _ => {}
             }
         }
         Ok(())
     }
+}
+
+fn validate_value_bounds(
+    kind: &Kind,
+    bounds: &[crate::FrontValueBound],
+) -> Result<(), KindValidationError> {
+    let mut locations = BTreeSet::new();
+    for bound in bounds {
+        if bound.maximum_bytes == 0 || !locations.insert(bound.location.clone()) {
+            return Err(KindValidationError::InvalidValueBound);
+        }
+        let present = match &bound.location {
+            crate::FrontValueLocation::Startup(name) => kind
+                .startup_parameters
+                .iter()
+                .any(|parameter| &parameter.name == name),
+            crate::FrontValueLocation::Input(port) => kind
+                .inputs
+                .iter()
+                .any(|candidate| &candidate.port_id == port),
+            crate::FrontValueLocation::Output(port) => kind
+                .outputs
+                .iter()
+                .any(|candidate| &candidate.port_id == port),
+        };
+        if !present {
+            return Err(KindValidationError::UnknownValueBoundLocation);
+        }
+    }
+    Ok(())
 }
 
 fn validate_resource_ports(
@@ -253,6 +301,9 @@ pub enum KindValidationError {
     DuplicateResourcePort,
     EmptyResourcePortClass,
     UnknownResourcePort,
+    DuplicateValueBounds,
+    InvalidValueBound,
+    UnknownValueBoundLocation,
 }
 
 /// Host-owned identity and requirements for one semantic realization.
@@ -498,6 +549,43 @@ mod tests {
         assert_eq!(
             resource.validate(),
             Err(KindValidationError::UnknownResourcePort)
+        );
+    }
+
+    #[test]
+    fn value_bounds_are_exact_checked_fore_identity_and_validate_fail_closed() {
+        let mut bounded = contract();
+        bounded
+            .semantic_laws
+            .push(KindSemanticLaw::ValueBounds(vec![crate::FrontValueBound {
+                location: crate::FrontValueLocation::Input(port_id("in")),
+                maximum_bytes: 128,
+            }]));
+        bounded.validate().unwrap();
+        assert_eq!(bounded.checked_front().value_bounds()[0].maximum_bytes, 128);
+        assert_ne!(
+            crate::compute_checked_front_fingerprint(&contract().checked_front()),
+            crate::compute_checked_front_fingerprint(&bounded.checked_front())
+        );
+        let encoded = serde_json::to_vec(&bounded.checked_front()).unwrap();
+        let decoded: crate::CheckedFront = serde_json::from_slice(&encoded).unwrap();
+        assert_eq!(decoded, bounded.checked_front());
+
+        let mut zero = bounded.clone();
+        let KindSemanticLaw::ValueBounds(bounds) = &mut zero.semantic_laws[0] else {
+            unreachable!()
+        };
+        bounds[0].maximum_bytes = 0;
+        assert_eq!(zero.validate(), Err(KindValidationError::InvalidValueBound));
+
+        let mut unknown = bounded;
+        let KindSemanticLaw::ValueBounds(bounds) = &mut unknown.semantic_laws[0] else {
+            unreachable!()
+        };
+        bounds[0].location = crate::FrontValueLocation::Input(port_id("missing"));
+        assert_eq!(
+            unknown.validate(),
+            Err(KindValidationError::UnknownValueBoundLocation)
         );
     }
 

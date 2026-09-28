@@ -2,8 +2,8 @@ use alloc::vec::Vec;
 
 use crate::{FormSyntax, RuntimePortDirection, RuntimePortTemporal, SyntaxCheckDiagnostic};
 use conduit_core::{
-    data_reference_kind, kind_id, CheckedFront, FrontStartupParameter, KindId, PortDescriptor,
-    PortDirection, StructuredInfoRefusal,
+    data_reference_kind, kind_id, CheckedFront, FrontStartupParameter, FrontValueBound,
+    FrontValueLocation, KindId, PortDescriptor, PortDirection, StructuredInfoRefusal,
 };
 
 use crate::StartupCatalog;
@@ -121,6 +121,19 @@ pub(crate) fn checked_front(
             })
         })
         .collect::<Result<Vec<_>, SyntaxCheckDiagnostic>>()?;
+    let mut value_bounds = form
+        .front
+        .startup_parameters
+        .iter()
+        .filter_map(|parameter| {
+            parameter
+                .maximum_bytes
+                .map(|maximum_bytes| FrontValueBound {
+                    location: FrontValueLocation::Startup(parameter.name.text.clone()),
+                    maximum_bytes,
+                })
+        })
+        .collect::<Vec<_>>();
     let mut inputs = Vec::new();
     let mut outputs = Vec::new();
     for port in &form.front.runtime_ports {
@@ -146,6 +159,19 @@ pub(crate) fn checked_front(
             temporal: canonical_port_temporal(port.temporal),
             abnormal_kind: None,
         };
+        if let Some(maximum_bytes) = port.maximum_bytes {
+            value_bounds.push(FrontValueBound {
+                location: match port.direction {
+                    RuntimePortDirection::Input => {
+                        FrontValueLocation::Input(descriptor.port_id.clone())
+                    }
+                    RuntimePortDirection::Output => {
+                        FrontValueLocation::Output(descriptor.port_id.clone())
+                    }
+                },
+                maximum_bytes,
+            });
+        }
         match descriptor.direction {
             PortDirection::Input => inputs.push(descriptor),
             PortDirection::Output => outputs.push(descriptor),
@@ -161,7 +187,8 @@ pub(crate) fn checked_front(
                 conduit_core::port_id(&pair.output_port.text),
             )
         }),
-    ))
+    )
+    .with_value_bounds(value_bounds))
 }
 
 pub(crate) fn canonical_port_temporal(source: RuntimePortTemporal) -> conduit_core::PortTemporal {

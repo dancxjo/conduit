@@ -1,4 +1,4 @@
-use alloc::{collections::BTreeMap, format, vec, vec::Vec};
+use alloc::{format, vec, vec::Vec};
 use conduit_core::{
     ArtifactId, BaseImplementationId, BootId, CapabilityId, CapabilityLimits, CapabilityOffer,
     ExecutionProfileId, HostAdvertisement, HostId, HostProfileId, ImplementationId, KindIdentity,
@@ -10,9 +10,7 @@ use conduit_form::{
     expand_canonical_form_with_backs, parse_syntax_document,
 };
 use conduit_plan_lowering::lowering::{LoweredPlanFragment, lower_plan_fragment};
-use conduit_planner::{
-    PlanningOptions, default_expanded_placements, plan_expanded_canonical_with_options,
-};
+use conduit_planner::{default_expanded_placements, plan_expanded_canonical};
 
 use super::TEXT_SOURCE_KIND;
 
@@ -60,20 +58,11 @@ pub fn prepare(host: &str, boot: &str) -> Result<PreparedPresentationPlay, Prepa
     let hosts = [advertisement.clone()];
     let placements =
         default_expanded_placements(&form, &hosts).map_err(|_| PreparationError::Placement)?;
-    let plan = plan_expanded_canonical_with_options(
+    let plan = plan_expanded_canonical(
         &form,
         &hosts,
         &placements,
         &[BaseImplementationId::from("conduit.base/local@1")],
-        PlanningOptions {
-            connection_bases: &BTreeMap::new(),
-            line_candidates: &BTreeMap::new(),
-            connection_item_capacity: 1,
-            connection_byte_capacity: conduit_presentation::MAX_LAYOUT_FRAME_BYTES as u32,
-            authority_grants: &[],
-            protected_resource_grants: &[],
-            line_offers: &[],
-        },
     )
     .map_err(|_| PreparationError::Plan)?;
     if !conduit_core::verify_plan(&plan) || plan.fragments.len() != 1 {

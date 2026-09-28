@@ -170,22 +170,13 @@ fn plan(
                 format!("{error}; unmatched checked fronts={unmatched:?}")
             },
         )?;
-    conduit_planner::plan_expanded_canonical_with_options(
+    conduit_planner::plan_expanded_canonical(
         form,
         core::slice::from_ref(host),
         &placements,
         &[conduit_core::BaseImplementationId::from(
             "conduit.base/local@1",
         )],
-        conduit_planner::PlanningOptions {
-            connection_bases: &std::collections::BTreeMap::new(),
-            line_candidates: &std::collections::BTreeMap::new(),
-            connection_item_capacity: 1,
-            connection_byte_capacity: 64,
-            authority_grants: &[],
-            protected_resource_grants: &[],
-            line_offers: &[],
-        },
     )
     .map_err(|error| error.to_string())
 }

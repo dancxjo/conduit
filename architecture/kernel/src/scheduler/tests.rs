@@ -2972,6 +2972,65 @@ fn coalescing_cords_supersede_the_newest_pending_item_without_growth() {
     assert_eq!(scheduler.values().used_items(), 0);
 }
 
+#[test]
+fn semantic_value_bound_is_enforced_independently_of_queue_storage() {
+    fn step_with(bytes: &[u8]) -> Result<SchedulerStatus, SchedulerError> {
+        let mut values = FixedValueStore::<1, 8>::new(8).unwrap();
+        let value = values.store(bytes).unwrap();
+        let mut routes = FixedRoutes::<2, 1>::new(1);
+        routes
+            .install(
+                NodeId(0),
+                PortId(0),
+                RouteRange { start: 0, len: 1 },
+                &[RouteTarget {
+                    cord: CordId(0),
+                    sink: crate::CordEndpoint::local(NodeId(1), PortId(0)),
+                }],
+            )
+            .unwrap();
+        routes.seal().unwrap();
+        let signs = FixedSignLog::<8>::new((8 * core::mem::size_of::<crate::KernelEvent>()) as u32)
+            .unwrap();
+        let mut scheduler = FixedScheduler::<_, _, _, 2, 1, PORTS, 1, 2, 1>::new(
+            [node([None; PORTS]), node([Some(CordId(0)), None])],
+            [CordSpec::local(
+                CordId(0),
+                (NodeId(0), PortId(0)),
+                (NodeId(1), PortId(0)),
+                CordCapacity {
+                    slot_start: 0,
+                    item_capacity: 1,
+                    byte_capacity: 8,
+                    pressure_policy: Default::default(),
+                },
+            )
+            .with_maximum_value_bytes(4)],
+            routes,
+            [
+                Driver::Source {
+                    values: [Some(value), None, None, None],
+                    next: 0,
+                },
+                Driver::BlockedSink { cancelled: false },
+            ],
+            values,
+            signs,
+        )
+        .unwrap();
+        scheduler.step()
+    }
+
+    assert!(matches!(
+        step_with(b"four").unwrap(),
+        SchedulerStatus::Progress { node: NodeId(0) }
+    ));
+    assert_eq!(
+        step_with(b"fives"),
+        Err(SchedulerError::SemanticValueBoundExceeded)
+    );
+}
+
 fn cord(id: u16, source_node: u16, source_port: u16, sink_node: u16, sink_port: u16) -> CordSpec {
     CordSpec::local(
         CordId(id),

@@ -277,7 +277,7 @@ fn render_cords(output: &mut String, plan: &GeneratedEmbeddedPlan) {
         };
         writeln!(
             output,
-            "    conduit_kernel::scheduler::CordSpec {{ cord: conduit_kernel::CordId({}), source: {}, sink: {}, slot_start: {}, item_capacity: {}, byte_capacity: {}, pressure_policy: {}, track: {} }},",
+            "    conduit_kernel::scheduler::CordSpec::new(conduit_kernel::CordId({}), {}, {}, conduit_kernel::scheduler::CordCapacity {{ slot_start: {}, item_capacity: {}, byte_capacity: {}, pressure_policy: {} }}).with_track({}).with_maximum_value_bytes({}),",
             cord.cord,
             source,
             sink,
@@ -285,7 +285,8 @@ fn render_cords(output: &mut String, plan: &GeneratedEmbeddedPlan) {
             cord.item_capacity,
             cord.byte_capacity,
             pressure_policy,
-            track
+            track,
+            cord.maximum_value_bytes
         )
         .expect("String writes cannot fail");
     }

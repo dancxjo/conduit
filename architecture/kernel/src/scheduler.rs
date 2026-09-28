@@ -93,6 +93,7 @@ enum ActiveTerminalPhase {
 }
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
+#[non_exhaustive]
 pub struct CordSpec {
     pub cord: CordId,
     pub source: CordEndpoint,
@@ -100,6 +101,10 @@ pub struct CordSpec {
     pub slot_start: u16,
     pub item_capacity: u16,
     pub byte_capacity: u32,
+    /// Largest single canonical payload admitted on this Cord. This is the
+    /// semantic value envelope, independent of the Cord's aggregate queue
+    /// storage budget.
+    pub maximum_value_bytes: u32,
     pub pressure_policy: AssignedPressurePolicy,
     pub track: AssignedConnectionTrack,
 }
@@ -113,26 +118,62 @@ pub struct CordCapacity {
 }
 
 impl CordSpec {
+    pub const fn new(
+        cord: CordId,
+        source: CordEndpoint,
+        sink: CordEndpoint,
+        capacity: CordCapacity,
+    ) -> Self {
+        Self {
+            cord,
+            source,
+            sink,
+            slot_start: capacity.slot_start,
+            item_capacity: capacity.item_capacity,
+            byte_capacity: capacity.byte_capacity,
+            maximum_value_bytes: capacity.byte_capacity,
+            pressure_policy: capacity.pressure_policy,
+            track: AssignedConnectionTrack::Payload,
+        }
+    }
+
+    /// Padding entry for fixed-capacity tables. Active-prefix validation keeps
+    /// this sentinel outside the executable plan.
+    pub const fn inactive() -> Self {
+        Self {
+            cord: CordId(u16::MAX),
+            source: CordEndpoint::local(NodeId(u16::MAX), PortId(u16::MAX)),
+            sink: CordEndpoint::local(NodeId(u16::MAX), PortId(u16::MAX)),
+            slot_start: u16::MAX,
+            item_capacity: 0,
+            byte_capacity: 0,
+            maximum_value_bytes: 0,
+            pressure_policy: AssignedPressurePolicy::PreserveOrder,
+            track: AssignedConnectionTrack::Payload,
+        }
+    }
+
     pub const fn local(
         cord: CordId,
         source: (NodeId, PortId),
         sink: (NodeId, PortId),
         capacity: CordCapacity,
     ) -> Self {
-        Self {
+        Self::new(
             cord,
-            source: CordEndpoint::local(source.0, source.1),
-            sink: CordEndpoint::local(sink.0, sink.1),
-            slot_start: capacity.slot_start,
-            item_capacity: capacity.item_capacity,
-            byte_capacity: capacity.byte_capacity,
-            pressure_policy: capacity.pressure_policy,
-            track: AssignedConnectionTrack::Payload,
-        }
+            CordEndpoint::local(source.0, source.1),
+            CordEndpoint::local(sink.0, sink.1),
+            capacity,
+        )
     }
 
     pub const fn with_track(mut self, track: AssignedConnectionTrack) -> Self {
         self.track = track;
+        self
+    }
+
+    pub const fn with_maximum_value_bytes(mut self, maximum_value_bytes: u32) -> Self {
+        self.maximum_value_bytes = maximum_value_bytes;
         self
     }
 
@@ -142,16 +183,12 @@ impl CordSpec {
         endpoint: RemoteEndpointId,
         capacity: CordCapacity,
     ) -> Self {
-        Self {
+        Self::new(
             cord,
-            source: CordEndpoint::local(source.0, source.1),
-            sink: CordEndpoint::Remote(endpoint),
-            slot_start: capacity.slot_start,
-            item_capacity: capacity.item_capacity,
-            byte_capacity: capacity.byte_capacity,
-            pressure_policy: capacity.pressure_policy,
-            track: AssignedConnectionTrack::Payload,
-        }
+            CordEndpoint::local(source.0, source.1),
+            CordEndpoint::Remote(endpoint),
+            capacity,
+        )
     }
 
     pub const fn remote_ingress(
@@ -160,16 +197,12 @@ impl CordSpec {
         sink: (NodeId, PortId),
         capacity: CordCapacity,
     ) -> Self {
-        Self {
+        Self::new(
             cord,
-            source: CordEndpoint::Remote(endpoint),
-            sink: CordEndpoint::local(sink.0, sink.1),
-            slot_start: capacity.slot_start,
-            item_capacity: capacity.item_capacity,
-            byte_capacity: capacity.byte_capacity,
-            pressure_policy: capacity.pressure_policy,
-            track: AssignedConnectionTrack::Payload,
-        }
+            CordEndpoint::Remote(endpoint),
+            CordEndpoint::local(sink.0, sink.1),
+            capacity,
+        )
     }
 
     pub const fn source_local(self) -> Option<(NodeId, PortId)> {
@@ -780,6 +813,7 @@ pub enum SchedulerError {
     OutputBlocked,
     QueueCapacityExceeded,
     QueueByteCapacityExceeded,
+    SemanticValueBoundExceeded,
     StepFuelExceeded,
     FalseProgress,
     DecisionLimitExceeded,
@@ -2943,6 +2977,9 @@ where
                 if state.len >= spec.item_capacity {
                     return Err(SchedulerError::QueueCapacityExceeded);
                 }
+                if value.byte_len > spec.maximum_value_bytes {
+                    return Err(SchedulerError::SemanticValueBoundExceeded);
+                }
                 if value.byte_len > spec.byte_capacity.saturating_sub(state.queued_bytes) {
                     return Err(SchedulerError::QueueByteCapacityExceeded);
                 }
@@ -3465,6 +3502,8 @@ fn validate_plan<
         if usize::from(cord.cord.0) != cord_index
             || cord.item_capacity == 0
             || cord.byte_capacity == 0
+            || cord.maximum_value_bytes == 0
+            || cord.maximum_value_bytes > cord.byte_capacity
         {
             return Err(SchedulerError::InvalidPlan);
         }

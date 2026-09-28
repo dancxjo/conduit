@@ -64,7 +64,7 @@ pub fn install_lenia_catalogs(
 }
 
 fn canonical_lenia_kind(definition: KindProjection) -> conduit_core::Kind {
-    let startup_parameters = definition
+    let startup_parameters: Vec<conduit_core::FrontStartupParameter> = definition
         .configuration
         .iter()
         .map(|field| conduit_core::FrontStartupParameter {

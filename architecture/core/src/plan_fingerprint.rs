@@ -533,6 +533,27 @@ fn push_semantic_contract(canonical: &mut Vec<u8>, contract: &crate::KindSemanti
                     canonical.push(port.mobility as u8);
                 }
             }
+            Law::ValueBounds(bounds) => {
+                canonical.push(11);
+                push_u32(canonical, bounds.len() as u32);
+                for bound in bounds {
+                    match &bound.location {
+                        crate::FrontValueLocation::Startup(name) => {
+                            canonical.push(0);
+                            push_string(canonical, name);
+                        }
+                        crate::FrontValueLocation::Input(port) => {
+                            canonical.push(1);
+                            push_string(canonical, port.as_str());
+                        }
+                        crate::FrontValueLocation::Output(port) => {
+                            canonical.push(2);
+                            push_string(canonical, port.as_str());
+                        }
+                    }
+                    push_u64(canonical, bound.maximum_bytes);
+                }
+            }
         }
     }
 }
@@ -635,6 +656,24 @@ fn push_checked_front(canonical: &mut Vec<u8>, front: &CheckedFront) {
         canonical.push(resource.ownership as u8);
         canonical.push(resource.lifecycle as u8);
         canonical.push(resource.mobility as u8);
+    }
+    push_u32(canonical, front.value_bounds().len() as u32);
+    for bound in front.value_bounds() {
+        match &bound.location {
+            crate::FrontValueLocation::Startup(name) => {
+                canonical.push(0);
+                push_string(canonical, name);
+            }
+            crate::FrontValueLocation::Input(port) => {
+                canonical.push(1);
+                push_string(canonical, port.as_str());
+            }
+            crate::FrontValueLocation::Output(port) => {
+                canonical.push(2);
+                push_string(canonical, port.as_str());
+            }
+        }
+        push_u64(canonical, bound.maximum_bytes);
     }
     match front.shorthand() {
         Some((input, output)) => {

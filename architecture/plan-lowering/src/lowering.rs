@@ -140,6 +140,7 @@ pub struct LoweredPort {
     pub direction: PortDirection,
     pub temporal: conduit_core::PortTemporal,
     pub abnormal_kind: Option<KindId>,
+    pub maximum_value_bytes: Option<u64>,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -732,17 +733,20 @@ pub fn lower_plan_fragment_for_profile(
                 placement.placement_id.clone(),
             ));
         }
+        let checked_front = placement.checked_port_front();
         let inputs = lower_ports(
             node,
             &placement.placement_id,
             &placement.inputs,
             PortDirection::Input,
+            checked_front.value_bounds(),
         )?;
         let outputs = lower_ports(
             node,
             &placement.placement_id,
             &placement.outputs,
             PortDirection::Output,
+            checked_front.value_bounds(),
         )?;
         if inputs.len() > profile.maximum_ports_per_node() {
             return Err(LoweringError::ProfileCapacityExceeded {
@@ -915,6 +919,33 @@ pub fn lower_plan_fragment_for_profile(
             ));
         }
         let slot_start = value_slots;
+        let source_value_bound = source_node.zip(source_port).and_then(|(node, port)| {
+            nodes[usize::from(node.0)].outputs[usize::from(port.0)].maximum_value_bytes
+        });
+        let sink_value_bound = sink_node.zip(sink_port).and_then(|(node, port)| {
+            nodes[usize::from(node.0)].inputs[usize::from(port.0)].maximum_value_bytes
+        });
+        if connection.track == ConnectionTrack::Payload
+            && source_value_bound
+                .zip(sink_value_bound)
+                .is_some_and(|(source, sink)| source != sink)
+        {
+            return Err(LoweringError::ConnectionContractMismatch(
+                connection.connection_id.clone(),
+            ));
+        }
+        let maximum_value_bytes = if connection.track == ConnectionTrack::Payload {
+            admitted_maximum_value_bytes(
+                source_value_bound
+                    .or(sink_value_bound)
+                    .map(u32::try_from)
+                    .transpose()
+                    .map_err(|_| LoweringError::CapacityOverflow)?,
+                connection.byte_capacity,
+            )
+        } else {
+            connection.byte_capacity
+        };
         value_slots = value_slots
             .checked_add(connection.item_capacity)
             .ok_or(LoweringError::CapacityOverflow)?;
@@ -951,6 +982,7 @@ pub fn lower_plan_fragment_for_profile(
                     },
                 )
                 .with_track(lower_connection_track(connection.track))
+                .with_maximum_value_bytes(maximum_value_bytes)
             }
             (Some((source_node, source_port)), None) => {
                 let endpoint = lower_remote_endpoints(
@@ -972,6 +1004,7 @@ pub fn lower_plan_fragment_for_profile(
                     },
                 )
                 .with_track(lower_connection_track(connection.track))
+                .with_maximum_value_bytes(maximum_value_bytes)
             }
             (None, Some((sink_node, sink_port))) => {
                 let endpoint = lower_remote_endpoints(
@@ -993,6 +1026,7 @@ pub fn lower_plan_fragment_for_profile(
                     },
                 )
                 .with_track(lower_connection_track(connection.track))
+                .with_maximum_value_bytes(maximum_value_bytes)
             }
             (None, None) => {
                 return Err(LoweringError::UnknownConnectionEndpoint(
@@ -1223,6 +1257,10 @@ pub fn lower_plan_fragment_for_profile(
     })
 }
 
+fn admitted_maximum_value_bytes(semantic_bound: Option<u32>, byte_capacity: u32) -> u32 {
+    semantic_bound.unwrap_or(byte_capacity).min(byte_capacity)
+}
+
 fn fragment_id_for_host(
     fragment: &PlanFragment,
     host_id: &HostId,
@@ -1288,6 +1326,7 @@ mod terminal_track_tests {
             direction: PortDirection::Output,
             temporal: PortTemporal::Flow { closes: true },
             abnormal_kind: abnormal.map(kind_id),
+            maximum_value_bytes: None,
         }
     }
 
@@ -1335,6 +1374,13 @@ mod terminal_track_tests {
             &kind_id("test/fault"),
             PortTemporal::Value
         ));
+    }
+
+    #[test]
+    fn payload_value_maximum_is_bounded_by_the_admitted_cord_capacity() {
+        assert_eq!(admitted_maximum_value_bytes(Some(256), 64), 64);
+        assert_eq!(admitted_maximum_value_bytes(Some(32), 64), 32);
+        assert_eq!(admitted_maximum_value_bytes(None, 64), 64);
     }
 
     #[test]

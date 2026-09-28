@@ -5,8 +5,8 @@ use conduit_kernel::scheduler::{
     CordSpec, FixedScheduler, HostCallRequest, RemoteIngressOutcome, SchedulerStatus,
 };
 use conduit_kernel::{
-    CordEndpoint, CordId, FixedHostCallBindings, FixedRoutes, HostedSignLog, HostedValueStore,
-    KernelEvent, NodeId, PortId, RemoteEndpointId, ValueStorage,
+    CordId, FixedHostCallBindings, FixedRoutes, HostedSignLog, HostedValueStore, KernelEvent,
+    NodeId, RemoteEndpointId, ValueStorage,
 };
 use conduit_plan_lowering::lowering::{LoweredPlanFragment, FIXED_KERNEL_STORAGE_PORTS_PER_NODE};
 use std::collections::BTreeMap;
@@ -139,16 +139,7 @@ impl ChildKernel {
         };
         let mut nodes = [inactive_node; MAX_NODES];
         nodes[..active_nodes].copy_from_slice(&lowered.node_specs);
-        let inactive_cord = CordSpec {
-            cord: CordId(u16::MAX),
-            source: CordEndpoint::local(NodeId(u16::MAX), PortId(u16::MAX)),
-            sink: CordEndpoint::local(NodeId(u16::MAX), PortId(u16::MAX)),
-            slot_start: u16::MAX,
-            item_capacity: 0,
-            byte_capacity: 0,
-            pressure_policy: Default::default(),
-            track: Default::default(),
-        };
+        let inactive_cord = CordSpec::inactive();
         let mut cords = [inactive_cord; MAX_CORDS];
         for (destination, source) in cords.iter_mut().zip(&lowered.cords) {
             *destination = source.spec;

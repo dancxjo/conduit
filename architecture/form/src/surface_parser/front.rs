@@ -65,8 +65,8 @@ fn split_type_bound(value_type: &str) -> Option<(&str, Option<u64>)> {
 
 pub(super) fn canonical_default_bound(value_type: &str) -> Option<u64> {
     match value_type {
-        "Text" => Some(256),
-        "Bytes" => Some(65_536),
+        "Text" | "value/text" => Some(256),
+        "Bytes" | "value/bytes" => Some(65_536),
         _ => None,
     }
 }

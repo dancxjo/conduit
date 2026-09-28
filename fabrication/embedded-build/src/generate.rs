@@ -314,6 +314,7 @@ fn generate_cords(
                 slot_start: cord.spec.slot_start,
                 item_capacity: cord.spec.item_capacity,
                 byte_capacity: cord.spec.byte_capacity,
+                maximum_value_bytes: cord.spec.maximum_value_bytes,
                 pressure_policy: cord.spec.pressure_policy,
                 track: cord.spec.track,
             })

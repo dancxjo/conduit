@@ -1,6 +1,15 @@
-use crate::PlannedGear;
+use crate::{CheckedFront, PlannedGear};
+use alloc::vec::Vec;
 
 impl PlannedGear {
+    /// Reconstruct the checked port portion of this selected Gear's Fore.
+    /// Startup parameters have already been consumed by planning and are not
+    /// retained in a [`PlannedGear`].
+    pub fn checked_port_front(&self) -> CheckedFront {
+        CheckedFront::new(Vec::new(), self.inputs.clone(), self.outputs.clone(), None)
+            .with_value_bounds(self.semantic_contract.value_bounds().to_vec())
+    }
+
     /// Minimum structural validation for an explicitly assembled Plan record.
     /// Exact semantic content is subsequently covered by the fragment and
     /// Plan fingerprints; this boundary prevents anonymous/empty identities
