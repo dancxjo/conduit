@@ -85,6 +85,7 @@ pub mod proof;
 mod protected_resources;
 mod realization;
 mod realization_families;
+mod realization_recovery;
 mod recursive_recovery;
 mod replanning;
 mod requirements;
@@ -206,6 +207,11 @@ pub use realization_families::{
     select_current_family_frontier, CurrentFamilyOffer, FamilyFrontier, FamilyFrontierMetrics,
     RealizationFamily, RealizationFamilyCatalog, MAXIMUM_CURRENT_FAMILY_OFFERS,
     MAXIMUM_REALIZATION_FAMILIES, MAXIMUM_REALIZATION_FAMILY_PREREQUISITES,
+};
+pub use realization_recovery::{
+    admit_realization_recovery, RealizationInvalidation, RealizationRecoveryOutcome,
+    RealizationRecoveryRefusal, RealizationReplacementEvidence, RecoveryPlanningOutcome,
+    MAXIMUM_INVALIDATED_REALIZATION_LINES, MAXIMUM_RECOVERY_REFUSAL_BYTES,
 };
 pub use recursive_recovery::{
     prove_recursive_recovery, RecursiveRecoveryCandidate, RecursiveRecoveryEvidence,

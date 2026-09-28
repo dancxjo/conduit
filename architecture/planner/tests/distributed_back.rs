@@ -18,6 +18,8 @@ use conduit_planner::{
 
 #[path = "distributed_back/execution.rs"]
 mod execution;
+#[path = "distributed_back/realization_recovery.rs"]
+mod realization_recovery;
 #[path = "distributed_back/recovery.rs"]
 mod recovery;
 #[path = "distributed_back/survival_policy.rs"]

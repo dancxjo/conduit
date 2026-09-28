@@ -1,10 +1,12 @@
 //! Fail-closed derivation for semantic Kind use inside pure expressions.
 
 use crate::{
-    Back, ExternalEffectBehavior, Kind, KindId, KindIdentity, KindSemanticLaw, ReplayBehavior,
-    RetainedRetryEvidence, RetainedRetryProof, RetryEvidenceRefusal, RetryOperationIdentity,
-    SemanticDependence, SuspensionBehavior, TemporalStateBehavior, VariabilityBehavior,
+    Back, ExternalEffectBehavior, Kind, KindId, KindIdentity, KindSemanticLaw, PlannedGear,
+    ReplayBehavior, RetainedRetryEvidence, RetainedRetryProof, RetryEvidenceRefusal,
+    RetryOperationIdentity, SemanticDependence, SuspensionBehavior, TemporalStateBehavior,
+    VariabilityBehavior,
 };
+use alloc::vec::Vec;
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct PureExpressionFacts {
@@ -250,6 +252,41 @@ pub fn derive_transformation_eligibility(
         back_has_host_calls: !back.host_calls.is_empty(),
         back_has_resources: !back.resource_requirements.is_empty(),
         back_has_authority: !back.authority_requirements.is_empty(),
+    })
+}
+
+/// Derive transformation eligibility from the exact realization already
+/// sealed into a Plan. This prevents recovery code from describing a
+/// same-named Back with weaker Host Call, resource, or authority requirements.
+pub fn derive_planned_transformation_eligibility(
+    placement: &PlannedGear,
+) -> Result<TransformationEligibility, TransformationRefusal> {
+    let kind = Kind {
+        startup_parameters: Vec::new(),
+        shorthand: None,
+        kind_id: placement.kind_id.clone(),
+        kind_contract_revision: placement.kind_contract_revision.clone(),
+        inputs: placement.inputs.clone(),
+        outputs: placement.outputs.clone(),
+        configuration: placement.semantic_contract.configuration.clone(),
+        semantic_laws: placement.semantic_contract.laws.clone(),
+        limits: placement.limits.clone(),
+    };
+    let facts = semantic_work_facts(&kind).map_err(TransformationRefusal::SemanticFacts)?;
+    if placement.limits.max_active_instances == 0
+        || placement.limits.max_queue_items == 0
+        || placement.limits.max_queue_bytes == 0
+    {
+        return Err(TransformationRefusal::InvalidFiniteEnvelope);
+    }
+    Ok(TransformationEligibility {
+        kind_id: placement.kind_id.clone(),
+        kind_contract_revision: placement.kind_contract_revision.clone(),
+        implementation_id: placement.implementation_id.clone(),
+        facts,
+        back_has_host_calls: !placement.host_calls.is_empty(),
+        back_has_resources: !placement.resources.is_empty(),
+        back_has_authority: !placement.authority.is_empty(),
     })
 }
 
