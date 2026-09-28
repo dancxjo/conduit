@@ -353,7 +353,12 @@ fn append_gear_plan(
             placement.limits.max_queue_bytes
         ),
     );
-    crate::portable_resource_projection::append_resources(content, subject, placement);
+    crate::portable_resource_projection::append_resources(
+        content,
+        subject,
+        placement,
+        &plan.exact.fragments,
+    );
     crate::portable_vector_search_projection::append_vector_search_realization(
         content, subject, gear, placement,
     );
