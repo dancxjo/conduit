@@ -123,7 +123,7 @@ pub(super) fn write(
         observation(A::PreferAlternateMask, "preference selected the alternate sealed route under the same immutable Body Plan", Some(&alternate), initial_plan, Some(alternate_route)),
         observation(A::WithdrawSelectedRoute, "selected route was withdrawn without inventing a Show", None, initial_plan, None),
         observation(A::InspectUnavailableShow, "no current Show; retained WAV is stale artifact evidence only", None, initial_plan, None),
-        observation(A::AddPresentationHost, "replacement Face Host became available but the old Plan selected no route on it", None, initial_plan, None),
+        observation(A::AddFaceHost, "replacement Face Host became available but the old Plan selected no route on it", None, initial_plan, None),
         observation(A::AdmitReplacementPlan, "replacement Body Plan sealed the replacement Host routes", None, replacement_plan, None),
         observation(A::InspectReplannedShow, "replacement spoken route completed language, synthesis, artifact, and acknowledged Show Host Calls", Some(&replacement_alternate), replacement_plan, Some(replacement_alternate_route)),
         observation(A::DoffAlternateMask, "alternate Mask was doffed and its Show ceased being current", None, replacement_plan, None),

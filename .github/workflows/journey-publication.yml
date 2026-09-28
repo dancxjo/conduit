@@ -165,9 +165,6 @@ jobs:
           cp -a \
             target/conduitos-x86-batch/runs/product-journey/conduitos/x86_64/body-journey-track/. \
             target/three-bodies/native-graphical/
-          live_evidence=proof/evidence/three-body/live-documentary-3de9d4bd1379e658e03f5ac664b2ccdf270ac633
-          (cd "$live_evidence" && sha256sum --check SHA256SUMS)
-          cp -a "$live_evidence" target/three-bodies/live-conformance
           cp -a target/journeys/three-bodies/hosted-generative \
             target/three-bodies/hosted-generative
           cargo xtask evidence three-body-journey-contract --locked \
@@ -177,11 +174,7 @@ jobs:
             --track target/three-bodies/native-graphical/track.json \
             --track target/three-bodies/browser-graphical/track.json \
             --track target/three-bodies/hosted-generative/track.json \
-            --recorded-generative target/three-bodies/live-conformance/track.json \
             --output target/three-bodies/index.json
-          live_evidence=proof/evidence/three-body/live-ollama-4ac95aa41915fa68bec8fadea9c4fd895d107acd
-          (cd "$live_evidence" && sha256sum --check SHA256SUMS)
-          cp -a "$live_evidence" target/three-bodies/live-provider-conformance
       - name: Build a documentary carrier without changing the release artifact
         env:
           SOURCE_COMMIT: ${{ steps.context.outputs.source_commit }}

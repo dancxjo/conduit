@@ -171,7 +171,7 @@ impl MaskJourneyEmbodiment for BrowserJourney<'_> {
                     vec!["show/no-current".into()],
                 )
             }
-            MaskJourneyAction::AddPresentationHost => self.retain(
+            MaskJourneyAction::AddFaceHost => self.retain(
                 action,
                 format!(
                     "Host {} Boot {} offered replacement realization",

@@ -13,7 +13,7 @@ const STEPS = [
 ];
 const MASK_ACTION_IDS = [
   "mask.inspect-initial-show", "mask.wear-alternate", "mask.prefer-alternate",
-  "mask.withdraw-selected-route", "mask.inspect-unavailable-show", "mask.add-presentation-host",
+  "mask.withdraw-selected-route", "mask.inspect-unavailable-show", "mask.add-face-host",
   "mask.admit-replacement-plan", "mask.inspect-replanned-show", "mask.doff-alternate",
   "mask.inspect-restored-show",
 ];
