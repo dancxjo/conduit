@@ -60,7 +60,7 @@ function fixture({ timer = false, timerEffects = timer ? 1 : 0, timerDuration = 
     : timerEffects ? { pool_id: "browser/timer", class_id: "conduit.resource/timer-slot@1", units: 1 }
       : { pool_id: "browser/presentation", class_id: "conduit.resource/presentation-slot@1", units: 1 };
   const placements = Array.from({ length: timerEffects || 1 }, (_, index) => ({ placement_id: `placement-${index}`, gear_id: `gear-${index}`, resources: [resource] }));
-  const proposal = { schema: "conduit.patchbay/body-execution-proposal@1", wake: {
+  const proposal = { schema: "conduit.body/execution-proposal@1", wake: {
     wake_id: "wake", lifecycle: "AwaitingPlan", plans: [],
   }, plan: { plan_id: "body-plan", body_id: "body", forms: [{ plan: { fragments: [{
     host_id: "host", boot_id: "boot", offer_generation: 1, placements,

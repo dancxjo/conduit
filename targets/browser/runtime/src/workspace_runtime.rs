@@ -712,7 +712,7 @@ fn dispatch(request: Request) -> Result<Vec<u8>, Refusal> {
                     .propose(forms, &host_id, &boot_id)
                     .map_err(debug)?;
                 let bytes = encode(&serde_json::json!({
-                    "schema": "conduit.patchbay/body-execution-proposal@1",
+                    "schema": "conduit.body/execution-proposal@1",
                     "wake": realization.wake, "plan": realization.plan,
                     "body_evidence": candidate.evidence(),
                     "source": source,
