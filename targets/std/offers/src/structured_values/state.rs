@@ -1,7 +1,8 @@
 //! Explicit finite State offer; callers must install its implementation before advertising it.
 use conduit_core::{
     ArtifactId, CapabilityId, CapabilityOffer, ExecutionProfileId, ImplementationId,
-    ImplementationOffer, StructuredInfoRefusal, StructuredInfoType,
+    ImplementationOffer, StateLifetime, StateRetentionSupport, StructuredInfoRefusal,
+    StructuredInfoType,
 };
 
 pub const STATE_VALUE_STD_PROFILE: &str = "std/state-value-kernel-64@1";
@@ -26,7 +27,7 @@ pub fn state_value_std_offer(
     contract.limits.max_queue_bytes = STATE_VALUE_STD_MAXIMUM_BYTES;
     let value_kind = contract.outputs[0].value_kind.as_str();
     let semantic_contract = contract.semantic_contract();
-    Ok(conduit_core::capability_offer_from_parts! {
+    conduit_core::capability_offer_from_parts! {
         capability_id: CapabilityId::from(format!("std-state-value-{value_kind}")),
         kind_id: contract.kind_id,
         kind_contract_revision: contract.kind_contract_revision,
@@ -47,7 +48,11 @@ pub fn state_value_std_offer(
         resource_requirements: Vec::new(),
         authority_requirements: Vec::new(),
         limits: contract.limits,
+    }
+    .with_state_retention(StateRetentionSupport {
+        maximum_lifetime: StateLifetime::Play,
     })
+    .map_err(|_| StructuredInfoRefusal::WrongType)
 }
 
 #[cfg(test)]
@@ -76,5 +81,11 @@ mod tests {
         assert!(offer.limits.max_queue_bytes < contract.limits.max_queue_bytes);
         assert!(offer.host_calls.is_empty());
         assert!(offer.authority_requirements.is_empty());
+        assert_eq!(
+            offer.state_retention,
+            Some(StateRetentionSupport {
+                maximum_lifetime: StateLifetime::Play,
+            })
+        );
     }
 }

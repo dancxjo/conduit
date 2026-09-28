@@ -17,6 +17,7 @@ fn fixture(
     allow_retained_current: bool,
     canonical_keep: bool,
     optional_keep: bool,
+    keep_duration: &str,
 ) -> (
     conduit_form::CheckedForm,
     HostAdvertisement,
@@ -166,11 +167,11 @@ fn fixture(
         })
         .unwrap();
     let cell = if optional_keep {
-        "cell: keep Boolean?(true) for this play"
+        format!("cell: keep Boolean?(true) {keep_duration}")
     } else if canonical_keep {
-        "cell: keep Boolean(true) for this play"
+        format!("cell: keep Boolean(true) {keep_duration}")
     } else {
-        "cell: state/value(initial = true)"
+        "cell: state/value(initial = true)".into()
     };
     let form = conduit_form::parse_with_startup(
         &format!(
@@ -261,7 +262,7 @@ fn run(
 
 #[test]
 fn typed_state_runs_in_the_installed_kernel_and_unsealed_state_refuses() {
-    let (form, advertisement, next) = fixture(false, false, false);
+    let (form, advertisement, next) = fixture(false, false, false, "for this play");
     let (ordinary, sealed) = plans(&form, &advertisement, 60);
 
     assert!(run(&advertisement, &ordinary.fragments[0], None)
@@ -283,7 +284,7 @@ fn typed_state_runs_in_the_installed_kernel_and_unsealed_state_refuses() {
 
 #[test]
 fn initialized_keep_plans_and_runs_as_installed_typed_state() {
-    let (form, advertisement, next) = fixture(false, true, false);
+    let (form, advertisement, next) = fixture(false, true, false, "for this play");
     let state_gear = form
         .gears
         .iter()
@@ -335,8 +336,77 @@ fn initialized_keep_plans_and_runs_as_installed_typed_state() {
 }
 
 #[test]
+fn keep_duration_requires_exact_back_support_before_planning() {
+    let plan = |duration: &str, maximum_lifetime: StateLifetime| {
+        let (form, mut advertisement, _) = fixture(false, true, false, duration);
+        let offer = advertisement
+            .capabilities
+            .iter_mut()
+            .find(|offer| offer.kind_id.as_str() == STATE_VALUE_KIND)
+            .unwrap();
+        offer.state_retention = Some(StateRetentionSupport { maximum_lifetime });
+        let hosts = [advertisement];
+        let placements = conduit_planner::default_placements(&form, &hosts).unwrap();
+        let result = conduit_planner::plan_with_connection_limits(
+            &form,
+            &hosts,
+            &placements,
+            &[BaseImplementationId::from(LOCAL_BASE_IMPLEMENTATION_ID)],
+            1,
+            100,
+        );
+        (form, hosts, result)
+    };
+
+    for duration in ["for this step", "for this play"] {
+        let (_, _, result) = plan(duration, StateLifetime::Play);
+        assert!(result.is_ok(), "{duration} must fit the std Back");
+    }
+    for duration in [
+        "for this wake",
+        "for this boot",
+        "for this body",
+        "for life",
+    ] {
+        let (_, _, result) = plan(duration, StateLifetime::Play);
+        assert!(matches!(
+            result,
+            Err(conduit_planner::PlannerError::StateRetentionUnsupported(_))
+        ));
+    }
+
+    let (body_form, _, body_refusal) = plan("for this body", StateLifetime::Play);
+    let (life_form, _, life_refusal) = plan("for life", StateLifetime::Play);
+    assert_eq!(body_form.checked_form_id, life_form.checked_form_id);
+    assert_eq!(body_refusal, life_refusal);
+
+    let (form, hosts, result) = plan("for this body", StateLifetime::Body);
+    let admitted = result.unwrap();
+    let [state] = admitted.fragments[0].states.as_slice() else {
+        panic!("Body-lived keep must seal one State boundary")
+    };
+    assert_eq!(state.lifetime, StateLifetime::Body);
+    let selected = admitted.fragments[0]
+        .placements
+        .iter()
+        .find(|placement| placement.gear_id == state.gear_id)
+        .unwrap();
+    let offered = hosts[0]
+        .capabilities
+        .iter()
+        .find(|offer| offer.capability_id == selected.capability_id)
+        .unwrap();
+    assert_eq!(
+        selected.implementation_id,
+        offered.implementation.implementation_id
+    );
+    assert_eq!(selected.artifact_id, offered.implementation.artifact_id);
+    assert_eq!(admitted.checked_form_id, form.checked_form_id);
+}
+
+#[test]
 fn optional_keep_plans_runs_and_retains_canonical_some_value() {
-    let (form, advertisement, _next) = fixture(false, true, true);
+    let (form, advertisement, _next) = fixture(false, true, true, "for this play");
     let state_gear = form
         .gears
         .iter()
@@ -383,7 +453,7 @@ fn optional_keep_continuity_preserves_exact_variant_and_generation() {
     use conduit_planner::state_delay::continuity::{
         seal_state_continuity, StateContinuityApproval,
     };
-    let (form, source_host, _next) = fixture(false, true, true);
+    let (form, source_host, _next) = fixture(false, true, true, "for this play");
     let plan_for = |advertisement: &HostAdvertisement| {
         let hosts = [advertisement.clone()];
         let placements = conduit_planner::default_placements(&form, &hosts).unwrap();
@@ -438,7 +508,7 @@ fn public_host_replaces_play_with_owned_state_and_fresh_boot_without_semantic_re
     use conduit_planner::state_delay::continuity::{
         seal_state_continuity, StateContinuityApproval,
     };
-    let (form, source_host, next) = fixture(true, false, false);
+    let (form, source_host, next) = fixture(true, false, false, "for this play");
     let (_, source) = plans(&form, &source_host, 60);
     let first = run(&source_host, &source.fragments[0], None).unwrap();
     let old_play = first.report.kernel.as_ref().unwrap().active_play_id.clone();

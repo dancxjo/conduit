@@ -43,7 +43,7 @@ pub enum StateContinuation {
 }
 
 /// Semantic ownership horizon of one explicit `keep` boundary.
-#[derive(Debug, Copy, Clone, Default, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Copy, Clone, Default, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]
 pub enum StateLifetime {
     #[default]
     Step,
@@ -51,6 +51,20 @@ pub enum StateLifetime {
     Wake,
     Boot,
     Body,
+}
+
+/// Stable implementation truth for the longest semantic keep duration a Back
+/// can satisfy. This is not authored meaning and does not imply a storage
+/// mechanism; planning compares it with the requested [`StateLifetime`].
+#[derive(Debug, Copy, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct StateRetentionSupport {
+    pub maximum_lifetime: StateLifetime,
+}
+
+impl StateRetentionSupport {
+    pub fn supports(self, required: StateLifetime) -> bool {
+        required <= self.maximum_lifetime
+    }
 }
 
 /// Immutable Plan truth for one explicit delay boundary.

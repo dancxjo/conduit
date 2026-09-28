@@ -111,6 +111,7 @@ pub enum PlannerError {
     InvalidPlacementSyntax(String),
     InvalidSharedPool(String),
     InvalidStateContract(String),
+    StateRetentionUnsupported(String),
 }
 
 impl core::fmt::Display for PlannerError {
@@ -218,6 +219,9 @@ impl core::fmt::Display for PlannerError {
             Self::InvalidPlacementSyntax(value) => write!(f, "invalid placement syntax: {value}"),
             Self::InvalidSharedPool(value) => write!(f, "invalid shared pool: {value}"),
             Self::InvalidStateContract(value) => write!(f, "invalid State contract: {value}"),
+            Self::StateRetentionUnsupported(value) => {
+                write!(f, "State retention unsupported: {value}")
+            }
         }
     }
 }
