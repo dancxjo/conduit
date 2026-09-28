@@ -36,7 +36,7 @@ fn local_and_distributed_causal_chains_are_exact_not_temporal_guesses() {
 }
 
 #[test]
-fn corrections_append_and_capacity_is_finite() {
+fn oldest_edges_compact_deterministically_and_make_truncation_explicit() {
     let mut evidence = CausalEvidence::<2>::default();
     evidence
         .record(CausalEdge {
@@ -52,14 +52,98 @@ fn corrections_append_and_capacity_is_finite() {
             effect: id(3, 1, 1),
         })
         .unwrap();
-    assert_eq!(
-        evidence.record(CausalEdge {
+    evidence
+        .record(CausalEdge {
             cause: id(3, 1, 1),
             relationship: CausalRelationship::Supersedes,
-            effect: id(4, 1, 1)
-        }),
-        Err(CausalEvidenceRefusal::CapacityExhausted)
+            effect: id(4, 1, 1),
+        })
+        .unwrap();
+    assert!(evidence.history_was_truncated());
+    let trace = evidence.trace(id(4, 1, 1)).unwrap();
+    assert_eq!(
+        trace.completeness(),
+        CausalTraceCompleteness::IncompleteHistory
     );
+    assert_eq!(trace.edges().copied().collect::<Vec<_>>().len(), 2);
+    assert_eq!(
+        evidence.cause_of(id(2, 1, 1), CausalRelationship::DerivedFrom),
+        Err(CausalEvidenceRefusal::Unknown)
+    );
+}
+
+#[test]
+fn cycles_and_excessive_direct_fan_in_refuse_before_mutation() {
+    let mut evidence = CausalEvidence::<16>::default();
+    evidence
+        .record(CausalEdge {
+            effect: id(3, 1, 1),
+            relationship: CausalRelationship::CausedBy,
+            cause: id(2, 1, 1),
+        })
+        .unwrap();
+    evidence
+        .record(CausalEdge {
+            effect: id(2, 1, 1),
+            relationship: CausalRelationship::CausedBy,
+            cause: id(1, 1, 1),
+        })
+        .unwrap();
+    assert_eq!(
+        evidence.record(CausalEdge {
+            effect: id(1, 1, 1),
+            relationship: CausalRelationship::CausedBy,
+            cause: id(3, 1, 1),
+        }),
+        Err(CausalEvidenceRefusal::Cycle)
+    );
+
+    let effect = id(20, 1, 1);
+    for predecessor in 0..MAXIMUM_DIRECT_CAUSAL_PREDECESSORS {
+        evidence
+            .record(CausalEdge {
+                effect,
+                relationship: CausalRelationship::CausedBy,
+                cause: id(30 + predecessor as u64, 1, 1),
+            })
+            .unwrap();
+    }
+    assert_eq!(
+        evidence.record(CausalEdge {
+            effect,
+            relationship: CausalRelationship::CausedBy,
+            cause: id(99, 1, 1),
+        }),
+        Err(CausalEvidenceRefusal::TooManyDirectPredecessors)
+    );
+}
+
+#[test]
+fn trace_preserves_branching_and_merging_without_timestamp_inference() {
+    let mut evidence = CausalEvidence::<8>::default();
+    for edge in [
+        CausalEdge {
+            effect: id(4, 2, 2),
+            relationship: CausalRelationship::TerminatedBecause,
+            cause: id(3, 1, 1),
+        },
+        CausalEdge {
+            effect: id(3, 1, 1),
+            relationship: CausalRelationship::CausedBy,
+            cause: id(1, 1, 1),
+        },
+        CausalEdge {
+            effect: id(3, 1, 1),
+            relationship: CausalRelationship::CausedBy,
+            cause: id(2, 1, 1),
+        },
+    ] {
+        evidence.record(edge).unwrap();
+    }
+    let trace = evidence.trace(id(4, 2, 2)).unwrap();
+    assert_eq!(trace.terminal(), id(4, 2, 2));
+    assert_eq!(trace.completeness(), CausalTraceCompleteness::Complete);
+    assert_eq!(trace.edges().count(), 3);
 }
 
 #[test]
