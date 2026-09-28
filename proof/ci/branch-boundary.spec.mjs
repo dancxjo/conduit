@@ -38,6 +38,10 @@ test("x86 gates expensive checks and the release product pipeline without rebuil
   const source = readFileSync(".github/workflows/check.yml", "utf8");
   const jobs = Object.fromEntries([...source.matchAll(/^  ([\w-]+):\n([\s\S]*?)(?=^  [\w-]+:\n|$(?![\s\S]))/gm)]
     .map(([, name, body]) => [name, body]));
+  assert.equal(jobs["browser-tools"], undefined,
+    "permanently disabled browser-tools job must not return");
+  assert.equal(jobs["browser-host"], undefined,
+    "permanently disabled browser-host job must not return");
   const prerequisites = name => (jobs[name].match(/^    needs: (.+)$/m)?.[1] ?? "")
     .replace(/[\[\]]/g, "").split(/,\s*/).filter(Boolean);
   const visit = (name, path = []) => {
@@ -48,8 +52,8 @@ test("x86 gates expensive checks and the release product pipeline without rebuil
   assert.deepEqual(prerequisites("conduitos-x86"),
     ["classify", "conduitos-limine", "conduitos-tools", "conduitos-proof-image"]);
   assert.deepEqual(prerequisites("workspace-check"), ["classify"]);
-  for (const name of ["esp32-firmware", "browser-host",
-    "conduitos-architecture", "conduitos-aarch64-product"]) {
+  for (const name of ["esp32-firmware", "conduitos-architecture",
+    "conduitos-aarch64-product"]) {
     assert.ok(prerequisites(name).includes("conduitos-x86"), name);
     const guard = jobs[name].match(/\(needs\.conduitos-x86\.result == 'success' \|\| !inputs\.full_suite && needs\.conduitos-x86\.result == 'skipped'\)/)?.[0];
     assert.ok(guard, `${name} must refuse failed/cancelled x86 even with always()`);
