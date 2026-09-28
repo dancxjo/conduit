@@ -93,7 +93,7 @@ pub enum Command {
     Pete(PeteArgs),
     /// Run interactive demonstrations.
     Demo(DemoArgs),
-    /// Generate the bounded Patchbay GNU Unifont subset.
+    /// Generate the shared bounded GNU Unifont subset.
     UnifontSubset(UnifontSubsetArgs),
     /// Generate the bounded native masks for canonical palette icons.
     PaletteIcons(PaletteIconsArgs),

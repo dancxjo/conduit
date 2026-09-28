@@ -132,7 +132,7 @@ fn generate_unifont_subset() {
     use std::{env, fs, path::PathBuf};
 
     const SOURCE: &str =
-        "../../products/patchbay/native/assets/unifont/unifont-17.0.04-patchbay.hex";
+        "../../mechanisms/implementations/bounded-unifont/unifont-17.0.04-bounded.hex";
     println!("cargo:rerun-if-changed={SOURCE}");
     let source = fs::read_to_string(SOURCE).expect("read pinned GNU Unifont subset");
     let mut generated = String::from("static GLYPHS: &[GlyphRecord] = &[\n");

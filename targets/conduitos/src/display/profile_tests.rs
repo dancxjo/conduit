@@ -80,7 +80,7 @@ fn text_tokens_meet_normal_text_contrast() {
 #[test]
 fn the_entire_admitted_corpus_never_uses_missing_glyph_replacement() {
     let corpus = include_str!(
-        "../../../../products/patchbay/native/assets/unifont/unifont-17.0.04-patchbay.hex"
+        "../../../../mechanisms/implementations/bounded-unifont/unifont-17.0.04-bounded.hex"
     );
     for line in corpus.lines() {
         let cp = u32::from_str_radix(line.split_once(':').unwrap().0, 16).unwrap();
