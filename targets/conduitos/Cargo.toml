@@ -220,7 +220,7 @@ conduit-observatory = { path = "../../architecture/observatory" }
 conduit-planner = { path = "../../architecture/planner" }
 conduit-protected-line = { path = "../../architecture/protected-line", default-features = false, features = ["noise-session"] }
 conduit-presentation = { path = "../../semantics/presentation" }
-conduit-tour-model = { path = "../../products/tour/model" }
+conduit-tour-model = { path = "../../forms/tour" }
 embedded-io = { version = "0.7.1", optional = true, default-features = false }
 embedded-tls = { version = "0.19.0", optional = true, default-features = false, features = ["rustpki"] }
 embedded-websocket = { version = "0.9.5", optional = true, default-features = false }
