@@ -11,7 +11,12 @@ use conduit_kernel::{
 
 pub use crate::host_execution::continuity::StateContinuationRunFailure;
 mod continuity;
+mod durable;
 pub use continuity::{RetainedTypedState, StateContinuityFailure};
+pub use durable::{
+    DurableStateBack, DurableStateBinding, DurableStateHost, DurableStateRefusal,
+    RecoveryDisposition,
+};
 
 /// Finished ordinary execution plus its separately owned retained State cells.
 /// The report's disposition remains authoritative; retention is not completion.
