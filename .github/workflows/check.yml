@@ -468,7 +468,7 @@ jobs:
 
       - name: Emit machine-readable proof contract
         if: matrix.shard == 'lint'
-        run: cargo xtask --json proofs
+        run: cargo xtask --json prove --list
 
       - name: Run ${{ matrix.shard }} workspace check shard
         env:

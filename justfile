@@ -67,9 +67,6 @@ prove proof *args:
 demo demonstration *args:
     cargo xtask demo {{demonstration}} {{args}}
 
-proofs *args:
-    cargo xtask proofs {{args}}
-
 conduitos *args:
     cargo xtask conduitos {{args}}
 
