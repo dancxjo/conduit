@@ -112,6 +112,48 @@ fn optional_ports_resolve_to_the_canonical_finite_variant_profile() {
 }
 
 #[test]
+fn finite_value_bounds_survive_in_the_exact_checked_fore() {
+    let default =
+        check("form bounded (\n title: Text\n >> input: Text\n output: Bytes >>\n) {\n}\n");
+    let explicit = check(
+        "form bounded (\n title: Text <= 256B\n >> input: Text <= 256B\n output: Bytes <= 64KiB >>\n) {\n}\n",
+    );
+    let narrower = check(
+        "form bounded (\n title: Text <= 128B\n >> input: Text <= 128B\n output: Bytes <= 4KiB >>\n) {\n}\n",
+    );
+    let default_front = default.forms[0].checked_front();
+    let explicit_front = explicit.forms[0].checked_front();
+    let narrower_front = narrower.forms[0].checked_front();
+    assert_eq!(default_front, explicit_front);
+    assert_eq!(
+        conduit_core::compute_checked_front_fingerprint(&default_front),
+        conduit_core::compute_checked_front_fingerprint(&explicit_front)
+    );
+    assert_ne!(default_front, narrower_front);
+    assert_ne!(
+        conduit_core::compute_checked_front_fingerprint(&default_front),
+        conduit_core::compute_checked_front_fingerprint(&narrower_front)
+    );
+    assert_eq!(
+        default_front.value_bounds(),
+        &[
+            conduit_core::FrontValueBound {
+                location: conduit_core::FrontValueLocation::Startup("title".into()),
+                maximum_bytes: 256,
+            },
+            conduit_core::FrontValueBound {
+                location: conduit_core::FrontValueLocation::Input(conduit_core::port_id("input")),
+                maximum_bytes: 256,
+            },
+            conduit_core::FrontValueBound {
+                location: conduit_core::FrontValueLocation::Output(conduit_core::port_id("output")),
+                maximum_bytes: 65_536,
+            },
+        ]
+    );
+}
+
+#[test]
 fn comment_only_edits_change_source_identity_but_not_checked_meaning() {
     let plain = check("form a {\n clock: time/every(1s)\n clock >> sink\n}\n");
     let commented = check(

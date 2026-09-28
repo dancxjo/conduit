@@ -1,13 +1,17 @@
 //! Exact typed directional port numbering before Play.
 use super::{as_u16, LoweredPort, LoweringError};
 use alloc::{collections::BTreeSet, vec::Vec};
-use conduit_core::{PlacementId, PortDescriptor, PortDirection, PortId as PlanPortId};
+use conduit_core::{
+    FrontValueBound, FrontValueLocation, PlacementId, PortDescriptor, PortDirection,
+    PortId as PlanPortId,
+};
 use conduit_kernel::{NodeId, PortId};
 pub(super) fn lower_ports(
     node: NodeId,
     placement_id: &PlacementId,
     ports: &[PortDescriptor],
     expected_direction: PortDirection,
+    value_bounds: &[FrontValueBound],
 ) -> Result<Vec<LoweredPort>, LoweringError> {
     let mut ids = BTreeSet::new();
     ports
@@ -34,6 +38,20 @@ pub(super) fn lower_ports(
                 direction: descriptor.direction,
                 temporal: descriptor.temporal,
                 abnormal_kind: descriptor.abnormal_kind.clone(),
+                maximum_value_bytes: value_bounds
+                    .iter()
+                    .find(|bound| {
+                        bound.location
+                            == match expected_direction {
+                                PortDirection::Input => {
+                                    FrontValueLocation::Input(descriptor.port_id.clone())
+                                }
+                                PortDirection::Output => {
+                                    FrontValueLocation::Output(descriptor.port_id.clone())
+                                }
+                            }
+                    })
+                    .map(|bound| bound.maximum_bytes),
             })
         })
         .collect()

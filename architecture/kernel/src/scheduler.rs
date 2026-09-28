@@ -100,6 +100,10 @@ pub struct CordSpec {
     pub slot_start: u16,
     pub item_capacity: u16,
     pub byte_capacity: u32,
+    /// Largest single canonical payload admitted on this Cord. This is the
+    /// semantic value envelope, independent of the Cord's aggregate queue
+    /// storage budget.
+    pub maximum_value_bytes: u32,
     pub pressure_policy: AssignedPressurePolicy,
     pub track: AssignedConnectionTrack,
 }
@@ -126,6 +130,7 @@ impl CordSpec {
             slot_start: capacity.slot_start,
             item_capacity: capacity.item_capacity,
             byte_capacity: capacity.byte_capacity,
+            maximum_value_bytes: capacity.byte_capacity,
             pressure_policy: capacity.pressure_policy,
             track: AssignedConnectionTrack::Payload,
         }
@@ -133,6 +138,11 @@ impl CordSpec {
 
     pub const fn with_track(mut self, track: AssignedConnectionTrack) -> Self {
         self.track = track;
+        self
+    }
+
+    pub const fn with_maximum_value_bytes(mut self, maximum_value_bytes: u32) -> Self {
+        self.maximum_value_bytes = maximum_value_bytes;
         self
     }
 
@@ -149,6 +159,7 @@ impl CordSpec {
             slot_start: capacity.slot_start,
             item_capacity: capacity.item_capacity,
             byte_capacity: capacity.byte_capacity,
+            maximum_value_bytes: capacity.byte_capacity,
             pressure_policy: capacity.pressure_policy,
             track: AssignedConnectionTrack::Payload,
         }
@@ -167,6 +178,7 @@ impl CordSpec {
             slot_start: capacity.slot_start,
             item_capacity: capacity.item_capacity,
             byte_capacity: capacity.byte_capacity,
+            maximum_value_bytes: capacity.byte_capacity,
             pressure_policy: capacity.pressure_policy,
             track: AssignedConnectionTrack::Payload,
         }
@@ -780,6 +792,7 @@ pub enum SchedulerError {
     OutputBlocked,
     QueueCapacityExceeded,
     QueueByteCapacityExceeded,
+    SemanticValueBoundExceeded,
     StepFuelExceeded,
     FalseProgress,
     DecisionLimitExceeded,
@@ -2943,6 +2956,9 @@ where
                 if state.len >= spec.item_capacity {
                     return Err(SchedulerError::QueueCapacityExceeded);
                 }
+                if value.byte_len > spec.maximum_value_bytes {
+                    return Err(SchedulerError::SemanticValueBoundExceeded);
+                }
                 if value.byte_len > spec.byte_capacity.saturating_sub(state.queued_bytes) {
                     return Err(SchedulerError::QueueByteCapacityExceeded);
                 }
@@ -3465,6 +3481,8 @@ fn validate_plan<
         if usize::from(cord.cord.0) != cord_index
             || cord.item_capacity == 0
             || cord.byte_capacity == 0
+            || cord.maximum_value_bytes == 0
+            || cord.maximum_value_bytes > cord.byte_capacity
         {
             return Err(SchedulerError::InvalidPlan);
         }

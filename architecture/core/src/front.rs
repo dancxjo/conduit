@@ -3,6 +3,22 @@ use alloc::string::String;
 use alloc::vec::Vec;
 use serde::{Deserialize, Serialize};
 
+/// Exact location of a finite variable-size value in one callable Fore.
+#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]
+pub enum FrontValueLocation {
+    Startup(String),
+    Input(PortId),
+    Output(PortId),
+}
+
+/// Semantic value envelope. This constrains info; it does not promise
+/// allocation, retention, residence, or persistence.
+#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]
+pub struct FrontValueBound {
+    pub location: FrontValueLocation,
+    pub maximum_bytes: u64,
+}
+
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]
 pub struct FrontStartupParameter {
     pub name: String,
@@ -19,6 +35,7 @@ pub struct CheckedFront {
     shorthand: Option<(PortId, PortId)>,
     #[serde(default)]
     resource_ports: Vec<ResourcePortContract>,
+    value_bounds: Vec<FrontValueBound>,
 }
 
 impl CheckedFront {
@@ -36,12 +53,19 @@ impl CheckedFront {
             outputs,
             shorthand,
             resource_ports: Vec::new(),
+            value_bounds: Vec::new(),
         }
     }
 
     pub fn with_resource_ports(mut self, mut resource_ports: Vec<ResourcePortContract>) -> Self {
         resource_ports.sort_by(|left, right| left.port_id.cmp(&right.port_id));
         self.resource_ports = resource_ports;
+        self
+    }
+
+    pub fn with_value_bounds(mut self, mut value_bounds: Vec<FrontValueBound>) -> Self {
+        value_bounds.sort();
+        self.value_bounds = value_bounds;
         self
     }
 
@@ -66,6 +90,10 @@ impl CheckedFront {
     pub fn resource_ports(&self) -> &[ResourcePortContract] {
         &self.resource_ports
     }
+
+    pub fn value_bounds(&self) -> &[FrontValueBound] {
+        &self.value_bounds
+    }
 }
 
 impl CapabilityOffer {
@@ -83,5 +111,6 @@ impl CapabilityOffer {
             self.outputs.clone(),
             shorthand,
         )
+        .with_value_bounds(self.semantic_contract.value_bounds().to_vec())
     }
 }
