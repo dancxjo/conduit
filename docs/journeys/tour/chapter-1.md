@@ -1,5 +1,6 @@
 ---
 page: form-basics
+journey: conduit-tour
 route: one-program-many-computers
 companion: form-laboratory
 stage: canonical-form:meet-one-gear|run

@@ -1,5 +1,6 @@
 ---
 page: birth-and-spores
+journey: conduit-tour
 route: birth-spores-and-the-creche
 companion: creche-handoff
 ---

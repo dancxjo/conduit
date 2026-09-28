@@ -50,10 +50,10 @@ chapter-4.md
 chapter-5.md
 chapter-6.md
 chapter-8.md'
-source_chapters=$(find products/tour/content -maxdepth 1 -type f -name 'chapter-*.md' -printf '%f\n' | LC_ALL=C sort)
+source_chapters=$(find docs/journeys/tour -maxdepth 1 -type f -name 'chapter-*.md' -printf '%f\n' | LC_ALL=C sort)
 test "$source_chapters" = "$chapters"
 printf '%s\n' "$chapters" | while IFS= read -r chapter; do
-    cp "products/tour/content/$chapter" "$destination/$chapter"
+    cp "docs/journeys/tour/$chapter" "$destination/$chapter"
 done
 
 page_routes='one-program-many-computers
