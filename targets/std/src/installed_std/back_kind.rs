@@ -9,6 +9,7 @@ use super::bool_presentation::BoolPresentationBack;
 use super::calendar_proposal_back::CalendarProposalBack;
 use super::calendar_provider_back::CalendarProviderBack;
 use super::count_backs::{CountPresentationBack, StateCountBack};
+use super::data_text_back::DataTextBack;
 use super::distance_frequency_back::DistanceFrequencyBack;
 use super::final_normalized_pattern_back::FinalNormalizedPatternBack;
 use super::flow_first_back::FlowFirstBack;
@@ -145,6 +146,8 @@ pub(super) enum InstalledBack {
     TimedPattern(TimedPatternBack),
     TimedButtonAttempt(TimedButtonAttemptBack),
     TemplateStorage(TemplateStorageBack),
+    DataSaveText(DataTextBack),
+    DataLoadText(DataTextBack),
     LogicCompareScalar(LogicCompareScalarBack),
     LogicNot(LogicNotBack),
     LogicSelectScalar(LogicSelectScalarBack),
@@ -246,6 +249,12 @@ pub(super) enum InstalledBack {
     TestToneTerminalRecovery(super::test_audio_tone::ToneTerminalRecoveryBack),
     #[cfg(test)]
     TestNormalCloseSink(super::test_audio_tone::NormalCloseSinkBack),
+    #[cfg(test)]
+    TestDataTerminalRecovery(super::test_data_terminal_recovery::DataTerminalRecoveryBack),
+    #[cfg(test)]
+    TestDataTextSink(super::test_data_terminal_recovery::DataTextSinkBack),
+    #[cfg(test)]
+    TestDataTextSource(super::test_data_terminal_recovery::DataTextSourceBack),
     #[cfg(test)]
     TestGateScript(super::test_gate::TestGateScriptBack),
     #[cfg(test)]

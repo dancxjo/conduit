@@ -88,9 +88,12 @@ fn encoded_view_validates_without_owning_reference_identities() {
     let resource = reference("content/image-rgba8@1", 16_384, Some(4_096));
     let encoded = resource.encode().unwrap();
     let view = BoundedResourceRef::validate_encoded(&encoded).unwrap();
+    assert_eq!(view.identity, resource.identity);
+    assert_eq!(view.version, resource.lifetime.version);
     assert_eq!(view.content_profile, resource.content_profile.as_str());
     assert_eq!(view.access_class, resource.access_class.as_str());
     assert_eq!(view.extent, resource.extent);
+    assert_eq!(view.has_expiry, resource.lifetime.expires_at.is_some());
 
     let mut malformed = encoded.clone();
     malformed.push(0);
@@ -104,6 +107,26 @@ fn encoded_view_validates_without_owning_reference_identities() {
         BoundedResourceRef::validate_encoded(&zero_identity),
         Err(ResourceReferenceRefusal::ZeroSemanticIdentity)
     );
+}
+
+#[test]
+fn prepared_reference_encoding_never_grows_caller_storage() {
+    let resource = reference("content/image-rgba8@1", 16_384, Some(4_096));
+    let required = resource.encoded_len().unwrap();
+    let mut encoded = Vec::with_capacity(required);
+    let capacity = encoded.capacity();
+    resource.encode_into(&mut encoded).unwrap();
+
+    assert_eq!(encoded.capacity(), capacity);
+    assert_eq!(encoded.len(), required);
+    assert_eq!(BoundedResourceRef::decode(&encoded), Ok(resource.clone()));
+
+    let mut insufficient = Vec::with_capacity(required - 1);
+    assert_eq!(
+        resource.encode_into(&mut insufficient),
+        Err(ResourceReferenceRefusal::InsufficientEncodingCapacity)
+    );
+    assert!(insufficient.is_empty());
 }
 
 #[test]

@@ -2,6 +2,8 @@
 
 mod flow_state;
 pub use flow_state::*;
+mod data_text;
+pub use data_text::*;
 mod quantity_mapping;
 pub use quantity_mapping::*;
 mod quantity_info;

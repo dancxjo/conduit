@@ -17,6 +17,7 @@ use crate::{
 
 pub const DATA_TEXT_CONTRACT_REVISION: &str = "conduit.data/text-generation@2";
 pub const MAXIMUM_DATA_TEXT_BYTES: u32 = 4 * 1024;
+pub const MAXIMUM_DATA_TEXT_ACTIVE_INSTANCES: u16 = 16;
 
 pub fn install_data_text_catalogs(
     startup: &mut StartupCatalog,
@@ -139,7 +140,7 @@ fn contract(projection: KindProjection) -> Kind {
         configuration: projection.configuration,
         semantic_laws: vec![KindSemanticLaw::ValueContracts(value_contracts)],
         limits: CapabilityLimits {
-            max_active_instances: 1,
+            max_active_instances: MAXIMUM_DATA_TEXT_ACTIVE_INSTANCES,
             max_queue_items: 1,
             max_queue_bytes: MAXIMUM_DATA_TEXT_BYTES,
         },
