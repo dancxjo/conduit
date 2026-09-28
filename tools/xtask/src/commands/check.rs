@@ -35,7 +35,6 @@ pub enum CheckSuite {
     WorkspacePortable,
     WorkspacePico,
     Browser,
-    BrowserHost,
     Sim,
     KernelTakeover,
     PlanningS2,
@@ -89,9 +88,7 @@ pub fn run(args: CheckArgs, opts: &GlobalOpts) -> Result<(), StepError> {
         }
         CheckSuite::WorkspacePortable => run_workspace_shard(WorkspaceShard::Portable, &root, opts),
         CheckSuite::WorkspacePico => run_workspace_shard(WorkspaceShard::Pico, &root, opts),
-        CheckSuite::Browser | CheckSuite::BrowserHost => {
-            run_suite(BROWSER_CHECK_STEPS, &root, opts)
-        }
+        CheckSuite::Browser => run_suite(BROWSER_CHECK_STEPS, &root, opts),
         CheckSuite::Sim => run_suite(SIM_READINESS_STEPS, &root, opts),
         CheckSuite::KernelTakeover => run_suite(KERNEL_TAKEOVER_STEPS, &root, opts),
         CheckSuite::PlanningS2 => run_suite(PLANNING_S2_STEPS, &root, opts),

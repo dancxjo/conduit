@@ -132,7 +132,7 @@ check-form-s3:
     cargo xtask check form-s3
 
 check-browser-s4:
-    cargo xtask check browser-host
+    cargo xtask check browser
 
 check-body-readiness:
     cargo xtask check workspace-test-foundation

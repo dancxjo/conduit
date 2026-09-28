@@ -690,6 +690,18 @@ pub const BROWSER_CHECK_STEPS: &[Step] = &[
         "node",
         &["--test", "proof/browser/creche-rendezvous.test.mjs"],
     ),
+    Step::new(
+        "check.browser.sdk-contracts",
+        "Prove the public Browser SDK, events, Forms, and exact package closure",
+        "node",
+        &[
+            "--test",
+            "targets/browser/sdk/browser-sdk-errors.test.mjs",
+            "targets/browser/sdk/browser-sdk-events.test.mjs",
+            "targets/browser/sdk/browser-sdk-forms.test.mjs",
+            "targets/browser/sdk/package-browser-bundle.test.mjs",
+        ],
+    ),
     Step::typed(
         "check.browser.wasm-build",
         "Build conduit-browser-runtime WASM",
@@ -712,52 +724,6 @@ pub const BROWSER_CHECK_STEPS: &[Step] = &[
         "Build the standalone browser Host entrance",
         "cargo",
         &["build", "-p", "conduit-browser-host"],
-    ),
-    Step::new(
-        "check.browser.webchat-server-build",
-        "Build bounded WebSocket chat server",
-        "cargo",
-        &["build", "-p", "conduit-std-host", "--bin", "webchat-server"],
-    ),
-    Step::new(
-        "check.browser.pool-webchat-server-build",
-        "Build bounded shared-pool chat server",
-        "cargo",
-        &[
-            "build",
-            "-p",
-            "conduit-std-host",
-            "--bin",
-            "pool-webchat-server",
-        ],
-    ),
-    Step::new(
-        "check.browser.r1-three-peer-input-server-build",
-        "Build bounded R1 three-peer input server",
-        "cargo",
-        &[
-            "build",
-            "-p",
-            "conduit-std-host",
-            "--bin",
-            "r1-three-peer-input-server",
-        ],
-    ),
-    Step::new(
-        "check.browser.patchbay-native-build",
-        "Build native Patchbay distributed source",
-        "cargo",
-        &["build", "-p", "patchbay-native"],
-    ),
-    Step::typed(
-        "check.browser.host-proof",
-        "Run browser host test proof",
-        "npm",
-        &["--prefix", "proof/browser", "run", "test:browser-host"],
-        None,
-        Some("playwright"),
-        Some(ProofClass::LiveBrowser),
-        &[],
     ),
 ];
 

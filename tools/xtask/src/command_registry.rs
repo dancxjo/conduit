@@ -31,11 +31,6 @@ const STD_ALIASES: &[CommandAlias] = &[CommandAlias {
     spelling: &["demo", "std"],
     deprecated: true,
 }];
-const BROWSER_CHECK_ALIASES: &[CommandAlias] = &[CommandAlias {
-    spelling: &["check", "browser"],
-    deprecated: true,
-}];
-
 pub const REPOSITORY_COMMANDS: &[RepositoryCommand] = &[
     RepositoryCommand {
         canonical: &["integrate"],
@@ -53,9 +48,9 @@ pub const REPOSITORY_COMMANDS: &[RepositoryCommand] = &[
         aliases: STD_ALIASES,
     },
     RepositoryCommand {
-        canonical: &["check", "browser-host"],
+        canonical: &["check", "browser"],
         lifecycle: LifecycleClass::Check,
-        aliases: BROWSER_CHECK_ALIASES,
+        aliases: &[],
     },
     RepositoryCommand {
         canonical: &["demo", "triple"],
