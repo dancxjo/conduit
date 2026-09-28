@@ -4,11 +4,11 @@ use conduit_body::{
     MembershipProofId, PartId, PurposeObligationState, ResidentForm, WakeLifecycle,
     derive_fulfillment_readiness,
 };
+use conduit_body::{BodyLifecycleSession, BodyLifecycleSessionError};
 use conduit_core::{
     AuthorityGrantId, BootId, ExpandedFormId, FormIdentity, HostAdvertisement, HostId,
     HostProfileId, OfferGeneration, PROTOCOL_VERSION, SignId, bind_sign, seal_plan,
 };
-use conduit_workspace_model::{WorkspaceBody, WorkspaceBodyError};
 
 #[test]
 fn tutorial_builds_an_exact_orifina_request_from_current_body_truth() {
@@ -260,7 +260,7 @@ fn exact_tutorial_completion_only_presents_fulfillment_as_an_operator_choice() {
     evidence
         .append_membership_events(membership, &[(admitted, next), (joined, next + 1)])
         .unwrap();
-    let body = WorkspaceBody::open(evidence).unwrap();
+    let body = BodyLifecycleSession::open(evidence).unwrap();
     let request = conduit_workspace_model::tutorial::generative_request(
         &body,
         "request/orifina/ready".into(),
@@ -525,7 +525,7 @@ fn explicit_fulfillment_is_terminal_attributable_and_inspectable_after_restore()
 
     assert_eq!(
         body.admit_form(0, form("notes"), &host(), &boot()),
-        Err(WorkspaceBodyError::Lifecycle(
+        Err(BodyLifecycleSessionError::Lifecycle(
             conduit_body::BodyLifecycleError::Fulfilled
         ))
     );
@@ -536,13 +536,13 @@ fn explicit_fulfillment_is_terminal_attributable_and_inspectable_after_restore()
             AuthorityGrantId::from("grant/operator-finish"),
             "operator/alice".into(),
         ),
-        Err(WorkspaceBodyError::Lifecycle(
+        Err(BodyLifecycleSessionError::Lifecycle(
             conduit_body::BodyLifecycleError::Fulfilled
         ))
     );
     let restored: BodyBiographyEvidence =
         serde_json::from_str(&serde_json::to_string(body.evidence()).unwrap()).unwrap();
-    let restored = WorkspaceBody::open(restored).unwrap();
+    let restored = BodyLifecycleSession::open(restored).unwrap();
     assert!(matches!(
         restored.evidence().body.state,
         BodyState::Fulfilled { .. }
@@ -561,7 +561,7 @@ fn fulfillment_refuses_until_the_current_play_is_retired() {
             AuthorityGrantId::from("grant/operator-finish"),
             "operator/alice".into(),
         ),
-        Err(WorkspaceBodyError::NotLulled)
+        Err(BodyLifecycleSessionError::NotLulled)
     );
     assert_eq!(body.evidence(), &before);
     body.lull(&host(), &boot(), Some(&play)).unwrap();
@@ -582,7 +582,7 @@ fn form(name: &str) -> ResidentForm {
         format!("checked/{name}").into(),
     )
 }
-fn born() -> WorkspaceBody {
+fn born() -> BodyLifecycleSession {
     let form = form("morse");
     let body = Body::born(
         form.source_document_id,
@@ -623,7 +623,7 @@ fn born() -> WorkspaceBody {
     evidence
         .append_membership_events(membership, &[(admitted, 2), (present, 3)])
         .unwrap();
-    WorkspaceBody::open(evidence).unwrap()
+    BodyLifecycleSession::open(evidence).unwrap()
 }
 fn advertisement(host_id: HostId, boot_id: BootId, generation: u64) -> HostAdvertisement {
     HostAdvertisement {
@@ -638,7 +638,7 @@ fn advertisement(host_id: HostId, boot_id: BootId, generation: u64) -> HostAdver
         planner_capabilities: vec![],
     }
 }
-fn plans(body: &WorkspaceBody) -> Vec<BodyFormPlan> {
+fn plans(body: &BodyLifecycleSession) -> Vec<BodyFormPlan> {
     body.evidence()
         .body
         .workset
@@ -657,7 +657,7 @@ fn plans(body: &WorkspaceBody) -> Vec<BodyFormPlan> {
         })
         .collect()
 }
-fn start(body: &mut WorkspaceBody) -> BodyPlayIdentity {
+fn start(body: &mut BodyLifecycleSession) -> BodyPlayIdentity {
     let proposal = body.propose(plans(body), &host(), &boot()).unwrap().clone();
     let play = BodyPlayIdentity::bind(&proposal.plan, 1);
     let sign = |sequence| bind_sign(&host(), &boot(), Some(&play.active_play_id), sequence).sign_id;
@@ -671,7 +671,7 @@ fn start(body: &mut WorkspaceBody) -> BodyPlayIdentity {
     play
 }
 
-fn persist_archives(body: &mut WorkspaceBody) {
+fn persist_archives(body: &mut BodyLifecycleSession) {
     let Some(head) = body.pending_archives().last() else {
         return;
     };
@@ -699,9 +699,12 @@ fn current_host_offers_require_exact_membership_and_are_reconciled_after_boot_lo
         offers.observe(body.evidence(), advertisement(host(), boot(), 2)),
         Err(CurrentHostOfferError::NotCurrentMember)
     );
-    let resumed =
-        WorkspaceBody::resume_here(body.evidence().clone(), &host(), &"boot/restarted".into())
-            .unwrap();
+    let resumed = BodyLifecycleSession::resume_here(
+        body.evidence().clone(),
+        &host(),
+        &"boot/restarted".into(),
+    )
+    .unwrap();
     offers.reconcile(resumed.evidence());
     assert!(offers.hosts().is_empty());
 }
@@ -719,7 +722,7 @@ fn birth_to_play_to_lull_retains_identity_and_a_later_wake_gets_a_fresh_play() {
     assert_eq!(body.evidence().body.state, BodyState::Lulled);
     let retained: BodyBiographyEvidence =
         serde_json::from_str(&serde_json::to_string(body.evidence()).unwrap()).unwrap();
-    let mut restored = WorkspaceBody::open(retained).unwrap();
+    let mut restored = BodyLifecycleSession::open(retained).unwrap();
     let second = start(&mut restored);
     assert_eq!(restored.evidence().body_id, identity);
     assert_ne!(first.wake_id, second.wake_id);
@@ -734,7 +737,7 @@ fn missing_workload_and_stale_boot_refuse_before_publishing_a_wake() {
     assert!(body.propose(vec![], &host(), &boot()).is_err());
     assert_eq!(
         body.propose(plans(&body), &host(), &"boot/stale".into()),
-        Err(WorkspaceBodyError::StaleHost)
+        Err(BodyLifecycleSessionError::StaleHost)
     );
     assert_eq!(body.evidence(), &before);
     assert!(body.realization().is_none());
@@ -818,7 +821,7 @@ fn refusal_evidence_cannot_claim_unrelated_host_plan_or_form_provenance() {
     ] {
         assert_eq!(
             body.fail(&host(), &boot(), vec![forged]),
-            Err(WorkspaceBodyError::StalePlay)
+            Err(BodyLifecycleSessionError::StalePlay)
         );
         assert!(body.realization().is_some());
     }
@@ -830,18 +833,18 @@ fn awake_snapshots_do_not_resurrect_a_play_and_stale_terminal_identity_cannot_lu
     let play = start(&mut body);
     let before = body.evidence().clone();
     assert!(matches!(
-        WorkspaceBody::open(before.clone()),
-        Err(WorkspaceBodyError::UnreconciledWake)
+        BodyLifecycleSession::open(before.clone()),
+        Err(BodyLifecycleSessionError::UnreconciledWake)
     ));
     assert_eq!(
         body.lull(&host(), &boot(), None),
-        Err(WorkspaceBodyError::StalePlay)
+        Err(BodyLifecycleSessionError::StalePlay)
     );
     let mut stale = play;
     stale.play_sequence += 1;
     assert_eq!(
         body.lull(&host(), &boot(), Some(&stale)),
-        Err(WorkspaceBodyError::StalePlay)
+        Err(BodyLifecycleSessionError::StalePlay)
     );
     assert_eq!(body.evidence(), &before);
 }
@@ -851,7 +854,7 @@ fn workload_edits_are_revision_checked_and_cannot_mutate_an_active_plan() {
     let mut body = born();
     assert_eq!(
         body.admit_form(1, form("clock"), &host(), &boot()),
-        Err(WorkspaceBodyError::StaleWorkload)
+        Err(BodyLifecycleSessionError::StaleWorkload)
     );
     body.admit_form(0, form("clock"), &host(), &boot()).unwrap();
     assert_eq!(body.evidence().body.workload_revision, 1);
@@ -860,7 +863,7 @@ fn workload_edits_are_revision_checked_and_cannot_mutate_an_active_plan() {
     let before = body.evidence().clone();
     assert_eq!(
         body.admit_form(1, form("text"), &host(), &boot()),
-        Err(WorkspaceBodyError::NotLulled)
+        Err(BodyLifecycleSessionError::NotLulled)
     );
     assert_eq!(body.evidence(), &before);
 }
@@ -898,7 +901,7 @@ fn repeated_started_plays_compact_without_growing_the_retained_window() {
         assert!(body.evidence().wakes.len() <= conduit_body::MAX_BODY_BIOGRAPHY_WAKES);
         assert!(body.evidence().records.len() <= conduit_body::MAX_BODY_BIOGRAPHY_RECORDS);
     }
-    let mut restored = WorkspaceBody::open(
+    let mut restored = BodyLifecycleSession::open(
         serde_json::from_str(&serde_json::to_string(body.evidence()).unwrap()).unwrap(),
     )
     .unwrap();
@@ -1045,7 +1048,7 @@ fn repeated_host_continuity_rolls_membership_history_into_exact_segments() {
     let mut archived_membership_events = 0usize;
     for cycle in 0..100 {
         let next_boot = BootId::from(format!("boot/continuity-{cycle}"));
-        let mut resumed = WorkspaceBody::resume_here(evidence, &host(), &next_boot).unwrap();
+        let mut resumed = BodyLifecycleSession::resume_here(evidence, &host(), &next_boot).unwrap();
         for segment in resumed.pending_archives() {
             segment.validate().unwrap();
             archived_membership_events += segment.membership_events.len();
@@ -1076,16 +1079,17 @@ fn fresh_boot_reconciles_lost_local_play_as_failure_and_retains_the_same_body() 
     let play = start(&mut body);
     let retained: BodyBiographyEvidence =
         serde_json::from_str(&serde_json::to_string(body.evidence()).unwrap()).unwrap();
-    assert!(WorkspaceBody::resume_here(retained.clone(), &host(), &boot()).is_err());
+    assert!(BodyLifecycleSession::resume_here(retained.clone(), &host(), &boot()).is_err());
     assert!(
-        WorkspaceBody::resume_here(
+        BodyLifecycleSession::resume_here(
             retained.clone(),
             &"host/stranger".into(),
             &"boot/fresh".into()
         )
         .is_err()
     );
-    let resumed = WorkspaceBody::resume_here(retained, &host(), &"boot/fresh".into()).unwrap();
+    let resumed =
+        BodyLifecycleSession::resume_here(retained, &host(), &"boot/fresh".into()).unwrap();
     assert_eq!(resumed.evidence().body_id, body.evidence().body_id);
     assert_eq!(resumed.evidence().body.state, BodyState::Lulled);
     assert!(resumed.realization().is_none());
@@ -1122,7 +1126,7 @@ fn foreground_selection_changes_neither_body_evidence_nor_running_realization() 
     stale.source_document_id = "source/unreviewed".into();
     assert_eq!(
         body.select_form(&stale),
-        Err(WorkspaceBodyError::UninstalledForm)
+        Err(BodyLifecycleSessionError::UninstalledForm)
     );
     assert_eq!(body.foreground(), Some(&form("notes")));
 }
@@ -1138,7 +1142,7 @@ fn removing_forms_retains_the_body_and_membership_and_reconciles_foreground() {
     let before = body.evidence().clone();
     assert_eq!(
         body.remove_form(1, &form("notes"), &host(), &boot()),
-        Err(WorkspaceBodyError::NotLulled)
+        Err(BodyLifecycleSessionError::NotLulled)
     );
     assert_eq!(body.evidence(), &before);
     body.lull(&host(), &boot(), Some(&play)).unwrap();
@@ -1156,7 +1160,7 @@ fn removing_forms_retains_the_body_and_membership_and_reconciles_foreground() {
     let restored: BodyBiographyEvidence =
         serde_json::from_str(&serde_json::to_string(body.evidence()).unwrap()).unwrap();
     assert!(
-        WorkspaceBody::open(restored)
+        BodyLifecycleSession::open(restored)
             .unwrap()
             .evidence()
             .body
@@ -1171,11 +1175,11 @@ fn stale_or_absent_removal_preserves_current_workload_and_evidence() {
     let before = body.evidence().clone();
     assert_eq!(
         body.remove_form(1, &form("morse"), &host(), &boot()),
-        Err(WorkspaceBodyError::StaleWorkload)
+        Err(BodyLifecycleSessionError::StaleWorkload)
     );
     assert_eq!(
         body.remove_form(0, &form("morse"), &host(), &"boot/stale".into()),
-        Err(WorkspaceBodyError::StaleHost)
+        Err(BodyLifecycleSessionError::StaleHost)
     );
     assert!(
         body.remove_form(0, &form("missing"), &host(), &boot())

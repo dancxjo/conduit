@@ -1,10 +1,9 @@
 //! Renderer-neutral guidance projected only from authoritative Body truth.
-use crate::WorkspaceBody;
 use alloc::{format, vec, vec::Vec};
 use conduit_body::{
-    BodyBiographyEvidence, BodyBiographyRecordKind, BodyState, FulfillmentReadiness,
-    PurposeCompletionPolicy, PurposeObligation, PurposeObligationState, PurposeRefusal,
-    PurposeState, WakeLifecycleEvent, derive_fulfillment_readiness,
+    BodyBiographyEvidence, BodyBiographyRecordKind, BodyLifecycleSession, BodyState,
+    FulfillmentReadiness, PurposeCompletionPolicy, PurposeObligation, PurposeObligationState,
+    PurposeRefusal, PurposeState, WakeLifecycleEvent, derive_fulfillment_readiness,
 };
 use conduit_presentation::{
     ActionAvailability, ApplicationEventKind, Face, FaceContext, FaceFocus, FaceRefusal,
@@ -54,7 +53,7 @@ pub enum TutorialPresenterRefusal {
 /// remains separate implementation input, and the returned action is only a
 /// description: an operator must still select and authorize Fulfillment.
 pub fn generative_request(
-    body: &WorkspaceBody,
+    body: &BodyLifecycleSession,
     request_identity: alloc::string::String,
     presentation_revision: u64,
     playback: TutorialPlayback,
@@ -72,7 +71,7 @@ pub fn generative_request(
 
 /// Project the canonical Face grammar consumed by every tutorial Mask.
 pub fn face_presentation(
-    body: &WorkspaceBody,
+    body: &BodyLifecycleSession,
     presentation_revision: u64,
     playback: TutorialPlayback,
 ) -> Result<Presentation, TutorialPresenterRefusal> {
@@ -80,7 +79,7 @@ pub fn face_presentation(
 }
 
 fn tutorial_face(
-    body: &WorkspaceBody,
+    body: &BodyLifecycleSession,
     presentation_revision: u64,
     playback: TutorialPlayback,
 ) -> Result<Face, TutorialPresenterRefusal> {
@@ -231,7 +230,7 @@ fn tutorial_face(
 }
 
 pub fn presentation(
-    body: &WorkspaceBody,
+    body: &BodyLifecycleSession,
     revision: u32,
     playback: TutorialPlayback,
 ) -> Result<SemanticApplicationView, conduit_presentation::SemanticPresentationRefusal> {
@@ -240,7 +239,7 @@ pub fn presentation(
 
 /// Project tutorial guidance from an exact retained body biography at a host
 /// boundary. This lets the ordinary resident Tutorial Form consume the same
-/// semantic truth without reaching through a product-owned `WorkspaceBody`.
+/// semantic truth without reaching through a host-owned lifecycle session.
 pub fn presentation_from_evidence(
     evidence: &BodyBiographyEvidence,
     revision: u32,
@@ -308,7 +307,7 @@ pub fn presentation_from_evidence(
 /// Derive the tutorial's optional purpose only from retained body evidence.
 /// No chapter counter, Presenter output, or browser-local interaction can mark
 /// an obligation complete.
-pub fn purpose_state(body: &WorkspaceBody) -> Result<PurposeState, PurposeRefusal> {
+pub fn purpose_state(body: &BodyLifecycleSession) -> Result<PurposeState, PurposeRefusal> {
     purpose_state_from_evidence(body.evidence())
 }
 

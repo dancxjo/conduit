@@ -321,7 +321,7 @@ fn orifina_journey() -> Result<PreparedOrifinaJourney, Box<dyn std::error::Error
     })
 }
 
-fn orifina_body() -> Result<conduit_workspace_model::WorkspaceBody, Box<dyn std::error::Error>> {
+fn orifina_body() -> Result<conduit_body::BodyLifecycleSession, Box<dyn std::error::Error>> {
     let form = ResidentForm::new("source/morse".into(), "checked/morse".into());
     let body = Body::born(
         form.source_document_id,
@@ -369,11 +369,11 @@ fn orifina_body() -> Result<conduit_workspace_model::WorkspaceBody, Box<dyn std:
     evidence
         .append_membership_events(membership, &[(admitted, 2), (present, 3)])
         .map_err(|error| proof_error("retain Orifina membership evidence", error))?;
-    conduit_workspace_model::WorkspaceBody::open(evidence)
+    conduit_body::BodyLifecycleSession::open(evidence)
         .map_err(|error| proof_error("open Orifina Workspace Body", error))
 }
 
-fn orifina_plans(body: &conduit_workspace_model::WorkspaceBody) -> Vec<BodyFormPlan> {
+fn orifina_plans(body: &conduit_body::BodyLifecycleSession) -> Vec<BodyFormPlan> {
     body.evidence()
         .body
         .workset
@@ -394,7 +394,7 @@ fn orifina_plans(body: &conduit_workspace_model::WorkspaceBody) -> Vec<BodyFormP
 }
 
 fn start_orifina(
-    body: &mut conduit_workspace_model::WorkspaceBody,
+    body: &mut conduit_body::BodyLifecycleSession,
     host: &HostId,
     boot: &BootId,
     sequence: u64,
@@ -416,7 +416,7 @@ fn start_orifina(
 }
 
 fn admit_orifina_companion(
-    body: &mut conduit_workspace_model::WorkspaceBody,
+    body: &mut conduit_body::BodyLifecycleSession,
 ) -> Result<(), Box<dyn std::error::Error>> {
     let mut evidence = body.evidence().clone();
     let mut membership = evidence.membership.clone();
@@ -455,13 +455,13 @@ fn admit_orifina_companion(
     evidence
         .append_membership_events(membership, &[(admitted, sequence), (joined, sequence + 1)])
         .map_err(|error| proof_error("retain Orifina companion", error))?;
-    *body = conduit_workspace_model::WorkspaceBody::open(evidence)
+    *body = conduit_body::BodyLifecycleSession::open(evidence)
         .map_err(|error| proof_error("reopen distributed Orifina Body", error))?;
     Ok(())
 }
 
 fn tutorial_request(
-    body: &conduit_workspace_model::WorkspaceBody,
+    body: &conduit_body::BodyLifecycleSession,
     stage: &str,
     revision: u64,
     playback: conduit_workspace_model::tutorial::TutorialPlayback,
