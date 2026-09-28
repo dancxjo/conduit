@@ -5,7 +5,10 @@ mod common;
 use common::{
     available_mask_show, checked_renderer_form, host, plan_for, presentation, WAYLAND_RESOURCE,
 };
-use conduit_core::{CheckedValueContract, ValueConstraint};
+use conduit_core::{
+    encode_count, CheckedValueContract, IntervalEndpoint, Quantity, QuantityUnit, ValueConstraint,
+    COUNT_ENCODED_LEN, COUNT_INFO_ID, DISTANCE_INFO_ID, QUANTITY_ENCODED_LEN,
+};
 use conduit_form::TextPatternExpression;
 use conduit_presentation::{
     FaceActionArgument, FaceInteraction, FaceInteractionArgument, FaceInteractionDisposition,
@@ -97,6 +100,53 @@ fn patterned_argument(maximum: u16) -> FaceActionArgument {
         )
         .expect("reviewed Face pattern contract is canonical"),
     }
+}
+
+fn ranged_and_member_arguments() -> Vec<FaceActionArgument> {
+    vec![
+        FaceActionArgument {
+            name: "sample/count".into(),
+            value_name: "Sample count from two through four".into(),
+            contract: CheckedValueContract::new(
+                COUNT_INFO_ID.into(),
+                COUNT_ENCODED_LEN as u32,
+                vec![ValueConstraint::UnsignedRange {
+                    minimum: 2,
+                    maximum: 4,
+                    minimum_endpoint: IntervalEndpoint::Inclusive,
+                    maximum_endpoint: IntervalEndpoint::Inclusive,
+                }],
+            )
+            .expect("reviewed Face count range is canonical"),
+        },
+        FaceActionArgument {
+            name: "sample/distance".into(),
+            value_name: "Distance from one through two meters".into(),
+            contract: CheckedValueContract::new(
+                DISTANCE_INFO_ID.into(),
+                QUANTITY_ENCODED_LEN as u32,
+                vec![ValueConstraint::QuantityRange {
+                    minimum: Quantity::new(1, QuantityUnit::Meter),
+                    maximum: Quantity::new(2, QuantityUnit::Meter),
+                    minimum_endpoint: IntervalEndpoint::Inclusive,
+                    maximum_endpoint: IntervalEndpoint::Inclusive,
+                }],
+            )
+            .expect("reviewed Face distance range is canonical"),
+        },
+        FaceActionArgument {
+            name: "sample/mode".into(),
+            value_name: "Sampling mode".into(),
+            contract: CheckedValueContract::new(
+                UTF8_TEXT_VALUE_KIND.into(),
+                8,
+                vec![ValueConstraint::CanonicalMembership {
+                    members: vec![b"careful".to_vec(), b"quick".to_vec()],
+                }],
+            )
+            .expect("reviewed Face finite membership is canonical"),
+        },
+    ]
 }
 
 fn rebuild_with_interactions(
@@ -429,4 +479,78 @@ fn checked_text_pattern_is_face_truth_across_admission_identity_and_linear_inspe
         .expect("deterministic-linear Mask exposes the action contract");
     assert!(action.contains("TextPattern"));
     assert!(action.contains("maximum_input_characters: 8"));
+}
+
+#[test]
+fn ranges_and_finite_membership_are_face_truth_across_admission_and_linear_inspection() {
+    let (base, _) = available_interaction_basis();
+    let mut actions = base.actions.clone();
+    actions[0].arguments = ranged_and_member_arguments();
+    let face = rebuild_with_interactions(&base, actions);
+    let show = available_mask_show(&face);
+    let interaction = |count: u64, distance: Quantity, mode: &[u8], sequence| {
+        FaceInteraction::new(
+            &face,
+            &show,
+            "message/send",
+            "patchbay/form",
+            vec![
+                FaceInteractionArgument {
+                    name: "sample/count".into(),
+                    value_kind: COUNT_INFO_ID.into(),
+                    value: encode_count(count).to_vec(),
+                },
+                FaceInteractionArgument {
+                    name: "sample/distance".into(),
+                    value_kind: DISTANCE_INFO_ID.into(),
+                    value: distance.encode().to_vec(),
+                },
+                argument("sample/mode", mode),
+            ],
+            sequence,
+        )
+    };
+
+    interaction(
+        3,
+        Quantity::new(150, QuantityUnit::Centimeter),
+        b"careful",
+        1,
+    )
+    .expect("all canonical values satisfy the Face contracts");
+    assert_eq!(
+        interaction(
+            5,
+            Quantity::new(150, QuantityUnit::Centimeter),
+            b"careful",
+            2,
+        ),
+        Err(FaceInteractionRefusal::ViolatedConstraint)
+    );
+    assert_eq!(
+        interaction(3, Quantity::new(3, QuantityUnit::Meter), b"careful", 3,),
+        Err(FaceInteractionRefusal::ViolatedConstraint)
+    );
+    assert_eq!(
+        interaction(
+            3,
+            Quantity::new(150, QuantityUnit::Centimeter),
+            b"reckless",
+            4,
+        ),
+        Err(FaceInteractionRefusal::ViolatedConstraint)
+    );
+
+    let linear = conduit_presentation::render_linear_presentation(&face).unwrap();
+    let action = linear
+        .lines
+        .iter()
+        .find(|line| line.starts_with("ACTION "))
+        .expect("deterministic-linear Mask exposes the exact action contracts");
+    for constraint in ["UnsignedRange", "QuantityRange", "CanonicalMembership"] {
+        assert!(
+            action.contains(constraint),
+            "missing {constraint}: {action}"
+        );
+    }
 }
