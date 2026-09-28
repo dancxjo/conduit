@@ -2,7 +2,6 @@ use std::ffi::OsString;
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum LifecycleClass {
-    Host,
     Demo,
     Prove,
     Check,
@@ -23,10 +22,6 @@ pub struct RepositoryCommand {
     pub aliases: &'static [CommandAlias],
 }
 
-const BROWSER_ALIASES: &[CommandAlias] = &[CommandAlias {
-    spelling: &["browser"],
-    deprecated: true,
-}];
 const STD_ALIASES: &[CommandAlias] = &[CommandAlias {
     spelling: &["demo", "std"],
     deprecated: true,
@@ -38,13 +33,13 @@ pub const REPOSITORY_COMMANDS: &[RepositoryCommand] = &[
         aliases: &[],
     },
     RepositoryCommand {
-        canonical: &["host", "browser"],
-        lifecycle: LifecycleClass::Host,
-        aliases: BROWSER_ALIASES,
+        canonical: &["fabricate", "host", "browser"],
+        lifecycle: LifecycleClass::Fabricate,
+        aliases: &[],
     },
     RepositoryCommand {
-        canonical: &["host", "std"],
-        lifecycle: LifecycleClass::Host,
+        canonical: &["fabricate", "host", "std"],
+        lifecycle: LifecycleClass::Fabricate,
         aliases: STD_ALIASES,
     },
     RepositoryCommand {
@@ -63,7 +58,7 @@ pub const REPOSITORY_COMMANDS: &[RepositoryCommand] = &[
         aliases: &[],
     },
     RepositoryCommand {
-        canonical: &["host", "build"],
+        canonical: &["fabricate", "host", "build"],
         lifecycle: LifecycleClass::Fabricate,
         aliases: &[],
     },
@@ -84,15 +79,15 @@ pub const FRIENDLY_JUST_ALIASES: &[JustAlias] = &[
     },
     JustAlias {
         recipe: "browser",
-        canonical_body: "cargo xtask host browser",
+        canonical_body: "cargo xtask fabricate host browser",
     },
     JustAlias {
         recipe: "std-host",
-        canonical_body: "cargo xtask host std",
+        canonical_body: "cargo xtask fabricate host std",
     },
     JustAlias {
         recipe: "demo-std",
-        canonical_body: "cargo xtask host std",
+        canonical_body: "cargo xtask fabricate host std",
     },
     JustAlias {
         recipe: "demo-triple-local",

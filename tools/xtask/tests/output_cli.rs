@@ -34,10 +34,11 @@ fn dry_run_json_is_deterministic_and_effect_free_for_migrated_commands() {
             "7",
             "--authorize-output",
         ],
-        &["--dry-run", "--json", "pico", "build"],
+        &["--dry-run", "--json", "fabricate", "pico", "build"],
         &[
             "--dry-run",
             "--json",
+            "fabricate",
             "pico",
             "drive-create",
             "--wheels-off-floor",
@@ -65,7 +66,7 @@ fn quiet_dry_runs_emit_no_ordinary_stdout() {
     for command in [
         vec!["--dry-run", "--quiet", "midi", "list"],
         vec!["--dry-run", "--quiet", "audio", "list"],
-        vec!["--dry-run", "--quiet", "pico", "build"],
+        vec!["--dry-run", "--quiet", "fabricate", "pico", "build"],
     ] {
         let output = xtask(&command);
         assert!(
@@ -94,14 +95,26 @@ fn demo_tour_dry_run_uses_the_canonical_tour_product_route() {
 
 #[test]
 fn live_pico_structured_modes_refuse_before_dispatch() {
-    let json = xtask(&["--json", "pico", "drive-create", "--wheels-off-floor"]);
+    let json = xtask(&[
+        "--json",
+        "fabricate",
+        "pico",
+        "drive-create",
+        "--wheels-off-floor",
+    ]);
     assert!(!json.status.success());
     let report = parse_stdout(&json);
     assert_eq!(report["schema"], "conduit.tools/xtask/output-refusal@1");
     assert_eq!(report["disposition"], "unsupported-before-dispatch");
     assert_eq!(report["capability"], "json");
 
-    let quiet = xtask(&["--quiet", "pico", "drive-create", "--wheels-off-floor"]);
+    let quiet = xtask(&[
+        "--quiet",
+        "fabricate",
+        "pico",
+        "drive-create",
+        "--wheels-off-floor",
+    ]);
     assert!(!quiet.status.success());
     assert!(quiet.stdout.is_empty());
 }

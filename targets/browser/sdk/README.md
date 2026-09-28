@@ -269,7 +269,7 @@ The consuming application only installs or serves that resulting directory;
 it does not invoke the producer or compile Conduit.
 
 Repository maintainers can produce an npm-style package from a reviewed bundle
-with `cargo xtask host browser-sdk-package --bundle <bundle-directory> --output
+with `cargo xtask fabricate host browser-sdk-package --bundle <bundle-directory> --output
 <new-package-directory>`. Then run `npm pack` in the output directory or serve
 the complete directory from a same-origin static root.
 

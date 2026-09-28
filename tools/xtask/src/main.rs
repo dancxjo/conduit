@@ -16,7 +16,7 @@ mod three_body_actions;
 mod workspace;
 
 use clap::Parser;
-use cli::{AudioCommand, Cli, Command, DemoCommand, GlobalOpts, MidiCommand};
+use cli::{AudioCommand, Cli, Command, DemoCommand, FabricateTarget, GlobalOpts, MidiCommand};
 
 fn main() {
     let cli = Cli::parse_from(command_registry::normalize_compatibility_aliases(
@@ -24,9 +24,6 @@ fn main() {
     ));
     let opts = cli.global;
     let result: Result<(), Box<dyn std::error::Error>> = match cli.command {
-        Command::Avr(args) => commands::avr::run(args, &opts),
-        Command::Browser => commands::browser::run(&opts),
-        Command::Body(args) => commands::body::run(args, &opts),
         Command::BodyCoordination(args) => commands::body_coordination::run(args, &opts),
         Command::Catalog(args) => commands::catalog::run(args, &opts)
             .map_err(|error| Box::new(error) as Box<dyn std::error::Error>),
@@ -34,6 +31,7 @@ fn main() {
             .map_err(|error| Box::new(error) as Box<dyn std::error::Error>),
         Command::Integrate => commands::integrate::run(&opts),
         Command::Ci(args) => commands::ci::run(args),
+        Command::Fabricate(args) => run_fabricate(args.target, &opts),
         Command::Prove(mut args) => {
             if let Some(evidence) = args.evidence.take() {
                 if args.proof.is_some()
@@ -57,12 +55,6 @@ fn main() {
         Command::Doctor(args) => commands::doctor::run(args, &opts)
             .map_err(|error| Box::new(error) as Box<dyn std::error::Error>),
         Command::Setup(args) => commands::setup::run(args, &opts),
-        Command::Esp32Firmware(args) => commands::esp32_firmware::run(args, &opts),
-        Command::Pico(mut args) => run_pico(&opts, &mut args, false),
-        Command::Host(args) => commands::host::run(args, &opts),
-        Command::PicoLocal(mut args) => run_pico(&opts, &mut args, true),
-        Command::Conduitos(args) => commands::conduitos::run(args, &opts)
-            .map_err(|error| Box::new(error) as Box<dyn std::error::Error>),
         Command::Audio(args) => match args.command {
             AudioCommand::List => commands::audio::list(&opts),
             AudioCommand::RenderStartupCue { output } => {
@@ -96,13 +88,30 @@ fn main() {
             DemoCommand::TonguesResearch => commands::tongues::run_research(&opts),
             DemoCommand::TonguesAnalysis => commands::tongues::run_analysis(&opts),
         },
-        Command::UnifontSubset(args) => commands::unifont_subset::run(args),
-        Command::PaletteIcons(args) => commands::palette_icons::run(args),
     };
 
     if let Err(error) = result {
         eprintln!("xtask error: {error}");
         std::process::exit(1);
+    }
+}
+
+fn run_fabricate(
+    target: FabricateTarget,
+    opts: &GlobalOpts,
+) -> Result<(), Box<dyn std::error::Error>> {
+    match target {
+        FabricateTarget::Avr(args) => commands::avr::run(args, opts),
+        FabricateTarget::Browser => commands::browser::run(opts),
+        FabricateTarget::Body(args) => commands::body::run(args, opts),
+        FabricateTarget::Esp32Firmware(args) => commands::esp32_firmware::run(args, opts),
+        FabricateTarget::Host(args) => commands::host::run(args, opts),
+        FabricateTarget::Pico(mut args) => run_pico(opts, &mut args, false),
+        FabricateTarget::PicoLocal(mut args) => run_pico(opts, &mut args, true),
+        FabricateTarget::Conduitos(args) => commands::conduitos::run(args, opts)
+            .map_err(|error| Box::new(error) as Box<dyn std::error::Error>),
+        FabricateTarget::UnifontSubset(args) => commands::unifont_subset::run(args),
+        FabricateTarget::PaletteIcons(args) => commands::palette_icons::run(args),
     }
 }
 

@@ -91,7 +91,7 @@ jobs:
         run: targets/conduitos/tools/conduitos-tools.sh install target/conduitos/tool-bundle
       - name: Boot the exact Crèche artifact through the ordinary product journey
         run: >-
-          cargo xtask conduitos acceptance --locked
+          cargo xtask fabricate conduitos acceptance --locked
           --spore target/conduitos/x86_64/creche-export.iso
       - name: Retain exact visual and failure evidence
         if: always()

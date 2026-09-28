@@ -6,4 +6,4 @@ flashing, or physical proof.
 
 Pico W firmware and its repository-development build and proof mechanics remain
 under `targets/rp2040/firmware/pico-w-signal` and consume this package through
-`cargo xtask pico ...`.
+`cargo xtask fabricate pico ...`.

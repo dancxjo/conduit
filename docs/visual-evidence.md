@@ -28,7 +28,7 @@ Refresh the source artifacts by running the ordinary repository-development
 entrance:
 
 ```sh
-cargo xtask conduitos journey-proof
+cargo xtask fabricate conduitos journey-proof
 ```
 
 That proof replaces `target/conduitos/x86_64/journey-frames/manifest.json` and
@@ -161,7 +161,7 @@ compares one semantic moment; body controls follow a single track. Machine
 receipts remain under Evidence. Pre-birth conversational moments are silent
 because no Body exists yet.
 
-`cargo xtask host prove-local-model --orifina-presenter --journey-documentary`
+`cargo xtask fabricate host prove-local-model --orifina-presenter --journey-documentary`
 retains every tutorial-state request and its actual outward model words (supply
 the explicit local model and admitted-memory options shown by `--help`). This
 is an explicit documentary run, not a required live-inference release gate.
@@ -205,7 +205,7 @@ previous raster as runtime truth.
 
 ## ConduitOS console evidence
 
-`cargo xtask conduitos prove --arch x86-64 --evidence-root <directory>` can
+`cargo xtask fabricate conduitos prove --arch x86-64 --evidence-root <directory>` can
 emit one bounded UTF-8 console transcript after the existing x86_64 proof has
 validated its boot sign, kernel sign, Observatory snapshot, exact semantic
 presentation, and terminal QEMU debug exit. The ordinary proof remains the

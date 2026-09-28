@@ -33,7 +33,7 @@ pub fn run_flash(args: &PicoArgs) -> PicoResult<()> {
 
     if !uf2.exists() {
         return Err(format!(
-            "UF2 not found at {}; run `cargo xtask pico build` first",
+            "UF2 not found at {}; run `cargo xtask fabricate pico build` first",
             uf2.display()
         )
         .into());
