@@ -150,6 +150,44 @@ fn track(index: usize) -> BodyTrack {
         embodiment: format!("embodiment-{index}"),
         body_id: format!("body-{index}"),
         mask_form_id: format!("mask-form-{index}"),
+        construction: if index < 2 {
+            vec![ConstructionTruth {
+                host_id: format!("host-{index}"),
+                profile: ConstructionStage::Exact {
+                    identity: format!("profile-{index}"),
+                },
+                build: ConstructionStage::Exact {
+                    identity: format!("build-{index}"),
+                },
+                image: ConstructionStage::Exact {
+                    identity: format!("image-{index}"),
+                },
+            }]
+        } else {
+            vec![ConstructionTruth {
+                host_id: "host-2-a".into(),
+                profile: ConstructionStage::Omitted {
+                    reason: "This hosted journey uses an already-running Host and performs no profile fabrication stage.".into(),
+                },
+                build: ConstructionStage::Omitted {
+                    reason: "This hosted journey starts admitted implementations and produces no standalone build artifact.".into(),
+                },
+                image: ConstructionStage::Omitted {
+                    reason: "This hosted journey is not booted from an image, so no image identity exists.".into(),
+                },
+            }, ConstructionTruth {
+                host_id: "host-2-b".into(),
+                profile: ConstructionStage::Omitted {
+                    reason: "This peer hosted journey uses an already-running Host and performs no profile fabrication stage.".into(),
+                },
+                build: ConstructionStage::Omitted {
+                    reason: "This peer hosted journey starts admitted implementations and produces no standalone build artifact.".into(),
+                },
+                image: ConstructionStage::Omitted {
+                    reason: "This peer hosted journey is not booted from an image, so no image identity exists.".into(),
+                },
+            }]
+        },
         hosts: if index == 2 {
             vec![
                 HostIdentity {
@@ -305,12 +343,38 @@ fn identity_collapsing_and_stale_commits_refuse() {
 }
 
 #[test]
+fn construction_truth_covers_each_host_without_inventing_missing_stages() {
+    let contract = contract::canonical(&"a".repeat(40));
+
+    let mut tracks = complete();
+    tracks[0].construction.clear();
+    assert!(validate(&contract, &tracks, &contract.git_commit)
+        .unwrap_err()
+        .contains("invalid Body track"));
+
+    let mut tracks = complete();
+    tracks[2].construction[1].host_id = "host-not-in-body".into();
+    assert!(validate(&contract, &tracks, &contract.git_commit)
+        .unwrap_err()
+        .contains("does not cover every Host"));
+
+    let mut tracks = complete();
+    tracks[2].construction[0].build = ConstructionStage::Exact {
+        identity: "invented-build".into(),
+    };
+    assert!(validate(&contract, &tracks, &contract.git_commit)
+        .unwrap_err()
+        .contains("invalid Body track"));
+}
+
+#[test]
 fn action_major_page_names_producer_events_without_fixed_manifestation_labels() {
     let contract = contract::canonical(&"a".repeat(40));
     let index = assemble_index(contract, complete()).unwrap();
     let html = page::render(&index);
     assert!(html.contains("The same moment, three ways"));
     assert!(html.contains("Embodiment 2 performed its concrete useful work."));
+    assert!(html.contains("Host host-2-a construction: profile omitted:"));
     let value = serde_json::to_value(index).unwrap();
     assert_eq!(value["actions"][0]["bodies"].as_array().unwrap().len(), 3);
     assert!(value.get("tracks").is_none());

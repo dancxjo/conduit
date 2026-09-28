@@ -41,12 +41,42 @@ pub(crate) struct TrackSource {
     pub track_id: &'static str,
     pub embodiment: &'static str,
     pub mask_form_id: &'static str,
+    pub construction: Vec<ConstructionTruth>,
     pub identities: TrackIdentities,
     pub facts: Vec<Value>,
     /// Exact producer-owned outcomes from the shared ordered Mask journey.
     pub mask_actions: Value,
     /// Producer-owned descriptions of the concrete event that realized each public action.
     pub action_events: BTreeMap<&'static str, String>,
+}
+
+#[derive(Serialize)]
+pub(crate) struct ConstructionTruth {
+    pub host_id: String,
+    pub profile: ConstructionStage,
+    pub build: ConstructionStage,
+    pub image: ConstructionStage,
+}
+
+#[derive(Serialize)]
+#[serde(tag = "disposition", rename_all = "kebab-case")]
+pub(crate) enum ConstructionStage {
+    Exact { identity: String },
+    Omitted { reason: String },
+}
+
+impl ConstructionStage {
+    pub(crate) fn exact(identity: impl Into<String>) -> Self {
+        Self::Exact {
+            identity: identity.into(),
+        }
+    }
+
+    pub(crate) fn omitted(reason: impl Into<String>) -> Self {
+        Self::Omitted {
+            reason: reason.into(),
+        }
+    }
 }
 
 #[derive(Serialize)]
@@ -253,13 +283,14 @@ pub(crate) fn write(mut source: TrackSource, output: &Path) -> Result<(), String
         "boot_id": source.identities.peer_boot,
     }));
     let document = serde_json::json!({
-        "schema": "conduit.evidence/body-journey-track@5",
+        "schema": "conduit.evidence/body-journey-track@6",
         "journey_id": "orifina/tutorial@1",
         "git_commit": source.commit,
         "track_id": source.track_id,
         "embodiment": source.embodiment,
         "body_id": source.identities.body,
         "mask_form_id": source.mask_form_id,
+        "construction": source.construction,
         "hosts": hosts,
         "line_ids": source.identities.line.into_iter().collect::<Vec<_>>(),
         "distributed_plan_ids": source.identities.distributed_plan.into_iter().collect::<Vec<_>>(),

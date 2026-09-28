@@ -4,7 +4,9 @@ use super::{ConduitosError, JourneyProof};
 use std::{collections::BTreeMap, path::Path};
 
 pub(super) fn write(target: &Path, proof: &JourneyProof) -> Result<(), ConduitosError> {
-    use crate::commands::body_journey_track::{self, TrackIdentities, TrackSource};
+    use crate::commands::body_journey_track::{
+        self, ConstructionStage, ConstructionTruth, TrackIdentities, TrackSource,
+    };
     let facts = vec![
         serde_json::json!({"open_effects": proof.open_effects, "host_id": proof.host_id, "boot_id": proof.boot_id}),
         serde_json::json!({"profile_id": proof.profile_id, "build_id": proof.build_id, "image_id": proof.image_id}),
@@ -26,6 +28,20 @@ pub(super) fn write(target: &Path, proof: &JourneyProof) -> Result<(), Conduitos
             track_id: "native-graphical",
             embodiment: "freestanding-native-body",
             mask_form_id: "mask/native-graphical@1",
+            construction: vec![
+                ConstructionTruth {
+                    host_id: proof.host_id.clone(),
+                    profile: ConstructionStage::exact(proof.profile_id.clone()),
+                    build: ConstructionStage::exact(proof.build_id.clone()),
+                    image: ConstructionStage::exact(proof.image_id.clone()),
+                },
+                ConstructionTruth {
+                    host_id: proof.usb_line_peer_host_id.clone(),
+                    profile: ConstructionStage::omitted("The USB peer joined as an already-running Host; this producer retained no peer profile fabrication identity."),
+                    build: ConstructionStage::omitted("The USB peer joined as an already-running Host; this producer retained no peer build identity."),
+                    image: ConstructionStage::omitted("The USB peer joined as an already-running Host; this producer retained no peer image identity."),
+                },
+            ],
             identities: TrackIdentities {
                 body: proof.body_id.clone(),
                 host: proof.host_id.clone(),

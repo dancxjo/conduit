@@ -1,5 +1,5 @@
 //! Human-facing documentary over verified journey evidence.
-use super::{JourneyBodyCell, ThreeBodyJourneyIndex, TrackStep};
+use super::{ConstructionStage, JourneyBodyCell, ThreeBodyJourneyIndex, TrackStep};
 use std::fmt::Write;
 
 pub(super) fn render(index: &ThreeBodyJourneyIndex) -> String {
@@ -144,7 +144,7 @@ fn render_media(html: &mut String, body: &JourneyBodyCell, observed: &TrackStep,
 
 fn render_evidence(
     html: &mut String,
-    _body: &JourneyBodyCell,
+    body: &JourneyBodyCell,
     observed: &TrackStep,
     root: &str,
     git_commit: &str,
@@ -157,6 +157,16 @@ fn render_evidence(
         escape(git_commit),
         escape(mask_form_id)
     );
+    for construction in &body.construction {
+        let _ = write!(
+            html,
+            "<li>Host {} construction: profile {} · build {} · image {}</li>",
+            escape(&construction.host_id),
+            escape(&construction_label(&construction.profile)),
+            escape(&construction_label(&construction.build)),
+            escape(&construction_label(&construction.image)),
+        );
+    }
     for evidence in &observed.evidence {
         let _ = write!(
             html,
@@ -170,6 +180,13 @@ fn render_evidence(
     }
     let provenance = serde_json::to_string_pretty(&observed.provenance).unwrap_or_default();
     let _ = write!(html, "</ul><pre>{}</pre></details>", escape(&provenance));
+}
+
+fn construction_label(stage: &ConstructionStage) -> String {
+    match stage {
+        ConstructionStage::Exact { identity } => format!("exact {identity}"),
+        ConstructionStage::Omitted { reason } => format!("omitted: {reason}"),
+    }
 }
 
 fn escape(value: &str) -> String {
