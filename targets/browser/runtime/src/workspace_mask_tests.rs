@@ -7,9 +7,10 @@ use conduit_core::{
 use conduit_form::TextPatternExpression;
 use conduit_presentation::{
     PresentationAction, PresentationActionAvailability, PresentationBasis,
-    PresentationCompositionKind, PresentationCompositionRelation, PresentationDisclosureLevel,
-    PresentationRelationship, PresentationRelationshipKind, PresentationRole, PresentationSubject,
-    PresentationText, UTF8_TEXT_VALUE_KIND,
+    PresentationCompositionKind, PresentationCompositionRelation, PresentationContextBasis,
+    PresentationDisclosureLevel, PresentationInteractionContext, PresentationRelationship,
+    PresentationRelationshipKind, PresentationRole, PresentationSubject, PresentationText,
+    UTF8_TEXT_VALUE_KIND,
 };
 use serde::Deserialize;
 
@@ -220,6 +221,42 @@ fn acknowledgement(effect: &BrowserMaskEffect) -> BrowserMaskAcknowledgement {
         presentation_id: effect.presentation_id.clone(),
         presentation_revision: effect.presentation_revision,
     }
+}
+
+fn contextual_presentation(context: &str) -> Presentation {
+    let base = presentation();
+    let mut subjects = base.subjects;
+    subjects.push(PresentationSubject {
+        identity: "participant/current".into(),
+        role: PresentationRole::Semantic(kind_id("human/participant")),
+        name: "Current participant".into(),
+    });
+    let mut relationships = base.relationships;
+    relationships.push(PresentationRelationship {
+        source: "body/browser-mask-test".into(),
+        target: "participant/current".into(),
+        kind: PresentationRelationshipKind::Contains,
+    });
+    Presentation::new_with_semantics(
+        base.revision,
+        base.basis,
+        subjects,
+        relationships,
+        base.properties,
+        base.text,
+        base.actions,
+        base.disclosures,
+    )
+    .unwrap()
+    .with_interaction_context(PresentationInteractionContext {
+        identity: format!("context/{context}"),
+        basis: vec![PresentationContextBasis {
+            source: "body/browser-mask-test".into(),
+            relationship: PresentationRelationshipKind::Contains,
+            target: "participant/current".into(),
+        }],
+    })
+    .unwrap()
 }
 
 fn body_plan_basis() -> (BodyId, conduit_body::Wake, conduit_body::BodyPlan) {
@@ -492,6 +529,41 @@ fn show_becomes_available_only_after_exact_browser_acknowledgement() {
     assert_eq!(journey[7].plan_id, journey[6].plan_id);
     assert!(journey[7].show_id.is_some());
     assert!(journey[9].show_id.is_some());
+}
+
+#[test]
+fn ordinary_mask_fore_refuses_same_revision_interaction_from_another_face_context() {
+    let teacher = contextual_presentation("teacher");
+    let student = contextual_presentation("student");
+    assert_eq!(teacher.revision, student.revision);
+    assert_ne!(teacher.identity, student.identity);
+
+    let (body, wake, body_plan) = body_plan_basis();
+    let (mut runtime, effect) = BrowserMaskRuntime::prepare(
+        body,
+        HostId::from("host/browser"),
+        BootId::from("boot/browser"),
+        teacher,
+        wake,
+        body_plan,
+    )
+    .unwrap();
+    runtime.acknowledge(&acknowledgement(&effect)).unwrap();
+
+    let mut stale = interaction(&effect);
+    stale.presentation_id = student.identity.as_str().into();
+    assert_eq!(
+        runtime.interact(&stale).unwrap_err(),
+        "browser Mask interaction is stale or mismatched"
+    );
+    assert!(runtime.interaction_receipt.is_none());
+    assert!(runtime.pending_interaction_node.is_some());
+
+    let receipt = runtime.interact(&interaction(&effect)).unwrap();
+    assert_eq!(
+        receipt.correlation.interaction.face_id,
+        effect.presentation_id
+    );
 }
 
 #[test]
