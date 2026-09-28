@@ -18,7 +18,6 @@ conduit-kernel = { path = "../../architecture/kernel" }
 conduit-plan-lowering = { path = "../../architecture/plan-lowering", default-features = false }
 conduit-mpu6050 = { path = "../../mechanisms/devices/mpu6050" }
 conduit-presentation = { path = "../../semantics/presentation" }
-conduit-ssd1306 = { path = "../../mechanisms/devices/ssd1306" }
 conduit-observatory = { path = "../../architecture/observatory" }
 conduit-planner = { path = "../../architecture/planner" }
 conduit-signal = { path = "../../semantics/signal", features = ["host-profile"] }
