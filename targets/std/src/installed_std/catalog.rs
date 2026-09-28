@@ -169,6 +169,7 @@ use super::text_state_back::{
 use super::tick_backs::TEST_OBSERVER_FACTORY;
 use super::tick_backs::{EVERY_FACTORY, TICK_FACTORY};
 use super::tick_presentation::TICK_PRESENTATION_FACTORY;
+use super::time_sample_back::FACTORY as TIME_SAMPLE_FACTORY;
 use super::timed_button_attempt_back::FACTORY as TIMED_BUTTON_ATTEMPT_FACTORY;
 use super::timed_pattern_back::FACTORY as TIMED_PATTERN_FACTORY;
 use super::timing_backs::{TIME_DEADLINE_FACTORY, TIME_DEBOUNCE_FACTORY, TIME_TIMEOUT_FACTORY};
@@ -226,6 +227,7 @@ const FACTORIES: &[&BackFactory] = &[
     &TIME_DELAY_FACTORY,
     &TIME_THROTTLE_FACTORY,
     &TIME_DEADLINE_FACTORY,
+    &TIME_SAMPLE_FACTORY,
     &RECURRENCE_FACTORY,
     &CALENDAR_PROPOSAL_FACTORY,
     &CALENDAR_READ_FACTORY,

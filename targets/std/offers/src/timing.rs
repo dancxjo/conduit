@@ -34,6 +34,10 @@ pub const TIME_DEADLINE_EXECUTION_PROFILE: &str =
     "conduit.std/time-deadline-cancellation-kernel-hosted@1";
 pub const TIME_DEADLINE_IMPLEMENTATION: &str = "std/kernel-time-deadline-cancellation@1";
 pub const TIME_DEADLINE_ARTIFACT: &str = "conduit-std-host/time-deadline-cancellation@1";
+pub const TIME_SAMPLE_EXECUTION_PROFILE: &str = "conduit.std/time-sample-kernel-hosted@1";
+pub const TIME_SAMPLE_IMPLEMENTATION: &str = "std/kernel-time-sample@1";
+pub const TIME_SAMPLE_ARTIFACT: &str = "conduit-std-host/time-sample@1";
+pub const TIME_SAMPLE_MAXIMUM_VALUE_BYTES: u32 = 100;
 
 pub fn tick_capability_offer() -> CapabilityOffer {
     offer(
@@ -125,6 +129,25 @@ pub fn time_deadline_offer() -> CapabilityOffer {
     )
 }
 
+pub fn time_sample_offer(
+    value: &conduit_core::CheckedValueContract,
+) -> Result<CapabilityOffer, &'static str> {
+    if value.maximum_bytes > TIME_SAMPLE_MAXIMUM_VALUE_BYTES {
+        return Err("std time/sample specialization exceeds the derived-value byte bound");
+    }
+    Ok(offer(
+        conduit_semantic_catalog::time_sample_semantic_contract(value)?,
+        Identity {
+            capability: "time-sample-v1",
+            profile: TIME_SAMPLE_EXECUTION_PROFILE,
+            implementation: TIME_SAMPLE_IMPLEMENTATION,
+            artifact: TIME_SAMPLE_ARTIFACT,
+        },
+        Vec::new(),
+        Vec::new(),
+    ))
+}
+
 fn timing_offer(
     contract: Kind,
     capability: &str,
@@ -184,6 +207,32 @@ fn offer(
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn sample_offer_preserves_one_exact_specialization_without_clock_effects() {
+        let text = conduit_core::CheckedValueContract::new(
+            conduit_core::kind_id("value/text"),
+            73,
+            Vec::new(),
+        )
+        .unwrap();
+        let offer = time_sample_offer(&text).unwrap();
+        assert!(offer.host_calls.is_empty());
+        assert!(offer.resource_requirements.is_empty());
+        assert_eq!(offer.semantic_contract.value_contracts().len(), 2);
+        assert!(offer
+            .semantic_contract
+            .value_contracts()
+            .iter()
+            .all(|entry| entry.contract == text));
+        let oversized = conduit_core::CheckedValueContract::new(
+            conduit_core::kind_id("value/text"),
+            TIME_SAMPLE_MAXIMUM_VALUE_BYTES + 1,
+            Vec::new(),
+        )
+        .unwrap();
+        assert!(time_sample_offer(&oversized).is_err());
+    }
 
     #[test]
     fn timing_offers_preserve_exact_contracts_and_effect_requirements() {

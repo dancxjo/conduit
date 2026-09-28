@@ -136,6 +136,7 @@ installed_step_dispatch!(
     TimeDelay,
     TimeThrottle,
     TimeDeadline,
+    TimeSample,
     Recurrence,
     CalendarProposal,
     CalendarProvider,

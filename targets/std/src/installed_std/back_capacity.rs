@@ -15,6 +15,7 @@ impl InstalledBack {
             Self::TimeDelay(operation) => operation.allocation_capacity(),
             Self::TimeThrottle(operation) => operation.allocation_capacity(),
             Self::TimeDeadline(operation) => operation.allocation_capacity(),
+            Self::TimeSample(operation) => operation.allocation_capacity(),
             Self::TimedButtonAttempt(operation) => operation.allocation_capacity(),
             Self::StateCount(operation) => operation.allocation_capacity(),
             Self::RoboticsSource(operation) => operation.allocation_capacity(),

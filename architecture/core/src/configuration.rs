@@ -396,6 +396,7 @@ pub enum KindTerminalBehavior {
     InactivityStateCancelsDeadlineAndCompletesWhenInputCloses,
     DelaysEachValueInOrderAndDrainsOnInputClosure,
     LeadingThrottleDropsValuesDuringIntervalAndCompletesWhenInputCloses,
+    SamplesLatestValueAtCadenceAndCompletesWhenCadenceCloses,
     SimulatedCurrentObservationEmitsOnce,
     HostInputEndsOrFailsSource,
     HostObservationEndsOrFailsSource,
