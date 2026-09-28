@@ -2,6 +2,7 @@
 
 extern crate alloc;
 
+mod causal_explanation;
 mod evidence_lineage;
 mod model;
 mod projection;
@@ -10,6 +11,7 @@ mod sound;
 mod usefulness;
 mod validation;
 
+pub use causal_explanation::*;
 pub use evidence_lineage::*;
 pub use model::*;
 pub use projection::{build_report, unsupported_state, SNAPSHOT_SCHEMA};
@@ -18,6 +20,8 @@ pub use sound::*;
 pub use usefulness::*;
 pub use validation::validate_snapshot;
 
+#[cfg(test)]
+mod causal_explanation_tests;
 #[cfg(test)]
 mod tests;
 #[cfg(test)]

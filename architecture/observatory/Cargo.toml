@@ -5,6 +5,7 @@ edition = "2021"
 
 [dependencies]
 conduit-core = { path = "../core" }
+conduit-kernel = { path = "../kernel", features = ["alloc"] }
 serde = { version = "1", default-features = false, features = ["alloc", "derive"] }
 
 [dev-dependencies]
