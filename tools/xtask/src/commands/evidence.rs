@@ -6,8 +6,6 @@ use crate::evidence::{self, ExpectedEvidenceResult, VerificationRequest};
 
 #[path = "evidence_home_cross_front.rs"]
 mod home_cross_front;
-#[path = "evidence_journey_audio.rs"]
-mod journey_audio;
 #[path = "evidence_three_body_browser.rs"]
 mod three_body_browser;
 #[path = "evidence_three_body_journey.rs"]
@@ -25,8 +23,6 @@ pub struct EvidenceArgs {
 enum EvidenceCommand {
     /// Check the assembled documentary's images, playback, navigation and mobile layout.
     CheckThreeBodyJourney(three_body_browser::BrowserArgs),
-    /// Voice retained model speech into documentary MP3s and measured waveforms.
-    JourneyAudio(journey_audio::JourneyAudioArgs),
     /// Publish the bounded Home index after every front supplies exact evidence.
     HomeCrossFront(HomeCrossFrontArgs),
     /// Verify three independently born Bodies against one semantic Journey contract.
@@ -148,10 +144,6 @@ struct EvidenceGalleryArgs {
     #[arg(long)]
     conduitos_evidence_root: Option<PathBuf>,
 
-    /// Optional complete Hears and Speaks audio evidence for the same commit.
-    #[arg(long)]
-    hears_speaks_evidence_root: Option<PathBuf>,
-
     /// Optional complete One form, Two Fronts evidence for the same commit.
     #[arg(long)]
     two_fronts_evidence_root: Option<PathBuf>,
@@ -201,7 +193,6 @@ enum EvidenceResultArg {
 pub fn run(args: EvidenceArgs) -> Result<(), Box<dyn std::error::Error>> {
     match args.command {
         EvidenceCommand::HomeCrossFront(args) => home_cross_front::run(args.receipts, args.output),
-        EvidenceCommand::JourneyAudio(args) => journey_audio::run(args),
         EvidenceCommand::CheckThreeBodyJourney(args) => three_body_browser::run(args),
         EvidenceCommand::ThreeBodyJourney(args) => three_body_journey::run(
             args.commit,
@@ -238,7 +229,6 @@ pub fn run(args: EvidenceArgs) -> Result<(), Box<dyn std::error::Error>> {
         EvidenceCommand::Gallery(args) => evidence::publish_gallery(&evidence::GalleryRequest {
             evidence_root: args.evidence_root,
             conduitos_evidence_root: args.conduitos_evidence_root,
-            hears_speaks_evidence_root: args.hears_speaks_evidence_root,
             two_fronts_evidence_root: args.two_fronts_evidence_root,
             little_life_evidence_root: args.little_life_evidence_root,
             site_root: args.site_root,

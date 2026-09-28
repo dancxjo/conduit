@@ -2,7 +2,7 @@
 
 use crate::cli::HostServiceCommand;
 use conduit_core::{BootId, HostId, OfferGeneration};
-use conduit_std_host::{StdHost, StdHostComposition, StdHostConfig};
+use conduit_std_host::{StdHost, StdHostConfig};
 use serde::{Deserialize, Serialize};
 use sha2::{Digest, Sha256};
 use std::{
@@ -24,8 +24,6 @@ const MAXIMUM_BODY_ADMISSION_BYTES: u64 = 512 * 1024;
 mod invitation;
 #[path = "durable_host_membership.rs"]
 mod membership;
-#[path = "durable_host_voice.rs"]
-mod voice;
 pub(crate) use invitation::{accept_body_invitation, admit_body_request, issue_body_invitation};
 pub(crate) use membership::{complete_body_join, retain_rendezvous_membership};
 
@@ -87,35 +85,6 @@ pub(crate) fn dispatch(command: HostServiceCommand) -> Result<(), String> {
         }),
         HostServiceCommand::Run { state_dir } => run(&state_dir),
         HostServiceCommand::Status { state_dir, json } => status(&state_dir, json),
-        HostServiceCommand::ConfigureVoice {
-            state_dir,
-            whisper_executable,
-            whisper_model,
-            whisper_threads,
-            whisper_timeout_seconds,
-            ollama_model,
-            admitted_memory_mib,
-            piper_executable,
-            piper_model,
-            piper_config,
-            piper_library_path,
-            piper_timeout_seconds,
-            authorize_local_voice,
-        } => voice::configure(
-            &state_dir,
-            whisper_executable,
-            whisper_model,
-            whisper_threads,
-            whisper_timeout_seconds,
-            ollama_model,
-            admitted_memory_mib,
-            piper_executable,
-            piper_model,
-            piper_config,
-            piper_library_path,
-            piper_timeout_seconds,
-            authorize_local_voice,
-        ),
         HostServiceCommand::OwnBody {
             evidence,
             state_dir,
@@ -329,12 +298,7 @@ fn prepare_runtime(
         boot_id: BootId::from(boot_id.as_str()),
         offer_generation: OfferGeneration(1),
     };
-    let host = match voice::load(state_dir)? {
-        Some(providers) => {
-            StdHost::new_with_voice_providers(config, StdHostComposition::reference(), providers)?
-        }
-        None => StdHost::new_with_config(config),
-    };
+    let host = StdHost::new_with_config(config);
     let status = RuntimeStatus {
         schema: RUNTIME_SCHEMA.into(),
         host_id: host.advertisement().host_id.as_str().into(),
