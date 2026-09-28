@@ -70,13 +70,13 @@ test("Browser Home enacts the shared journey through the real Patchbay", async (
   await page.getByRole("button", { name: "PATCHBAY" }).click();
   await expect(page).toHaveURL(`${root}/patchbay/`);
   await expect(page.locator("body")).toHaveAttribute("data-application-ready", "true");
-  steps.push("patchbay.opened");
+  steps.push("patchbay.requested");
   await page.goBack();
   await expect(page.getByRole("button", { name: "TOUR" })).toBeVisible();
   steps.push("home.returned");
   expect(steps).toEqual([
     "home.arrived", "forms.opened", "form.selected", "prompt.opened",
-    "form.run", "play.observed", "patchbay.opened", "home.returned",
+    "form.run", "play.observed", "patchbay.requested", "home.returned",
   ]);
 });
 

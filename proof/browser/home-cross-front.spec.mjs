@@ -7,7 +7,7 @@ import { startStaticProduct } from "./tour-test-server.mjs";
 const root = "target/home-cross-front-browser-proof";
 const sharedSteps = [
   "home.arrived", "forms.opened", "form.selected", "prompt.opened",
-  "form.run", "play.observed", "patchbay.opened", "home.returned",
+  "form.run", "play.observed", "patchbay.requested", "home.returned",
 ];
 let entrance;
 
@@ -53,7 +53,7 @@ test("browser Home retains one exact cross-front receipt", async ({ page }, test
   await page.getByRole("button", { name: "PATCHBAY" }).click();
   await expect(page).toHaveURL(`${carrier}/patchbay/`);
   await expect(page.locator("body")).toHaveAttribute("data-application-ready", "true");
-  steps.push("patchbay.opened");
+  steps.push("patchbay.requested");
   await page.goBack();
   await expect(page.getByRole("button", { name: "TOUR" })).toBeVisible();
   steps.push("home.returned");
@@ -62,7 +62,7 @@ test("browser Home retains one exact cross-front receipt", async ({ page }, test
   const front = `browser-${testInfo.project.name}`;
   const artifactName = `${front}.png`;
   const receipt = {
-    schema: "conduit.evidence/home-front@1",
+    schema: "conduit.evidence/home-front@2",
     front_id: front,
     proof_class: "live-browser",
     step_ids: steps,

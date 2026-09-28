@@ -174,7 +174,7 @@ fn journey_step_ids(checkpoint: &str) -> &'static [&'static str] {
             conduit_home_model::FORM_RUN_STEP_ID,
             conduit_home_model::PLAY_OBSERVED_STEP_ID,
         ],
-        "home-patchbay-open" => &[conduit_home_model::PATCHBAY_OPENED_STEP_ID],
+        "home-patchbay-open" => &[conduit_home_model::PATCHBAY_REQUESTED_STEP_ID],
         "home-returned" => &[conduit_home_model::HOME_RETURNED_STEP_ID],
         _ => &[],
     }

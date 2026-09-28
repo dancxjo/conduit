@@ -971,8 +971,6 @@ dependencies = [
  "conduit-home-model",
  "conduit-presentation",
  "embedded-graphics",
- "patchbay-hosted",
- "patchbay-model",
  "png",
  "serde",
  "serde_json",

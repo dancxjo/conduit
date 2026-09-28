@@ -1,13 +1,11 @@
 mod executor;
 mod journey;
 mod layout;
-mod patchbay;
 mod presentation;
 
 pub use executor::*;
 pub use journey::*;
 pub use layout::*;
-pub use patchbay::*;
 pub use presentation::*;
 
 pub const INSTALLED_FORMS: [&str; 4] = ["Hello", "Text Lab", "Clock", "Count"];

@@ -25,12 +25,11 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     {
         let receipt = run_native_home_journey()?;
         println!(
-            "HOME JOURNEY COMPLETE front={} revision={} form_plan={} form_play={} patchbay_presentation={} steps={}",
+            "HOME JOURNEY COMPLETE front={} revision={} form_plan={} form_play={} steps={}",
             receipt.host_front,
             receipt.final_revision,
             receipt.form_plan_id,
             receipt.form_play_id,
-            receipt.patchbay_presentation_id,
             receipt.step_ids.join(",")
         );
         return Ok(());

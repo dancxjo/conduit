@@ -4,7 +4,7 @@ use alloc::{string::String, vec::Vec};
 
 use crate::JOURNEY_STEP_IDS;
 
-pub const HOME_EVIDENCE_INDEX_SCHEMA: &str = "conduit.home/cross-front-evidence-index@1";
+pub const HOME_EVIDENCE_INDEX_SCHEMA: &str = "conduit.home/cross-front-evidence-index@2";
 pub const MAX_HOME_MANIFESTATIONS: usize = 6;
 pub const MAX_ARTIFACTS_PER_MANIFESTATION: usize = 8;
 

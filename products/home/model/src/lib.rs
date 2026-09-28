@@ -24,7 +24,7 @@ pub const FORM_SELECTED_STEP_ID: &str = "form.selected";
 pub const PROMPT_OPENED_STEP_ID: &str = "prompt.opened";
 pub const FORM_RUN_STEP_ID: &str = "form.run";
 pub const PLAY_OBSERVED_STEP_ID: &str = "play.observed";
-pub const PATCHBAY_OPENED_STEP_ID: &str = "patchbay.opened";
+pub const PATCHBAY_REQUESTED_STEP_ID: &str = "patchbay.requested";
 pub const HOME_RETURNED_STEP_ID: &str = "home.returned";
 pub const OPEN_TOUR_ACTION_ID: &str = "home.open-tour";
 pub const OPEN_PATCHBAY_ACTION_ID: &str = "home.open-patchbay";
@@ -40,7 +40,7 @@ pub const JOURNEY_STEP_IDS: [&str; 8] = [
     PROMPT_OPENED_STEP_ID,
     FORM_RUN_STEP_ID,
     PLAY_OBSERVED_STEP_ID,
-    PATCHBAY_OPENED_STEP_ID,
+    PATCHBAY_REQUESTED_STEP_ID,
     HOME_RETURNED_STEP_ID,
 ];
 

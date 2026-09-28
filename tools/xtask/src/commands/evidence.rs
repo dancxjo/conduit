@@ -45,7 +45,7 @@ enum EvidenceCommand {
 
 #[derive(Args, Debug)]
 struct HomeCrossFrontArgs {
-    /// One conduit.evidence/home-front@1 receipt; exactly six distinct fronts are required.
+    /// One conduit.evidence/home-front@2 receipt; exactly six distinct fronts are required.
     #[arg(long = "receipt", required = true)]
     receipts: Vec<PathBuf>,
 

@@ -155,7 +155,7 @@ fn with_input(function_length: usize, apply: impl FnOnce(&str, &mut BrowserHome)
 #[cfg(test)]
 mod tests {
     use super::*;
-    use conduit_home_model::{JOURNEY_STEP_IDS, PATCHBAY_OPENED_STEP_ID};
+    use conduit_home_model::{JOURNEY_STEP_IDS, PATCHBAY_REQUESTED_STEP_ID};
     use conduit_presentation::ApplicationView;
 
     fn input(text: &str) {
@@ -182,7 +182,7 @@ mod tests {
         assert_eq!(submit("run hello"), REQUEST_RUN_FORM);
         assert_eq!(submit("home"), REQUEST_NONE);
         assert_eq!(action("home.open-patchbay"), REQUEST_PATCHBAY);
-        assert_eq!(PATCHBAY_OPENED_STEP_ID, JOURNEY_STEP_IDS[6]);
+        assert_eq!(PATCHBAY_REQUESTED_STEP_ID, JOURNEY_STEP_IDS[6]);
         assert_eq!(submit("home"), REQUEST_NONE);
     }
 

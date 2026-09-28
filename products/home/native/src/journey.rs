@@ -1,12 +1,10 @@
 use conduit_home_model::{
     FORM_RUN_STEP_ID, FORM_SELECTED_STEP_ID, FORMS_OPENED_STEP_ID, HOME_ARRIVED_STEP_ID,
-    HOME_RETURNED_STEP_ID, HomeDestination, HomeEvent, HomeView, PATCHBAY_OPENED_STEP_ID,
+    HOME_RETURNED_STEP_ID, HomeDestination, HomeEvent, HomeView, PATCHBAY_REQUESTED_STEP_ID,
     PLAY_OBSERVED_STEP_ID, PROMPT_OPENED_STEP_ID,
 };
 
-use crate::{
-    NativeHomeController, NativeHomeRequest, execute_installed_form, open_patchbay_presentation,
-};
+use crate::{NativeHomeController, NativeHomeRequest, execute_installed_form};
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct NativeHomeJourneyReceipt {
@@ -18,7 +16,6 @@ pub struct NativeHomeJourneyReceipt {
     pub boot_id: String,
     pub form_plan_id: String,
     pub form_play_id: String,
-    pub patchbay_presentation_id: String,
     pub form_presentation: crate::NativeHomePresentation,
     pub form_notice: String,
 }
@@ -59,9 +56,7 @@ pub fn run_native_home_journey() -> Result<NativeHomeJourneyReceipt, String> {
         patchbay == Some(NativeHomeRequest::OpenPatchbay),
         "Patchbay did not preserve the exact host request",
     )?;
-    let patchbay_opening = open_patchbay_presentation()?;
-    steps.push(PATCHBAY_OPENED_STEP_ID);
-    home.report_request(patchbay.as_ref().expect("checked request"), Ok(()));
+    steps.push(PATCHBAY_REQUESTED_STEP_ID);
 
     home.accept(HomeEvent::Escape);
     require(
@@ -86,7 +81,6 @@ pub fn run_native_home_journey() -> Result<NativeHomeJourneyReceipt, String> {
         boot_id: execution.boot_id,
         form_plan_id: execution.plan_id,
         form_play_id: execution.active_play_id,
-        patchbay_presentation_id: patchbay_opening.presentation_id,
         form_presentation,
         form_notice,
     })
@@ -117,7 +111,6 @@ mod tests {
         assert!(!receipt.boot_id.is_empty());
         assert!(!receipt.form_plan_id.is_empty());
         assert!(!receipt.form_play_id.is_empty());
-        assert!(!receipt.patchbay_presentation_id.is_empty());
         assert_eq!(receipt.form_presentation.view, HomeView::Prompt);
         assert!(receipt.form_notice.contains("Completed Form Hello"));
     }

@@ -6,9 +6,9 @@ use sha2::{Digest, Sha256};
 use std::collections::BTreeSet;
 use std::path::{Component, Path, PathBuf};
 
-const SCHEMA: &str = "conduit.evidence/home-front@1";
-const INDEX_SCHEMA: &str = "conduit.evidence/home-cross-front-index@1";
-const VOICE_ARTIFACT_SCHEMA: &str = "conduit.home/voice-front@1";
+const SCHEMA: &str = "conduit.evidence/home-front@2";
+const INDEX_SCHEMA: &str = "conduit.evidence/home-cross-front-index@2";
+const VOICE_ARTIFACT_SCHEMA: &str = "conduit.home/voice-front@2";
 const MAXIMUM_FRONT_ARTIFACT_BYTES: usize = 2 * 1024 * 1024;
 const REQUIRED_FRONTS: [&str; 6] = [
     "conduitos",
