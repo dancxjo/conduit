@@ -93,6 +93,7 @@ enum ActiveTerminalPhase {
 }
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
+#[non_exhaustive]
 pub struct CordSpec {
     pub cord: CordId,
     pub source: CordEndpoint,
@@ -117,16 +118,16 @@ pub struct CordCapacity {
 }
 
 impl CordSpec {
-    pub const fn local(
+    pub const fn new(
         cord: CordId,
-        source: (NodeId, PortId),
-        sink: (NodeId, PortId),
+        source: CordEndpoint,
+        sink: CordEndpoint,
         capacity: CordCapacity,
     ) -> Self {
         Self {
             cord,
-            source: CordEndpoint::local(source.0, source.1),
-            sink: CordEndpoint::local(sink.0, sink.1),
+            source,
+            sink,
             slot_start: capacity.slot_start,
             item_capacity: capacity.item_capacity,
             byte_capacity: capacity.byte_capacity,
@@ -134,6 +135,36 @@ impl CordSpec {
             pressure_policy: capacity.pressure_policy,
             track: AssignedConnectionTrack::Payload,
         }
+    }
+
+    /// Padding entry for fixed-capacity tables. Active-prefix validation keeps
+    /// this sentinel outside the executable plan.
+    pub const fn inactive() -> Self {
+        Self {
+            cord: CordId(u16::MAX),
+            source: CordEndpoint::local(NodeId(u16::MAX), PortId(u16::MAX)),
+            sink: CordEndpoint::local(NodeId(u16::MAX), PortId(u16::MAX)),
+            slot_start: u16::MAX,
+            item_capacity: 0,
+            byte_capacity: 0,
+            maximum_value_bytes: 0,
+            pressure_policy: AssignedPressurePolicy::PreserveOrder,
+            track: AssignedConnectionTrack::Payload,
+        }
+    }
+
+    pub const fn local(
+        cord: CordId,
+        source: (NodeId, PortId),
+        sink: (NodeId, PortId),
+        capacity: CordCapacity,
+    ) -> Self {
+        Self::new(
+            cord,
+            CordEndpoint::local(source.0, source.1),
+            CordEndpoint::local(sink.0, sink.1),
+            capacity,
+        )
     }
 
     pub const fn with_track(mut self, track: AssignedConnectionTrack) -> Self {
@@ -152,17 +183,12 @@ impl CordSpec {
         endpoint: RemoteEndpointId,
         capacity: CordCapacity,
     ) -> Self {
-        Self {
+        Self::new(
             cord,
-            source: CordEndpoint::local(source.0, source.1),
-            sink: CordEndpoint::Remote(endpoint),
-            slot_start: capacity.slot_start,
-            item_capacity: capacity.item_capacity,
-            byte_capacity: capacity.byte_capacity,
-            maximum_value_bytes: capacity.byte_capacity,
-            pressure_policy: capacity.pressure_policy,
-            track: AssignedConnectionTrack::Payload,
-        }
+            CordEndpoint::local(source.0, source.1),
+            CordEndpoint::Remote(endpoint),
+            capacity,
+        )
     }
 
     pub const fn remote_ingress(
@@ -171,17 +197,12 @@ impl CordSpec {
         sink: (NodeId, PortId),
         capacity: CordCapacity,
     ) -> Self {
-        Self {
+        Self::new(
             cord,
-            source: CordEndpoint::Remote(endpoint),
-            sink: CordEndpoint::local(sink.0, sink.1),
-            slot_start: capacity.slot_start,
-            item_capacity: capacity.item_capacity,
-            byte_capacity: capacity.byte_capacity,
-            maximum_value_bytes: capacity.byte_capacity,
-            pressure_policy: capacity.pressure_policy,
-            track: AssignedConnectionTrack::Payload,
-        }
+            CordEndpoint::Remote(endpoint),
+            CordEndpoint::local(sink.0, sink.1),
+            capacity,
+        )
     }
 
     pub const fn source_local(self) -> Option<(NodeId, PortId)> {

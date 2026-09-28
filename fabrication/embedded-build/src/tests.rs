@@ -47,11 +47,15 @@ fn current_fragment_lowers_into_one_deterministic_fixed_image() {
     let first = generated.render_rust_module();
     let second = generated.render_rust_module();
     assert_eq!(first, second);
+    assert!(first.contains("conduit_kernel::scheduler::CordSpec::new"));
     assert!(first.contains("conduit_kernel::CordEndpoint::local"));
     assert!(first.contains(
         "pressure_policy: conduit_kernel::scheduler::AssignedPressurePolicy::PreserveOrder"
     ));
-    assert!(first.contains("track: conduit_kernel::scheduler::AssignedConnectionTrack::Payload"));
+    assert!(
+        first.contains(".with_track(conduit_kernel::scheduler::AssignedConnectionTrack::Payload)")
+    );
+    assert!(first.contains(".with_maximum_value_bytes(9)"));
     assert!(!first.contains("pressure_policy: Default::default()"));
     assert!(first.contains("pub const GENERATED_PLACEMENT_IDS"));
     assert!(!first.contains("ExecutionPlan"));

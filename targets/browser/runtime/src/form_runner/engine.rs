@@ -30,8 +30,8 @@ use conduit_kernel::scheduler::{
     CordSpec, FixedScheduler, HostCallRequest, NodeSpec, SchedulerStatus,
 };
 use conduit_kernel::{
-    BoundedValueRef, CordEndpoint, CordId, FixedHostCallBindings, FixedRoutes, HostCallDisposition,
-    HostCallOutcome, HostedSignLog, HostedValueStore, NodeId, PortId,
+    BoundedValueRef, CordId, FixedHostCallBindings, FixedRoutes, HostCallDisposition,
+    HostCallOutcome, HostedSignLog, HostedValueStore, NodeId,
 };
 use conduit_plan_lowering::lowering::{lower_plan_fragment, LoweredPlanFragment};
 

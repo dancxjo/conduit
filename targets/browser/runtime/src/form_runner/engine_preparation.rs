@@ -243,17 +243,7 @@ pub(in crate::form_runner) fn prepare_body_scheduler(
     {
         *destination = *spec;
     }
-    let inactive_cord = CordSpec {
-        cord: CordId(u16::MAX),
-        source: CordEndpoint::local(NodeId(u16::MAX), PortId(u16::MAX)),
-        sink: CordEndpoint::local(NodeId(u16::MAX), PortId(u16::MAX)),
-        slot_start: u16::MAX,
-        item_capacity: 0,
-        byte_capacity: 0,
-        maximum_value_bytes: 0,
-        pressure_policy: Default::default(),
-        track: Default::default(),
-    };
+    let inactive_cord = CordSpec::inactive();
     let mut cords = [inactive_cord; MAXIMUM_BROWSER_CORDS];
     for (destination, lowered_cord) in cords
         .iter_mut()

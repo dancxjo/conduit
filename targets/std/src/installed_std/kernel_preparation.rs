@@ -5,10 +5,7 @@ use super::{
     MAX_NODES, PORTS, ROUTE_SLOTS, ROUTE_TARGETS,
 };
 use conduit_kernel::scheduler::{AssignedTerminalTransduction, CordSpec, NodeSpec};
-use conduit_kernel::{
-    CordEndpoint, CordId, FixedHostCallBindings, FixedRoutes, HostedSignLog, HostedValueStore,
-    NodeId, PortId,
-};
+use conduit_kernel::{FixedHostCallBindings, FixedRoutes, HostedSignLog, HostedValueStore};
 use conduit_plan_lowering::lowering::LoweredPlanFragment;
 
 pub(super) struct KernelTables {
@@ -30,17 +27,7 @@ impl KernelTables {
                 input_cords: [None; PORTS],
                 maximum_step_fuel: 1,
             }; MAX_NODES],
-            cords: [CordSpec {
-                cord: CordId(u16::MAX),
-                source: CordEndpoint::local(NodeId(u16::MAX), PortId(u16::MAX)),
-                sink: CordEndpoint::local(NodeId(u16::MAX), PortId(u16::MAX)),
-                slot_start: u16::MAX,
-                item_capacity: 0,
-                byte_capacity: 0,
-                maximum_value_bytes: 0,
-                pressure_policy: Default::default(),
-                track: Default::default(),
-            }; MAX_CORDS],
+            cords: [CordSpec::inactive(); MAX_CORDS],
             routes: FixedRoutes::new(PORTS as u16),
             host_bindings: FixedHostCallBindings::new(HOST_CALLS_PER_NODE),
             terminal_transductions: [None; MAX_NODES],

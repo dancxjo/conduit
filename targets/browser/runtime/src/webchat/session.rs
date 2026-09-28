@@ -6,8 +6,7 @@ use conduit_form::{
 };
 use conduit_kernel::scheduler::{CordSpec, FixedScheduler, HostCallRequest, NodeSpec};
 use conduit_kernel::{
-    CordEndpoint, CordId, FixedHostCallBindings, FixedRoutes, HostedSignLog, HostedValueStore,
-    NodeId, PortId, ValueStorage,
+    FixedHostCallBindings, FixedRoutes, HostedSignLog, HostedValueStore, ValueStorage,
 };
 use conduit_plan_lowering::lowering::{
     lower_plan_fragment, KernelExecutionIdentityMap, KernelIdentityMap,
@@ -252,17 +251,7 @@ impl BrowserChatSession {
         };
         let mut node_specs = [inactive_node; NODES];
         node_specs.copy_from_slice(&lowered.node_specs);
-        let inactive_cord = CordSpec {
-            cord: CordId(u16::MAX),
-            source: CordEndpoint::local(NodeId(u16::MAX), PortId(u16::MAX)),
-            sink: CordEndpoint::local(NodeId(u16::MAX), PortId(u16::MAX)),
-            slot_start: u16::MAX,
-            item_capacity: 0,
-            byte_capacity: 0,
-            maximum_value_bytes: 0,
-            pressure_policy: Default::default(),
-            track: Default::default(),
-        };
+        let inactive_cord = CordSpec::inactive();
         let mut cord_specs = [inactive_cord; CORDS];
         for (target, cord) in cord_specs.iter_mut().zip(&lowered.cords) {
             *target = cord.spec;
