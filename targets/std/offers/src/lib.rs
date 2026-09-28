@@ -258,6 +258,7 @@ pub fn supported_nucleus_offers() -> Vec<CapabilityOffer> {
         count_presentation_offer(),
         state_latest_scalar_offer(),
         flow_tee_scalar_offer(),
+        flow_first_scalar_offer(),
         flow_gate_scalar_offer(),
         state_select_scalar_offer(),
         logic_compare_scalar_offer(),

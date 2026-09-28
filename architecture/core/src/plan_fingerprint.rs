@@ -446,6 +446,9 @@ fn push_semantic_contract(canonical: &mut Vec<u8>, contract: &crate::KindSemanti
                     Terminal::RetainsLatestUntilReleased => canonical.push(6),
                     Terminal::EmitsCurrentAndCompletesWhenInputCloses => canonical.push(7),
                     Terminal::CoupledAtomicFanoutAndMirrorsInputTerminal => canonical.push(8),
+                    Terminal::FirstReadyLeftTieCancelsLoserOrCompletesWithoutWinner => {
+                        canonical.push(24)
+                    }
                     Terminal::CurrentBooleanGateDefaultsClosedAndCompletesWhenInputsClose => {
                         canonical.push(9)
                     }

@@ -388,6 +388,7 @@ pub enum KindTerminalBehavior {
     RetainsLatestUntilReleased,
     EmitsCurrentAndCompletesWhenInputCloses,
     CoupledAtomicFanoutAndMirrorsInputTerminal,
+    FirstReadyLeftTieCancelsLoserOrCompletesWithoutWinner,
     CurrentBooleanGateDefaultsClosedAndCompletesWhenInputsClose,
     CurrentScalarSelectorCompletesWhenInputsClose,
     EmitsOneDecisionOrCompletesWhenDecisionBecomesImpossible,

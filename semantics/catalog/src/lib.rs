@@ -238,6 +238,8 @@ mod state_toggle;
 pub use state_toggle::*;
 mod flow_state;
 pub use flow_state::*;
+mod flow_first;
+pub use flow_first::*;
 mod logic;
 pub use logic::*;
 mod math;
@@ -316,6 +318,7 @@ pub const PULSE_KIND: &str = "flow/pulse";
 pub const SHOW_KIND: &str = "presentation/show";
 pub const TEE_KIND: &str = "flow/tee";
 pub const GATE_KIND: &str = "flow/gate";
+pub const FIRST_KIND: &str = "flow/first";
 pub const TICK_KIND: &str = "time/tick";
 pub const LATEST_KIND: &str = "state/latest";
 pub const STATE_SELECT_KIND: &str = "state/select";
@@ -359,6 +362,7 @@ pub fn standard_profile_catalog() -> conduit_form::ProfileCatalog {
             MATH_CLAMP_KIND => math_clamp_semantic_contract(),
             MATH_SCALE_KIND => math_scale_semantic_contract(),
             MATH_DEADBAND_KIND => math_deadband_semantic_contract(),
+            FIRST_KIND => flow_first_scalar_semantic_contract(),
             AUDIO_TONE_KIND => audio_tone_semantic_contract(),
             _ => contract.into_semantic_contract(revision),
         };
@@ -399,7 +403,7 @@ mod supported_nucleus_tests {
     #[test]
     fn supported_nucleus_contracts_are_typed_and_identity_unique() {
         let contracts = supported_nucleus_contracts();
-        assert_eq!(contracts.len(), 57);
+        assert_eq!(contracts.len(), 58);
 
         let identities = contracts
             .iter()

@@ -66,6 +66,7 @@ pub(crate) fn supported_nucleus_contracts_with_revisions(
             "conduit.std/state-latest-scalar@2",
         ),
         (flow_tee_scalar_contract(), "conduit.std/flow-tee-scalar@2"),
+        (flow_first_scalar_contract(), FLOW_FIRST_CONTRACT_REVISION),
         (
             flow_gate_scalar_contract(),
             "conduit.std/flow-gate-scalar@1",
