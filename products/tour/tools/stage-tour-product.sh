@@ -68,14 +68,6 @@ printf '%s\n' "$page_routes" | while IFS= read -r route; do
     cp products/tour/browser/tour.html "$destination/$route/index.html"
 done
 
-# Preserve the two public chapter URLs published before the chapter-title refresh.
-legacy_page_routes='meet-one-gear
-same-front-different-implementation'
-printf '%s\n' "$legacy_page_routes" | while IFS= read -r route; do
-    mkdir "$destination/$route"
-    cp products/tour/browser/tour.html "$destination/$route/index.html"
-done
-
 # Gallery URLs are real staged entrances so both the gallery and each exact
 # reviewed form survive a direct load or browser reload.
 gallery_routes='gallery
@@ -96,5 +88,5 @@ node targets/browser/tools/build-browser-application-package.mjs \
 
 # Includes the shared admitted host-effect dispatcher used by Tour and Body.
 test -f "$destination/browser-form-effects.mjs"
-test "$(find "$destination" -type f | wc -l)" -eq 62
+test "$(find "$destination" -type f | wc -l)" -eq 60
 test -z "$(find "$destination" -type f \( -name 'creche*.mjs' -o -name 'creche*.css' -o -path '*/artifacts/*' -o -path '*/targets/*' \) -print -quit)"
