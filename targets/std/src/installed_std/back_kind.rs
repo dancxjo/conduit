@@ -9,6 +9,7 @@ use super::bool_presentation::BoolPresentationBack;
 use super::calendar_proposal_back::CalendarProposalBack;
 use super::calendar_provider_back::CalendarProviderBack;
 use super::count_backs::{CountPresentationBack, StateCountBack};
+use super::current_sample_back::CurrentSampleBack;
 use super::data_text_back::DataTextBack;
 use super::distance_frequency_back::DistanceFrequencyBack;
 use super::final_normalized_pattern_back::FinalNormalizedPatternBack;
@@ -133,6 +134,7 @@ pub(super) enum InstalledBack {
     StateLatestScalar(StateLatestScalarBack),
     FlowTeeScalar(FlowTeeScalarBack),
     StateSelectScalar(StateSelectScalarBack),
+    CurrentSample(CurrentSampleBack),
     FlowGateScalar(FlowGateScalarBack),
     FlowFirst(FlowFirstBack),
     KeyEventTee(KeyEventTeeBack),
