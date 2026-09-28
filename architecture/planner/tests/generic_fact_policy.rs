@@ -1,6 +1,6 @@
 use conduit_ai::{
     ACCELERATOR_SLOT_RESOURCE, CPU_EXECUTION_RESOURCE, DATA_EGRESS_CHARACTERISTIC,
-    GENERATE_TEXT_HOST_CALL, MAXIMUM_CONTEXT_CHARACTERISTIC, REMOTE_GENERATE_TEXT_AUTHORITY,
+    LOCAL_MODEL_OPERATION, MAXIMUM_CONTEXT_CHARACTERISTIC, REMOTE_LLM_AUTHORITY,
 };
 use conduit_core::{
     CharacteristicId, CharacteristicUnit, ComputePerformanceClassId, ComputeServiceGuarantee,
@@ -24,7 +24,7 @@ fn one_hard_language_reads_every_reviewed_subject_without_copying_facts() {
             fact: PlannerFactRef::RealizationCharacteristic(CharacteristicId::from(
                 MAXIMUM_CONTEXT_CHARACTERISTIC,
             )),
-            value: quantity(24_000, CharacteristicUnit::Tokens),
+            value: quantity(24, CharacteristicUnit::Items),
         },
         PlannerPredicate::Equal {
             fact: PlannerFactRef::RealizationCharacteristic(CharacteristicId::from(
@@ -63,13 +63,13 @@ fn one_hard_language_reads_every_reviewed_subject_without_copying_facts() {
         },
         PlannerPredicate::Equal {
             fact: PlannerFactRef::RequiresAuthority(conduit_core::AuthorityContractId::from(
-                REMOTE_GENERATE_TEXT_AUTHORITY,
+                REMOTE_LLM_AUTHORITY,
             )),
             value: PlannerFactValue::Boolean(false),
         },
         PlannerPredicate::Equal {
             fact: PlannerFactRef::RequiresHostCall(conduit_core::HostCallContractId::from(
-                GENERATE_TEXT_HOST_CALL,
+                LOCAL_MODEL_OPERATION,
             )),
             value: PlannerFactValue::Boolean(true),
         },
@@ -402,8 +402,8 @@ fn invalid_units_types_unknown_ids_and_clause_overflow_refuse() {
 fn retained_r2_variants_lower_into_the_common_fact_vocabulary() {
     let resource = conduit_core::ResourceClassId::from(CPU_EXECUTION_RESOURCE);
     let characteristic = CharacteristicId::from(MAXIMUM_CONTEXT_CHARACTERISTIC);
-    let authority = conduit_core::AuthorityContractId::from(REMOTE_GENERATE_TEXT_AUTHORITY);
-    let operation = conduit_core::HostCallContractId::from(GENERATE_TEXT_HOST_CALL);
+    let authority = conduit_core::AuthorityContractId::from(REMOTE_LLM_AUTHORITY);
+    let operation = conduit_core::HostCallContractId::from(LOCAL_MODEL_OPERATION);
     let cases = [
         RealizationPreference::MinimizeResourceUnits(resource.clone()),
         RealizationPreference::MaximizeComputeServiceGuarantee(resource.clone()),
@@ -449,8 +449,8 @@ fn retained_r2_variants_lower_into_the_common_fact_vocabulary() {
         minimum_characteristic_counts: std::collections::BTreeMap::from([(
             characteristic.clone(),
             conduit_core::CharacteristicQuantity {
-                value: 65_536,
-                unit: CharacteristicUnit::Tokens,
+                value: 128,
+                unit: CharacteristicUnit::Items,
             },
         )]),
         required_characteristic_flags: std::collections::BTreeMap::from([(
@@ -464,7 +464,7 @@ fn retained_r2_variants_lower_into_the_common_fact_vocabulary() {
         vec![
             PlannerPredicate::AtLeast {
                 fact: PlannerFactRef::RealizationCharacteristic(characteristic),
-                value: quantity(65_536, CharacteristicUnit::Tokens),
+                value: quantity(128, CharacteristicUnit::Items),
             },
             PlannerPredicate::Equal {
                 fact: PlannerFactRef::RealizationCharacteristic(CharacteristicId::from(
