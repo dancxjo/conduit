@@ -505,6 +505,7 @@ pub struct KernelPresentationIdentity {
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct KernelSignIdentity {
     pub sign_id: SignId,
+    pub sequence: u64,
     pub node: Option<NodeId>,
     pub request: Option<conduit_kernel::RequestId>,
     pub presentation_id: Option<PresentationId>,
@@ -647,6 +648,7 @@ impl KernelExecutionIdentityMap {
         }
         self.signs.push(KernelSignIdentity {
             sign_id: sign.sign_id.clone(),
+            sequence: sign.sequence,
             node,
             request,
             presentation_id: presentation_id.cloned(),

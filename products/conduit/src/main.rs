@@ -98,12 +98,13 @@ fn enter_birth() -> Result<(), String> {
         .ok_or_else(|| format!("{executable} exited with {status}"))
 }
 
-use crate::report_artifact::{snapshot_from_execution, write_report};
+use crate::report_artifact::{snapshot_from_execution, write_execution_artifacts, write_report};
 
 fn run_with_placements(
     path: &str,
     placements_path: Option<&str>,
     report_path: Option<&Path>,
+    artifact_directory: Option<&Path>,
     body_path: Option<&Path>,
     await_terminal: bool,
 ) -> Result<(), String> {
@@ -147,14 +148,24 @@ fn run_with_placements(
             .join()
             .map_err(|_| "interactive input thread failed".to_string())?;
     }
-    if let Some(report_path) = report_path {
+    if report_path.is_some() || artifact_directory.is_some() {
         let snapshot = snapshot_from_execution(
             execution.advertisements,
             execution.line_offers,
             vec![execution.plan],
             execution.observations,
         );
-        write_report(report_path, &snapshot)?;
+        if let Some(report_path) = report_path {
+            write_report(report_path, &snapshot)?;
+        }
+        if let Some(artifact_directory) = artifact_directory {
+            write_execution_artifacts(
+                artifact_directory,
+                &snapshot,
+                &execution.active_plays,
+                &execution.sign_identities,
+            )?;
+        }
     }
     Ok(())
 }
@@ -167,12 +178,14 @@ fn main() {
             form,
             placements,
             report,
+            artifacts,
             body,
             await_terminal,
         }) => run_with_placements(
             &form.to_string_lossy(),
             placements.as_deref().map(Path::to_string_lossy).as_deref(),
             report.as_deref(),
+            artifacts.as_deref(),
             body.as_deref(),
             await_terminal,
         ),
