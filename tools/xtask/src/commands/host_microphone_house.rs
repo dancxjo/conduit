@@ -45,12 +45,6 @@ pub(super) struct InitializedMicrophoneHouse {
     pub local_model: Box<dyn conduit_std_host::hosted_local_model::HostedLocalModelAdapter>,
 }
 
-impl MicrophoneHouseArgs {
-    pub(super) fn capture_authorized(&self) -> bool {
-        self.authorize_capture
-    }
-}
-
 #[derive(Serialize)]
 struct Report {
     schema: &'static str,
