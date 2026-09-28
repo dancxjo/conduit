@@ -1,5 +1,5 @@
 import { BodyWebRtcSessions } from "./body-webrtc-sessions.mjs";
-import { openBrowserHostIdentity } from "/targets/browser/host/assets/browser-host-identity.mjs";
+import { openBrowserHostIdentity } from "./browser-host-identity.mjs";
 
 const INPUT_CAPACITY = 4096;
 const MEDIA_PLAN_TIMEOUT_MILLIS = 10_000;
@@ -43,12 +43,13 @@ function requireCredential(candidate, { expectedBodyId, hostId, bootId, prior = 
   return Object.freeze({ ...candidate });
 }
 
-export async function joinBrowserBody({ bodyUrl, wasmBytes, expectedBodyId = null, retainedCredential = null, onCredential, onState, onBiographyEvidence, onOfferEvidence, onWebRtcGrant, onWebRtcSignal, onWebRtcState, configureHost, renewPresence = true, reconnectPresence = true }) {
+export async function joinBrowserBody({ bodyUrl, wasmBytes, admittedHost = null, expectedBodyId = null, retainedCredential = null, onCredential, onState, onBiographyEvidence, onOfferEvidence, onWebRtcGrant, onWebRtcSignal, onWebRtcState, configureHost, renewPresence = true, reconnectPresence = true }) {
   if (expectedBodyId !== null && (typeof expectedBodyId !== "string" || expectedBodyId.length === 0)) {
     throw new Error("invalid expected Body identity");
   }
-  const { instance } = await WebAssembly.instantiate(wasmBytes, {});
-  const api = instance.exports;
+  const admitted = admittedHost !== null;
+  const instance = admitted ? null : (await WebAssembly.instantiate(wasmBytes, {})).instance;
+  const api = admitted ? admittedHost.api : instance.exports;
   const required = [
     "memory",
     "conduit_browser_membership_input_ptr",
@@ -92,27 +93,44 @@ export async function joinBrowserBody({ bodyUrl, wasmBytes, expectedBodyId = nul
   const requireSuccess = (status, action) => {
     if (status < 0) throw new Error(`${action} failed ${status}`);
   };
-  const identity = await openBrowserHostIdentity();
-  const hostId = identity.hostId;
-  const bootId = `browser-boot/${crypto.randomUUID()}`;
-  const seed = identity.seed.slice();
-  const host = encoder.encode(hostId);
-  const boot = encoder.encode(bootId);
-  const initialization = new Uint8Array(host.length + boot.length + seed.length);
-  initialization.set(host);
-  initialization.set(boot, host.length);
-  initialization.set(seed, host.length + boot.length);
-  writeInput(initialization);
-  requireSuccess(
-    api.conduit_browser_membership_initialize(host.length, boot.length),
-    "browser membership initialization",
-  );
-  seed.fill(0);
-  initialization.fill(0);
-  const verifyingKey = readOutput();
-  if (verifyingKey.length !== 32) throw new Error("invalid browser verifying key");
-  requireSuccess(api.conduit_browser_membership_advertisement(), "browser advertisement");
-  const advertisement = JSON.parse(decoder.decode(readOutput()));
+  let hostId;
+  let bootId;
+  let verifyingKey;
+  let advertisement;
+  if (admitted) {
+    const membership = admittedHost.membership;
+    if (membership?.schema !== "conduit.browser/body-membership-client@1"
+        || membership.hostId !== admittedHost.hostId || membership.bootId !== admittedHost.bootId
+        || !Array.isArray(membership.verifyingKey) || membership.verifyingKey.length !== 32) {
+      throw new Error("admitted browser Host has an invalid membership boundary");
+    }
+    hostId = admittedHost.hostId;
+    bootId = admittedHost.bootId;
+    verifyingKey = Uint8Array.from(membership.verifyingKey);
+    advertisement = membership.advertisement();
+  } else {
+    const identity = await openBrowserHostIdentity();
+    hostId = identity.hostId;
+    bootId = `browser-boot/${crypto.randomUUID()}`;
+    const seed = identity.seed.slice();
+    const host = encoder.encode(hostId);
+    const boot = encoder.encode(bootId);
+    const initialization = new Uint8Array(host.length + boot.length + seed.length);
+    initialization.set(host);
+    initialization.set(boot, host.length);
+    initialization.set(seed, host.length + boot.length);
+    writeInput(initialization);
+    requireSuccess(
+      api.conduit_browser_membership_initialize(host.length, boot.length),
+      "browser membership initialization",
+    );
+    seed.fill(0);
+    initialization.fill(0);
+    verifyingKey = readOutput();
+    if (verifyingKey.length !== 32) throw new Error("invalid browser verifying key");
+    requireSuccess(api.conduit_browser_membership_advertisement(), "browser advertisement");
+    advertisement = JSON.parse(decoder.decode(readOutput()));
+  }
   configureHost?.(Object.freeze({ api, hostId, bootId }));
   let state = "connecting";
   let presenceState = "unavailable";
@@ -270,9 +288,14 @@ export async function joinBrowserBody({ bodyUrl, wasmBytes, expectedBodyId = nul
         return;
       }
       const bytes = encoder.encode(JSON.stringify(frame.challenge));
-      writeInput(bytes);
-      requireSuccess(api.conduit_browser_membership_prove(bytes.length), "browser admission proof");
-      const signature = readOutput();
+      let signature;
+      if (admitted) {
+        signature = Uint8Array.from(admittedHost.membership.proveAdmission(frame.challenge).signature);
+      } else {
+        writeInput(bytes);
+        requireSuccess(api.conduit_browser_membership_prove(bytes.length), "browser admission proof");
+        signature = readOutput();
+      }
       if (signature.length !== 64) throw new Error("invalid browser admission signature");
       setState("proof-sent");
       socket.send(encoder.encode(JSON.stringify({
@@ -287,12 +310,17 @@ export async function joinBrowserBody({ bodyUrl, wasmBytes, expectedBodyId = nul
       })));
     } else if (frame.kind === "return-challenge" && frame.protocol === 1) {
       const bytes = encoder.encode(JSON.stringify(frame.challenge));
-      writeInput(bytes);
-      requireSuccess(
-        api.conduit_browser_membership_prove_return(bytes.length),
-        "browser Part return proof",
-      );
-      const signature = readOutput();
+      let signature;
+      if (admitted) {
+        signature = Uint8Array.from(admittedHost.membership.proveReturn(frame.challenge).signature);
+      } else {
+        writeInput(bytes);
+        requireSuccess(
+          api.conduit_browser_membership_prove_return(bytes.length),
+          "browser Part return proof",
+        );
+        signature = readOutput();
+      }
       if (signature.length !== 64) throw new Error("invalid browser return signature");
       socket.send(encoder.encode(JSON.stringify({
         kind: "return-proof",

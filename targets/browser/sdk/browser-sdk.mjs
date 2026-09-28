@@ -13,6 +13,7 @@ const BROWSER_HOST_KEY = Symbol("Conduit BrowserHost");
 import { BrowserForm, birthBrowserBody, recoverBrowserBody, reviewBrowserForms, sdkRefusal, setBrowserSdkErrors } from "./browser-sdk-forms.mjs";
 import { acquireBrowserBodyHost } from "../host/assets/browser-body-host.mjs";
 import { openBrowserApplicationStorage } from "../host/assets/browser-application-storage.mjs";
+import { joinBrowserBody } from "../host/assets/browser-membership.js";
 export { BrowserForm, BrowserBody } from "./browser-sdk-forms.mjs";
 
 export class ConduitSdkError extends Error {
@@ -86,6 +87,32 @@ export class BrowserHost {
 
   async review(forms) {
     return reviewBrowserForms({ bridge: this.#state.bridge, host: this.id, boot: this.bootId, forms });
+  }
+
+  /** Join this already-admitted Host and Boot to one external Body invitation. */
+  async participate({ invitation, expectedBodyId = null, retainedCredential = null, onCredential,
+    onState, onBiographyEvidence, onOfferEvidence, renewPresence = true, reconnectPresence = true } = {}) {
+    if (typeof invitation !== "string" || invitation.length < 1 || invitation.length > 2048) {
+      throw new TypeError("BrowserHost.participate requires one bounded Body invitation URL");
+    }
+    return joinBrowserBody({
+      bodyUrl: invitation,
+      wasmBytes: this.#state.runtimeBytes,
+      admittedHost: {
+        api: this.#state.api,
+        membership: this.#state.membership,
+        hostId: this.id,
+        bootId: this.bootId,
+      },
+      expectedBodyId,
+      retainedCredential,
+      onCredential,
+      onState,
+      onBiographyEvidence,
+      onOfferEvidence,
+      renewPresence,
+      reconnectPresence,
+    });
   }
 
   async birth({ name, forms }) {
@@ -239,6 +266,7 @@ export const Conduit = Object.freeze({
         runtimeAbi: pkg.runtime_abi,
         hostId: initialized.hostId,
         api,
+        runtimeBytes,
         root,
         bridge,
         membership: initialized.membership,

@@ -46,7 +46,13 @@ export async function initializeBrowserHostInstance(instance, options = {}) {
   seed.fill(0);
   initialization.fill(0);
   if (status < 0) throw new Error(`browser Host initialization failed ${status}`);
-  const membership = createMembershipClient(api, hostId, bootId);
+  const verifyingKey = new Uint8Array(
+    api.memory.buffer,
+    api.conduit_browser_membership_output_ptr(),
+    api.conduit_browser_membership_output_len(),
+  ).slice();
+  if (verifyingKey.length !== 32) throw new Error("browser Host initialization returned an invalid verifying key");
+  const membership = createMembershipClient(api, hostId, bootId, verifyingKey);
   return Object.freeze({
     schema: "conduit.browser/host-incarnation@1",
     profile: identity.profile,
@@ -63,7 +69,7 @@ export async function initializeBrowserHostInstance(instance, options = {}) {
   });
 }
 
-function createMembershipClient(api, hostId, bootId) {
+function createMembershipClient(api, hostId, bootId, verifyingKey) {
   const encoder = new TextEncoder();
   const decoder = new TextDecoder("utf-8", { fatal: true });
 
@@ -90,6 +96,7 @@ function createMembershipClient(api, hostId, bootId) {
     schema: "conduit.browser/body-membership-client@1",
     hostId,
     bootId,
+    verifyingKey: Object.freeze(Array.from(verifyingKey)),
     advertisement() {
       const code = api.conduit_browser_membership_advertisement();
       if (code < 0) throw new Error(`browser Host advertisement refused (${code})`);

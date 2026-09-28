@@ -66,6 +66,9 @@ try {
   assert(listing.includes("browser-sdk.mjs"));
   assert(listing.includes("browser-sdk-forms.mjs"));
   assert(listing.includes("browser-sdk-events.mjs"));
+  assert(listing.includes("host/assets/browser-membership.js"));
+  assert(listing.includes("host/assets/browser-host-identity.mjs"));
+  assert(listing.includes("host/assets/body-webrtc-sessions.mjs"));
   assert(listing.includes("host/assets/browser-body-host.mjs"));
   assert(listing.includes("bundle/runtime.wasm"));
   const imported = spawnSync(process.execPath, ["--input-type=module", "-e", "await import('./browser-sdk.mjs')"], { cwd: output, encoding: "utf8" });

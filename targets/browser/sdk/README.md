@@ -20,6 +20,19 @@ console.log(host.packageVersion, host.runtimeAbi); // diagnostics; these grant n
 const snapshot = await host.refresh(); // current offers come from a new Boot observation
 ```
 
+The same admitted Host and Boot may explicitly participate in an externally
+owned Body. Participation does not birth, recover, or fabricate that Body; the
+invitation protocol returns its own membership, presence, biography and offer
+evidence.
+
+```js
+const participation = await host.participate({
+  invitation,
+  expectedBodyId,
+  onBiographyEvidence: evidence => inspect(evidence),
+});
+```
+
 ## Source, checked meaning, and Body work
 
 Conduit keeps authorship separate from realization. A Form says what a
