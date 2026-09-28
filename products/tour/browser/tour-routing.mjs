@@ -80,11 +80,7 @@ export function createTourRouting({ host, applicationId, render, onFailure }) {
     }
     const galleryEntry = galleryRoutes.find((entry) => entry.path === location.pathname);
     if (galleryEntry) return Object.freeze({ kind: "gallery", formName: galleryEntry.name });
-    const legacyRoutes = new Map([
-      [new URL("meet-one-gear/", document.baseURI).pathname, 0],
-      [new URL("same-front-different-implementation/", document.baseURI).pathname, 1],
-    ]);
-    const index = legacyRoutes.get(location.pathname) ?? routes.indexOf(location.pathname);
+    const index = routes.indexOf(location.pathname);
     if (index === -1) throw new Error("this Tour page does not exist");
     return Object.freeze({ kind: "page", index });
   };
