@@ -260,12 +260,17 @@ impl ConsequentialEffectGate {
         };
         self.terminal = true;
         match provider.apply(request) {
-            Ok(PhysicalObservation::Observed) => match self.capability_table.complete(lease, 0) {
-                Ok(()) => ConsequentialDisposition::PhysicalEffectObserved,
-                Err(refusal) => {
-                    ConsequentialDisposition::Refused(ConsequentialRefusal::Capability(refusal))
+            Ok(PhysicalObservation::Observed) => {
+                match self
+                    .capability_table
+                    .complete(&mut self.capability_handle, lease, 0)
+                {
+                    Ok(()) => ConsequentialDisposition::PhysicalEffectObserved,
+                    Err(refusal) => {
+                        ConsequentialDisposition::Refused(ConsequentialRefusal::Capability(refusal))
+                    }
                 }
-            },
+            }
             Ok(PhysicalObservation::Uncertain) => {
                 ConsequentialDisposition::Refused(ConsequentialRefusal::PhysicalOutcomeUncertain)
             }

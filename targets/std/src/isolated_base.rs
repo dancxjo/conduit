@@ -90,7 +90,7 @@ pub fn provider_main() -> Result<(), String> {
         1,
     )
     .map_err(format_refusal)?;
-    let handle = table.issue(*issue).map_err(format_refusal)?;
+    let mut handle = table.issue(*issue).map_err(format_refusal)?;
 
     apply_landlock(Path::new(&allowed_directory))?;
     apply_seccomp()?;
@@ -115,7 +115,7 @@ pub fn provider_main() -> Result<(), String> {
                             .read_to_end(&mut bytes)
                             .map_err(format_io)?;
                         table
-                            .complete(lease, bytes.len() as u32)
+                            .complete(&mut handle, lease, bytes.len() as u32)
                             .map_err(format_refusal)?;
                         write_frame(&mut io::stdout(), &ProviderFrame::ReadCompleted { bytes })
                             .map_err(format_io)?;

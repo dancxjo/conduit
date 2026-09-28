@@ -192,7 +192,7 @@ fn authentication_membership_and_effect_authority_remain_independent() {
     let b = peer("b", &b_key, 1);
     let challenge = challenge(a.clone(), b.clone(), "a-b");
     let mut session = establish(challenge.clone(), &a_key, &b_key);
-    let (mut table, handle, claim) = capability(&b, "base/b/effect", 8);
+    let (mut table, mut handle, claim) = capability(&b, "base/b/effect", 8);
     let first = frame(&challenge, 0, claim.clone());
     let signature = a_key.sign(&operation_transcript(&first)).to_bytes();
 
@@ -204,7 +204,7 @@ fn authentication_membership_and_effect_authority_remain_independent() {
     let lease = session
         .authorize(&first, signature, 20, &membership, &mut table, &handle)
         .unwrap();
-    table.complete(lease, 1).unwrap();
+    table.complete(&mut handle, lease, 1).unwrap();
     assert_eq!(
         session.authorize(&first, signature, 20, &membership, &mut table, &handle),
         Err(FederationRefusal::Replay)
@@ -337,7 +337,7 @@ fn loopback_transport_delivers_only_an_authenticated_authorized_frame() {
     let transcript = challenge_transcript(&challenge);
     let a_session_signature = a_key.sign(&transcript).to_bytes();
     let b_session_signature = b_key.sign(&transcript).to_bytes();
-    let (mut table, handle, claim) = capability(&b, "base/b/loopback", 14);
+    let (mut table, mut handle, claim) = capability(&b, "base/b/loopback", 14);
     let membership = [member(&a)];
     let listener = TcpListener::bind((std::net::Ipv4Addr::LOCALHOST, 0)).unwrap();
     let address = listener.local_addr().unwrap();
@@ -358,7 +358,7 @@ fn loopback_transport_delivers_only_an_authenticated_authorized_frame() {
         let lease = session
             .authorize(&wire.frame, signature, 20, &membership, &mut table, &handle)
             .unwrap();
-        table.complete(lease, 1).unwrap();
+        table.complete(&mut handle, lease, 1).unwrap();
         session.inspection(&membership)
     });
 

@@ -59,9 +59,13 @@ pub struct CapabilityIssueRequest {
     pub authority: BaseCapabilityAuthority,
 }
 
-/// Opaque local bearer capability. It is intentionally neither serializable
-/// nor constructible from an authority ID, Plan, inspection record, or string.
-#[derive(Clone, PartialEq, Eq)]
+/// Opaque move-only local bearer capability.
+///
+/// It is intentionally neither clonable, serializable, nor constructible from
+/// an authority ID, Plan, inspection record, or string. Successful operation
+/// completion rotates the bearer in place; refusal leaves the same possession
+/// available for a later valid attempt.
+#[derive(PartialEq, Eq)]
 pub struct BaseCapabilityHandle {
     bearer: [u8; 32],
 }
@@ -263,14 +267,15 @@ impl BaseCapabilityTable {
 
     pub fn complete(
         &mut self,
+        handle: &mut BaseCapabilityHandle,
         lease: BaseOperationLease,
         result_bytes: u32,
     ) -> Result<(), BaseCapabilityRefusal> {
-        let entry = self
-            .entries
-            .iter_mut()
-            .find(|entry| bearer_matches(&entry.bearer, &lease.bearer))
-            .ok_or(BaseCapabilityRefusal::UnknownLease)?;
+        let issuer_key = self.issuer_key;
+        let entry = self.entry_mut(handle)?;
+        if !bearer_matches(&entry.bearer, &lease.bearer) {
+            return Err(BaseCapabilityRefusal::UnknownLease);
+        }
         if entry.revocation_generation != lease.revocation_generation
             || entry.inspection.lifecycle == CapabilityLifecycle::Revoked
         {
@@ -289,6 +294,15 @@ impl BaseCapabilityTable {
         entry.inspection.completed_operations += 1;
         if entry.inspection.completed_operations == entry.inspection.scope.maximum_operations {
             entry.inspection.lifecycle = CapabilityLifecycle::Exhausted;
+        } else if entry.inspection.in_flight_operations == 0 {
+            let mut rotation = Sha256::new();
+            rotation.update(issuer_key);
+            rotation.update(entry.bearer);
+            rotation.update(lease.operation_sequence.to_le_bytes());
+            rotation.update(entry.revocation_generation.to_le_bytes());
+            let bearer = rotation.finalize().into();
+            entry.bearer = bearer;
+            handle.bearer = bearer;
         }
         Ok(())
     }
