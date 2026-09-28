@@ -214,7 +214,6 @@ mod product_source_tests {
         for path in [
             "products/shared/browser/conduit.css",
             "products/tour/browser/tour.mjs",
-            "products/creche/browser/creche-lifecycle.mjs",
             "products/workspace/browser/body-bootstrap.mjs",
             "products/workspace/browser/reviewed-form-selection.mjs",
             "products/home/browser/home.mjs",
