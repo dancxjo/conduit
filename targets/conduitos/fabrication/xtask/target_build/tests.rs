@@ -1,9 +1,22 @@
-use conduit_host_fabrication::{build_default_host_image, BuildInputs, HostProfile};
+use conduit_host_fabrication::{
+    build_default_host_image, check_host_configuration, parse_host_configuration_conduit,
+    BuildInputs, HostProfile,
+};
 
 use super::*;
 
 fn resolved(source: &str) -> (BuildManifest, Vec<u8>) {
-    let profile: HostProfile = serde_json::from_str(source).unwrap();
+    let profile: HostProfile = if source.trim_start().starts_with("host ") {
+        check_host_configuration(
+            parse_host_configuration_conduit(source).unwrap(),
+            &conduit_workspace_fabrication::catalog(),
+            &conduit_workspace_fabrication::package_set(),
+        )
+        .unwrap()
+        .into_profile()
+    } else {
+        serde_json::from_str(source).unwrap()
+    };
     build_default_host_image(
         profile,
         &conduit_workspace_fabrication::catalog(),
@@ -20,7 +33,7 @@ fn resolved(source: &str) -> (BuildManifest, Vec<u8>) {
 #[test]
 fn checked_native_profile_is_the_authority_for_the_first_target_lowering() {
     let (manifest, bytes) = resolved(include_str!(
-        "../../../profiles/conduitos-native.profile.json"
+        "../../../profiles/conduitos-native.host.conduit"
     ));
     let built = build_profile_image(
         &manifest,
@@ -39,7 +52,7 @@ fn checked_native_profile_is_the_authority_for_the_first_target_lowering() {
 #[test]
 fn checked_headless_profile_enters_the_same_authoritative_target_lowering() {
     let (manifest, bytes) = resolved(include_str!(
-        "../../../profiles/conduitos-headless.profile.json"
+        "../../../profiles/conduitos-x86_64-pc.host.conduit"
     ));
     let built = build_profile_image(
         &manifest,
@@ -58,7 +71,7 @@ fn checked_headless_profile_enters_the_same_authoritative_target_lowering() {
 #[test]
 fn checked_aarch64_profile_routes_to_the_distinct_product_artifact() {
     let (manifest, bytes) = resolved(include_str!(
-        "../../../profiles/conduitos-aarch64-headless.profile.json"
+        "../../../profiles/conduitos-aarch64-virt.host.conduit"
     ));
     let built = build_profile_image(
         &manifest,

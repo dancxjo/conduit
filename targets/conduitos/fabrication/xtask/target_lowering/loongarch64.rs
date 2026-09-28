@@ -58,13 +58,23 @@ pub(crate) fn lower_loongarch64_virt(
 #[cfg(test)]
 mod tests {
     use super::*;
-    use conduit_host_fabrication::{build_default_host_image, BuildInputs, HostProfile};
+    use conduit_host_fabrication::{
+        build_default_host_image, check_host_configuration, parse_host_configuration_conduit,
+        BuildInputs,
+    };
 
     fn manifest() -> BuildManifest {
-        let profile: HostProfile = serde_json::from_str(include_str!(
-            "../../../profiles/conduitos-loongarch64-headless.profile.json"
-        ))
-        .unwrap();
+        let packages = conduit_workspace_fabrication::package_set();
+        let profile = check_host_configuration(
+            parse_host_configuration_conduit(include_str!(
+                "../../../profiles/conduitos-loongarch64-virt.host.conduit"
+            ))
+            .unwrap(),
+            &conduit_workspace_fabrication::catalog(),
+            &packages,
+        )
+        .unwrap()
+        .into_profile();
         build_default_host_image(
             profile,
             &conduit_workspace_fabrication::catalog(),

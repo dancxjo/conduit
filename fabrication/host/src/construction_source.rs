@@ -310,6 +310,7 @@ mod tests {
         let sources = [
             include_str!("../../../targets/std/profiles/linux-computer.host.conduit"),
             include_str!("../../../targets/rp2040/profiles/pico-w.host.conduit"),
+            include_str!("../../../targets/conduitos/profiles/conduitos-native.host.conduit"),
         ];
         let catalog = crate::test_packages::test_catalog();
         for conduit in sources {
@@ -329,6 +330,22 @@ mod tests {
             assert_eq!(round_trip.configuration(), canonical.configuration());
             assert_eq!(round_trip.configuration_id(), canonical.configuration_id());
         }
+    }
+
+    #[test]
+    fn authored_presenter_declaration_is_not_part_of_host_conduitese() {
+        let source =
+            include_str!("../../../targets/conduitos/profiles/conduitos-native.host.conduit")
+                .replace(
+                    "  limits =",
+                    "  presenter = {implementation: \"presenter/native-graphical@1\"}\n  limits =",
+                );
+        let error = parse_host_configuration_conduit(&source).unwrap_err();
+        assert!(matches!(
+            error,
+            ConfigurationDiagnostic::Decode { detail }
+                if detail.contains("unknown construction declaration 'presenter'")
+        ));
     }
 
     #[test]

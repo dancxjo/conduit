@@ -57,7 +57,7 @@ impl LiveHost {
         match self {
             Self::X86_64 => LiveMediaRow {
                 host: "conduitos/x86_64/pc",
-                profile: "conduitos-native.profile.json",
+                profile: "conduitos-native.host.conduit",
                 artifact: "conduitos-x86_64.iso",
                 format: "hybrid BIOS/UEFI ISO",
                 graphical: true,
@@ -65,7 +65,7 @@ impl LiveHost {
             },
             Self::Ia32 => LiveMediaRow {
                 host: "conduitos/ia32/pc",
-                profile: "conduitos-ia32-headless.profile.json",
+                profile: "conduitos-ia32-pc.host.conduit",
                 artifact: "conduitos-ia32.iso",
                 format: "hybrid BIOS/UEFI ISO",
                 graphical: false,
@@ -73,7 +73,7 @@ impl LiveHost {
             },
             Self::Aarch64 => LiveMediaRow {
                 host: "conduitos/aarch64/virt",
-                profile: "conduitos-aarch64-headless.profile.json",
+                profile: "conduitos-aarch64-virt.host.conduit",
                 artifact: "conduitos-aarch64.iso",
                 format: "UEFI ISO",
                 graphical: false,
@@ -81,7 +81,7 @@ impl LiveHost {
             },
             Self::Riscv64 => LiveMediaRow {
                 host: "conduitos/riscv64/virt",
-                profile: "conduitos-riscv64-headless.profile.json",
+                profile: "conduitos-riscv64-virt.host.conduit",
                 artifact: "conduitos-riscv64.iso",
                 format: "UEFI ISO",
                 graphical: false,
@@ -89,7 +89,7 @@ impl LiveHost {
             },
             Self::Loongarch64 => LiveMediaRow {
                 host: "conduitos/loongarch64/virt",
-                profile: "conduitos-loongarch64-headless.profile.json",
+                profile: "conduitos-loongarch64-virt.host.conduit",
                 artifact: "conduitos-loongarch64.iso",
                 format: "UEFI ISO",
                 graphical: false,

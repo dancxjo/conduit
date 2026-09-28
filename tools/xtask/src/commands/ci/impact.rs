@@ -832,7 +832,7 @@ fn select_esp32_path(path: &str, impact: &mut Esp32Impact) {
 
 fn select_conduitos_path(path: &str, impact: &mut ConduitosImpact) {
     if path == "targets/conduitos/src/bin/aarch64_product.rs"
-        || path == "targets/conduitos/profiles/conduitos-aarch64-headless.profile.json"
+        || path == "targets/conduitos/profiles/conduitos-aarch64-virt.host.conduit"
     {
         impact.aarch64_product = true;
         return;

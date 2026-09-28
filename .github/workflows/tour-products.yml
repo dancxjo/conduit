@@ -553,15 +553,15 @@ jobs:
       matrix:
         include:
           - architecture: x86_64
-            profile: targets/conduitos/profiles/conduitos-native.profile.json
+            profile: targets/conduitos/profiles/conduitos-native.host.conduit
           - architecture: aarch64
-            profile: targets/conduitos/profiles/conduitos-aarch64-headless.profile.json
+            profile: targets/conduitos/profiles/conduitos-aarch64-virt.host.conduit
           - architecture: ia32
-            profile: targets/conduitos/profiles/conduitos-ia32-headless.profile.json
+            profile: targets/conduitos/profiles/conduitos-ia32-pc.host.conduit
           - architecture: riscv64
-            profile: targets/conduitos/profiles/conduitos-riscv64-headless.profile.json
+            profile: targets/conduitos/profiles/conduitos-riscv64-virt.host.conduit
           - architecture: loongarch64
-            profile: targets/conduitos/profiles/conduitos-loongarch64-headless.profile.json
+            profile: targets/conduitos/profiles/conduitos-loongarch64-virt.host.conduit
     name: conduitos-release-${{ matrix.architecture }}
     steps:
       - uses: actions/checkout@v7

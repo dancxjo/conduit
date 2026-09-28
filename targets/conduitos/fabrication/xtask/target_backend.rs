@@ -151,12 +151,22 @@ fn find_in<'a>(
 #[cfg(test)]
 mod tests {
     use super::*;
-    use conduit_host_fabrication::{build_default_host_image, BuildInputs, HostProfile};
+    use conduit_host_fabrication::{
+        build_default_host_image, check_host_configuration, parse_host_configuration_conduit,
+        BuildInputs,
+    };
 
     fn native_manifest() -> BuildManifest {
-        let profile: HostProfile =
-            serde_json::from_str(include_str!("../../profiles/conduitos-native.profile.json"))
-                .unwrap();
+        let profile = check_host_configuration(
+            parse_host_configuration_conduit(include_str!(
+                "../../profiles/conduitos-native.host.conduit"
+            ))
+            .unwrap(),
+            &conduit_workspace_fabrication::catalog(),
+            &conduit_workspace_fabrication::package_set(),
+        )
+        .unwrap()
+        .into_profile();
         build_default_host_image(
             profile,
             &conduit_workspace_fabrication::catalog(),

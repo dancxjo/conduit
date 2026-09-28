@@ -111,15 +111,12 @@ fn reviewed_conduitos_description_is_retained_instead_of_reconstructed() {
     use conduit_host_browser_fabrication::BrowserFabricationPackage;
     use conduit_host_conduitos_fabrication::ConduitOsFabricationPackage;
     use conduit_host_fabrication::{
-        build_host_image, BuildInputs, FabricationCatalog, FabricationPackageSet, HostProfile,
+        build_host_image, check_host_configuration, parse_host_configuration_conduit, BuildInputs,
+        FabricationCatalog, FabricationPackageSet,
     };
     use conduit_linear_framebuffer_fabrication::LinearFramebufferFabricationExtension;
 
     born();
-    let profile: HostProfile = serde_json::from_str(include_str!(
-        "../../../../conduitos/profiles/conduitos-native.profile.json"
-    ))
-    .unwrap();
     let packages = FabricationPackageSet::compose(&[
         &BrowserFabricationPackage,
         &ConduitOsFabricationPackage,
@@ -127,6 +124,16 @@ fn reviewed_conduitos_description_is_retained_instead_of_reconstructed() {
     ])
     .unwrap();
     let catalog = FabricationCatalog::canonical().with_packages(&packages);
+    let profile = check_host_configuration(
+        parse_host_configuration_conduit(include_str!(
+            "../../../../conduitos/profiles/conduitos-native.host.conduit"
+        ))
+        .unwrap(),
+        &catalog,
+        &packages,
+    )
+    .unwrap()
+    .into_profile();
     let (image, bytes) = build_host_image(
         profile,
         &catalog,

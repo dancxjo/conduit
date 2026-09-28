@@ -6,11 +6,9 @@ use conduit_host_fabrication::{
 
 use crate::{esp32_descriptor_binding, Esp32FabricationPackage, Esp32FamilyTarget};
 
-const HEADLESS: &str = include_str!("../../../conduitos/profiles/conduitos-headless.profile.json");
-
 fn profile(target: Esp32FamilyTarget) -> HostProfile {
     let facts = target.facts();
-    let mut profile: HostProfile = serde_json::from_str(HEADLESS).unwrap();
+    let mut profile = crate::headless_test_profile();
     profile.name = format!("esp32-family-{}", facts.selector);
     profile.target.family = "esp32".into();
     profile.target.architecture = facts.architecture.into();

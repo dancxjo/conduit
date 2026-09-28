@@ -1,18 +1,22 @@
-use crate::test_packages::{test_build_host_image, test_catalog};
+use crate::test_packages::{test_build_host_image, test_catalog, test_checked_host_profile};
 use crate::*;
 
 const STD_COMPUTER: &str = include_str!("../../../targets/std/profiles/std-computer.profile.json");
 const CONDUITOS_NATIVE: &str =
-    include_str!("../../../targets/conduitos/profiles/conduitos-native.profile.json");
+    include_str!("../../../targets/conduitos/profiles/conduitos-native.host.conduit");
 const BROWSER_PAGE: &str =
     include_str!("../../../targets/browser/profiles/browser-page.profile.json");
 const CONDUITOS_HEADLESS: &str =
-    include_str!("../../../targets/conduitos/profiles/conduitos-headless.profile.json");
+    include_str!("../../../targets/conduitos/profiles/conduitos-x86_64-pc.host.conduit");
 const CONDUITOS_AARCH64_HEADLESS: &str =
-    include_str!("../../../targets/conduitos/profiles/conduitos-aarch64-headless.profile.json");
+    include_str!("../../../targets/conduitos/profiles/conduitos-aarch64-virt.host.conduit");
 
 fn parse(source: &str) -> HostProfile {
     serde_json::from_str(source).unwrap()
+}
+
+fn parse_conduit(source: &str) -> HostProfile {
+    test_checked_host_profile(source)
 }
 
 #[test]
@@ -20,9 +24,9 @@ fn four_materially_different_checked_in_profiles_validate() {
     let catalog = test_catalog();
     let profiles = [
         parse(STD_COMPUTER),
-        parse(CONDUITOS_NATIVE),
+        parse_conduit(CONDUITOS_NATIVE),
         parse(BROWSER_PAGE),
-        parse(CONDUITOS_HEADLESS),
+        parse_conduit(CONDUITOS_HEADLESS),
     ];
     let validated = profiles
         .into_iter()
@@ -54,7 +58,7 @@ fn four_materially_different_checked_in_profiles_validate() {
 #[test]
 fn aarch64_virt_profile_closes_the_exact_linear_serial_presenter() {
     let catalog = test_catalog();
-    let profile = parse(CONDUITOS_AARCH64_HEADLESS);
+    let profile = parse_conduit(CONDUITOS_AARCH64_HEADLESS);
     let validated = validate_profile(profile.clone(), &catalog).unwrap();
     assert_eq!(validated.profile().target.key(), "conduitos/aarch64/virt");
     for required in [
@@ -164,7 +168,7 @@ fn invalid_unknown_unbounded_and_contradictory_profiles_fail_specifically() {
 #[test]
 fn presenter_without_compositor_display_or_driver_fails_closed() {
     let catalog = test_catalog();
-    let mut profile = parse(CONDUITOS_NATIVE);
+    let mut profile = parse_conduit(CONDUITOS_NATIVE);
     profile.facilities.clear();
     profile.bases.clear();
     profile.drivers.clear();
@@ -184,7 +188,7 @@ fn presenter_without_compositor_display_or_driver_fails_closed() {
 #[test]
 fn target_incompatible_base_and_driver_fail_before_target_lowering() {
     let catalog = test_catalog();
-    let mut profile = parse(CONDUITOS_NATIVE);
+    let mut profile = parse_conduit(CONDUITOS_NATIVE);
     profile.target.family = "browser".into();
     profile.target.architecture = "wasm32".into();
     profile.target.machine = "page".into();
@@ -210,7 +214,7 @@ fn circular_prerequisite_metadata_is_rejected() {
         .or_default()
         .push(base.clone());
     catalog.dependencies.entry(base).or_default().push(facility);
-    let diagnostics = validate_profile(parse(CONDUITOS_NATIVE), &catalog).unwrap_err();
+    let diagnostics = validate_profile(parse_conduit(CONDUITOS_NATIVE), &catalog).unwrap_err();
     assert!(diagnostics.iter().any(
         |item| matches!(item, ProfileDiagnostic::CircularPrerequisite { path } if path.len() >= 3)
     ));
@@ -218,7 +222,7 @@ fn circular_prerequisite_metadata_is_rejected() {
 
 #[test]
 fn profile_validation_is_inert_machinery_description() {
-    let validated = validate_profile(parse(CONDUITOS_HEADLESS), &test_catalog()).unwrap();
+    let validated = validate_profile(parse_conduit(CONDUITOS_HEADLESS), &test_catalog()).unwrap();
     let debug = format!("{validated:?}");
     for runtime_truth in [
         "HostAdvertisement",
@@ -244,7 +248,7 @@ fn three_profiles_build_through_one_deterministic_pipeline() {
     let profiles = [
         parse(STD_COMPUTER),
         parse(BROWSER_PAGE),
-        parse(CONDUITOS_HEADLESS),
+        parse_conduit(CONDUITOS_HEADLESS),
     ];
     let images = profiles
         .into_iter()
@@ -286,9 +290,10 @@ fn build_identity_uses_canonical_profile_meaning_not_declaration_order() {
 #[test]
 fn profile_controls_graphical_inclusion_and_headless_omission() {
     let catalog = test_catalog();
-    let graphical = test_build_host_image(parse(CONDUITOS_NATIVE), &catalog, &build_inputs())
-        .unwrap()
-        .0;
+    let graphical =
+        test_build_host_image(parse_conduit(CONDUITOS_NATIVE), &catalog, &build_inputs())
+            .unwrap()
+            .0;
     assert!(graphical
         .manifest
         .presenters
@@ -303,9 +308,10 @@ fn profile_controls_graphical_inclusion_and_headless_omission() {
         .keys()
         .any(|path| path.contains("presenter:presenter/main")));
 
-    let headless = test_build_host_image(parse(CONDUITOS_HEADLESS), &catalog, &build_inputs())
-        .unwrap()
-        .0;
+    let headless =
+        test_build_host_image(parse_conduit(CONDUITOS_HEADLESS), &catalog, &build_inputs())
+            .unwrap()
+            .0;
     assert!(headless.manifest.presenters.is_empty());
     assert!(headless.manifest.facilities.is_empty());
 }

@@ -6,7 +6,7 @@ use std::{
 use clap::{Args, Subcommand};
 use conduit_host_fabrication::{
     build_default_host_image, check_host_configuration, fabrication_chooser_catalog,
-    parse_host_configuration_conduit, BuildInputs, HostImage, HostProfile,
+    parse_host_configuration_conduit, BuildInputs, HostImage,
 };
 
 use crate::cli::GlobalOpts;
@@ -492,19 +492,22 @@ fn resolve_profile(
     source_identity: String,
 ) -> Result<(HostImage, Vec<u8>), Box<dyn std::error::Error>> {
     let source = fs::read_to_string(profile_path)?;
-    let profile = if is_conduit_source(profile_path, "host") {
-        let configuration = parse_host_configuration_conduit(&source)
-            .map_err(|diagnostic| format!("Host configuration decode refused: {diagnostic:?}"))?;
-        check_host_configuration(
-            configuration,
-            &conduit_workspace_fabrication::catalog(),
-            &conduit_workspace_fabrication::package_set(),
+    if !is_conduit_source(profile_path, "host") {
+        return Err(format!(
+            "Host construction source must use the canonical .host.conduit suffix: {}",
+            profile_path.display()
         )
-        .map_err(|diagnostics| format!("Host configuration refused: {diagnostics:?}"))?
-        .into_profile()
-    } else {
-        serde_json::from_str::<HostProfile>(&source)?
-    };
+        .into());
+    }
+    let configuration = parse_host_configuration_conduit(&source)
+        .map_err(|diagnostic| format!("Host configuration decode refused: {diagnostic:?}"))?;
+    let profile = check_host_configuration(
+        configuration,
+        &conduit_workspace_fabrication::catalog(),
+        &conduit_workspace_fabrication::package_set(),
+    )
+    .map_err(|diagnostics| format!("Host configuration refused: {diagnostics:?}"))?
+    .into_profile();
     let inputs = BuildInputs {
         source_identity,
         toolchain_available: true,

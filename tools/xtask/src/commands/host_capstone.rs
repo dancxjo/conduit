@@ -7,8 +7,9 @@ use conduit_core::{
 };
 use conduit_form::{parse, ProfileCatalog};
 use conduit_host_fabrication::{
-    bind_runtime_offer, build_default_host_image, BoundHostAdvertisement, BuildInputs,
-    FabricationCatalog, HostProfile, RuntimeFacts, RuntimeOfferInputs,
+    bind_runtime_offer, build_default_host_image, check_host_configuration,
+    parse_host_configuration_conduit, BoundHostAdvertisement, BuildInputs, FabricationCatalog,
+    HostProfile, RuntimeFacts, RuntimeOfferInputs,
 };
 use conduit_planner::{plan, PlacementChoice, PlacementChoices};
 use conduit_presentation::{
@@ -34,11 +35,11 @@ use manifestations::{identity_refusals, manifestation_for, mark_replaced};
 const FORM_SOURCE: &str =
     "form shared-front {\n    native: presentation/renderer\n    browser: presentation/renderer\n}\n";
 const NATIVE_PROFILE: &str =
-    include_str!("../../../../targets/conduitos/profiles/conduitos-native.profile.json");
+    include_str!("../../../../targets/conduitos/profiles/conduitos-native.host.conduit");
 const BROWSER_PROFILE: &str =
     include_str!("../../../../targets/browser/profiles/browser-page.profile.json");
 const HEADLESS_PROFILE: &str =
-    include_str!("../../../../targets/conduitos/profiles/conduitos-headless.profile.json");
+    include_str!("../../../../targets/conduitos/profiles/conduitos-x86_64-pc.host.conduit");
 
 pub fn prove(source_identity: &str) -> Result<CapstoneReceipt, Box<dyn std::error::Error>> {
     let catalog = conduit_workspace_fabrication::catalog();
@@ -270,8 +271,19 @@ fn build_profile(
     catalog: &FabricationCatalog,
     inputs: &BuildInputs,
 ) -> Result<BuiltProfile, Box<dyn std::error::Error>> {
-    let profile: HostProfile = serde_json::from_str(source)?;
     let packages = conduit_workspace_fabrication::package_set();
+    let profile: HostProfile = if source.trim_start().starts_with("host ") {
+        check_host_configuration(
+            parse_host_configuration_conduit(source)
+                .map_err(|error| format!("host source invalid: {error:?}"))?,
+            catalog,
+            &packages,
+        )
+        .map_err(|errors| format!("host source refused: {errors:?}"))?
+        .into_profile()
+    } else {
+        serde_json::from_str(source)?
+    };
     let (image, bytes) =
         build_default_host_image(profile, catalog, &packages, inputs).map_err(debug_error)?;
     Ok(BuiltProfile { name, image, bytes })
