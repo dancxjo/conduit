@@ -64,7 +64,7 @@ pub fn install_lenia_catalogs(
 }
 
 fn canonical_lenia_kind(definition: KindProjection) -> conduit_core::Kind {
-    let startup_parameters = definition
+    let startup_parameters: Vec<conduit_core::FrontStartupParameter> = definition
         .configuration
         .iter()
         .map(|field| conduit_core::FrontStartupParameter {
@@ -105,6 +105,14 @@ fn canonical_lenia_kind(definition: KindProjection) -> conduit_core::Kind {
         ),
         _ => unreachable!("the canonical Lenia catalog is closed"),
     };
+    let value_bounds: Vec<conduit_core::FrontValueBound> = startup_parameters
+        .iter()
+        .filter(|parameter| parameter.value_type.as_str() == "value/text")
+        .map(|parameter| conduit_core::FrontValueBound {
+            location: conduit_core::FrontValueLocation::Startup(parameter.name.clone()),
+            maximum_bytes: 256,
+        })
+        .collect();
     conduit_core::Kind {
         startup_parameters,
         shorthand,
@@ -113,7 +121,13 @@ fn canonical_lenia_kind(definition: KindProjection) -> conduit_core::Kind {
         inputs: definition.inputs,
         outputs: definition.outputs,
         configuration: definition.configuration,
-        semantic_laws: vec![KindSemanticLaw::Terminal(terminal)],
+        semantic_laws: {
+            let mut laws = vec![KindSemanticLaw::Terminal(terminal)];
+            if !value_bounds.is_empty() {
+                laws.push(KindSemanticLaw::ValueBounds(value_bounds));
+            }
+            laws
+        },
         limits,
     }
 }

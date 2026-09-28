@@ -3,7 +3,7 @@ use alloc::vec::Vec;
 use conduit_core::{
     ArtifactId, AuthorityRequirement, Back, BackOfferBuilder, CapabilityId, CapabilityOffer,
     ConfigurationValue, ExecutionProfileId, FrontStartupParameter, HostCallRequirement,
-    ImplementationId, Kind, KindIdentity, ResourceRequirement,
+    ImplementationId, ResourceRequirement,
 };
 
 /// Host-supplied identity for one realization of a portable contract.
@@ -26,19 +26,7 @@ pub fn realization_offer(
     authority_requirements: Vec<AuthorityRequirement>,
 ) -> CapabilityOffer {
     BackOfferBuilder::new(
-        Kind {
-            startup_parameters: startup_front(&contract.configuration),
-            shorthand: None,
-            kind_id: contract.kind_id,
-            kind_contract_revision: KindIdentity::from(revision),
-            inputs: contract.inputs,
-            outputs: contract.outputs,
-            configuration: contract.configuration,
-            semantic_laws: alloc::vec![conduit_core::KindSemanticLaw::Terminal(
-                contract.terminal_behavior
-            )],
-            limits: contract.limits,
-        },
+        contract.into_semantic_contract(revision),
         Back {
             capability_id: CapabilityId::from(identity.capability),
             execution_profile_id: ExecutionProfileId::from(identity.execution_profile),
