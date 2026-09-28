@@ -68,6 +68,7 @@ package_test_shard!(
         "conduit-system-continuity",
         "conduit-observatory",
         "patchbay-control",
+        "patchbay-graph",
     ],
     []
 );
@@ -86,7 +87,6 @@ package_test_shard!(
         "conduitos",
         "patchbay-hosted",
         "patchbay-model",
-        "patchbay-graph",
         "patchbay-html",
         "patchbay-native",
     ],
