@@ -342,6 +342,10 @@ fn instantiate(template: &FormSyntax, request: &SpecializationRequest) -> FormSy
     form.front.type_parameters.clear();
     for parameter in &mut form.front.startup_parameters {
         substitute(&mut parameter.value_type, &request.substitutions);
+        if parameter.maximum_bytes.is_none() {
+            parameter.maximum_bytes =
+                crate::surface_parser::front::canonical_default_bound(&parameter.value_type.text);
+        }
     }
     for port in &mut form.front.runtime_ports {
         substitute(&mut port.value_type, &request.substitutions);
@@ -356,6 +360,12 @@ fn instantiate(template: &FormSyntax, request: &SpecializationRequest) -> FormSy
                 substitute_invocation_arguments(&mut gear.invocation, &request.substitutions);
                 if let Some(retained) = &mut gear.retained {
                     substitute(&mut retained.value_type, &request.substitutions);
+                    if retained.maximum_bytes.is_none() {
+                        retained.maximum_bytes =
+                            crate::surface_parser::front::canonical_default_bound(
+                                &retained.value_type.text,
+                            );
+                    }
                 }
             }
             BackStatement::Cord(cord) => {

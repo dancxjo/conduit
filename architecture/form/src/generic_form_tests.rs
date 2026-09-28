@@ -240,3 +240,28 @@ fn type_parameter_cannot_masquerade_as_a_runtime_front_name() {
     assert_eq!(error.code, "CND-FRM-050");
     assert!(error.message.contains("item"));
 }
+
+#[test]
+fn specialization_propagates_finite_bounds_into_startup_and_retained_state() {
+    let parsed = parse_syntax_document(
+        "form cache (\n item: type\n initial: item\n) {\n cell: keep item for this play\n}\n\
+         form main {\n cache: cache(item = Text, initial = \"ready\")\n}\n",
+    );
+    let mut catalog = StartupCatalog::new();
+    catalog
+        .insert(crate::KindSignature {
+            kind: "state/latest".into(),
+            startup_parameters: vec![],
+        })
+        .unwrap();
+    let checked = check_syntax_document(&parsed, &catalog).unwrap();
+    let cache = checked
+        .forms
+        .iter()
+        .find(|form| form.name == "cache[item=value/text]")
+        .unwrap();
+    assert_eq!(cache.startup_parameters[0].maximum_bytes, Some(256));
+    let retained = cache.gears[0].retained.as_ref().unwrap();
+    assert_eq!(retained.value_kind, conduit_core::kind_id("value/text"));
+    assert_eq!(retained.maximum_bytes, Some(256));
+}
