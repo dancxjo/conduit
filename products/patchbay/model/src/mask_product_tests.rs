@@ -88,7 +88,7 @@ fn fixture(available: bool) -> Fixture {
         .unwrap();
     profiles.insert_kind(definition.clone()).unwrap();
     let source = parse_syntax_document(
-        "form browser-mask (\n    >> presentation: Presentation\n    interaction: FaceInteraction...| >>\n    show: Show >>\n) {\n    mask: presentation/test-mask\n    presentation >> mask.presentation\n    mask.interaction >> interaction\n    mask.show >> show\n}\n",
+        "form browser-mask (\n    >> face: Presentation\n    interaction: FaceInteraction...| >>\n    show: Show >>\n) {\n    mask: presentation/test-mask\n    face >> mask.presentation\n    mask.interaction >> interaction\n    mask.show >> show\n}\n",
     );
     let checked = check_syntax_document(&source, &startup).unwrap();
     let authoring =

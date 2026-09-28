@@ -477,7 +477,7 @@ pub(super) fn prepare_stage(
         default_expanded_placements(&authoring.expanded, core::slice::from_ref(&advertisement))
             .map_err(|_| ())?;
     let boundary_limits = [
-        (conduit_core::PortDirection::Input, "presentation"),
+        (conduit_core::PortDirection::Input, "face"),
         (conduit_core::PortDirection::Output, "interaction"),
         (conduit_core::PortDirection::Output, "show"),
     ]
@@ -669,13 +669,13 @@ mod tests {
         );
         assert_eq!(
             [
-                &stage.planned_mask.mask.presentation_input,
+                &stage.planned_mask.mask.face_input,
                 &stage.planned_mask.mask.interaction_output,
                 &stage.planned_mask.mask.show_output,
             ]
             .len(),
             3,
-            "the Mask retains one Presentation input and its interaction and Show outputs"
+            "the Mask retains one Face input and its interaction and Show outputs"
         );
         assert_eq!(
             stage

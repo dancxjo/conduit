@@ -16,9 +16,9 @@ use conduit_form::{
 };
 use conduit_presentation::{
     install_mask_form_value_aliases, AdmittedMaskFormRoutes, ManifestationLifecycle, MaskForm,
-    MaskRouteAdmissionError, MaskShow, PlannedMaskForm, Presentation, PresentationBasis,
-    PresentationRole, PresentationSubject, PresentationText, SealedMaskFormRoute,
-    FACE_INTERACTION_VALUE_KIND, PRESENTATION_VALUE_KIND, SHOW_VALUE_KIND,
+    MaskFormError, MaskRouteAdmissionError, MaskShow, PlannedMaskForm, Presentation,
+    PresentationBasis, PresentationRole, PresentationSubject, PresentationText,
+    SealedMaskFormRoute, FACE_INTERACTION_VALUE_KIND, PRESENTATION_VALUE_KIND, SHOW_VALUE_KIND,
 };
 
 fn port(
@@ -391,11 +391,11 @@ fn route_for(body_plan: &BodyPlan, planned: &PlannedMaskForm, name: &str) -> Sea
 #[test]
 fn two_mask_forms_share_one_body_plan_identity_and_unsealed_masks_refuse() {
     let browser = plan_mask(
-        "form browser (\n >> presentation: Presentation\n interaction: FaceInteraction...| >>\n show: Show >>\n) {\n output: web/dom\n input: web/input\n presentation >> output.presentation\n output.show >> show\n input.interaction >> interaction\n}\n",
+        "form browser (\n >> face: Presentation\n interaction: FaceInteraction...| >>\n show: Show >>\n) {\n output: web/dom\n input: web/input\n face >> output.presentation\n output.show >> show\n input.interaction >> interaction\n}\n",
         "browser",
     );
     let spoken = plan_mask(
-        "form alternate-browser (\n >> presentation: Presentation\n interaction: FaceInteraction...| >>\n show: Show >>\n) {\n output: web/dom\n input: web/input\n presentation >> output.presentation\n output.show >> show\n input.interaction >> interaction\n}\n",
+        "form alternate-browser (\n >> face: Presentation\n interaction: FaceInteraction...| >>\n show: Show >>\n) {\n output: web/dom\n input: web/input\n face >> output.presentation\n output.show >> show\n input.interaction >> interaction\n}\n",
         "alternate-browser",
     );
     assert_ne!(browser.mask.form_identity, spoken.mask.form_identity);
@@ -425,7 +425,7 @@ fn two_mask_forms_share_one_body_plan_identity_and_unsealed_masks_refuse() {
     );
 
     let possible_but_unsealed = plan_mask(
-        "form late-browser (\n >> presentation: Presentation\n interaction: FaceInteraction...| >>\n show: Show >>\n) {\n output: web/dom\n input: web/input\n presentation >> output.presentation\n output.show >> show\n input.interaction >> interaction\n}\n",
+        "form late-browser (\n >> face: Presentation\n interaction: FaceInteraction...| >>\n show: Show >>\n) {\n output: web/dom\n input: web/input\n face >> output.presentation\n output.show >> show\n input.interaction >> interaction\n}\n",
         "late-browser",
     );
     assert_eq!(
@@ -445,15 +445,15 @@ fn two_mask_forms_share_one_body_plan_identity_and_unsealed_masks_refuse() {
 #[test]
 fn graphical_browser_and_spoken_masks_are_ordinary_forms_with_one_role_boundary() {
     let native = admit(
-        "form native-graphical (\n >> presentation: Presentation\n interaction: FaceInteraction...| >>\n show: Show >>\n) {\n layout: presentation/layout\n compose: presentation/composite\n output: display/show\n input: display/input\n presentation >> layout.presentation\n layout.scene >> compose.scene\n compose.frame >> output.frame\n output.show >> show\n input.interaction >> interaction\n}\n",
+        "form native-graphical (\n >> face: Presentation\n interaction: FaceInteraction...| >>\n show: Show >>\n) {\n layout: presentation/layout\n compose: presentation/composite\n output: display/show\n input: display/input\n face >> layout.presentation\n layout.scene >> compose.scene\n compose.frame >> output.frame\n output.show >> show\n input.interaction >> interaction\n}\n",
         "native-graphical",
     );
     let browser = admit(
-        "form browser-graphical (\n >> presentation: Presentation\n interaction: FaceInteraction...| >>\n show: Show >>\n) {\n output: web/dom\n input: web/input\n presentation >> output.presentation\n output.show >> show\n input.interaction >> interaction\n}\n",
+        "form browser-graphical (\n >> face: Presentation\n interaction: FaceInteraction...| >>\n show: Show >>\n) {\n output: web/dom\n input: web/input\n face >> output.presentation\n output.show >> show\n input.interaction >> interaction\n}\n",
         "browser-graphical",
     );
     let spoken = admit(
-        "form spoken (\n voice-name: Text = \"calm\"\n >> presentation: Presentation\n interaction: FaceInteraction...| >>\n show: Show >>\n) {\n language: presentation/aural\n voice: speech/synthesize\n output: audio/play\n input: audio/listen\n presentation >> language.presentation\n language.text >> voice.text\n voice.audio >> output.audio\n output.show >> show\n input.interaction >> interaction\n}\n",
+        "form spoken (\n voice-name: Text = \"calm\"\n >> face: Presentation\n interaction: FaceInteraction...| >>\n show: Show >>\n) {\n language: presentation/aural\n voice: speech/synthesize\n output: audio/play\n input: audio/listen\n face >> language.presentation\n language.text >> voice.text\n voice.audio >> output.audio\n output.show >> show\n input.interaction >> interaction\n}\n",
         "spoken",
     );
 
@@ -469,10 +469,7 @@ fn graphical_browser_and_spoken_masks_are_ordinary_forms_with_one_role_boundary(
         spoken.form_identity.checked_form_id
     );
     for mask in [native, browser, spoken] {
-        assert_eq!(
-            mask.presentation_input.front_port_id.as_str(),
-            "presentation"
-        );
+        assert_eq!(mask.face_input.front_port_id.as_str(), "face");
         assert_eq!(
             mask.interaction_output.front_port_id.as_str(),
             "interaction"
@@ -485,7 +482,7 @@ fn graphical_browser_and_spoken_masks_are_ordinary_forms_with_one_role_boundary(
 fn an_ordinary_form_without_the_mask_role_boundary_is_not_a_mask() {
     let (startup, profiles) = catalogs();
     let syntax = parse_syntax_document(
-        "form tutorial (\n >> presentation: Presentation\n show: Show >>\n) {\n output: web/dom\n presentation >> output.presentation\n output.show >> show\n}\n",
+        "form tutorial (\n >> face: Presentation\n show: Show >>\n) {\n output: web/dom\n face >> output.presentation\n output.show >> show\n}\n",
     );
     let checked = check_syntax_document(&syntax, &startup).unwrap();
     let expanded = expand_canonical_form_for_authoring(&checked, "tutorial", &profiles).unwrap();
@@ -493,8 +490,22 @@ fn an_ordinary_form_without_the_mask_role_boundary_is_not_a_mask() {
 }
 
 #[test]
+fn the_old_presentation_named_fore_is_not_a_mask_alias() {
+    let (startup, profiles) = catalogs();
+    let syntax = parse_syntax_document(
+        "form legacy-mask (\n >> presentation: Presentation\n interaction: FaceInteraction...| >>\n show: Show >>\n) {\n output: web/dom\n input: web/input\n presentation >> output.presentation\n output.show >> show\n input.interaction >> interaction\n}\n",
+    );
+    let checked = check_syntax_document(&syntax, &startup).unwrap();
+    let expanded = expand_canonical_form_for_authoring(&checked, "legacy-mask", &profiles).unwrap();
+    assert_eq!(
+        MaskForm::admit(&expanded),
+        Err(MaskFormError::MissingFaceInput)
+    );
+}
+
+#[test]
 fn the_ordinary_planner_seals_the_mask_form_without_a_mask_planner() {
-    let source = "form browser-graphical (\n >> presentation: Presentation\n interaction: FaceInteraction...| >>\n show: Show >>\n) {\n output: web/dom\n input: web/input\n presentation >> output.presentation\n output.show >> show\n input.interaction >> interaction\n}\n";
+    let source = "form browser-graphical (\n >> face: Presentation\n interaction: FaceInteraction...| >>\n show: Show >>\n) {\n output: web/dom\n input: web/input\n face >> output.presentation\n output.show >> show\n input.interaction >> interaction\n}\n";
     let (startup, profiles) = catalogs();
     let checked = check_syntax_document(&parse_syntax_document(source), &startup).unwrap();
     let authoring =

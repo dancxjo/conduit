@@ -1,6 +1,6 @@
 # Native graphical Mask role. The Plan selects native renderer and interaction backs.
 form native-graphical (
-    >> presentation: Presentation
+    >> face: Presentation
     interaction: FaceInteraction...| >>
     show: Show >>
 ) {
@@ -8,7 +8,7 @@ form native-graphical (
     render: presentation/renderer
     human: face/interaction
 
-    presentation >> spread.presentation
+    face >> spread.presentation
     spread.presentation >> render.presentation
     spread.presentation >> human.presentation
     render.show >> human.show

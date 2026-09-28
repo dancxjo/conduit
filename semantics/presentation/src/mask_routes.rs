@@ -66,7 +66,7 @@ impl AdmittedMaskFormRoutes {
                 .flat_map(|fragment| &fragment.placements)
                 .collect::<Vec<_>>();
             for boundary in [
-                &planned.mask.presentation_input,
+                &planned.mask.face_input,
                 &planned.mask.interaction_output,
                 &planned.mask.show_output,
             ] {

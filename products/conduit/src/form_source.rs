@@ -144,7 +144,7 @@ mod tests {
     #[test]
     fn product_compiler_checks_the_ordinary_mask_form_boundary() {
         let source = parse(
-            "form browser-mask (\n    >> presentation: Presentation\n    interaction: FaceInteraction...| >>\n    show: Show >>\n) {\n}\n",
+            "form browser-mask (\n    >> face: Presentation\n    interaction: FaceInteraction...| >>\n    show: Show >>\n) {\n}\n",
         )
         .unwrap();
         let checked = conduit_form::check_syntax_document(&source.syntax, &source.startup).unwrap();

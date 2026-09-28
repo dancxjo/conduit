@@ -236,8 +236,8 @@ impl BrowserMaskRuntime {
             .ok_or("browser Mask Plan has no fragment")?;
         let lowered = lower_plan_fragment(fragment)
             .map_err(|error| format!("lower browser Mask: {error:?}"))?;
-        let presentation_boundary =
-            execution::exact_boundary(&lowered.fore_ports, "presentation", PortDirection::Input)?;
+        let face_boundary =
+            execution::exact_boundary(&lowered.fore_ports, "face", PortDirection::Input)?;
         let show_boundary =
             execution::exact_boundary(&lowered.fore_ports, "show", PortDirection::Output)?.clone();
         let interaction_boundary =
@@ -246,28 +246,28 @@ impl BrowserMaskRuntime {
         let mut scheduler = execution::mask_scheduler(fragment, &lowered)?;
         let presentation_bytes =
             serde_json::to_vec(&presentation).map_err(|error| error.to_string())?;
-        if presentation_bytes.len() > presentation_boundary.byte_capacity as usize {
-            return Err("browser Mask Presentation exceeds its sealed Fore bound".into());
+        if presentation_bytes.len() > face_boundary.byte_capacity as usize {
+            return Err("browser Mask Face exceeds its sealed Fore bound".into());
         }
         match scheduler
             .admit_remote_input(
-                presentation_boundary.endpoint,
-                presentation_boundary.cord,
+                face_boundary.endpoint,
+                face_boundary.cord,
                 0,
                 &presentation_bytes,
             )
-            .map_err(|error| format!("inject browser Mask Presentation: {error:?}"))?
+            .map_err(|error| format!("inject browser Mask Face: {error:?}"))?
         {
             conduit_kernel::scheduler::RemoteIngressOutcome::Accepted { sequence: 0 } => {}
             outcome => {
                 return Err(format!(
-                    "browser Mask Presentation was not admitted exactly: {outcome:?}"
+                    "browser Mask Face was not admitted exactly: {outcome:?}"
                 ))
             }
         }
         scheduler
-            .close_remote_input(presentation_boundary.endpoint, presentation_boundary.cord)
-            .map_err(|error| format!("close browser Mask Presentation: {error:?}"))?;
+            .close_remote_input(face_boundary.endpoint, face_boundary.cord)
+            .map_err(|error| format!("close browser Mask Face: {error:?}"))?;
         let pending = loop {
             if let Some(request) = scheduler.next_host_request() {
                 break request;
