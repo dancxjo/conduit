@@ -32,7 +32,7 @@ pub(crate) enum Command {
         #[arg(long)]
         await_terminal: bool,
     },
-    /// Inspect this Host or perform one installed Host operation.
+    /// Inspect this Host or perform one installed Host action.
     Host {
         #[command(subcommand)]
         command: Option<HostCommand>,
