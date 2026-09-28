@@ -1,4 +1,7 @@
-//! Portable presentation of reviewed forms beside the authoritative Body workset.
+#![no_std]
+//! Resident, portable library of reviewed Forms beside the authoritative Body workset.
+
+extern crate alloc;
 use alloc::{format, string::String, vec, vec::Vec};
 use conduit_body::{BodyLifecycleSession, MAX_BODY_FORMS, ResidentForm};
 use conduit_presentation::{
