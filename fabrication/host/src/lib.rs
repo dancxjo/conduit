@@ -55,4 +55,6 @@ mod configuration_tests;
 #[cfg(test)]
 mod native_presenter_tests;
 #[cfg(test)]
+mod runtime_base_tests;
+#[cfg(test)]
 mod tests;

@@ -1,8 +1,9 @@
 use std::collections::{BTreeMap, BTreeSet};
 
 use conduit_core::{
-    BootId, CapabilityOffer, HostAdvertisement, HostId, HostProfileId, OfferGeneration,
-    PlannerCapabilityOffer, ResourceOffer, SignId, PROTOCOL_VERSION,
+    BaseProviderEntry, BaseRegistryRefusal, BootId, CapabilityOffer, HostAdvertisement, HostId,
+    HostProfileId, OfferGeneration, PlannerCapabilityOffer, ResourceOffer, SignId,
+    PROTOCOL_VERSION,
 };
 use serde::{Deserialize, Serialize};
 
@@ -10,6 +11,9 @@ use crate::{
     verify_image_binding, BuildDiagnostic, BuildManifest, FabricationCatalog, HostImage,
     PrerequisiteNode,
 };
+
+mod base_projection;
+use base_projection::project_ready_bases;
 
 #[derive(Debug, Clone, PartialEq, Eq, Default)]
 pub struct RuntimeFacts {
@@ -61,6 +65,10 @@ pub enum RuntimeBindingDiagnostic {
     UnexpectedImplementation {
         implementation: String,
     },
+    UnexpectedBaseImplementation {
+        kind: String,
+        implementation: String,
+    },
     UnexpectedResourceClass {
         class: String,
     },
@@ -69,6 +77,7 @@ pub enum RuntimeBindingDiagnostic {
         offered: u64,
         built: u64,
     },
+    InvalidBaseProvider(BaseRegistryRefusal),
 }
 
 #[derive(Debug, Clone)]
@@ -79,7 +88,10 @@ pub struct RuntimeOfferInputs {
     /// The admitted observation Sign that proves these runtime facts for this generation.
     pub offer_sign_id: SignId,
     pub host_profile: HostProfileId,
-    pub candidate_resources: Vec<ResourceOffer>,
+    /// Finite Boot-current Bases. Their owned resources and Back offers are
+    /// projected together; descriptive runtime facts cannot manufacture them.
+    pub candidate_bases: Vec<BaseProviderEntry>,
+    /// Base-free Back offers.
     pub candidate_capabilities: Vec<CapabilityOffer>,
     pub planner_capabilities: Vec<PlannerCapabilityOffer>,
     pub facts: RuntimeFacts,
@@ -95,17 +107,16 @@ pub fn bind_runtime_offer(
     verify_image_binding(image, image_bytes).map_err(RuntimeBindingDiagnostic::Image)?;
     verify_manifest_image(manifest, image)?;
 
-    let resources = inputs
-        .candidate_resources
-        .into_iter()
-        .filter(|offer| resource_is_ready(manifest, offer, &inputs.facts))
-        .collect::<Vec<_>>();
+    let resources = Vec::new();
     let capabilities = inputs
         .candidate_capabilities
         .into_iter()
-        .filter(|offer| capability_is_ready(manifest, catalog, offer, &resources, &inputs.facts))
+        .filter(|offer| {
+            capability_is_base_free(catalog, offer)
+                && capability_is_ready(manifest, catalog, offer, &resources, &inputs.facts)
+        })
         .collect::<Vec<_>>();
-    let advertisement = HostAdvertisement {
+    let mut advertisement = HostAdvertisement {
         protocol_version: PROTOCOL_VERSION,
         host_id: inputs.host_id.clone(),
         boot_id: inputs.boot_id.clone(),
@@ -116,6 +127,13 @@ pub fn bind_runtime_offer(
         capabilities,
         planner_capabilities: inputs.planner_capabilities,
     };
+    project_ready_bases(
+        manifest,
+        catalog,
+        &inputs.facts,
+        inputs.candidate_bases,
+        &mut advertisement,
+    )?;
     let identity = ImageBootIdentity {
         profile_id: manifest.profile_id.clone(),
         build_id: manifest.build_id.clone(),
@@ -309,6 +327,45 @@ fn capability_is_ready(
             .iter()
             .all(|node| runtime_node_ready(manifest, catalog, node, facts, &mut BTreeSet::new()))
     })
+}
+
+fn capability_is_base_free(catalog: &FabricationCatalog, offer: &CapabilityOffer) -> bool {
+    let implementation = offer.implementation.implementation_id.as_str();
+    catalog
+        .implementations
+        .get(implementation)
+        .map(|metadata| &metadata.prerequisites)
+        .or_else(|| {
+            catalog
+                .presenters
+                .get(implementation)
+                .map(|metadata| &metadata.prerequisites)
+        })
+        .is_some_and(|nodes| {
+            nodes
+                .iter()
+                .all(|node| !node_requires_base(catalog, node, &mut BTreeSet::new()))
+        })
+}
+
+fn node_requires_base(
+    catalog: &FabricationCatalog,
+    node: &PrerequisiteNode,
+    visiting: &mut BTreeSet<PrerequisiteNode>,
+) -> bool {
+    if !visiting.insert(node.clone()) {
+        return true;
+    }
+    let requires = matches!(
+        node,
+        PrerequisiteNode::Base(_) | PrerequisiteNode::Driver(_) | PrerequisiteNode::Resource(_)
+    ) || catalog.dependencies.get(node).is_some_and(|dependencies| {
+        dependencies
+            .iter()
+            .any(|dependency| node_requires_base(catalog, dependency, visiting))
+    });
+    visiting.remove(node);
+    requires
 }
 
 fn runtime_node_ready(
