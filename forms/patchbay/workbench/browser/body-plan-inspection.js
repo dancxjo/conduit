@@ -1,17 +1,27 @@
-/** Read-only projection of the exact execution proposal, never a planner or registry. */
-export function presentBodyPlan(root, proposal) {
+/** Read-only workbench realization of an immutable @conduit/browser value. */
+export function renderBodyPlanInspection(root, inspection) {
+  if (inspection?.schema !== "conduit.browser/body-plan-inspection@1"
+      || inspection.bodyId !== inspection.plan?.body_id
+      || inspection.wakeId !== inspection.plan?.wake_id
+      || inspection.planId !== inspection.plan?.plan_id) {
+    throw new TypeError("Body Plan inspection requires one exact @conduit/browser SDK value");
+  }
   const document = root.ownerDocument;
   const candidate = document.createDocumentFragment();
   const paragraph = (parent, text) => {
     const node = document.createElement("p");
-    node.textContent = text;parent.append(node);
+    node.textContent = text;
+    parent.append(node);
   };
   const details = (parent, title) => {
-    const node = document.createElement("details"), summary = document.createElement("summary");
-    summary.textContent = title;node.append(summary);parent.append(node);
+    const node = document.createElement("details");
+    const summary = document.createElement("summary");
+    summary.textContent = title;
+    node.append(summary);
+    parent.append(node);
     return node;
   };
-  const plan = proposal.plan;
+  const plan = inspection.plan;
   paragraph(candidate, `Selected body Plan ${plan.plan_id} · Body ${plan.body_id} · Wake ${plan.wake_id}`);
   paragraph(candidate, "Retained selection, not current availability or physical proof. Device and Base associations are not recorded in this proposal; absence here does not prove no Device exists.");
   for (const form of plan.forms) {

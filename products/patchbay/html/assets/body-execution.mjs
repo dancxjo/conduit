@@ -1,5 +1,4 @@
 import { acquireBrowserBodyHost } from "./browser-body-host.mjs";
-import { presentBodyPlan } from "./body-plan-inspection.mjs";
 
 const MAX_BODY_EXECUTION_CAPABILITIES = 112;
 
@@ -29,11 +28,7 @@ export function createBodyExecutionControl({ root, apiUrl, renderSnapshot }) {
   const evidenceScope = document.createElement("p");
   evidenceScope.textContent = "Kernel event sequences are scoped to this play and mapped to exact plan placements. They are not global Sign IDs or causal-parent references. Host reports remain SelfReported.";
   exact.append(summary, evidenceScope, evidence);
-  const selection = document.createElement("details"), selectionTitle = document.createElement("summary");
-  selectionTitle.textContent = "Inspect selected body Plan";
-  const planInspection = document.createElement("div");planInspection.id = "body-plan-inspection";
-  selection.append(selectionTitle, planInspection);
-  section.append(start, stop, status, input, output, selection, exact);root.append(section);
+  section.append(start, stop, status, input, output, exact);root.append(section);
   let host = null, planning = null, busy = false, owner = null, activePlay = null,
     stopped = false, closed = null;
 
@@ -90,7 +85,6 @@ export function createBodyExecutionControl({ root, apiUrl, renderSnapshot }) {
       const proposal = await response.json();
       if (stopped) throw new Error("Body start cancelled before acquisition");
       owner = acquireBrowserBodyHost({ ...executingHost, proposal, inputTarget: input, outputRoot: output });
-      presentBodyPlan(planInspection, proposal);
       const result = await post({ kind: "Claim", plan_id: proposal.plan.plan_id, host_id: executingHost.hostId, boot_id: executingHost.bootId });
       const claim = result.execution_claims.at(-1);
       if (claim?.phase !== "Claimed" || claim.play.plan_id !== proposal.plan.plan_id ||

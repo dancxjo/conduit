@@ -14,3 +14,8 @@ application obtains the immutable Body-owned topology with
 `BrowserBody.patchbay()` from `@conduit/browser`, then gives that value to
 `renderBrowserBodyPatchbay`. The workbench does not import Rust Patchbay crates,
 raw Wasm exports, or Browser Host implementation modules.
+
+`body-plan-inspection.js` accepts only the immutable value returned by
+`BrowserBodyPreparation.inspection()`. It is read-only Mask interpretation: it
+neither imports a Host implementation nor plans, claims a Play, or treats a
+retained selection as current availability or physical proof.

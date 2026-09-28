@@ -148,6 +148,10 @@ async function openExternalBody(page, { friendlyName, titles, forms }) {
       planId: proposal.plan.plan_id,
     });
     expect(inspection.plan).toEqual(proposal.plan);
+    await expect(page.locator("#body-plan-inspection")).toContainText(`Selected body Plan ${proposal.plan.plan_id}`);
+    const placementCount = proposal.plan.forms.reduce((count, form) => count
+      + form.plan.fragments.reduce((subtotal, fragment) => subtotal + fragment.placements.length, 0), 0);
+    await expect(page.locator("#body-plan-inspection [data-placement-id]")).toHaveCount(placementCount);
     const host = await page.evaluate(() => globalThis.__conduitSdkParticipation.host.current());
     const claimed = await post(page, api("body-execution"), {
       schema: "conduit.patchbay/body-execution-request@1",
