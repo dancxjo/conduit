@@ -225,12 +225,12 @@ impl PrewakeController {
         &self,
         editor: &FormEditor,
         environment: &AuthoredEnvironment,
-        subject: &crate::PatchbaySubjectRef,
+        subject: &patchbay_graph::PatchbaySubjectRef,
     ) -> Result<crate::GearRealizationInspection, PrewakeError> {
         let expanded = editor
             .expand_form(&editor.view().open_form)
             .map_err(|_| PrewakeError::InvalidForm)?;
-        let graph = crate::PatchbayGraph::from_expanded(&expanded)
+        let graph = patchbay_graph::PatchbayGraph::from_expanded(&expanded)
             .map_err(|_| PrewakeError::InvalidForm)?;
         let plan = match &self.state {
             PrewakeState::Auto { plan, .. } | PrewakeState::Held { plan, .. } => Some(plan),
@@ -249,7 +249,7 @@ impl PrewakeController {
         &mut self,
         editor: &FormEditor,
         environment: &AuthoredEnvironment,
-        subject: &crate::PatchbaySubjectRef,
+        subject: &patchbay_graph::PatchbaySubjectRef,
     ) -> Result<(), PrewakeError> {
         let inspection = match self.realization_inspection(editor, environment, subject) {
             Ok(inspection) => inspection,

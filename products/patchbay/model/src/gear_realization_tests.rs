@@ -11,8 +11,9 @@ use conduit_std_host::{StdHost, StdHostComposition, StdHostConfig};
 use crate::{
     replan_with_implementation, replan_with_learned_promotion, replan_with_learned_rollback,
     FormEditor, GearRealizationError, GearRealizationInspection, LearnedImplementationSelection,
-    PatchbayGraph, PatchbayLayout, RealizationDisposition,
+    PatchbayLayout, RealizationDisposition,
 };
+use patchbay_graph::PatchbayGraph;
 
 fn specimen() -> (conduit_form::ExpandedCanonicalForm, PatchbayGraph) {
     let editor = FormEditor::from_source(

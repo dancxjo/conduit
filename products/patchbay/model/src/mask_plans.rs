@@ -58,11 +58,11 @@ pub fn recursive_form_demonstration() -> Result<conduit_presentation::Presentati
         profile,
     )
     .map_err(|error| error.to_string())?;
-    let mut graph = crate::PatchbayGraph::from_expanded(&proof.recursive_expanded)
+    let mut graph = patchbay_graph::PatchbayGraph::from_expanded(&proof.recursive_expanded)
         .map_err(|error| error.to_string())?;
     for back in &proof.recursive_expanded.realization_backs {
         let front = reviewed_back_front(back, &startup)?;
-        let projection = crate::project_recursive_form_gear(
+        let projection = patchbay_graph::project_recursive_form_gear(
             &proof.recursive_expanded,
             &back.invocation_path,
             front,

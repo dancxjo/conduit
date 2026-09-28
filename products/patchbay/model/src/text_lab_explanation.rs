@@ -24,9 +24,10 @@ use serde::{Deserialize, Serialize};
 
 use crate::text_lab_explanation_loss::validate_loss;
 use crate::{
-    portable_content::ContentBuilder, FormEditor, PartsView, PatchbayGraph,
-    PatchbayNavigationProjection, PatchbayPresentation, PatchbayRequestId, PlanDocument,
+    portable_content::ContentBuilder, FormEditor, PartsView, PatchbayNavigationProjection,
+    PatchbayPresentation, PatchbayRequestId, PlanDocument,
 };
+use patchbay_graph::PatchbayGraph;
 
 const SOURCE: &str = include_str!("../../../../forms/text-lab/main.conduit");
 

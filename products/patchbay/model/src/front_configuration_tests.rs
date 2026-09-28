@@ -1,6 +1,7 @@
 use conduit_core::{ConfigurationValue, Quantity, QuantityUnit};
 
-use crate::{FaceControlKind, FormEditor, FormEditorError, PatchbayGraph};
+use crate::{FormEditor, FormEditorError};
+use patchbay_graph::{FaceControlKind, PatchbayGraph};
 
 fn editor(source: &str) -> FormEditor {
     FormEditor::from_source("front-controls.conduit".into(), source.into()).unwrap()

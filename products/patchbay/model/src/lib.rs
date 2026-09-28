@@ -271,16 +271,6 @@ pub use palette::{
 };
 pub use parts_view::*;
 pub use patchbay_backs::*;
-pub use patchbay_graph::{
-    project_recursive_form_gear, RecursiveFormGearProjection, RecursiveFormProjectionError,
-};
-pub use patchbay_graph::{FaceControl, FaceControlKind, FaceInteraction, MAX_FACE_CONTROLS};
-pub use patchbay_graph::{
-    PatchbayComposition, PatchbayCompositionBinding, PatchbayConnectionCandidate, PatchbayCord,
-    PatchbayFrontPort, PatchbayGear, PatchbayGraph, PatchbayGraphError, PatchbayInspection,
-    PatchbayPort, PatchbayPortCompatibility, PatchbaySubjectKind, PatchbaySubjectRef,
-    MAX_PATCHBAY_CORDS, MAX_PATCHBAY_GEARS, MAX_PATCHBAY_PORTS, MAX_PATCHBAY_SUBJECTS,
-};
 pub use policy_explanation::{
     PolicyChoiceDetails, PolicyChoiceDomain, PolicyChoiceExplanation, PolicyChoiceSummary,
     PolicyExplanationError, PolicyReplanRequest, MAX_POLICY_EXPLANATIONS,

@@ -1,5 +1,6 @@
-use crate::{
-    FormEditor, PatchbayGraph, PatchbayGraphError, PatchbayPortCompatibility, PatchbaySubjectKind,
+use crate::FormEditor;
+use patchbay_graph::{
+    PatchbayGraph, PatchbayGraphError, PatchbayPortCompatibility, PatchbaySubjectKind,
     MAX_PATCHBAY_GEARS, MAX_PATCHBAY_PORTS, MAX_PATCHBAY_SUBJECTS,
 };
 use std::path::PathBuf;

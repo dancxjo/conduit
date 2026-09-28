@@ -24,7 +24,7 @@ requires enough generic machinery to change this balance.
 
 ## Typed boundary
 
-`patchbay-model::PatchbayGraph` is built from one validated `ExpandedCanonicalForm`. It carries the
+`patchbay_graph::PatchbayGraph` is built from one validated `ExpandedCanonicalForm`. It carries the
 exact source-document, checked-form, and expanded-form identities; primitive gear and kind
 identities; exact directional typed port descriptors; and cords derived only from admitted exact
 connection endpoints. The model rejects missing endpoints and collections beyond its fixed gear,

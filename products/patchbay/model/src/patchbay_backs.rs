@@ -1,11 +1,11 @@
 //! Thin presentation Backs over the existing canonical Patchbay graph.
 
-use crate::{FaceControl, PatchbayCord, PatchbayGear, PatchbayPort};
 use conduit_core::{KindId, LineId, PlanId, PortDirection, PortTemporal};
 use conduit_presentation::{
     GraphicsCommand, GraphicsError, GraphicsPaintRole, GraphicsScene, GraphicsShapeStyle,
     LayoutRect, PresentationComposition, PresentationIconKey,
 };
+use patchbay_graph::{FaceControl, PatchbayCord, PatchbayGear, PatchbayPort};
 
 pub use conduit_semantic_catalog::{
     PATCHBAY_CORD_KIND, PATCHBAY_GEAR_FACE_KIND, PATCHBAY_PORT_KIND,
@@ -282,10 +282,10 @@ fn validate_text(value: &str) -> Result<(), PatchbayBackError> {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::FaceControlKind;
     use conduit_core::{
         kind_id, port_id, ConfigurationValue, GearId, PortDescriptor, PortTemporal,
     };
+    use patchbay_graph::FaceControlKind;
 
     fn port(direction: PortDirection) -> PatchbayPort {
         PatchbayPort {

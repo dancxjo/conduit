@@ -127,7 +127,7 @@ fn implementation_request_replans_through_the_same_prewake_path() {
     let (prior_plan, prior_placement, subject) = match prewake.state() {
         PrewakeState::Held { plan, .. } => {
             let expanded = editor.expand_form("one").unwrap();
-            let graph = crate::PatchbayGraph::from_expanded(&expanded).unwrap();
+            let graph = patchbay_graph::PatchbayGraph::from_expanded(&expanded).unwrap();
             (
                 plan.plan_id.clone(),
                 plan.fragments[0].placements[0].clone(),

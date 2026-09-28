@@ -254,7 +254,7 @@ fn both_shapes_use_the_same_portable_selection_seam_and_normalized_subjects() {
         );
         let request = PatchbayInteractionRequest::select(
             interaction.next_request_id("select").unwrap(),
-            &crate::PatchbaySubjectRef {
+            &patchbay_graph::PatchbaySubjectRef {
                 expanded_form_id: presentation.basis.expanded_form_id.clone().unwrap(),
                 subject_identity: presentation.subjects[0].identity.clone(),
             },

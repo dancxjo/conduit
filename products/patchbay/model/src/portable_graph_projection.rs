@@ -1,10 +1,11 @@
 //! Project the exact typed Patchbay graph into renderer-neutral subjects.
 
-use crate::{FaceControlKind, PatchbayGraph, PlanDocument, PlayDocument};
+use crate::{PlanDocument, PlayDocument};
 use conduit_presentation::{
     PresentationIconKey, PresentationPropertyValue, PresentationRelationship,
     PresentationRelationshipKind, PresentationRole,
 };
+use patchbay_graph::{FaceControlKind, PatchbayGraph};
 
 use crate::portable_projection::ContentBuilder;
 
@@ -293,7 +294,7 @@ fn interaction_family(family: &conduit_human::InteractionFamily) -> &'static str
 fn append_gear_plan(
     content: &mut ContentBuilder,
     subject: &str,
-    gear: &crate::PatchbayGear,
+    gear: &patchbay_graph::PatchbayGear,
     plan: Option<&PlanDocument>,
     play: Option<&PlayDocument>,
 ) {
@@ -375,7 +376,7 @@ fn append_cord_plan(
     content: &mut ContentBuilder,
     subject: &str,
     graph: &PatchbayGraph,
-    cord: &crate::PatchbayCord,
+    cord: &patchbay_graph::PatchbayCord,
     plan: Option<&PlanDocument>,
     play: Option<&PlayDocument>,
 ) {
@@ -443,7 +444,7 @@ fn append_cord_plan(
 
 fn planned_connection<'a>(
     graph: &PatchbayGraph,
-    cord: &crate::PatchbayCord,
+    cord: &patchbay_graph::PatchbayCord,
     plan: &'a PlanDocument,
 ) -> Option<&'a conduit_core::PlannedConnection> {
     let source = graph

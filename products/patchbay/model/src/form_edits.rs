@@ -3,7 +3,7 @@
 use crate::form_editor::{
     check_revision, ensure_source_bound, FormEditor, FormEditorError, GraphItemKind,
 };
-use crate::PatchbayGraph;
+use patchbay_graph::PatchbayGraph;
 
 impl FormEditor {
     /// Places one fresh semantic Gear by editing canonical Form source. The
@@ -220,24 +220,24 @@ impl FormEditor {
                 .map(|port| (composition, port))
         });
         match graph.connection_compatibility(source_port_identity, sink_port_identity) {
-            crate::PatchbayPortCompatibility::Compatible => {}
-            crate::PatchbayPortCompatibility::DuplicateCord => {
+            patchbay_graph::PatchbayPortCompatibility::Compatible => {}
+            patchbay_graph::PatchbayPortCompatibility::DuplicateCord => {
                 return Err(FormEditorError::DuplicateCord)
             }
-            crate::PatchbayPortCompatibility::IncompatibleInfo { source, sink } => {
+            patchbay_graph::PatchbayPortCompatibility::IncompatibleInfo { source, sink } => {
                 return Err(FormEditorError::IncompatiblePorts(format!(
                     "Info {} cannot feed {}",
                     source.as_str(),
                     sink.as_str()
                 )))
             }
-            crate::PatchbayPortCompatibility::IncompatibleTemporal { source, sink } => {
+            patchbay_graph::PatchbayPortCompatibility::IncompatibleTemporal { source, sink } => {
                 return Err(FormEditorError::IncompatiblePorts(format!(
                     "temporal contract {source:?} cannot feed {sink:?}"
                 )))
             }
-            crate::PatchbayPortCompatibility::UnknownPort
-            | crate::PatchbayPortCompatibility::InvalidDirection => {
+            patchbay_graph::PatchbayPortCompatibility::UnknownPort
+            | patchbay_graph::PatchbayPortCompatibility::InvalidDirection => {
                 return Err(FormEditorError::UnknownPort(format!(
                     "{source_port_identity} >> {sink_port_identity}"
                 )))

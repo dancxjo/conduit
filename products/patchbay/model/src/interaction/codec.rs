@@ -28,7 +28,7 @@ impl PatchbayInteractionRequest {
 
     pub fn select(
         request_id: PatchbayInteractionRequestId,
-        subject: &crate::PatchbaySubjectRef,
+        subject: &patchbay_graph::PatchbaySubjectRef,
     ) -> Result<Self, InteractionError> {
         validate_field(&subject.subject_identity)?;
         Ok(Self::Select {

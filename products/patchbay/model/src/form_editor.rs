@@ -264,9 +264,9 @@ impl FormEditor {
     pub fn patchbay_graph_for_authoring(
         &self,
         name: &str,
-    ) -> Result<crate::PatchbayGraph, FormEditorError> {
+    ) -> Result<patchbay_graph::PatchbayGraph, FormEditorError> {
         let authoring = self.expand_form_for_authoring(name)?;
-        let mut graph = crate::PatchbayGraph::from_authoring(&authoring)
+        let mut graph = patchbay_graph::PatchbayGraph::from_authoring(&authoring)
             .map_err(|error| FormEditorError::Catalog(error.to_string()))?;
         let open = self
             .checked
@@ -303,7 +303,7 @@ impl FormEditor {
                 .inputs()
                 .iter()
                 .cloned()
-                .map(|descriptor| crate::PatchbayFrontPort {
+                .map(|descriptor| patchbay_graph::PatchbayFrontPort {
                     identity: format!(
                         "composition/{gear_name}/input/{}",
                         descriptor.port_id.as_str()
@@ -322,7 +322,7 @@ impl FormEditor {
                 .outputs()
                 .iter()
                 .cloned()
-                .map(|descriptor| crate::PatchbayFrontPort {
+                .map(|descriptor| patchbay_graph::PatchbayFrontPort {
                     identity: format!(
                         "composition/{gear_name}/output/{}",
                         descriptor.port_id.as_str()
@@ -349,7 +349,7 @@ impl FormEditor {
                 )
             };
             graph
-                .admit_composition(crate::PatchbayComposition {
+                .admit_composition(patchbay_graph::PatchbayComposition {
                     identity: format!("composition/{gear_name}"),
                     gear_name: gear_name.clone(),
                     back_name: back_name.into(),
@@ -357,7 +357,7 @@ impl FormEditor {
                     input_bindings: nested
                         .input_bindings
                         .iter()
-                        .map(|binding| crate::PatchbayCompositionBinding {
+                        .map(|binding| patchbay_graph::PatchbayCompositionBinding {
                             front_port: format!(
                                 "composition/{gear_name}/input/{}",
                                 binding.front_port_id.as_str()
@@ -368,7 +368,7 @@ impl FormEditor {
                     output_bindings: nested
                         .output_bindings
                         .iter()
-                        .map(|binding| crate::PatchbayCompositionBinding {
+                        .map(|binding| patchbay_graph::PatchbayCompositionBinding {
                             front_port: format!(
                                 "composition/{gear_name}/output/{}",
                                 binding.front_port_id.as_str()

@@ -203,7 +203,7 @@ mod tests {
         );
         assert!(conduit_core::verify_plan(&proof.plan));
         let before = serde_json::to_vec(&proof.plan).unwrap();
-        let graph = crate::PatchbayGraph::from_expanded(&proof.expanded).unwrap();
+        let graph = patchbay_graph::PatchbayGraph::from_expanded(&proof.expanded).unwrap();
         let document = crate::PlanDocument::from_plan(
             crate::PatchbayRequestId::new("resource-inspect").unwrap(),
             &proof.plan,

@@ -66,7 +66,10 @@ pub fn portable_demonstration_with_parts_and_adapter(
         vec![route],
     )
     .map_err(|error| error.to_string())?
-    .with_graph(crate::PatchbayGraph::from_expanded(&expanded).map_err(|error| error.to_string())?)
+    .with_graph(
+        patchbay_graph::PatchbayGraph::from_expanded(&expanded)
+            .map_err(|error| error.to_string())?,
+    )
     .map_err(|error| error.to_string())?;
     let body = Body::born(
         plan.source_document_id.clone(),

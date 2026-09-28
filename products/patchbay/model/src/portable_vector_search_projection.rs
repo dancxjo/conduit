@@ -4,7 +4,7 @@ use conduit_core::PlannedGear;
 use conduit_presentation::PresentationPropertyValue;
 
 use crate::portable_projection::ContentBuilder;
-use crate::PatchbayGear;
+use patchbay_graph::PatchbayGear;
 
 pub(super) fn append_vector_search_realization(
     content: &mut ContentBuilder,

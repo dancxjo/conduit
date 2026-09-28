@@ -1,5 +1,5 @@
 use super::*;
-use crate::PatchbayGraph;
+use patchbay_graph::PatchbayGraph;
 
 const GREET: &str = include_str!("../../../../forms/greet/main.conduit");
 const HELLO: &str = include_str!("../../../../forms/hello/main.conduit");

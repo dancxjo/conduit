@@ -13,7 +13,7 @@ use conduit_planner::{
     default_expanded_placements, plan_expanded_canonical, PlacementChoice, PlannerError,
 };
 
-use crate::{PatchbayGraph, PatchbaySubjectRef};
+use patchbay_graph::{PatchbayGraph, PatchbaySubjectRef};
 
 pub const MAX_GEAR_REALIZATION_ALTERNATIVES: usize = 32;
 

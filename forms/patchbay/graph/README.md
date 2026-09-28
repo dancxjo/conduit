@@ -5,9 +5,9 @@ and recursive form-boundary projections. It derives them from checked and
 expanded form truth; it does not own execution, host offers, rendering, or
 input-device state.
 
-`patchbay-model` retains its existing public paths by re-exporting this
-package. Hosted and native consumers can therefore share the same identities,
-connection compatibility, inspection facts, and graph bounds.
+Consumers import this package directly. Hosted and native masks therefore
+share the same identities, connection compatibility, inspection facts, and
+graph bounds without routing Form truth through a product-model facade.
 
 Construction uses `alloc` during preparation. `no_std` does not mean
 allocation-free or guarantee that a native allocator reclaims discarded

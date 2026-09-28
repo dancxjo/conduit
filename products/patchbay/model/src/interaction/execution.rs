@@ -110,7 +110,7 @@ fn failed(code: FailureCode, detail: u16) -> StepOutcome {
 impl PatchbayInteraction {
     pub fn execute<F>(
         &mut self,
-        graph: Option<&crate::PatchbayGraph>,
+        graph: Option<&patchbay_graph::PatchbayGraph>,
         request: PatchbayInteractionRequest,
         invoke: F,
     ) -> Result<InteractionReceipt, InteractionError>
@@ -125,7 +125,7 @@ impl PatchbayInteraction {
                         .resolve_subject_ref(candidate)
                         .map(|_| ())
                         .map_err(|error| match error {
-                            crate::PatchbayGraphError::StaleGraphBasis => {
+                            patchbay_graph::PatchbayGraphError::StaleGraphBasis => {
                                 PatchbayRefusal::StalePresentation
                             }
                             _ => PatchbayRefusal::UnknownSubject,
@@ -176,7 +176,7 @@ impl PatchbayInteraction {
     ) -> Result<InteractionReceipt, InteractionError>
     where
         F: FnOnce(&PatchbayInteractionRequest) -> PatchbayInvocationOutcome,
-        R: Fn(&crate::PatchbaySubjectRef) -> Result<(), PatchbayRefusal>,
+        R: Fn(&patchbay_graph::PatchbaySubjectRef) -> Result<(), PatchbayRefusal>,
     {
         let duplicate_delivery = self
             .history
@@ -289,7 +289,7 @@ impl PatchbayInteraction {
                             subject_identity,
                             ..
                         } => {
-                            let candidate = crate::PatchbaySubjectRef {
+                            let candidate = patchbay_graph::PatchbaySubjectRef {
                                 expanded_form_id: expanded_form_id.clone(),
                                 subject_identity: subject_identity.clone(),
                             };

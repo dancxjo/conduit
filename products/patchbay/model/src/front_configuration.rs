@@ -10,7 +10,8 @@ use conduit_human::{
 };
 use conduit_semantic_catalog::KindConfigurationRule;
 
-use crate::{FormEditor, FormEditorError, PatchbayGraph};
+use crate::{FormEditor, FormEditorError};
+use patchbay_graph::PatchbayGraph;
 
 impl FormEditor {
     /// Applies one common typed interaction proposal to checked configuration.
@@ -214,7 +215,7 @@ impl FormEditor {
 }
 
 fn proposal_for_configuration(
-    interaction: &crate::FaceInteraction,
+    interaction: &patchbay_graph::FaceInteraction,
     value: ConfigurationValue,
 ) -> Result<HumanInteractionProposal, FormEditorError> {
     let typed = match (&interaction.contract.family, value) {

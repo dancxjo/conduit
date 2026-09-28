@@ -145,7 +145,7 @@ pub struct PatchbayInteraction {
     boot_id: BootId,
     sequence: u64,
     play_sequence: u64,
-    selected: Option<crate::PatchbaySubjectRef>,
+    selected: Option<patchbay_graph::PatchbaySubjectRef>,
     history: VecDeque<InteractionReceipt>,
 }
 
@@ -170,7 +170,7 @@ impl PatchbayInteraction {
         PatchbayInteractionRequestId::new(format!("patchbay/interaction/{action}/{sequence}"))
     }
 
-    pub fn selected(&self) -> Option<&crate::PatchbaySubjectRef> {
+    pub fn selected(&self) -> Option<&patchbay_graph::PatchbaySubjectRef> {
         self.selected.as_ref()
     }
 
