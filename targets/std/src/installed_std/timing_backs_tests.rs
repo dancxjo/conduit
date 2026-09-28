@@ -135,7 +135,7 @@ fn debounce_burst_resets_exact_request_and_flushes_pending_value_on_close() {
     );
     assert_eq!(
         operation.step(&mut io, &StepInputBytes::test_frame([None], None)),
-        StepOutcome::Progress
+        StepOutcome::Complete
     );
     assert_eq!(io.test_output(PortId(0)), Some(last));
 }
@@ -196,7 +196,7 @@ fn timeout_distinguishes_expiry_recovery_reset_and_terminal_cancellation() {
     let mut io = frame(None, false, None, false);
     assert_eq!(
         operation.step(&mut io, &StepInputBytes::test_frame([None], None)),
-        StepOutcome::Progress
+        StepOutcome::Complete
     );
     released.extend(io.test_discards().iter().flatten().copied());
     released.sort_by_key(|value| value.slot);
