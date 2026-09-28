@@ -4,13 +4,13 @@ import { readFileSync } from "node:fs";
 import test from "node:test";
 
 test("affected product proof begins after cheap PR entry while promotion stays privileged", () => {
-  const productWorkflow = readFileSync(".github/workflows/tour-products.yml", "utf8");
+  const productWorkflow = readFileSync(".github/workflows/product-carrier.yml", "utf8");
   const candidateWorkflow = readFileSync(".github/workflows/candidate.yml", "utf8");
   const integrationWorkflow = readFileSync(".github/workflows/dev-integration.yml", "utf8");
   assert.match(candidateWorkflow, /^  pull_request:\s*$/m);
-  assert.match(candidateWorkflow, /products:\n    needs: admission\n    if: github\.event\.pull_request\.draft == false\n    uses: \.\/\.github\/workflows\/tour-products\.yml/);
+  assert.match(candidateWorkflow, /products:\n    needs: admission\n    if: github\.event\.pull_request\.draft == false\n    uses: \.\/\.github\/workflows\/product-carrier\.yml/);
   assert.match(candidateWorkflow, /development_admission: true/);
-  assert.match(integrationWorkflow, /uses: \.\/\.github\/workflows\/tour-products\.yml/);
+  assert.match(integrationWorkflow, /uses: \.\/\.github\/workflows\/product-carrier\.yml/);
   assert.doesNotMatch(productWorkflow, /^  pull_request:\s*$/m);
   assert.doesNotMatch(productWorkflow, /paths:\s*&product-paths/);
   assert.match(productWorkflow, /jobs:\n  plan:/);
@@ -18,7 +18,7 @@ test("affected product proof begins after cheap PR entry while promotion stays p
   assert.match(productWorkflow, /git worktree add --detach "\$RUNNER_TEMP\/conduit-ci-controller"/);
   assert.match(productWorkflow, /pages_products_required/);
 
-  const deploy = readFileSync(".github/workflows/tour-pages-deploy.yml", "utf8");
+  const deploy = readFileSync(".github/workflows/pages-deploy.yml", "utf8");
   assert.match(deploy, /pull_request_target:\n    types: \[closed\]\n    branches: \[main\]/);
   const closedTrigger = deploy.split("  pull_request_target:\n")[1].split("  workflow_dispatch:")[0];
   assert.doesNotMatch(closedTrigger, /^    paths(?:-ignore)?:/m);
@@ -27,7 +27,6 @@ test("affected product proof begins after cheap PR entry while promotion stays p
 test("every browser product admits the complete shared presentation theme", () => {
   const themeBytes = readFileSync("products/shared/browser/conduit.css").byteLength;
   for (const path of [
-    "products/tour/browser/tour.application.template.json",
     "products/creche/browser/creche.application.template.json",
     "products/patchbay/html/assets/patchbay.application.template.json",
   ]) {
@@ -39,7 +38,7 @@ test("every browser product admits the complete shared presentation theme", () =
 });
 
 test("product jobs build the immutable PR head and deployments queue", () => {
-  const productWorkflow = readFileSync(".github/workflows/tour-products.yml", "utf8");
+  const productWorkflow = readFileSync(".github/workflows/product-carrier.yml", "utf8");
   const checkoutCount = [...productWorkflow.matchAll(/uses: actions\/checkout@v7/g)].length;
   const exactHeadCount = [...productWorkflow.matchAll(
     /ref: \$\{\{ env\.CONDUIT_CANDIDATE_SHA \}\}/g,
@@ -61,7 +60,7 @@ test("product jobs build the immutable PR head and deployments queue", () => {
   );
   assert.doesNotMatch(productWorkflow, /github\.event\.pull_request\.(?:head|base)\.sha \|\| inputs\./);
   assert.match(productWorkflow, /name: browser-proof-\$\{\{ matrix\.shard \}\}/);
-  assert.match(productWorkflow, /shard: tour/);
+  assert.doesNotMatch(productWorkflow, /shard: tour/);
   assert.match(productWorkflow, /shard: browser-host/);
   assert.match(productWorkflow, /shard: creche-machines/);
   assert.match(productWorkflow, /shard: pages/);
@@ -145,10 +144,10 @@ test("product jobs build the immutable PR head and deployments queue", () => {
   assert.match(productWorkflow, /test "\$BROWSER_ADMISSION_RESULT" = success/);
   assert.match(productWorkflow, /test "\$CARRIER_RESULT" = success/);
 
-  const deployWorkflow = readFileSync(".github/workflows/tour-pages-deploy.yml", "utf8");
+  const deployWorkflow = readFileSync(".github/workflows/pages-deploy.yml", "utf8");
   assert.match(
     deployWorkflow,
-    /concurrency:\n  group: tour-and-creche-pages\n  cancel-in-progress: false/,
+    /concurrency:\n  group: pages-deploy\n  cancel-in-progress: false/,
   );
   assert.match(
     deployWorkflow,
@@ -190,7 +189,7 @@ test("product jobs build the immutable PR head and deployments queue", () => {
 
 test("standalone locks fail before ESP32 fabrication fans out", () => {
   const checkWorkflow = readFileSync(".github/workflows/check.yml", "utf8");
-  const productWorkflow = readFileSync(".github/workflows/tour-products.yml", "utf8");
+  const productWorkflow = readFileSync(".github/workflows/product-carrier.yml", "utf8");
 
   assert.match(
     checkWorkflow,
@@ -205,7 +204,7 @@ test("standalone locks fail before ESP32 fabrication fans out", () => {
 });
 
 function pagesJob(name) {
-  const source = readFileSync(".github/workflows/tour-pages-deploy.yml", "utf8");
+  const source = readFileSync(".github/workflows/pages-deploy.yml", "utf8");
   const jobs = source.split("\njobs:\n")[1];
   const body = jobs.match(new RegExp(`^  ${name}:\\n([\\s\\S]*?)(?=^  [\\w-]+:\\n|$(?![\\s\\S]))`, "m"))?.[1];
   assert.ok(body, `missing Pages job ${name}`);
@@ -244,7 +243,7 @@ test("Pages execute explicitly selects the carrier even for metadata-only change
 });
 
 test("permanent Pages automation contains no completed deploy-first rescue", () => {
-  const source = readFileSync(".github/workflows/tour-pages-deploy.yml", "utf8");
+  const source = readFileSync(".github/workflows/pages-deploy.yml", "utf8");
   const resolver = readFileSync("tools/ci/resolve-pages-product-run.mjs", "utf8");
   assert.doesNotMatch(source, /^  push:|^  workflow_run:/m);
   assert.doesNotMatch(source, /^  deploy-first-rescue:/m);
@@ -254,7 +253,7 @@ test("permanent Pages automation contains no completed deploy-first rescue", () 
 
 
 test("Crèche/Workspace admission receives its Host prerequisites without selecting Pages", () => {
-  const workflow = readFileSync(".github/workflows/tour-products.yml", "utf8");
+  const workflow = readFileSync(".github/workflows/product-carrier.yml", "utf8");
   const build = workflow.split("  browser-runtimes:\n")[1].split("\n  standalone-locks:")[0];
   const stage = workflow.split("  browser-admission-stage:\n")[1].split("\n  browser-admission-proof:")[0];
   const cases = [

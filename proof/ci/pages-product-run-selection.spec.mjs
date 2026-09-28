@@ -12,7 +12,7 @@ const integrationBase = "20ce4bc5448faebb5d0874041e9c0887a273681f";
 test("admits current product carrier producers only", () => {
   const promotion = { id: 5, path: ".github/workflows/promotion.yml" };
   const candidate = { id: 1, path: ".github/workflows/candidate.yml" };
-  const current = { id: 6, path: ".github/workflows/tour-products.yml" };
+  const current = { id: 6, path: ".github/workflows/product-carrier.yml" };
   assert.deepEqual(productCarrierRuns([
     promotion,
     { id: 3, path: ".github/workflows/check.yml" },

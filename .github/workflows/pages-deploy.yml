@@ -1,4 +1,4 @@
-name: tour-and-creche-pages
+name: pages-deploy
 
 on:
   pull_request_target:
@@ -15,7 +15,7 @@ on:
         required: false
         type: string
 concurrency:
-  group: tour-and-creche-pages
+  group: pages-deploy
   cancel-in-progress: false
 
 permissions:
@@ -106,7 +106,7 @@ jobs:
   integration-products:
     needs: resolve
     if: needs.resolve.outputs.disposition == 'execute'
-    uses: ./.github/workflows/tour-products.yml
+    uses: ./.github/workflows/product-carrier.yml
     with:
       base_sha: ${{ needs.resolve.outputs.integration_base }}
       candidate_sha: ${{ needs.resolve.outputs.merge_commit }}

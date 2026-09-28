@@ -35,67 +35,6 @@ pub(crate) const TRIPLE_STEP: Step = Step::new(
     ],
 );
 
-pub fn run_tour(opts: &GlobalOpts) -> Result<(), Box<dyn std::error::Error>> {
-    let root = workspace_root()?;
-    let product = root.join("target/tour-product");
-    if product.exists() {
-        std::fs::remove_dir_all(&product)?;
-    }
-    run_step(
-        &Step::new(
-            "journey.tour.runtime",
-            "Build the ordinary bounded browser Host runtime",
-            "cargo",
-            &[
-                "build",
-                "-p",
-                "conduit-browser-runtime",
-                "--target",
-                "wasm32-unknown-unknown",
-                "--release",
-                "--no-default-features",
-                "--features",
-                "tour-surface",
-            ],
-        ),
-        &root,
-        opts,
-    )?;
-    run_step(
-        &Step::new(
-            "journey.tour.package",
-            "Stage the exact admitted Tour application",
-            "products/tour/tools/stage-tour-product.sh",
-            &[
-                "target/wasm32-unknown-unknown/release/conduit_browser_runtime.wasm",
-                "target/tour-product",
-            ],
-        ),
-        &root,
-        opts,
-    )?;
-    run_step(
-        &Step::new(
-            "journey.tour.host",
-            "Open the executable Conduit Tour",
-            "cargo",
-            &[
-                "run",
-                "-p",
-                "conduit-browser-host",
-                "--",
-                "--application",
-                "target/tour-product",
-                "--mount",
-                "/tour/",
-            ],
-        ),
-        &root,
-        opts,
-    )?;
-    Ok(())
-}
-
 pub fn run_std(opts: &GlobalOpts) -> Result<(), Box<dyn std::error::Error>> {
     run_step(&STD_STEP, &workspace_root()?, opts)?;
     Ok(())

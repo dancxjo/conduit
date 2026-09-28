@@ -2,7 +2,7 @@ import AxeBuilder from "@axe-core/playwright";
 import { cp, mkdir, rm } from "node:fs/promises";
 import { expect, test } from "@playwright/test";
 import { stageLegacyCrecheRoute } from "../../products/creche/tools/stage-legacy-routes.mjs";
-import { startStaticProduct } from "./tour-test-server.mjs";
+import { startStaticProduct } from "./static-product-server.mjs";
 
 const pagesRoot = "target/web-accessibility-proof";
 let entrance;

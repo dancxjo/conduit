@@ -254,14 +254,14 @@ fn check_result_gate_contract_does_not_fabricate_products() {
 fn pages_products_follow_the_typed_live_ownership_registry() {
     let root = crate::workspace::workspace_root().unwrap();
     let packages = discover(&root).unwrap();
-    let tour = plan_for_paths(
+    let journey = plan_for_paths(
         &root,
-        vec!["products/tour/assets/tour.mjs".to_owned()],
+        vec!["docs/journeys/tour/chapter-1.md".to_owned()],
         &packages,
     )
     .unwrap();
-    assert!(tour.pages_products_required);
-    assert_eq!(tour.pages_product_proofs, ["products.pages-carrier"]);
+    assert!(journey.pages_products_required);
+    assert_eq!(journey.pages_product_proofs, ["products.pages-carrier"]);
 
     let debugger = plan_for_paths(
         &root,
@@ -415,7 +415,7 @@ fn browser_admission_runs_only_the_owned_product_shards() {
 
     let workflow = plan_for_paths(
         &root,
-        vec![".github/workflows/tour-products.yml".to_owned()],
+        vec![".github/workflows/product-carrier.yml".to_owned()],
         &packages,
     )
     .unwrap();
@@ -633,7 +633,7 @@ fn acceptance_diff_classes_keep_exact_obligation_boundaries() {
             "products/patchbay/html/assets/app.js".to_owned(),
             "proof/browser/pages-front-door.spec.mjs".to_owned(),
             "targets/browser/tools/render-product-masthead.mjs".to_owned(),
-            "products/tour/tools/stage-tour-product.sh".to_owned(),
+            "docs/journeys/tour/chapter-1.md".to_owned(),
             "products/creche/tools/stage-creche-product.sh".to_owned(),
             "site/tools/stage-pages-root.sh".to_owned(),
             "products/patchbay/tools/stage-patchbay-product.sh".to_owned(),
@@ -657,7 +657,7 @@ fn acceptance_diff_classes_keep_exact_obligation_boundaries() {
     let creche_presentation = plan_for_paths(
         &root,
         vec![
-            "proof/browser/executable-tour.spec.mjs".to_owned(),
+            "proof/browser/creche-browser-configuration.spec.mjs".to_owned(),
             "products/creche/tools/stage-creche-product.sh".to_owned(),
             "products/creche/browser/creche-target-catalog.mjs".to_owned(),
             "products/creche/browser/creche.css".to_owned(),
@@ -716,7 +716,7 @@ fn acceptance_diff_classes_keep_exact_obligation_boundaries() {
     .unwrap();
     assert!(check_and_product.pages_products_required);
 
-    let path = ".github/workflows/tour-products.yml";
+    let path = ".github/workflows/product-carrier.yml";
     let focused_workflow = plan_for_paths(&root, vec![path.to_owned()], &packages).unwrap();
     assert!(!focused_workflow.full_fallback, "{path}");
     assert!(!focused_workflow.esp32_required, "{path}");
@@ -1073,7 +1073,7 @@ fn workflow_keeps_focused_candidates_and_exhaustive_promotions_distinct() {
 #[test]
 fn product_preflight_uses_the_trusted_controller_for_behind_candidates() {
     let root = crate::workspace::workspace_root().unwrap();
-    let workflow = fs::read_to_string(root.join(".github/workflows/tour-products.yml")).unwrap();
+    let workflow = fs::read_to_string(root.join(".github/workflows/product-carrier.yml")).unwrap();
     assert!(workflow.contains("CONTROLLER_SHA: ${{ needs.plan.outputs.controller_sha }}"));
     assert!(workflow.contains(
         "\"$RUNNER_TEMP/conduit-ci-controller-target/debug/conduit-xtask-dispatch\"\n          ci standalone-locks --locked"
