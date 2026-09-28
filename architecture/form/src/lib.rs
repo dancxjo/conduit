@@ -1106,6 +1106,8 @@ fn hex(nibble: u8) -> char {
 mod surface_tests;
 
 #[cfg(test)]
+mod generic_form_tests;
+#[cfg(test)]
 mod syntax_check_tests;
 
 #[cfg(test)]
