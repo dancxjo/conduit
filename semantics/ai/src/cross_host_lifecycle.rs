@@ -91,7 +91,7 @@ impl CrossHostLlmRun {
         if !plan
             .realization_backs
             .iter()
-            .any(|back| back.kind_id.as_str() == crate::GENERATE_TEXT_KIND)
+            .any(|back| back.kind_id.as_str() == crate::LLM_GENERATE_KIND)
         {
             return Err(CrossHostLlmError::MissingProviderBack);
         }
