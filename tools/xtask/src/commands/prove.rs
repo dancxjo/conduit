@@ -16,7 +16,7 @@ use crate::{
 };
 
 pub fn run(args: ProveArgs, opts: &GlobalOpts) -> Result<(), StepError> {
-    debug_assert!(args.evidence.is_none());
+    debug_assert!(args.command.is_none());
     let proof = args.proof.ok_or_else(|| {
         StepError::prereq(
             "prove.target",
