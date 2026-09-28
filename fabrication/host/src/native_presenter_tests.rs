@@ -31,16 +31,18 @@ fn native_presenter_offer_requires_exact_image_and_live_compositor_stack() {
     assert_eq!(ready.advertisement().capabilities, vec![presenter.clone()]);
 
     for facts_ready in [false, true] {
-        let bound = bind_runtime_offer(
+        let refusal = bind_runtime_offer(
             &headless.manifest,
             &headless,
             &headless_bytes,
             &catalog,
             native_runtime_inputs(presenter.clone(), facts_ready),
         )
-        .unwrap();
-        assert!(bound.advertisement().capabilities.is_empty());
-        assert!(bound.advertisement().resources.is_empty());
+        .unwrap_err();
+        assert!(matches!(
+            refusal,
+            RuntimeBindingDiagnostic::UnexpectedBaseImplementation { .. }
+        ));
     }
     let unavailable = bind_runtime_offer(
         &native.manifest,
@@ -87,12 +89,26 @@ fn native_runtime_inputs(
         offer_generation: conduit_core::OfferGeneration(4),
         offer_sign_id: conduit_core::SignId::from("conduitos/offer/4"),
         host_profile: conduit_core::HostProfileId::from("conduitos/native@1"),
-        candidate_resources: vec![conduit_core::resource_offer(
-            "surface/main",
-            "presentation/surface",
-            1,
-        )],
-        candidate_capabilities: vec![presenter],
+        candidate_bases: vec![conduit_core::BaseProviderEntry {
+            base_id: conduit_core::HostBaseId::from("conduitos/display/0"),
+            provider_instance_id: conduit_core::BaseInstanceId::from(
+                "conduitos/display/provider/4",
+            ),
+            provider_generation: 4,
+            implementation_id: conduit_core::BaseImplementationId::from(
+                "display/linear-framebuffer@1",
+            ),
+            mechanism_family: conduit_core::HostBaseKindId::from("display/scanout"),
+            enforcement_class: conduit_core::BaseEnforcementClass::ConduitOsKernelEnforced,
+            lifecycle: conduit_core::BaseLifecycle::Ready,
+            capabilities: vec![presenter],
+            resources: vec![conduit_core::resource_offer(
+                "surface/main",
+                "presentation/surface",
+                1,
+            )],
+        }],
+        candidate_capabilities: vec![],
         planner_capabilities: vec![],
         facts: RuntimeFacts {
             ready_resource_classes: ready

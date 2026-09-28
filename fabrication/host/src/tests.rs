@@ -392,19 +392,26 @@ fn bind_tick_runtime(
             offer_generation: conduit_core::OfferGeneration(generation),
             offer_sign_id: conduit_core::SignId::from(format!("{boot}/offer/{generation}")),
             host_profile: conduit_core::HostProfileId::from("std/runtime-bound@1"),
-            candidate_resources: vec![
-                conduit_core::resource_offer(
-                    "fabrication-test/presentation",
-                    conduit_core::PRESENTATION_RESOURCE_CLASS,
-                    16,
+            candidate_bases: vec![conduit_core::BaseProviderEntry {
+                base_id: conduit_core::HostBaseId::from("std/timer/0"),
+                provider_instance_id: conduit_core::BaseInstanceId::from(format!(
+                    "{boot}/timer/provider/{generation}"
+                )),
+                provider_generation: generation,
+                implementation_id: conduit_core::BaseImplementationId::from(
+                    "hosted/monotonic-clock@1",
                 ),
-                conduit_core::resource_offer(
+                mechanism_family: conduit_core::HostBaseKindId::from("timer/monotonic"),
+                enforcement_class: conduit_core::BaseEnforcementClass::Cooperative,
+                lifecycle: conduit_core::BaseLifecycle::Ready,
+                capabilities: vec![conduit_std_offers::tick_capability_offer()],
+                resources: vec![conduit_core::resource_offer(
                     "fabrication-test/timer",
                     conduit_core::TIMER_RESOURCE_CLASS,
                     16,
-                ),
-            ],
-            candidate_capabilities: vec![conduit_std_offers::tick_capability_offer()],
+                )],
+            }],
+            candidate_capabilities: vec![],
             planner_capabilities: Vec::new(),
             facts: tick_runtime_facts(timer_ready),
         },

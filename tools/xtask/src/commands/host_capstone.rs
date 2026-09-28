@@ -2,8 +2,9 @@
 
 use conduit_body::{AuthenticatedHostObservation, Body, BodyMembership, MembershipProofId, PartId};
 use conduit_core::{
-    bind_active_play, resource_offer, ArtifactId, BootId, CapabilityId, GearId, HostId,
-    HostProfileId, OfferGeneration, SignId,
+    bind_active_play, resource_offer, ArtifactId, BaseEnforcementClass, BaseImplementationId,
+    BaseInstanceId, BaseLifecycle, BaseProviderEntry, BootId, CapabilityId, GearId, HostBaseId,
+    HostBaseKindId, HostId, HostProfileId, OfferGeneration, SignId,
 };
 use conduit_form::{parse, ProfileCatalog};
 use conduit_host_fabrication::{
@@ -298,15 +299,31 @@ fn bind_profile(
     presenter: Option<conduit_core::CapabilityOffer>,
     facts: RuntimeFacts,
 ) -> Result<BoundHostAdvertisement, Box<dyn std::error::Error>> {
-    let candidate_resources = if presenter.is_some() {
-        vec![resource_offer(
-            &format!("{host}/surface"),
-            "presentation/surface",
-            1,
-        )]
-    } else {
-        vec![]
-    };
+    let candidate_bases = presenter
+        .into_iter()
+        .zip(built.image.manifest.base_selections.first())
+        .map(|(presenter, selected)| BaseProviderEntry {
+            base_id: HostBaseId::from(format!("{host}/display/0")),
+            provider_instance_id: BaseInstanceId::from(format!(
+                "{boot}/display/provider/{generation}"
+            )),
+            provider_generation: generation,
+            implementation_id: BaseImplementationId::from(selected.driver.clone()),
+            mechanism_family: HostBaseKindId::from(selected.kind.clone()),
+            enforcement_class: if built.image.manifest.target.starts_with("conduitos/") {
+                BaseEnforcementClass::ConduitOsKernelEnforced
+            } else {
+                BaseEnforcementClass::WasmConfined
+            },
+            lifecycle: BaseLifecycle::Ready,
+            capabilities: vec![presenter],
+            resources: vec![resource_offer(
+                &format!("{host}/surface"),
+                "presentation/surface",
+                1,
+            )],
+        })
+        .collect();
     bind_runtime_offer(
         &built.image.manifest,
         &built.image,
@@ -318,8 +335,8 @@ fn bind_profile(
             offer_generation: OfferGeneration(generation),
             offer_sign_id: SignId::from(format!("{host}/offer/{generation}")),
             host_profile: HostProfileId::from(built.image.manifest.profile_id.clone()),
-            candidate_resources,
-            candidate_capabilities: presenter.into_iter().collect(),
+            candidate_bases,
+            candidate_capabilities: vec![],
             planner_capabilities: vec![],
             facts,
         },
