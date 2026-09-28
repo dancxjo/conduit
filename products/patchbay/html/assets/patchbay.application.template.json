@@ -27,7 +27,7 @@
     { "role": "patchbay-flow-scene", "kind": "module", "path": "assets/flow-scene.js", "source": "forms/patchbay/workbench/browser/flow-scene.js", "maximum_bytes": 32768, "dependencies": [{"role":"patchbay-flow-layout","specifier":"./flow-layout.js"},{"role":"portable-navigation","specifier":"./portable-navigation.js"}] },
     { "role": "patchbay-flow-layout", "kind": "module", "path": "assets/flow-layout.js", "source": "forms/patchbay/workbench/browser/flow-layout.js", "maximum_bytes": 16384, "dependencies": [] },
     { "role": "patchbay-frontplate", "kind": "module", "path": "assets/flow-frontplate.js", "source": "forms/patchbay/workbench/browser/flow-frontplate.js", "maximum_bytes": 8192, "dependencies": [] },
-    { "role": "shared-presentation", "kind": "module", "path": "assets/shared-presentation.js", "source": "products/patchbay/html/assets/shared-presentation.js", "maximum_bytes": 16384, "dependencies": [] },
+    { "role": "shared-presentation", "kind": "module", "path": "assets/shared-presentation.js", "source": "forms/patchbay/workbench/browser/shared-presentation.js", "maximum_bytes": 16384, "dependencies": [] },
     { "role": "portable-navigation", "kind": "module", "path": "assets/portable-navigation.js", "source": "forms/patchbay/workbench/browser/portable-navigation.js", "maximum_bytes": 8192, "dependencies": [] },
     { "role": "websocket-line", "kind": "module", "path": "assets/websocket-line.mjs", "source": "targets/browser/host/assets/websocket-line.mjs", "maximum_bytes": 16384, "dependencies": [] },
     { "role": "text-lab-runtime", "kind": "module", "path": "assets/text-lab-live-runtime.mjs", "source": "targets/browser/host/assets/text-lab-live-runtime.mjs", "maximum_bytes": 16384, "dependencies": [] },
