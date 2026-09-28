@@ -4,9 +4,10 @@ use super::{
 #[cfg(feature = "form-catalog")]
 use alloc::string::String;
 use alloc::string::ToString;
-use alloc::vec;
+use alloc::{vec, vec::Vec};
 use conduit_core::{
-    kind_id, port_id, CapabilityLimits, ConfigurationValue, Kind, PortDescriptor, PortDirection,
+    kind_id, port_id, CapabilityLimits, CheckedValueContract, ConfigurationValue,
+    FrontValueContract, FrontValueLocation, Kind, KindSemanticLaw, PortDescriptor, PortDirection,
     PortTemporal, BOOL_INFO_ID, CANCELLATION_REQUEST_INFO_ID, UNIT_INFO_ID,
 };
 
@@ -24,6 +25,8 @@ pub const TIME_THROTTLE_CONTRACT_REVISION: &str = "conduit.std/time-throttle-boo
 
 pub const TIME_DEADLINE_KIND: &str = "time/deadline";
 pub const TIME_DEADLINE_CONTRACT_REVISION: &str = "conduit.std/time-deadline-cancellation@1";
+pub const TIME_SAMPLE_KIND: &str = "time/sample";
+pub const TIME_SAMPLE_CONTRACT_REVISION: &str = "conduit.std/time-sample@1";
 
 pub const TIME_POLICY_TRAILING: &str = "trailing";
 pub const TIME_POLICY_LEADING: &str = "leading";
@@ -195,6 +198,81 @@ pub fn time_deadline_semantic_contract() -> Kind {
     semantic_contract(time_deadline_contract(), TIME_DEADLINE_CONTRACT_REVISION)
 }
 
+/// Specializes `time/sample` to one exact already-checked finite value contract.
+///
+/// This is deliberately not authored generic syntax. Catalog assembly derives
+/// the specialization from checked connected ports and installs this exact Fore.
+pub fn time_sample_semantic_contract(value: &CheckedValueContract) -> Result<Kind, &'static str> {
+    if value.maximum_bytes == 0 {
+        return Err("time/sample requires one finite nonzero value envelope");
+    }
+    let value_port = |name: &str, direction| PortDescriptor {
+        port_id: port_id(name),
+        value_kind: value.value_kind.clone(),
+        direction,
+        temporal: PortTemporal::Flow { closes: true },
+        abnormal_kind: None,
+    };
+    let inputs = vec![
+        value_port("value", PortDirection::Input),
+        port(
+            "cadence",
+            conduit_time::TICK_VALUE_KIND,
+            PortDirection::Input,
+            PortTemporal::Flow { closes: true },
+        ),
+    ];
+    let outputs = vec![value_port("sample", PortDirection::Output)];
+    let value_contracts = vec![
+        FrontValueContract {
+            location: FrontValueLocation::Input(port_id("value")),
+            contract: value.clone(),
+        },
+        FrontValueContract {
+            location: FrontValueLocation::Output(port_id("sample")),
+            contract: value.clone(),
+        },
+    ];
+    Ok(Kind {
+        startup_parameters: Vec::new(),
+        shorthand: None,
+        kind_id: kind_id(TIME_SAMPLE_KIND),
+        kind_contract_revision: TIME_SAMPLE_CONTRACT_REVISION.into(),
+        inputs,
+        outputs,
+        configuration: Vec::new(),
+        semantic_laws: vec![
+            KindSemanticLaw::Terminal(
+                KindTerminalBehavior::SamplesLatestValueAtCadenceAndCompletesWhenCadenceCloses,
+            ),
+            KindSemanticLaw::ValueContracts(value_contracts),
+        ],
+        limits: CapabilityLimits {
+            max_active_instances: 8,
+            max_queue_items: 2,
+            max_queue_bytes: value
+                .maximum_bytes
+                .checked_add(conduit_time::TICK_ENCODED_LEN)
+                .ok_or("time/sample finite queue envelope overflows")?,
+        },
+    })
+}
+
+#[cfg(feature = "form-catalog")]
+pub fn install_time_sample_kind(
+    value: &CheckedValueContract,
+    startup: &mut conduit_form::StartupCatalog,
+    profile: &mut conduit_form::ProfileCatalog,
+) -> Result<(), alloc::string::String> {
+    startup.insert(conduit_form::KindSignature {
+        kind: TIME_SAMPLE_KIND.to_string(),
+        startup_parameters: Vec::new(),
+    })?;
+    profile
+        .insert_kind(time_sample_semantic_contract(value).map_err(str::to_string)?)
+        .map_err(|error| error.to_string())
+}
+
 fn semantic_contract(contract: StandardKindContract, revision: &str) -> Kind {
     let startup_parameters = super::startup_front(&contract.configuration);
     Kind {
@@ -322,6 +400,129 @@ fn configuration_source(field: &KindConfigurationField) -> alloc::string::String
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn sample_specialization_preserves_exact_value_identity_and_bound() {
+        let text = CheckedValueContract::new(kind_id("value/text"), 73, Vec::new()).unwrap();
+        let contract = time_sample_semantic_contract(&text).unwrap();
+        assert_eq!(contract.inputs[0].value_kind, text.value_kind);
+        assert_eq!(contract.outputs[0].value_kind, text.value_kind);
+        assert_eq!(contract.limits.max_queue_items, 2);
+        assert_eq!(
+            contract.limits.max_queue_bytes,
+            73 + conduit_time::TICK_ENCODED_LEN
+        );
+        let contracts = contract.value_contracts();
+        assert_eq!(contracts.len(), 2);
+        assert!(contracts.iter().all(|entry| entry.contract == text));
+        contract.validate().unwrap();
+    }
+
+    #[test]
+    fn sample_specializations_are_exact_and_unbounded_values_refuse() {
+        let text = CheckedValueContract::new(kind_id("value/text"), 73, Vec::new()).unwrap();
+        let record =
+            CheckedValueContract::new(kind_id("structured-info/profile/sample@1"), 91, Vec::new())
+                .unwrap();
+        let text = time_sample_semantic_contract(&text).unwrap();
+        let record = time_sample_semantic_contract(&record).unwrap();
+        assert_ne!(text.checked_front(), record.checked_front());
+        assert!(time_sample_semantic_contract(
+            &CheckedValueContract::new(kind_id("value/empty"), 0, Vec::new()).unwrap()
+        )
+        .is_err());
+    }
+
+    #[test]
+    fn authored_sample_form_expands_with_the_non_authored_exact_specialization() {
+        let text = CheckedValueContract::new(kind_id("value/text"), 73, Vec::new()).unwrap();
+        let source = Kind {
+            startup_parameters: Vec::new(),
+            shorthand: None,
+            kind_id: kind_id("test/text-flow-source"),
+            kind_contract_revision: "test/text-flow-source@1".into(),
+            inputs: Vec::new(),
+            outputs: vec![PortDescriptor {
+                port_id: port_id("out"),
+                value_kind: text.value_kind.clone(),
+                direction: PortDirection::Output,
+                temporal: PortTemporal::Flow { closes: true },
+                abnormal_kind: None,
+            }],
+            configuration: Vec::new(),
+            semantic_laws: vec![KindSemanticLaw::ValueContracts(vec![FrontValueContract {
+                location: FrontValueLocation::Output(port_id("out")),
+                contract: text.clone(),
+            }])],
+            limits: CapabilityLimits {
+                max_active_instances: 1,
+                max_queue_items: 1,
+                max_queue_bytes: text.maximum_bytes,
+            },
+        };
+        let sink = Kind {
+            startup_parameters: Vec::new(),
+            shorthand: None,
+            kind_id: kind_id("test/text-flow-sink"),
+            kind_contract_revision: "test/text-flow-sink@1".into(),
+            inputs: vec![PortDescriptor {
+                port_id: port_id("in"),
+                value_kind: text.value_kind.clone(),
+                direction: PortDirection::Input,
+                temporal: PortTemporal::Flow { closes: true },
+                abnormal_kind: None,
+            }],
+            outputs: Vec::new(),
+            configuration: Vec::new(),
+            semantic_laws: vec![KindSemanticLaw::ValueContracts(vec![FrontValueContract {
+                location: FrontValueLocation::Input(port_id("in")),
+                contract: text.clone(),
+            }])],
+            limits: CapabilityLimits {
+                max_active_instances: 1,
+                max_queue_items: 1,
+                max_queue_bytes: text.maximum_bytes,
+            },
+        };
+        let mut startup = conduit_form::StartupCatalog::new();
+        let mut profile = conduit_form::ProfileCatalog::new();
+        conduit_time::install_tick_catalog(&mut startup, &mut profile).unwrap();
+        for kind in [&source, &sink] {
+            startup
+                .insert(conduit_form::KindSignature {
+                    kind: kind.kind_id.as_str().to_string(),
+                    startup_parameters: kind
+                        .startup_parameters
+                        .iter()
+                        .map(|parameter| conduit_form::StartupParameterSignature {
+                            name: parameter.name.clone(),
+                            value_type: parameter.value_type.as_str().to_string(),
+                            default: None,
+                        })
+                        .collect(),
+                })
+                .unwrap();
+            profile.insert_kind((*kind).clone()).unwrap();
+        }
+        install_time_sample_kind(&text, &mut startup, &mut profile).unwrap();
+        let syntax = conduit_form::parse_syntax_document(
+            "form sampled-text {\n values: test/text-flow-source\n cadence: time/tick(count = 2, period-ms = 1)\n sampler: time/sample\n sink: test/text-flow-sink\n values.out >> sampler.value\n cadence.tick >> sampler.cadence\n sampler.sample >> sink.in\n}.\n",
+        );
+        let checked = conduit_form::check_syntax_document(&syntax, &startup).unwrap();
+        let expanded =
+            conduit_form::expand_canonical_form(&checked, "sampled-text", &profile).unwrap();
+        let gear = expanded
+            .gears
+            .iter()
+            .find(|gear| gear.kind_id.as_str() == TIME_SAMPLE_KIND)
+            .unwrap();
+        assert_eq!(gear.semantic_contract.value_contracts().len(), 2);
+        assert!(gear
+            .semantic_contract
+            .value_contracts()
+            .iter()
+            .all(|entry| entry.contract == text));
+    }
 
     #[test]
     fn timing_contracts_are_typed_bounded_and_share_one_exact_deadline_requirement() {

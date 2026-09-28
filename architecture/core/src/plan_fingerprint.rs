@@ -475,6 +475,9 @@ fn push_semantic_contract(canonical: &mut Vec<u8>, contract: &crate::KindSemanti
                     Terminal::LeadingThrottleDropsValuesDuringIntervalAndCompletesWhenInputCloses => {
                         canonical.push(15)
                     }
+                    Terminal::SamplesLatestValueAtCadenceAndCompletesWhenCadenceCloses => {
+                        canonical.push(25)
+                    }
                     Terminal::SimulatedCurrentObservationEmitsOnce => canonical.push(16),
                     Terminal::HostInputEndsOrFailsSource => canonical.push(17),
                     Terminal::HostObservationEndsOrFailsSource => canonical.push(18),

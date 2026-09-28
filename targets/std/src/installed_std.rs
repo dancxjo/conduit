@@ -146,6 +146,7 @@ mod text_backs_tests;
 mod text_state_back;
 mod tick_backs;
 mod tick_presentation;
+mod time_sample_back;
 mod timed_button_attempt_back;
 mod timed_button_attempt_host;
 mod timed_pattern_back;
