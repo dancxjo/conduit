@@ -158,6 +158,8 @@ pub mod local_model_proof;
 #[cfg(feature = "local-model-proof")]
 pub mod piper_plan_play_proof;
 mod run_control;
+#[cfg(feature = "local-model-proof")]
+pub mod spoken_birth_journey;
 pub mod state_value;
 pub use run_control::{
     RejectedRunControlRequest, RunControl, RunControlDisposition, RunControlReceipt,

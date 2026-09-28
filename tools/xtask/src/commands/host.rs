@@ -42,6 +42,8 @@ mod host_recorded_house;
 mod host_release;
 #[path = "host_release_catalog.rs"]
 mod host_release_catalog;
+#[path = "host_spoken_birth.rs"]
+mod host_spoken_birth;
 #[path = "host_spoken_microphone_house.rs"]
 mod host_spoken_microphone_house;
 #[path = "host_target.rs"]
@@ -209,6 +211,16 @@ enum HostCommand {
         #[arg(long, default_value_t = 30)]
         timeout_seconds: u64,
     },
+    /// Speak through Tongues as Host, perform one Birth, then speak as the Body.
+    ProveSpokenBirth {
+        /// Explicitly consume the one allowed Birth action.
+        #[arg(long)]
+        confirm_birth: bool,
+        #[arg(long, default_value = "No Body exists yet. Confirm to begin.")]
+        bootstrap_text: String,
+        #[arg(long, default_value = "I am now speaking as the born Body.")]
+        body_text: String,
+    },
     /// Carry a finite recorded PCM clip through ordinary Whisper Plan/Play.
     ProveWhisper {
         /// Exact local whisper.cpp-compatible executable.
@@ -358,6 +370,11 @@ pub fn run(args: HostArgs, opts: &GlobalOpts) -> Result<(), Box<dyn std::error::
             },
             opts,
         ),
+        HostCommand::ProveSpokenBirth {
+            confirm_birth,
+            bootstrap_text,
+            body_text,
+        } => host_spoken_birth::prove(confirm_birth, &bootstrap_text, &body_text, opts),
         HostCommand::ProveWhisper {
             executable,
             model,
