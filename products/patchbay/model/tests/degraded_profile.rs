@@ -37,13 +37,13 @@ fn observations(hosts: &[conduit_core::HostAdvertisement]) -> Vec<ResourceObserv
 fn form() -> conduit_form::CheckedForm {
     let mut startup = conduit_form::StartupCatalog::new();
     let mut profile = conduit_form::ProfileCatalog::new();
-    conduit_ai::install_generate_text_catalog(&mut startup, &mut profile).unwrap();
-    conduit_form::parse("form answer {\n generate: ai/generate-text\n}\n", &profile).unwrap()
+    conduit_ai::install_llm_semantic_catalog(&mut startup, &mut profile).unwrap();
+    conduit_form::parse("form answer {\n generate: llm/generate\n}\n", &profile).unwrap()
 }
 
 fn profile() -> ReviewedServiceProfile {
     ReviewedServiceProfile {
-        profile_id: "ai/generate-text/survival@1".into(),
+        profile_id: "llm/generate/survival@1".into(),
         hard_requirements: HardRealizationRequirements {
             predicates: vec![PlannerPredicate::Equal {
                 fact: PlannerFactRef::RealizationCharacteristic(CharacteristicId::from(
@@ -58,12 +58,12 @@ fn profile() -> ReviewedServiceProfile {
             characteristic_id: CharacteristicId::from(MAXIMUM_CONTEXT_CHARACTERISTIC),
             human_name: "maximum context".into(),
             full_value: PlannerFactValue::Quantity {
-                value: 32_768,
-                unit: CharacteristicUnit::Tokens,
+                value: 32,
+                unit: CharacteristicUnit::Items,
             },
             weakest_permitted_value: PlannerFactValue::Quantity {
-                value: 8_192,
-                unit: CharacteristicUnit::Tokens,
+                value: 8,
+                unit: CharacteristicUnit::Items,
             },
             direction: DegradationDirection::HigherIsStronger,
         }],
@@ -74,7 +74,7 @@ fn policy() -> SurvivalPolicy {
     SurvivalPolicy {
         policy_id: "policy/voyager/context-survival".into(),
         revision: 1,
-        permitted_profile_id: "ai/generate-text/survival@1".into(),
+        permitted_profile_id: "llm/generate/survival@1".into(),
         permitted_dimensions: vec![CharacteristicId::from(MAXIMUM_CONTEXT_CHARACTERISTIC)],
         degradation_allowed: true,
     }
@@ -83,12 +83,12 @@ fn policy() -> SurvivalPolicy {
 #[test]
 fn patchbay_names_requested_surviving_policy_plan_and_current_signs() {
     let form = form();
-    let fixtures = conduit_ai::generate_text_base_fixtures();
+    let fixtures = conduit_ai::llm_generate_base_fixtures();
     let hosts = fixtures
         .iter()
         .map(|item| item.advertisement.clone())
         .collect::<Vec<_>>();
-    let advertisements = conduit_ai::generate_text_realization_advertisements(&fixtures);
+    let advertisements = conduit_ai::llm_generate_realization_advertisements(&fixtures);
     let full = select_reviewed_service_profile(
         &form.gears[0],
         &hosts,
@@ -144,8 +144,8 @@ fn patchbay_names_requested_surviving_policy_plan_and_current_signs() {
         explanation.policy_id.as_deref(),
         Some("policy/voyager/context-survival")
     );
-    assert_eq!(explanation.dimensions[0].requested, "32768 Tokens");
-    assert_eq!(explanation.dimensions[0].surviving, "8192 Tokens");
+    assert_eq!(explanation.dimensions[0].requested, "32 Items");
+    assert_eq!(explanation.dimensions[0].surviving, "8 Items");
     assert!(!explanation.observation_signs.is_empty());
     assert!(!explanation.hard_requirements_relaxed);
     assert!(explanation
