@@ -37,6 +37,7 @@ fn main() {
                                 Box::new(std::io::Error::other(error)) as Box<dyn std::error::Error>
                             })
                         }
+                        CheckScope::Pete => commands::pete_workload_check::run(&opts),
                     }
                 }
             } else {
@@ -66,6 +67,7 @@ fn main() {
                         ProveCommand::BodyCoordination(args) => {
                             commands::body_coordination::run(args, &opts)
                         }
+                        ProveCommand::Pete(args) => commands::pete_std_observe::run(args, &opts),
                         ProveCommand::Evidence(evidence) => commands::evidence::run(evidence),
                     }
                 }
@@ -83,7 +85,6 @@ fn main() {
                 .map_err(|error| Box::new(error) as Box<dyn std::error::Error>),
         },
         Command::Setup(args) => commands::setup::run(args, &opts),
-        Command::Pete(args) => commands::pete_std_observe::run(args, &opts),
         Command::Demo(args) => match args.command {
             DemoCommand::Tour => commands::demo::run_tour(&opts),
             DemoCommand::Workspace(args) => commands::workspace::run(&args, &opts),

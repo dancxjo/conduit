@@ -34,6 +34,8 @@ pub enum CheckScope {
     Catalog(crate::commands::catalog::CatalogArgs),
     /// Check and report the explicit reviewed form inventory.
     Forms(crate::commands::forms::FormsArgs),
+    /// Check Pete's reviewed workload and Host fabrication closure without physical access.
+    Pete,
 }
 
 #[derive(ValueEnum, Debug, Clone, Copy, PartialEq, Eq)]

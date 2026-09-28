@@ -59,8 +59,6 @@ pub enum Command {
     Doctor(DoctorArgs),
     /// Install explicit prerequisites for a repository workflow.
     Setup(SetupArgs),
-    /// Exercise explicit Pete development and hardware proof entrances.
-    Pete(PeteArgs),
     /// Run interactive demonstrations.
     Demo(DemoArgs),
 }
@@ -285,6 +283,8 @@ pub enum ProveCommand {
     AudioPlayback(AudioPlaybackArgs),
     /// Prove bounded Pete forebrain-motherbrain coordination.
     BodyCoordination(BodyCoordinationArgs),
+    /// Exercise explicit Pete hardware proof entrances.
+    Pete(PeteArgs),
     /// Produce, verify, or publish bounded proof evidence.
     #[command(flatten)]
     Evidence(EvidenceCommand),
@@ -907,6 +907,7 @@ mod tests {
         assert!(Cli::try_parse_from(["xtask", "midi", "list"]).is_err());
         let pete = Cli::try_parse_from([
             "xtask",
+            "prove",
             "pete",
             "std-observe",
             "--serial-path",
@@ -921,12 +922,16 @@ mod tests {
             "target/pete-observation.json",
         ])
         .expect("explicit std Create observation entrance parses");
-        assert!(matches!(pete.command, Command::Pete(_)));
-        let pete_workload = Cli::try_parse_from(["xtask", "pete", "workload-check"])
+        assert!(matches!(
+            pete.command,
+            Command::Prove(args) if matches!(args.command, Some(ProveCommand::Pete(_)))
+        ));
+        let pete_workload = Cli::try_parse_from(["xtask", "check", "pete"])
             .expect("non-actuating Pete workload check entrance parses");
-        assert!(matches!(pete_workload.command, Command::Pete(_)));
+        assert!(matches!(pete_workload.command, Command::Check(_)));
         let pete_speaker = Cli::try_parse_from([
             "xtask",
+            "prove",
             "pete",
             "std-speaker",
             "--serial-path",
@@ -944,9 +949,10 @@ mod tests {
             "target/pete-speaker.json",
         ])
         .expect("explicit std Create speaker entrance parses");
-        assert!(matches!(pete_speaker.command, Command::Pete(_)));
+        assert!(matches!(pete_speaker.command, Command::Prove(_)));
         let pete_indicator = Cli::try_parse_from([
             "xtask",
+            "prove",
             "pete",
             "std-indicator",
             "--serial-path",
@@ -964,9 +970,10 @@ mod tests {
             "target/pete-indicator.json",
         ])
         .expect("explicit std Create indicator entrance parses");
-        assert!(matches!(pete_indicator.command, Command::Pete(_)));
+        assert!(matches!(pete_indicator.command, Command::Prove(_)));
         let pete_drive = Cli::try_parse_from([
             "xtask",
+            "prove",
             "pete",
             "std-drive",
             "--serial-path",
@@ -985,7 +992,8 @@ mod tests {
             "target/pete-drive.json",
         ])
         .expect("explicit std Create bounded drive entrance parses");
-        assert!(matches!(pete_drive.command, Command::Pete(_)));
+        assert!(matches!(pete_drive.command, Command::Prove(_)));
+        assert!(Cli::try_parse_from(["xtask", "pete", "workload-check"]).is_err());
         assert!(Cli::try_parse_from([
             "xtask",
             "prove",
