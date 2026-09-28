@@ -567,6 +567,9 @@ mod tests {
             crate::compute_checked_front_fingerprint(&contract().checked_front()),
             crate::compute_checked_front_fingerprint(&bounded.checked_front())
         );
+        let encoded = serde_json::to_vec(&bounded.checked_front()).unwrap();
+        let decoded: crate::CheckedFront = serde_json::from_slice(&encoded).unwrap();
+        assert_eq!(decoded, bounded.checked_front());
 
         let mut zero = bounded.clone();
         let KindSemanticLaw::ValueBounds(bounds) = &mut zero.semantic_laws[0] else {
