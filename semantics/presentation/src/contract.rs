@@ -9,7 +9,7 @@ use conduit_core::{
 };
 
 pub const RENDERER_KIND: &str = "presentation/renderer";
-pub const INTERACTION_KIND: &str = "presentation/interaction";
+pub const FACE_INTERACTION_KIND: &str = "face/interaction";
 pub const PRESENTATION_TEE_KIND: &str = "presentation/tee";
 pub const PRESENTER_STAGE_KIND: &str = "presentation/presenter-stage";
 pub const PRESENTATION_VALUE_KIND: &str = "presentation/presentation@1";
@@ -19,7 +19,7 @@ pub const SHOW_VALUE_KIND: &str = "presentation/show@1";
 /// value and does not preserve the superseded authored identity.
 pub const MANIFESTATION_VALUE_KIND: &str = SHOW_VALUE_KIND;
 pub const RENDERER_CONTRACT_REVISION: &str = "conduit.presentation/renderer@1";
-pub const INTERACTION_CONTRACT_REVISION: &str = "conduit.face/interaction@2";
+pub const FACE_INTERACTION_CONTRACT_REVISION: &str = "conduit.face/interaction@2";
 pub const PRESENTATION_TEE_CONTRACT_REVISION: &str = "conduit.presentation/tee@1";
 pub const PRESENTER_STAGE_CONTRACT_REVISION: &str = "conduit.presentation/presenter-stage@1";
 pub const MAX_RENDERER_VALUE_BYTES: u32 = crate::MAX_PRESENTATION_TOTAL_BYTES as u32;
@@ -128,7 +128,7 @@ pub struct RendererRealizationOffer {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
-pub struct InteractionRealizationOffer {
+pub struct FaceInteractionRealizationOffer {
     pub capability_id: CapabilityId,
     pub execution_profile_id: ExecutionProfileId,
     pub implementation_id: ImplementationId,
@@ -153,7 +153,7 @@ pub fn renderer_offer(realization: RendererRealizationOffer) -> CapabilityOffer 
     )
 }
 
-pub fn interaction_offer(realization: InteractionRealizationOffer) -> CapabilityOffer {
+pub fn face_interaction_offer(realization: FaceInteractionRealizationOffer) -> CapabilityOffer {
     build_offer(
         interaction_contract(),
         realization.capability_id,
@@ -219,8 +219,8 @@ fn renderer_contract() -> Kind {
 
 fn interaction_contract() -> Kind {
     semantic_contract(
-        INTERACTION_KIND,
-        INTERACTION_CONTRACT_REVISION,
+        FACE_INTERACTION_KIND,
+        FACE_INTERACTION_CONTRACT_REVISION,
         interaction_inputs(),
         interaction_outputs(),
         crate::MAX_FACE_INTERACTION_BYTES as u32 * u32::from(MAX_PRESENTATION_QUEUE_ITEMS),
@@ -284,10 +284,10 @@ pub fn renderer_kind_projection() -> conduit_form::KindProjection {
 }
 
 #[cfg(feature = "form-catalog")]
-pub fn interaction_kind_projection() -> conduit_form::KindProjection {
+pub fn face_interaction_kind_projection() -> conduit_form::KindProjection {
     conduit_form::KindProjection {
-        kind_id: kind_id(INTERACTION_KIND),
-        kind_contract_revision: KindIdentity::from(INTERACTION_CONTRACT_REVISION),
+        kind_id: kind_id(FACE_INTERACTION_KIND),
+        kind_contract_revision: KindIdentity::from(FACE_INTERACTION_CONTRACT_REVISION),
         inputs: interaction_inputs(),
         outputs: interaction_outputs(),
         configuration: Default::default(),

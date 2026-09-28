@@ -85,11 +85,7 @@ fn application_plan_needs_no_human_input_back_because_the_mask_owns_it() {
     resources.extend(chat.resources);
     resources.sort_by(|left, right| left.pool_id.cmp(&right.pool_id));
     let mut capabilities = vec![socket.capability];
-    capabilities.extend(
-        chat.capabilities
-            .into_iter()
-            .filter(|offer| offer.kind_id.as_str() != conduit_presentation::INTERACTION_KIND),
-    );
+    capabilities.extend(chat.capabilities);
     let host = conduit_core::HostAdvertisement {
         protocol_version: conduit_core::PROTOCOL_VERSION,
         host_id: conduit_core::HostId::from("browser/output-only"),

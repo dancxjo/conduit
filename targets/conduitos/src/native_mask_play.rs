@@ -398,7 +398,7 @@ fn scheduler(
                 pending: false,
                 emitted: false,
             }),
-            conduit_presentation::INTERACTION_KIND => Ok(MaskBack::Interaction { seen: 0 }),
+            conduit_presentation::FACE_INTERACTION_KIND => Ok(MaskBack::Interaction { seen: 0 }),
             _ => Err(NativeMaskPlayError::Shape),
         })
         .collect::<Result<Vec<_>, _>>()?
