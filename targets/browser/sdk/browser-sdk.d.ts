@@ -50,10 +50,35 @@ export class BrowserHost {
   form(source: string): BrowserForm;
   /** Rust expands selected Forms against this exact Host without acquiring resources or making a Plan. */
   review(forms: readonly (BrowserForm | CheckedForm | CheckedSource)[]): Promise<FormWorkloadReview>;
+  /** Participate in one externally owned Body without creating a second Host or Boot. */
+  participate(options: {
+    invitation: string;
+    expectedBodyId?: string | null;
+    retainedCredential?: Readonly<Record<string, unknown>> | null;
+    onCredential?: (credential: Readonly<Record<string, unknown>>) => void | Promise<void>;
+    onState?: (state: string) => void;
+    onBiographyEvidence?: (evidence: Readonly<Record<string, unknown>>) => void;
+    onOfferEvidence?: (evidence: Readonly<Record<string, unknown>>) => void;
+    renewPresence?: boolean;
+    reconnectPresence?: boolean;
+  }): Promise<BrowserBodyParticipation>;
   /** Birth a Body only from Forms checked by this Host's exact Browser runtime. */
   birth(options: { name: string; forms: readonly (BrowserForm | CheckedForm | CheckedSource)[] }): Promise<BrowserBody>;
   /** Recover the retained Body under this fresh Boot. Returns null when no Body is retained. */
   recover(): Promise<BrowserBody | null>;
+}
+
+export interface BrowserBodyParticipation {
+  readonly hostId: string;
+  readonly bootId: string;
+  readonly advertisement: Readonly<Record<string, unknown>>;
+  membershipCredential(): Readonly<Record<string, unknown>> | null;
+  biographyEvidence(): Readonly<Record<string, unknown>> | null;
+  offerEvidence(): Readonly<Record<string, unknown>> | null;
+  state(): string;
+  presenceState(): string;
+  requestOfferEvidence(options: { capabilityIds?: readonly string[]; resourcePoolIds?: readonly string[] }): void;
+  close(): number;
 }
 
 export interface FormDiagnostic {
