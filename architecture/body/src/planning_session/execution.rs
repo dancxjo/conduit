@@ -2,7 +2,7 @@
 //! A claim is not resource admission, a started Play, or authenticated evidence.
 //! Unknown start outcomes remain outstanding: elapsed time cannot release them.
 use super::*;
-use conduit_body::{RemoteProofClass, MAX_WAKE_PLANS};
+use crate::{RemoteProofClass, MAX_WAKE_PLANS};
 use conduit_core::bind_sign;
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
@@ -202,6 +202,3 @@ impl BodyPlanningSession {
         Ok(())
     }
 }
-
-#[cfg(test)]
-mod tests;

@@ -47,14 +47,14 @@ impl BodyPlanningSession {
         forms: Vec<BodyFormPlan>,
     ) -> Result<(), BodyPlanningSessionError> {
         if self.has_outstanding_execution_claim()
-            || self.body.state != conduit_body::BodyState::Lulled
+            || self.body.state != crate::BodyState::Lulled
             || self.wake.lifecycle != WakeLifecycle::Lulled
             || body.body_id != self.body.body_id
             || !body.events.starts_with(&self.body.events)
         {
             return Err(BodyPlanningSessionError::StaleCurrentPlan);
         }
-        if self.plans.len() >= conduit_body::MAX_WAKE_PLANS {
+        if self.plans.len() >= crate::MAX_WAKE_PLANS {
             return Err(BodyPlanningSessionError::Lifecycle(
                 BodyLifecycleError::PlanCapacityExhausted,
             ));
@@ -64,7 +64,7 @@ impl BodyPlanningSession {
             .map_err(BodyPlanningSessionError::Lifecycle)?;
         if self.body.events.iter().any(|event| {
             matches!(event,
-            conduit_body::BodyLifecycleEvent::Woke { wake_id, .. } if wake_id == &wake.wake_id)
+            crate::BodyLifecycleEvent::Woke { wake_id, .. } if wake_id == &wake.wake_id)
         }) {
             return Err(BodyPlanningSessionError::StaleCurrentPlan);
         }
