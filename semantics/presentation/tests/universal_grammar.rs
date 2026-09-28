@@ -12,7 +12,6 @@ use conduit_presentation::{
     PresentationNavigation, PresentationPlace, PresentationProjection, PresentationProperty,
     PresentationPropertyValue, PresentationRelationship, PresentationRelationshipKind,
     PresentationRole, PresentationSubject, ProjectionItem, ProjectionMembership,
-    UTF8_TEXT_VALUE_KIND,
 };
 
 fn subject(identity: &str, role: &str, name: &str) -> PresentationSubject {
@@ -82,15 +81,15 @@ fn lesson_in(context: &str) -> Presentation {
             disclosure: PresentationDisclosureLevel::CurrentAction,
             availability: PresentationActionAvailability::Available,
         }],
-        vec![PresentationInput {
-            identity: "lesson/answer-text".into(),
-            target: "concept/mitochondrion".into(),
-            value_kind: UTF8_TEXT_VALUE_KIND.into(),
-            maximum_bytes: 128,
-            allow_empty: false,
-            name: "Answer".into(),
-            submit_action: "lesson/answer".into(),
-        }],
+        vec![PresentationInput::text(
+            "lesson/answer-text".into(),
+            "concept/mitochondrion".into(),
+            128,
+            false,
+            "Answer".into(),
+            "lesson/answer".into(),
+        )
+        .unwrap()],
         vec![
             PresentationDisclosure {
                 subject: "lesson/cell".into(),

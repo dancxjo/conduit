@@ -5,7 +5,7 @@ use conduit_presentation::{
     Presentation, PresentationAction, PresentationActionAvailability, PresentationBasis,
     PresentationDisclosure, PresentationDisclosureLevel, PresentationInput, PresentationProperty,
     PresentationPropertyValue, PresentationRelationship, PresentationRelationshipKind,
-    PresentationRole, PresentationSubject, PresentationText, UTF8_TEXT_VALUE_KIND,
+    PresentationRole, PresentationSubject, PresentationText,
 };
 
 pub const CHAT_SEND_ACTION: &str = "chat/send";
@@ -195,15 +195,15 @@ impl ChatPresentationState {
                     ChatConnectionState::Disconnected => unavailable("connection/disconnected"),
                 },
             }],
-            vec![PresentationInput {
-                identity: CHAT_MESSAGE_INPUT.into(),
-                target: CHAT_MESSAGE_TARGET.into(),
-                value_kind: UTF8_TEXT_VALUE_KIND.into(),
-                maximum_bytes: self.configuration.maximum_message_bytes,
-                allow_empty: false,
-                name: self.configuration.input_label.clone(),
-                submit_action: CHAT_SEND_ACTION.into(),
-            }],
+            vec![PresentationInput::text(
+                CHAT_MESSAGE_INPUT.into(),
+                CHAT_MESSAGE_TARGET.into(),
+                self.configuration.maximum_message_bytes,
+                false,
+                self.configuration.input_label.clone(),
+                CHAT_SEND_ACTION.into(),
+            )
+            .expect("checked chat configuration has a finite text contract")],
             vec![PresentationDisclosure {
                 subject: "chat/document".into(),
                 level: PresentationDisclosureLevel::Primary,

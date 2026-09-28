@@ -158,9 +158,92 @@ impl CheckedValueContract {
         }
         Ok(())
     }
+
+    /// Canonical, versioned bytes used wherever this checked contract enters a
+    /// larger semantic identity. Authored spelling and Host representation are
+    /// deliberately absent.
+    pub fn identity_bytes(&self) -> Vec<u8> {
+        let mut canonical = b"conduit.value-contract@1\0".to_vec();
+        push_bytes(&mut canonical, self.value_kind.as_str().as_bytes());
+        push_u32(&mut canonical, self.maximum_bytes);
+        push_u32(&mut canonical, self.constraints.len() as u32);
+        for constraint in &self.constraints {
+            constraint.push_identity(&mut canonical);
+        }
+        canonical
+    }
 }
 
 impl ValueConstraint {
+    fn push_identity(&self, canonical: &mut Vec<u8>) {
+        match self {
+            Self::ByteLength { minimum, maximum } => {
+                canonical.push(0);
+                push_u32(canonical, *minimum);
+                push_u32(canonical, *maximum);
+            }
+            Self::UnsignedRange {
+                minimum,
+                maximum,
+                minimum_endpoint,
+                maximum_endpoint,
+            } => {
+                canonical.push(1);
+                canonical.extend_from_slice(&minimum.to_le_bytes());
+                canonical.extend_from_slice(&maximum.to_le_bytes());
+                canonical.push(*minimum_endpoint as u8);
+                canonical.push(*maximum_endpoint as u8);
+            }
+            Self::SignedRange {
+                minimum,
+                maximum,
+                minimum_endpoint,
+                maximum_endpoint,
+            } => {
+                canonical.push(2);
+                canonical.extend_from_slice(&minimum.to_le_bytes());
+                canonical.extend_from_slice(&maximum.to_le_bytes());
+                canonical.push(*minimum_endpoint as u8);
+                canonical.push(*maximum_endpoint as u8);
+            }
+            Self::QuantityRange {
+                minimum,
+                maximum,
+                minimum_endpoint,
+                maximum_endpoint,
+            } => {
+                canonical.push(3);
+                canonical.extend_from_slice(&minimum.encode());
+                canonical.extend_from_slice(&maximum.encode());
+                canonical.push(*minimum_endpoint as u8);
+                canonical.push(*maximum_endpoint as u8);
+            }
+            Self::CanonicalMembership { members } => {
+                canonical.push(4);
+                push_u32(canonical, members.len() as u32);
+                for member in members {
+                    push_bytes(canonical, member);
+                }
+            }
+            Self::TextPattern(pattern) => {
+                canonical.push(5);
+                push_u32(canonical, u32::from(pattern.start_state));
+                push_u32(canonical, pattern.maximum_input_characters);
+                push_u32(canonical, pattern.maximum_match_steps);
+                push_u32(canonical, pattern.states.len() as u32);
+                for state in &pattern.states {
+                    canonical.push(u8::from(state.accepting));
+                    push_u32(canonical, state.transitions.len() as u32);
+                    for transition in &state.transitions {
+                        push_u32(canonical, transition.first_scalar);
+                        push_u32(canonical, transition.last_scalar);
+                        push_u32(canonical, u32::from(transition.target_state));
+                    }
+                }
+            }
+        }
+    }
+
     fn rank(&self) -> u8 {
         match self {
             Self::ByteLength { .. } => 0,
@@ -339,6 +422,15 @@ impl ValueConstraint {
             }
         }
     }
+}
+
+fn push_u32(canonical: &mut Vec<u8>, value: u32) {
+    canonical.extend_from_slice(&value.to_le_bytes());
+}
+
+fn push_bytes(canonical: &mut Vec<u8>, value: &[u8]) {
+    push_u32(canonical, value.len() as u32);
+    canonical.extend_from_slice(value);
 }
 
 fn interval_is_empty(

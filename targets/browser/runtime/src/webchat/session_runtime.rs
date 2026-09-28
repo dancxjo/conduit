@@ -392,11 +392,12 @@ fn interaction_refusal_code(refusal: conduit_presentation::PresentationInteracti
         R::UnavailableAction => -257,
         R::RefusedAction => -258,
         R::WrongValueKind => -259,
-        R::EmptyValue => -260,
+        R::ViolatedConstraint => -260,
         R::OversizeValue => -261,
         R::MalformedEncoding => -262,
         R::DuplicateDelivery => -263,
         R::QueuePressure => -264,
         R::EvidenceExhausted => -265,
+        R::ValidatorIncapacity => -266,
     }
 }

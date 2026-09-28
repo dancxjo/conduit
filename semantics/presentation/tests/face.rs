@@ -14,7 +14,7 @@ use conduit_presentation::{
     PresentationCursor, PresentationDepth, PresentationDisclosure, PresentationDisclosureLevel,
     PresentationFragment, PresentationInput, PresentationNavigation, PresentationPlace,
     PresentationProjection, PresentationPropertyValue, PresentationRole, PresentationSubject,
-    ProjectionItem, ProjectionMembership, UTF8_TEXT_VALUE_KIND,
+    ProjectionItem, ProjectionMembership,
 };
 
 fn born_body() -> Body {
@@ -413,15 +413,15 @@ fn ordinary_form_contributes_universal_truth_without_an_application_view() {
                 disclosure: PresentationDisclosureLevel::CurrentAction,
                 availability: PresentationActionAvailability::Available,
             }],
-            inputs: vec![PresentationInput {
-                identity: "lesson/answer-text".into(),
-                target: "concept/mitochondrion".into(),
-                value_kind: UTF8_TEXT_VALUE_KIND.into(),
-                maximum_bytes: 128,
-                allow_empty: false,
-                name: "Answer".into(),
-                submit_action: "lesson/answer".into(),
-            }],
+            inputs: vec![PresentationInput::text(
+                "lesson/answer-text".into(),
+                "concept/mitochondrion".into(),
+                128,
+                false,
+                "Answer".into(),
+                "lesson/answer".into(),
+            )
+            .unwrap()],
             disclosures: vec![PresentationDisclosure {
                 subject: "concept/mitochondrion".into(),
                 level: PresentationDisclosureLevel::Primary,

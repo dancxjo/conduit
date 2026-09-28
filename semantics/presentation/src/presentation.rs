@@ -213,7 +213,7 @@ pub enum PresentationError {
     DuplicateInput,
     UnknownInputTarget,
     UnknownInputAction,
-    InvalidInputLimit,
+    InvalidInputContract,
     UnknownDisclosureSubject,
     ReasonTooLong,
     NonCanonicalSign,

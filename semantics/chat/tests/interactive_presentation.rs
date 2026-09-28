@@ -35,7 +35,7 @@ fn authored_state_is_the_bounded_semantic_ui_truth() {
     assert_eq!(state.history_len(), MAXIMUM_CHAT_HISTORY_ITEMS);
     assert_eq!(presentation.inputs[0].identity, CHAT_MESSAGE_INPUT);
     assert_eq!(
-        presentation.inputs[0].maximum_bytes,
+        presentation.inputs[0].contract.maximum_bytes,
         MAXIMUM_CHAT_MESSAGE_BYTES
     );
     assert_eq!(presentation.inputs[0].name, "Message");

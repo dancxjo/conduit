@@ -693,78 +693,9 @@ fn push_checked_front(canonical: &mut Vec<u8>, front: &CheckedFront) {
 }
 
 fn push_value_contract(canonical: &mut Vec<u8>, contract: &crate::CheckedValueContract) {
-    push_string(canonical, contract.value_kind.as_str());
-    push_u32(canonical, contract.maximum_bytes);
-    push_u32(canonical, contract.constraints.len() as u32);
-    for constraint in &contract.constraints {
-        match constraint {
-            crate::ValueConstraint::ByteLength { minimum, maximum } => {
-                canonical.push(0);
-                push_u32(canonical, *minimum);
-                push_u32(canonical, *maximum);
-            }
-            crate::ValueConstraint::UnsignedRange {
-                minimum,
-                maximum,
-                minimum_endpoint,
-                maximum_endpoint,
-            } => {
-                canonical.push(1);
-                push_u64(canonical, *minimum);
-                push_u64(canonical, *maximum);
-                canonical.push(*minimum_endpoint as u8);
-                canonical.push(*maximum_endpoint as u8);
-            }
-            crate::ValueConstraint::SignedRange {
-                minimum,
-                maximum,
-                minimum_endpoint,
-                maximum_endpoint,
-            } => {
-                canonical.push(2);
-                canonical.extend_from_slice(&minimum.to_le_bytes());
-                canonical.extend_from_slice(&maximum.to_le_bytes());
-                canonical.push(*minimum_endpoint as u8);
-                canonical.push(*maximum_endpoint as u8);
-            }
-            crate::ValueConstraint::QuantityRange {
-                minimum,
-                maximum,
-                minimum_endpoint,
-                maximum_endpoint,
-            } => {
-                canonical.push(3);
-                canonical.extend_from_slice(&minimum.encode());
-                canonical.extend_from_slice(&maximum.encode());
-                canonical.push(*minimum_endpoint as u8);
-                canonical.push(*maximum_endpoint as u8);
-            }
-            crate::ValueConstraint::CanonicalMembership { members } => {
-                canonical.push(4);
-                push_u32(canonical, members.len() as u32);
-                for member in members {
-                    push_u32(canonical, member.len() as u32);
-                    canonical.extend_from_slice(member);
-                }
-            }
-            crate::ValueConstraint::TextPattern(pattern) => {
-                canonical.push(5);
-                push_u32(canonical, u32::from(pattern.start_state));
-                push_u32(canonical, pattern.maximum_input_characters);
-                push_u32(canonical, pattern.maximum_match_steps);
-                push_u32(canonical, pattern.states.len() as u32);
-                for state in &pattern.states {
-                    canonical.push(u8::from(state.accepting));
-                    push_u32(canonical, state.transitions.len() as u32);
-                    for transition in &state.transitions {
-                        push_u32(canonical, transition.first_scalar);
-                        push_u32(canonical, transition.last_scalar);
-                        push_u32(canonical, u32::from(transition.target_state));
-                    }
-                }
-            }
-        }
-    }
+    let identity = contract.identity_bytes();
+    push_u32(canonical, identity.len() as u32);
+    canonical.extend_from_slice(&identity);
 }
 
 /// Returns the canonical semantic fingerprint of an executable Front.
