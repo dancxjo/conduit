@@ -251,7 +251,7 @@ fn boolean_contract_projects_a_toggle_with_explicit_choices() {
         }],
         pool_references: Vec::new(),
     };
-    let controls = crate::front_controls::project_controls(&gear).unwrap();
+    let controls = patchbay_graph::project_front_controls(&gear).unwrap();
     assert!(matches!(
         controls[0].kind,
         FaceControlKind::BooleanChoice {

@@ -42,7 +42,6 @@ mod form_editor_catalogs;
 mod form_editor_error;
 mod form_edits;
 mod front_configuration;
-mod front_controls;
 mod front_door;
 mod front_door_projection;
 mod front_door_session;
@@ -208,7 +207,6 @@ pub use form_editor::{
     CheckedRevision, EditorDiagnostic, FormDocumentView, FormEditor, FormEditorError, GraphCord,
     GraphCordStage, GraphForm, GraphItem, GraphItemKind, SourceSelection,
 };
-pub use front_controls::{FaceControl, FaceControlKind, FaceInteraction, MAX_FACE_CONTROLS};
 pub use front_door::{
     EntranceAction, EntranceLayer, EntranceRefusal, EntranceUpdateDisposition,
     PatchbayEntranceState, MAX_ENTRANCE_ACTIONS,
@@ -281,6 +279,7 @@ pub use palette::{
 };
 pub use parts_view::*;
 pub use patchbay_backs::*;
+pub use patchbay_graph::{FaceControl, FaceControlKind, FaceInteraction, MAX_FACE_CONTROLS};
 pub use policy_explanation::{
     PolicyChoiceDetails, PolicyChoiceDomain, PolicyChoiceExplanation, PolicyChoiceSummary,
     PolicyExplanationError, PolicyReplanRequest, MAX_POLICY_EXPLANATIONS,
