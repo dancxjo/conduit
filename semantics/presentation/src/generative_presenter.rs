@@ -259,7 +259,6 @@ mod tests {
             context: FaceContext::Overview,
             focus: FaceFocus::Body,
             presentation,
-            application_actions: vec![],
             operator_actions: vec![],
         }
     }

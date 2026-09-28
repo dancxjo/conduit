@@ -1,18 +1,14 @@
 //! Lower one admitted application contribution into portable Presentation truth.
 
-use alloc::{format, vec, vec::Vec};
+use alloc::{format, vec::Vec};
 
 use crate::{
-    ApplicationComponent, ApplicationEventKind, ApplicationNodeState, FaceActionArgument,
-    PresentationAction, PresentationActionAvailability, PresentationDisclosure,
-    PresentationDisclosureLevel, PresentationProperty, PresentationPropertyValue,
+    PresentationAction, PresentationDisclosure, PresentationProperty, PresentationPropertyValue,
     PresentationRelationship, PresentationRelationshipKind, PresentationRole, PresentationSubject,
     PresentationTemporalFact, PresentationText, TemporalReference,
 };
 
-use super::{
-    FaceApplicationAction, FaceContribution, FaceContributionContent, FaceContributionRole,
-};
+use super::FaceContribution;
 
 #[allow(clippy::too_many_arguments)]
 pub(super) fn append_contribution(
@@ -28,182 +24,22 @@ pub(super) fn append_contribution(
     disclosures: &mut Vec<PresentationDisclosure>,
     temporal_references: &mut Vec<TemporalReference>,
     temporal_facts: &mut Vec<PresentationTemporalFact>,
-    application_actions: &mut Vec<FaceApplicationAction>,
 ) {
-    match &contribution.content {
-        FaceContributionContent::Presentation(fragment) => {
-            append_presentation_fragment(
-                index,
-                contribution,
-                fragment,
-                context_subject,
-                subjects,
-                relationships,
-                composition,
-                properties,
-                text,
-                actions,
-                disclosures,
-                temporal_references,
-                temporal_facts,
-            );
-        }
-        FaceContributionContent::ApplicationView(view) => append_application_view(
-            index,
-            contribution,
-            view,
-            context_subject,
-            subjects,
-            relationships,
-            properties,
-            text,
-            actions,
-            disclosures,
-            application_actions,
-        ),
-    }
-}
-
-#[allow(clippy::too_many_arguments)]
-fn append_application_view(
-    index: usize,
-    contribution: &FaceContribution,
-    view: &crate::ApplicationView,
-    context_subject: &str,
-    subjects: &mut Vec<PresentationSubject>,
-    relationships: &mut Vec<PresentationRelationship>,
-    properties: &mut Vec<PresentationProperty>,
-    text: &mut Vec<PresentationText>,
-    actions: &mut Vec<PresentationAction>,
-    disclosures: &mut Vec<PresentationDisclosure>,
-    application_actions: &mut Vec<FaceApplicationAction>,
-) {
-    let prefix = format!("surface/{}/{index}", contribution.role.token());
-    let root = format!("{prefix}/application");
-    subjects.push(PresentationSubject {
-        identity: root.clone(),
-        role: PresentationRole::Region,
-        name: format!("{} application contribution", contribution.role.token()),
-    });
-    relationships.push(PresentationRelationship {
-        source: context_subject.into(),
-        target: root.clone(),
-        kind: PresentationRelationshipKind::Contains,
-    });
-    properties.extend([
-        identity_property(
-            &root,
-            "checked-form-id",
-            contribution.checked_form_id.as_str(),
-        ),
-        identity_property(&root, "plan-id", contribution.plan_id.as_str()),
-        identity_property(
-            &root,
-            "active-play-id",
-            contribution.active_play_id.as_str(),
-        ),
-        PresentationProperty {
-            subject: root.clone(),
-            name: "application-view-revision".into(),
-            value: PresentationPropertyValue::Count(u64::from(view.revision)),
-        },
-    ]);
-    disclosures.push(PresentationDisclosure {
-        subject: root.clone(),
-        level: contribution_disclosure(contribution.role),
-    });
-
-    for (node_index, node) in view.nodes.iter().enumerate() {
-        let identity = format!("{prefix}/node/{}", node.key);
-        let label = if node.text.is_empty() {
-            node.key.clone()
-        } else {
-            node.text.clone()
-        };
-        subjects.push(PresentationSubject {
-            identity: identity.clone(),
-            role: node_role(node.component),
-            name: label.clone(),
-        });
-        let parent = node.parent.map_or_else(
-            || root.clone(),
-            |parent| format!("{prefix}/node/{}", view.nodes[usize::from(parent)].key),
-        );
-        relationships.push(PresentationRelationship {
-            source: parent,
-            target: identity.clone(),
-            kind: PresentationRelationshipKind::Contains,
-        });
-        properties.extend([
-            PresentationProperty {
-                subject: identity.clone(),
-                name: "application-component".into(),
-                value: PresentationPropertyValue::Text(format!("{:?}", node.component)),
-            },
-            PresentationProperty {
-                subject: identity.clone(),
-                name: "application-node-state".into(),
-                value: PresentationPropertyValue::Text(format!("{:?}", node.state)),
-            },
-        ]);
-        if !node.value.is_empty() {
-            properties.push(PresentationProperty {
-                subject: identity.clone(),
-                name: "value".into(),
-                value: PresentationPropertyValue::Text(node.value.clone()),
-            });
-        }
-        if !node.text.is_empty() {
-            text.push(PresentationText {
-                subject: identity.clone(),
-                text: node.text.clone(),
-            });
-        }
-        if let Some(action_index) = node.action {
-            let source = &view.actions[usize::from(action_index)];
-            let action_identity = format!("{prefix}/action/{}/node/{node_index}", source.id);
-            properties.push(PresentationProperty {
-                subject: identity.clone(),
-                name: "application-action-id".into(),
-                value: PresentationPropertyValue::Identity(source.id.clone()),
-            });
-            let arguments = if matches!(
-                node.component,
-                ApplicationComponent::TextInput
-                    | ApplicationComponent::TextArea
-                    | ApplicationComponent::Select
-            ) {
-                vec![FaceActionArgument::text(
-                    format!("{prefix}/input/{node_index}"),
-                    label.clone(),
-                    0,
-                    node.value_capacity,
-                )
-                .expect("checked application input has a finite text contract")]
-            } else {
-                vec![]
-            };
-            actions.push(PresentationAction {
-                identity: action_identity.clone(),
-                intent: event_intent(source.event).into(),
-                target: identity.clone(),
-                name: label.clone(),
-                arguments,
-                disclosure: contribution_disclosure(contribution.role),
-                availability: action_availability(node.state),
-            });
-            application_actions.push(FaceApplicationAction {
-                surface_action_id: action_identity.clone(),
-                role: contribution.role,
-                checked_form_id: contribution.checked_form_id.clone(),
-                plan_id: contribution.plan_id.clone(),
-                active_play_id: contribution.active_play_id.clone(),
-                application_view_revision: view.revision,
-                application_action_id: source.id.clone(),
-                event: source.event,
-            });
-        }
-    }
+    append_presentation_fragment(
+        index,
+        contribution,
+        &contribution.presentation,
+        context_subject,
+        subjects,
+        relationships,
+        composition,
+        properties,
+        text,
+        actions,
+        disclosures,
+        temporal_references,
+        temporal_facts,
+    );
 }
 
 #[allow(clippy::too_many_arguments)]
@@ -293,65 +129,5 @@ fn identity_property(subject: &str, name: &str, value: &str) -> PresentationProp
         subject: subject.into(),
         name: name.into(),
         value: PresentationPropertyValue::Identity(value.into()),
-    }
-}
-
-fn action_availability(state: ApplicationNodeState) -> PresentationActionAvailability {
-    match state {
-        ApplicationNodeState::Ready => PresentationActionAvailability::Available,
-        ApplicationNodeState::Busy => PresentationActionAvailability::Unavailable {
-            reason_code: "application-busy".into(),
-            explanation: "The application action is currently busy.".into(),
-        },
-        ApplicationNodeState::Unavailable => PresentationActionAvailability::Unavailable {
-            reason_code: "application-unavailable".into(),
-            explanation: "The application action is not currently available.".into(),
-        },
-    }
-}
-
-fn contribution_disclosure(role: FaceContributionRole) -> PresentationDisclosureLevel {
-    match role {
-        FaceContributionRole::Foreground => PresentationDisclosureLevel::Primary,
-        FaceContributionRole::Tutorial => PresentationDisclosureLevel::CurrentAction,
-        FaceContributionRole::Inspection => PresentationDisclosureLevel::SelectedDetail,
-        FaceContributionRole::Transient => PresentationDisclosureLevel::CurrentAction,
-    }
-}
-
-fn node_role(component: ApplicationComponent) -> PresentationRole {
-    match component {
-        ApplicationComponent::Button | ApplicationComponent::NavigationLink => {
-            PresentationRole::Action
-        }
-        ApplicationComponent::TextInput
-        | ApplicationComponent::TextArea
-        | ApplicationComponent::Select => PresentationRole::TextEntry,
-        ApplicationComponent::Status
-        | ApplicationComponent::SuccessStatus
-        | ApplicationComponent::FailureStatus
-        | ApplicationComponent::WarningStatus
-        | ApplicationComponent::MissingEvidence
-        | ApplicationComponent::StaleEvidence
-        | ApplicationComponent::RefusedEvidence
-        | ApplicationComponent::FailedEvidence
-        | ApplicationComponent::SuccessfulEvidence => PresentationRole::Status,
-        ApplicationComponent::Shell
-        | ApplicationComponent::Main
-        | ApplicationComponent::Panel
-        | ApplicationComponent::Navigation
-        | ApplicationComponent::Disclosure
-        | ApplicationComponent::PatchbayCanvas => PresentationRole::Region,
-        _ => PresentationRole::Item,
-    }
-}
-
-fn event_intent(kind: ApplicationEventKind) -> &'static str {
-    match kind {
-        ApplicationEventKind::Activate => "application.event/activate@1",
-        ApplicationEventKind::Change => "application.event/change@1",
-        ApplicationEventKind::Input => "application.event/input@1",
-        ApplicationEventKind::Toggle => "application.event/toggle@1",
-        ApplicationEventKind::Submit => "application.event/submit@1",
     }
 }
