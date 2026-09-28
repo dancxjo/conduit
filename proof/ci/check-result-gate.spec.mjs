@@ -6,7 +6,7 @@ import { test } from "node:test";
 const workflow = readFileSync(process.env.CONDUIT_CHECK_WORKFLOW
   ?? new URL("../../.github/workflows/check.yml", import.meta.url), "utf8");
 const gate = workflow.split("      - name: Preserve the stable required workspace gate\n")[1]
-  ?.split("\n\n  browser-tools:")[0];
+  ?.split(/\n\n  (?:browser-tools|conduitos-proof-image):/)[0];
 assert.ok(gate, "final check gate exists");
 const encoded = gate.split("        run: |\n")[1];
 assert.ok(encoded, "final check gate owns executable result validation");

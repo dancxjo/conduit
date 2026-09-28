@@ -1,6 +1,12 @@
 use std::fs;
 use std::path::PathBuf;
 
+fn final_check_job(tail: &str) -> Option<&str> {
+    tail.split_once("\n  browser-tools:\n")
+        .or_else(|| tail.split_once("\n  conduitos-proof-image:\n"))
+        .map(|(job, _)| job)
+}
+
 #[test]
 fn workspace_feedback_does_not_wait_for_emulator_proof() {
     let root = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../..");
@@ -35,7 +41,7 @@ fn required_check_waits_for_every_selectable_proof_aggregate() {
     let required_gate = workflow
         .split("\n  check:\n")
         .nth(1)
-        .and_then(|tail| tail.split("\n  browser-tools:\n").next())
+        .and_then(final_check_job)
         .expect("locate the stable required check job");
 
     let declared_join = required_gate
@@ -90,7 +96,7 @@ fn conduitos_result_join_is_folded_into_the_existing_final_gate() {
     let join = workflow
         .split("\n  check:\n")
         .nth(1)
-        .and_then(|tail| tail.split("\n  browser-tools:\n").next())
+        .and_then(final_check_job)
         .expect("locate final result gate");
     for result in [
         "LIMINE_RESULT",
