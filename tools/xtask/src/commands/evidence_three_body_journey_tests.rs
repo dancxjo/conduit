@@ -191,7 +191,7 @@ fn complete() -> Vec<BodyTrack> {
 fn exactly_three_materially_distinct_tracks_share_one_ordered_action_journey() {
     let contract = contract::canonical(&"a".repeat(40));
     validate(&contract, &complete(), &contract.git_commit).unwrap();
-    let index = assemble_index(contract, complete(), None).unwrap();
+    let index = assemble_index(contract, complete()).unwrap();
     assert_eq!(index.actions.len(), 15);
     assert!(index.actions.iter().all(|action| action.bodies.len() == 3));
     assert_eq!(index.actions[2].action.action_id, "journey.useful-work");
@@ -276,7 +276,7 @@ fn extra_detailed_receipts_do_not_become_public_actions() {
         .receipts
         .push(receipt(0, "mask.replanned", "mask-replanned"));
     validate(&contract, &tracks, &contract.git_commit).unwrap();
-    let index = assemble_index(contract, tracks, None).unwrap();
+    let index = assemble_index(contract, tracks).unwrap();
     assert_eq!(index.actions.len(), 15);
     assert!(index.actions.iter().all(|action| action.bodies[0]
         .receipts
@@ -296,7 +296,7 @@ fn identity_collapsing_and_stale_commits_refuse() {
 #[test]
 fn action_major_page_names_producer_events_without_fixed_manifestation_labels() {
     let contract = contract::canonical(&"a".repeat(40));
-    let index = assemble_index(contract, complete(), None).unwrap();
+    let index = assemble_index(contract, complete()).unwrap();
     let html = page::render(&index);
     assert!(html.contains("The same moment, three ways"));
     assert!(html.contains("Embodiment 2 performed its concrete useful work."));

@@ -564,7 +564,7 @@ impl conduit_presentation::MaskJourneyEmbodiment for SpokenJourney {
                 None,
                 vec![],
             ),
-            AddPresentationHost => self.observation(
+            AddFaceHost => self.observation(
                 action,
                 "replacement Host host/spoken-mask-replacement added but not selected by old Plan",
                 None,

@@ -50,7 +50,7 @@ fn an_embodiment_cannot_replace_the_shared_journey_with_its_own_stage_play() {
             "mask.prefer-alternate",
             "mask.withdraw-selected-route",
             "mask.inspect-unavailable-show",
-            "mask.add-presentation-host",
+            "mask.add-face-host",
             "mask.admit-replacement-plan",
             "mask.inspect-replanned-show",
             "mask.doff-alternate",

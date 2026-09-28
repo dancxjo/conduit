@@ -59,9 +59,6 @@ struct HomeCrossFrontArgs {
 
 #[derive(Args, Debug)]
 struct ThreeBodyJourneyArgs {
-    /// Separately retained real-model documentary; its exact Mask inputs must match.
-    #[arg(long)]
-    recorded_generative: Option<PathBuf>,
     /// Exact commit whose three Body tracks are being verified.
     #[arg(long)]
     commit: String,
@@ -194,13 +191,9 @@ pub fn run(args: EvidenceArgs) -> Result<(), Box<dyn std::error::Error>> {
     match args.command {
         EvidenceCommand::HomeCrossFront(args) => home_cross_front::run(args.receipts, args.output),
         EvidenceCommand::CheckThreeBodyJourney(args) => three_body_browser::run(args),
-        EvidenceCommand::ThreeBodyJourney(args) => three_body_journey::run(
-            args.commit,
-            args.contract,
-            args.tracks,
-            args.recorded_generative,
-            args.output,
-        ),
+        EvidenceCommand::ThreeBodyJourney(args) => {
+            three_body_journey::run(args.commit, args.contract, args.tracks, args.output)
+        }
         EvidenceCommand::ThreeBodyJourneyContract(args) => {
             three_body_journey::write_contract(args.commit, args.output).map_err(Into::into)
         }

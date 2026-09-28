@@ -40,38 +40,14 @@ pub(super) fn render(index: &ThreeBodyJourneyIndex) -> String {
                 escape(&body.track_id),
                 label(body)
             );
-            if let Some(recording) = &body.recorded_generative {
-                html.push_str(
-                    "<p class=\"proof-mode\">Recorded live Gemma · retained documentary audio</p>",
-                );
-                render_receipts(
-                    &mut html,
-                    body,
-                    &recording.receipts,
-                    "live-conformance",
-                    &recording.git_commit,
-                    &recording.mask_form_id,
-                );
-                html.push_str("<details><summary>Current release contract check</summary>");
-                render_receipts(
-                    &mut html,
-                    body,
-                    &body.receipts,
-                    &body.track_id,
-                    &index.git_commit,
-                    &body.mask_form_id,
-                );
-                html.push_str("</details>");
-            } else {
-                render_receipts(
-                    &mut html,
-                    body,
-                    &body.receipts,
-                    &body.track_id,
-                    &index.git_commit,
-                    &body.mask_form_id,
-                );
-            }
+            render_receipts(
+                &mut html,
+                body,
+                &body.receipts,
+                &body.track_id,
+                &index.git_commit,
+                &body.mask_form_id,
+            );
             let _ = write!(
                 html,
                 "<p class=\"concrete-event\">{}</p>",
@@ -86,7 +62,7 @@ pub(super) fn render(index: &ThreeBodyJourneyIndex) -> String {
         }
         html.push_str("</div></article>");
     }
-    let _ = write!(html, "</main><footer><h2>The machinery changes.<br>The meaning carries through.</h2><p>Three independent bodies, each with its own history. Native captures show ConduitOS in QEMU; browser captures show Chromium. Chapters align meaning, not identical clocks or keystrokes.</p><p>The conversational recording preserves real model output, including its terse or repetitive moments. Its retained audio is historical documentary evidence, not a claim about the current speech realization and not a recording of physical speakers. Some moments share one captured state. Release checks reuse the recording only while its exact tutorial inputs remain unchanged.</p><details><summary>Inspect the complete evidence</summary><p>Journey {} · source {}</p><a href=\"index.json\">Verified journey index</a></details><a href=\"../../\">Back to the journeys</a></footer>", escape(&index.journey_id), escape(&index.git_commit));
+    let _ = write!(html, "</main><footer><h2>The machinery changes.<br>The meaning carries through.</h2><p>Three independent bodies, each with its own history. Native captures show ConduitOS in QEMU; browser captures show Chromium. Chapters align meaning, not identical clocks or keystrokes. Every panel is derived from that Body's current producer track for this exact source commit; no historical recording substitutes for current evidence.</p><details><summary>Inspect the complete evidence</summary><p>Journey {} · source {}</p><a href=\"index.json\">Verified journey index</a></details><a href=\"../../\">Back to the journeys</a></footer>", escape(&index.journey_id), escape(&index.git_commit));
     html.push_str("<script>");
     html.push_str(include_str!("evidence_three_body_journey.js"));
     html.push_str("</script></body></html>");

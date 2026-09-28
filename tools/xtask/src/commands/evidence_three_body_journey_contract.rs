@@ -84,8 +84,8 @@ fn canonical_action(action: JourneyActionKind) -> ContractAction {
             "The Body inspected the interval in which no worn Mask was realizable.",
             "Lack of Show remained distinct from Face truth and from authority to replan.",
         ),
-        JourneyActionKind::MaskAddPresentationHost => mask_action(
-            "mask.add-presentation-host",
+        JourneyActionKind::MaskAddFaceHost => mask_action(
+            "mask.add-face-host",
             "Add a Face Host",
             "A new Host or Boot offered a possible Mask realization.",
             "Availability alone did not mutate the old Plan or create a Show.",
@@ -159,7 +159,7 @@ fn mask_action(
         "mask.prefer-alternate" => &["mask-mask.prefer-alternate"][..],
         "mask.withdraw-selected-route" => &["mask-mask.withdraw-selected-route"][..],
         "mask.inspect-unavailable-show" => &["mask-mask.inspect-unavailable-show"][..],
-        "mask.add-presentation-host" => &["mask-mask.add-presentation-host"][..],
+        "mask.add-face-host" => &["mask-mask.add-face-host"][..],
         "mask.admit-replacement-plan" => &["mask-mask.admit-replacement-plan"][..],
         "mask.inspect-replanned-show" => &["mask-mask.inspect-replanned-show"][..],
         "mask.doff-alternate" => &["mask-mask.doff-alternate"][..],

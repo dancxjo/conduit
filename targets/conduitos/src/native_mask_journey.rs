@@ -286,7 +286,7 @@ impl MaskJourneyEmbodiment for NativeJourney<'_> {
                 "withdrew-selected-native-route"
             }
             MaskJourneyAction::InspectUnavailableShow => "inspected-no-current-show",
-            MaskJourneyAction::AddPresentationHost => {
+            MaskJourneyAction::AddFaceHost => {
                 self.receipts = vec![format!(
                     "host-offer:{}",
                     self.replacement
