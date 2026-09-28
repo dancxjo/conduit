@@ -17,11 +17,35 @@ try {
     onBiographyEvidence: (evidence) => { biography = evidence; },
     onOfferEvidence: (evidence) => { offer = evidence; },
   });
+  let preparation = null;
+  let play = null;
+  let completion = null;
+  let dispatchFailure = null;
   status.textContent = "Browser Host participating";
   globalThis.__conduitSdkParticipation = Object.freeze({
     host,
     participation,
     evidence: () => Object.freeze({ biography, offer }),
+    executionCapabilities: () => participation.executionCapabilities(),
+    prepare(proposal) {
+      preparation = participation.prepare({
+        proposal,
+        inputTarget: document.querySelector("#external-body-input"),
+        outputRoot: document.querySelector("#external-body-output"),
+      });
+      return preparation.observations();
+    },
+    planInspection: () => preparation.inspection(),
+    start(identity) {
+      const started = preparation.start(identity);
+      play = started.play;
+      return Object.freeze({ wakeAtStart: started.wakeAtStart, play: play.identity });
+    },
+    begin() {
+      completion = play.dispatch().catch((error) => { dispatchFailure = error; });
+    },
+    cancel: () => play.terminate(),
+    dispatchState: () => Object.freeze({ settled: completion !== null && play.state !== "playing", failure: dispatchFailure?.message ?? null }),
   });
 } catch (error) {
   status.textContent = error instanceof Error ? error.message : String(error);
