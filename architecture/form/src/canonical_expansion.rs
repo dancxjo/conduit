@@ -206,6 +206,77 @@ fn expand_instance_inner(
                 CheckedCordStage::Reference(reference) => structured_selector::PendingStage::Ready(
                     resolve_reference(reference, &instances, &front_ports)?,
                 ),
+                CheckedCordStage::RelationalGear {
+                    operands,
+                    gear,
+                    input_ports,
+                    output_port,
+                } => {
+                    let key = inline_key(gear);
+                    let count = anonymous_counts.entry(key.clone()).or_default();
+                    let name = format!("inline-{}-{count}", &hash_string(&key)[..12]);
+                    *count += 1;
+                    let instance = instantiate_gear(
+                        gear,
+                        &name,
+                        form,
+                        forms,
+                        structured_types,
+                        catalog,
+                        backs,
+                        environment,
+                        path,
+                        stack,
+                        realization_backs,
+                        depth,
+                        &mut gears,
+                        &mut connections,
+                        &mut shared_pools,
+                        &mut provenance,
+                        &mut gear_ids,
+                    )?;
+                    for (operand, input_port) in operands.iter().zip(input_ports) {
+                        let source = resolve_reference(operand, &instances, &front_ports)?
+                            .output
+                            .ok_or_else(|| {
+                                CanonicalExpansionDiagnostic::new(
+                                    "CND-FRM-036",
+                                    format!("glyph operand '{operand}' has no output"),
+                                )
+                            })?;
+                        let sinks = instance.inputs.get(input_port).ok_or_else(|| {
+                            CanonicalExpansionDiagnostic::new(
+                                "CND-FRM-043",
+                                format!(
+                                    "glyph Gear '{}' has no checked input port '{}'",
+                                    gear.kind, input_port
+                                ),
+                            )
+                        })?;
+                        for sink in sinks {
+                            connect(
+                                source.clone(),
+                                StageSink::Internal(sink.clone()),
+                                &mut connections,
+                                &mut inputs,
+                                &mut outputs,
+                            )?;
+                        }
+                    }
+                    let output = instance.outputs.get(output_port).cloned().ok_or_else(|| {
+                        CanonicalExpansionDiagnostic::new(
+                            "CND-FRM-043",
+                            format!(
+                                "glyph Gear '{}' has no checked output port '{}'",
+                                gear.kind, output_port
+                            ),
+                        )
+                    })?;
+                    structured_selector::PendingStage::Ready(Stage {
+                        input: None,
+                        output: Some(StageSource::Internal(output)),
+                    })
+                }
                 CheckedCordStage::TerminalProjection {
                     endpoint,
                     terminal,

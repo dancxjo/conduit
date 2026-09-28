@@ -261,6 +261,66 @@ fn resolve_stage_aliases(
                     *stage = CordStage::Reference(glyph.clone());
                 }
             }
+            CordStage::RelationalGlyph {
+                operands,
+                glyph,
+                span,
+            } => {
+                let Some((canonical, _, used)) = aliases.get_mut(&glyph.text) else {
+                    return Err(use_diagnostic(
+                        glyph.span,
+                        format!("glyph '{}' did not resolve in lexical scope", glyph.text),
+                    ));
+                };
+                let fore = form_fronts
+                    .get(canonical)
+                    .or_else(|| catalog.fore(canonical))
+                    .ok_or_else(|| {
+                        use_diagnostic(
+                            glyph.span,
+                            format!(
+                                "glyph '{}' requires the exact checked Fore for '{}'",
+                                glyph.text, canonical
+                            ),
+                        )
+                    })?;
+                if fore.inputs().len() != operands.len() || fore.outputs().len() != 1 {
+                    return Err(use_diagnostic(
+                        glyph.span,
+                        format!(
+                            "relational glyph '{}' supplies {} operands but '{}' has {} inputs and {} outputs",
+                            glyph.text,
+                            operands.len(),
+                            canonical,
+                            fore.inputs().len(),
+                            fore.outputs().len()
+                        ),
+                    ));
+                }
+                let invocation = Invocation {
+                    kind: crate::syntax::SpannedText {
+                        text: canonical.clone(),
+                        span: glyph.span,
+                    },
+                    arguments: Vec::new(),
+                    span: glyph.span,
+                };
+                let input_ports = fore
+                    .inputs()
+                    .iter()
+                    .map(|port| port.port_id.as_str().to_string())
+                    .collect();
+                let output_port = fore.outputs()[0].port_id.as_str().to_string();
+                *used = true;
+                *stage = CordStage::RelationalGear {
+                    operands: operands.clone(),
+                    invocation,
+                    input_ports,
+                    output_port,
+                    span: *span,
+                };
+            }
+            CordStage::RelationalGear { .. } => {}
             CordStage::TerminalProjection { .. }
             | CordStage::Cancellation { .. }
             | CordStage::When(_)
@@ -608,6 +668,31 @@ fn check_cord_stages(
                     glyph.span,
                     format!("glyph '{}' did not resolve in lexical scope", glyph.text),
                 ));
+            }
+            CordStage::RelationalGlyph { glyph, .. } => {
+                return Err(use_diagnostic(
+                    glyph.span,
+                    format!("glyph '{}' did not resolve in lexical scope", glyph.text),
+                ));
+            }
+            CordStage::RelationalGear {
+                operands,
+                invocation,
+                input_ports,
+                output_port,
+                ..
+            } => {
+                let gear = check_invocation(None, invocation, catalog, form_signatures, resolver)?;
+                stages.push(CheckedCordStage::RelationalGear {
+                    operands: operands
+                        .iter()
+                        .map(|operand| operand.text.clone())
+                        .collect(),
+                    gear: gear.clone(),
+                    input_ports: input_ports.clone(),
+                    output_port: output_port.clone(),
+                });
+                gears.push(gear);
             }
             CordStage::TerminalProjection {
                 endpoint,

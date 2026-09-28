@@ -721,6 +721,8 @@ impl<'a> Parser<'a> {
                 stages.push(CordStage::PureExpression(
                     self.expression_at(part, part, part_start)?,
                 ));
+            } else if let Some(relational) = self.parse_relational_glyph(part, part_start)? {
+                stages.push(relational);
             } else if crate::surface_lex::is_glyph(part) {
                 stages.push(CordStage::Glyph(self.spanned(part, part_start)));
             } else if part.contains('/') || part.contains('(') {
@@ -741,6 +743,52 @@ impl<'a> Parser<'a> {
             }
         }
         Ok(stages)
+    }
+
+    fn parse_relational_glyph(
+        &self,
+        text: &str,
+        start: usize,
+    ) -> Result<Option<CordStage>, (FormError, Span)> {
+        let parts = text.split_whitespace().collect::<Vec<_>>();
+        if parts.len() < 3 || parts.len() % 2 == 0 {
+            return Ok(None);
+        }
+        let glyph = parts[1];
+        if !crate::surface_lex::is_glyph(glyph) {
+            return Ok(None);
+        }
+        if parts
+            .iter()
+            .skip(1)
+            .step_by(2)
+            .any(|candidate| *candidate != glyph)
+        {
+            return Err((
+                FormError::InvalidSyntax("mixed adjacent glyphs require explicit grouping".into()),
+                self.span(start, start + text.len()),
+            ));
+        }
+        if parts
+            .iter()
+            .step_by(2)
+            .any(|operand| !is_reference(operand))
+        {
+            return Err(self.invalid_statement(text, start));
+        }
+        let mut search = 0;
+        let mut operands = Vec::new();
+        for operand in parts.iter().step_by(2) {
+            let offset = text[search..].find(operand).unwrap_or(0) + search;
+            operands.push(self.spanned(operand, start + offset));
+            search = offset + operand.len();
+        }
+        let glyph_offset = text.find(glyph).unwrap_or(0);
+        Ok(Some(CordStage::RelationalGlyph {
+            operands,
+            glyph: self.spanned(glyph, start + glyph_offset),
+            span: self.span(start, start + text.len()),
+        }))
     }
 
     fn parse_invocation(&self, text: &str, start: usize) -> Result<Invocation, (FormError, Span)> {

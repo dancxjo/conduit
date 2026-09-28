@@ -398,7 +398,7 @@ impl ProfileCatalog {
     pub fn startup_catalog(&self) -> Result<StartupCatalog, String> {
         let mut startup = StartupCatalog::new();
         for definition in self.kinds.values() {
-            startup.insert(KindSignature {
+            let signature = KindSignature {
                 kind: definition.kind_id.as_str().to_string(),
                 startup_parameters: definition
                     .configuration
@@ -421,7 +421,36 @@ impl ProfileCatalog {
                         default: Some(render_value(&field.default_value)),
                     })
                     .collect(),
-            })?;
+            };
+            startup.insert(signature)?;
+            let fore = if let Some(kind) = self.canonical_kind(&definition.kind_id) {
+                kind.checked_front()
+            } else {
+                let signature = startup
+                    .signature(definition.kind_id.as_str())
+                    .expect("the signature was inserted immediately above");
+                let startup_parameters =
+                    startup
+                        .canonical_startup_parameters(signature)
+                        .map_err(|error| {
+                            format!(
+                                "cannot derive checked Fore for '{}': {error:?}",
+                                definition.kind_id.as_str()
+                            )
+                        })?;
+                let shorthand = match (definition.inputs.as_slice(), definition.outputs.as_slice())
+                {
+                    ([input], [output]) => Some((input.port_id.clone(), output.port_id.clone())),
+                    _ => None,
+                };
+                conduit_core::CheckedFront::new(
+                    startup_parameters,
+                    definition.inputs.clone(),
+                    definition.outputs.clone(),
+                    shorthand,
+                )
+            };
+            startup.insert_fore(definition.kind_id.as_str(), fore)?;
         }
         Ok(startup)
     }

@@ -153,6 +153,40 @@ fn configured_gear_occurrence_may_have_a_glyph_name() {
 }
 
 #[test]
+fn fixed_arity_relational_glyph_binds_operands_in_checked_fore_order() {
+    let checked = check(
+        "use pair as &>\nform pair (\n >> left: Text\n >> right: Text\n result: Text >>\n) {\n}\nform example (\n >> a: Text\n >> b: Text\n paired: Text >>\n) {\n a &> b >> paired\n}\n",
+    );
+    let crate::CheckedCordStage::RelationalGear {
+        operands,
+        gear,
+        input_ports,
+        output_port,
+    } = &checked.forms[0].cords[0].stages[0]
+    else {
+        panic!("expected exact relational Gear")
+    };
+    assert_eq!(operands, &["a", "b"]);
+    assert_eq!(gear.kind, "pair");
+    assert_eq!(input_ports, &["left", "right"]);
+    assert_eq!(output_port, "result");
+}
+
+#[test]
+fn relational_glyph_refuses_wrong_arity_and_mixed_adjacent_meanings() {
+    let wrong_arity = "use pair as &>\nform pair (\n >> left: Text\n >> right: Text\n result: Text >>\n) {\n}\nform example (\n >> a: Text\n paired: Text >>\n) {\n a &> a &> a >> paired\n}\n";
+    let error = check_syntax_document(&parse_syntax_document(wrong_arity), &catalog())
+        .expect_err("fixed arity comes from the exact checked Fore");
+    assert!(error.message.contains("supplies 3 operands"));
+
+    let mixed = "use pair as &>\nuse time/default as ?>\nform pair (\n >> left: Text\n >> right: Text\n result: Text >>\n) {\n}\nform example (\n >> a: Text\n >> b: Text\n >> c: Text\n paired: Text >>\n) {\n a &> b ?> c >> paired\n}\n";
+    let parsed = parse_syntax_document(mixed);
+    assert!(parsed.diagnostics[0]
+        .message
+        .contains("mixed adjacent glyphs require explicit grouping"));
+}
+
+#[test]
 fn grouped_uses_resolve_each_exact_installed_kind() {
     let checked = check(
         "use time/{every, default}\nform example {\n first: every(1s)\n second: default\n}\n",

@@ -237,6 +237,12 @@ impl Eq for CheckedCanonicalGear {}
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum CheckedCordStage {
     Reference(String),
+    RelationalGear {
+        operands: Vec<String>,
+        gear: CheckedCanonicalGear,
+        input_ports: Vec<String>,
+        output_port: String,
+    },
     TerminalProjection {
         endpoint: String,
         terminal: crate::TerminalProjection,
