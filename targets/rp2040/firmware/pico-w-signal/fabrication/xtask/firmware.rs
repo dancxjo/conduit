@@ -460,7 +460,7 @@ pub fn read_identity_manifest(root: &Path) -> PicoResult<FirmwareIdentity> {
     let manifest_path = identity_manifest_path(root);
     let text = std::fs::read_to_string(&manifest_path).map_err(|error| {
         format!(
-            "failed to read Pico identity manifest at {}: {error}; run `cargo xtask pico build` first",
+            "failed to read Pico identity manifest at {}: {error}; run `cargo xtask fabricate pico build` first",
             manifest_path.display()
         )
     })?;

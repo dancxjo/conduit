@@ -16,6 +16,7 @@ fn bounded_selection_refuses_duplicates() {
 fn cli_accepts_exact_selected_proofs_and_parallel_bound() {
     let parsed = Cli::try_parse_from([
         "xtask",
+        "fabricate",
         "conduitos",
         "prove-many",
         "--proof",
@@ -43,7 +44,8 @@ fn every_proof_has_one_explicit_command() {
         X86Proof::EmergencyHalt,
     ] {
         let command = proof.arguments(evidence);
-        assert_eq!(command.first().map(String::as_str), Some("conduitos"));
+        assert_eq!(command.first().map(String::as_str), Some("fabricate"));
+        assert_eq!(command.get(1).map(String::as_str), Some("conduitos"));
         assert_eq!(command.last().map(String::as_str), Some("--locked"));
     }
 }
@@ -60,6 +62,11 @@ fn kernel_verifier_binds_the_exact_commit_and_evidence_root() {
     assert!(command
         .windows(2)
         .any(|pair| pair == ["--root", "batch/runs/kernel/evidence"]));
+    assert_eq!(
+        command.get(..2),
+        Some(["prove", "verify"].map(str::to_owned).as_slice())
+    );
+    assert!(!command.iter().any(|argument| argument == "evidence"));
 }
 
 #[test]

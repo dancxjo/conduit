@@ -27,7 +27,7 @@ or gallery evidence, run QEMU, or claim physical hardware proof.
 ## Run a first form
 
 ```bash
-cargo xtask host std
+cargo xtask fabricate host std
 ```
 
 `cargo xtask doctor` is an optional diagnostic across targets; missing browser
@@ -72,7 +72,7 @@ cargo xtask demo tour
 
 These commands build the required browser runtime and serve it locally. Keep
 the terminal process running while using the page. A separate browser host can
-be launched with `cargo xtask host browser`; each launch has its own runtime
+be launched with `cargo xtask fabricate host browser`; each launch has its own runtime
 identity. The [body lifecycle guide](self-hosted-biography.md) explains how Tour,
 Crèche, and Patchbay relate.
 
@@ -82,8 +82,8 @@ Install the build and emulator prerequisites listed in the
 [ConduitOS guide](../targets/conduitos/README.md), then run:
 
 ```bash
-cargo xtask conduitos live x86_64
-cargo xtask conduitos live-boot x86_64
+cargo xtask fabricate conduitos live x86_64
+cargo xtask fabricate conduitos live-boot x86_64
 ```
 
 The first command builds `target/conduitos/live/x86_64-pc/conduitos-x86_64.iso`.
@@ -101,7 +101,7 @@ portable Tour application state and action identities; each host supplies its
 own presentation implementation.
 
 ```bash
-cargo xtask conduitos live-matrix
+cargo xtask fabricate conduitos live-matrix
 ```
 
 The matrix describes the supported media and their limits. Additional `ia32`,
@@ -113,7 +113,7 @@ their own fabrication and physical-proof boundaries. See
 To capture the reproducible x86_64 journey yourself:
 
 ```bash
-cargo xtask conduitos journey-proof
+cargo xtask fabricate conduitos journey-proof
 ```
 
 This runs QEMU and writes the manifest and checkpoint PNGs under
@@ -184,8 +184,8 @@ Start with `cargo xtask doctor pico` and the
 BOOTSEL mode, the explicit USB firmware workflow is:
 
 ```bash
-cargo xtask pico build --usb-remote
-cargo xtask pico flash --usb-remote
+cargo xtask fabricate pico build --usb-remote
+cargo xtask fabricate pico flash --usb-remote
 cargo xtask prove std-pico-usb --interactive
 ```
 

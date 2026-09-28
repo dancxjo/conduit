@@ -385,7 +385,7 @@ fn product_stage_joins_exact_required_results_after_optional_skips() {
     ] {
         assert!(stage.contains(&format!("needs.{prerequisite}.result == 'success'")));
     }
-    assert!(stage.contains("cargo +1.98.1 xtask host release-catalog"));
+    assert!(stage.contains("cargo +1.98.1 xtask fabricate host release-catalog"));
     assert!(stage.contains("Build the reviewed Form bundles before release payload assembly"));
     assert!(stage.contains("cargo +1.98.1 xtask forms bundle-initial-body"));
     assert!(stage.contains("cargo +1.98.1 xtask forms bundle-workspace-catalog"));
@@ -471,7 +471,7 @@ fn browser_development_admission_does_not_fabricate_avr_firmware() {
 
     assert!(avr_release.contains("if: needs.plan.outputs.pages_carrier_required == 'true'"));
     assert!(!avr_release.contains("browser_admission_required"));
-    assert!(avr_release.contains("cargo +1.98.1 xtask avr release"));
+    assert!(avr_release.contains("cargo +1.98.1 xtask fabricate avr release"));
 }
 
 #[test]
@@ -734,7 +734,7 @@ fn x86_proofs_share_one_bounded_runner_without_conflating_receipts() {
 
     assert!(!x86.contains("matrix:"));
     assert_eq!(x86.matches("runs-on: ubuntu-24.04").count(), 1);
-    assert!(x86.contains("cargo xtask conduitos prove-many"));
+    assert!(x86.contains("cargo xtask fabricate conduitos prove-many"));
     assert!(x86.contains("--max-parallel 4 --output-root \"$CONDUIT_X86_BATCH_ROOT\" --locked"));
     assert_eq!(
         x86.matches("CONDUIT_X86_BATCH_ROOT: ${{ runner.temp }}/conduitos-prove-many")

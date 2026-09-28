@@ -93,7 +93,7 @@ impl X86Proof {
     }
 
     fn arguments(self, evidence_root: &Path) -> Vec<String> {
-        let mut arguments = vec!["conduitos".to_owned()];
+        let mut arguments = vec!["fabricate".to_owned(), "conduitos".to_owned()];
         match self {
             Self::Kernel => arguments.extend([
                 "prove".to_owned(),
@@ -434,7 +434,7 @@ fn stop_running(running: &mut [RunningProof]) {
 
 fn kernel_verification_arguments(evidence_root: &Path, commit: &str) -> Vec<String> {
     vec![
-        "evidence".to_owned(),
+        "prove".to_owned(),
         "verify".to_owned(),
         "--root".to_owned(),
         evidence_root.display().to_string(),

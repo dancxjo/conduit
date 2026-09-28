@@ -359,7 +359,7 @@ pub const WORKSPACE_STEPS: &[Step] = &[
         "check.pico-local.dry-run",
         "Dry-run verify of Pico W receipts",
         "cargo",
-        &["xtask", "pico", "verify", "--dry-run"],
+        &["xtask", "fabricate", "pico", "verify", "--dry-run"],
     ),
     Step::new(
         "check.std-pico-usb.dry-run",

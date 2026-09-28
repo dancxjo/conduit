@@ -373,7 +373,7 @@ const SECURITY_ACCEPTANCE_STEPS: &[Step] = &[
         "security-acceptance.conduitos",
         "Attack x86_64 kernel memory, sibling domains, MMIO, I/O, and handles",
         "cargo",
-        &["xtask", "conduitos", "isolation-proof"],
+        &["xtask", "fabricate", "conduitos", "isolation-proof"],
     ),
 ];
 

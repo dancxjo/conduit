@@ -110,7 +110,7 @@ pub fn run_doctor(dry_run: bool) -> PicoResult<()> {
     }
     if !asset_ok {
         return Err(
-            "CYW43 asset verification failed; run `cargo xtask pico --refresh-radio-assets`".into(),
+            "CYW43 asset verification failed; run `cargo xtask fabricate pico --refresh-radio-assets`".into(),
         );
     }
 

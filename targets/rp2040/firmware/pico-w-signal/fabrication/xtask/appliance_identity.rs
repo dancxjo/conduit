@@ -279,7 +279,7 @@ pub fn read_appliance_identity_manifest(root: &Path) -> PicoResult<ApplianceFirm
     let identity: ApplianceFirmwareIdentity = serde_json::from_str(
         &std::fs::read_to_string(&manifest_path).map_err(|error| {
             format!(
-                "failed to read Pico appliance identity at {}: {error}; run `cargo xtask pico build --appliance-hello` first",
+                "failed to read Pico appliance identity at {}: {error}; run `cargo xtask fabricate pico build --appliance-hello` first",
                 manifest_path.display()
             )
         })?,
@@ -295,7 +295,7 @@ pub fn read_appliance_hil_client_identity_manifest(
     let identity: ApplianceHilClientFirmwareIdentity = serde_json::from_str(
         &std::fs::read_to_string(&manifest_path).map_err(|error| {
             format!(
-                "failed to read Pico appliance HIL client identity at {}: {error}; run `cargo xtask pico build --appliance-hil-client` first",
+                "failed to read Pico appliance HIL client identity at {}: {error}; run `cargo xtask fabricate pico build --appliance-hil-client` first",
                 manifest_path.display()
             )
         })?,

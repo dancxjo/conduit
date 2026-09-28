@@ -349,7 +349,7 @@ fn print_receipt(report: &CreationReport) {
     println!(
         "\n{}\n  {}",
         style("Next").bold(),
-        style(format!("cargo xtask body show {}", report.output)).cyan()
+        style(format!("cargo xtask fabricate body show {}", report.output)).cyan()
     );
 }
 

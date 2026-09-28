@@ -93,15 +93,15 @@ a current OFFER, OBSERVE, ADMIT, binding, assignment, plan, or play.
 The repository entrances are:
 
 ```text
-cargo xtask host                         # launch the default std host
-cargo xtask host std                     # explicit spelling of the default
-cargo xtask host browser                 # launch an independent browser host
-cargo xtask host rpi [--board <board>]   # build an exact Raspberry Pi SD IMAGE
-cargo xtask host configure [path]
-cargo xtask host config check path/to/config.host.conduit
-cargo xtask host config show path/to/config.host.conduit
-cargo xtask host catalog                  # portable checked target/base choices
-cargo xtask host build path/to/config.host.conduit
+cargo xtask fabricate host                         # launch the default std host
+cargo xtask fabricate host std                     # explicit spelling of the default
+cargo xtask fabricate host browser                 # launch an independent browser host
+cargo xtask fabricate host rpi [--board <board>]   # build an exact Raspberry Pi SD IMAGE
+cargo xtask fabricate host configure [path]
+cargo xtask fabricate host config check path/to/config.host.conduit
+cargo xtask fabricate host config show path/to/config.host.conduit
+cargo xtask fabricate host catalog                  # portable checked target/base choices
+cargo xtask fabricate host build path/to/config.host.conduit
 ```
 
 The lifecycle targets delegate to the existing authoritative implementations.
@@ -118,7 +118,7 @@ validation write nothing. Canonicalization sorts declaration order before
 deriving the configuration identity, so equivalent structural meaning lowers
 to the same existing `HostProfile` identity.
 
-`cargo xtask host catalog` emits the same composed package truth as bounded,
+`cargo xtask fabricate host catalog` emits the same composed package truth as bounded,
 portable JSON for product choosers. Each target retains its exact strategy,
 artifact kinds, adapters, finite maxima, and compatible base implementation
 and package revisions. The projection has a deterministic catalog identity so
@@ -181,9 +181,9 @@ ProfileId
 The final digest is recorded outside the bytes it hashes, so the relationship
 is non-circular. `resolved_description_binding` is deliberately not named an
 `ImageId`: it proves which finite resolved BUILD description entered the
-package. For ConduitOS x86_64, `cargo xtask host build` owns this full path and
-`cargo xtask host verify` recomputes both artifact digests and the description,
-PROFILE, BUILD, and target bindings. The lower-level `cargo xtask conduitos
+package. For ConduitOS x86_64, `cargo xtask fabricate host build` owns this full path and
+`cargo xtask fabricate host verify` recomputes both artifact digests and the description,
+PROFILE, BUILD, and target bindings. The lower-level `cargo xtask fabricate conduitos
 image` command remains target-development machinery and emits no competing
 canonical host-fabrication identity.
 
