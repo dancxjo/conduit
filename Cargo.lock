@@ -1360,6 +1360,7 @@ dependencies = [
  "conduit-language",
  "conduit-midi",
  "conduit-net",
+ "conduit-observatory",
  "conduit-plan-lowering",
  "conduit-planner",
  "conduit-presentation",
