@@ -101,7 +101,6 @@ pub mod hosted_model_compute;
 pub mod hosted_network;
 pub mod hosted_reminder;
 pub mod hosted_resource;
-pub mod hosted_speech;
 pub mod hosted_speech_recognition;
 mod hosted_spoken_output_host;
 pub mod hosted_synth;
@@ -297,7 +296,6 @@ pub struct StdRunReport {
     pub receipts: Vec<SignalReceipt>,
     pub kernel: Option<StdKernelExecutionReport>,
     pub control_receipts: Vec<RunControlReceipt>,
-    pub speech_synthesis: Vec<SpeechSynthesisExecutionReceipt>,
     pub speech_recognition: Vec<SpeechRecognitionExecutionReceipt>,
     pub microphone: Vec<hosted_microphone::MicrophoneCaptureReceipt>,
     pub external_fore_deliveries: Vec<ExternalForeDelivery>,
@@ -315,21 +313,6 @@ pub struct SpeechRecognitionExecutionReceipt {
     pub text_sha256: Option<String>,
     pub text_bytes: u16,
     pub diagnostic_bytes: u16,
-}
-
-#[derive(Debug, Clone, PartialEq, Eq)]
-pub struct SpeechSynthesisExecutionReceipt {
-    pub plan_id: conduit_core::PlanId,
-    pub active_play_id: conduit_core::ActivePlayId,
-    pub placement_id: conduit_core::PlacementId,
-    pub implementation_id: conduit_core::ImplementationId,
-    pub executable_sha256: String,
-    pub model_sha256: String,
-    pub config_sha256: String,
-    pub text_sha256: String,
-    pub pcm_sha256: String,
-    pub frames: u32,
-    pub blocks: u16,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -476,7 +459,6 @@ pub struct StdHost {
     midi_input: Option<hosted_midi::HostedRawMidiSelection>,
     midi_output: Option<hosted_midi::MidiOutputSelection>,
     local_model: Option<Box<dyn hosted_local_model::HostedLocalModelAdapter>>,
-    speech_synthesis: Option<hosted_speech::PiperSpeechAdapter>,
     speech_recognition: Option<hosted_speech_recognition::WhisperSpeechAdapter>,
     microphone: Option<hosted_microphone::AlsaMicrophoneAdapter>,
     base_registry: conduit_core::BaseRegistry,
@@ -621,7 +603,6 @@ impl StdHost {
             midi_input: None,
             midi_output: None,
             local_model: None,
-            speech_synthesis: None,
             speech_recognition: None,
             microphone: None,
             base_registry: empty_base_registry(),
@@ -688,7 +669,6 @@ impl StdHost {
             midi_input: None,
             midi_output: None,
             local_model: None,
-            speech_synthesis: None,
             speech_recognition: None,
             microphone: None,
             base_registry,
@@ -774,7 +754,6 @@ impl StdHost {
             midi_input: None,
             midi_output: None,
             local_model: Some(adapter),
-            speech_synthesis: None,
             speech_recognition: None,
             microphone: None,
             base_registry: empty_base_registry(),
@@ -816,7 +795,6 @@ impl StdHost {
             midi_input: None,
             midi_output: None,
             local_model: None,
-            speech_synthesis: None,
             speech_recognition: None,
             microphone: None,
             base_registry: empty_base_registry(),
@@ -858,7 +836,6 @@ impl StdHost {
             midi_input: None,
             midi_output: None,
             local_model: None,
-            speech_synthesis: None,
             speech_recognition: None,
             microphone: None,
             base_registry: empty_base_registry(),
@@ -914,7 +891,6 @@ impl StdHost {
             midi_input: None,
             midi_output: None,
             local_model: None,
-            speech_synthesis: None,
             speech_recognition: Some(adapter),
             microphone: None,
             base_registry: empty_base_registry(),
@@ -971,7 +947,6 @@ impl StdHost {
             midi_input: None,
             midi_output: None,
             local_model: None,
-            speech_synthesis: None,
             speech_recognition: Some(adapter),
             microphone: None,
             base_registry: empty_base_registry(),
@@ -1085,7 +1060,6 @@ impl StdHost {
             midi_input: None,
             midi_output: None,
             local_model: None,
-            speech_synthesis: None,
             speech_recognition: None,
             microphone: None,
             base_registry: empty_base_registry(),
@@ -1136,7 +1110,6 @@ impl StdHost {
             midi_input: None,
             midi_output: None,
             local_model: None,
-            speech_synthesis: None,
             speech_recognition: None,
             microphone: None,
             base_registry: empty_base_registry(),
@@ -1182,7 +1155,6 @@ impl StdHost {
             midi_input: None,
             midi_output: Some(midi_output),
             local_model: None,
-            speech_synthesis: None,
             speech_recognition: None,
             microphone: None,
             base_registry: empty_base_registry(),
@@ -1217,7 +1189,6 @@ impl StdHost {
             midi_input: None,
             midi_output: None,
             local_model: None,
-            speech_synthesis: None,
             speech_recognition: None,
             microphone: None,
             base_registry: empty_base_registry(),
@@ -1265,7 +1236,6 @@ impl StdHost {
             midi_input: None,
             midi_output: None,
             local_model: None,
-            speech_synthesis: None,
             speech_recognition: None,
             microphone: None,
             base_registry: empty_base_registry(),

@@ -472,7 +472,6 @@ impl InstalledRemoteFragment {
         mut local_model: Option<
             &mut (dyn crate::hosted_local_model::HostedLocalModelAdapter + 'static),
         >,
-        speech_synthesis: Option<&mut crate::hosted_speech::PiperSpeechAdapter>,
         cancelled: F,
     ) -> Result<bool, String>
     where
@@ -563,44 +562,6 @@ impl InstalledRemoteFragment {
                 None
             };
             completion.outcome(output)
-        } else if contract == conduit_std_offers::PIPER_SPEECH_OPERATION {
-            let streaming = self
-                .placements
-                .get(usize::from(request.node.0))
-                .is_some_and(|placement| {
-                    placement.implementation_id.as_str()
-                        == conduit_std_offers::PIPER_STREAMING_SPEECH_IMPLEMENTATION
-                });
-            match super::speech_synthesis_back::execute_piper_cancellable(
-                speech_synthesis,
-                input,
-                streaming,
-                cancelled,
-            ) {
-                Ok(block) => {
-                    let output = block
-                        .map(|block| self.scheduler.store_host_value(block))
-                        .transpose()
-                        .map_err(|error| format!("store remote Piper block: {error:?}"))?
-                        .map(|value| BoundedValueRef::new(value, maximum_output_bytes))
-                        .transpose()
-                        .map_err(|error| format!("bound remote Piper block: {error:?}"))?;
-                    HostCallOutcome {
-                        disposition: HostCallDisposition::Completed,
-                        output,
-                        failure: None,
-                    }
-                }
-                Err(error) => {
-                    let (disposition, failure) =
-                        super::speech_synthesis_back::piper_failure_outcome(error);
-                    HostCallOutcome {
-                        disposition,
-                        output: None,
-                        failure: Some(failure),
-                    }
-                }
-            }
         } else {
             return Ok(false);
         };

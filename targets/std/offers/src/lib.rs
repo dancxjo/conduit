@@ -337,10 +337,7 @@ mod tests {
         let families = [
             ("model", vec![model_result_to_text_std_offer()]),
             ("audio", vec![audio_convert_pcm_profile_offer()]),
-            (
-                "speech",
-                vec![piper_speech_offer(), deterministic_speech_offer()],
-            ),
+            ("speech proof", vec![deterministic_speech_offer()]),
             (
                 "Mask native/reference",
                 vec![renderer("native"), renderer("reference")],

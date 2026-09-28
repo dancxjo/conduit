@@ -4,6 +4,7 @@ use conduit_core::{
     ExecutionProfileId, ImplementationId, KindIdentity, PlannedGear, PortDescriptor, PortDirection,
     PortTemporal,
 };
+#[cfg(test)]
 use conduit_form::{KindProjection, ProfileCatalog};
 use conduit_kernel::{
     scheduler::{StepBack, StepInputBytes, StepIo, StepOutcome},
@@ -30,7 +31,7 @@ impl<const PORTS: usize> StepBack<PORTS> for TestSpeechSinkBack {
     fn step(&mut self, io: &mut StepIo<PORTS>, _: &StepInputBytes<'_, PORTS>) -> StepOutcome {
         if let Some(value) = io.input(PortId(0)) {
             if value.byte_len > conduit_std_offers::AUDIO_CONVERT_PCM_MAXIMUM_OUTPUT_BYTES
-                || self.blocks >= conduit_std_offers::PIPER_MAXIMUM_BLOCKS
+                || self.blocks >= conduit_std_offers::SPEECH_MAXIMUM_BLOCKS
             {
                 return StepOutcome::Fail(Failure {
                     code: FailureCode::InvalidLifecycle,
@@ -72,13 +73,14 @@ pub(crate) fn offer() -> CapabilityOffer {
         authority_requirements: Vec::new(),
         limits: CapabilityLimits {
             max_active_instances: 1,
-            max_queue_items: conduit_std_offers::PIPER_MAXIMUM_BLOCKS,
-            max_queue_bytes: u32::from(conduit_std_offers::PIPER_MAXIMUM_BLOCKS)
-                * conduit_std_offers::PIPER_PCM_BLOCK_BYTES,
+            max_queue_items: conduit_std_offers::SPEECH_MAXIMUM_BLOCKS,
+            max_queue_bytes: u32::from(conduit_std_offers::SPEECH_MAXIMUM_BLOCKS)
+                * conduit_std_offers::SPEECH_PCM_BLOCK_BYTES,
         },
     }
 }
 
+#[cfg(test)]
 pub(crate) fn install_catalog(catalog: &mut ProfileCatalog) {
     catalog
         .insert(KindProjection {

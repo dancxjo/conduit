@@ -242,7 +242,6 @@ pub(super) fn run_fragment_retaining<W: Write, T: TimerAdapter>(
         retained,
         indicator,
         attach_live,
-        mut speech_synthesis,
         mut speech_recognition,
         mut microphone,
         wav_artifact,
@@ -598,7 +597,6 @@ pub(super) fn run_fragment_retaining<W: Write, T: TimerAdapter>(
     let mut address_detect_hosts = address_detect_back::prepare_hosts(fragment);
     #[cfg(any(test, feature = "local-model-proof"))]
     let mut recorded_speech_hosts = recorded_speech_back::prepare_hosts(fragment)?;
-    #[cfg(test)]
     let mut speech_synthesis_hosts = speech_synthesis_back::prepare_fake_hosts(fragment)?;
     let mut house_prompt_hosts = house_prompt_back::prepare_hosts(fragment);
     let mut body_chat_prompt_hosts = body_chat_prompt_back::prepare_hosts(fragment);
@@ -890,12 +888,6 @@ pub(super) fn run_fragment_retaining<W: Write, T: TimerAdapter>(
             {
                 if let Some(adapter) = &mut vector_search {
                     adapter.cancel();
-                }
-            } else if cancelled_operation.contract_id.as_str()
-                == conduit_std_offers::PIPER_SPEECH_OPERATION
-            {
-                if let Some(adapter) = &mut speech_synthesis {
-                    adapter.abort();
                 }
             } else {
                 deadlines.cancel(cancellation, &mut scheduler)?;
@@ -2449,8 +2441,7 @@ pub(super) fn run_fragment_retaining<W: Write, T: TimerAdapter>(
                     )
                     .map_err(|error| format!("complete generated-speech commit: {error:?}"))?;
                 continue;
-            } else if contract.as_str() == conduit_std_offers::PIPER_SPEECH_OPERATION {
-                #[cfg(test)]
+            } else if contract.as_str() == conduit_std_offers::DETERMINISTIC_SPEECH_OPERATION {
                 if speech_synthesis_hosts
                     .get(usize::from(request.node.0))
                     .is_some_and(Option::is_some)
@@ -2490,53 +2481,7 @@ pub(super) fn run_fragment_retaining<W: Write, T: TimerAdapter>(
                         })?;
                     continue;
                 }
-                let completion = speech_synthesis_back::execute_piper(
-                    speech_synthesis.as_deref_mut(),
-                    input,
-                    fragment
-                        .placements
-                        .get(usize::from(request.node.0))
-                        .is_some_and(|placement| {
-                            placement.implementation_id.as_str()
-                                == conduit_std_offers::PIPER_STREAMING_SPEECH_IMPLEMENTATION
-                        }),
-                    control.requested_stop().is_some(),
-                );
-                let (disposition, output, failure) = match completion {
-                    Ok(block) => {
-                        let output = block
-                            .map(|block| scheduler.store_host_value(block))
-                            .transpose()
-                            .map_err(|error| format!("store Piper speech block: {error:?}"))?
-                            .map(|value| {
-                                BoundedValueRef::new(
-                                    value,
-                                    lowered_operation.binding.maximum_output_bytes,
-                                )
-                            })
-                            .transpose()
-                            .map_err(|error| format!("bound Piper speech block: {error:?}"))?;
-                        (HostCallDisposition::Completed, output, None)
-                    }
-                    Err(error) => {
-                        let (disposition, failure) =
-                            speech_synthesis_back::piper_failure_outcome(error);
-                        (disposition, None, Some(failure))
-                    }
-                };
-                record_request(&mut requests, request);
-                scheduler
-                    .complete_host_call(
-                        request.node,
-                        request.request,
-                        HostCallOutcome {
-                            disposition,
-                            output,
-                            failure,
-                        },
-                    )
-                    .map_err(|error| format!("complete Piper speech operation: {error:?}"))?;
-                continue;
+                return Err("speech request has no admitted deterministic proof provider".into());
             } else if contract.as_str() == conduit_std_offers::RECOGNITION_TO_TEXT_OPERATION {
                 let (disposition, output) = match conduit_tongues::project_recognized_text(input) {
                     Ok(text) => {
@@ -3353,44 +3298,6 @@ pub(super) fn run_fragment_retaining<W: Write, T: TimerAdapter>(
     #[cfg(test)]
     let post_play_start_allocations = play_start_probe.finish();
 
-    let speech_synthesis_receipts = if let Some(adapter) = speech_synthesis {
-        let discovery = adapter.discovery();
-        let executable_sha256 = discovery.executable_sha256.clone();
-        let model_sha256 = discovery.model_sha256.clone();
-        let config_sha256 = discovery.config_sha256.clone();
-        match adapter.take_receipt() {
-            Some(receipt) => {
-                let placement = fragment
-                    .placements
-                    .iter()
-                    .find(|placement| {
-                        matches!(
-                            placement.implementation_id.as_str(),
-                            conduit_std_offers::PIPER_SPEECH_IMPLEMENTATION
-                                | conduit_std_offers::PIPER_STREAMING_SPEECH_IMPLEMENTATION
-                        )
-                    })
-                    .ok_or_else(|| "Piper receipt has no exact planned placement".to_string())?;
-                vec![crate::SpeechSynthesisExecutionReceipt {
-                    plan_id: fragment.plan_id.clone(),
-                    active_play_id: active_play.active_play_id.clone(),
-                    placement_id: placement.placement_id.clone(),
-                    implementation_id: placement.implementation_id.clone(),
-                    executable_sha256,
-                    model_sha256,
-                    config_sha256,
-                    text_sha256: receipt.text_sha256,
-                    pcm_sha256: receipt.pcm_sha256,
-                    frames: receipt.frames,
-                    blocks: receipt.blocks,
-                }]
-            }
-            None => Vec::new(),
-        }
-    } else {
-        Vec::new()
-    };
-
     let speech_recognition_receipts = if let Some(adapter) = speech_recognition {
         let discovery = adapter.discovery();
         let executable_sha256 = discovery.executable_sha256.clone();
@@ -3569,7 +3476,6 @@ pub(super) fn run_fragment_retaining<W: Write, T: TimerAdapter>(
         observations,
         receipts: Vec::new(),
         control_receipts,
-        speech_synthesis: speech_synthesis_receipts,
         speech_recognition: speech_recognition_receipts,
         microphone: microphone
             .and_then(crate::hosted_microphone::AlsaMicrophoneAdapter::take_receipt)

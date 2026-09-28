@@ -738,7 +738,6 @@ fn run_signal_profile<
         observations,
         receipts,
         control_receipts: Vec::new(),
-        speech_synthesis: Vec::new(),
         speech_recognition: Vec::new(),
         microphone: Vec::new(),
         external_fore_deliveries: Vec::new(),
