@@ -269,6 +269,17 @@ fn mask_journey_refuses_staged_or_invented_transition_truth() {
 }
 
 #[test]
+fn mask_journey_refuses_retained_show_identity_as_current_truth() {
+    let contract = contract::canonical(&"a".repeat(40));
+    let mut tracks = complete();
+    tracks[0].mask_actions[9].show_id = tracks[0].mask_actions[0].show_id.clone();
+
+    let error = validate(&contract, &tracks, &contract.git_commit).unwrap_err();
+
+    assert!(error.contains("reuses a retained Show as current Face truth"));
+}
+
+#[test]
 fn extra_detailed_receipts_do_not_become_public_actions() {
     let contract = contract::canonical(&"a".repeat(40));
     let mut tracks = complete();
