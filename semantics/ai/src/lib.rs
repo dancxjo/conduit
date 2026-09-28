@@ -179,8 +179,6 @@ pub fn generate_text_contract() -> GenerateTextContract {
 
 pub fn generate_text_semantic_contract() -> Kind {
     let contract = generate_text_contract();
-    let prompt_port = contract.inputs[0].port_id.clone();
-    let text_port = contract.outputs[0].port_id.clone();
     let configuration = vec![
         count_field("maximum-input-bytes", 4096, 1, MAXIMUM_INPUT_BYTES),
         count_field("maximum-context-tokens", 4096, 1, MAXIMUM_CONTEXT_TOKENS),
@@ -205,16 +203,7 @@ pub fn generate_text_semantic_contract() -> Kind {
         inputs: contract.inputs,
         outputs: contract.outputs,
         configuration,
-        semantic_laws: vec![conduit_core::KindSemanticLaw::ValueBounds(vec![
-            conduit_core::FrontValueBound {
-                location: conduit_core::FrontValueLocation::Input(prompt_port),
-                maximum_bytes: 256,
-            },
-            conduit_core::FrontValueBound {
-                location: conduit_core::FrontValueLocation::Output(text_port),
-                maximum_bytes: 256,
-            },
-        ])],
+        semantic_laws: Vec::new(),
         limits: contract.limits,
     }
 }

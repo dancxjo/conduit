@@ -733,19 +733,20 @@ pub fn lower_plan_fragment_for_profile(
                 placement.placement_id.clone(),
             ));
         }
+        let checked_front = placement.checked_port_front();
         let inputs = lower_ports(
             node,
             &placement.placement_id,
             &placement.inputs,
             PortDirection::Input,
-            placement.semantic_contract.value_bounds(),
+            checked_front.value_bounds(),
         )?;
         let outputs = lower_ports(
             node,
             &placement.placement_id,
             &placement.outputs,
             PortDirection::Output,
-            placement.semantic_contract.value_bounds(),
+            checked_front.value_bounds(),
         )?;
         if inputs.len() > profile.maximum_ports_per_node() {
             return Err(LoweringError::ProfileCapacityExceeded {
