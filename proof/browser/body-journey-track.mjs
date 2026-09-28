@@ -28,6 +28,7 @@ export async function writeBrowserBodyJourneyTrack(source, screenshotPath, outpu
   if (!/^[0-9a-f]{40}$/.test(commit)) throw new Error("browser track refuses a non-exact commit");
   const current = source.current;
   const evidence = source.evidence.evidence;
+  const fabrication = source.host_fabrication?.obtainment;
   const events = evidence.body.events;
   const joined = source.checkpoints.joined.evidence.membership.parts.map(part => part.current).filter(Boolean);
   const peer = joined.find(host => host.host_id !== current.host_id);
@@ -73,6 +74,20 @@ export async function writeBrowserBodyJourneyTrack(source, screenshotPath, outpu
     maskForm: required(inspectedMask.planned_mask?.mask?.form_identity?.checked_form_id, "Mask Form identity"),
     maskPlan: required(inspectedMask.planned_mask?.plan?.plan_id, "Mask Plan identity"),
     maskPlay: required(inspectedMask.mask_play?.active_play_id, "Mask Play identity") };
+  const construction = [
+    {
+      host_id: ids.host,
+      profile: { disposition: "omitted", reason: "The original page Host predates this producer's fabrication step; no profile fabrication identity was retained for it." },
+      build: { disposition: "omitted", reason: "The original page Host predates this producer's fabrication step; no build identity was retained for it." },
+      image: { disposition: "omitted", reason: "The original page Host predates this producer's fabrication step; no image identity was retained for it." },
+    },
+    {
+      host_id: ids.peerHost,
+      profile: { disposition: "exact", identity: required(fabrication?.profile_id, "browser peer profile identity") },
+      build: { disposition: "exact", identity: required(fabrication?.build_id, "browser peer build identity") },
+      image: { disposition: "exact", identity: required(fabrication?.image_id, "browser peer image identity") },
+    },
+  ];
   const facts = [
     { initial_body: null, host_id: ids.host, boot_id: ids.boot }, { host_id: ids.host, boot_id: ids.boot },
     { event: events[0] }, { wake: evidence.wakes[0] }, { plan_id: ids.plan, active_play_id: ids.play },
@@ -176,9 +191,9 @@ export async function writeBrowserBodyJourneyTrack(source, screenshotPath, outpu
     action_id: action.action_id, concrete_event: action.concrete_event, receipt_ids: action.receipt_ids,
   })));
   await writeFile(join(output, "track.json"), `${JSON.stringify({
-    schema: "conduit.evidence/body-journey-track@5", journey_id: "orifina/tutorial@1", git_commit: commit,
+    schema: "conduit.evidence/body-journey-track@6", journey_id: "orifina/tutorial@1", git_commit: commit,
     track_id: "browser-graphical", embodiment: "browser-wasm-body", body_id: ids.body,
-    mask_form_id: ids.maskForm, hosts: [
+    mask_form_id: ids.maskForm, construction, hosts: [
       { host_id: ids.host, boot_id: ids.boot }, { host_id: ids.peerHost, boot_id: ids.peerBoot },
     ], line_ids: [], distributed_plan_ids: [], receipts, actions: publicActions,
     mask_actions: maskActions,

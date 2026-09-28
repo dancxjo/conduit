@@ -67,7 +67,7 @@ struct ThreeBodyJourneyArgs {
     #[arg(long)]
     contract: PathBuf,
 
-    /// One conduit.evidence/body-journey-track@5 manifest; exactly three are required.
+    /// One conduit.evidence/body-journey-track@6 manifest; exactly three are required.
     #[arg(long = "track", required = true)]
     tracks: Vec<PathBuf>,
 

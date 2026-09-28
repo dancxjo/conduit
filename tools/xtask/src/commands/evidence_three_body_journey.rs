@@ -6,8 +6,8 @@ use std::collections::{BTreeMap, BTreeSet};
 use std::path::{Path, PathBuf};
 
 const CONTRACT_SCHEMA: &str = "conduit.evidence/semantic-journey-contract@4";
-const TRACK_SCHEMA: &str = "conduit.evidence/body-journey-track@5";
-const INDEX_SCHEMA: &str = "conduit.evidence/three-body-journey-index@6";
+const TRACK_SCHEMA: &str = "conduit.evidence/body-journey-track@6";
+const INDEX_SCHEMA: &str = "conduit.evidence/three-body-journey-index@7";
 const MAXIMUM_DOCUMENT_BYTES: usize = 1024 * 1024;
 const MAXIMUM_MEDIA_BYTES: u64 = 64 * 1024 * 1024;
 const MAXIMUM_STEPS: usize = 32;
@@ -148,6 +148,7 @@ struct BodyTrack {
     embodiment: String,
     body_id: String,
     mask_form_id: String,
+    construction: Vec<ConstructionTruth>,
     hosts: Vec<HostIdentity>,
     line_ids: Vec<String>,
     distributed_plan_ids: Vec<String>,
@@ -155,6 +156,48 @@ struct BodyTrack {
     actions: Vec<TrackActionObservation>,
     #[serde(default)]
     mask_actions: Vec<MaskActionObservation>,
+}
+
+#[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
+#[serde(deny_unknown_fields)]
+struct ConstructionTruth {
+    host_id: String,
+    profile: ConstructionStage,
+    build: ConstructionStage,
+    image: ConstructionStage,
+}
+
+#[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
+#[serde(tag = "disposition", rename_all = "kebab-case", deny_unknown_fields)]
+enum ConstructionStage {
+    Exact { identity: String },
+    Omitted { reason: String },
+}
+
+impl ConstructionTruth {
+    fn validate(&self) -> bool {
+        let stages = [&self.profile, &self.build, &self.image];
+        if stages.iter().any(|stage| match stage {
+            ConstructionStage::Exact { identity } => !valid_identity(identity),
+            ConstructionStage::Omitted { reason } => !valid_narrative(reason),
+        }) {
+            return false;
+        }
+        // An exact downstream artifact cannot truthfully exist when its prerequisite
+        // construction stage was omitted from this journey.
+        !matches!(
+            (&self.profile, &self.build, &self.image),
+            (
+                ConstructionStage::Omitted { .. },
+                ConstructionStage::Exact { .. },
+                _
+            ) | (
+                _,
+                ConstructionStage::Omitted { .. },
+                ConstructionStage::Exact { .. }
+            )
+        )
+    }
 }
 
 #[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
@@ -244,6 +287,7 @@ struct JourneyBodyCell {
     embodiment: String,
     body_id: String,
     mask_form_id: String,
+    construction: Vec<ConstructionTruth>,
     hosts: Vec<HostIdentity>,
     line_ids: Vec<String>,
     distributed_plan_ids: Vec<String>,
@@ -389,6 +433,7 @@ fn assemble_index(
                         embodiment: track.embodiment.clone(),
                         body_id: track.body_id.clone(),
                         mask_form_id: track.mask_form_id.clone(),
+                        construction: track.construction.clone(),
                         hosts: track.hosts.clone(),
                         line_ids: track.line_ids.clone(),
                         distributed_plan_ids: track.distributed_plan_ids.clone(),
@@ -481,6 +526,7 @@ fn validate_index(
             if cell.embodiment != basis.embodiment
                 || cell.body_id != basis.body_id
                 || cell.mask_form_id != basis.mask_form_id
+                || cell.construction != basis.construction
                 || cell.hosts != basis.hosts
                 || cell.line_ids != basis.line_ids
                 || cell.distributed_plan_ids != basis.distributed_plan_ids
@@ -499,6 +545,7 @@ fn validate_index(
             embodiment: basis.embodiment.clone(),
             body_id: basis.body_id.clone(),
             mask_form_id: basis.mask_form_id.clone(),
+            construction: basis.construction.clone(),
             hosts: basis.hosts.clone(),
             line_ids: basis.line_ids.clone(),
             distributed_plan_ids: basis.distributed_plan_ids.clone(),
@@ -597,6 +644,8 @@ fn validate(
             || !valid_identity(&track.embodiment)
             || !valid_identity(&track.body_id)
             || !valid_identity(&track.mask_form_id)
+            || track.construction.len() != track.hosts.len()
+            || track.construction.iter().any(|truth| !truth.validate())
             || track.hosts.is_empty()
             || track.hosts.len() > MAXIMUM_HOSTS_PER_BODY
             || track.receipts.is_empty()
@@ -616,6 +665,17 @@ fn validate(
             {
                 return Err(format!("invalid Host set for '{}'", track.track_id));
             }
+        }
+        let construction_hosts = track
+            .construction
+            .iter()
+            .map(|truth| truth.host_id.as_str())
+            .collect::<BTreeSet<_>>();
+        if construction_hosts.len() != track.construction.len() || construction_hosts != host_ids {
+            return Err(format!(
+                "construction truth does not cover every Host for '{}'",
+                track.track_id
+            ));
         }
         if track.line_ids.iter().any(|line| !valid_identity(line))
             || track.line_ids.iter().collect::<BTreeSet<_>>().len() != track.line_ids.len()
