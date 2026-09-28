@@ -21,6 +21,70 @@ pub struct EvidenceIdentity {
     pub host_session: u64,
 }
 
+/// Semantic disposition of one retained causal node. In particular,
+/// `Recovered` records successful fallback/replanning history without
+/// fabricating a semantic abnormal terminal.
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub enum EvidenceOutcome {
+    RealizationUnsatisfied,
+    ReplacementAdmitted,
+    PlayCompleted,
+    Recovered,
+    SemanticTerminal,
+}
+
+/// One exact, borrowed correlation fact associated with causal evidence.
+///
+/// Higher layers retain their native typed identities and lend their canonical
+/// spellings to inspection through this allocation-free seam. The kernel owns
+/// neither strings nor architectural types above the assigned Plan.
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub enum EvidenceMetadataFact<'a> {
+    Outcome(EvidenceOutcome),
+    SemanticSubject {
+        gear: &'a str,
+        kind: &'a str,
+    },
+    Source {
+        document: &'a str,
+        start: Option<u32>,
+        end: Option<u32>,
+    },
+    Wake(&'a str),
+    Plan(&'a str),
+    Play(&'a str),
+    Placement(&'a str),
+    Implementation(&'a str),
+    Host(&'a str),
+    Boot(&'a str),
+    Resource {
+        pool: &'a str,
+        generation: Option<&'a str>,
+    },
+    /// Inspection identity only; never capability bearer material.
+    Authority {
+        grant: &'a str,
+        contract: &'a str,
+    },
+}
+
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub enum EvidenceMetadataVisit {
+    Missing,
+    Visited,
+    VisitorRefused,
+}
+
+/// Allocation-free bridge from the bounded causal graph to metadata retained
+/// at the layer that owns the exact typed identities.
+pub trait EvidenceMetadataLookup {
+    fn visit<'a>(
+        &'a self,
+        evidence: EvidenceIdentity,
+        visitor: &mut dyn FnMut(EvidenceMetadataFact<'a>) -> bool,
+    ) -> EvidenceMetadataVisit;
+}
+
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub struct CausalEdge {
     pub effect: EvidenceIdentity,
