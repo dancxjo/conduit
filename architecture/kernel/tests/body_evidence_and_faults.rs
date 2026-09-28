@@ -9,6 +9,68 @@ fn id(sign: u64, execution: u64, session: u64) -> EvidenceIdentity {
 }
 
 #[test]
+fn semantic_terminal_digest_resolves_to_exact_causal_evidence() {
+    let digest = [7; 32];
+    let terminal = id(4, 2, 2);
+    let mut correlations = TerminalEvidenceIndex::<2>::default();
+    correlations
+        .record(TerminalEvidenceCorrelation {
+            cause_digest: digest,
+            terminal,
+        })
+        .unwrap();
+    let mut evidence = CausalEvidence::<2>::default();
+    evidence
+        .record(CausalEdge {
+            effect: terminal,
+            relationship: CausalRelationship::TerminatedBecause,
+            cause: id(3, 1, 1),
+        })
+        .unwrap();
+
+    let resolved = correlations.terminal_for(digest).unwrap();
+    assert_eq!(resolved, terminal);
+    assert_eq!(evidence.trace(resolved).unwrap().terminal(), terminal);
+}
+
+#[test]
+fn terminal_correlation_never_guesses_after_ambiguity_or_compaction() {
+    let digest = [9; 32];
+    let mut correlations = TerminalEvidenceIndex::<2>::default();
+    for terminal in [id(1, 1, 1), id(2, 1, 1)] {
+        correlations
+            .record(TerminalEvidenceCorrelation {
+                cause_digest: digest,
+                terminal,
+            })
+            .unwrap();
+    }
+    assert_eq!(
+        correlations.terminal_for(digest),
+        Err(CausalEvidenceRefusal::AmbiguousCorrelation)
+    );
+
+    correlations
+        .record(TerminalEvidenceCorrelation {
+            cause_digest: [10; 32],
+            terminal: id(3, 1, 1),
+        })
+        .unwrap();
+    correlations
+        .record(TerminalEvidenceCorrelation {
+            cause_digest: [11; 32],
+            terminal: id(4, 1, 1),
+        })
+        .unwrap();
+    assert!(correlations.history_was_truncated());
+    assert_eq!(
+        correlations.terminal_for(digest),
+        Err(CausalEvidenceRefusal::TruncatedHistory)
+    );
+    assert_eq!(correlations.terminal_for([10; 32]), Ok(id(3, 1, 1)));
+}
+
+#[test]
 fn local_and_distributed_causal_chains_are_exact_not_temporal_guesses() {
     let mut evidence = CausalEvidence::<8>::default();
     evidence

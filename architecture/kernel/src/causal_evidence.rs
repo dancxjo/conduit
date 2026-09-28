@@ -30,18 +30,100 @@ pub struct CausalEdge {
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum CausalEvidenceRefusal {
+    AmbiguousCorrelation,
     CapacityExhausted,
     Duplicate,
     SelfCausation,
     Cycle,
     TooManyDirectPredecessors,
     StaleSession,
+    TruncatedHistory,
     Unknown,
 }
 
 /// One effect may branch to several material causes, but the explanatory fan-in
 /// remains finite independently of the store's total retention capacity.
 pub const MAXIMUM_DIRECT_CAUSAL_PREDECESSORS: usize = 8;
+
+/// Exact bounded bridge from the digest carried by a semantic terminal value
+/// to the retained evidence identity that begins its causal explanation.
+///
+/// Several terminal observations may truthfully carry the same digest. The
+/// index retains each observation rather than silently choosing one; callers
+/// must supply a narrower evidence envelope or report ambiguity.
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub struct TerminalEvidenceCorrelation {
+    pub cause_digest: [u8; 32],
+    pub terminal: EvidenceIdentity,
+}
+
+pub struct TerminalEvidenceIndex<const N: usize> {
+    correlations: [Option<TerminalEvidenceCorrelation>; N],
+    len: usize,
+    history_truncated: bool,
+}
+
+impl<const N: usize> Default for TerminalEvidenceIndex<N> {
+    fn default() -> Self {
+        Self {
+            correlations: [None; N],
+            len: 0,
+            history_truncated: false,
+        }
+    }
+}
+
+impl<const N: usize> TerminalEvidenceIndex<N> {
+    pub fn record(
+        &mut self,
+        correlation: TerminalEvidenceCorrelation,
+    ) -> Result<(), CausalEvidenceRefusal> {
+        if self.correlations[..self.len]
+            .iter()
+            .flatten()
+            .any(|existing| existing == &correlation)
+        {
+            return Err(CausalEvidenceRefusal::Duplicate);
+        }
+        if N == 0 {
+            return Err(CausalEvidenceRefusal::CapacityExhausted);
+        }
+        if self.len == N {
+            self.correlations.copy_within(1..N, 0);
+            self.len -= 1;
+            self.history_truncated = true;
+        }
+        self.correlations[self.len] = Some(correlation);
+        self.len += 1;
+        Ok(())
+    }
+
+    /// Resolves a semantic terminal's cause digest without guessing. An empty
+    /// result after compaction is distinguishable from a digest that was never
+    /// present, because aged evidence cannot truthfully be called unknown.
+    pub fn terminal_for(
+        &self,
+        cause_digest: [u8; 32],
+    ) -> Result<EvidenceIdentity, CausalEvidenceRefusal> {
+        let mut matches = self.correlations[..self.len]
+            .iter()
+            .flatten()
+            .filter(|correlation| correlation.cause_digest == cause_digest);
+        let first = matches.next().map(|correlation| correlation.terminal);
+        if matches.next().is_some() {
+            return Err(CausalEvidenceRefusal::AmbiguousCorrelation);
+        }
+        first.ok_or(if self.history_truncated {
+            CausalEvidenceRefusal::TruncatedHistory
+        } else {
+            CausalEvidenceRefusal::Unknown
+        })
+    }
+
+    pub const fn history_was_truncated(&self) -> bool {
+        self.history_truncated
+    }
+}
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum CausalTraceCompleteness {
