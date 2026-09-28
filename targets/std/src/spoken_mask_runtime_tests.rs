@@ -236,7 +236,7 @@ fn execute_spoken_mask(
     conduit_tongues::install_speech_synthesis_catalog(&mut startup, &mut profiles).unwrap();
     conduit_semantic_catalog::install_sound_catalogs(&mut startup, &mut profiles).unwrap();
     let source = r#"form FORM_NAME (
- >> presentation: Presentation
+ >> face: Presentation
  interaction: FaceInteraction...| >>
  show: Show >>
 ) {
@@ -251,7 +251,7 @@ fn execute_spoken_mask(
  artifact: presentation/spoken-artifact
  shown: presentation/artifact-acknowledged-show
  no-input: presentation/no-interaction
- presentation >> request.presentation
+ face >> request.presentation
  request.request >> language.request
  request.request >> envelope.request
  language.result >> envelope.candidate
@@ -350,7 +350,7 @@ fn execute_spoken_mask(
             plan.fragments[0].clone(),
             preparation,
             &[ExternalForeInput {
-                front_port_id: conduit_core::port_id("presentation"),
+                front_port_id: conduit_core::port_id("face"),
                 track: ConnectionTrack::Payload,
                 bytes: encoded,
             }],

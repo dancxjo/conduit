@@ -279,7 +279,7 @@ pub fn execute_retained_manifestation_mask(
     conduit_semantic_catalog::install_sound_catalogs(&mut startup, &mut profiles)?;
     let source = format!(
         r#"form {form_name} (
- >> presentation: Presentation
+ >> face: Presentation
  interaction: FaceInteraction...| >>
  show: Show >>
 ) {{
@@ -294,7 +294,7 @@ pub fn execute_retained_manifestation_mask(
  artifact: presentation/spoken-artifact
  shown: presentation/artifact-acknowledged-show
  no-input: presentation/no-interaction
- presentation >> request.presentation
+ face >> request.presentation
  request.request >> language.request
  request.request >> envelope.request
  language.result >> envelope.candidate
@@ -395,7 +395,7 @@ pub fn execute_retained_manifestation_mask(
         plan.fragments[0].clone(),
         preparation,
         &[crate::ExternalForeInput {
-            front_port_id: conduit_core::port_id("presentation"),
+            front_port_id: conduit_core::port_id("face"),
             track: ConnectionTrack::Payload,
             bytes: serde_json::to_vec(&presentation).map_err(|error| error.to_string())?,
         }],

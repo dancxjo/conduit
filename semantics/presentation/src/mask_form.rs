@@ -2,8 +2,8 @@
 //!
 //! Mask is a role, not a second graph language. The checked and expanded Form
 //! own topology, typed Cords, finite bounds, cancellation, and terminal
-//! semantics. This module only validates the narrow Presentation/interaction/
-//! Show boundary and retains its exact ordinary Form identity.
+//! semantics. This module only validates the narrow Face/interaction/Show
+//! boundary and retains its exact ordinary Form identity.
 
 use alloc::string::String;
 use conduit_core::{
@@ -18,7 +18,7 @@ use crate::{FACE_INTERACTION_VALUE_KIND, PRESENTATION_VALUE_KIND, SHOW_VALUE_KIN
 pub struct MaskForm {
     pub form_identity: FormIdentity,
     pub form_name: String,
-    pub presentation_input: MaskFormBoundary,
+    pub face_input: MaskFormBoundary,
     pub interaction_output: MaskFormBoundary,
     pub show_output: MaskFormBoundary,
 }
@@ -43,7 +43,7 @@ pub struct PlannedMaskForm {
 pub enum MaskFormError {
     InvalidForm,
     InvalidFront,
-    MissingPresentationInput,
+    MissingFaceInput,
     MissingInteractionOutput,
     MissingShowOutput,
     StalePlan,
@@ -71,14 +71,14 @@ impl MaskForm {
         {
             return Err(MaskFormError::InvalidFront);
         }
-        let presentation = required_port(
+        let face = required_port(
             form.front.inputs(),
-            "presentation",
+            "face",
             PRESENTATION_VALUE_KIND,
             PortDirection::Input,
             PortTemporal::Value,
         )
-        .ok_or(MaskFormError::MissingPresentationInput)?;
+        .ok_or(MaskFormError::MissingFaceInput)?;
         let interaction = required_port(
             form.front.outputs(),
             "interaction",
@@ -102,8 +102,8 @@ impl MaskForm {
                 expanded_form_id: form.expanded.expanded_form_id.clone(),
             },
             form_name: form.expanded.name.clone(),
-            presentation_input: boundary(&form.input_bindings, &presentation.port_id)
-                .ok_or(MaskFormError::MissingPresentationInput)?,
+            face_input: boundary(&form.input_bindings, &face.port_id)
+                .ok_or(MaskFormError::MissingFaceInput)?,
             interaction_output: boundary(&form.output_bindings, &interaction.port_id)
                 .ok_or(MaskFormError::MissingInteractionOutput)?,
             show_output: boundary(&form.output_bindings, &show.port_id)
@@ -123,7 +123,7 @@ impl PlannedMaskForm {
         }
         for (boundary, direction, value_kind, temporal) in [
             (
-                &mask.presentation_input,
+                &mask.face_input,
                 PortDirection::Input,
                 PRESENTATION_VALUE_KIND,
                 PortTemporal::Value,

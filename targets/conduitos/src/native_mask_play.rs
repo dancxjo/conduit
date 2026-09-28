@@ -215,28 +215,23 @@ pub fn run(
     .map_err(|_| NativeMaskPlayError::Value)?;
     let lowered = lower_plan_fragment(fragment).map_err(|_| NativeMaskPlayError::Plan)?;
     let mut scheduler = scheduler(fragment, &lowered)?;
-    let presentation_fore = lowered
+    let face_fore = lowered
         .fore_ports
         .iter()
         .find(|port| {
             port.direction == conduit_core::PortDirection::Input
-                && port.front_port_id.as_str() == "presentation"
+                && port.front_port_id.as_str() == "face"
         })
         .ok_or(NativeMaskPlayError::Shape)?;
     match scheduler
-        .admit_remote_input(
-            presentation_fore.endpoint,
-            presentation_fore.cord,
-            0,
-            &presentation_bytes,
-        )
+        .admit_remote_input(face_fore.endpoint, face_fore.cord, 0, &presentation_bytes)
         .map_err(|_| NativeMaskPlayError::ForeAdmit)?
     {
         RemoteIngressOutcome::Accepted { sequence: 0 } => {}
         _ => return Err(NativeMaskPlayError::Kernel),
     }
     scheduler
-        .close_remote_input(presentation_fore.endpoint, presentation_fore.cord)
+        .close_remote_input(face_fore.endpoint, face_fore.cord)
         .map_err(|_| NativeMaskPlayError::ForeClose)?;
     let show_fore = lowered
         .fore_ports

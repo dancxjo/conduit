@@ -1,7 +1,7 @@
 //! Canonical value aliases used by ordinary Forms serving as Masks.
 //!
 //! This installs no Mask grammar and no second graph catalog. It only gives
-//! ordinary Form fores stable authored names for the three presentation-role
+//! ordinary Form fores stable authored names for the three Face-role
 //! values whose exact semantic identities are owned by this crate.
 
 use conduit_core::kind_id;
@@ -26,7 +26,7 @@ mod tests {
         let mut startup = StartupCatalog::new();
         install_mask_form_value_aliases(&mut startup).unwrap();
         let source = conduit_form::parse_syntax_document(
-            "form role (\n    >> presentation: Presentation\n    interaction: FaceInteraction...| >>\n    show: Show >>\n) {\n}\n",
+            "form role (\n    >> face: Presentation\n    interaction: FaceInteraction...| >>\n    show: Show >>\n) {\n}\n",
         );
         let checked = conduit_form::check_syntax_document(&source, &startup).unwrap();
         let front = &checked.forms[0].runtime_front;

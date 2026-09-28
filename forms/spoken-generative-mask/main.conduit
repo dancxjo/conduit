@@ -1,5 +1,5 @@
 form spoken-generative (
- >> presentation: Presentation
+ >> face: Presentation
  interaction: FaceInteraction...| >>
  show: Show >>
 ) {
@@ -14,7 +14,7 @@ form spoken-generative (
  artifact: presentation/spoken-artifact
  shown: presentation/artifact-acknowledged-show
  no-input: presentation/no-interaction
- presentation >> request.presentation
+ face >> request.presentation
  request.request >> language.request
  request.request >> envelope.request
  language.result >> envelope.candidate

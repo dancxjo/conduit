@@ -206,7 +206,7 @@ pub fn available_mask_show(face: &Presentation) -> MaskShow {
     install_mask_form_value_aliases(&mut startup).unwrap();
     let checked = check_syntax_document(
         &parse_syntax_document(
-            "form browser (\n >> presentation: Presentation\n interaction: FaceInteraction...| >>\n show: Show >>\n) {\n output: web/dom\n input: web/input\n presentation >> output.presentation\n output.show >> show\n input.interaction >> interaction\n}\n",
+            "form browser (\n >> face: Presentation\n interaction: FaceInteraction...| >>\n show: Show >>\n) {\n output: web/dom\n input: web/input\n face >> output.presentation\n output.show >> show\n input.interaction >> interaction\n}\n",
         ),
         &startup,
     )
