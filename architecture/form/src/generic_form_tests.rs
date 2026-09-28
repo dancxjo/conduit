@@ -174,3 +174,61 @@ fn type_arguments_must_resolve_to_exact_checked_types() {
     assert_eq!(error.code, "CND-FRM-057");
     assert!(error.message.contains("exact checked type"));
 }
+
+#[test]
+fn specialization_expands_without_a_generic_runtime_gear() {
+    let port = |name: &str, direction| conduit_core::PortDescriptor {
+        port_id: conduit_core::port_id(name),
+        value_kind: conduit_core::kind_id("value/text"),
+        direction,
+        temporal: conduit_core::PortTemporal::Value,
+        abnormal_kind: None,
+    };
+    let mut profiles = crate::ProfileCatalog::new();
+    profiles
+        .insert(crate::KindProjection {
+            kind_id: conduit_core::kind_id("test/pass"),
+            kind_contract_revision: conduit_core::KindIdentity::from("test/pass@1"),
+            inputs: vec![port("input", conduit_core::PortDirection::Input)],
+            outputs: vec![port("output", conduit_core::PortDirection::Output)],
+            configuration: vec![],
+        })
+        .unwrap();
+    let parsed = parse_syntax_document(
+        "form identity (\n item: type\n >> value: item\n result: item >>\n) {\n pass: test/pass\n value >> pass.input\n pass.output >> result\n}\n\
+         form main (\n >> value: Text\n result: Text >>\n) {\n copy: identity(item = Text)\n value >> copy.value\n copy.result >> result\n}\n",
+    );
+    let checked = check_syntax_document(&parsed, &profiles.startup_catalog().unwrap()).unwrap();
+    let authoring =
+        crate::expand_canonical_form_for_authoring(&checked, "main", &profiles).unwrap();
+    assert_eq!(authoring.expanded.gears.len(), 1);
+    assert_eq!(authoring.expanded.gears[0].kind_id.as_str(), "test/pass");
+    assert_eq!(authoring.input_bindings.len(), 1);
+    assert_eq!(authoring.output_bindings.len(), 1);
+    assert!(authoring
+        .expanded
+        .provenance
+        .iter()
+        .all(|entry| !entry.source_gear.contains("generic")));
+}
+
+#[test]
+fn runtime_startup_values_remain_after_compile_time_type_arguments_disappear() {
+    let checked = check(
+        "form repeat (\n item: type\n copies: Count = 1\n >> value: item\n result: item >>\n) {\n value >> result\n}\n\
+         form main {\n repeated: repeat(item = Text, copies = 2)\n}\n",
+    );
+    let main = checked
+        .forms
+        .iter()
+        .find(|form| form.name == "main")
+        .unwrap();
+    assert_eq!(main.gears[0].startup_parameters.len(), 1);
+    assert_eq!(main.gears[0].startup_parameters[0].name, "copies");
+    assert_eq!(main.gears[0].startup_bindings.len(), 1);
+    assert_eq!(main.gears[0].startup_bindings[0].name, "copies");
+    assert_eq!(
+        main.gears[0].kind, "repeat[item=value/text]",
+        "the compile-time argument survives only in exact specialization identity"
+    );
+}
