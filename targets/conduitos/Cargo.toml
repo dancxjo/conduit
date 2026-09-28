@@ -226,7 +226,7 @@ embedded-websocket = { version = "0.9.5", optional = true, default-features = fa
 rand_chacha = { version = "0.3.1", optional = true, default-features = false }
 rand_core = { version = "0.6.4", optional = true, default-features = false }
 smoltcp = { version = "0.13.1", optional = true, default-features = false, features = ["medium-ethernet", "proto-ipv4", "socket-tcp", "iface-max-addr-count-1", "iface-max-route-count-1", "iface-neighbor-cache-count-4"] }
-patchbay-graph = { path = "../../products/patchbay/graph" }
+patchbay-graph = { path = "../../forms/patchbay/graph" }
 conduit-plan-lowering = { path = "../../architecture/plan-lowering", default-features = false }
 conduit-wire = { path = "../../architecture/wire" }
 ed25519-dalek = { version = "2.2", default-features = false, features = ["alloc"] }

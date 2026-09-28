@@ -61,7 +61,7 @@ members = [
 	"products/patchbay/html",
 	"products/patchbay/model",
 	"products/patchbay/application",
-	"products/patchbay/graph",
+	"forms/patchbay/graph",
 	"forms/patchbay",
 	"products/patchbay/native",
 	"bodies/pete",

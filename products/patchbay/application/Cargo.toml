@@ -8,7 +8,7 @@ conduit-core = { path = "../../../architecture/core" }
 conduit-form = { path = "../../../architecture/form" }
 conduit-presentation = { path = "../../../semantics/presentation" }
 patchbay-control = { path = "../../../forms/patchbay" }
-patchbay-graph = { path = "../graph" }
+patchbay-graph = { path = "../../../forms/patchbay/graph" }
 
 [dev-dependencies]
 conduit-semantic-catalog = { path = "../../../semantics/catalog", default-features = false, features = ["form-catalog"] }
