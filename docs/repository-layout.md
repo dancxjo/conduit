@@ -47,15 +47,18 @@ Zero-body bootstrap selects ordinary initial active forms into body workload rev
 
 ## Browser and target boundaries
 
-body bootstrap and current-surface browser state live in
-`products/workspace/browser/`. Tour content and standalone compatibility assets
-live in `products/tour/browser/`; target-preparation and Crèche compatibility
-assets live in `products/creche/browser/`. Patchbay's specialized browser
-package is `products/patchbay/html/`; its native icons are in
-`products/patchbay/native/assets/`. Package names do not need to change merely
-to make directory spelling uniform.
+The browser Host owns generic package admission/loading, DOM and storage
+effects, identity, membership, and bounded Face realization. Renderer-neutral
+human meaning belongs to Face; browser layout and interaction mechanism belong
+to the selected Mask. Product state is never moved into Host assets merely to
+make staging convenient. Explicit package dependency declarations select
+finite bytes from their real owners.
 
-The browser host owns generic package admission/loading, DOM and storage effects, identity, membership and bounded presentation. Renderer-neutral UI meaning belongs in `semantics/presentation`. Product state is never moved back into host assets to make staging convenient. Explicit package dependency declarations select finite bytes from their real owners. See [browser product source ownership](browser-product-source-ownership.md).
+Legacy Tour, Crèche, Workspace, Home, and Patchbay compatibility packages still
+occupy `products/` while their useful Forms, journeys, fabrication, and Mask
+machinery are extracted under [#4231](https://github.com/dancxjo/conduit/issues/4231).
+Their current directory placement is migration state, not a repository law or
+permission to create another application/runtime boundary.
 
 [Target-family ownership](../targets/README.md) defines the optional `host`, `runtime`, `offers`, `fabrication`, `firmware`, `deployment`, `profiles`, `tools`, and `proof` responsibilities. No target gets empty directories for symmetry. Target host examples live under `targets/<family>/profiles/`; Pete configuration belongs in `bodies/pete/profiles/`; proof-only topologies belong in `proof/fixtures/bodies/`. Target setup and credential/flash helpers belong in `targets/<family>/tools/`.
 

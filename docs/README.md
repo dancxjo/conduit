@@ -36,8 +36,8 @@ clearly identifies historical milestone designs.
 | Topic | References |
 |---|---|
 | Runtime and hosts | [host architecture](host-architecture.md), [compute resources](r2-compute-resources.md), [timing](timing-profile.md) |
-| Human interfaces | [Presenter boundary](presenter-hourglass.md), [input semantics](input-semantics.md), [browser application boundary](browser-application-presentation-boundary.md) |
-| Ownership | [Repository layout](repository-layout.md), [browser product ownership](browser-product-source-ownership.md) |
+| Human interfaces | [Face, Mask, and Show](presenter-hourglass.md), [input semantics](input-semantics.md) |
+| Ownership | [Repository layout](repository-layout.md), [target families](../targets/README.md) |
 | body evidence | [Self-hosted biography](self-hosted-biography.md), [body lifecycle contracts](architecture/body-lifecycle-waists.md) |
 
 ## Develop and verify
