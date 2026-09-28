@@ -1,5 +1,6 @@
 ---
 page: host-realization
+journey: conduit-tour
 route: hosts-make-forms-real
 companion: host-inventory
 stage: canonical-form:count-over-time|run

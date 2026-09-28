@@ -1,5 +1,6 @@
 ---
 page: body-continuity
+journey: conduit-tour
 route: the-body-one-computer-one-machine-or-many
 companion: body-continuity
 ---

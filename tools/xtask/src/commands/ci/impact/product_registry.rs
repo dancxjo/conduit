@@ -56,6 +56,7 @@ pub(super) const PRODUCT_PROOFS: &[ProductProofSpec] = &[ProductProofSpec {
     ],
     input_prefixes: &[
         "products/tour/",
+        "docs/journeys/tour/",
         "products/creche/",
         "products/workspace/",
         "products/patchbay/html/",
@@ -120,6 +121,7 @@ pub(super) const BROWSER_PRESENTATION_PROOFS: &[BrowserPresentationSpec] =
             "site/",
             "products/shared/browser/",
             "products/tour/browser/",
+            "docs/journeys/tour/",
             "products/creche/browser/",
             "products/workspace/browser/",
             "products/tour/tools/stage-tour-product",
@@ -205,6 +207,7 @@ mod product_source_tests {
         for path in [
             "products/shared/browser/conduit.css",
             "products/tour/browser/tour.mjs",
+            "docs/journeys/tour/chapter-1.md",
             "products/workspace/browser/body-bootstrap.mjs",
             "products/workspace/browser/reviewed-form-selection.mjs",
         ] {

@@ -7,13 +7,13 @@ use conduit_presentation::{
 
 pub const TOUR_LESSON_SUBJECT: &str = "tour/lesson";
 const CHAPTERS: [&str; crate::TOUR_CHAPTER_COUNT as usize] = [
-    include_str!("../../content/chapter-1.md"),
-    include_str!("../../content/chapter-2.md"),
-    include_str!("../../content/chapter-3.md"),
-    include_str!("../../content/chapter-4.md"),
-    include_str!("../../content/chapter-5.md"),
-    include_str!("../../content/chapter-6.md"),
-    include_str!("../../content/chapter-8.md"),
+    include_str!("../../../../docs/journeys/tour/chapter-1.md"),
+    include_str!("../../../../docs/journeys/tour/chapter-2.md"),
+    include_str!("../../../../docs/journeys/tour/chapter-3.md"),
+    include_str!("../../../../docs/journeys/tour/chapter-4.md"),
+    include_str!("../../../../docs/journeys/tour/chapter-5.md"),
+    include_str!("../../../../docs/journeys/tour/chapter-6.md"),
+    include_str!("../../../../docs/journeys/tour/chapter-8.md"),
 ];
 const MAX_BLOCKS: usize = 24;
 

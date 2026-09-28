@@ -1,5 +1,6 @@
 ---
 page: multi-host-form
+journey: conduit-tour
 route: one-form-across-several-hosts
 companion: multi-host-plan
 stage: canonical-form:hello-across|two-host
