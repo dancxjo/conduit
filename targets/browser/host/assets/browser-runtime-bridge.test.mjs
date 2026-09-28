@@ -10,7 +10,7 @@ function runtime({ revision = 1, identity = ABI, inputCapacity = 64, inputPointe
     ? pointer + capacity : 0;
   const requiredBytes = Math.max(1024 + identity.length, extent(inputPointer, inputCapacity), extent(outputPointer, outputCapacity));
   const memory = new WebAssembly.Memory({ initial: Math.ceil(requiredBytes / (64 * 1024)) });
-  const state = { workspaceOutputLength: 0, bodyOutputLength: 0 };
+  const state = { workspaceOutputLength: 0, bodyOutputLength: 0, projectionOutputLength: 0 };
   const api = {
     memory,
     conduit_browser_runtime_abi_revision: () => revision,
@@ -40,6 +40,11 @@ function runtime({ revision = 1, identity = ABI, inputCapacity = 64, inputPointe
     conduit_browser_form_acknowledge_cancellation: () => 0,
     conduit_browser_form_complete_effect: () => 0,
     conduit_browser_form_refuse_effect: () => 0,
+    conduit_browser_projection_input_ptr: () => 4096,
+    conduit_browser_projection_input_capacity: () => 1024,
+    conduit_browser_projection_output_ptr: () => 8192,
+    conduit_browser_projection_output_len: () => state.projectionOutputLength,
+    conduit_browser_project_patchbay: () => 0,
     setWorkspaceOutput(bytes) {
       new Uint8Array(memory.buffer, 0, bytes.length).set(bytes);
       state.workspaceOutputLength = bytes.length;
@@ -48,6 +53,10 @@ function runtime({ revision = 1, identity = ABI, inputCapacity = 64, inputPointe
     setBodyOutput(bytes) {
       new Uint8Array(memory.buffer, 0, bytes.length).set(bytes);
       state.bodyOutputLength = bytes.length;
+    },
+    setProjectionOutput(bytes) {
+      new Uint8Array(memory.buffer, 8192, bytes.length).set(bytes);
+      state.projectionOutputLength = bytes.length;
     },
   };
   new Uint8Array(memory.buffer, 1024, identity.length).set(identity);
@@ -140,6 +149,25 @@ test("workspace binary request permits empty output", () => {
   assert.equal(result.status, 0);
   assert.equal(result.outputBytes.length, 0);
   assert.equal(result.outputJson, null);
+});
+
+test("Patchbay projection uses the product-neutral ABI and retires source bytes", () => {
+  const api = runtime();
+  const expected = { schema: "conduit.patchbay/checked-form-projection@1", gears: [], cords: [] };
+  let invocation;
+  api.conduit_browser_project_patchbay = (length, sequence) => {
+    invocation = { length, sequence };
+    api.setProjectionOutput(new TextEncoder().encode(JSON.stringify(expected)));
+    return 0;
+  };
+  const bridge = bindBrowserRuntimeBridge(api, { context: "Patchbay projection proof" });
+  const result = bridge.projectPatchbay("form clock {}", 7n);
+  assert.deepEqual(result.outputJson, expected);
+  assert.equal(invocation.sequence, 7n);
+  assert.deepEqual(
+    [...new Uint8Array(api.memory.buffer, 4096, invocation.length)],
+    new Array(invocation.length).fill(0),
+  );
 });
 
 test("workspace binary request preserves opaque non-UTF-8 output", () => {

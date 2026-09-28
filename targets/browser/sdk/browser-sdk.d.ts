@@ -127,6 +127,8 @@ export class BrowserBody {
   current(): Promise<Readonly<Record<string, unknown>>>;
   /** Refresh one immutable projection of current Rust Body and Host evidence. */
   snapshot(): Promise<BrowserBodySnapshot>;
+  /** Project the exact checked topology and optionally mount an inspection-only Patchbay. */
+  patchbay(options?: { root?: Element | ShadowRoot }): Promise<BrowserBodyPatchbay>;
   /** Stream retained runtime events; replay is opt-in and notifications are polled/coalesced from bounded evidence. */
   events(options?: { replay?: boolean; pollIntervalMillis?: number; signal?: AbortSignal }): AsyncIterable<BrowserBodyEvent>;
   /** Propose, admit, and start one exact runtime Play through the reviewed Browser Host adapters. */
@@ -135,6 +137,24 @@ export class BrowserBody {
   lull(): Promise<Readonly<Record<string, unknown>>>;
   install(form: BrowserForm | CheckedForm | CheckedSource): Promise<Readonly<Record<string, unknown>>>;
   remove(form: BrowserForm | CheckedForm | CheckedSource): Promise<Readonly<Record<string, unknown>>>;
+}
+
+export interface BrowserBodyPatchbay {
+  readonly schema: "conduit.browser/body-patchbay@1";
+  readonly bodyId: string;
+  readonly hostId: string;
+  readonly bootId: string;
+  readonly planId: string | null;
+  readonly playId: string | null;
+  readonly topology: Readonly<{
+    schema: "conduit.patchbay/checked-form-projection@1";
+    source_document_id: string;
+    checked_form_id: string;
+    visible_expanded_form_id: string;
+    form_name: string;
+    gears: readonly Readonly<Record<string, unknown>>[];
+    cords: readonly Readonly<Record<string, unknown>>[];
+  }>;
 }
 
 export interface BrowserBodySnapshot extends Readonly<Record<string, unknown>> {

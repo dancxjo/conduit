@@ -201,6 +201,25 @@ export function bindBrowserRuntimeBridge(api, { context }) {
         }) };
       }, { retireInput: true });
     },
+    projectPatchbay(source, sequence) {
+      const input = encoder.encode(source);
+      return withInput(api, input, {
+        pointerExport: "conduit_browser_projection_input_ptr",
+        capacityExport: "conduit_browser_projection_input_capacity",
+        minimum: 1,
+        label: "Patchbay Form source",
+      }, (length) => {
+        const status = call("conduit_browser_project_patchbay", length, sequence);
+        const outputJson = readJson(api, {
+          pointerExport: "conduit_browser_projection_output_ptr",
+          lengthExport: "conduit_browser_projection_output_len",
+          minimum: 1,
+          maximum: 128 * 1024,
+          label: "Patchbay projection",
+        });
+        return { status, outputJson };
+      }, { retireInput: true });
+    },
     crecheReviewInitialWorkload({ host, boot, initialForms, source }) {
       const parts = [host, boot, JSON.stringify(initialForms), source].map((value) => encoder.encode(value));
       const input = new Uint8Array(parts.reduce((total, part) => total + part.length, 0));

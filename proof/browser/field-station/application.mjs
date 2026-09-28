@@ -4,6 +4,7 @@ const root = document.querySelector("#conduit");
 const status = document.querySelector("#status");
 const identities = document.querySelector("#identities");
 const lull = document.querySelector("#lull");
+const patchbayRoot = document.querySelector("#patchbay");
 
 try {
   const sourceResponse = await fetch("/forms/clock/main.conduit");
@@ -19,6 +20,7 @@ try {
   const recoverySnapshot = recoveredBody ? await recoveredBody.current() : null;
   const body = recoveredBody ?? await host.birth({ name: "Field Station Clock", forms: checked.forms });
   const play = await body.wake();
+  const patchbay = await body.patchbay({ root: patchbayRoot });
   const exact = Object.freeze({
     hostId: host.id,
     bootId: host.bootId,
@@ -39,6 +41,7 @@ try {
     host,
     body,
     play,
+    patchbay,
     recovered: recoveredBody !== null,
     recoverySnapshot,
     identities: exact,

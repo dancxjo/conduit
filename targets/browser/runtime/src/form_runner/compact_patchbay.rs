@@ -1,4 +1,4 @@
-//! Bounded read-only Patchbay facts for one executable Tour listing.
+//! Bounded read-only Patchbay facts for one checked Form.
 //!
 //! This projection is produced from the same production parse, check, and
 //! expansion path used before Tour execution. It contains no renderer geometry,
@@ -78,7 +78,29 @@ pub(super) fn project(
     sequence: u64,
     recursive: bool,
 ) -> Result<CompactPatchbayProjection, String> {
-    project_with_presentation(source, sequence, recursive, PresentationProfile::Annotation)
+    project_with_schema(
+        source,
+        sequence,
+        recursive,
+        PresentationProfile::Annotation,
+        "conduit.tour/compact-patchbay@1",
+    )
+}
+
+/// Product-neutral checked-Form projection for supported external consumers.
+/// Tour and the browser SDK share the same Rust checking/expansion path; the
+/// schema states which public contract the caller requested.
+pub(super) fn project_form(
+    source: &str,
+    sequence: u64,
+) -> Result<CompactPatchbayProjection, String> {
+    project_with_schema(
+        source,
+        sequence,
+        false,
+        PresentationProfile::Annotation,
+        "conduit.patchbay/checked-form-projection@1",
+    )
 }
 
 pub(super) fn project_with_presentation(
@@ -87,17 +109,33 @@ pub(super) fn project_with_presentation(
     recursive: bool,
     presentation: PresentationProfile,
 ) -> Result<CompactPatchbayProjection, String> {
+    project_with_schema(
+        source,
+        sequence,
+        recursive,
+        presentation,
+        "conduit.tour/compact-patchbay@1",
+    )
+}
+
+fn project_with_schema(
+    source: &str,
+    sequence: u64,
+    recursive: bool,
+    presentation: PresentationProfile,
+    schema: &'static str,
+) -> Result<CompactPatchbayProjection, String> {
     let interaction = crate::source_interaction::admit_source(source.as_bytes(), sequence)?;
     let (startup, mut catalog) = catalogs_for_presentation(presentation)?;
     let syntax = conduit_form::parse_syntax_document(source);
     if let Some(diagnostic) = syntax.diagnostics.first() {
         return Err(format!(
-            "parse compact Tour Patchbay: {}",
+            "parse checked-Form Patchbay: {}",
             diagnostic.message
         ));
     }
     let checked = conduit_form::check_syntax_document(&syntax, &startup)
-        .map_err(|error| format!("check compact Tour Patchbay: {error:?}"))?;
+        .map_err(|error| format!("check checked-Form Patchbay: {error:?}"))?;
     crate::installed_browser::catalogs::install_checked_structured_selectors(
         &checked,
         &mut catalog,
@@ -110,7 +148,7 @@ pub(super) fn project_with_presentation(
             .forms
             .last()
             .map(|form| form.name.clone())
-            .ok_or_else(|| "compact Tour Patchbay source has no Form".to_owned())
+            .ok_or_else(|| "checked-Form Patchbay source has no Form".to_owned())
     })?;
 
     // The visible graph is authored meaning. A recursive realization may have a
@@ -121,6 +159,7 @@ pub(super) fn project_with_presentation(
             Ok(visible) => visible.expanded,
             Err(error) if error.code == "CND-FRM-045" => {
                 return project_incompatible_cord(
+                    schema,
                     interaction.proposal_identity,
                     sequence,
                     &checked,
@@ -129,7 +168,7 @@ pub(super) fn project_with_presentation(
                     error,
                 )
             }
-            Err(error) => return Err(format!("expand compact Tour Patchbay: {error:?}")),
+            Err(error) => return Err(format!("expand checked-Form Patchbay: {error:?}")),
         };
     admit_topology(&visible)?;
     let realized = recursive
@@ -141,14 +180,14 @@ pub(super) fn project_with_presentation(
                 &backs(&startup, &catalog)?,
             )
             .map(|realized| realized.expanded)
-            .map_err(|error| format!("expand recursive compact Tour Patchbay: {error:?}"))
+            .map_err(|error| format!("expand recursive checked-Form Patchbay: {error:?}"))
         })
         .transpose()?;
     let realization = realized.as_ref().unwrap_or(&visible);
     admit_topology(realization)?;
 
     Ok(CompactPatchbayProjection {
-        schema: "conduit.tour/compact-patchbay@1",
+        schema,
         sequence,
         source_proposal_id: interaction.proposal_identity,
         source_document_id: visible.source_document_id.as_str().into(),
@@ -217,6 +256,7 @@ pub(super) fn project_with_presentation(
 }
 
 fn project_incompatible_cord(
+    schema: &'static str,
     source_proposal_id: String,
     sequence: u64,
     checked: &conduit_form::CheckedSyntaxDocument,
@@ -228,7 +268,7 @@ fn project_incompatible_cord(
         .forms
         .iter()
         .find(|form| form.name == entry)
-        .ok_or_else(|| "compact Tour Patchbay checked form disappeared".to_owned())?;
+        .ok_or_else(|| "Patchbay checked Form disappeared".to_owned())?;
     let prefix = format!("{entry}/");
     let mut gears = Vec::new();
     for gear in &form.gears {
@@ -308,10 +348,10 @@ fn project_incompatible_cord(
         }
     }
     let diagnostic =
-        diagnostic.ok_or_else(|| format!("expand compact Tour Patchbay: {error:?}"))?;
+        diagnostic.ok_or_else(|| format!("expand checked-Form Patchbay: {error:?}"))?;
     admit_draft_topology(&gears, &cords)?;
     Ok(CompactPatchbayProjection {
-        schema: "conduit.tour/compact-patchbay@1",
+        schema,
         sequence,
         source_proposal_id,
         source_document_id: checked.source_document_id.as_str().into(),
@@ -347,13 +387,13 @@ fn admit_draft_topology(gears: &[CompactGear], cords: &[CompactCord]) -> Result<
 fn admit_topology(form: &ExpandedCanonicalForm) -> Result<(), String> {
     if form.gears.len() > MAXIMUM_BROWSER_FORM_GEARS {
         return Err(format!(
-            "compact Tour Patchbay Gear bound exceeded: {} > {MAXIMUM_BROWSER_FORM_GEARS}",
+            "checked-Form Patchbay Gear bound exceeded: {} > {MAXIMUM_BROWSER_FORM_GEARS}",
             form.gears.len()
         ));
     }
     if form.connections.len() > MAXIMUM_BROWSER_FORM_CORDS {
         return Err(format!(
-            "compact Tour Patchbay Cord bound exceeded: {} > {MAXIMUM_BROWSER_FORM_CORDS}",
+            "checked-Form Patchbay Cord bound exceeded: {} > {MAXIMUM_BROWSER_FORM_CORDS}",
             form.connections.len()
         ));
     }
@@ -363,7 +403,7 @@ fn admit_topology(form: &ExpandedCanonicalForm) -> Result<(), String> {
             .checked_add(gear.outputs.len())
     });
     if ports.is_none_or(|count| count > MAXIMUM_COMPACT_PORTS) {
-        return Err("compact Tour Patchbay Port bound exceeded".into());
+        return Err("checked-Form Patchbay Port bound exceeded".into());
     }
     Ok(())
 }
@@ -377,106 +417,8 @@ fn port(port: &conduit_core::PortDescriptor) -> CompactPort {
 }
 
 #[cfg(test)]
-mod tests {
-    use super::*;
-
-    const MORSE: &str = r#"form signal {
-    message: text/literal("SOS")
-    morse: text/morse
-    light: presentation/indicator
-    message >> morse >> light
-}"#;
-
-    #[test]
-    fn projects_exact_typed_gears_ports_and_explicit_cords_without_host_facts() {
-        let projection = project(MORSE, 7, false).unwrap();
-        assert_eq!(projection.sequence, 7);
-        assert_eq!(projection.gears.len(), 3);
-        assert_eq!(projection.cords.len(), 2);
-        assert!(projection.gears.iter().all(|gear| gear
-            .inputs
-            .iter()
-            .chain(&gear.outputs)
-            .all(|port| !port.info_kind.is_empty())));
-        let encoded = serde_json::to_string(&projection).unwrap();
-        for forbidden in ["host_id", "boot_id", "implementation_id", "plan_id"] {
-            assert!(!encoded.contains(forbidden));
-        }
-    }
-
-    #[test]
-    fn projects_reusable_form_with_unbound_front_port_for_authoring() {
-        let source = r#"form pulse-manifestation (
-    >> tick: value/tick@1...
-) {
-    observe: time/pulse-observe(period-ms = 240)
-    tick >> observe.tick
-}"#;
-
-        let projection = project(source, 8, false).unwrap();
-        assert_eq!(projection.form_name, "pulse-manifestation");
-        assert_eq!(projection.gears.len(), 1);
-        assert!(projection.cords.is_empty());
-        assert!(projection.diagnostics.is_empty());
-    }
-
-    #[test]
-    fn recursive_realization_preserves_the_front_and_carries_bounded_back_topology() {
-        let direct = project(MORSE, 8, false).unwrap();
-        let recursive = project(MORSE, 9, true).unwrap();
-        assert_eq!(direct.gears, recursive.gears);
-        assert_eq!(direct.cords, recursive.cords);
-        assert_eq!(direct.realization_gears, direct.gears);
-        assert_eq!(direct.realization_cords, direct.cords);
-        assert_ne!(recursive.realization_gears, recursive.gears);
-        assert_ne!(recursive.realization_cords, recursive.cords);
-        assert!(recursive.realization_gears.len() <= MAXIMUM_BROWSER_FORM_GEARS);
-        assert!(recursive.realization_cords.len() <= MAXIMUM_BROWSER_FORM_CORDS);
-        assert_eq!(direct.checked_form_id, recursive.checked_form_id);
-        assert_eq!(
-            direct.visible_expanded_form_id,
-            recursive.visible_expanded_form_id
-        );
-        assert_ne!(
-            direct.realization_expanded_form_id,
-            recursive.realization_expanded_form_id
-        );
-        assert!(direct.realization_backs.is_empty());
-        assert!(!recursive.realization_backs.is_empty());
-    }
-
-    #[test]
-    fn invalid_cord_projects_the_draft_and_topology_bounds_still_refuse() {
-        assert!(project("form nope {", 1, false)
-            .unwrap_err()
-            .starts_with("parse compact Tour Patchbay"));
-        let wrong_type = r#"form wrong {
-    text: text/literal("x")
-    light: presentation/indicator
-    text >> light
-}"#;
-        let invalid = project(wrong_type, 2, false).unwrap();
-        assert_eq!(invalid.realization, "invalid-source-proposal");
-        assert!(invalid.visible_expanded_form_id.is_empty());
-        assert_eq!(invalid.gears.len(), 2);
-        assert_eq!(invalid.cords.len(), 1);
-        assert!(invalid.cords[0].invalid);
-        assert_eq!(invalid.diagnostics[0].code, "CND-FRM-045");
-        assert!(invalid.diagnostics[0].fix.contains("value/text"));
-        assert!(invalid.diagnostics[0]
-            .subjects
-            .contains(&"wrong/light.receiving:pattern".to_owned()));
-
-        let mut oversized = String::from("form oversized {\n");
-        for index in 0..=MAXIMUM_BROWSER_FORM_GEARS {
-            oversized.push_str(&format!("g{index}: text/literal(\"x\")\n"));
-        }
-        oversized.push('}');
-        assert!(project(&oversized, 3, false)
-            .unwrap_err()
-            .contains("Gear bound exceeded"));
-    }
-}
+#[path = "compact_patchbay_tests.rs"]
+mod tests;
 
 #[cfg(test)]
 #[path = "gallery_projection_tests.rs"]
