@@ -76,17 +76,41 @@ fn rewrite_form_invocations(
     catalog: &StartupCatalog,
 ) -> Result<Vec<SpecializationRequest>, SyntaxCheckDiagnostic> {
     let mut requests = Vec::new();
+    let front_types = form
+        .front
+        .runtime_ports
+        .iter()
+        .map(|port| (port.name.text.clone(), port.value_type.text.clone()))
+        .collect::<BTreeMap<_, _>>();
     for statement in &mut form.back {
         match statement {
             BackStatement::NamedGear(gear) => {
-                rewrite_invocation(&mut gear.invocation, templates, catalog, &mut requests)?;
+                rewrite_invocation(
+                    &mut gear.invocation,
+                    templates,
+                    catalog,
+                    &BTreeMap::new(),
+                    &mut requests,
+                )?;
             }
             BackStatement::Cord(cord) => {
-                rewrite_stages(&mut cord.stages, templates, catalog, &mut requests)?;
+                rewrite_stages(
+                    &mut cord.stages,
+                    templates,
+                    catalog,
+                    &front_types,
+                    &mut requests,
+                )?;
             }
             BackStatement::MatchedRoute(route) => {
                 for arm in &mut route.arms {
-                    rewrite_stages(&mut arm.stages, templates, catalog, &mut requests)?;
+                    rewrite_stages(
+                        &mut arm.stages,
+                        templates,
+                        catalog,
+                        &front_types,
+                        &mut requests,
+                    )?;
                 }
             }
             BackStatement::Pool(_) | BackStatement::LocalValue(_) => {}
@@ -99,11 +123,14 @@ fn rewrite_stages(
     stages: &mut [CordStage],
     templates: &BTreeMap<String, FormSyntax>,
     catalog: &StartupCatalog,
+    front_types: &BTreeMap<String, String>,
     requests: &mut Vec<SpecializationRequest>,
 ) -> Result<(), SyntaxCheckDiagnostic> {
-    for stage in stages {
-        if let CordStage::InlineGear(invocation) = stage {
-            rewrite_invocation(invocation, templates, catalog, requests)?;
+    for index in 0..stages.len() {
+        let inferred =
+            infer_from_adjacent_front_ports(stages, index, templates, catalog, front_types)?;
+        if let CordStage::InlineGear(invocation) = &mut stages[index] {
+            rewrite_invocation(invocation, templates, catalog, &inferred, requests)?;
         }
     }
     Ok(())
@@ -113,6 +140,7 @@ fn rewrite_invocation(
     invocation: &mut Invocation,
     templates: &BTreeMap<String, FormSyntax>,
     catalog: &StartupCatalog,
+    inferred: &BTreeMap<String, String>,
     requests: &mut Vec<SpecializationRequest>,
 ) -> Result<(), SyntaxCheckDiagnostic> {
     let Some(template) = templates.get(&invocation.kind.text) else {
@@ -162,6 +190,20 @@ fn rewrite_invocation(
             ));
         }
     }
+    for (name, concrete) in inferred {
+        if let Some(explicit) = substitutions.get(name) {
+            if explicit != concrete {
+                return Err(diagnostic(
+                    invocation.span,
+                    format!(
+                        "type argument '{name}' is '{explicit}' but connected ports require '{concrete}'"
+                    ),
+                ));
+            }
+        } else {
+            substitutions.insert(name.clone(), concrete.clone());
+        }
+    }
     for parameter in parameters {
         if !substitutions.contains_key(&parameter.name.text) {
             return Err(diagnostic(
@@ -181,6 +223,100 @@ fn rewrite_invocation(
         identity,
         substitutions,
     });
+    Ok(())
+}
+
+fn infer_from_adjacent_front_ports(
+    stages: &[CordStage],
+    index: usize,
+    templates: &BTreeMap<String, FormSyntax>,
+    catalog: &StartupCatalog,
+    front_types: &BTreeMap<String, String>,
+) -> Result<BTreeMap<String, String>, SyntaxCheckDiagnostic> {
+    let CordStage::InlineGear(invocation) = &stages[index] else {
+        return Ok(BTreeMap::new());
+    };
+    let Some(template) = templates.get(&invocation.kind.text) else {
+        return Ok(BTreeMap::new());
+    };
+    let parameters = type_parameters(template)
+        .iter()
+        .map(|parameter| parameter.name.text.as_str())
+        .collect::<BTreeSet<_>>();
+    let inputs = template
+        .front
+        .runtime_ports
+        .iter()
+        .filter(|port| port.direction == crate::RuntimePortDirection::Input)
+        .collect::<Vec<_>>();
+    let outputs = template
+        .front
+        .runtime_ports
+        .iter()
+        .filter(|port| port.direction == crate::RuntimePortDirection::Output)
+        .collect::<Vec<_>>();
+    let mut inferred = BTreeMap::new();
+    if inputs.len() == 1 {
+        if let Some(CordStage::Reference(reference)) = index.checked_sub(1).map(|i| &stages[i]) {
+            if let Some(concrete) = front_types.get(&reference.text) {
+                infer_parameter(
+                    &inputs[0].value_type,
+                    concrete,
+                    &parameters,
+                    catalog,
+                    &mut inferred,
+                    invocation.span,
+                )?;
+            }
+        }
+    }
+    if outputs.len() == 1 {
+        if let Some(CordStage::Reference(reference)) = stages.get(index + 1) {
+            if let Some(concrete) = front_types.get(&reference.text) {
+                infer_parameter(
+                    &outputs[0].value_type,
+                    concrete,
+                    &parameters,
+                    catalog,
+                    &mut inferred,
+                    invocation.span,
+                )?;
+            }
+        }
+    }
+    Ok(inferred)
+}
+
+fn infer_parameter(
+    generic: &SpannedText,
+    concrete: &str,
+    parameters: &BTreeSet<&str>,
+    catalog: &StartupCatalog,
+    inferred: &mut BTreeMap<String, String>,
+    span: Span,
+) -> Result<(), SyntaxCheckDiagnostic> {
+    if !parameters.contains(generic.text.as_str()) {
+        return Ok(());
+    }
+    let concrete = crate::value_type::checked_value_kind(concrete, catalog).map_err(|_| {
+        diagnostic(
+            span,
+            format!("connected port type '{concrete}' is not one exact checked type"),
+        )
+    })?;
+    let concrete = concrete.as_str().to_string();
+    if inferred
+        .insert(generic.text.clone(), concrete.clone())
+        .is_some_and(|prior| prior != concrete)
+    {
+        return Err(diagnostic(
+            span,
+            format!(
+                "connected ports require conflicting types for '{}'",
+                generic.text
+            ),
+        ));
+    }
     Ok(())
 }
 

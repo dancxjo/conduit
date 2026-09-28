@@ -330,11 +330,36 @@ fn explicit_generic_application_cannot_disagree_with_connected_ports() {
         "form identity (\n item: type\n >> value: item\n result: item >>\n) {\n value >> result\n}\n\
          form bad (\n >> value: Text\n result: Text >>\n) {\n value >> identity(item = Bytes) >> result\n}\n",
     );
-    let checked = check_syntax_document(&parsed, &catalog()).unwrap();
-    let error =
-        crate::expand_canonical_form_for_authoring(&checked, "bad", &crate::ProfileCatalog::new())
-            .expect_err("Text cannot satisfy a Bytes specialization");
-    assert_eq!(error.code, "CND-FRM-046");
+    let error = check_syntax_document(&parsed, &catalog())
+        .expect_err("Text cannot satisfy a Bytes specialization");
+    assert_eq!(error.code, "CND-FRM-057");
+    assert!(error.message.contains("connected ports require"));
+}
+
+#[test]
+fn unary_generic_application_infers_one_unambiguous_port_type() {
+    let checked = check(
+        "form identity (\n item: type\n >> value: item\n result: item >>\n) {\n value >> result\n}\n\
+         form main (\n >> value: Text\n result: Text >>\n) {\n value >> identity() >> result\n}\n",
+    );
+    let main = checked
+        .forms
+        .iter()
+        .find(|form| form.name == "main")
+        .unwrap();
+    assert_eq!(main.gears[0].kind, "identity[item=value/text]");
+    assert!(main.gears[0].startup_bindings.is_empty());
+}
+
+#[test]
+fn generic_inference_refuses_conflicting_port_evidence() {
+    let parsed = parse_syntax_document(
+        "form identity (\n item: type\n >> value: item\n result: item >>\n) {\n value >> result\n}\n\
+         form bad (\n >> value: Text\n result: Bytes >>\n) {\n value >> identity() >> result\n}\n",
+    );
+    let error = check_syntax_document(&parsed, &catalog()).unwrap_err();
+    assert_eq!(error.code, "CND-FRM-057");
+    assert!(error.message.contains("conflicting types"));
 }
 
 #[test]
