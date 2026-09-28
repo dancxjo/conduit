@@ -155,7 +155,27 @@ pub struct RuntimePort {
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum ValueRefinement {
-    TextPattern { source: SpannedText, span: Span },
+    TextPattern {
+        source: SpannedText,
+        span: Span,
+    },
+    Range {
+        minimum: SpannedText,
+        maximum: SpannedText,
+        minimum_endpoint: RefinementIntervalEndpoint,
+        maximum_endpoint: RefinementIntervalEndpoint,
+        span: Span,
+    },
+    Membership {
+        members: Vec<SpannedText>,
+        span: Span,
+    },
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum RefinementIntervalEndpoint {
+    Inclusive,
+    Exclusive,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]

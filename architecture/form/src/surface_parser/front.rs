@@ -2,7 +2,8 @@
 
 use super::Parser;
 use crate::surface_lex::{
-    split_declaration, split_top_level_token, top_level_positions, top_level_token_positions,
+    split_declaration, split_top_level, split_top_level_token, top_level_positions,
+    top_level_token_positions,
 };
 use crate::syntax::{
     FormFront, RuntimePort, RuntimePortDirection, RuntimePortTemporal, ShorthandPair,
@@ -252,25 +253,101 @@ impl Parser<'_> {
         };
         let value_type = value_type.trim();
         let refinement = refinement.trim();
-        let pattern = refinement
-            .strip_prefix("pattern(r\"")
-            .and_then(|tail| tail.strip_suffix("\")"))
-            .ok_or_else(|| self.invalid_statement(line, start))?;
+        let clauses = split_top_level_token(refinement, " and ");
+        if clauses.is_empty() || clauses.iter().any(|clause| clause.trim().is_empty()) {
+            return Err(self.invalid_statement(line, start));
+        }
         let refinement_offset = line
             .find(refinement)
             .expect("refinement is an exact slice of the declaration line");
-        let pattern_offset = start
-            + refinement_offset
-            + refinement
-                .find(pattern)
-                .expect("pattern is an exact slice of the refinement");
-        let span_start = start + refinement_offset;
-        Ok((
-            value_type,
-            vec![crate::ValueRefinement::TextPattern {
-                source: self.spanned(pattern, pattern_offset),
-                span: self.span(span_start, span_start + refinement.len()),
-            }],
-        ))
+        let mut refinements = Vec::with_capacity(clauses.len());
+        let mut search_from = 0;
+        for clause in clauses {
+            let clause = clause.trim();
+            let relative = refinement[search_from..]
+                .find(clause)
+                .map(|offset| search_from + offset)
+                .expect("refinement clause is an exact slice of the refinement");
+            search_from = relative + clause.len();
+            let clause_start = start + refinement_offset + relative;
+            let span = self.span(clause_start, clause_start + clause.len());
+            if let Some(pattern) = clause
+                .strip_prefix("pattern(r\"")
+                .and_then(|tail| tail.strip_suffix("\")"))
+            {
+                let pattern_offset = clause_start
+                    + clause
+                        .find(pattern)
+                        .expect("pattern is an exact slice of the refinement clause");
+                refinements.push(crate::ValueRefinement::TextPattern {
+                    source: self.spanned(pattern, pattern_offset),
+                    span,
+                });
+                continue;
+            }
+            if let Some(interval) = clause
+                .strip_prefix("range(")
+                .and_then(|tail| tail.strip_suffix(')'))
+            {
+                let values = split_top_level(interval, ',');
+                let [minimum, maximum] = values.as_slice() else {
+                    return Err(self.invalid_statement(line, start));
+                };
+                let (minimum, minimum_endpoint) = parse_interval_endpoint(minimum)
+                    .ok_or_else(|| self.invalid_statement(line, start))?;
+                let (maximum, maximum_endpoint) = parse_interval_endpoint(maximum)
+                    .ok_or_else(|| self.invalid_statement(line, start))?;
+                let minimum_offset = clause_start + clause.find(minimum).unwrap();
+                let maximum_offset = clause_start + clause.rfind(maximum).unwrap();
+                refinements.push(crate::ValueRefinement::Range {
+                    minimum: self.spanned(minimum, minimum_offset),
+                    maximum: self.spanned(maximum, maximum_offset),
+                    minimum_endpoint,
+                    maximum_endpoint,
+                    span,
+                });
+                continue;
+            }
+            if let Some(body) = clause
+                .strip_prefix("member(")
+                .and_then(|tail| tail.strip_suffix(')'))
+            {
+                let values = split_top_level(body, ',');
+                if values.is_empty() || values.len() > conduit_core::MAX_MEMBERSHIP_VALUES {
+                    return Err(self.invalid_statement(line, start));
+                }
+                let mut members = Vec::with_capacity(values.len());
+                let mut member_search = 0;
+                for value in values {
+                    let value = value.trim();
+                    if value.is_empty() {
+                        return Err(self.invalid_statement(line, start));
+                    }
+                    let relative = body[member_search..]
+                        .find(value)
+                        .map(|offset| member_search + offset)
+                        .unwrap();
+                    member_search = relative + value.len();
+                    let offset = clause_start + "member(".len() + relative;
+                    members.push(self.spanned(value, offset));
+                }
+                refinements.push(crate::ValueRefinement::Membership { members, span });
+                continue;
+            }
+            return Err(self.invalid_statement(line, start));
+        }
+        Ok((value_type, refinements))
     }
+}
+
+fn parse_interval_endpoint(source: &str) -> Option<(&str, crate::RefinementIntervalEndpoint)> {
+    let source = source.trim();
+    let (value, endpoint) = source.rsplit_once(' ')?;
+    let endpoint = match endpoint {
+        "inclusive" => crate::RefinementIntervalEndpoint::Inclusive,
+        "exclusive" => crate::RefinementIntervalEndpoint::Exclusive,
+        _ => return None,
+    };
+    let value = value.trim();
+    (!value.is_empty()).then_some((value, endpoint))
 }

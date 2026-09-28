@@ -1111,4 +1111,7 @@ mod generic_form_tests;
 mod syntax_check_tests;
 
 #[cfg(test)]
+mod refinement_tests;
+
+#[cfg(test)]
 mod canonical_expansion_tests;
