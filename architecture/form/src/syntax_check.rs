@@ -35,19 +35,21 @@ pub(crate) fn check_document(
             message: diagnostic.message.clone(),
         });
     }
-    let form_signatures = form_signatures(&document.forms)?;
+    let unresolved_form_signatures = form_signatures(&document.forms)?;
+    let forms = resolve_use_declarations(document, catalog, &unresolved_form_signatures)?;
+    let form_signatures = form_signatures(&forms)?;
     let mut form_fronts = BTreeMap::new();
-    for form in &document.forms {
+    for form in &forms {
         form_fronts.insert(
             form.name.text.clone(),
             crate::value_type::checked_front(form, catalog)?,
         );
     }
-    let mut forms = Vec::with_capacity(document.forms.len());
-    for form in &document.forms {
-        forms.push(check_form(form, catalog, &form_signatures, &form_fronts)?);
+    let mut checked_forms = Vec::with_capacity(forms.len());
+    for form in &forms {
+        checked_forms.push(check_form(form, catalog, &form_signatures, &form_fronts)?);
     }
-    forms.sort_by(|left, right| left.name.cmp(&right.name));
+    checked_forms.sort_by(|left, right| left.name.cmp(&right.name));
     let mut structured_types =
         catalog
             .structured_types_by_value_kind()
@@ -63,7 +65,7 @@ pub(crate) fn check_document(
                 },
                 message: "structured type registry exceeds canonical bounds".into(),
             })?;
-    for form in &document.forms {
+    for form in &forms {
         for (source_type, optional) in form
             .front
             .startup_parameters
@@ -100,7 +102,7 @@ pub(crate) fn check_document(
             }
         }
     }
-    for retained in forms
+    for retained in checked_forms
         .iter()
         .flat_map(|form| &form.gears)
         .filter_map(|gear| gear.retained.as_deref())
@@ -129,9 +131,131 @@ pub(crate) fn check_document(
             "canonical-source:{}",
             document.round_trip()
         ))),
-        forms,
+        forms: checked_forms,
         structured_types,
     })
+}
+
+fn resolve_use_declarations(
+    document: &SyntaxDocument,
+    catalog: &StartupCatalog,
+    forms: &BTreeMap<String, KindSignature>,
+) -> Result<Vec<FormSyntax>, SyntaxCheckDiagnostic> {
+    let mut aliases = BTreeMap::<String, (String, crate::Span, bool)>::new();
+    for declaration in &document.uses {
+        let path = declaration.path.as_str();
+        if catalog.get(path).is_none() && !forms.contains_key(path) {
+            return Err(use_diagnostic(
+                declaration.path_span,
+                format!("use path '{path}' does not resolve to an installed Kind or source Form"),
+            ));
+        }
+        if forms.contains_key(&declaration.alias.text) {
+            return Err(use_diagnostic(
+                declaration.alias.span,
+                format!(
+                    "use alias '{}' conflicts with a source Form name",
+                    declaration.alias.text
+                ),
+            ));
+        }
+        if aliases
+            .insert(
+                declaration.alias.text.clone(),
+                (declaration.path.clone(), declaration.alias.span, false),
+            )
+            .is_some()
+        {
+            return Err(use_diagnostic(
+                declaration.alias.span,
+                format!("duplicate use alias '{}'", declaration.alias.text),
+            ));
+        }
+    }
+
+    let mut resolved = document.forms.clone();
+    for form in &mut resolved {
+        reject_alias_shadowing(form, &aliases)?;
+        for statement in &mut form.back {
+            match statement {
+                BackStatement::NamedGear(gear) => {
+                    resolve_invocation_alias(&mut gear.invocation, &mut aliases)
+                }
+                BackStatement::Cord(cord) => resolve_stage_aliases(&mut cord.stages, &mut aliases),
+                BackStatement::MatchedRoute(route) => {
+                    for arm in &mut route.arms {
+                        resolve_stage_aliases(&mut arm.stages, &mut aliases);
+                    }
+                }
+                BackStatement::Pool(_) | BackStatement::LocalValue(_) => {}
+            }
+        }
+    }
+    if let Some((alias, (_, span, _))) = aliases.iter().find(|(_, (_, _, used))| !*used) {
+        return Err(use_diagnostic(*span, format!("unused use alias '{alias}'")));
+    }
+    Ok(resolved)
+}
+
+fn resolve_stage_aliases(
+    stages: &mut [CordStage],
+    aliases: &mut BTreeMap<String, (String, crate::Span, bool)>,
+) {
+    for stage in stages {
+        if let CordStage::InlineGear(invocation) = stage {
+            resolve_invocation_alias(invocation, aliases);
+        }
+    }
+}
+
+fn resolve_invocation_alias(
+    invocation: &mut Invocation,
+    aliases: &mut BTreeMap<String, (String, crate::Span, bool)>,
+) {
+    if let Some((canonical, _, used)) = aliases.get_mut(&invocation.kind.text) {
+        invocation.kind.text.clone_from(canonical);
+        *used = true;
+    }
+}
+
+fn reject_alias_shadowing(
+    form: &FormSyntax,
+    aliases: &BTreeMap<String, (String, crate::Span, bool)>,
+) -> Result<(), SyntaxCheckDiagnostic> {
+    for name in form
+        .front
+        .startup_parameters
+        .iter()
+        .map(|parameter| (&parameter.name.text, parameter.name.span))
+        .chain(
+            form.front
+                .runtime_ports
+                .iter()
+                .map(|port| (&port.name.text, port.name.span)),
+        )
+        .chain(form.back.iter().filter_map(|statement| match statement {
+            BackStatement::NamedGear(gear) => Some((&gear.name.text, gear.name.span)),
+            BackStatement::Pool(pool) => Some((&pool.name.text, pool.name.span)),
+            BackStatement::LocalValue(local) => Some((&local.name.text, local.name.span)),
+            BackStatement::Cord(_) | BackStatement::MatchedRoute(_) => None,
+        }))
+    {
+        if aliases.contains_key(name.0) {
+            return Err(use_diagnostic(
+                name.1,
+                format!("binding '{}' shadows a use alias", name.0),
+            ));
+        }
+    }
+    Ok(())
+}
+
+fn use_diagnostic(span: crate::Span, message: String) -> SyntaxCheckDiagnostic {
+    SyntaxCheckDiagnostic {
+        code: "CND-FRM-056",
+        span,
+        message,
+    }
 }
 
 fn form_signatures(

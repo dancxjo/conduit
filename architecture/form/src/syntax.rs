@@ -9,6 +9,8 @@ use crate::{CstToken, FormDiagnostic, Span};
 pub struct SyntaxDocument {
     source: String,
     pub tokens: Vec<CstToken>,
+    pub uses: Vec<UseDeclaration>,
+    pub standard_glyphs: bool,
     pub forms: Vec<FormSyntax>,
     pub constructions: Vec<ConstructionSyntax>,
     pub diagnostics: Vec<FormDiagnostic>,
@@ -34,6 +36,8 @@ impl SyntaxDocument {
     pub(crate) fn new(
         source: String,
         tokens: Vec<CstToken>,
+        uses: Vec<UseDeclaration>,
+        standard_glyphs: bool,
         forms: Vec<FormSyntax>,
         constructions: Vec<ConstructionSyntax>,
         diagnostics: Vec<FormDiagnostic>,
@@ -41,11 +45,26 @@ impl SyntaxDocument {
         Self {
             source,
             tokens,
+            uses,
+            standard_glyphs,
             forms,
             constructions,
             diagnostics,
         }
     }
+}
+
+/// One explicit source name imported into the document lexical scope.
+///
+/// The authored path and alias disappear during checking. Checked Gears retain
+/// only the exact canonical Kind identity resolved through the supplied source
+/// catalog.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct UseDeclaration {
+    pub path: String,
+    pub path_span: Span,
+    pub alias: SpannedText,
+    pub span: Span,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]

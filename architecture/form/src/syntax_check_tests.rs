@@ -70,6 +70,59 @@ fn completion_policy_is_exact_checked_meaning() {
 }
 
 #[test]
+fn authored_use_alias_resolves_to_canonical_kind_without_changing_checked_identity() {
+    let direct = check("form example {\n tick: time/every(1s)\n}\n");
+    let alias = check("use time/every as cadence\nform example {\n tick: cadence(1s)\n}\n");
+    assert_eq!(alias.forms[0].gears[0].kind, "time/every");
+    assert_eq!(
+        alias.forms[0].checked_form_id,
+        direct.forms[0].checked_form_id
+    );
+    assert_ne!(alias.source_document_id, direct.source_document_id);
+}
+
+#[test]
+fn grouped_uses_resolve_each_exact_installed_kind() {
+    let checked = check(
+        "use time/{every, default}\nform example {\n first: every(1s)\n second: default\n}\n",
+    );
+    assert_eq!(
+        checked.forms[0]
+            .gears
+            .iter()
+            .map(|gear| gear.kind.as_str())
+            .collect::<Vec<_>>(),
+        ["time/every", "time/default"]
+    );
+}
+
+#[test]
+fn unresolved_unused_duplicate_and_shadowing_uses_refuse() {
+    for (source, expected) in [
+        (
+            "use missing/kind as absent\nform example {\n}\n",
+            "does not resolve",
+        ),
+        (
+            "use time/every as cadence\nform example {\n}\n",
+            "unused use alias",
+        ),
+        (
+            "use time/every as cadence\nuse time/default as cadence\nform example {\n tick: cadence\n}\n",
+            "duplicate use alias",
+        ),
+        (
+            "use time/every as cadence\nform example {\n cadence: time/default\n}\n",
+            "shadows a use alias",
+        ),
+    ] {
+        let error = check_syntax_document(&parse_syntax_document(source), &catalog()).unwrap_err();
+        assert_eq!(error.code, "CND-FRM-056");
+        assert!(error.message.contains(expected), "{}", error.message);
+    }
+}
+
+#[test]
 fn keep_lifetime_optional_and_bound_are_exact_checked_meaning() {
     let mut catalog = StartupCatalog::new();
     catalog
