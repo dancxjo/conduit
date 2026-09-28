@@ -588,6 +588,11 @@ fn gallery_publishes_current_history_and_provenance() {
     assert!(index.contains("Evidence not yet admitted for this commit"));
     assert!(index.contains("The evidence library"));
     assert!(index.contains("conduit-three-body-flagship@2"));
+    for action in crate::three_body_actions::REQUIRED_ACTIONS {
+        assert!(index.contains(action.title()));
+    }
+    assert_eq!(index.matches("<ol class=\"semantic-spine\">").count(), 1);
+    assert!(!index.contains("presentation Host"));
     assert!(index.contains("journey-card"));
     assert!(index.contains("Follow the evidence"));
     assert!(index.contains("Current x86_64 ConduitOS emulator console evidence"));

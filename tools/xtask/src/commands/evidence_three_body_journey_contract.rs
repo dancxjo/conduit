@@ -38,89 +38,79 @@ pub(super) fn canonical(commit: &str) -> JourneyContract {
 }
 
 fn canonical_action(action: JourneyActionKind) -> ContractAction {
-    let (action_id, title, happened, established, concepts, assertions) = match action {
+    let (action_id, happened, established, concepts, assertions) = match action {
         JourneyActionKind::Bootstrap => (
-            "journey.bootstrap", "Begin with no Body", "One exact Host boot began a bounded bootstrap from truthful zero-Body state.",
+            "journey.bootstrap", "One exact Host boot began a bounded bootstrap from truthful zero-Body state.",
             "Absence and the start of bootstrap were both retained, rather than inferred from later Birth.",
             &["Body", "Host", "Boot"][..], &["body-absent", "bootstrap-started"][..],
         ),
         JourneyActionKind::Birth => (
-            "journey.birth", "Birth and become usable", "The bootstrap created a new Body and admitted its first wake.",
+            "journey.birth", "The bootstrap created a new Body and admitted its first wake.",
             "Birth and usability are exact lifecycle truth for this independent Body.",
             &["Body", "Wake", "Sign"][..], &["body-born", "body-awake"][..],
         ),
         JourneyActionKind::UsefulWork => (
-            "journey.useful-work", "Do useful work", "The Body exercised already admitted semantic work.",
+            "journey.useful-work", "The Body exercised already admitted semantic work.",
             "An exact Plan and Play performed useful work; embodiment-specific inspection or revision may remain in detailed receipts.",
             &["Body", "Form", "Plan", "Play"][..], &["standing-form-used"][..],
         ),
         JourneyActionKind::MaskInspectInitialShow => mask_action(
             "mask.inspect-initial-show",
-            "Inspect the initial Show",
             "The Body inspected its exact current Face, Mask route, Plan, and Show.",
             "The initial human-facing realization is producer evidence, not an inferred screenshot label.",
         ),
         JourneyActionKind::MaskWearAlternate => mask_action(
             "mask.wear-alternate",
-            "Wear an alternate Mask",
             "The Body made a second ordinary Mask Form eligible in its revisioned wardrobe.",
             "Eligibility changed without mutating the immutable body-wide Plan.",
         ),
         JourneyActionKind::MaskPreferAlternate => mask_action(
             "mask.prefer-alternate",
-            "Prefer the alternate Mask",
             "The Body preferred and selected an already-sealed alternate Mask route.",
             "Selection changed under the same body-wide Plan; no unsealed route was invented.",
         ),
         JourneyActionKind::MaskWithdrawSelectedRoute => mask_action(
             "mask.withdraw-selected-route",
-            "Withdraw the selected route",
             "The selected sealed Mask route became unavailable.",
             "The Body retained NoShow rather than silently retaining an unavailable realization.",
         ),
         JourneyActionKind::MaskInspectUnavailableShow => mask_action(
             "mask.inspect-unavailable-show",
-            "Inspect truthful unavailability",
             "The Body inspected the interval in which no worn Mask was realizable.",
             "Lack of Show remained distinct from Face truth and from authority to replan.",
         ),
         JourneyActionKind::MaskAddFaceHost => mask_action(
             "mask.add-face-host",
-            "Add a Face Host",
             "A new Host or Boot offered a possible Mask realization.",
             "Availability alone did not mutate the old Plan or create a Show.",
         ),
         JourneyActionKind::MaskAdmitReplacementPlan => mask_action(
             "mask.admit-replacement-plan",
-            "Admit a replacement Plan",
             "Authorized planning admitted a distinct body-wide replacement Plan.",
             "The replacement is a new immutable identity, not disguised same-Plan fallback.",
         ),
         JourneyActionKind::MaskInspectReplannedShow => mask_action(
             "mask.inspect-replanned-show",
-            "Inspect the replanned Show",
             "The Body inspected the Show realized by the replacement Plan.",
             "Face identity remained stable while realization identity changed.",
         ),
         JourneyActionKind::MaskDoffAlternate => mask_action(
             "mask.doff-alternate",
-            "Doff the alternate Mask",
             "The Body removed the alternate Mask from its eligible wardrobe.",
             "A doffed Mask could not remain selected merely because its Back stayed available.",
         ),
         JourneyActionKind::MaskInspectRestoredShow => mask_action(
             "mask.inspect-restored-show",
-            "Inspect the restored Show",
             "The Body inspected its restored original Mask under the replacement Plan.",
             "The journey ended with exact Mask, route, Plan, and Show correlation.",
         ),
         JourneyActionKind::BreakAndRecover => (
-            "journey.break-recover", "Break and recovery outcome", "The Body retained a real failure or refusal, plus an independently evidenced recovery where one existed.",
+            "journey.break-recover", "The Body retained a real failure or refusal, plus an independently evidenced recovery where one existed.",
             "Failure remained failure; no later success was relabeled as recovery for a different obligation.",
             &["Body", "Refusal", "Plan", "Play"][..], &["fault-observed"][..],
         ),
         JourneyActionKind::RestAndFinish => (
-            "journey.rest-finish", "Rest and finish", "Explicit lifecycle actions ended the wake and then the Body biography.",
+            "journey.rest-finish", "Explicit lifecycle actions ended the wake and then the Body biography.",
             "Lulled and Fulfilled remained distinct, ordered terminal truths.",
             &["Body", "Wake", "Fulfilled"][..], &["body-lulled", "body-fulfilled"][..],
         ),
@@ -128,7 +118,7 @@ fn canonical_action(action: JourneyActionKind) -> ContractAction {
     ContractAction {
         action_id: action_id.into(),
         action,
-        title: title.into(),
+        title: action.title().into(),
         what_happened: happened.into(),
         what_conduit_established: established.into(),
         concepts: concepts.iter().map(|value| (*value).into()).collect(),
@@ -142,11 +132,9 @@ fn canonical_action(action: JourneyActionKind) -> ContractAction {
 
 fn mask_action(
     id: &'static str,
-    title: &'static str,
     happened: &'static str,
     established: &'static str,
 ) -> (
-    &'static str,
     &'static str,
     &'static str,
     &'static str,
@@ -168,7 +156,6 @@ fn mask_action(
     };
     (
         id,
-        title,
         happened,
         established,
         &["Body", "Face", "Mask", "Plan", "Show"],

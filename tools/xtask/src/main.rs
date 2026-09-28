@@ -12,6 +12,7 @@ mod output;
 mod process;
 mod proof;
 mod suites;
+mod three_body_actions;
 mod workspace;
 
 use clap::Parser;
