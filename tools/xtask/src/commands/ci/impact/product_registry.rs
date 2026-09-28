@@ -63,14 +63,6 @@ pub(super) const PRODUCT_PROOFS: &[ProductProofSpec] = &[ProductProofSpec {
         "products/shared/browser/",
         "semantics/presentation/assets/",
         "site/",
-        "products/tour/browser/",
-        "products/creche/browser/",
-        "products/workspace/browser/",
-        "products/tour/tools/stage-tour-product",
-        "products/creche/tools/stage-creche-product",
-        "products/workspace/tools/stage-workspace-product",
-        "site/tools/stage-pages-root",
-        "products/patchbay/tools/stage-patchbay-product",
         "products/home/tools/stage-home-product",
         "targets/browser/host/",
         "targets/browser/runtime/",
@@ -227,6 +219,22 @@ mod product_source_tests {
         ] {
             assert!(proofs_for_paths(&[path.to_owned()]).contains(&"products.pages-carrier"));
             assert!(!browser_presentation_proofs_for_path(path).is_empty());
+        }
+    }
+
+    #[test]
+    fn broad_product_and_site_roots_own_their_carrier_staging_tools() {
+        for path in [
+            "products/tour/tools/stage-tour-product.mjs",
+            "products/creche/tools/stage-creche-product.mjs",
+            "products/workspace/tools/stage-workspace-product.mjs",
+            "products/patchbay/tools/stage-patchbay-product.mjs",
+            "site/tools/stage-pages-root.mjs",
+        ] {
+            assert_eq!(
+                proofs_for_paths(&[path.to_owned()]),
+                ["products.pages-carrier"]
+            );
         }
     }
 }
