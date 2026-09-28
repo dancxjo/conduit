@@ -53,7 +53,6 @@ pub(super) const PRODUCT_PROOFS: &[ProductProofSpec] = &[ProductProofSpec {
         "proof/browser/workspace-library.spec.mjs",
         "proof/browser/workspace-handoff.test.mjs",
         "proof/browser/creche-workspace-continuity.spec.mjs",
-        "proof/browser/home-host.spec.mjs",
     ],
     input_prefixes: &[
         "products/tour/",
@@ -62,12 +61,9 @@ pub(super) const PRODUCT_PROOFS: &[ProductProofSpec] = &[ProductProofSpec {
         "products/patchbay/html/",
         "products/patchbay/model/",
         "products/patchbay/tools/",
-        "products/home/browser/",
-        "products/home/model/",
         "products/shared/browser/",
         "semantics/presentation/assets/",
         "site/",
-        "products/home/tools/stage-home-product",
         "targets/browser/host/",
         "targets/browser/runtime/",
         "targets/avr/deployment/browser/",
@@ -126,14 +122,11 @@ pub(super) const BROWSER_PRESENTATION_PROOFS: &[BrowserPresentationSpec] =
             "products/tour/browser/",
             "products/creche/browser/",
             "products/workspace/browser/",
-            "products/home/browser/",
-            "products/home/model/",
             "products/tour/tools/stage-tour-product",
             "products/creche/tools/stage-creche-product",
             "products/workspace/tools/stage-workspace-product",
             "site/tools/stage-pages-root",
             "products/patchbay/tools/stage-patchbay-product",
-            "products/home/tools/stage-home-product",
         ],
     }];
 
@@ -214,8 +207,6 @@ mod product_source_tests {
             "products/tour/browser/tour.mjs",
             "products/workspace/browser/body-bootstrap.mjs",
             "products/workspace/browser/reviewed-form-selection.mjs",
-            "products/home/browser/home.mjs",
-            "products/home/tools/stage-home-product.sh",
         ] {
             assert!(proofs_for_paths(&[path.to_owned()]).contains(&"products.pages-carrier"));
             assert!(!browser_presentation_proofs_for_path(path).is_empty());
@@ -252,10 +243,11 @@ mod product_source_tests {
     }
 
     #[test]
-    fn native_patchbay_sources_do_not_select_the_browser_carrier() {
+    fn native_semantics_do_not_select_the_browser_carrier() {
         for path in [
             "products/patchbay/native/Cargo.toml",
             "products/patchbay/native/src/gui.rs",
+            "products/home/model/src/lib.rs",
         ] {
             assert!(proofs_for_paths(&[path.to_owned()]).is_empty(), "{path}");
             assert!(
