@@ -31,10 +31,13 @@ pub enum TextPatternSourceError {
 
 /// Parses Conduit's deliberately bounded regular-expression surface.
 ///
-/// Matching is always a full match. The admitted source subset contains
-/// sequences, `|`, groups, scalar classes/ranges, `.`, `?`, and finite
-/// `{n}`/`{n,m}` repetition. `*` and `+` are bounded by the refined Text
-/// contract's admitted input ceiling before the automaton enters a Plan.
+/// This parses the expression inside a `~ /.../flags` relation. The expression
+/// itself compiles as an exact regular language; the relation's anchor profile
+/// then selects bounded search, prefix, suffix, or whole-value matching. The
+/// admitted subset contains sequences, `|`, groups, scalar classes/ranges,
+/// `.`, `?`, and finite `{n}`/`{n,m}` repetition. `*` and `+` are bounded by
+/// the refined Text contract's admitted input ceiling before the automaton
+/// enters a Plan.
 pub fn parse_text_pattern(source: &str) -> Result<TextPatternExpression, TextPatternSourceError> {
     if source.is_empty() {
         return Err(TextPatternSourceError::Empty);
