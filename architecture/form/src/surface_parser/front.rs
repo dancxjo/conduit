@@ -242,7 +242,7 @@ impl Parser<'_> {
         })
     }
 
-    fn parse_value_refinements<'b>(
+    pub(super) fn parse_value_refinements<'b>(
         &self,
         source: &'b str,
         line: &str,

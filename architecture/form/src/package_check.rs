@@ -106,7 +106,7 @@ pub fn check_package_bundle(
         Vec::new(),
         Vec::new(),
         false,
-        (resolved_forms, Vec::new(), Vec::new()),
+        (Vec::new(), resolved_forms, Vec::new(), Vec::new()),
         Vec::new(),
     );
     crate::check_syntax_document(&document, catalog).map_err(|diagnostic| {
