@@ -56,8 +56,9 @@ pub(crate) fn check_document(
             message: diagnostic.message.clone(),
         });
     }
+    let aliased_catalog = crate::native_type::install_import_aliases(document, catalog)?;
     let (native_types, checked_catalog) =
-        crate::native_type::check_native_types(&document.types, catalog)?;
+        crate::native_type::check_native_types(&document.types, &aliased_catalog)?;
     let catalog = &checked_catalog;
     let unresolved_form_signatures = form_signatures(&document.forms)?;
     let mut form_fronts = BTreeMap::new();
@@ -215,6 +216,9 @@ pub(crate) fn resolve_use_declarations(
     }
     for declaration in &document.uses {
         let path = declaration.path.as_str();
+        if catalog.structured_type(path).is_some() {
+            continue;
+        }
         let canonical = if catalog.get(path).is_some() || forms.contains_key(path) {
             path
         } else if let Some(form) = source_paths.get(path) {

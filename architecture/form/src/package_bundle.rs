@@ -290,6 +290,35 @@ impl PackageExportCatalog {
         self.type_exports.get(source_path)
     }
 
+    /// Installs shipped Type paths for downstream `with ... as ...` checking.
+    /// The package path is a source lookup name only; the checked Type keeps
+    /// the same semantic identity it had in its defining pack.
+    pub fn install_shipped_types(
+        &self,
+        catalog: &mut crate::StartupCatalog,
+    ) -> Result<Vec<crate::CheckedNativeType>, crate::SyntaxCheckDiagnostic> {
+        let declarations = self.type_exports.values().cloned().collect::<Vec<_>>();
+        let (checked, _) = crate::native_type::check_native_types(&declarations, catalog)?;
+        for (source_path, syntax) in &self.type_exports {
+            let value_type = checked
+                .iter()
+                .find(|candidate| candidate.name == syntax.name.text)
+                .expect("every shipped Type was checked");
+            catalog
+                .insert_native_type(
+                    source_path.clone(),
+                    value_type.value_type.clone(),
+                    value_type.value_contracts.clone(),
+                )
+                .map_err(|message| crate::SyntaxCheckDiagnostic {
+                    code: "CND-FRM-058",
+                    span: syntax.name.span,
+                    message,
+                })?;
+        }
+        Ok(checked)
+    }
+
     pub fn package_content_digest(&self) -> [u8; 32] {
         self.package_content_digest
     }

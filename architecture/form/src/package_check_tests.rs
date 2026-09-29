@@ -239,6 +239,30 @@ form public (
     assert_eq!(checked.native_types.len(), 3);
     assert_eq!(checked.forms.len(), 1);
 
+    let mut downstream_catalog = StartupCatalog::new();
+    let shipped = exports
+        .install_shipped_types(&mut downstream_catalog)
+        .unwrap();
+    let downstream = check_syntax_document(
+        &parse_syntax_document(
+            "with example/music/Note as Pitch\nform consumer (\n    >> value: Pitch\n) {\n}\n",
+        ),
+        &downstream_catalog,
+    )
+    .unwrap();
+    assert_eq!(
+        downstream.forms[0].checked_front().inputs()[0].value_kind,
+        shipped
+            .iter()
+            .find(|value_type| value_type.name == "Note")
+            .unwrap()
+            .value_type
+            .profile()
+            .unwrap()
+            .value_kind()
+            .clone()
+    );
+
     let direct =
         check_syntax_document(&parse_syntax_document(source), &StartupCatalog::new()).unwrap();
     assert_eq!(
