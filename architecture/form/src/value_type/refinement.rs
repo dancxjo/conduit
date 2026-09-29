@@ -35,7 +35,8 @@ pub(super) fn checked_refinements(
                     return Err(SyntaxCheckDiagnostic {
                         code: "CND-FRM-057",
                         span: *span,
-                        message: "pattern(...) may refine only canonical Text info".into(),
+                        message: "the ~ and !~ relations may refine only canonical Text info"
+                            .into(),
                     });
                 }
                 let mut expression = crate::parse_text_pattern(&source.text).map_err(|error| {
@@ -92,8 +93,7 @@ pub(super) fn checked_refinements(
                     return Err(SyntaxCheckDiagnostic {
                         code: "CND-FRM-057",
                         span: *span,
-                        message: "member(...) contains the same canonical value more than once"
-                            .into(),
+                        message: "the membership relation contains the same canonical value more than once".into(),
                     });
                 }
                 Ok(ValueConstraint::CanonicalMembership {
@@ -163,7 +163,7 @@ fn checked_range(
             })
         }
         _ => Err(invalid(
-            "range(...) requires Count, Scalar, or exact semantic Quantity info".into(),
+            "a range relation requires Count, Scalar, or exact semantic Quantity info".into(),
         )),
     }
 }

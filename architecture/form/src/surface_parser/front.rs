@@ -429,11 +429,7 @@ fn slash_pattern(source: &str) -> Option<(&str, bool, bool, bool, usize)> {
                 if anchored_start {
                     pattern = &pattern[1..];
                 }
-                let anchored_end = pattern.ends_with('$')
-                    && !pattern
-                        .as_bytes()
-                        .get(pattern.len().saturating_sub(2))
-                        .is_some_and(|byte| *byte == b'\\');
+                let anchored_end = pattern.ends_with('$') && trailing_dollar_is_anchor(pattern);
                 if anchored_end {
                     pattern = &pattern[..pattern.len() - 1];
                 }
@@ -452,4 +448,13 @@ fn slash_pattern(source: &str) -> Option<(&str, bool, bool, bool, usize)> {
         }
     }
     None
+}
+
+fn trailing_dollar_is_anchor(pattern: &str) -> bool {
+    let preceding_backslashes = pattern[..pattern.len().saturating_sub(1)]
+        .bytes()
+        .rev()
+        .take_while(|byte| *byte == b'\\')
+        .count();
+    preceding_backslashes % 2 == 0
 }

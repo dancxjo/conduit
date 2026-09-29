@@ -117,7 +117,15 @@ fn negated_membership_and_pattern_are_checked_relations() {
 #[test]
 fn canonical_anchors_select_prefix_suffix_and_whole_value_profiles() {
     let checked = check(
-        "form anchored (\n >> prefix: Text <= 8B ~ /^AB/\n >> suffix: Text <= 8B ~ /AB$/\n >> whole: Text <= 8B ~ /^AB$/\n) {\n}\n",
+        r#"form anchored (
+ >> prefix: Text <= 8B ~ /^AB/
+ >> suffix: Text <= 8B ~ /AB$/
+ >> whole: Text <= 8B ~ /^AB$/
+ >> escaped-dollar: Text <= 8B ~ /USD\$/
+ >> backslash-suffix: Text <= 16B ~ /path\\$/
+) {
+}
+"#,
     );
     let prefix = input_contract(&checked, "prefix");
     assert_eq!(prefix.validate(b"ABxx"), Ok(()));
@@ -141,6 +149,16 @@ fn canonical_anchors_select_prefix_suffix_and_whole_value_profiles() {
     );
     assert_eq!(
         whole.validate(b"ABxx"),
+        Err(ValueConstraintRefusal::TextPattern)
+    );
+
+    let escaped_dollar = input_contract(&checked, "escaped-dollar");
+    assert_eq!(escaped_dollar.validate(b"USD$ xx"), Ok(()));
+
+    let backslash_suffix = input_contract(&checked, "backslash-suffix");
+    assert_eq!(backslash_suffix.validate(b"before path\\"), Ok(()));
+    assert_eq!(
+        backslash_suffix.validate(b"path\\ after"),
         Err(ValueConstraintRefusal::TextPattern)
     );
 }
