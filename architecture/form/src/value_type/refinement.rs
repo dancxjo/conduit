@@ -43,9 +43,10 @@ pub(super) fn checked_refinements(
                     }
                 })?;
                 expression
-                    .compile(maximum_bytes)
+                    .compile_search(maximum_bytes)
                     .map(|pattern| ValueConstraint::TextPattern {
                         pattern,
+                        search: true,
                         negated: *negated,
                     })
                     .map_err(|error| SyntaxCheckDiagnostic {

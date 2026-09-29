@@ -74,6 +74,38 @@ impl TextPatternExpression {
         let fragment = nfa.build(self)?;
         determinize(&nfa, fragment, maximum_input_characters)
     }
+
+    pub fn compile_search(
+        &self,
+        maximum_input_characters: u32,
+    ) -> Result<CheckedTextPattern, TextPatternDefinitionError> {
+        let pattern = self.compile(maximum_input_characters)?;
+        let maximum_fanout = pattern
+            .states
+            .iter()
+            .map(|state| state.transitions.len() as u32)
+            .max()
+            .unwrap_or(0)
+            .max(1);
+        let starts = maximum_input_characters
+            .checked_add(1)
+            .ok_or(TextPatternDefinitionError::MatchWorkExceeded)?;
+        let character_visits = maximum_input_characters
+            .checked_mul(starts)
+            .and_then(|value| value.checked_div(2))
+            .ok_or(TextPatternDefinitionError::MatchWorkExceeded)?;
+        let maximum_match_steps = character_visits
+            .checked_mul(maximum_fanout)
+            .filter(|steps| *steps <= MAX_PATTERN_MATCH_STEPS)
+            .ok_or(TextPatternDefinitionError::MatchWorkExceeded)?;
+        CheckedTextPattern::new(
+            pattern.states,
+            pattern.start_state,
+            pattern.maximum_input_characters,
+            maximum_match_steps,
+        )
+        .map_err(TextPatternDefinitionError::InvalidCompiledPattern)
+    }
 }
 
 impl Nfa {

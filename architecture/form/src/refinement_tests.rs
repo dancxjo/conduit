@@ -97,7 +97,7 @@ fn negated_membership_and_pattern_are_checked_relations() {
     ));
     assert_eq!(code.validate(b"ab"), Ok(()));
     assert_eq!(
-        code.validate(b"AB"),
+        code.validate(b"xxAByy"),
         Err(ValueConstraintRefusal::TextPattern)
     );
 

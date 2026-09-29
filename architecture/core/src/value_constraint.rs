@@ -60,6 +60,7 @@ pub enum ValueConstraint {
     },
     TextPattern {
         pattern: CheckedTextPattern,
+        search: bool,
         negated: bool,
     },
 }
@@ -237,8 +238,13 @@ impl ValueConstraint {
                     push_bytes(canonical, member);
                 }
             }
-            Self::TextPattern { pattern, negated } => {
+            Self::TextPattern {
+                pattern,
+                search,
+                negated,
+            } => {
                 canonical.push(5);
+                canonical.push(u8::from(*search));
                 canonical.push(u8::from(*negated));
                 push_u32(canonical, u32::from(pattern.start_state));
                 push_u32(canonical, pattern.maximum_input_characters);
@@ -422,13 +428,21 @@ impl ValueConstraint {
                     .then_some(())
                     .ok_or(ValueConstraintRefusal::Membership)
             }
-            Self::TextPattern { pattern, negated } => {
+            Self::TextPattern {
+                pattern,
+                search,
+                negated,
+            } => {
                 if value_kind != crate::TEXT_INFO_ID {
                     return Err(ValueConstraintRefusal::WrongConstraintKind);
                 }
                 let text = core::str::from_utf8(canonical)
                     .map_err(|_| ValueConstraintRefusal::TextPattern)?;
-                (pattern.is_match(text) != *negated)
+                ((if *search {
+                    pattern.has_match(text)
+                } else {
+                    pattern.is_match(text)
+                }) != *negated)
                     .then_some(())
                     .ok_or(ValueConstraintRefusal::TextPattern)
             }
@@ -570,6 +584,47 @@ impl CheckedTextPattern {
             state = next;
         }
         self.states[state].accepting
+    }
+
+    /// Returns whether any bounded substring satisfies this deterministic
+    /// pattern. Search remains portable checked work: every attempted start
+    /// shares the one admitted step budget carried by the pattern.
+    pub fn has_match(&self, input: &str) -> bool {
+        if input.chars().count() > self.maximum_input_characters as usize {
+            return false;
+        }
+        let mut steps = 0_u32;
+        for (start, _) in input
+            .char_indices()
+            .chain(core::iter::once((input.len(), '\0')))
+        {
+            let mut state = usize::from(self.start_state);
+            if self.states[state].accepting {
+                return true;
+            }
+            for character in input[start..].chars() {
+                let scalar = character as u32;
+                let mut target = None;
+                for transition in &self.states[state].transitions {
+                    steps = steps.saturating_add(1);
+                    if steps > self.maximum_match_steps {
+                        return false;
+                    }
+                    if scalar >= transition.first_scalar && scalar <= transition.last_scalar {
+                        target = Some(usize::from(transition.target_state));
+                        break;
+                    }
+                }
+                let Some(next) = target else {
+                    break;
+                };
+                state = next;
+                if self.states[state].accepting {
+                    return true;
+                }
+            }
+        }
+        false
     }
 }
 
@@ -811,6 +866,7 @@ mod tests {
                 },
                 ValueConstraint::TextPattern {
                     pattern: literal_ab(),
+                    search: false,
                     negated: false,
                 },
             ],
@@ -862,6 +918,7 @@ mod tests {
             2,
             vec![ValueConstraint::TextPattern {
                 pattern: literal_ab(),
+                search: false,
                 negated: false,
             }],
         )
@@ -871,6 +928,7 @@ mod tests {
             2,
             vec![ValueConstraint::TextPattern {
                 pattern: literal_ab(),
+                search: false,
                 negated: true,
             }],
         )
