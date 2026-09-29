@@ -1058,6 +1058,7 @@ fn push_terminal_transduction_text(
                 "close/flush-then-propagate-when-all-close/{}/{}",
                 bound.maximum_items, bound.maximum_bytes
             )),
+            Normal::PropagateWhenAllClose => text.push_str("close/propagate-when-all-close"),
             Normal::DomainSpecific { law } => {
                 text.push_str(&format!("close/domain/{}", law.as_str()))
             }

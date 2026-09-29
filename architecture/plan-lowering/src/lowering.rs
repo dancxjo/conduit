@@ -196,6 +196,9 @@ impl LoweredTerminalTransduction {
                 conduit_core::NormalCloseTransduction::FlushThenPropagateWhenAllClose(bound) => {
                     Normal::FlushThenPropagateWhenAllClose(emission(bound))
                 }
+                conduit_core::NormalCloseTransduction::PropagateWhenAllClose => {
+                    Normal::PropagateWhenAllClose
+                }
                 conduit_core::NormalCloseTransduction::DomainSpecific { law } => {
                     Normal::DomainSpecific { law: identity(law) }
                 }

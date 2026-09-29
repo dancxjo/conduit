@@ -60,6 +60,13 @@ impl Kind {
         })
     }
 
+    pub fn keyed_join(&self) -> Option<&crate::KeyedJoinSemanticLaw> {
+        self.semantic_laws.iter().find_map(|law| match law {
+            KindSemanticLaw::KeyedJoin(contract) => Some(contract),
+            _ => None,
+        })
+    }
+
     pub fn checked_front(&self) -> CheckedFront {
         CheckedFront::new(
             self.startup_parameters.clone(),
@@ -121,6 +128,7 @@ impl Kind {
         let mut cancellation_request = None;
         let mut resource_ports = None;
         let mut value_contracts = None;
+        let mut keyed_join = None;
         for law in &self.semantic_laws {
             match law {
                 KindSemanticLaw::TerminalTransduction(profile) => {
@@ -166,6 +174,18 @@ impl Kind {
                         return Err(KindValidationError::DuplicateValueBounds);
                     }
                     validate_value_contracts(self, contracts)?;
+                }
+                KindSemanticLaw::KeyedJoin(contract) => {
+                    if keyed_join.replace(contract).is_some() {
+                        return Err(KindValidationError::DuplicateKeyedJoin);
+                    }
+                    if contract.maximum_pending_per_side == 0
+                        || contract.key.validate_definition().is_err()
+                        || contract.left_value.validate_definition().is_err()
+                        || contract.right_value.validate_definition().is_err()
+                    {
+                        return Err(KindValidationError::InvalidKeyedJoin);
+                    }
                 }
                 _ => {}
             }
@@ -352,6 +372,8 @@ pub enum KindValidationError {
     EmptyResourcePortClass,
     UnknownResourcePort,
     DuplicateValueBounds,
+    DuplicateKeyedJoin,
+    InvalidKeyedJoin,
     InvalidValueBound,
     UnknownValueBoundLocation,
 }

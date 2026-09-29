@@ -133,6 +133,7 @@ pub fn semantic_work_facts(kind: &Kind) -> Result<PureExpressionFacts, PureExpre
             KindSemanticLaw::TerminalTransduction(_) => {}
             KindSemanticLaw::ResourcePorts(_) => {}
             KindSemanticLaw::ValueContracts(_) => {}
+            KindSemanticLaw::KeyedJoin(_) => {}
             KindSemanticLaw::ExternalEffects(value) => set_once(
                 &mut external_effects,
                 *value,

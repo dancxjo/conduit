@@ -344,3 +344,132 @@ fn plan_seals_combine_latest_state_and_all_close_terminal_profiles() {
             NormalCloseTransduction::FlushThenPropagateWhenAllClose(_)
         )));
 }
+
+#[test]
+fn plan_seals_keyed_join_types_capacity_policy_and_terminal_profiles() {
+    let key = CheckedValueContract::new(kind_id("value/text"), 32, vec![]).unwrap();
+    let left_value = CheckedValueContract::new(kind_id("value/count"), 8, vec![]).unwrap();
+    let right_value = CheckedValueContract::new(kind_id("value/bool"), 1, vec![]).unwrap();
+    let join = conduit_semantic_catalog::flow_join_by_key_semantic_contract(
+        &key,
+        &left_value,
+        &right_value,
+    )
+    .unwrap();
+    let contract = |location| {
+        join.value_contracts()
+            .iter()
+            .find(|contract| contract.location == location)
+            .unwrap()
+            .contract
+            .clone()
+    };
+    let left = contract(FrontValueLocation::Input(port_id("left")));
+    let right = contract(FrontValueLocation::Input(port_id("right")));
+    let joined = contract(FrontValueLocation::Output(port_id("joined")));
+    let left_source = endpoint(
+        "test/keyed-left-source",
+        "test/keyed-left-source@1",
+        PortDirection::Output,
+        &left,
+    );
+    let right_source = endpoint(
+        "test/keyed-right-source",
+        "test/keyed-right-source@1",
+        PortDirection::Output,
+        &right,
+    );
+    let sink = endpoint(
+        "test/keyed-joined-sink",
+        "test/keyed-joined-sink@1",
+        PortDirection::Input,
+        &joined,
+    );
+    let left_recovery = recovery("test/keyed-left-recovery");
+    let right_recovery = recovery("test/keyed-right-recovery");
+    let joined_recovery = recovery("test/keyed-joined-recovery");
+    let mut startup = conduit_form::StartupCatalog::new();
+    let mut profile = conduit_form::ProfileCatalog::new();
+    for kind in [
+        &left_source,
+        &right_source,
+        &sink,
+        &left_recovery,
+        &right_recovery,
+        &joined_recovery,
+    ] {
+        startup
+            .insert(conduit_form::KindSignature {
+                kind: kind.kind_id.as_str().into(),
+                startup_parameters: Vec::new(),
+            })
+            .unwrap();
+        profile.insert_kind((*kind).clone()).unwrap();
+    }
+    conduit_semantic_catalog::install_flow_join_by_key_kind(
+        &key,
+        &left_value,
+        &right_value,
+        &mut startup,
+        &mut profile,
+    )
+    .unwrap();
+    let syntax = conduit_form::parse_syntax_document(
+        "form join-keyed-flows {\n left: test/keyed-left-source\n right: test/keyed-right-source\n join: flow/join/by-key\n sink: test/keyed-joined-sink\n left-recovery: test/keyed-left-recovery\n right-recovery: test/keyed-right-recovery\n joined-recovery: test/keyed-joined-recovery\n left.out >> join.left\n right.out >> join.right\n join.joined >> sink.in\n left.out! >> left-recovery.terminal\n right.out! >> right-recovery.terminal\n join.joined! >> joined-recovery.terminal\n}\n",
+    );
+    let checked = conduit_form::check_syntax_document(&syntax, &startup).unwrap();
+    let expanded =
+        conduit_form::expand_canonical_form(&checked, "join-keyed-flows", &profile).unwrap();
+    let host = HostAdvertisement {
+        protocol_version: PROTOCOL_VERSION,
+        host_id: HostId::from("host/keyed-join-proof"),
+        boot_id: "boot/keyed-join-proof".into(),
+        offer_generation: OfferGeneration(1),
+        profile: HostProfileId::from("std/keyed-join-proof@1"),
+        bases: Vec::new(),
+        resources: Vec::new(),
+        capabilities: vec![
+            offer(left_source, "test/keyed-left-source-back@1"),
+            offer(right_source, "test/keyed-right-source-back@1"),
+            conduit_std_offers::flow_join_by_key_offer(&key, &left_value, &right_value).unwrap(),
+            offer(sink, "test/keyed-joined-sink-back@1"),
+            offer(left_recovery, "test/keyed-left-recovery-back@1"),
+            offer(right_recovery, "test/keyed-right-recovery-back@1"),
+            offer(joined_recovery, "test/keyed-joined-recovery-back@1"),
+        ],
+        planner_capabilities: Vec::new(),
+    };
+    let placements =
+        conduit_planner::default_expanded_placements(&expanded, core::slice::from_ref(&host))
+            .unwrap();
+    let plan = conduit_planner::plan_expanded_canonical(
+        &expanded,
+        core::slice::from_ref(&host),
+        &placements,
+        &[BaseImplementationId::from("conduit.base/local@1")],
+    )
+    .unwrap();
+    let placement = plan.fragments[0]
+        .placements
+        .iter()
+        .find(|placement| {
+            placement.kind_id.as_str() == conduit_semantic_catalog::FLOW_JOIN_BY_KEY_KIND
+        })
+        .unwrap();
+    let law = placement.semantic_contract.keyed_join().unwrap();
+    assert_eq!(law.key, key);
+    assert_eq!(law.left_value, left_value);
+    assert_eq!(law.right_value, right_value);
+    assert_eq!(
+        law.maximum_pending_per_side,
+        conduit_semantic_catalog::FLOW_JOIN_BY_KEY_PENDING_PER_SIDE
+    );
+    assert_eq!(placement.terminal_transductions.len(), 2);
+    assert!(placement
+        .terminal_transductions
+        .iter()
+        .all(|profile| matches!(
+            profile.normal_close,
+            NormalCloseTransduction::PropagateWhenAllClose
+        )));
+}
