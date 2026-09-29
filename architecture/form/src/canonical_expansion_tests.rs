@@ -161,6 +161,39 @@ fn fixed_arity_relational_glyph_expands_to_one_ordinary_gear() {
 }
 
 #[test]
+fn variadic_relational_glyph_expands_to_one_finitely_specialized_gear() {
+    let mut profile = ProfileCatalog::new();
+    profile
+        .insert_homogeneous_variadic(
+            KindProjection {
+                kind_id: kind_id("flow/merge"),
+                kind_contract_revision: KindIdentity::from("flow/merge@1"),
+                inputs: vec![port("operand", PortDirection::Input)],
+                outputs: vec![port("merged", PortDirection::Output)],
+                configuration: vec![],
+            },
+            2,
+            16,
+        )
+        .unwrap();
+    let startup = profile.startup_catalog().unwrap();
+    let checked = check_syntax_document(
+        &parse_syntax_document(
+            "form main (\n >> a: test/value\n >> b: test/value\n >> c: test/value\n merged: test/value >>\n) {\n a >< b >< c >> merged\n}\n",
+        ),
+        &startup,
+    )
+    .unwrap();
+    let authoring = expand_canonical_form_for_authoring(&checked, "main", &profile).unwrap();
+    assert_eq!(authoring.expanded.gears.len(), 1);
+    let gear = &authoring.expanded.gears[0];
+    assert_eq!(gear.kind_id.as_str(), "flow/merge");
+    assert_eq!(gear.inputs.len(), 3);
+    assert_eq!(authoring.input_bindings.len(), 3);
+    assert_eq!(authoring.output_bindings.len(), 1);
+}
+
+#[test]
 fn canonical_terminal_transduction_survives_expansion_and_changes_identity() {
     fn expand(
         abnormal: AbnormalTerminalTransduction,

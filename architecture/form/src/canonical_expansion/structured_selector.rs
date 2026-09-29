@@ -207,6 +207,7 @@ pub(super) fn resolve_selectors(
         };
         let instance = instantiate_gear(
             &gear,
+            None,
             &name,
             source_form,
             forms,

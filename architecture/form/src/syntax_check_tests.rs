@@ -86,20 +86,35 @@ fn standard_glyph_catalog() -> StartupCatalog {
                 startup_parameters: vec![],
             })
             .unwrap();
-        catalog
-            .insert_fore(
-                kind,
-                CheckedFront::new(
-                    vec![],
-                    vec![
-                        text_port("left", PortDirection::Input),
-                        text_port("right", PortDirection::Input),
-                    ],
-                    vec![text_port("result", PortDirection::Output)],
-                    None,
-                ),
-            )
-            .unwrap();
+        if kind == "flow/merge" {
+            catalog
+                .insert_homogeneous_variadic_fore(
+                    kind,
+                    crate::HomogeneousVariadicFore::new(
+                        text_port("operand", PortDirection::Input),
+                        text_port("result", PortDirection::Output),
+                        2,
+                        16,
+                    )
+                    .unwrap(),
+                )
+                .unwrap();
+        } else {
+            catalog
+                .insert_fore(
+                    kind,
+                    CheckedFront::new(
+                        vec![],
+                        vec![
+                            text_port("left", PortDirection::Input),
+                            text_port("right", PortDirection::Input),
+                        ],
+                        vec![text_port("result", PortDirection::Output)],
+                        None,
+                    ),
+                )
+                .unwrap();
+        }
     }
     catalog
 }
@@ -227,6 +242,37 @@ fn standard_glyph_prelude_resolves_every_reviewed_binding_lazily() {
         &StartupCatalog::new(),
     )
     .expect("unused prelude bindings do not require installed Kinds");
+}
+
+#[test]
+fn repeated_variadic_glyph_specializes_one_exact_ordinary_gear() {
+    let checked = check_syntax_document(
+        &parse_syntax_document(
+            "form example (\n >> a: Text\n >> b: Text\n >> c: Text\n result: Text >>\n) {\n a >< b >< c >> result\n}\n",
+        ),
+        &standard_glyph_catalog(),
+    )
+    .unwrap();
+    let crate::CheckedCordStage::RelationalGear {
+        operands,
+        gear,
+        input_ports,
+        ..
+    } = &checked.forms[0].cords[0].stages[0]
+    else {
+        panic!("expected one specialized relational Gear")
+    };
+    assert_eq!(operands, &["a", "b", "c"]);
+    assert_eq!(gear.kind, "flow/merge");
+    assert_eq!(input_ports, &["operand-01", "operand-02", "operand-03"]);
+}
+
+#[test]
+fn variadic_glyph_refuses_an_implicit_unary_specialization() {
+    let source = "form example (\n >> a: Text\n result: Text >>\n) {\n a >< result\n}\n";
+    let error = check_syntax_document(&parse_syntax_document(source), &standard_glyph_catalog())
+        .expect_err("a reviewed variadic Fore retains its minimum arity");
+    assert!(error.message.contains("accepts 2..=16 inputs, not 1"));
 }
 
 #[test]

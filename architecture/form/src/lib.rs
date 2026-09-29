@@ -48,6 +48,7 @@ mod text_value;
 mod value_pattern;
 mod value_pattern_source;
 mod value_type;
+mod variadic_front;
 
 pub use back_catalog::*;
 pub use canonical_expansion::*;
@@ -64,6 +65,7 @@ pub use syntax::*;
 pub use syntax_highlight::*;
 pub use value_pattern::*;
 pub use value_pattern_source::*;
+pub use variadic_front::*;
 
 pub const MAXIMUM_FORM_SOURCE_BYTES: usize = 1024 * 1024;
 pub const MAXIMUM_FORM_TOKENS: usize = 131_072;
@@ -355,6 +357,7 @@ impl From<&conduit_core::Kind> for KindProjection {
 pub struct ProfileCatalog {
     kinds: BTreeMap<KindId, KindProjection>,
     canonical_kinds: BTreeMap<KindId, conduit_core::Kind>,
+    variadic_fores: BTreeMap<KindId, HomogeneousVariadicFore>,
 }
 
 impl ProfileCatalog {
@@ -372,6 +375,34 @@ impl ProfileCatalog {
         Ok(())
     }
 
+    /// Installs a reviewed finite family which specializes one homogeneous
+    /// input prototype into exact ordinary ports at each use site.
+    pub fn insert_homogeneous_variadic(
+        &mut self,
+        definition: KindProjection,
+        minimum_inputs: u16,
+        maximum_inputs: u16,
+    ) -> Result<(), FormError> {
+        let ([prototype], [output]) = (definition.inputs.as_slice(), definition.outputs.as_slice())
+        else {
+            return Err(FormError::InvalidKind(
+                "a homogeneous variadic projection requires one input prototype and one output"
+                    .into(),
+            ));
+        };
+        let family = HomogeneousVariadicFore::new(
+            prototype.clone(),
+            output.clone(),
+            minimum_inputs,
+            maximum_inputs,
+        )
+        .map_err(FormError::InvalidKind)?;
+        let kind_id = definition.kind_id.clone();
+        self.insert(definition)?;
+        self.variadic_fores.insert(kind_id, family);
+        Ok(())
+    }
+
     /// Installs canonical Kind truth while retaining the smaller checker view.
     pub fn insert_kind(&mut self, kind: conduit_core::Kind) -> Result<(), FormError> {
         kind.validate()
@@ -384,6 +415,31 @@ impl ProfileCatalog {
 
     pub fn get(&self, kind_id: &KindId) -> Option<&KindProjection> {
         self.kinds.get(kind_id)
+    }
+
+    pub(crate) fn projection_for_arity(
+        &self,
+        kind_id: &KindId,
+        input_count: usize,
+    ) -> Result<Option<KindProjection>, String> {
+        let Some(definition) = self.kinds.get(kind_id) else {
+            return Ok(None);
+        };
+        let Some(family) = self.variadic_fores.get(kind_id) else {
+            return Ok((definition.inputs.len() == input_count).then(|| definition.clone()));
+        };
+        let fore = family.specialize(input_count, Vec::new())?;
+        Ok(Some(KindProjection {
+            kind_id: definition.kind_id.clone(),
+            kind_contract_revision: definition.kind_contract_revision.clone(),
+            inputs: fore.inputs().to_vec(),
+            outputs: fore.outputs().to_vec(),
+            configuration: definition.configuration.clone(),
+        }))
+    }
+
+    pub(crate) fn is_homogeneous_variadic(&self, kind_id: &KindId) -> bool {
+        self.variadic_fores.contains_key(kind_id)
     }
 
     pub fn canonical_kind(&self, kind_id: &KindId) -> Option<&conduit_core::Kind> {
@@ -458,7 +514,14 @@ impl ProfileCatalog {
                     shorthand,
                 )
             };
-            startup.insert_fore(definition.kind_id.as_str(), fore)?;
+            if let Some(family) = self.variadic_fores.get(&definition.kind_id) {
+                startup.insert_homogeneous_variadic_fore(
+                    definition.kind_id.as_str(),
+                    family.clone(),
+                )?;
+            } else {
+                startup.insert_fore(definition.kind_id.as_str(), fore)?;
+            }
         }
         Ok(startup)
     }

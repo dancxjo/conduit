@@ -20,6 +20,7 @@ pub struct KindSignature {
 pub struct StartupCatalog {
     kinds: BTreeMap<String, KindSignature>,
     fores: BTreeMap<String, CheckedFront>,
+    variadic_fores: BTreeMap<String, crate::HomogeneousVariadicFore>,
     structured_types: BTreeMap<String, conduit_core::StructuredInfoType>,
     value_kind_aliases: BTreeMap<String, conduit_core::KindId>,
 }
@@ -86,6 +87,50 @@ impl StartupCatalog {
 
     pub fn fore(&self, kind: &str) -> Option<&CheckedFront> {
         self.fores.get(kind)
+    }
+
+    /// Marks one reviewed Kind Fore as a finite homogeneous input family.
+    /// Each use is specialized to ordinary exact ports before checking ends.
+    pub fn insert_homogeneous_variadic_fore(
+        &mut self,
+        kind: &str,
+        family: crate::HomogeneousVariadicFore,
+    ) -> Result<(), String> {
+        let signature = self
+            .kinds
+            .get(kind)
+            .ok_or_else(|| format!("cannot install a variadic Fore for unknown Kind '{kind}'"))?;
+        let startup_parameters = self
+            .canonical_startup_parameters(signature)
+            .map_err(|error| format!("invalid variadic Fore for Kind '{kind}': {error:?}"))?;
+        family.specialize(usize::from(family.minimum_inputs()), startup_parameters)?;
+        if self.variadic_fores.contains_key(kind) {
+            return Err(format!("duplicate variadic Fore for Kind '{kind}'"));
+        }
+        self.variadic_fores.insert(kind.into(), family);
+        Ok(())
+    }
+
+    pub(crate) fn fore_for_arity(
+        &self,
+        kind: &str,
+        input_count: usize,
+    ) -> Result<Option<CheckedFront>, String> {
+        if let Some(family) = self.variadic_fores.get(kind) {
+            let signature = self
+                .kinds
+                .get(kind)
+                .expect("variadic Fores retain their Kind signature");
+            let startup_parameters = self
+                .canonical_startup_parameters(signature)
+                .map_err(|error| format!("invalid variadic Fore for Kind '{kind}': {error:?}"))?;
+            return family.specialize(input_count, startup_parameters).map(Some);
+        }
+        Ok(self
+            .fores
+            .get(kind)
+            .filter(|fore| fore.inputs().len() == input_count)
+            .cloned())
     }
 
     /// Resolves authoring spellings into the canonical startup type identities
