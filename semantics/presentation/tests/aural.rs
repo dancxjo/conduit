@@ -340,6 +340,21 @@ fn participation_face(pattern_maximum: u16) -> Presentation {
                     .unwrap(),
                 ),
                 argument(
+                    "sample/note",
+                    "MIDI note",
+                    CheckedValueContract::new(
+                        "value/u8".into(),
+                        1,
+                        vec![ValueConstraint::FixedIntegerRange {
+                            minimum: vec![0],
+                            maximum: vec![127],
+                            minimum_endpoint: IntervalEndpoint::Inclusive,
+                            maximum_endpoint: IntervalEndpoint::Inclusive,
+                        }],
+                    )
+                    .unwrap(),
+                ),
+                argument(
                     "sample/distance",
                     "Sampling distance",
                     CheckedValueContract::new(
@@ -386,7 +401,7 @@ fn exact_inward_participation_contract_survives_aural_projection() {
         .filter(|clause| clause.kind == FaceUtteranceClauseKind::ActionArgument)
         .collect::<Vec<_>>();
 
-    assert_eq!(arguments.len(), 5);
+    assert_eq!(arguments.len(), 6);
     for (name, expected) in [
         (
             "sample/name",
@@ -399,6 +414,10 @@ fn exact_inward_participation_contract_survives_aural_projection() {
         (
             "sample/offset",
             "a value from exclusive -2 through inclusive 2",
+        ),
+        (
+            "sample/note",
+            "a fixed-width integer from inclusive canonical 0x00 through inclusive canonical 0x7f",
         ),
         (
             "sample/distance",

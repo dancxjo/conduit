@@ -140,6 +140,21 @@ fn ranged_and_member_arguments() -> Vec<FaceActionArgument> {
             .expect("reviewed Face distance range is canonical"),
         },
         FaceActionArgument {
+            name: "sample/note".into(),
+            value_name: "MIDI note".into(),
+            contract: CheckedValueContract::new(
+                "value/u8".into(),
+                1,
+                vec![ValueConstraint::FixedIntegerRange {
+                    minimum: vec![0],
+                    maximum: vec![127],
+                    minimum_endpoint: IntervalEndpoint::Inclusive,
+                    maximum_endpoint: IntervalEndpoint::Inclusive,
+                }],
+            )
+            .expect("reviewed fixed-width integer range is canonical"),
+        },
+        FaceActionArgument {
             name: "sample/mode".into(),
             value_name: "Sampling mode".into(),
             contract: CheckedValueContract::new(
@@ -494,7 +509,7 @@ fn ranges_and_finite_membership_are_face_truth_across_admission_and_linear_inspe
     actions[0].arguments = ranged_and_member_arguments();
     let face = rebuild_with_interactions(&base, actions);
     let show = available_mask_show(&face);
-    let interaction = |count: u64, distance: Quantity, mode: &[u8], sequence| {
+    let interaction = |count: u64, distance: Quantity, note: u8, mode: &[u8], sequence| {
         FaceInteraction::new(
             &face,
             &show,
@@ -511,6 +526,11 @@ fn ranges_and_finite_membership_are_face_truth_across_admission_and_linear_inspe
                     value_kind: DISTANCE_INFO_ID.into(),
                     value: distance.encode().to_vec(),
                 },
+                FaceInteractionArgument {
+                    name: "sample/note".into(),
+                    value_kind: "value/u8".into(),
+                    value: vec![note],
+                },
                 argument("sample/mode", mode),
             ],
             sequence,
@@ -520,6 +540,7 @@ fn ranges_and_finite_membership_are_face_truth_across_admission_and_linear_inspe
     interaction(
         3,
         Quantity::new(150, QuantityUnit::Centimeter),
+        60,
         b"careful",
         1,
     )
@@ -528,21 +549,33 @@ fn ranges_and_finite_membership_are_face_truth_across_admission_and_linear_inspe
         interaction(
             5,
             Quantity::new(150, QuantityUnit::Centimeter),
+            60,
             b"careful",
             2,
         ),
         Err(FaceInteractionRefusal::ViolatedConstraint)
     );
     assert_eq!(
-        interaction(3, Quantity::new(3, QuantityUnit::Meter), b"careful", 3,),
+        interaction(3, Quantity::new(3, QuantityUnit::Meter), 60, b"careful", 3,),
         Err(FaceInteractionRefusal::ViolatedConstraint)
     );
     assert_eq!(
         interaction(
             3,
             Quantity::new(150, QuantityUnit::Centimeter),
-            b"reckless",
+            200,
+            b"careful",
             4,
+        ),
+        Err(FaceInteractionRefusal::ViolatedConstraint)
+    );
+    assert_eq!(
+        interaction(
+            3,
+            Quantity::new(150, QuantityUnit::Centimeter),
+            60,
+            b"reckless",
+            5,
         ),
         Err(FaceInteractionRefusal::ViolatedConstraint)
     );
@@ -553,7 +586,12 @@ fn ranges_and_finite_membership_are_face_truth_across_admission_and_linear_inspe
         .iter()
         .find(|line| line.starts_with("ACTION "))
         .expect("deterministic-linear Mask exposes the exact action contracts");
-    for constraint in ["UnsignedRange", "QuantityRange", "CanonicalMembership"] {
+    for constraint in [
+        "UnsignedRange",
+        "FixedIntegerRange",
+        "QuantityRange",
+        "CanonicalMembership",
+    ] {
         assert!(
             action.contains(constraint),
             "missing {constraint}: {action}"
