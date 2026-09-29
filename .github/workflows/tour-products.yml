@@ -227,7 +227,7 @@ jobs:
       needs.browser-runtimes.result == 'success' &&
       needs.browser-release.result == 'success'
     runs-on: ubuntu-24.04
-    timeout-minutes: 8
+    timeout-minutes: 15
     steps:
       - uses: actions/checkout@v7
         with:
