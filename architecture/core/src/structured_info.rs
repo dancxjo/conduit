@@ -15,6 +15,7 @@ pub use borrowed::*;
 mod inspection;
 mod profile;
 mod selection;
+mod sequence;
 mod transport;
 mod tuple;
 mod validation;
@@ -25,6 +26,7 @@ use canonical::{
 pub use inspection::*;
 pub use profile::*;
 pub use selection::*;
+pub use sequence::*;
 pub use transport::*;
 pub use tuple::*;
 pub use validation::PreparedStructuredValueValidator;

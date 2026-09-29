@@ -38,6 +38,10 @@ pub const TIME_SAMPLE_EXECUTION_PROFILE: &str = "conduit.std/time-sample-kernel-
 pub const TIME_SAMPLE_IMPLEMENTATION: &str = "std/kernel-time-sample@1";
 pub const TIME_SAMPLE_ARTIFACT: &str = "conduit-std-host/time-sample@1";
 pub const TIME_SAMPLE_MAXIMUM_VALUE_BYTES: u32 = 100;
+pub const TIME_WINDOW_EXECUTION_PROFILE: &str = "conduit.std/time-window-kernel-hosted@1";
+pub const TIME_WINDOW_IMPLEMENTATION: &str = "std/kernel-time-window@1";
+pub const TIME_WINDOW_ARTIFACT: &str = "conduit-std-host/time-window@1";
+pub const TIME_WINDOW_MAXIMUM_VALUE_BYTES: u32 = 4_096;
 
 pub fn tick_capability_offer() -> CapabilityOffer {
     offer(
@@ -148,6 +152,24 @@ pub fn time_sample_offer(
     ))
 }
 
+pub fn time_window_offer(
+    value: &conduit_core::CheckedValueContract,
+    maximum_items: u16,
+) -> Result<CapabilityOffer, &'static str> {
+    if value.maximum_bytes > TIME_WINDOW_MAXIMUM_VALUE_BYTES {
+        return Err("std time/window specialization exceeds the retained-value byte bound");
+    }
+    Ok(monotonic_offer(
+        conduit_semantic_catalog::time_window_semantic_contract(value, maximum_items)?,
+        Identity {
+            capability: "time-window-v1",
+            profile: TIME_WINDOW_EXECUTION_PROFILE,
+            implementation: TIME_WINDOW_IMPLEMENTATION,
+            artifact: TIME_WINDOW_ARTIFACT,
+        },
+    ))
+}
+
 fn timing_offer(
     contract: Kind,
     capability: &str,
@@ -232,6 +254,35 @@ mod tests {
         )
         .unwrap();
         assert!(time_sample_offer(&oversized).is_err());
+    }
+
+    #[test]
+    fn window_offer_preserves_specialization_and_requires_monotonic_time() {
+        let text = conduit_core::CheckedValueContract::new(
+            conduit_core::kind_id("value/text"),
+            73,
+            Vec::new(),
+        )
+        .unwrap();
+        let offer = time_window_offer(&text, 8).unwrap();
+        assert_eq!(offer.host_calls.len(), 1);
+        assert_eq!(offer.resource_requirements.len(), 1);
+        assert!(matches!(
+            offer
+                .semantic_contract
+                .laws
+                .iter()
+                .find_map(|law| match law {
+                    conduit_core::KindSemanticLaw::Terminal(behavior) => Some(behavior),
+                    _ => None,
+                }),
+            Some(
+                conduit_core::KindTerminalBehavior::TumblingProcessingTimeWindow {
+                    maximum_items: 8
+                }
+            )
+        ));
+        assert_eq!(offer.semantic_contract.value_contracts().len(), 4);
     }
 
     #[test]

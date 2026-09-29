@@ -16,6 +16,7 @@ macro_rules! installed_step_dispatch {
                     Self::ButtonMapper(operation) => StepBack::<PORTS>::terminal_transductions(operation.as_ref()),
                     Self::MidiInput(operation) => StepBack::<PORTS>::terminal_transductions(operation.as_ref()),
                     Self::FlowJoinByKey(operation) => StepBack::<PORTS>::terminal_transductions(operation.as_ref()),
+                    Self::TimeWindow(operation) => StepBack::<PORTS>::terminal_transductions(operation.as_ref()),
                     Self::TestPcmSource(operation) => StepBack::<PORTS>::terminal_transductions(operation.as_ref()),
                     $(
                         $(#[$attribute])*
@@ -34,6 +35,7 @@ macro_rules! installed_step_dispatch {
                     Self::ButtonMapper(operation) => StepBack::<PORTS>::terminal_transduction(operation.as_ref()),
                     Self::MidiInput(operation) => StepBack::<PORTS>::terminal_transduction(operation.as_ref()),
                     Self::FlowJoinByKey(operation) => StepBack::<PORTS>::terminal_transduction(operation.as_ref()),
+                    Self::TimeWindow(operation) => StepBack::<PORTS>::terminal_transduction(operation.as_ref()),
                     Self::TestPcmSource(operation) => StepBack::<PORTS>::terminal_transduction(operation.as_ref()),
                     $(
                         $(#[$attribute])*
@@ -52,6 +54,7 @@ macro_rules! installed_step_dispatch {
                     Self::ButtonMapper(operation) => StepBack::<PORTS>::step_committed(operation.as_mut()),
                     Self::MidiInput(operation) => StepBack::<PORTS>::step_committed(operation.as_mut()),
                     Self::FlowJoinByKey(operation) => StepBack::<PORTS>::step_committed(operation.as_mut()),
+                    Self::TimeWindow(operation) => StepBack::<PORTS>::step_committed(operation.as_mut()),
                     Self::TestPcmSource(operation) => StepBack::<PORTS>::step_committed(operation.as_mut()),
                     $(
                         $(#[$attribute])*
@@ -72,6 +75,7 @@ macro_rules! installed_step_dispatch {
                     Self::ButtonMapper(operation) => StepBack::<PORTS>::step(operation.as_mut(), io, input_bytes),
                     Self::MidiInput(operation) => StepBack::<PORTS>::step(operation.as_mut(), io, input_bytes),
                     Self::FlowJoinByKey(operation) => StepBack::<PORTS>::step(operation.as_mut(), io, input_bytes),
+                    Self::TimeWindow(operation) => StepBack::<PORTS>::step(operation.as_mut(), io, input_bytes),
                     Self::TestPcmSource(operation) => StepBack::<PORTS>::step(operation.as_mut(), io, input_bytes),
                     $(
                         $(#[$attribute])*
@@ -88,6 +92,7 @@ macro_rules! installed_step_dispatch {
                     Self::ButtonMapper(operation) => StepBack::<PORTS>::accepts_input_while_host_call_pending(operation.as_ref()),
                     Self::MidiInput(operation) => StepBack::<PORTS>::accepts_input_while_host_call_pending(operation.as_ref()),
                     Self::FlowJoinByKey(operation) => StepBack::<PORTS>::accepts_input_while_host_call_pending(operation.as_ref()),
+                    Self::TimeWindow(operation) => StepBack::<PORTS>::accepts_input_while_host_call_pending(operation.as_ref()),
                     Self::TestPcmSource(operation) => StepBack::<PORTS>::accepts_input_while_host_call_pending(operation.as_ref()),
                     $(
                         $(#[$attribute])*
@@ -110,6 +115,7 @@ macro_rules! installed_step_dispatch {
                     Self::ButtonMapper(operation) => StepBack::<PORTS>::retains_host_call_input(operation.as_ref(), request, value),
                     Self::MidiInput(operation) => StepBack::<PORTS>::retains_host_call_input(operation.as_ref(), request, value),
                     Self::FlowJoinByKey(operation) => StepBack::<PORTS>::retains_host_call_input(operation.as_ref(), request, value),
+                    Self::TimeWindow(operation) => StepBack::<PORTS>::retains_host_call_input(operation.as_ref(), request, value),
                     Self::TestPcmSource(operation) => StepBack::<PORTS>::retains_host_call_input(operation.as_ref(), request, value),
                     $(
                         $(#[$attribute])*
@@ -126,6 +132,7 @@ macro_rules! installed_step_dispatch {
                     Self::ButtonMapper(operation) => StepBack::<PORTS>::cancel(operation.as_mut()),
                     Self::MidiInput(operation) => StepBack::<PORTS>::cancel(operation.as_mut()),
                     Self::FlowJoinByKey(operation) => StepBack::<PORTS>::cancel(operation.as_mut()),
+                    Self::TimeWindow(operation) => StepBack::<PORTS>::cancel(operation.as_mut()),
                     Self::TestPcmSource(operation) => StepBack::<PORTS>::cancel(operation.as_mut()),
                     $(
                         $(#[$attribute])*
