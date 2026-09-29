@@ -57,8 +57,13 @@ pub(crate) fn check_document(
             crate::value_type::checked_front(form, catalog)?,
         );
     }
-    let forms =
-        resolve_use_declarations(document, catalog, &unresolved_form_signatures, &form_fronts)?;
+    let forms = resolve_use_declarations(
+        document,
+        catalog,
+        &BTreeMap::new(),
+        &unresolved_form_signatures,
+        &form_fronts,
+    )?;
     let forms = specialize_named_type_parameters(forms, catalog)?;
     let form_signatures = form_signatures(&forms)?;
     let mut form_fronts = BTreeMap::new();
@@ -159,9 +164,10 @@ pub(crate) fn check_document(
     })
 }
 
-fn resolve_use_declarations(
+pub(crate) fn resolve_use_declarations(
     document: &SyntaxDocument,
     catalog: &StartupCatalog,
+    source_paths: &BTreeMap<String, String>,
     forms: &BTreeMap<String, KindSignature>,
     form_fronts: &BTreeMap<String, CheckedFront>,
 ) -> Result<Vec<FormSyntax>, SyntaxCheckDiagnostic> {
@@ -174,17 +180,23 @@ fn resolve_use_declarations(
     }
     for declaration in &document.uses {
         let path = declaration.path.as_str();
-        if catalog.get(path).is_none() && !forms.contains_key(path) {
+        let canonical = if catalog.get(path).is_some() || forms.contains_key(path) {
+            path
+        } else if let Some(form) = source_paths.get(path) {
+            form
+        } else {
             return Err(use_diagnostic(
                 declaration.path_span,
-                format!("use path '{path}' does not resolve to an installed Kind or source Form"),
+                format!(
+                    "with path '{path}' does not resolve to an installed Kind or checked source Form"
+                ),
             ));
-        }
+        };
         if forms.contains_key(&declaration.alias.text) {
             return Err(use_diagnostic(
                 declaration.alias.span,
                 format!(
-                    "use alias '{}' conflicts with a source Form name",
+                    "with alias '{}' conflicts with a source Form name",
                     declaration.alias.text
                 ),
             ));
@@ -197,7 +209,7 @@ fn resolve_use_declarations(
             return Err(use_diagnostic(
                 declaration.alias.span,
                 format!(
-                    "standard glyph '{}' is already in scope; use 'without glyphs' before rebinding it",
+                    "standard glyph '{}' is already in scope; put 'sans glyphs' before rebinding it",
                     declaration.alias.text
                 ),
             ));
@@ -205,13 +217,13 @@ fn resolve_use_declarations(
         if aliases
             .insert(
                 declaration.alias.text.clone(),
-                (declaration.path.clone(), declaration.alias.span, false),
+                (canonical.to_string(), declaration.alias.span, false),
             )
             .is_some()
         {
             return Err(use_diagnostic(
                 declaration.alias.span,
-                format!("duplicate use alias '{}'", declaration.alias.text),
+                format!("duplicate with alias '{}'", declaration.alias.text),
             ));
         }
     }
@@ -232,12 +244,21 @@ fn resolve_use_declarations(
                         resolve_stage_aliases(&mut arm.stages, &mut aliases, catalog, form_fronts)?;
                     }
                 }
-                BackStatement::Pool(_) | BackStatement::LocalValue(_) => {}
+                BackStatement::Pool(pool) => {
+                    if let Some((canonical, _, used)) = aliases.get_mut(&pool.member_form.text) {
+                        pool.member_form.text.clone_from(canonical);
+                        *used = true;
+                    }
+                }
+                BackStatement::LocalValue(_) => {}
             }
         }
     }
     if let Some((alias, (_, span, _))) = aliases.iter().find(|(_, (_, _, used))| !*used) {
-        return Err(use_diagnostic(*span, format!("unused use alias '{alias}'")));
+        return Err(use_diagnostic(
+            *span,
+            format!("unused with alias '{alias}'"),
+        ));
     }
     Ok(resolved)
 }
@@ -435,7 +456,7 @@ fn reject_alias_shadowing(
         if aliases.contains_key(name.0) {
             return Err(use_diagnostic(
                 name.1,
-                format!("binding '{}' shadows a use alias", name.0),
+                format!("binding '{}' shadows a with alias", name.0),
             ));
         }
     }
@@ -450,7 +471,7 @@ fn use_diagnostic(span: crate::Span, message: String) -> SyntaxCheckDiagnostic {
     }
 }
 
-fn form_signatures(
+pub(crate) fn form_signatures(
     forms: &[FormSyntax],
 ) -> Result<BTreeMap<String, KindSignature>, SyntaxCheckDiagnostic> {
     let mut signatures = BTreeMap::new();

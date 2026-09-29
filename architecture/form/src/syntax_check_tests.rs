@@ -135,9 +135,9 @@ fn completion_policy_is_exact_checked_meaning() {
 }
 
 #[test]
-fn authored_use_alias_resolves_to_canonical_kind_without_changing_checked_identity() {
+fn authored_with_alias_resolves_to_canonical_kind_without_changing_checked_identity() {
     let direct = check("form example {\n tick: time/every(1s)\n}\n");
-    let alias = check("use time/every as cadence\nform example {\n tick: cadence(1s)\n}\n");
+    let alias = check("with time/every as cadence\nform example {\n tick: cadence(1s)\n}\n");
     assert_eq!(alias.forms[0].gears[0].kind, "time/every");
     assert_eq!(
         alias.forms[0].checked_form_id,
@@ -152,7 +152,7 @@ fn explicit_glyph_alias_lowers_to_the_same_ordinary_inline_gear() {
         "form transform (\n input: Text >> output: Text\n) {\n input >> output\n}\nform example (\n input: Text >> output: Text\n) {\n input >> transform() >> output\n}\n",
     );
     let glyph = check(
-        "use transform as ^^\nform transform (\n input: Text >> output: Text\n) {\n input >> output\n}\nform example (\n input: Text >> output: Text\n) {\n input ^^ output\n}\n",
+        "with transform as ^^\nform transform (\n input: Text >> output: Text\n) {\n input >> output\n}\nform example (\n input: Text >> output: Text\n) {\n input ^^ output\n}\n",
     );
     assert_eq!(glyph.forms[0].gears[0].kind, "transform");
     assert_eq!(glyph.forms[0].cords, direct.forms[0].cords);
@@ -165,7 +165,7 @@ fn explicit_glyph_alias_lowers_to_the_same_ordinary_inline_gear() {
 
 #[test]
 fn installed_kind_glyph_requires_and_uses_its_exact_checked_fore() {
-    let source = "use text/upper as ^^\nform example (\n input: Text >> output: Text\n) {\n input ^^ output\n}\n";
+    let source = "with text/upper as ^^\nform example (\n input: Text >> output: Text\n) {\n input ^^ output\n}\n";
     let missing = check_syntax_document(&parse_syntax_document(source), &catalog())
         .expect_err("a startup signature alone is not an exact runtime Fore");
     assert!(missing.message.contains("exact checked Fore"));
@@ -203,7 +203,7 @@ fn configured_gear_occurrence_may_have_a_glyph_name() {
 #[test]
 fn fixed_arity_relational_glyph_binds_operands_in_checked_fore_order() {
     let checked = check(
-        "without glyphs\nuse pair as &>\nform pair (\n >> left: Text\n >> right: Text\n result: Text >>\n) {\n}\nform example (\n >> a: Text\n >> b: Text\n paired: Text >>\n) {\n a &> b >> paired\n}\n",
+        "sans glyphs\nwith pair as &>\nform pair (\n >> left: Text\n >> right: Text\n result: Text >>\n) {\n}\nform example (\n >> a: Text\n >> b: Text\n paired: Text >>\n) {\n a &> b >> paired\n}\n",
     );
     let crate::CheckedCordStage::RelationalGear {
         operands,
@@ -281,35 +281,35 @@ fn without_glyphs_removes_only_the_standard_prelude() {
     let body =
         "form example (\n >> a: Text\n >> b: Text\n result: Text >>\n) {\n a &> b >> result\n}\n";
     let missing = check_syntax_document(
-        &parse_syntax_document(&format!("without glyphs\n{body}")),
+        &parse_syntax_document(&format!("sans glyphs\n{body}")),
         &catalog,
     )
     .expect_err("opt-out removes the standard binding");
     assert!(missing.message.contains("did not resolve in lexical scope"));
 
     let explicit = check_syntax_document(
-        &parse_syntax_document(&format!("without glyphs\nuse flow/zip as &>\n{body}")),
+        &parse_syntax_document(&format!("sans glyphs\nwith flow/zip as &>\n{body}")),
         &catalog,
     )
     .expect("an explicit glyph import remains legal after opt-out");
     assert_eq!(explicit.forms[0].gears[0].kind, "flow/zip");
 
     let occupied = check_syntax_document(
-        &parse_syntax_document(&format!("use flow/zip as &>\n{body}")),
+        &parse_syntax_document(&format!("with flow/zip as &>\n{body}")),
         &catalog,
     )
     .expect_err("a standard glyph must be opted out before rebinding");
-    assert!(occupied.message.contains("use 'without glyphs'"));
+    assert!(occupied.message.contains("put 'sans glyphs'"));
 }
 
 #[test]
 fn relational_glyph_refuses_wrong_arity_and_mixed_adjacent_meanings() {
-    let wrong_arity = "without glyphs\nuse pair as &>\nform pair (\n >> left: Text\n >> right: Text\n result: Text >>\n) {\n}\nform example (\n >> a: Text\n paired: Text >>\n) {\n a &> a &> a >> paired\n}\n";
+    let wrong_arity = "sans glyphs\nwith pair as &>\nform pair (\n >> left: Text\n >> right: Text\n result: Text >>\n) {\n}\nform example (\n >> a: Text\n paired: Text >>\n) {\n a &> a &> a >> paired\n}\n";
     let error = check_syntax_document(&parse_syntax_document(wrong_arity), &catalog())
         .expect_err("fixed arity comes from the exact checked Fore");
     assert!(error.message.contains("supplies 3 operands"));
 
-    let mixed = "without glyphs\nuse pair as &>\nuse time/default as ?>\nform pair (\n >> left: Text\n >> right: Text\n result: Text >>\n) {\n}\nform example (\n >> a: Text\n >> b: Text\n >> c: Text\n paired: Text >>\n) {\n a &> b ?> c >> paired\n}\n";
+    let mixed = "sans glyphs\nwith pair as &>\nwith time/default as ?>\nform pair (\n >> left: Text\n >> right: Text\n result: Text >>\n) {\n}\nform example (\n >> a: Text\n >> b: Text\n >> c: Text\n paired: Text >>\n) {\n a &> b ?> c >> paired\n}\n";
     let parsed = parse_syntax_document(mixed);
     assert!(parsed.diagnostics[0]
         .message
@@ -317,9 +317,9 @@ fn relational_glyph_refuses_wrong_arity_and_mixed_adjacent_meanings() {
 }
 
 #[test]
-fn grouped_uses_resolve_each_exact_installed_kind() {
+fn grouped_with_resolves_each_exact_installed_kind() {
     let checked = check(
-        "use time/{every, default}\nform example {\n first: every(1s)\n second: default\n}\n",
+        "with time/{every, default}\nform example {\n first: every(1s)\n second: default\n}\n",
     );
     assert_eq!(
         checked.forms[0]
@@ -356,23 +356,23 @@ fn text_pattern_refinement_enters_the_checked_fore_and_identity() {
 }
 
 #[test]
-fn unresolved_unused_duplicate_and_shadowing_uses_refuse() {
+fn unresolved_unused_duplicate_and_shadowing_imports_refuse() {
     for (source, expected) in [
         (
-            "use missing/kind as absent\nform example {\n}\n",
+            "with missing/kind as absent\nform example {\n}\n",
             "does not resolve",
         ),
         (
-            "use time/every as cadence\nform example {\n}\n",
-            "unused use alias",
+            "with time/every as cadence\nform example {\n}\n",
+            "unused with alias",
         ),
         (
-            "use time/every as cadence\nuse time/default as cadence\nform example {\n tick: cadence\n}\n",
-            "duplicate use alias",
+            "with time/every as cadence\nwith time/default as cadence\nform example {\n tick: cadence\n}\n",
+            "duplicate with alias",
         ),
         (
-            "use time/every as cadence\nform example {\n cadence: time/default\n}\n",
-            "shadows a use alias",
+            "with time/every as cadence\nform example {\n cadence: time/default\n}\n",
+            "shadows a with alias",
         ),
     ] {
         let error = check_syntax_document(&parse_syntax_document(source), &catalog()).unwrap_err();

@@ -34,6 +34,12 @@ mod expression_program_decode;
 mod expression_semantic_call;
 mod functional_front;
 mod integer_literal;
+mod package_bundle;
+#[cfg(test)]
+mod package_bundle_tests;
+mod package_check;
+#[cfg(test)]
+mod package_check_tests;
 mod package_resolution;
 #[cfg(test)]
 mod package_resolution_tests;
@@ -63,6 +69,8 @@ pub use expression_definition::*;
 pub use expression_evaluate::*;
 pub use expression_prepared::*;
 pub use expression_program::*;
+pub use package_bundle::*;
+pub use package_check::*;
 pub use package_resolution::*;
 pub use structured_startup::*;
 pub use syntax::*;
@@ -77,6 +85,8 @@ pub const MAXIMUM_USE_DECLARATIONS: usize = 256;
 pub const MAXIMUM_FORM_NESTING_DEPTH: usize = 16;
 pub const MAXIMUM_PACKAGE_EXPORTS: usize = 256;
 pub const MAXIMUM_PACKAGE_REQUIREMENTS: usize = 256;
+pub const MAXIMUM_PACKAGE_MEMBERS: usize = 256;
+pub const MAXIMUM_PACKAGE_CONTENT_BYTES: usize = 16 * 1024 * 1024;
 
 /// Exact UTF-8 byte extent plus one-based source locations.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]

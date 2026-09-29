@@ -62,7 +62,7 @@ impl SyntaxDocument {
     }
 }
 
-/// One finite authored `package.conduit` declaration.
+/// One finite authored `pack.conduit` declaration.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct PackageSyntax {
     pub path: SpannedText,

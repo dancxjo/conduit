@@ -197,9 +197,9 @@ fn punctuation(text: &str) -> Option<(usize, SyntaxHighlightKind)> {
 
 fn classify_word(word: &str) -> SyntaxHighlightKind {
     match word {
-        "form" | "host" | "body" | "package" | "export" | "require" | "version" | "pool"
-        | "use" | "as" | "without" | "glyphs" | "where" | "pattern" | "range" | "member"
-        | "and" | "inclusive" | "exclusive" | "type" => SyntaxHighlightKind::Keyword,
+        "form" | "host" | "body" | "pack" | "ship" | "need" | "version" | "pool" | "with"
+        | "as" | "sans" | "glyphs" | "where" | "pattern" | "range" | "member" | "and"
+        | "inclusive" | "exclusive" | "type" => SyntaxHighlightKind::Keyword,
         "true" | "false" => SyntaxHighlightKind::Literal,
         _ if word.parse::<i128>().is_ok() || word.parse::<u128>().is_ok() => {
             SyntaxHighlightKind::Number
@@ -238,13 +238,13 @@ mod tests {
 
     #[test]
     fn use_and_glyph_header_words_are_language_keywords() {
-        let source = "without glyphs\nuse text/upper as ^^\nform example {\n}\n";
+        let source = "sans glyphs\nwith text/upper as ^^\nform example {\n}\n";
         let spans = highlight_syntax(source).unwrap();
         let pieces = spans
             .iter()
             .map(|span| (span.kind, &source[span.start..span.end]))
             .collect::<Vec<_>>();
-        for keyword in ["without", "glyphs", "use", "as", "form"] {
+        for keyword in ["sans", "glyphs", "with", "as", "form"] {
             assert!(pieces.contains(&(SyntaxHighlightKind::Keyword, keyword)));
         }
         assert!(pieces.contains(&(SyntaxHighlightKind::Identity, "text/upper")));
@@ -252,11 +252,11 @@ mod tests {
     }
 
     #[test]
-    fn package_source_uses_the_shared_lossless_highlighter() {
-        let source = "package house/sensors (\n version = \"1.4.0\"\n) {\n export temperature\n require math/geometry = \"^2.1\"\n}\n";
+    fn pack_source_uses_the_shared_lossless_highlighter() {
+        let source = "pack house/sensors (\n version = 1.4.0\n) {\n ship temperature\n need math/geometry = ^2.1\n}\n";
         let spans = highlight_syntax(source).unwrap();
         let pieces = pieces(source, &spans);
-        for keyword in ["package", "version", "export", "require"] {
+        for keyword in ["pack", "version", "ship", "need"] {
             assert!(pieces.contains(&(SyntaxHighlightKind::Keyword, keyword)));
         }
         assert!(pieces.contains(&(SyntaxHighlightKind::Identity, "house/sensors")));
