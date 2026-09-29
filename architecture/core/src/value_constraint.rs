@@ -323,9 +323,7 @@ impl ValueConstraint {
             Self::CanonicalMembership { members, .. } if members.is_empty() => {
                 Err(ConstraintDefinitionError::EmptyMembership)
             }
-            Self::CanonicalMembership { members, .. }
-                if members.len() > MAX_MEMBERSHIP_VALUES =>
-            {
+            Self::CanonicalMembership { members, .. } if members.len() > MAX_MEMBERSHIP_VALUES => {
                 Err(ConstraintDefinitionError::TooManyMembershipValues)
             }
             Self::CanonicalMembership { members, .. }
@@ -419,12 +417,11 @@ impl ValueConstraint {
                     .then_some(())
                     .ok_or(ValueConstraintRefusal::QuantityRange)
             }
-            Self::CanonicalMembership { members, negated } => (members
-                .iter()
-                .any(|member| member.as_slice() == canonical)
-                != *negated)
-                .then_some(())
-                .ok_or(ValueConstraintRefusal::Membership),
+            Self::CanonicalMembership { members, negated } => {
+                (members.iter().any(|member| member.as_slice() == canonical) != *negated)
+                    .then_some(())
+                    .ok_or(ValueConstraintRefusal::Membership)
+            }
             Self::TextPattern { pattern, negated } => {
                 if value_kind != crate::TEXT_INFO_ID {
                     return Err(ValueConstraintRefusal::WrongConstraintKind);
@@ -827,6 +824,65 @@ mod tests {
         assert_eq!(
             contract.validate(b"zz"),
             Err(ValueConstraintRefusal::Membership)
+        );
+    }
+
+    #[test]
+    fn negated_membership_and_pattern_are_exact_checked_truth() {
+        let positive_membership = CheckedValueContract::new(
+            crate::kind_id(crate::TEXT_INFO_ID),
+            5,
+            vec![ValueConstraint::CanonicalMembership {
+                members: vec![b"admin".to_vec(), b"root".to_vec()],
+                negated: false,
+            }],
+        )
+        .unwrap();
+        let negative_membership = CheckedValueContract::new(
+            crate::kind_id(crate::TEXT_INFO_ID),
+            5,
+            vec![ValueConstraint::CanonicalMembership {
+                members: vec![b"admin".to_vec(), b"root".to_vec()],
+                negated: true,
+            }],
+        )
+        .unwrap();
+        assert_eq!(negative_membership.validate(b"guest"), Ok(()));
+        assert_eq!(
+            negative_membership.validate(b"root"),
+            Err(ValueConstraintRefusal::Membership)
+        );
+        assert_ne!(
+            positive_membership.identity_bytes(),
+            negative_membership.identity_bytes()
+        );
+
+        let positive_pattern = CheckedValueContract::new(
+            crate::kind_id(crate::TEXT_INFO_ID),
+            2,
+            vec![ValueConstraint::TextPattern {
+                pattern: literal_ab(),
+                negated: false,
+            }],
+        )
+        .unwrap();
+        let negative_pattern = CheckedValueContract::new(
+            crate::kind_id(crate::TEXT_INFO_ID),
+            2,
+            vec![ValueConstraint::TextPattern {
+                pattern: literal_ab(),
+                negated: true,
+            }],
+        )
+        .unwrap();
+        assert_eq!(negative_pattern.validate(b"xy"), Ok(()));
+        assert_eq!(
+            negative_pattern.validate(b"ab"),
+            Err(ValueConstraintRefusal::TextPattern)
+        );
+        assert_ne!(
+            positive_pattern.identity_bytes(),
+            negative_pattern.identity_bytes()
         );
     }
 

@@ -248,71 +248,47 @@ impl Parser<'_> {
         line: &str,
         start: usize,
     ) -> Result<(&'b str, Vec<crate::ValueRefinement>), (FormError, Span)> {
-        let Some((value_type, refinement)) = source.split_once(" where ") else {
+        let Some(first_relation) = next_refinement(source) else {
             return Ok((source, Vec::new()));
         };
-        let value_type = value_type.trim();
-        let refinement = refinement.trim();
-        let clauses = split_top_level_token(refinement, " and ");
-        if clauses.is_empty() || clauses.iter().any(|clause| clause.trim().is_empty()) {
-            return Err(self.invalid_statement(line, start));
-        }
-        let refinement_offset = line
-            .find(refinement)
-            .expect("refinement is an exact slice of the declaration line");
-        let mut refinements = Vec::with_capacity(clauses.len());
-        let mut search_from = 0;
-        for clause in clauses {
-            let clause = clause.trim();
-            let relative = refinement[search_from..]
-                .find(clause)
-                .map(|offset| search_from + offset)
-                .expect("refinement clause is an exact slice of the refinement");
-            search_from = relative + clause.len();
-            let clause_start = start + refinement_offset + relative;
-            let span = self.span(clause_start, clause_start + clause.len());
-            if let Some(pattern) = clause
-                .strip_prefix("pattern(r\"")
-                .and_then(|tail| tail.strip_suffix("\")"))
-            {
-                let pattern_offset = clause_start
-                    + clause
-                        .find(pattern)
-                        .expect("pattern is an exact slice of the refinement clause");
+        let value_type = source[..first_relation].trim();
+        let source_offset = line.find(source).unwrap_or(0);
+        let mut cursor = first_relation;
+        let mut refinements = Vec::new();
+        while cursor < source.len() {
+            let remaining = &source[cursor..];
+            let (negated, relation, body_start) = if remaining.starts_with(" not in ") {
+                (true, "in", cursor + " not in ".len())
+            } else if remaining.starts_with(" in ") {
+                (false, "in", cursor + " in ".len())
+            } else if remaining.starts_with(" !~ ") {
+                (true, "pattern", cursor + " !~ ".len())
+            } else if remaining.starts_with(" ~ ") {
+                (false, "pattern", cursor + " ~ ".len())
+            } else {
+                return Err(self.invalid_statement(line, start));
+            };
+            if relation == "pattern" {
+                let (pattern, consumed) = slash_pattern(&source[body_start..])
+                    .ok_or_else(|| self.invalid_statement(line, start))?;
+                let clause_end = body_start + consumed;
+                let pattern_offset = start + source_offset + body_start + 1;
                 refinements.push(crate::ValueRefinement::TextPattern {
                     source: self.spanned(pattern, pattern_offset),
-                    negated: false,
-                    span,
+                    negated,
+                    span: self.span(
+                        start + source_offset + cursor,
+                        start + source_offset + clause_end,
+                    ),
                 });
+                cursor = clause_end;
                 continue;
             }
-            if let Some(interval) = clause
-                .strip_prefix("range(")
-                .and_then(|tail| tail.strip_suffix(')'))
-            {
-                let values = split_top_level(interval, ',');
-                let [minimum, maximum] = values.as_slice() else {
-                    return Err(self.invalid_statement(line, start));
-                };
-                let (minimum, minimum_endpoint) = parse_interval_endpoint(minimum)
+            if source[body_start..].starts_with('[') {
+                let consumed = bracketed_members(&source[body_start..])
                     .ok_or_else(|| self.invalid_statement(line, start))?;
-                let (maximum, maximum_endpoint) = parse_interval_endpoint(maximum)
-                    .ok_or_else(|| self.invalid_statement(line, start))?;
-                let minimum_offset = clause_start + clause.find(minimum).unwrap();
-                let maximum_offset = clause_start + clause.rfind(maximum).unwrap();
-                refinements.push(crate::ValueRefinement::Range {
-                    minimum: self.spanned(minimum, minimum_offset),
-                    maximum: self.spanned(maximum, maximum_offset),
-                    minimum_endpoint,
-                    maximum_endpoint,
-                    span,
-                });
-                continue;
-            }
-            if let Some(body) = clause
-                .strip_prefix("member(")
-                .and_then(|tail| tail.strip_suffix(')'))
-            {
+                let clause_end = body_start + consumed;
+                let body = &source[body_start + 1..clause_end - 1];
                 let values = split_top_level(body, ',');
                 if values.is_empty() || values.len() > conduit_core::MAX_MEMBERSHIP_VALUES {
                     return Err(self.invalid_statement(line, start));
@@ -329,30 +305,119 @@ impl Parser<'_> {
                         .map(|offset| member_search + offset)
                         .unwrap();
                     member_search = relative + value.len();
-                    let offset = clause_start + "member(".len() + relative;
+                    let offset = start + source_offset + body_start + 1 + relative;
                     members.push(self.spanned(value, offset));
                 }
                 refinements.push(crate::ValueRefinement::Membership {
                     members,
-                    negated: false,
-                    span,
+                    negated,
+                    span: self.span(
+                        start + source_offset + cursor,
+                        start + source_offset + clause_end,
+                    ),
                 });
+                cursor = clause_end;
                 continue;
             }
-            return Err(self.invalid_statement(line, start));
+            if negated {
+                return Err(self.invalid_statement(line, start));
+            }
+            let tail = &source[body_start..];
+            let consumed = next_refinement(tail).unwrap_or(tail.len());
+            let interval = tail[..consumed].trim();
+            let (minimum, maximum, maximum_endpoint) =
+                if let Some((minimum, maximum)) = interval.split_once("..=") {
+                    (
+                        minimum.trim(),
+                        maximum.trim(),
+                        crate::RefinementIntervalEndpoint::Inclusive,
+                    )
+                } else if let Some((minimum, maximum)) = interval.split_once("..") {
+                    (
+                        minimum.trim(),
+                        maximum.trim(),
+                        crate::RefinementIntervalEndpoint::Exclusive,
+                    )
+                } else {
+                    return Err(self.invalid_statement(line, start));
+                };
+            if minimum.is_empty() || maximum.is_empty() {
+                return Err(self.invalid_statement(line, start));
+            }
+            let clause_end = body_start + consumed;
+            let minimum_offset =
+                start + source_offset + body_start + interval.find(minimum).unwrap();
+            let maximum_offset =
+                start + source_offset + body_start + interval.rfind(maximum).unwrap();
+            refinements.push(crate::ValueRefinement::Range {
+                minimum: self.spanned(minimum, minimum_offset),
+                maximum: self.spanned(maximum, maximum_offset),
+                minimum_endpoint: crate::RefinementIntervalEndpoint::Inclusive,
+                maximum_endpoint,
+                span: self.span(
+                    start + source_offset + cursor,
+                    start + source_offset + clause_end,
+                ),
+            });
+            cursor = clause_end;
         }
         Ok((value_type, refinements))
     }
 }
 
-fn parse_interval_endpoint(source: &str) -> Option<(&str, crate::RefinementIntervalEndpoint)> {
-    let source = source.trim();
-    let (value, endpoint) = source.rsplit_once(' ')?;
-    let endpoint = match endpoint {
-        "inclusive" => crate::RefinementIntervalEndpoint::Inclusive,
-        "exclusive" => crate::RefinementIntervalEndpoint::Exclusive,
-        _ => return None,
-    };
-    let value = value.trim();
-    (!value.is_empty()).then_some((value, endpoint))
+fn next_refinement(source: &str) -> Option<usize> {
+    [" not in ", " in ", " !~ ", " ~ "]
+        .into_iter()
+        .filter_map(|token| source.find(token))
+        .min()
+}
+
+fn bracketed_members(source: &str) -> Option<usize> {
+    if !source.starts_with('[') {
+        return None;
+    }
+    let mut quoted = false;
+    let mut escaped = false;
+    for (offset, character) in source.char_indices().skip(1) {
+        if escaped {
+            escaped = false;
+        } else if character == '\\' && quoted {
+            escaped = true;
+        } else if character == '"' {
+            quoted = !quoted;
+        } else if character == ']' && !quoted {
+            return Some(offset + 1);
+        }
+    }
+    None
+}
+
+fn slash_pattern(source: &str) -> Option<(&str, usize)> {
+    if !source.starts_with('/') {
+        return None;
+    }
+    let mut escaped = false;
+    let mut class = false;
+    for (offset, character) in source.char_indices().skip(1) {
+        if escaped {
+            escaped = false;
+            continue;
+        }
+        match character {
+            '\\' => escaped = true,
+            '[' => class = true,
+            ']' => class = false,
+            '/' if !class => {
+                let flags_end = source[offset + 1..]
+                    .find(|character: char| !character.is_ascii_alphabetic())
+                    .map_or(source.len(), |relative| offset + 1 + relative);
+                if flags_end != offset + 1 {
+                    return None;
+                }
+                return Some((&source[1..offset], offset + 1));
+            }
+            _ => {}
+        }
+    }
+    None
 }
