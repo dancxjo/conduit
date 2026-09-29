@@ -21,10 +21,12 @@ pub(crate) fn check_native_types(
     base: &StartupCatalog,
 ) -> Result<(Vec<CheckedNativeType>, StartupCatalog), SyntaxCheckDiagnostic> {
     let mut catalog = base.clone();
-    let mut checked = Vec::with_capacity(declarations.len());
-    let mut names = BTreeSet::new();
+    let mut by_name = alloc::collections::BTreeMap::new();
     for declaration in declarations {
-        if !names.insert(declaration.name.text.as_str()) {
+        if by_name
+            .insert(declaration.name.text.as_str(), declaration)
+            .is_some()
+        {
             return Err(diagnostic(
                 declaration.name.span,
                 alloc::format!(
@@ -33,13 +35,101 @@ pub(crate) fn check_native_types(
                 ),
             ));
         }
-        let compiled = compile_definition(declaration, &catalog)?;
-        catalog
-            .insert_structured_type(declaration.name.text.clone(), compiled.value_type.clone())
-            .map_err(|message| diagnostic(declaration.name.span, message))?;
-        checked.push(compiled);
     }
+    let mut active = Vec::new();
+    let mut complete = BTreeSet::new();
+    let mut compiled = alloc::collections::BTreeMap::new();
+    for declaration in declarations {
+        compile_named(
+            declaration.name.text.as_str(),
+            &by_name,
+            &mut active,
+            &mut complete,
+            &mut compiled,
+            &mut catalog,
+        )?;
+    }
+    let checked = declarations
+        .iter()
+        .map(|declaration| {
+            compiled
+                .remove(declaration.name.text.as_str())
+                .expect("every declaration compiled exactly once")
+        })
+        .collect();
     Ok((checked, catalog))
+}
+
+fn compile_named<'a>(
+    name: &'a str,
+    declarations: &alloc::collections::BTreeMap<&'a str, &'a TypeSyntax>,
+    active: &mut Vec<&'a str>,
+    complete: &mut BTreeSet<&'a str>,
+    checked: &mut alloc::collections::BTreeMap<String, CheckedNativeType>,
+    catalog: &mut StartupCatalog,
+) -> Result<(), SyntaxCheckDiagnostic> {
+    if complete.contains(name) {
+        return Ok(());
+    }
+    let declaration = declarations[name];
+    if let Some(position) = active.iter().position(|candidate| *candidate == name) {
+        let mut cycle = active[position..].to_vec();
+        cycle.push(name);
+        return Err(diagnostic(
+            declaration.name.span,
+            alloc::format!(
+                "recursive semantic Type cycle is not finite: {}",
+                cycle.join(" -> ")
+            ),
+        ));
+    }
+    active.push(name);
+    let mut references = Vec::new();
+    definition_references(&declaration.definition, &mut references);
+    for reference in references {
+        if declarations.contains_key(reference) {
+            compile_named(reference, declarations, active, complete, checked, catalog)?;
+        }
+    }
+    active.pop();
+    let compiled = compile_definition(declaration, catalog)?;
+    catalog
+        .insert_native_type(
+            declaration.name.text.clone(),
+            compiled.value_type.clone(),
+            compiled.value_contracts.clone(),
+        )
+        .map_err(|message| diagnostic(declaration.name.span, message))?;
+    checked.insert(declaration.name.text.clone(), compiled);
+    complete.insert(name);
+    Ok(())
+}
+
+fn definition_references<'a>(definition: &'a TypeDefinitionSyntax, out: &mut Vec<&'a str>) {
+    match definition {
+        TypeDefinitionSyntax::Scalar(expression) => expression_references(expression, out),
+        TypeDefinitionSyntax::Record(fields) => {
+            for field in fields {
+                expression_references(&field.value_type, out);
+            }
+        }
+        TypeDefinitionSyntax::Variant(cases) => {
+            for case in cases {
+                for field in &case.fields {
+                    expression_references(&field.value_type, out);
+                }
+            }
+        }
+    }
+}
+
+fn expression_references<'a>(expression: &'a TypeExpressionSyntax, out: &mut Vec<&'a str>) {
+    match expression {
+        TypeExpressionSyntax::Reference { value_type, .. } => out.push(&value_type.text),
+        TypeExpressionSyntax::Optional { value, .. }
+        | TypeExpressionSyntax::DataReference { value, .. } => expression_references(value, out),
+        TypeExpressionSyntax::Sequence { element, .. } => expression_references(element, out),
+    }
 }
 
 fn compile_definition(
@@ -157,7 +247,9 @@ fn compile_expression(
                     alloc::format!("semantic value Type '{}' is not in scope", value_type.text),
                 )
             })?;
-            let mut contracts = Vec::new();
+            let mut contracts = catalog
+                .structured_type_contracts(&value_type.text)
+                .map_or_else(Vec::new, <[NativeTypeValueContract]>::to_vec);
             if maximum_bytes.is_some() || !refinements.is_empty() {
                 let primitive =
                     primitive_representation_kind(&representation).ok_or_else(|| {
@@ -173,7 +265,7 @@ fn compile_expression(
                         primitive,
                         *span,
                     )?;
-                let contract =
+                let mut contract =
                     CheckedValueContract::new(primitive.clone(), maximum_bytes, constraints)
                         .map_err(|error| {
                             diagnostic(
@@ -181,10 +273,29 @@ fn compile_expression(
                                 alloc::format!("invalid native Type refinement: {error:?}"),
                             )
                         })?;
-                contracts.push(NativeTypeValueContract {
-                    representation_path: String::new(),
-                    contract,
-                });
+                if let Some(inherited) = contracts
+                    .iter_mut()
+                    .find(|candidate| candidate.representation_path.is_empty())
+                {
+                    contract.maximum_bytes =
+                        contract.maximum_bytes.min(inherited.contract.maximum_bytes);
+                    contract
+                        .constraints
+                        .extend(inherited.contract.constraints.clone());
+                    contract.constraints.sort();
+                    contract.validate_definition().map_err(|error| {
+                        diagnostic(
+                            *span,
+                            alloc::format!("native Type refinements conflict: {error:?}"),
+                        )
+                    })?;
+                    inherited.contract = contract;
+                } else {
+                    contracts.push(NativeTypeValueContract {
+                        representation_path: String::new(),
+                        contract,
+                    });
+                }
             }
             Ok(CompiledRepresentation {
                 value_type: representation,

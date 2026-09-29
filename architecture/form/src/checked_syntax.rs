@@ -22,6 +22,7 @@ pub struct StartupCatalog {
     fores: BTreeMap<String, CheckedFront>,
     variadic_fores: BTreeMap<String, crate::HomogeneousVariadicFore>,
     structured_types: BTreeMap<String, conduit_core::StructuredInfoType>,
+    structured_type_contracts: BTreeMap<String, Vec<NativeTypeValueContract>>,
     value_kind_aliases: BTreeMap<String, conduit_core::KindId>,
 }
 
@@ -169,6 +170,18 @@ impl StartupCatalog {
         Ok(())
     }
 
+    pub(crate) fn insert_native_type(
+        &mut self,
+        name: impl Into<String>,
+        value_type: conduit_core::StructuredInfoType,
+        contracts: Vec<NativeTypeValueContract>,
+    ) -> Result<(), String> {
+        let name = name.into();
+        self.insert_structured_type(name.clone(), value_type)?;
+        self.structured_type_contracts.insert(name, contracts);
+        Ok(())
+    }
+
     pub fn insert_value_kind_alias(
         &mut self,
         name: impl Into<String>,
@@ -191,6 +204,13 @@ impl StartupCatalog {
 
     pub(crate) fn structured_type(&self, name: &str) -> Option<&conduit_core::StructuredInfoType> {
         self.structured_types.get(name)
+    }
+
+    pub(crate) fn structured_type_contracts(
+        &self,
+        name: &str,
+    ) -> Option<&[NativeTypeValueContract]> {
+        self.structured_type_contracts.get(name).map(Vec::as_slice)
     }
 
     pub(crate) fn structured_types_by_value_kind(

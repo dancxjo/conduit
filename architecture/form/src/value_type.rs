@@ -240,7 +240,7 @@ pub(crate) fn canonical_port_temporal(source: RuntimePortTemporal) -> conduit_co
     }
 }
 
-fn checked_value_kind_with_modality(
+pub(crate) fn checked_value_kind_with_modality(
     source_type: &str,
     optional: bool,
     catalog: &StartupCatalog,
