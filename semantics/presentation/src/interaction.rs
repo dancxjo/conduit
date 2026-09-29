@@ -278,6 +278,7 @@ fn map_value_refusal(refusal: ValueConstraintRefusal) -> FaceInteractionRefusal 
         ValueConstraintRefusal::ByteLength
         | ValueConstraintRefusal::UnsignedRange
         | ValueConstraintRefusal::SignedRange
+        | ValueConstraintRefusal::FixedIntegerRange
         | ValueConstraintRefusal::QuantityRange
         | ValueConstraintRefusal::Membership
         | ValueConstraintRefusal::TextPattern => FaceInteractionRefusal::ViolatedConstraint,

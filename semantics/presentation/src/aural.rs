@@ -464,6 +464,18 @@ fn constraint_clause(constraint: &ValueConstraint) -> String {
             minimum_endpoint,
             maximum_endpoint,
         } => range_clause(*minimum, *maximum, *minimum_endpoint, *maximum_endpoint),
+        ValueConstraint::FixedIntegerRange {
+            minimum,
+            maximum,
+            minimum_endpoint,
+            maximum_endpoint,
+        } => format!(
+            "a fixed-width integer from {} canonical 0x{} through {} canonical 0x{}",
+            endpoint_word(*minimum_endpoint),
+            hex_bytes(minimum),
+            endpoint_word(*maximum_endpoint),
+            hex_bytes(maximum),
+        ),
         ValueConstraint::QuantityRange {
             minimum,
             maximum,
@@ -502,6 +514,10 @@ fn constraint_clause(constraint: &ValueConstraint) -> String {
             pattern.maximum_match_steps,
         ),
     }
+}
+
+fn hex_bytes(bytes: &[u8]) -> String {
+    bytes.iter().map(|byte| format!("{byte:02x}")).collect()
 }
 
 fn pattern_profile(anchored_start: bool, anchored_end: bool) -> &'static str {
