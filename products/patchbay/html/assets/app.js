@@ -5,6 +5,7 @@ import { lensForCursor, projectCurrent } from "/assets/portable-navigation.js";
 import { createPatchbaySharedPresentation } from "/assets/shared-presentation.js";
 import { createProductMasthead } from "/assets/product-masthead.mjs";
 import { BrowserWebSocketLine } from "/assets/websocket-line.mjs";
+import { BrowserFaceClient } from "/assets/browser-sdk-face.mjs";
 import { instantiateTextLabLive, runTextLabLive } from "/assets/text-lab-live-runtime.mjs";
 
 const schema = "conduit.patchbay.portable-presentation";
@@ -12,6 +13,7 @@ const membershipStorageSchema = "conduit.patchbay/browser-membership@1";
 const membershipStorageKey = "body-membership";
 const state = { snapshot:null, projected:null, selected:null, selectedPart:null, selectedCandidate:null, formQuery:"", gearQuery:"", authoringValues:new Map(), cordSource:null, rerouteCord:null, lens:"world", inspectorOpen:false, inspectorDepth:false, inspectorTransition:null, savedEvidenceBody:null, savedEvidenceRevision:null, bodyInvitation:null, retainedMembershipCredential:null, bodyMembershipInterrupted:false, bodyMembershipReturningFreshBoot:false, bodyMembershipEvidenceAdoption:Promise.resolve() };
 const apiUrl=path=>new URL(`api/${path}`,document.baseURI).href;
+const face = new BrowserFaceClient();
 const applicationPresentation = createApplicationPresentationHost();
 const sharedPresentation = createPatchbaySharedPresentation(applicationPresentation);
 const productMasthead = createProductMasthead(applicationPresentation, "product-masthead", "patchbay");
@@ -182,9 +184,7 @@ function renderAuthoringActions(subject){
 function lensProperty(lens,name){if(lens==="world")return ["body-id","part-id","candidate-id","membership-state","membership-proof","current","current-body","this-host","opened","freshness-sequence","source-document-id","checked-form-id","offer-generation","profile-id","capability-count","resource-count","planner-capability-count","capability-id","kind-id","operational-state","availability","freshness","line-id","binding-id","source-host-id","source-boot-id","sink-host-id","sink-boot-id","base","in-plan","playing","activity","evidence-class","candidate-state","lifecycle","auto-run","stage","authority-state","refusal","disposition"].includes(name)||name.startsWith("resource-")||name.startsWith("maximum-");if(lens==="form")return !["plan-id","plan-status","realization-layer","placement-id","host-id","boot-id","implementation-id","artifact-id","execution-profile-id","runtime-name","runtime-version","model-name","model-content-id","quantization","admitted-capacity","active-play-id","play-state","pressure","line-id","line","base","base-instance-id"].includes(name)&&!name.startsWith("resource-")&&!name.startsWith("sign-");if(lens==="plan")return ["plan-status","realization-layer","placement-id","host-id","boot-id","implementation-id","artifact-id","execution-profile-id","runtime-name","runtime-version","model-name","model-content-id","quantization","offer-generation","admitted-capacity","line-id","line","base","base-instance-id"].includes(name)||name.startsWith("resource-")||name.startsWith("maximum-");if(lens==="play")return ["active-play-id","play-state","pressure","activity","disposition","request-id","run-id","stage","authority-state","effect-id"].includes(name);if(lens==="signs")return ["evidence-class","effect-id","request-id"].includes(name)||name.startsWith("sign-");return false;}
 
 async function dispatchInteraction(input,presentationBasis=currentPresentationBasis()){
-  const response=await fetch(apiUrl("interaction"),{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({...presentationBasis,...input})});
-  if(!response.ok)throw new Error(`interaction delivery HTTP ${response.status}`);
-  const next=requireSnapshot(await response.json());render(next);return next;
+  const next=requireSnapshot(await face.interact({...presentationBasis,...input}));render(next);return next;
 }
 async function dispatchBodyWorkload(action){
   const workbench=state.snapshot.body_workbench;if(!workbench)throw new Error("Body workload is unavailable");
@@ -376,7 +376,7 @@ function render(snapshot){
   sharedPresentation.boundedEvidence("diagnostics","Checked diagnostic",diagnosticLines);document.querySelector("#diagnostic-summary").textContent=diagnosticLines.length?`${diagnosticLines.length} checked diagnostic`:"No checked diagnostics";renderCards();sharedPresentation.boundedEvidence("topology","Observed topology",subjects().filter(subject=>["Form","Body","Part","Candidate","Host","Capability","Line"].includes(subject.role)).flatMap(subject=>[`${subject.role}: ${subject.name}`,...texts(subject.identity)]));sharedPresentation.boundedEvidence("linear","Linear presentation",state.projected.text.map(item=>item.text));displaySelection(cursor?.focus??snapshot.interaction.selected_subject??snapshot.entrance.selected_subject);
 }
 
-async function load(){try{const response=await fetch(apiUrl("snapshot"),{cache:"no-store"});if(!response.ok)throw new Error(`HTTP ${response.status}`);const snapshot=requireSnapshot(await response.json());if(state.snapshot&&(snapshot.revision<state.snapshot.revision||(snapshot.revision===state.snapshot.revision&&snapshot.interaction.revision<=state.snapshot.interaction.revision)))return;render(snapshot);}catch(error){presentStatus(state.snapshot?`Renderer disconnected; retained revision ${state.snapshot.revision}`:`Snapshot unavailable: ${error.message}`,"failure-status");}}
+async function load(){try{const snapshot=requireSnapshot(await face.snapshot());if(state.snapshot&&(snapshot.revision<state.snapshot.revision||(snapshot.revision===state.snapshot.revision&&snapshot.interaction.revision<=state.snapshot.interaction.revision)))return;render(snapshot);}catch(error){presentStatus(state.snapshot?`Renderer disconnected; retained revision ${state.snapshot.revision}`:`Snapshot unavailable: ${error.message}`,"failure-status");}}
 async function observeTextLabLoss(){const button=document.querySelector("#text-lab-loss");button.disabled=true;presentSharedStatus("front-door-feedback","Running the exact split Text Lab until browser loss…","warning-status");const {base}=await fetch(apiUrl("text-lab-base"),{cache:"no-store"}).then(response=>response.json());if(!admittedRuntimeBytes)throw new Error("admitted browser runtime unavailable");const openLine=()=>new BrowserWebSocketLine({url:base,maximumMessageBytes:1024,maximumBufferedBytes:4096}).open(),forward=await openLine(),runtime=await instantiateTextLabLive(admittedRuntimeBytes,base);let injected=false,failure=null;try{await runTextLabLive(runtime,forward,openLine,async({deliveredValues,returned})=>{if(!injected&&deliveredValues===2){injected=true;void returned.close(4001,"injected-return-line-loss");}});}catch(error){failure=error;}if(!injected||!failure?.message.includes("CND-WS-S4-007"))throw new Error("Text Lab loss did not remain an exact transport failure");presentSharedStatus("front-door-feedback","Browser loss observed; awaiting the native causal receipt.");}
 async function inspectBodyInvitation(){
   const response=await fetch(apiUrl("body-admission"),{cache:"no-store"});
