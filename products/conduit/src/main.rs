@@ -17,6 +17,7 @@ mod release_obtain;
 #[path = "rendezvous_relay.rs"]
 mod rendezvous_relay;
 mod report_artifact;
+mod source_expansion;
 mod std_websocket_line;
 #[cfg(test)]
 mod two_std_line_tests;
@@ -311,6 +312,9 @@ fn main() {
             Ok(false) => std::process::exit(1),
             Err(error) => Err(error),
         },
+        Some(cli::Command::Expand { form, json }) => {
+            source_expansion::run(&form, json).map(|rendered| print!("{rendered}"))
+        }
         Some(cli::Command::Inspect { thing }) => inspection::inspect(&thing).map(|rendered| {
             print!("{rendered}");
         }),

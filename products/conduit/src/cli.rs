@@ -51,6 +51,13 @@ pub(crate) enum Command {
         #[arg(long)]
         json: bool,
     },
+    /// Explain concise source as the ordinary checked semantics it names.
+    Expand {
+        form: PathBuf,
+        /// Emit the structured source-correlation model for editor tooling.
+        #[arg(long)]
+        json: bool,
+    },
     /// Inspect retained Conduit artifacts without executing work.
     Inspect {
         /// Artifact whose schema identifies the truth to render.
@@ -346,7 +353,7 @@ mod public_surface_tests {
     #[test]
     fn public_help_names_intent_not_retired_shells_or_protocol_phases() {
         let help = Cli::command().render_long_help().to_string();
-        for entrance in ["run", "check", "inspect", "body", "host"] {
+        for entrance in ["run", "check", "expand", "inspect", "body", "host"] {
             assert!(help.contains(entrance), "missing {entrance} in:\n{help}");
         }
         for retired in ["creche", "patchbay", "copy", "rendezvous-relay"] {
@@ -376,6 +383,22 @@ mod public_surface_tests {
                 .expect("artifact inspection parses")
                 .command,
             Some(Command::Inspect { thing }) if thing == std::path::Path::new("run.json")
+        ));
+    }
+
+    #[test]
+    fn source_expansion_is_a_public_human_and_machine_entrance() {
+        assert!(matches!(
+            Cli::try_parse_from(["conduit", "expand", "example.conduit"])
+                .expect("human source expansion parses")
+                .command,
+            Some(Command::Expand { form, json: false }) if form == std::path::Path::new("example.conduit")
+        ));
+        assert!(matches!(
+            Cli::try_parse_from(["conduit", "expand", "example.conduit", "--json"])
+                .expect("machine source expansion parses")
+                .command,
+            Some(Command::Expand { json: true, .. })
         ));
     }
 

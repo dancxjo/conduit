@@ -1,8 +1,8 @@
 use crate::checked_syntax::{
     CanonicalStartupValue, CheckedCanonicalCord, CheckedCanonicalForm, CheckedCanonicalGear,
     CheckedCordStage, CheckedStartupBinding, CheckedStartupParameter, CheckedSyntaxDocument,
-    KindSignature, StartupCatalog, StartupParameterSignature, SyntaxCheckDiagnostic,
-    SyntaxCheckError,
+    KindSignature, SourceSugarExpansion, SourceSugarOperandBinding, StartupCatalog,
+    StartupParameterSignature, SyntaxCheckDiagnostic, SyntaxCheckError,
 };
 use crate::hash_string;
 use crate::prelude::*;
@@ -34,6 +34,17 @@ const STANDARD_GLYPH_BINDINGS: [(&str, &str); 5] = [
     ("@", "current/sample"),
 ];
 
+pub(crate) struct PendingSourceSugarExpansion {
+    form: String,
+    authored: String,
+    source_span: crate::Span,
+    ordinary_kind: String,
+    input_ports: Vec<String>,
+    output_ports: Vec<String>,
+    operand_bindings: Vec<SourceSugarOperandBinding>,
+    canonical_replacement: Option<String>,
+}
+
 pub(crate) fn check_document(
     document: &SyntaxDocument,
     catalog: &StartupCatalog,
@@ -57,7 +68,7 @@ pub(crate) fn check_document(
             crate::value_type::checked_front(form, catalog)?,
         );
     }
-    let forms = resolve_use_declarations(
+    let (forms, pending_source_sugar_expansions) = resolve_use_declarations(
         document,
         catalog,
         &BTreeMap::new(),
@@ -78,6 +89,25 @@ pub(crate) fn check_document(
         checked_forms.push(check_form(form, catalog, &form_signatures, &form_fronts)?);
     }
     checked_forms.sort_by(|left, right| left.name.cmp(&right.name));
+    let source_sugar_expansions = pending_source_sugar_expansions
+        .into_iter()
+        .map(|expansion| SourceSugarExpansion {
+            checked_form_id: checked_forms
+                .iter()
+                .find(|form| form.name == expansion.form)
+                .expect("source sugar names the Form checked in this document")
+                .checked_form_id
+                .clone(),
+            form: expansion.form,
+            authored: expansion.authored,
+            source_span: expansion.source_span,
+            ordinary_kind: expansion.ordinary_kind,
+            input_ports: expansion.input_ports,
+            output_ports: expansion.output_ports,
+            operand_bindings: expansion.operand_bindings,
+            canonical_replacement: expansion.canonical_replacement,
+        })
+        .collect();
     let mut structured_types =
         catalog
             .structured_types_by_value_kind()
@@ -160,6 +190,7 @@ pub(crate) fn check_document(
             document.round_trip()
         ))),
         forms: checked_forms,
+        source_sugar_expansions,
         structured_types,
     })
 }
@@ -170,7 +201,7 @@ pub(crate) fn resolve_use_declarations(
     source_paths: &BTreeMap<String, String>,
     forms: &BTreeMap<String, KindSignature>,
     form_fronts: &BTreeMap<String, CheckedFront>,
-) -> Result<Vec<FormSyntax>, SyntaxCheckDiagnostic> {
+) -> Result<(Vec<FormSyntax>, Vec<PendingSourceSugarExpansion>), SyntaxCheckDiagnostic> {
     let mut aliases = BTreeMap::<String, (String, crate::Span, bool)>::new();
     if document.standard_glyphs {
         let span = source_start_span();
@@ -229,6 +260,7 @@ pub(crate) fn resolve_use_declarations(
     }
 
     let mut resolved = document.forms.clone();
+    let mut source_sugar_expansions = Vec::new();
     for form in &mut resolved {
         reject_alias_shadowing(form, &aliases)?;
         for statement in &mut form.back {
@@ -236,12 +268,24 @@ pub(crate) fn resolve_use_declarations(
                 BackStatement::NamedGear(gear) => {
                     resolve_invocation_alias(&mut gear.invocation, &mut aliases)
                 }
-                BackStatement::Cord(cord) => {
-                    resolve_stage_aliases(&mut cord.stages, &mut aliases, catalog, form_fronts)?
-                }
+                BackStatement::Cord(cord) => resolve_stage_aliases(
+                    &form.name.text,
+                    &mut cord.stages,
+                    &mut aliases,
+                    catalog,
+                    form_fronts,
+                    &mut source_sugar_expansions,
+                )?,
                 BackStatement::MatchedRoute(route) => {
                     for arm in &mut route.arms {
-                        resolve_stage_aliases(&mut arm.stages, &mut aliases, catalog, form_fronts)?;
+                        resolve_stage_aliases(
+                            &form.name.text,
+                            &mut arm.stages,
+                            &mut aliases,
+                            catalog,
+                            form_fronts,
+                            &mut source_sugar_expansions,
+                        )?;
                     }
                 }
                 BackStatement::Pool(pool) => {
@@ -260,7 +304,7 @@ pub(crate) fn resolve_use_declarations(
             format!("unused with alias '{alias}'"),
         ));
     }
-    Ok(resolved)
+    Ok((resolved, source_sugar_expansions))
 }
 
 fn source_start_span() -> crate::Span {
@@ -275,10 +319,12 @@ fn source_start_span() -> crate::Span {
 }
 
 fn resolve_stage_aliases(
+    form_name: &str,
     stages: &mut [CordStage],
     aliases: &mut BTreeMap<String, (String, crate::Span, bool)>,
     catalog: &StartupCatalog,
     form_fronts: &BTreeMap<String, CheckedFront>,
+    source_sugar_expansions: &mut Vec<PendingSourceSugarExpansion>,
 ) -> Result<(), SyntaxCheckDiagnostic> {
     for stage in stages {
         match stage {
@@ -325,7 +371,19 @@ fn resolve_stage_aliases(
                             ),
                         ));
                     }
+                    let (input_port, output_port) =
+                        fore.shorthand().expect("shorthand presence checked above");
                     let span = glyph.span;
+                    source_sugar_expansions.push(PendingSourceSugarExpansion {
+                        form: form_name.into(),
+                        authored: glyph.text.clone(),
+                        source_span: span,
+                        ordinary_kind: canonical.clone(),
+                        input_ports: vec![input_port.as_str().into()],
+                        output_ports: vec![output_port.as_str().into()],
+                        operand_bindings: Vec::new(),
+                        canonical_replacement: Some(canonical.clone()),
+                    });
                     *stage = CordStage::InlineGear(Invocation {
                         kind: crate::syntax::SpannedText {
                             text: canonical.clone(),
@@ -388,12 +446,29 @@ fn resolve_stage_aliases(
                     arguments: Vec::new(),
                     span: glyph.span,
                 };
-                let input_ports = fore
+                let input_ports: Vec<String> = fore
                     .inputs()
                     .iter()
                     .map(|port| port.port_id.as_str().to_string())
                     .collect();
                 let output_port = fore.outputs()[0].port_id.as_str().to_string();
+                source_sugar_expansions.push(PendingSourceSugarExpansion {
+                    form: form_name.into(),
+                    authored: glyph.text.clone(),
+                    source_span: glyph.span,
+                    ordinary_kind: canonical.clone(),
+                    input_ports: input_ports.clone(),
+                    output_ports: vec![output_port.clone()],
+                    operand_bindings: operands
+                        .iter()
+                        .zip(&input_ports)
+                        .map(|(source, input_port)| SourceSugarOperandBinding {
+                            source: source.text.clone(),
+                            input_port: input_port.clone(),
+                        })
+                        .collect(),
+                    canonical_replacement: None,
+                });
                 *used = true;
                 *stage = CordStage::RelationalGear {
                     operands: operands.clone(),
