@@ -299,7 +299,12 @@ fn participation_face(pattern_maximum: u16) -> Presentation {
                                 minimum: 1,
                                 maximum: u32::from(pattern_maximum),
                             },
-                            ValueConstraint::TextPattern(lowercase),
+                            ValueConstraint::TextPattern {
+                                pattern: lowercase,
+                                anchored_start: true,
+                                anchored_end: true,
+                                negated: false,
+                            },
                         ],
                     )
                     .unwrap(),
@@ -357,6 +362,7 @@ fn participation_face(pattern_maximum: u16) -> Presentation {
                         8,
                         vec![ValueConstraint::CanonicalMembership {
                             members: vec![b"careful".to_vec(), b"quick".to_vec()],
+                            negated: false,
                         }],
                     )
                     .unwrap(),
@@ -384,7 +390,7 @@ fn exact_inward_participation_contract_survives_aural_projection() {
     for (name, expected) in [
         (
             "sample/name",
-            "between 1 and 8 bytes; the exact checked portable text pattern with 9 states, start state 0, at most 8 characters, and at most 8 match steps",
+            "between 1 and 8 bytes; the exact checked portable text pattern as a whole-value match with 9 states, start state 0, at most 8 characters, and at most 8 match steps",
         ),
         (
             "sample/count",

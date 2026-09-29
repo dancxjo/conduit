@@ -266,13 +266,18 @@ fn constraint_fact(constraint: &ValueConstraint) -> String {
             maximum.value(),
             maximum.unit().form_suffix(),
         ),
-        ValueConstraint::CanonicalMembership { members } => format!(
-            "constraint canonical-membership values={} bytes={}",
+        ValueConstraint::CanonicalMembership { members, negated } => format!(
+            "constraint canonical-membership negated={negated} values={} bytes={}",
             members.len(),
             members.iter().map(Vec::len).sum::<usize>()
         ),
-        ValueConstraint::TextPattern(pattern) => format!(
-            "constraint text-pattern states={} start={} maximum-characters={} maximum-steps={}",
+        ValueConstraint::TextPattern {
+            pattern,
+            anchored_start,
+            anchored_end,
+            negated,
+        } => format!(
+            "constraint text-pattern negated={negated} anchored-start={anchored_start} anchored-end={anchored_end} states={} start={} maximum-characters={} maximum-steps={}",
             pattern.states.len(),
             pattern.start_state,
             pattern.maximum_input_characters,

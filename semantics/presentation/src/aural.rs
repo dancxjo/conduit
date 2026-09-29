@@ -478,21 +478,38 @@ fn constraint_clause(constraint: &ValueConstraint) -> String {
             maximum.value(),
             maximum.unit().semantic_id(),
         ),
-        ValueConstraint::CanonicalMembership { members } => format!(
-            "one of the canonical values {}",
+        ValueConstraint::CanonicalMembership { members, negated } => format!(
+            "{} the canonical values {}",
+            if *negated { "none of" } else { "one of" },
             members
                 .iter()
                 .map(|member| canonical_member(member))
                 .collect::<Vec<_>>()
                 .join(", ")
         ),
-        ValueConstraint::TextPattern(pattern) => format!(
-            "the exact checked portable text pattern with {} states, start state {}, at most {} characters, and at most {} match steps",
+        ValueConstraint::TextPattern {
+            pattern,
+            anchored_start,
+            anchored_end,
+            negated,
+        } => format!(
+            "{}the exact checked portable text pattern as a {} with {} states, start state {}, at most {} characters, and at most {} match steps",
+            if *negated { "not " } else { "" },
+            pattern_profile(*anchored_start, *anchored_end),
             pattern.states.len(),
             pattern.start_state,
             pattern.maximum_input_characters,
             pattern.maximum_match_steps,
         ),
+    }
+}
+
+fn pattern_profile(anchored_start: bool, anchored_end: bool) -> &'static str {
+    match (anchored_start, anchored_end) {
+        (false, false) => "bounded search",
+        (true, false) => "prefix match",
+        (false, true) => "suffix match",
+        (true, true) => "whole-value match",
     }
 }
 
