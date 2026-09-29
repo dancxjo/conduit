@@ -30,16 +30,26 @@ pub fn primitive_from_structured<T: NativePrimitive>(
             conduit_core::StructuredInfoRefusal::WrongType,
         ));
     };
-    let conduit_core::StructuredInfoTypeShape::Leaf(kind) = value.value_type().shape() else {
-        return Err(NativeBindingRefusal::InvalidValue(
-            conduit_core::StructuredInfoRefusal::WrongType,
-        ));
-    };
+    let kind = primitive_kind(value.value_type())?;
     validate_primitive_info(kind.as_str(), canonical)
         .map_err(NativeBindingRefusal::InvalidPrimitive)?;
     T::decode_primitive(canonical).ok_or(NativeBindingRefusal::InvalidValue(
         conduit_core::StructuredInfoRefusal::WrongType,
     ))
+}
+
+fn primitive_kind(
+    value_type: &StructuredInfoType,
+) -> Result<&conduit_core::KindId, NativeBindingRefusal> {
+    match value_type.shape() {
+        conduit_core::StructuredInfoTypeShape::Leaf(kind) => Ok(kind),
+        conduit_core::StructuredInfoTypeShape::Nominal { representation, .. } => {
+            primitive_kind(representation)
+        }
+        _ => Err(NativeBindingRefusal::InvalidValue(
+            conduit_core::StructuredInfoRefusal::WrongType,
+        )),
+    }
 }
 
 impl NativePrimitive for () {

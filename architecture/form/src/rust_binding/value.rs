@@ -1,7 +1,7 @@
 use crate::prelude::*;
 use conduit_core::{
     CheckedValueContract, PrimitiveInfoRefusal, StructuredInfoRefusal, StructuredInfoType,
-    StructuredInfoValue, StructuredInfoValueShape, ValueConstraintRefusal,
+    StructuredInfoTypeShape, StructuredInfoValue, StructuredInfoValueShape, ValueConstraintRefusal,
 };
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -13,6 +13,70 @@ pub enum NativeBindingRefusal {
         representation_path: String,
         refusal: ValueConstraintRefusal,
     },
+}
+
+pub fn nominal_representation_type(
+    value_type: &StructuredInfoType,
+) -> Result<StructuredInfoType, NativeBindingRefusal> {
+    let StructuredInfoTypeShape::Nominal { representation, .. } = value_type.shape() else {
+        return Err(wrong_type());
+    };
+    Ok(representation.clone())
+}
+
+pub fn record_field_type(
+    value_type: &StructuredInfoType,
+    name: &str,
+) -> Result<StructuredInfoType, NativeBindingRefusal> {
+    let StructuredInfoTypeShape::Record { fields, .. } = value_type.shape() else {
+        return Err(wrong_type());
+    };
+    fields
+        .iter()
+        .find(|field| field.name() == name)
+        .map(|field| field.value_type().clone())
+        .ok_or_else(wrong_type)
+}
+
+pub fn record_field_value(
+    value: &StructuredInfoValue,
+    name: &str,
+) -> Result<StructuredInfoValue, NativeBindingRefusal> {
+    let StructuredInfoValueShape::Record(fields) = value.shape() else {
+        return Err(wrong_type());
+    };
+    fields
+        .iter()
+        .find(|field| field.name() == name)
+        .map(|field| field.value().clone())
+        .ok_or_else(wrong_type)
+}
+
+pub fn sequence_element_type(
+    value_type: &StructuredInfoType,
+) -> Result<StructuredInfoType, NativeBindingRefusal> {
+    let StructuredInfoTypeShape::Sequence { element, .. } = value_type.shape() else {
+        return Err(wrong_type());
+    };
+    Ok(element.clone())
+}
+
+pub fn variant_payload_type(
+    value_type: &StructuredInfoType,
+    tag: &str,
+) -> Result<StructuredInfoType, NativeBindingRefusal> {
+    let StructuredInfoTypeShape::Variant { cases, .. } = value_type.shape() else {
+        return Err(wrong_type());
+    };
+    cases
+        .iter()
+        .find(|case| case.tag() == tag)
+        .map(|case| case.payload_type().clone())
+        .ok_or_else(wrong_type)
+}
+
+fn wrong_type() -> NativeBindingRefusal {
+    NativeBindingRefusal::InvalidValue(StructuredInfoRefusal::WrongType)
 }
 
 pub fn validate_native_contracts(
