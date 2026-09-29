@@ -46,6 +46,8 @@ mod structured_values;
 pub use structured_values::*;
 mod current_sample;
 pub use current_sample::*;
+mod flow_zip;
+pub use flow_zip::*;
 mod image_text;
 pub use image_text::*;
 mod typed_record;

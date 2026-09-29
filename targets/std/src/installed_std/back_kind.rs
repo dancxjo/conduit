@@ -17,6 +17,7 @@ use super::flow_first_back::FlowFirstBack;
 use super::flow_gate_back::FlowGateScalarBack;
 use super::flow_pressure_backs::FlowPressureBack;
 use super::flow_state_backs::{FlowTeeScalarBack, StateLatestScalarBack};
+use super::flow_zip_back::FlowZipBack;
 use super::generated_speech_commit_back::GeneratedSpeechCommitBack;
 use super::house_prompt_back::HousePromptBack;
 use super::http::{HttpClientBack, HttpServerBack};
@@ -135,6 +136,7 @@ pub(super) enum InstalledBack {
     FlowTeeScalar(FlowTeeScalarBack),
     StateSelectScalar(StateSelectScalarBack),
     CurrentSample(CurrentSampleBack),
+    FlowZip(FlowZipBack),
     FlowGateScalar(FlowGateScalarBack),
     FlowFirst(FlowFirstBack),
     KeyEventTee(KeyEventTeeBack),

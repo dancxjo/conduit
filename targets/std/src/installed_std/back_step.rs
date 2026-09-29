@@ -9,6 +9,23 @@ use conduit_kernel::RequestId;
 macro_rules! installed_step_dispatch {
     ($( $(#[$attribute:meta])* $variant:ident ),+ $(,)?) => {
         impl<const PORTS: usize> StepBack<PORTS> for InstalledBack {
+            fn terminal_transductions(&self) -> [Option<AssignedTerminalTransduction>; PORTS] {
+                match self {
+                    Self::TypedState(operation) => StepBack::<PORTS>::terminal_transductions(operation.as_ref()),
+                    Self::DurableState(operation) => StepBack::<PORTS>::terminal_transductions(operation.as_ref()),
+                    Self::ButtonMapper(operation) => StepBack::<PORTS>::terminal_transductions(operation.as_ref()),
+                    Self::MidiInput(operation) => StepBack::<PORTS>::terminal_transductions(operation.as_ref()),
+                    Self::TestPcmSource(operation) => StepBack::<PORTS>::terminal_transductions(operation.as_ref()),
+                    $(
+                        $(#[$attribute])*
+                        Self::$variant(operation) => {
+                            StepBack::<PORTS>::terminal_transductions(operation)
+                        }
+                    )+
+                    Self::Inactive => [None; PORTS],
+                }
+            }
+
             fn terminal_transduction(&self) -> Option<AssignedTerminalTransduction> {
                 match self {
                     Self::TypedState(operation) => StepBack::<PORTS>::terminal_transduction(operation.as_ref()),
@@ -159,6 +176,7 @@ installed_step_dispatch!(
     FlowTeeScalar,
     StateSelectScalar,
     CurrentSample,
+    FlowZip,
     FlowGateScalar,
     FlowFirst,
     KeyEventTee,
