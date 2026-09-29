@@ -254,6 +254,16 @@ fn constraint_fact(constraint: &ValueConstraint) -> String {
         } => format!(
             "constraint signed-range minimum={minimum}({minimum_endpoint:?}) maximum={maximum}({maximum_endpoint:?})"
         ),
+        ValueConstraint::FixedIntegerRange {
+            minimum,
+            maximum,
+            minimum_endpoint,
+            maximum_endpoint,
+        } => format!(
+            "constraint fixed-integer-range minimum=0x{}({minimum_endpoint:?}) maximum=0x{}({maximum_endpoint:?})",
+            hex_bytes(minimum),
+            hex_bytes(maximum),
+        ),
         ValueConstraint::QuantityRange {
             minimum,
             maximum,
@@ -284,6 +294,10 @@ fn constraint_fact(constraint: &ValueConstraint) -> String {
             pattern.maximum_match_steps,
         ),
     }
+}
+
+fn hex_bytes(bytes: &[u8]) -> String {
+    bytes.iter().map(|byte| format!("{byte:02x}")).collect()
 }
 
 #[cfg(test)]
@@ -336,6 +350,19 @@ mod tests {
         assert!(inspection.exact_facts.iter().any(|fact| {
             fact == "constraint unsigned-range minimum=1(Exclusive) maximum=4(Inclusive)"
         }));
+    }
+
+    #[test]
+    fn fixed_integer_range_inspection_keeps_exact_canonical_bounds() {
+        assert_eq!(
+            constraint_fact(&ValueConstraint::FixedIntegerRange {
+                minimum: vec![0x00],
+                maximum: vec![0x7f],
+                minimum_endpoint: IntervalEndpoint::Inclusive,
+                maximum_endpoint: IntervalEndpoint::Inclusive,
+            }),
+            "constraint fixed-integer-range minimum=0x00(Inclusive) maximum=0x7f(Inclusive)"
+        );
     }
 
     #[test]
