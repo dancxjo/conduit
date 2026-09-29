@@ -86,7 +86,7 @@ pub fn check_package_bundle(
     for (module, document) in &documents {
         reject_ambient_references(module, document, &owners)?;
         let source_paths = local_source_paths(bundle, module);
-        let mut resolved = crate::syntax_check::resolve_use_declarations(
+        let (mut resolved, _) = crate::syntax_check::resolve_use_declarations(
             document,
             catalog,
             &source_paths,

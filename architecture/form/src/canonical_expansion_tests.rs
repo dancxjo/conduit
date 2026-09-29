@@ -154,8 +154,13 @@ fn fixed_arity_relational_glyph_expands_to_one_ordinary_gear() {
     )
     .unwrap();
     let authoring = expand_canonical_form_for_authoring(&checked, "main", &profile).unwrap();
+    let source_expansion = &checked.source_sugar_expansions[0];
     assert_eq!(authoring.expanded.gears.len(), 1);
     assert_eq!(authoring.expanded.gears[0].kind_id.as_str(), "test/zip");
+    assert_eq!(
+        authoring.expanded.gears[0].kind_id.as_str(),
+        source_expansion.ordinary_kind
+    );
     assert_eq!(authoring.input_bindings.len(), 2);
     assert_eq!(authoring.output_bindings.len(), 1);
 }
@@ -197,9 +202,11 @@ fn variadic_relational_glyph_expands_to_one_finitely_specialized_gear() {
     )
     .unwrap();
     let authoring = expand_canonical_form_for_authoring(&checked, "main", &profile).unwrap();
+    let source_expansion = &checked.source_sugar_expansions[0];
     assert_eq!(authoring.expanded.gears.len(), 1);
     let gear = &authoring.expanded.gears[0];
     assert_eq!(gear.kind_id.as_str(), "flow/merge");
+    assert_eq!(gear.kind_id.as_str(), source_expansion.ordinary_kind);
     assert_eq!(
         gear.kind_contract_revision.as_str(),
         "flow/merge@1/inputs/3"

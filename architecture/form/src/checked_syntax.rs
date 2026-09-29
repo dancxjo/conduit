@@ -348,7 +348,37 @@ pub struct CheckedCanonicalForm {
 pub struct CheckedSyntaxDocument {
     pub source_document_id: SourceDocumentId,
     pub forms: Vec<CheckedCanonicalForm>,
+    /// Authored shorthand correlated with the ordinary meaning established by
+    /// this exact check. This is source inspection, not another expansion or
+    /// an input to planning.
+    pub source_sugar_expansions: Vec<SourceSugarExpansion>,
     pub(crate) structured_types: BTreeMap<conduit_core::KindId, conduit_core::StructuredInfoType>,
+}
+
+/// One checked explanation of concise source spelling.
+///
+/// The ordinary Kind and Fore roles come from the same lexical resolution and
+/// Fore specialization used to build [`CheckedCanonicalForm`]. Consumers must
+/// not reinterpret `authored` or use this record as planner input.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct SourceSugarExpansion {
+    pub form: String,
+    pub checked_form_id: CheckedFormId,
+    pub authored: String,
+    pub source_span: Span,
+    pub ordinary_kind: String,
+    pub input_ports: Vec<String>,
+    pub output_ports: Vec<String>,
+    pub operand_bindings: Vec<SourceSugarOperandBinding>,
+    /// A direct stage replacement when the spelling is losslessly expressible.
+    /// Relational applications use explicit port bindings instead.
+    pub canonical_replacement: Option<String>,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct SourceSugarOperandBinding {
+    pub source: String,
+    pub input_port: String,
 }
 
 impl CheckedSyntaxDocument {

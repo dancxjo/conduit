@@ -50,6 +50,14 @@ fn load_with_catalogs(
 }
 
 impl CanonicalSource {
+    pub(crate) fn check(&self) -> Result<conduit_form::CheckedSyntaxDocument, String> {
+        if let Some(diagnostic) = self.syntax.diagnostics.first() {
+            return Err(format!("{}: {}", diagnostic.code, diagnostic.message));
+        }
+        conduit_form::check_syntax_document(&self.syntax, &self.startup)
+            .map_err(|diagnostic| format!("{}: {}", diagnostic.code, diagnostic.message))
+    }
+
     pub(crate) fn expand_entry(&self) -> Result<ExpandedCanonicalForm, String> {
         self.expand_entry_with_backs(false)
     }
@@ -61,11 +69,7 @@ impl CanonicalSource {
     }
 
     fn expand_entry_with_backs(&self, recursive: bool) -> Result<ExpandedCanonicalForm, String> {
-        if let Some(diagnostic) = self.syntax.diagnostics.first() {
-            return Err(format!("{}: {}", diagnostic.code, diagnostic.message));
-        }
-        let checked = conduit_form::check_syntax_document(&self.syntax, &self.startup)
-            .map_err(|diagnostic| format!("{}: {}", diagnostic.code, diagnostic.message))?;
+        let checked = self.check()?;
         let entry = checked
             .forms
             .last()

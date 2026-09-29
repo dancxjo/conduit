@@ -238,6 +238,20 @@ fn standard_glyph_prelude_resolves_every_reviewed_binding_lazily() {
         );
         let checked = check_syntax_document(&parse_syntax_document(&source), &catalog).unwrap();
         assert_eq!(checked.forms[0].gears[0].kind, kind);
+        let expansion = &checked.source_sugar_expansions[0];
+        assert_eq!(expansion.authored, glyph);
+        assert_eq!(expansion.ordinary_kind, kind);
+        assert_eq!(expansion.checked_form_id, checked.forms[0].checked_form_id);
+        assert_eq!(expansion.source_span, parsed_glyph_span(&source, glyph));
+        let expected_inputs = if kind == "flow/merge" {
+            ["operand-01", "operand-02"]
+        } else {
+            ["left", "right"]
+        };
+        assert_eq!(expansion.input_ports, expected_inputs);
+        assert_eq!(expansion.output_ports, ["result"]);
+        assert_eq!(expansion.operand_bindings.len(), 2);
+        assert!(expansion.canonical_replacement.is_none());
     }
 
     check_syntax_document(
@@ -245,6 +259,46 @@ fn standard_glyph_prelude_resolves_every_reviewed_binding_lazily() {
         &StartupCatalog::new(),
     )
     .expect("unused prelude bindings do not require installed Kinds");
+}
+
+fn parsed_glyph_span(source: &str, glyph: &str) -> crate::Span {
+    let parsed = parse_syntax_document(source);
+    let crate::BackStatement::Cord(cord) = &parsed.forms[0].back[0] else {
+        panic!("expected glyph cord")
+    };
+    let crate::CordStage::RelationalGlyph { glyph: parsed, .. } = &cord.stages[0] else {
+        panic!("expected relational glyph")
+    };
+    assert_eq!(parsed.text, glyph);
+    parsed.span
+}
+
+#[test]
+fn explicit_unary_glyph_inspection_uses_the_checked_fore_and_lossless_replacement() {
+    let mut catalog = catalog();
+    catalog
+        .insert_fore(
+            "text/upper",
+            CheckedFront::new(
+                vec![],
+                vec![text_port("text", PortDirection::Input)],
+                vec![text_port("upper", PortDirection::Output)],
+                Some((port_id("text"), port_id("upper"))),
+            ),
+        )
+        .unwrap();
+    let source = "sans glyphs\nwith text/upper as ^^\nform example (\n >> input: Text\n output: Text >>\n) {\n input >> ^^ >> output\n}\n";
+    let checked = check_syntax_document(&parse_syntax_document(source), &catalog).unwrap();
+    let expansion = &checked.source_sugar_expansions[0];
+    assert_eq!(expansion.authored, "^^");
+    assert_eq!(expansion.ordinary_kind, "text/upper");
+    assert_eq!(expansion.input_ports, ["text"]);
+    assert_eq!(expansion.output_ports, ["upper"]);
+    assert_eq!(
+        expansion.canonical_replacement.as_deref(),
+        Some("text/upper")
+    );
+    assert_eq!(checked.forms[0].gears[0].kind, expansion.ordinary_kind);
 }
 
 #[test]
@@ -296,6 +350,11 @@ fn sans_glyphs_removes_only_the_standard_prelude() {
     )
     .expect("an explicit glyph import remains legal after opt-out");
     assert_eq!(explicit.forms[0].gears[0].kind, "flow/zip");
+    assert_eq!(explicit.source_sugar_expansions[0].authored, "&>");
+    assert_eq!(
+        explicit.source_sugar_expansions[0].ordinary_kind,
+        "flow/zip"
+    );
 
     let occupied = check_syntax_document(
         &parse_syntax_document(&format!("with flow/zip as &>\n{body}")),
