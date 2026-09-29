@@ -183,6 +183,20 @@ export class BrowserForm {
   readonly schema: "conduit.browser/form-source@1";
   readonly source: string;
   check(): Promise<CheckedSource>;
+  /** Rust-checked authoring projection; creates no Body, Plan, Play, or authority. */
+  patchbay(): BrowserFormPatchbay;
+}
+
+export interface BrowserFormPatchbay extends Readonly<Record<string, unknown>> {
+  readonly schema: "conduit.patchbay/checked-form-projection@1";
+  readonly source_document_id: string;
+  readonly checked_form_id: string;
+  readonly visible_expanded_form_id: string;
+  readonly form_name: string;
+  readonly front_inputs: readonly BrowserPatchbayPort[];
+  readonly front_outputs: readonly BrowserPatchbayPort[];
+  readonly gears: readonly Readonly<Record<string, unknown>>[];
+  readonly cords: readonly Readonly<Record<string, unknown>>[];
 }
 
 export class BrowserBody {
@@ -217,9 +231,28 @@ export interface BrowserBodyPatchbay {
     checked_form_id: string;
     visible_expanded_form_id: string;
     form_name: string;
-    gears: readonly Readonly<Record<string, unknown>>[];
+    front_inputs: readonly BrowserPatchbayPort[];
+    front_outputs: readonly BrowserPatchbayPort[];
+    gears: readonly Readonly<{
+      gear_id: string;
+      kind_id: string;
+      inputs: readonly BrowserPatchbayPort[];
+      outputs: readonly BrowserPatchbayPort[];
+    }>[];
     cords: readonly Readonly<Record<string, unknown>>[];
   }>;
+}
+
+export interface BrowserPatchbayPort {
+  readonly port_id: string;
+  readonly info_kind: string;
+  readonly temporal: string;
+  /** Exact Rust-checked contract; null means no additional value refinement. */
+  readonly value_contract: Readonly<{
+    value_kind: string;
+    maximum_bytes: number;
+    constraints: readonly Readonly<Record<string, unknown>>[];
+  }> | null;
 }
 
 export interface BrowserBodySnapshot extends Readonly<Record<string, unknown>> {

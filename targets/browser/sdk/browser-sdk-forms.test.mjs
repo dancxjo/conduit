@@ -41,6 +41,35 @@ test("invalid source returns canonical diagnostics and parser spans without pros
   assert.deepEqual(checked.diagnostics[0], diagnostic);
 });
 
+test("Form Patchbay exposes immutable Rust-checked Front constraints without creating a Body", () => {
+  const calls = [];
+  const form = new BrowserForm(source, { projectPatchbay(input, sequence) {
+    calls.push({ input, sequence });
+    return { status: 0, outputJson: {
+      schema: "conduit.patchbay/checked-form-projection@1",
+      source_document_id: "sha256:source",
+      checked_form_id: "sha256:checked",
+      visible_expanded_form_id: "sha256:expanded",
+      realization_expanded_form_id: "sha256:expanded",
+      source_proposal_id: "proposal/1",
+      sequence: Number(sequence), form_name: "clock", realization: "direct",
+      front_inputs: [{ port_id: "code", info_kind: "value/text", temporal: "value", value_contract: {
+        value_kind: "value/text", maximum_bytes: 8,
+        constraints: [{ CanonicalMembership: { members: [[65, 66, 49, 50]] } }],
+      } }],
+      front_outputs: [], gears: [], cords: [], realization_gears: [], realization_cords: [],
+      realization_backs: [], diagnostics: [],
+    } };
+  } });
+
+  const first = form.patchbay();
+  const second = form.patchbay();
+  assert.deepEqual(calls, [{ input: source, sequence: 1n }, { input: source, sequence: 2n }]);
+  assert.equal(first.front_inputs[0].value_contract.maximum_bytes, 8);
+  assert.equal(second.sequence, 2);
+  assert.equal(Object.isFrozen(first.front_inputs[0].value_contract.constraints[0]), true);
+});
+
 test("Host workload review returns bounded realization requirements without creating a Plan or acquiring resources", async () => {
   const checked = await new BrowserForm(source, { crecheReviewedInventory: () => ({ status: 0, outputJson: { source_document_id: "sha256:source", forms: [form] } }) }).check();
   const bridge = { crecheReviewInitialWorkload(request) {
@@ -105,6 +134,12 @@ test("Body Patchbay uses the Rust projection and binds it to exact Body and Boot
         source_proposal_id: "proposal/1",
         form_name: "clock",
         realization: "direct",
+        front_inputs: [{ port_id: "count", info_kind: "value/count", temporal: "value", value_contract: {
+          value_kind: "value/count", maximum_bytes: 8, constraints: [{ UnsignedRange: {
+            minimum: 1, maximum: 4, minimum_endpoint: "Exclusive", maximum_endpoint: "Inclusive",
+          } }],
+        } }],
+        front_outputs: [],
         gears: [{ gear_id: "clock/tick", kind_id: "presentation/tick", inputs: [], outputs: [] }],
         cords: [], realization_gears: [], realization_cords: [], realization_backs: [], diagnostics: [],
       } };
@@ -121,6 +156,9 @@ test("Body Patchbay uses the Rust projection and binds it to exact Body and Boot
   assert.equal(patchbay.bootId, "boot/1");
   assert.equal(patchbay.topology.checked_form_id, "sha256:checked");
   assert.equal(Object.isFrozen(patchbay.topology.gears), true);
+  assert.equal(patchbay.topology.front_inputs[0].value_contract.constraints[0].UnsignedRange.minimum, 1);
+  assert.equal(Object.isFrozen(patchbay.topology.front_inputs), true);
+  assert.equal(Object.isFrozen(patchbay.topology.front_inputs[0].value_contract.constraints), true);
 });
 
 test("workset refusal retains the exact expected revision", async () => {

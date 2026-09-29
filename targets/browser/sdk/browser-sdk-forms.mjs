@@ -14,6 +14,7 @@ export function setBrowserSdkErrors(errors) { sdkErrors = errors; }
 export class BrowserForm {
   #source;
   #bridge;
+  #projectionSequence = 0;
   constructor(source, bridge) {
     if (typeof source !== "string" || source.length === 0) throw new TypeError("Form source must be non-empty Conduitese text");
     this.#source = source;
@@ -56,6 +57,24 @@ export class BrowserForm {
       forms: Object.freeze(entries),
       source: this.#source,
     });
+  }
+
+  /** Inspect this authored Form through Rust checking and exact Patchbay projection. */
+  patchbay() {
+    if (this.#projectionSequence >= Number.MAX_SAFE_INTEGER) {
+      throw sdkRefusal("Form.patchbay", {
+        code: "ProjectionSequenceExhausted",
+        message: "Form Patchbay projection sequence is exhausted",
+      });
+    }
+    const projected = this.#bridge.projectPatchbay(
+      this.#source,
+      BigInt(++this.#projectionSequence),
+    );
+    if (projected.status < 0) {
+      throw sdkRefusal("Form.patchbay", projected.outputJson);
+    }
+    return freezePatchbayProjection(projected.outputJson, "Form.patchbay");
   }
 }
 
@@ -258,28 +277,32 @@ export class BrowserBody {
   }
 }
 
-function freezePatchbayProjection(value) {
+function freezePatchbayProjection(value, operation = "Body.patchbay") {
   if (value?.schema !== "conduit.patchbay/checked-form-projection@1"
     || typeof value.source_document_id !== "string"
     || typeof value.checked_form_id !== "string"
+    || !Array.isArray(value.front_inputs) || !Array.isArray(value.front_outputs)
     || !Array.isArray(value.gears) || !Array.isArray(value.cords)) {
-    throw sdkRefusal("Body.patchbay", {
+    throw sdkRefusal(operation, {
       code: "PatchbayProjectionInvalid",
       message: "runtime returned a malformed Patchbay projection",
     });
   }
+  const freezePort = (port) => freezePatchbayPort(port, operation);
   return Object.freeze({
     ...value,
+    front_inputs: Object.freeze(value.front_inputs.map(freezePort)),
+    front_outputs: Object.freeze(value.front_outputs.map(freezePort)),
     gears: Object.freeze(value.gears.map((gear) => Object.freeze({
       ...gear,
-      inputs: Object.freeze(gear.inputs.map((port) => Object.freeze({ ...port }))),
-      outputs: Object.freeze(gear.outputs.map((port) => Object.freeze({ ...port }))),
+      inputs: Object.freeze(gear.inputs.map(freezePort)),
+      outputs: Object.freeze(gear.outputs.map(freezePort)),
     }))),
     cords: Object.freeze(value.cords.map((cord) => Object.freeze({ ...cord }))),
     realization_gears: Object.freeze(value.realization_gears.map((gear) => Object.freeze({
       ...gear,
-      inputs: Object.freeze(gear.inputs.map((port) => Object.freeze({ ...port }))),
-      outputs: Object.freeze(gear.outputs.map((port) => Object.freeze({ ...port }))),
+      inputs: Object.freeze(gear.inputs.map(freezePort)),
+      outputs: Object.freeze(gear.outputs.map(freezePort)),
     }))),
     realization_cords: Object.freeze(value.realization_cords.map((cord) => Object.freeze({ ...cord }))),
     realization_backs: Object.freeze(value.realization_backs.map((back) => Object.freeze({ ...back }))),
@@ -288,6 +311,35 @@ function freezePatchbayProjection(value) {
       subjects: Object.freeze([...diagnostic.subjects]),
     }))),
   });
+}
+
+function freezePatchbayPort(port, operation) {
+  const contract = port?.value_contract;
+  if (!port || typeof port.port_id !== "string" || typeof port.info_kind !== "string"
+    || typeof port.temporal !== "string"
+    || (contract !== null && (typeof contract !== "object"
+      || contract.value_kind !== port.info_kind
+      || !Number.isSafeInteger(contract.maximum_bytes) || contract.maximum_bytes < 0
+      || !Array.isArray(contract.constraints) || contract.constraints.length > 16))) {
+    throw sdkRefusal(operation, {
+      code: "PatchbayValueContractInvalid",
+      message: "runtime returned a malformed checked Port value contract",
+    });
+  }
+  return Object.freeze({
+    ...port,
+    value_contract: contract === null ? null : freezeJsonValue(contract),
+  });
+}
+
+function freezeJsonValue(value) {
+  if (Array.isArray(value)) return Object.freeze(value.map(freezeJsonValue));
+  if (value && typeof value === "object") {
+    return Object.freeze(Object.fromEntries(
+      Object.entries(value).map(([key, child]) => [key, freezeJsonValue(child)]),
+    ));
+  }
+  return value;
 }
 
 export async function birthBrowserBody({ bridge, host, boot, api, root, createPlay, acquireBodyHost, membership, storage, name, forms, sequence }) {

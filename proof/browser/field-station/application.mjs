@@ -23,6 +23,20 @@ try {
   const play = await body.wake();
   const patchbay = await body.patchbay();
   renderBrowserBodyPatchbay(patchbayRoot, patchbay);
+  const constraintRoot = document.createElement("div");
+  const constraintHost = await Conduit.browser({ root: constraintRoot, durable: false });
+  const constraintSource = `form constrained (
+    >> code: Text <= 8B where member("AB12", "CD34") and pattern(r"[A-Z]{2}[0-9]{2}")
+) {
+    upper: text/upper
+    code >> upper
+}`;
+  const constraintForm = constraintHost.form(constraintSource);
+  const constraintCheck = await constraintForm.check();
+  if (!constraintCheck.ok || constraintCheck.forms.length !== 1) {
+    throw new Error(constraintCheck.refusal?.message ?? "canonical constraint specimen was refused");
+  }
+  const constraintPatchbay = constraintForm.patchbay();
   const exact = Object.freeze({
     hostId: host.id,
     bootId: host.bootId,
@@ -44,6 +58,10 @@ try {
     body,
     play,
     patchbay,
+    constraintConformance: Object.freeze({
+      checkedFormId: constraintCheck.forms[0].checkedFormId,
+      patchbay: constraintPatchbay,
+    }),
     recovered: recoveredBody !== null,
     recoverySnapshot,
     identities: exact,

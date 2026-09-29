@@ -29,6 +29,7 @@ test("an external page recovers one Clock Body across a fresh Boot without resur
     recovered: __conduitFieldStation.recovered,
     recoverySnapshot: __conduitFieldStation.recoverySnapshot,
     patchbay: __conduitFieldStation.patchbay,
+    constraintConformance: __conduitFieldStation.constraintConformance,
   }));
   expect(running.recovered).toBe(true);
   expect(running.playState).toBe("playing");
@@ -59,6 +60,22 @@ test("an external page recovers one Clock Body across a fresh Boot without resur
     "presentation/tick",
   ]);
   expect(running.patchbay.topology.cords).toHaveLength(1);
+  expect(running.constraintConformance.patchbay.checked_form_id)
+    .toBe(running.constraintConformance.checkedFormId);
+  expect(running.constraintConformance.patchbay.front_inputs).toHaveLength(1);
+  expect(running.constraintConformance.patchbay.front_inputs[0]).toMatchObject({
+    port_id: "code",
+    info_kind: "value/text",
+    temporal: "value",
+    value_contract: {
+      value_kind: "value/text",
+      maximum_bytes: 8,
+      constraints: [
+        { CanonicalMembership: { members: [[65, 66, 49, 50], [67, 68, 51, 52]] } },
+        { TextPattern: { start_state: 0, maximum_input_characters: 8 } },
+      ],
+    },
+  });
   const patchbay = page.locator('#patchbay [data-patchbay-schema="conduit.browser/body-patchbay@1"]');
   await expect(patchbay).toHaveAttribute("data-body-id", running.identities.bodyId);
   await expect(patchbay).toHaveAttribute("data-boot-id", running.identities.bootId);

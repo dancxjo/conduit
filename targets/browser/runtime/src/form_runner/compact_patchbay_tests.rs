@@ -50,6 +50,43 @@ fn projects_reusable_form_with_unbound_front_port_for_authoring() {
 }
 
 #[test]
+fn sdk_projection_retains_exact_checked_front_constraints() {
+    let source = r#"form constrained (
+    >> code: Text <= 8B where member("AB12", "CD34") and pattern(r"[A-Z]{2}[0-9]{2}")
+) {
+    upper: text/upper
+    code >> upper
+}"#;
+
+    let projection = project_form(source, 9).unwrap();
+    assert_eq!(projection.front_inputs.len(), 1);
+    let code = projection
+        .front_inputs
+        .iter()
+        .find(|port| port.port_id == "code")
+        .and_then(|port| port.value_contract.as_ref())
+        .expect("browser SDK projection retains the exact code contract");
+    assert_eq!(code.maximum_bytes, 8);
+    assert_eq!(code.constraints.len(), 2);
+    assert_eq!(code.validate(b"AB12"), Ok(()));
+    assert_eq!(
+        code.validate(b"EF56"),
+        Err(conduit_core::ValueConstraintRefusal::Membership)
+    );
+
+    let encoded = serde_json::to_value(&projection).unwrap();
+    assert_eq!(
+        encoded["front_inputs"][0]["value_contract"]["value_kind"],
+        "value/text"
+    );
+    assert_eq!(
+        encoded["front_inputs"][0]["value_contract"]["constraints"][0]["CanonicalMembership"]
+            ["members"][0],
+        serde_json::json!([65, 66, 49, 50])
+    );
+}
+
+#[test]
 fn recursive_realization_preserves_the_front_and_carries_bounded_back_topology() {
     let direct = project(MORSE, 8, false).unwrap();
     let recursive = project(MORSE, 9, true).unwrap();
