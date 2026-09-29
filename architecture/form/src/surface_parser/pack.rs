@@ -4,15 +4,15 @@ use crate::surface_lex::{is_name, is_operation};
 use crate::syntax::{PackageRequirementSyntax, PackageSyntax};
 use crate::{FormError, Span, MAXIMUM_PACKAGE_EXPORTS, MAXIMUM_PACKAGE_REQUIREMENTS};
 
-pub(super) fn parse_package(parser: &mut Parser<'_>) -> Result<PackageSyntax, (FormError, Span)> {
+pub(super) fn parse_pack(parser: &mut Parser<'_>) -> Result<PackageSyntax, (FormError, Span)> {
     let opening = parser.lines[parser.index];
     let (header, header_start) = opening.statement();
     let declaration = header
-        .strip_prefix("package ")
+        .strip_prefix("pack ")
         .and_then(|value| value.strip_suffix('('))
         .map(str::trim)
         .filter(|value| is_operation(value) && value.contains('/'))
-        .ok_or_else(|| invalid(parser, "expected 'package PATH ('", opening))?;
+        .ok_or_else(|| invalid(parser, "expected 'pack PATH ('", opening))?;
     let path_offset = header_start + header.find(declaration).unwrap_or(0);
     let path = parser.spanned(declaration, path_offset);
     parser.index += 1;
@@ -32,7 +32,7 @@ pub(super) fn parse_package(parser: &mut Parser<'_>) -> Result<PackageSyntax, (F
         .ok_or_else(|| {
             invalid(
                 parser,
-                "package header requires version = \"MAJOR.MINOR.PATCH\"",
+                "pack header requires version = \"MAJOR.MINOR.PATCH\"",
                 version_line,
             )
         })?;
@@ -41,7 +41,7 @@ pub(super) fn parse_package(parser: &mut Parser<'_>) -> Result<PackageSyntax, (F
         .ok_or_else(|| {
             invalid(
                 parser,
-                "package version must be a finite semantic version string",
+                "pack version must be a finite semantic version string",
                 version_line,
             )
         })?;
@@ -59,7 +59,7 @@ pub(super) fn parse_package(parser: &mut Parser<'_>) -> Result<PackageSyntax, (F
     if body_open.statement().0 != ") {" {
         return Err(invalid(
             parser,
-            "expected ') {' after package header",
+            "expected ') {' after pack header",
             body_open,
         ));
     }
@@ -89,22 +89,18 @@ pub(super) fn parse_package(parser: &mut Parser<'_>) -> Result<PackageSyntax, (F
                 span: parser.span(header_start, line.start + line.text.len()),
             });
         }
-        if let Some(name) = statement.strip_prefix("export ").map(str::trim) {
+        if let Some(name) = statement.strip_prefix("ship ").map(str::trim) {
             if !is_name(name)
                 || exports
                     .iter()
                     .any(|item: &crate::syntax::SpannedText| item.text == name)
             {
-                return Err(invalid(
-                    parser,
-                    "package export must be a unique name",
-                    line,
-                ));
+                return Err(invalid(parser, "pack shipment must be a unique name", line));
             }
             if exports.len() == MAXIMUM_PACKAGE_EXPORTS {
                 return Err(invalid(
                     parser,
-                    "package exceeds the finite export bound",
+                    "pack exceeds the finite shipment bound",
                     line,
                 ));
             }
@@ -127,16 +123,12 @@ pub(super) fn parse_package(parser: &mut Parser<'_>) -> Result<PackageSyntax, (F
                     .iter()
                     .any(|item: &PackageRequirementSyntax| item.path.text == required_path)
             {
-                return Err(invalid(
-                    parser,
-                    "required package path must be unique",
-                    line,
-                ));
+                return Err(invalid(parser, "required pack path must be unique", line));
             }
             if requirements.len() == MAXIMUM_PACKAGE_REQUIREMENTS {
                 return Err(invalid(
                     parser,
-                    "package exceeds the finite requirement bound",
+                    "pack exceeds the finite requirement bound",
                     line,
                 ));
             }
@@ -152,7 +144,7 @@ pub(super) fn parse_package(parser: &mut Parser<'_>) -> Result<PackageSyntax, (F
         }
         return Err(invalid(
             parser,
-            "package body accepts only export NAME or require PATH = \"VERSION\"",
+            "pack body accepts only ship NAME or require PATH = \"VERSION\"",
             line,
         ));
     }

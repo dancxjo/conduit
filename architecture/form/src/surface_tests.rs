@@ -72,8 +72,8 @@ fn forms_are_live_by_default_and_completion_is_explicit() {
 }
 
 #[test]
-fn use_headers_and_glyph_opt_out_are_lossless_document_structure() {
-    let source = "without glyphs\nuse time/every as cadence\nuse math/geometry/{vector2, matrix2}\n\nform example {\n    tick: cadence(1s)\n}\n";
+fn with_headers_and_glyph_opt_out_are_lossless_document_structure() {
+    let source = "without glyphs\nwith time/every as cadence\nwith math/geometry/{vector2, matrix2}\n\nform example {\n    tick: cadence(1s)\n}\n";
     let document = parse_syntax_document(source);
     assert!(
         document.diagnostics.is_empty(),
@@ -93,7 +93,7 @@ fn use_headers_and_glyph_opt_out_are_lossless_document_structure() {
 
 #[test]
 fn punctuation_gear_names_are_lossless_but_core_tokens_remain_grammar() {
-    let source = "use time/default as ^^\nform example {\n  @: current/sample\n  input >> ^^ >> @ >> output\n}\n";
+    let source = "with time/default as ^^\nform example {\n  @: current/sample\n  input >> ^^ >> @ >> output\n}\n";
     let parsed = parse_syntax_document(source);
     assert!(parsed.diagnostics.is_empty(), "{:?}", parsed.diagnostics);
     assert_eq!(parsed.round_trip(), source);
@@ -104,7 +104,7 @@ fn punctuation_gear_names_are_lossless_but_core_tokens_remain_grammar() {
     assert_eq!(named.name.text, "@");
 
     for reserved in [">>", ">", "?", "!", "~", "."] {
-        let source = alloc::format!("use time/default as {reserved}\nform example {{\n}}\n");
+        let source = alloc::format!("with time/default as {reserved}\nform example {{\n}}\n");
         assert!(
             !parse_syntax_document(&source).diagnostics.is_empty(),
             "{reserved}"
@@ -113,15 +113,23 @@ fn punctuation_gear_names_are_lossless_but_core_tokens_remain_grammar() {
 }
 
 #[test]
-fn authored_uses_have_one_explicit_finite_document_bound() {
+fn authored_imports_have_one_explicit_finite_document_bound() {
     let mut source = alloc::string::String::new();
     for index in 0..=crate::MAXIMUM_USE_DECLARATIONS {
-        source.push_str(&alloc::format!("use test/kind-{index}\n"));
+        source.push_str(&alloc::format!("with test/kind-{index}\n"));
     }
     source.push_str("form example {\n}\n");
     let document = parse_syntax_document(&source);
     assert!(document.forms().is_err());
-    assert!(document.diagnostics[0].message.contains("use bound"));
+    assert!(document.diagnostics[0].message.contains("import bound"));
+}
+
+#[test]
+fn legacy_use_keyword_is_not_a_compatibility_spelling() {
+    let document =
+        parse_syntax_document("use time/every as cadence\nform example {\n tick: cadence(1s)\n}\n");
+    assert!(document.uses.is_empty());
+    assert_eq!(document.diagnostics.len(), 1);
 }
 
 #[test]

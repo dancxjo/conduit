@@ -1,9 +1,9 @@
 use super::*;
 
 fn package_manifest(exports: &[&str]) -> (String, PackageSyntax) {
-    let mut source = String::from("package example/tools (\n    version = \"1.0.0\"\n) {\n");
+    let mut source = String::from("pack example/tools (\n    version = \"1.0.0\"\n) {\n");
     for export in exports {
-        source.push_str(&format!("    export {export}\n"));
+        source.push_str(&format!("    ship {export}\n"));
     }
     source.push_str("}\n");
     let document = parse_syntax_document(&source);
@@ -13,7 +13,7 @@ fn package_manifest(exports: &[&str]) -> (String, PackageSyntax) {
 #[test]
 fn package_bundle_identity_covers_sorted_member_paths_and_exact_source() {
     let (manifest_source, manifest) = package_manifest(&["public"]);
-    let public = "use ./support/helper\nform public {\n helper: helper\n}\n";
+    let public = "with ./support/helper\nform public {\n helper: helper\n}\n";
     let support = "form helper {\n}\n";
     let forward = CheckedPackageBundle::from_sources(
         &manifest_source,
@@ -149,7 +149,7 @@ fn package_bundle_refuses_missing_exports_members_and_forms() {
         &manifest,
         &[PackageMemberSource {
             path: "main",
-            source: "use ./missing/helper\nform public {\n}\n",
+            source: "with ./missing/helper\nform public {\n}\n",
         }],
     )
     .unwrap_err();
@@ -164,7 +164,7 @@ fn package_bundle_refuses_missing_exports_members_and_forms() {
         &[
             PackageMemberSource {
                 path: "main",
-                source: "use ./support/absent\nform public {\n}\n",
+                source: "with ./support/absent\nform public {\n}\n",
             },
             PackageMemberSource {
                 path: "support",
@@ -188,11 +188,11 @@ fn package_bundle_refuses_local_module_cycles_and_duplicate_forms() {
         &[
             PackageMemberSource {
                 path: "a",
-                source: "use ./b/right\nform left {\n}\n",
+                source: "with ./b/right\nform left {\n}\n",
             },
             PackageMemberSource {
                 path: "b",
-                source: "use ./a/left\nform right {\n}\n",
+                source: "with ./a/left\nform right {\n}\n",
             },
         ],
     )

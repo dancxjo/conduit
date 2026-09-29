@@ -17,11 +17,11 @@ use crate::{
 
 mod construction;
 pub(crate) mod front;
-mod package;
+mod pack;
 mod shared_pool;
 use construction::parse_construction;
 use front::{canonical_default_bound, parse_finite_bound, parse_port_type};
-use package::parse_package;
+use pack::parse_pack;
 use shared_pool::parse_pool_declaration;
 
 pub(crate) fn parse_surface(source: &str) -> SyntaxDocument {
@@ -125,14 +125,14 @@ impl<'a> Parser<'a> {
                 self.skip_empty();
                 continue;
             }
-            let Some(import) = text.strip_prefix("use ") else {
+            let Some(import) = text.strip_prefix("with ") else {
                 break;
             };
             uses.extend(self.parse_use(import, text, start)?);
             if uses.len() > MAXIMUM_USE_DECLARATIONS {
                 return Err((
                     FormError::InvalidSyntax(alloc::format!(
-                        "source exceeds the {MAXIMUM_USE_DECLARATIONS}-use bound"
+                        "source exceeds the {MAXIMUM_USE_DECLARATIONS}-import bound"
                     )),
                     self.line_span(self.lines[self.index]),
                 ));
@@ -156,12 +156,13 @@ impl<'a> Parser<'a> {
                     ConstructionRole::Body,
                     "body",
                 )?);
-            } else if text.starts_with("package ") {
-                packages.push(parse_package(&mut self)?);
+            } else if text.starts_with("pack ") {
+                packages.push(parse_pack(&mut self)?);
             } else {
                 return Err((
                     FormError::InvalidSyntax(
-                        "expected 'form NAME', 'host NAME', 'body NAME', or 'package PATH' definition".into(),
+                        "expected 'form NAME', 'host NAME', 'body NAME', or 'pack PATH' definition"
+                            .into(),
                     ),
                     self.line_span(self.lines[self.index]),
                 ));
@@ -179,7 +180,7 @@ impl<'a> Parser<'a> {
         {
             return Err((
                 FormError::InvalidSyntax(
-                    "package.conduit contains exactly one package declaration and no form, host, body, or use declarations".into(),
+                    "pack.conduit contains exactly one pack declaration and no form, host, body, or with declarations".into(),
                 ),
                 packages[0].span,
             ));
@@ -207,7 +208,7 @@ impl<'a> Parser<'a> {
             let prefix = &import[..open];
             let members = import[open + 2..].strip_suffix('}').ok_or_else(|| {
                 (
-                    FormError::InvalidSyntax("grouped use requires a final '}'".into()),
+                    FormError::InvalidSyntax("grouped with requires a final '}'".into()),
                     self.line_span(self.lines[self.index]),
                 )
             })?;

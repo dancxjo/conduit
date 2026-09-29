@@ -144,7 +144,7 @@ fn generic_use_alias_preserves_the_canonical_specialization_identity() {
         "{template}form main (\n >> value: Text\n result: Text >>\n) {{\n value >> library/identity(item = Text) >> result\n}}\n"
     ));
     let aliased = check(&format!(
-        "use library/identity as copy\n{template}form main (\n >> value: Text\n result: Text >>\n) {{\n value >> copy(item = Text) >> result\n}}\n"
+        "with library/identity as copy\n{template}form main (\n >> value: Text\n result: Text >>\n) {{\n value >> copy(item = Text) >> result\n}}\n"
     ));
     let direct_main = direct
         .forms

@@ -2,13 +2,13 @@ use super::*;
 
 fn manifest() -> (String, PackageSyntax) {
     let source =
-        "package example/tools (\n    version = \"1.0.0\"\n) {\n    export public\n}\n".to_string();
+        "pack example/tools (\n    version = \"1.0.0\"\n) {\n    ship public\n}\n".to_string();
     let document = parse_syntax_document(&source);
     (source, document.packages[0].clone())
 }
 
 const SUPPORT: &str = "form helper (\n input: Text >> output: Text\n) {\n input >> output\n}\n";
-const PUBLIC_WITH_GLYPH: &str = "without glyphs\nuse ./support/helper as ^^\nform public (\n input: Text >> output: Text\n) {\n input ^^ output\n}\n";
+const PUBLIC_WITH_GLYPH: &str = "without glyphs\nwith ./support/helper as ^^\nform public (\n input: Text >> output: Text\n) {\n input ^^ output\n}\n";
 
 #[test]
 fn explicit_local_glyph_import_checks_as_the_exact_ordinary_form() {
@@ -92,7 +92,7 @@ fn cross_module_form_is_not_ambiently_visible() {
 fn explicit_local_import_resolves_a_pool_member_form() {
     let (manifest_source, manifest) = manifest();
     let main =
-        "use ./support/helper as worker\nform public {\n pool workers: worker(size = 2)\n}\n";
+        "with ./support/helper as worker\nform public {\n pool workers: worker(size = 2)\n}\n";
     let sources = [
         PackageMemberSource {
             path: "main",
@@ -142,13 +142,13 @@ fn an_unimported_external_form_name_does_not_create_an_ambient_binding() {
         &sources,
         &StartupCatalog::new(),
     )
-    .expect("a local port is not shadowed by an unimported package Form");
+    .expect("a local port is not shadowed by an unimported pack Form");
 }
 
 #[test]
 fn local_source_path_does_not_replace_the_canonical_form_name() {
     let (manifest_source, manifest) = manifest();
-    let main = "without glyphs\nuse ./support/helper as ^^\nform public (\n input: Text >> output: Text\n) {\n input ^^ output\n}\n";
+    let main = "without glyphs\nwith ./support/helper as ^^\nform public (\n input: Text >> output: Text\n) {\n input ^^ output\n}\n";
     let support = "form utility/helper (\n input: Text >> output: Text\n) {\n input >> output\n}\n";
     let sources = [
         PackageMemberSource {

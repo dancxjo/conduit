@@ -188,7 +188,7 @@ pub(crate) fn resolve_use_declarations(
             return Err(use_diagnostic(
                 declaration.path_span,
                 format!(
-                    "use path '{path}' does not resolve to an installed Kind or checked source Form"
+                    "with path '{path}' does not resolve to an installed Kind or checked source Form"
                 ),
             ));
         };
@@ -196,7 +196,7 @@ pub(crate) fn resolve_use_declarations(
             return Err(use_diagnostic(
                 declaration.alias.span,
                 format!(
-                    "use alias '{}' conflicts with a source Form name",
+                    "with alias '{}' conflicts with a source Form name",
                     declaration.alias.text
                 ),
             ));
@@ -209,7 +209,7 @@ pub(crate) fn resolve_use_declarations(
             return Err(use_diagnostic(
                 declaration.alias.span,
                 format!(
-                    "standard glyph '{}' is already in scope; use 'without glyphs' before rebinding it",
+                    "standard glyph '{}' is already in scope; put 'without glyphs' before rebinding it",
                     declaration.alias.text
                 ),
             ));
@@ -223,7 +223,7 @@ pub(crate) fn resolve_use_declarations(
         {
             return Err(use_diagnostic(
                 declaration.alias.span,
-                format!("duplicate use alias '{}'", declaration.alias.text),
+                format!("duplicate with alias '{}'", declaration.alias.text),
             ));
         }
     }
@@ -255,7 +255,10 @@ pub(crate) fn resolve_use_declarations(
         }
     }
     if let Some((alias, (_, span, _))) = aliases.iter().find(|(_, (_, _, used))| !*used) {
-        return Err(use_diagnostic(*span, format!("unused use alias '{alias}'")));
+        return Err(use_diagnostic(
+            *span,
+            format!("unused with alias '{alias}'"),
+        ));
     }
     Ok(resolved)
 }
@@ -453,7 +456,7 @@ fn reject_alias_shadowing(
         if aliases.contains_key(name.0) {
             return Err(use_diagnostic(
                 name.1,
-                format!("binding '{}' shadows a use alias", name.0),
+                format!("binding '{}' shadows a with alias", name.0),
             ));
         }
     }

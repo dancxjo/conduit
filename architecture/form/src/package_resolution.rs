@@ -1,4 +1,4 @@
-//! Deterministic checked `package.conduit` identity and generated lock truth.
+//! Deterministic checked `pack.conduit` identity and generated lock truth.
 
 use crate::prelude::*;
 use crate::syntax::PackageSyntax;
