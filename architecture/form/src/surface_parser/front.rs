@@ -281,6 +281,7 @@ impl Parser<'_> {
                         .expect("pattern is an exact slice of the refinement clause");
                 refinements.push(crate::ValueRefinement::TextPattern {
                     source: self.spanned(pattern, pattern_offset),
+                    negated: false,
                     span,
                 });
                 continue;
@@ -331,7 +332,11 @@ impl Parser<'_> {
                     let offset = clause_start + "member(".len() + relative;
                     members.push(self.spanned(value, offset));
                 }
-                refinements.push(crate::ValueRefinement::Membership { members, span });
+                refinements.push(crate::ValueRefinement::Membership {
+                    members,
+                    negated: false,
+                    span,
+                });
                 continue;
             }
             return Err(self.invalid_statement(line, start));

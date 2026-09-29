@@ -63,7 +63,7 @@ fn membership_is_canonical_and_composes_with_pattern_independent_of_authored_ord
     let contract = input_contract(&first, "code");
     assert!(matches!(
         contract.constraints.as_slice(),
-        [ValueConstraint::CanonicalMembership { members }, ValueConstraint::TextPattern(_)]
+        [ValueConstraint::CanonicalMembership { members, negated: false }, ValueConstraint::TextPattern { negated: false, .. }]
             if members == &[b"AB12".to_vec(), b"CD34".to_vec()]
     ));
     assert_eq!(contract.validate(b"AB12"), Ok(()));

@@ -182,6 +182,7 @@ pub struct RuntimePort {
 pub enum ValueRefinement {
     TextPattern {
         source: SpannedText,
+        negated: bool,
         span: Span,
     },
     Range {
@@ -193,6 +194,7 @@ pub enum ValueRefinement {
     },
     Membership {
         members: Vec<SpannedText>,
+        negated: bool,
         span: Span,
     },
 }

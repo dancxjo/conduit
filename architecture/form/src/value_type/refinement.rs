@@ -23,7 +23,11 @@ pub(super) fn checked_refinements(
     let mut constraints = refinements
         .iter()
         .map(|refinement| match refinement {
-            crate::ValueRefinement::TextPattern { source, span } => {
+            crate::ValueRefinement::TextPattern {
+                source,
+                negated,
+                span,
+            } => {
                 if value_kind.as_str() != conduit_core::TEXT_INFO_ID {
                     return Err(SyntaxCheckDiagnostic {
                         code: "CND-FRM-057",
@@ -40,7 +44,10 @@ pub(super) fn checked_refinements(
                 })?;
                 expression
                     .compile(maximum_bytes)
-                    .map(ValueConstraint::TextPattern)
+                    .map(|pattern| ValueConstraint::TextPattern {
+                        pattern,
+                        negated: *negated,
+                    })
                     .map_err(|error| SyntaxCheckDiagnostic {
                         code: "CND-FRM-057",
                         span: *span,
@@ -63,7 +70,11 @@ pub(super) fn checked_refinements(
                 endpoint(*maximum_endpoint),
                 *span,
             ),
-            crate::ValueRefinement::Membership { members, span } => {
+            crate::ValueRefinement::Membership {
+                members,
+                negated,
+                span,
+            } => {
                 let mut canonical = members
                     .iter()
                     .map(|member| checked_member(value_kind, member))
@@ -77,7 +88,10 @@ pub(super) fn checked_refinements(
                             .into(),
                     });
                 }
-                Ok(ValueConstraint::CanonicalMembership { members: canonical })
+                Ok(ValueConstraint::CanonicalMembership {
+                    members: canonical,
+                    negated: *negated,
+                })
             }
         })
         .collect::<Result<Vec<_>, _>>()?;
@@ -273,6 +287,6 @@ fn constraint_rank(constraint: &ValueConstraint) -> u8 {
         ValueConstraint::SignedRange { .. } => 2,
         ValueConstraint::QuantityRange { .. } => 3,
         ValueConstraint::CanonicalMembership { .. } => 4,
-        ValueConstraint::TextPattern(_) => 5,
+        ValueConstraint::TextPattern { .. } => 5,
     }
 }
