@@ -36,6 +36,21 @@ fn noncapturing_and_named_groups_compile_to_the_same_boolean_language() {
 }
 
 #[test]
+fn leading_positive_and_negative_lookahead_compile_to_finite_languages() {
+    let positive = parse_text_pattern("(?=AB)A.").unwrap().compile(8).unwrap();
+    assert!(positive.is_match("AB"));
+    assert!(!positive.is_match("AC"));
+
+    let negative = parse_text_pattern("(?!AB)A.").unwrap().compile(8).unwrap();
+    assert!(!negative.is_match("AB"));
+    assert!(negative.is_match("AC"));
+
+    let shorter_assertion = parse_text_pattern("(?=A)AB").unwrap().compile(8).unwrap();
+    assert!(shorter_assertion.is_match("AB"));
+    assert!(!shorter_assertion.is_match("AC"));
+}
+
+#[test]
 fn source_refuses_malformed_constructs() {
     assert!(matches!(
         parse_text_pattern("[Z-A]"),
@@ -51,6 +66,14 @@ fn source_refuses_malformed_constructs() {
     ));
     assert!(matches!(
         parse_text_pattern(r"\d{2}"),
+        Err(TextPatternSourceError::Unexpected { .. })
+    ));
+    assert!(matches!(
+        parse_text_pattern("(?=AB)"),
+        Err(TextPatternSourceError::Unexpected { .. })
+    ));
+    assert!(matches!(
+        parse_text_pattern("A(?=B)B"),
         Err(TextPatternSourceError::Unexpected { .. })
     ));
 }

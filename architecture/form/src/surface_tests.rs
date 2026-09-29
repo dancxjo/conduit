@@ -24,6 +24,24 @@ fn checked_pattern_refinement_is_lossless_front_syntax() {
 }
 
 #[test]
+fn portable_lookahead_and_group_profiles_are_lossless_front_syntax() {
+    let source = "form code (\n >> value: Text <= 16B ~ /(?=AB)(?:A)(?<tail>.)/\n) {\n}\n";
+    let document = parse_syntax_document(source);
+    assert!(
+        document.diagnostics.is_empty(),
+        "{:?}",
+        document.diagnostics
+    );
+    assert_eq!(document.round_trip(), source);
+    let crate::ValueRefinement::TextPattern { source, .. } =
+        &document.forms[0].front.runtime_ports[0].refinements[0]
+    else {
+        panic!("expected the authored pattern refinement")
+    };
+    assert_eq!(source.text, "(?=AB)(?:A)(?<tail>.)");
+}
+
+#[test]
 fn range_membership_and_composition_are_lossless_front_syntax() {
     let source = "form choice (\n >> value: Count in 1..=4 in [2, 3, 4]\n) {\n}\n";
     let document = parse_syntax_document(source);

@@ -37,10 +37,29 @@ pub enum TextPatternSourceError {
 /// admitted subset contains sequences, `|`, groups, scalar classes/ranges,
 /// `.`, `?`, and finite `{n}`/`{n,m}` repetition. `*` and `+` are bounded by
 /// the refined Text contract's admitted input ceiling before the automaton
-/// enters a Plan.
+/// enters a Plan. A leading positive `(?=...)` or negative `(?!...)`
+/// lookahead is admitted when its product automaton fits the same bounds;
+/// interior assertions refuse instead of introducing a backtracking engine.
 pub fn parse_text_pattern(source: &str) -> Result<TextPatternExpression, TextPatternSourceError> {
     if source.is_empty() {
         return Err(TextPatternSourceError::Empty);
+    }
+    if source.starts_with("(?=") || source.starts_with("(?!") {
+        let negated = source.as_bytes()[2] == b'!';
+        let assertion_end = leading_assertion_end(source)?;
+        let assertion = parse_text_pattern(&source[3..assertion_end])?;
+        if assertion_end + 1 == source.len() {
+            return Err(TextPatternSourceError::Unexpected {
+                offset: source.len(),
+                character: None,
+            });
+        }
+        let remainder = parse_text_pattern(&source[assertion_end + 1..])?;
+        return Ok(TextPatternExpression::PrefixAssertion {
+            assertion: Box::new(assertion),
+            remainder: Box::new(remainder),
+            negated,
+        });
     }
     let mut parser = PatternParser { source, offset: 0 };
     let expression = parser.choice()?;
@@ -48,6 +67,32 @@ pub fn parse_text_pattern(source: &str) -> Result<TextPatternExpression, TextPat
         return Err(parser.unexpected());
     }
     Ok(expression)
+}
+
+fn leading_assertion_end(source: &str) -> Result<usize, TextPatternSourceError> {
+    let mut depth = 1_u16;
+    let mut escaped = false;
+    let mut class = false;
+    for (offset, character) in source.char_indices().skip_while(|(offset, _)| *offset < 3) {
+        if escaped {
+            escaped = false;
+            continue;
+        }
+        match character {
+            '\\' => escaped = true,
+            '[' => class = true,
+            ']' => class = false,
+            '(' if !class => depth = depth.saturating_add(1),
+            ')' if !class => {
+                depth -= 1;
+                if depth == 0 {
+                    return Ok(offset);
+                }
+            }
+            _ => {}
+        }
+    }
+    Err(TextPatternSourceError::UnclosedGroup { offset: 0 })
 }
 
 struct PatternParser<'a> {

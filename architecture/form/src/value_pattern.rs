@@ -34,6 +34,11 @@ pub enum TextPatternExpression {
         expression: Box<TextPatternExpression>,
         minimum: u16,
     },
+    PrefixAssertion {
+        assertion: Box<TextPatternExpression>,
+        remainder: Box<TextPatternExpression>,
+        negated: bool,
+    },
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -130,6 +135,15 @@ impl TextPatternExpression {
                 expression: Box::new(expression.ascii_case_insensitive()),
                 minimum: *minimum,
             },
+            Self::PrefixAssertion {
+                assertion,
+                remainder,
+                negated,
+            } => Self::PrefixAssertion {
+                assertion: Box::new(assertion.ascii_case_insensitive()),
+                remainder: Box::new(remainder.ascii_case_insensitive()),
+                negated: *negated,
+            },
         }
     }
 
@@ -137,6 +151,18 @@ impl TextPatternExpression {
         &self,
         maximum_input_characters: u32,
     ) -> Result<CheckedTextPattern, TextPatternDefinitionError> {
+        if let Self::PrefixAssertion {
+            assertion,
+            remainder,
+            negated,
+        } = self
+        {
+            let assertion = assertion.compile(maximum_input_characters)?;
+            let remainder = remainder.compile(maximum_input_characters)?;
+            return crate::value_pattern_lookahead::compile_prefix_assertion(
+                &assertion, &remainder, *negated,
+            );
+        }
         let bounded = self.bind_input_repetition(maximum_input_characters)?;
         let mut nfa = Nfa { states: Vec::new() };
         let fragment = nfa.build(&bounded)?;
@@ -187,6 +213,9 @@ impl TextPatternExpression {
                     minimum: *minimum,
                     maximum,
                 })
+            }
+            Self::PrefixAssertion { .. } => {
+                unreachable!("assertions compile before repetition binding")
             }
         }
     }
@@ -307,7 +336,8 @@ impl Nfa {
                 minimum,
                 maximum,
             } => self.repeat(expression, *minimum, *maximum),
-            TextPatternExpression::InputBoundRepeat { .. } => {
+            TextPatternExpression::InputBoundRepeat { .. }
+            | TextPatternExpression::PrefixAssertion { .. } => {
                 Err(TextPatternDefinitionError::ExpressionTooComplex)
             }
         }
