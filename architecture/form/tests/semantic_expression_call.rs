@@ -250,6 +250,9 @@ fn outer_expression_cannot_implicitly_synchronize_two_call_results() {
     let checked = check_syntax_document(&parse_syntax_document(source), &startup).unwrap();
     let refusal = expand_canonical_form(&checked, "calculate", &profile).unwrap_err();
     assert!(refusal.message.contains("multiple semantic call results"));
+    for family in ["flow/zip", "state/combine-latest", "flow/join/by-key"] {
+        assert!(refusal.message.contains(family));
+    }
 }
 
 #[test]
@@ -261,4 +264,6 @@ fn outer_expression_cannot_reuse_independent_input_beside_call_result() {
     assert!(refusal
         .message
         .contains("depend only on that call result and constants"));
+    assert!(refusal.message.contains("current/sample"));
+    assert!(refusal.message.contains("two independent runtime values"));
 }

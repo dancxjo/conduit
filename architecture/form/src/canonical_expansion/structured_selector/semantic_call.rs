@@ -312,7 +312,7 @@ fn isolate_nested_semantic_call(
                 if call.replace(expression.clone()).is_some() {
                     return Err(CanonicalExpansionDiagnostic::new(
                         "CND-FRM-046",
-                        "one pure expression cannot implicitly synchronize multiple semantic call results"
+                        "one pure expression cannot implicitly synchronize multiple semantic call results; route them through an explicit temporal Gear such as flow/zip, state/combine-latest, or flow/join/by-key before applying arithmetic"
                             .into(),
                     ));
                 }
@@ -321,7 +321,7 @@ fn isolate_nested_semantic_call(
             ExpressionSyntax::Input(_) => {
                 return Err(CanonicalExpansionDiagnostic::new(
                     "CND-FRM-046",
-                    "an expression around a semantic call may depend only on that call result and constants"
+                    "an expression around a semantic call may depend only on that call result and constants; use current/sample when an event samples Current, or an explicit flow/zip, state/combine-latest, or flow/join/by-key Gear for two independent runtime values"
                         .into(),
                 ));
             }
@@ -549,4 +549,27 @@ fn expand_one(
             port: output,
         }))),
     })
+}
+
+#[cfg(test)]
+mod diagnostic_tests {
+    use super::*;
+
+    fn expression(source: &str) -> crate::ExpressionSyntax {
+        crate::pure_expression::parse(source, source, 0).unwrap()
+    }
+
+    #[test]
+    fn ambiguous_runtime_arithmetic_names_the_explicit_temporal_families() {
+        let error =
+            isolate_nested_semantic_call(&expression("math/left(.) + math/right(.)")).unwrap_err();
+        assert_eq!(error.code, "CND-FRM-046");
+        for family in ["flow/zip", "state/combine-latest", "flow/join/by-key"] {
+            assert!(error.message.contains(family));
+        }
+
+        let error = isolate_nested_semantic_call(&expression(". + math/derive(.)")).unwrap_err();
+        assert!(error.message.contains("current/sample"));
+        assert!(error.message.contains("two independent runtime values"));
+    }
 }
