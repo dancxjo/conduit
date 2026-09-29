@@ -211,7 +211,7 @@ console.log(snapshot.evidence.body_id, snapshot.evidence.body.workload_revision)
 // Authored Form inspection creates no Body, Plan, Play, or authority. The
 // projected Front retains each exact Rust-checked value contract.
 const authored = host.form(`form code (
-  >> value: Text <= 8B where pattern(r"[A-Z]{2}[0-9]{2}")
+  >> value: Text <= 8B ~ /^[A-Z]{2}[0-9]{2}$/
 ) {
   upper: text/upper
   value >> upper
