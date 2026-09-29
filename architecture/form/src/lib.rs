@@ -45,6 +45,7 @@ mod package_resolution;
 #[cfg(test)]
 mod package_resolution_tests;
 mod pure_expression;
+pub mod rust_binding;
 mod structured_expression;
 mod structured_selector;
 mod structured_startup;
