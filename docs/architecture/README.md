@@ -29,6 +29,7 @@ proposals do not override the current canon.
 - [Implementation confinement and admitted authority](implementation-confinement.md)
 - [ConduitOS x86_64 protection domains](conduitos-protection-domains.md)
 - [Portable catalog and hosted std offer boundary](semantic-catalog.md)
+- [Semantic type ownership inventory](semantic-type-ownership.md)
 
 ## body, resources, and effects
 
