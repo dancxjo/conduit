@@ -52,7 +52,7 @@ fn projects_reusable_form_with_unbound_front_port_for_authoring() {
 #[test]
 fn sdk_projection_retains_exact_checked_front_constraints() {
     let source = r#"form constrained (
-    >> code: Text <= 8B where member("AB12", "CD34") and pattern(r"[A-Z]{2}[0-9]{2}")
+    >> code: Text <= 8B in ["AB12", "CD34"] ~ /^[A-Z]{2}[0-9]{2}$/
 ) {
     upper: text/upper
     code >> upper
@@ -83,6 +83,11 @@ fn sdk_projection_retains_exact_checked_front_constraints() {
         encoded["front_inputs"][0]["value_contract"]["constraints"][0]["CanonicalMembership"]
             ["members"][0],
         serde_json::json!([65, 66, 49, 50])
+    );
+    assert_eq!(
+        encoded["front_inputs"][0]["value_contract"]["constraints"][0]["CanonicalMembership"]
+            ["negated"],
+        false
     );
 }
 
