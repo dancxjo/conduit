@@ -6,7 +6,7 @@ use crate::surface_lex::{
 };
 use crate::syntax::{
     FormFront, RuntimePort, RuntimePortDirection, RuntimePortTemporal, ShorthandPair,
-    StartupParameter,
+    StartupParameter, TypeParameter,
 };
 use crate::{eof_span, FormError, Span};
 use alloc::vec::Vec;
@@ -64,7 +64,7 @@ fn split_type_bound(value_type: &str) -> Option<(&str, Option<u64>)> {
     }
 }
 
-pub(super) fn canonical_default_bound(value_type: &str) -> Option<u64> {
+pub(crate) fn canonical_default_bound(value_type: &str) -> Option<u64> {
     match value_type {
         "Text" | "value/text" => Some(256),
         "Bytes" | "value/bytes" => Some(65_536),
@@ -108,9 +108,22 @@ impl Parser<'_> {
                     self.span(start, start + text.len()),
                 ));
             } else {
-                front
-                    .startup_parameters
-                    .push(self.parse_startup(text, start)?);
+                let (left, default) = split_default(text);
+                let declaration = split_declaration(left);
+                if declaration.is_some_and(|(_, value_type)| value_type == "type") {
+                    if default.is_some() {
+                        return Err(self.invalid_statement(text, start));
+                    }
+                    let (name, _) = declaration.expect("type declaration was recognized");
+                    front.type_parameters.push(TypeParameter {
+                        name: self.spanned_at(name, text, start),
+                        span: self.span(start, start + text.len()),
+                    });
+                } else {
+                    front
+                        .startup_parameters
+                        .push(self.parse_startup(text, start)?);
+                }
             }
             self.index += 1;
         }

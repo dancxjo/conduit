@@ -198,7 +198,7 @@ fn punctuation(text: &str) -> Option<(usize, SyntaxHighlightKind)> {
 fn classify_word(word: &str) -> SyntaxHighlightKind {
     match word {
         "form" | "host" | "body" | "pool" | "use" | "as" | "without" | "glyphs" | "where"
-        | "pattern" => SyntaxHighlightKind::Keyword,
+        | "pattern" | "type" => SyntaxHighlightKind::Keyword,
         "true" | "false" => SyntaxHighlightKind::Literal,
         _ if word.parse::<i128>().is_ok() || word.parse::<u128>().is_ok() => {
             SyntaxHighlightKind::Number
@@ -268,6 +268,14 @@ mod tests {
         );
     }
 
+    #[test]
+    fn named_type_parameter_uses_the_compile_time_keyword() {
+        let source = "form identity (\n item: type\n >> value: item\n result: item >>\n) {\n}\n";
+        let spans = highlight_syntax(source).unwrap();
+        let pieces = pieces(source, &spans);
+        assert!(pieces.contains(&(SyntaxHighlightKind::Keyword, "type")));
+        assert!(pieces.contains(&(SyntaxHighlightKind::Name, "item")));
+    }
     fn pieces<'a>(
         source: &'a str,
         spans: &'a [SyntaxHighlightSpan],

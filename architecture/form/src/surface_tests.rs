@@ -538,6 +538,18 @@ fn canonical_front_keeps_startup_values_runtime_ports_and_shorthand_distinct() {
 }
 
 #[test]
+fn named_type_parameters_are_not_runtime_startup_values() {
+    let document = crate::parse_syntax_document(
+        "form identity (\n item: type\n limit: Count = 1\n >> value: item\n result: item >>\n) {\n}\n",
+    );
+    let form = &document.forms().unwrap()[0];
+    assert_eq!(form.front.type_parameters.len(), 1);
+    assert_eq!(form.front.type_parameters[0].name.text, "item");
+    assert_eq!(form.front.startup_parameters.len(), 1);
+    assert_eq!(form.front.startup_parameters[0].name.text, "limit");
+}
+
+#[test]
 fn canonical_duplex_front_has_auxiliary_ports_without_a_shorthand_path() {
     let source = include_str!("../../../forms/socket-client/main.conduit");
     let document = parse_syntax_document(source);

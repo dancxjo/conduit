@@ -20,9 +20,11 @@ use conduit_core::{
 mod matched_route;
 mod resolution;
 mod shared_pool;
+mod specialization;
 mod structured_selector;
 use resolution::{is_atomic_literal, Resolver};
 use shared_pool::{check_pool_declarations, checked_pool};
+use specialization::specialize_named_type_parameters;
 
 const STANDARD_GLYPH_BINDINGS: [(&str, &str); 5] = [
     ("><", "flow/merge"),
@@ -45,7 +47,11 @@ pub(crate) fn check_document(
     }
     let unresolved_form_signatures = form_signatures(&document.forms)?;
     let mut form_fronts = BTreeMap::new();
-    for form in &document.forms {
+    for form in document
+        .forms
+        .iter()
+        .filter(|form| form.front.type_parameters.is_empty())
+    {
         form_fronts.insert(
             form.name.text.clone(),
             crate::value_type::checked_front(form, catalog)?,
@@ -53,7 +59,15 @@ pub(crate) fn check_document(
     }
     let forms =
         resolve_use_declarations(document, catalog, &unresolved_form_signatures, &form_fronts)?;
+    let forms = specialize_named_type_parameters(forms, catalog)?;
     let form_signatures = form_signatures(&forms)?;
+    let mut form_fronts = BTreeMap::new();
+    for form in &forms {
+        form_fronts.insert(
+            form.name.text.clone(),
+            crate::value_type::checked_front(form, catalog)?,
+        );
+    }
     let mut checked_forms = Vec::with_capacity(forms.len());
     for form in &forms {
         checked_forms.push(check_form(form, catalog, &form_signatures, &form_fronts)?);
@@ -386,9 +400,15 @@ fn reject_alias_shadowing(
 ) -> Result<(), SyntaxCheckDiagnostic> {
     for name in form
         .front
-        .startup_parameters
+        .type_parameters
         .iter()
         .map(|parameter| (&parameter.name.text, parameter.name.span))
+        .chain(
+            form.front
+                .startup_parameters
+                .iter()
+                .map(|parameter| (&parameter.name.text, parameter.name.span)),
+        )
         .chain(
             form.front
                 .runtime_ports
@@ -430,6 +450,16 @@ fn form_signatures(
                 .diagnostic(form.name.span));
         }
         let mut names = BTreeSet::new();
+        let mut type_names = BTreeSet::new();
+        for parameter in &form.front.type_parameters {
+            if !names.insert(parameter.name.text.clone()) {
+                return Err(
+                    SyntaxCheckError::DuplicateImmutable(parameter.name.text.clone())
+                        .diagnostic(parameter.span),
+                );
+            }
+            type_names.insert(parameter.name.text.clone());
+        }
         let mut startup_parameters = Vec::new();
         for parameter in &form.front.startup_parameters {
             if !names.insert(parameter.name.text.clone()) {
@@ -443,6 +473,16 @@ fn form_signatures(
                 value_type: parameter.value_type.text.clone(),
                 default: parameter.default.as_ref().map(|value| value.text.clone()),
             });
+        }
+        if let Some(port) = form
+            .front
+            .runtime_ports
+            .iter()
+            .find(|port| type_names.contains(&port.name.text))
+        {
+            return Err(
+                SyntaxCheckError::AmbiguousFrontName(port.name.text.clone()).diagnostic(port.span)
+            );
         }
         signatures.insert(
             form.name.text.clone(),

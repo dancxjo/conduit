@@ -102,10 +102,18 @@ pub enum FormCompletionPolicy {
 
 #[derive(Debug, Clone, Default, PartialEq, Eq)]
 pub struct FormFront {
+    pub type_parameters: Vec<TypeParameter>,
     pub startup_parameters: Vec<StartupParameter>,
     pub runtime_ports: Vec<RuntimePort>,
     pub shorthand: Option<ShorthandPair>,
     pub span: Option<Span>,
+}
+
+/// One compile-time checked type name. It is never a startup value.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct TypeParameter {
+    pub name: SpannedText,
+    pub span: Span,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
