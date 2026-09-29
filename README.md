@@ -800,7 +800,7 @@ For the browser Tour, install Node.js and npm and add the WebAssembly target:
 
 ```sh
 rustup target add wasm32-unknown-unknown
-cargo xtask demo tour
+cargo xtask prove journey tour
 ```
 
 To inspect your environment:

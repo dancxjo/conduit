@@ -1,4 +1,4 @@
-//! Complete repository entrance for the live native/browser Body membership demo.
+//! Complete repository entrance for the live native/browser Body membership journey.
 
 use crate::cli::GlobalOpts;
 use crate::process::{run_step, Step};
@@ -14,7 +14,7 @@ const STARTUP_TIMEOUT: Duration = Duration::from_secs(10);
 const PAGE: &str = "/proof/browser/webchat.test.html";
 const BUILD_STEPS: &[Step] = &[
     Step::new(
-        "demo.body-membership.browser-runtime",
+        "journey.body-membership.browser-runtime",
         "Build the browser Part runtime",
         "cargo",
         &[
@@ -27,13 +27,13 @@ const BUILD_STEPS: &[Step] = &[
         ],
     ),
     Step::new(
-        "demo.body-membership.native",
+        "journey.body-membership.native",
         "Build the native Parts steward",
         "cargo",
         &["build", "-p", "patchbay-native"],
     ),
     Step::new(
-        "demo.body-membership.chat-line",
+        "journey.body-membership.chat-line",
         "Build the browser chat Line",
         "cargo",
         &["build", "-p", "conduit-std-host", "--bin", "webchat-server"],
@@ -58,7 +58,7 @@ pub(super) fn run(opts: &GlobalOpts) -> Result<(), Box<dyn std::error::Error>> {
     }
     if opts.dry_run {
         if !opts.quiet && !opts.json {
-            println!("» [demo.body-membership] launch bounded browser servers and native Parts");
+            println!("» [journey.body-membership] launch bounded browser servers and native Parts");
         }
         return Ok(());
     }
@@ -188,7 +188,10 @@ mod tests {
     #[test]
     fn demo_builds_exact_browser_and_native_entrances() {
         assert_eq!(build_steps().len(), 3);
-        assert_eq!(build_steps()[0].id, "demo.body-membership.browser-runtime");
+        assert_eq!(
+            build_steps()[0].id,
+            "journey.body-membership.browser-runtime"
+        );
         assert!(build_steps()[1].args.contains(&"patchbay-native"));
         assert!(build_steps()[2].args.contains(&"webchat-server"));
     }

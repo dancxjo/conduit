@@ -2,7 +2,6 @@ use std::ffi::OsString;
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum LifecycleClass {
-    Demo,
     Prove,
     Check,
     Integrate,
@@ -22,10 +21,6 @@ pub struct RepositoryCommand {
     pub aliases: &'static [CommandAlias],
 }
 
-const STD_ALIASES: &[CommandAlias] = &[CommandAlias {
-    spelling: &["demo", "std"],
-    deprecated: true,
-}];
 pub const REPOSITORY_COMMANDS: &[RepositoryCommand] = &[
     RepositoryCommand {
         canonical: &["integrate"],
@@ -40,7 +35,7 @@ pub const REPOSITORY_COMMANDS: &[RepositoryCommand] = &[
     RepositoryCommand {
         canonical: &["fabricate", "host", "std"],
         lifecycle: LifecycleClass::Fabricate,
-        aliases: STD_ALIASES,
+        aliases: &[],
     },
     RepositoryCommand {
         canonical: &["check", "browser"],
@@ -48,8 +43,8 @@ pub const REPOSITORY_COMMANDS: &[RepositoryCommand] = &[
         aliases: &[],
     },
     RepositoryCommand {
-        canonical: &["demo", "triple"],
-        lifecycle: LifecycleClass::Demo,
+        canonical: &["prove", "journey", "triple"],
+        lifecycle: LifecycleClass::Prove,
         aliases: &[],
     },
     RepositoryCommand {
@@ -75,7 +70,7 @@ pub struct JustAlias {
 pub const FRIENDLY_JUST_ALIASES: &[JustAlias] = &[
     JustAlias {
         recipe: "patchbay",
-        canonical_body: "cargo xtask demo patchbay --on native",
+        canonical_body: "cargo xtask prove journey patchbay --on native",
     },
     JustAlias {
         recipe: "browser",
@@ -91,7 +86,7 @@ pub const FRIENDLY_JUST_ALIASES: &[JustAlias] = &[
     },
     JustAlias {
         recipe: "demo-triple-local",
-        canonical_body: "cargo xtask demo triple",
+        canonical_body: "cargo xtask prove journey triple",
     },
     JustAlias {
         recipe: "check-kernel-s1",
@@ -242,7 +237,7 @@ mod tests {
         let duplicate = [
             RepositoryCommand {
                 canonical: &["a"],
-                lifecycle: LifecycleClass::Demo,
+                lifecycle: LifecycleClass::Check,
                 aliases: &[],
             },
             RepositoryCommand {
@@ -258,7 +253,7 @@ mod tests {
         let duplicate_alias = [
             RepositoryCommand {
                 canonical: &["a"],
-                lifecycle: LifecycleClass::Demo,
+                lifecycle: LifecycleClass::Check,
                 aliases: TO_B,
             },
             RepositoryCommand {
@@ -274,7 +269,7 @@ mod tests {
         let cycle = [
             RepositoryCommand {
                 canonical: &["a"],
-                lifecycle: LifecycleClass::Demo,
+                lifecycle: LifecycleClass::Check,
                 aliases: TO_B,
             },
             RepositoryCommand {

@@ -13,7 +13,7 @@ three independent reference-synth voice banks live in
 Try it through the shared Crèche:
 
 ```sh
-cargo xtask demo workspace
+cargo xtask prove journey workspace
 ```
 
 The browser workspace selects Memory Lantern and Startup Chime for a new body
@@ -70,7 +70,7 @@ accepted completions, with exact omitted counts when older observations roll
 off. Denial and failure codes remain distinct from successful completion.
 
 ```sh
-cargo xtask demo workspace --check
+cargo xtask prove journey workspace --check
 ```
 
 The pinned Chromium journey checks real audio-source start and completion,

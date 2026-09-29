@@ -51,7 +51,7 @@ that selection. Explore more examples in [Try forms](try-forms.md).
 ## Explore the workbench and Tour
 
 ```bash
-cargo xtask demo patchbay --on native
+cargo xtask prove journey patchbay --on native
 ```
 
 Patchbay opens a native window. Inspect a form, then use the explicit lifecycle
@@ -61,13 +61,13 @@ then add the WASM target:
 
 ```bash
 rustup target add wasm32-unknown-unknown
-cargo xtask demo patchbay --on browser
+cargo xtask prove journey patchbay --on browser
 ```
 
 To build and open the guided executable Tour locally:
 
 ```bash
-cargo xtask demo tour
+cargo xtask prove journey tour
 ```
 
 These commands build the required browser runtime and serve it locally. Keep
@@ -159,7 +159,7 @@ or human-perception proof.
 ## Explore distributed execution
 
 ```bash
-cargo xtask demo toggle
+cargo xtask prove journey toggle
 ```
 
 Open the exact local URL printed by the command, then follow its terminal

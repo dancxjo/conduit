@@ -7,7 +7,7 @@ parser, checker, planner, lowering layer, and production kernel.
 From a repository checkout, open it with:
 
 ```sh
-cargo xtask demo tour
+cargo xtask prove journey tour
 ```
 
 Tour owns the bounded `conduit.application/tour-reading-state` storage identity
