@@ -956,6 +956,119 @@ fn fixed_width_integer_defaults_are_checked_before_identity() {
 }
 
 #[test]
+fn native_scalar_record_and_variant_types_own_nominal_checked_identity() {
+    let source = r#"type Note = U8 in 0..=127
+
+type Position = {
+    x: Distance
+    y: Distance
+}
+
+type MusicEvent =
+    note {
+        velocity: U8 in 0..=127
+        pitches: sequence Note <= 16
+    }
+    | rest
+
+form perform (
+    >> note: Note
+    >> position: Position
+    event: MusicEvent >>
+) {
+}
+"#;
+    let checked =
+        check_syntax_document(&parse_syntax_document(source), &StartupCatalog::new()).unwrap();
+
+    assert_eq!(checked.native_types.len(), 3);
+    assert!(matches!(
+        checked.native_types[0].value_type.shape(),
+        conduit_core::StructuredInfoTypeShape::Nominal { .. }
+    ));
+    assert!(matches!(
+        checked.native_types[1].value_type.shape(),
+        conduit_core::StructuredInfoTypeShape::Record { .. }
+    ));
+    assert!(matches!(
+        checked.native_types[2].value_type.shape(),
+        conduit_core::StructuredInfoTypeShape::Variant { .. }
+    ));
+    assert_eq!(checked.native_types[0].value_contracts.len(), 1);
+    assert_eq!(
+        checked.native_types[2].value_contracts[0].representation_path,
+        "|note.velocity"
+    );
+    let front = checked.forms[0].checked_front();
+    assert_eq!(
+        front.inputs()[0].value_kind,
+        checked.native_types[0]
+            .value_type
+            .profile()
+            .unwrap()
+            .value_kind()
+            .clone()
+    );
+    assert_eq!(
+        front.outputs()[0].value_kind,
+        checked.native_types[2]
+            .value_type
+            .profile()
+            .unwrap()
+            .value_kind()
+            .clone()
+    );
+}
+
+#[test]
+fn native_type_identity_ignores_source_trivia_but_not_semantic_name() {
+    let first = check_syntax_document(
+        &parse_syntax_document("type Note = U8 in 0..=127\n"),
+        &StartupCatalog::new(),
+    )
+    .unwrap();
+    let spaced = check_syntax_document(
+        &parse_syntax_document("\n\ntype Note = U8 in 0..=127\n\n"),
+        &StartupCatalog::new(),
+    )
+    .unwrap();
+    let renamed = check_syntax_document(
+        &parse_syntax_document("type Velocity = U8 in 0..=127\n"),
+        &StartupCatalog::new(),
+    )
+    .unwrap();
+
+    assert_eq!(
+        first.native_types[0].identity,
+        spaced.native_types[0].identity
+    );
+    assert_ne!(
+        first.native_types[0].identity,
+        renamed.native_types[0].identity
+    );
+}
+
+#[test]
+fn native_text_bounds_and_negated_refinements_remain_checked_contracts() {
+    let checked = check_syntax_document(
+        &parse_syntax_document("type Code = Text <= 8B not in [\"root\", \"admin\"] !~ /root/\n"),
+        &StartupCatalog::new(),
+    )
+    .unwrap();
+    let contract = &checked.native_types[0].value_contracts[0].contract;
+    assert_eq!(contract.maximum_bytes, 8);
+    assert_eq!(contract.constraints.len(), 2);
+    assert!(matches!(
+        contract.constraints[0],
+        conduit_core::ValueConstraint::CanonicalMembership { negated: true, .. }
+    ));
+    assert!(matches!(
+        contract.constraints[1],
+        conduit_core::ValueConstraint::TextPattern { negated: true, .. }
+    ));
+}
+
+#[test]
 fn pure_expression_identity_is_structural_and_ignores_parentheses_and_trivia() {
     let compact = check_syntax_document(
         &parse_syntax_document(

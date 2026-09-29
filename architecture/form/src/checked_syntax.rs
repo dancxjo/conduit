@@ -347,12 +347,32 @@ pub struct CheckedCanonicalForm {
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct CheckedSyntaxDocument {
     pub source_document_id: SourceDocumentId,
+    pub native_types: Vec<CheckedNativeType>,
     pub forms: Vec<CheckedCanonicalForm>,
     /// Authored shorthand correlated with the ordinary meaning established by
     /// this exact check. This is source inspection, not another expansion or
     /// an input to planning.
     pub source_sugar_expansions: Vec<SourceSugarExpansion>,
     pub(crate) structured_types: BTreeMap<conduit_core::KindId, conduit_core::StructuredInfoType>,
+}
+
+/// One checked source-owned semantic Type and its exact finite representation.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct CheckedNativeType {
+    /// Source-local name. Import aliases may change this spelling downstream;
+    /// `identity` remains the canonical semantic identity.
+    pub name: String,
+    pub identity: conduit_core::KindId,
+    pub value_type: conduit_core::StructuredInfoType,
+    /// Primitive refinement contracts retained at exact representation paths.
+    pub value_contracts: Vec<NativeTypeValueContract>,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct NativeTypeValueContract {
+    /// Empty for a scalar representation; fields/cases/containers extend it.
+    pub representation_path: String,
+    pub contract: conduit_core::CheckedValueContract,
 }
 
 /// One checked explanation of concise source spelling.

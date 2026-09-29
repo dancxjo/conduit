@@ -9,7 +9,7 @@ use conduit_core::{
 
 use crate::StartupCatalog;
 
-mod refinement;
+pub(crate) mod refinement;
 use refinement::checked_refinements;
 
 pub(crate) fn canonical_value_kind(source_type: &str) -> KindId {

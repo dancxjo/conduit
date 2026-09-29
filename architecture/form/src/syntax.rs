@@ -103,6 +103,7 @@ pub struct TypeVariantCaseSyntax {
 pub enum TypeExpressionSyntax {
     Reference {
         value_type: SpannedText,
+        maximum_bytes: Option<u64>,
         refinements: Vec<ValueRefinement>,
         span: Span,
     },

@@ -56,7 +56,7 @@ pub(super) fn parse_finite_bound(source: &str) -> Option<u64> {
         .filter(|value| *value > 0)
 }
 
-fn split_type_bound(value_type: &str) -> Option<(&str, Option<u64>)> {
+pub(super) fn split_type_bound(value_type: &str) -> Option<(&str, Option<u64>)> {
     let parts = split_top_level_token(value_type, "<=");
     match parts.as_slice() {
         [value_type] => Some((value_type.trim(), None)),

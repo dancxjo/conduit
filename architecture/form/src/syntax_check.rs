@@ -56,6 +56,9 @@ pub(crate) fn check_document(
             message: diagnostic.message.clone(),
         });
     }
+    let (native_types, checked_catalog) =
+        crate::native_type::check_native_types(&document.types, catalog)?;
+    let catalog = &checked_catalog;
     let unresolved_form_signatures = form_signatures(&document.forms)?;
     let mut form_fronts = BTreeMap::new();
     for form in document
@@ -189,6 +192,7 @@ pub(crate) fn check_document(
             "canonical-source:{}",
             document.round_trip()
         ))),
+        native_types,
         forms: checked_forms,
         source_sugar_expansions,
         structured_types,

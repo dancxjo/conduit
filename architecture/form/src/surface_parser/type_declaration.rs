@@ -3,6 +3,7 @@
 use super::Parser;
 use crate::prelude::*;
 use crate::surface_lex::{is_name, split_declaration};
+use crate::surface_parser::front::{canonical_default_bound, split_type_bound};
 use crate::syntax::{
     TypeDefinitionSyntax, TypeExpressionSyntax, TypeFieldSyntax, TypeSyntax, TypeVariantCaseSyntax,
 };
@@ -172,14 +173,17 @@ impl Parser<'_> {
             });
         }
         let (value_type, refinements) = self.parse_value_refinements(source, line, start)?;
+        let (value_type, explicit_bound) =
+            split_type_bound(value_type).ok_or_else(|| self.invalid_statement(line, start))?;
         if value_type.is_empty()
             || value_type.chars().any(char::is_whitespace)
-            || (!is_name(value_type) && !value_type.split('/').all(|component| is_name(component)))
+            || (!is_name(value_type) && !value_type.split('/').all(is_name))
         {
             return Err(self.invalid_statement(line, start));
         }
         Ok(TypeExpressionSyntax::Reference {
             value_type: self.spanned(value_type, offset),
+            maximum_bytes: explicit_bound.or_else(|| canonical_default_bound(value_type)),
             refinements,
             span,
         })

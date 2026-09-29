@@ -30,6 +30,14 @@ impl CheckedExpressionType {
     fn from_structured(value_type: &StructuredInfoType) -> Self {
         match value_type.shape() {
             StructuredInfoTypeShape::Leaf(kind) => Self::Semantic(kind.clone()),
+            StructuredInfoTypeShape::Nominal { .. } => {
+                let kind = value_type
+                    .profile()
+                    .expect("checked nominal types have profiles")
+                    .value_kind()
+                    .clone();
+                Self::Semantic(kind)
+            }
             StructuredInfoTypeShape::Collection { element, length } => Self::Collection {
                 element: Box::new(Self::from_structured(element)),
                 length,
