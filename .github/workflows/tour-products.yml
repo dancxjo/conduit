@@ -55,6 +55,7 @@ jobs:
       browser_runtime_required: ${{ inputs.full_suite || inputs.development_admission && fromJSON(steps.impact.outputs.browser_required || 'false') || (inputs.execute_proofs != '' && fromJSON(steps.exact.outputs.browser_runtime_required)) || (inputs.execute_proofs == '' && fromJSON(steps.slice.outputs.required || steps.impact.outputs.pages_products_required || 'true')) }}
       pages_carrier_required: ${{ inputs.full_suite || !inputs.development_admission && ((inputs.execute_proofs != '' && fromJSON(steps.exact.outputs.pages_carrier_required)) || (inputs.execute_proofs == '' && fromJSON(steps.slice.outputs.required || steps.impact.outputs.pages_products_required || 'true'))) }}
       browser_admission_required: ${{ inputs.development_admission && fromJSON(steps.impact.outputs.browser_required || 'false') }}
+      browser_admission_matrix: ${{ inputs.full_suite && '["browser-host","creche-workspace","pages"]' || steps.impact.outputs.browser_admission_matrix || '["browser-host","creche-workspace","pages"]' }}
       host_releases_required: ${{ inputs.full_suite || !inputs.development_admission && fromJSON(steps.slice.outputs.required || steps.impact.outputs.pages_products_required || 'true') }}
       stack_role: ${{ steps.stack.outputs.role || 'independent' }}
       stack_tip_pr: ${{ steps.stack.outputs.tip_pr || github.event.pull_request.number }}
@@ -289,13 +290,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        include:
-          - shard: browser-host
-            specs: proof/browser/presentation-nucleus.spec.mjs proof/browser/browser-application-package.spec.mjs proof/browser/browser-bundle-build.spec.mjs proof/browser/browser-boot-profile.spec.mjs proof/browser/browser-human-input.spec.mjs proof/browser/browser-form-runner.spec.mjs proof/browser/home-host.spec.mjs proof/browser/protected-line.spec.mjs proof/browser/native-webrtc-line.spec.mjs
-          - shard: creche-workspace
-            specs: proof/browser/workspace-arrival.spec.mjs proof/browser/workspace-birth-naming.spec.mjs proof/browser/sdk-external-body-execution.spec.mjs proof/browser/workspace-mixed-membership.spec.mjs proof/browser/workspace-library.spec.mjs proof/browser/creche-workspace-continuity.spec.mjs
-          - shard: pages
-            specs: proof/browser/pages-front-door.spec.mjs proof/browser/web-accessibility.spec.mjs
+        shard: ${{ fromJSON(needs.plan.outputs.browser_admission_matrix) }}
     name: browser-admission-${{ matrix.shard }}
     env:
       NPM_CONFIG_AUDIT: "false"
@@ -318,7 +313,7 @@ jobs:
         run: node --test proof/browser/browser-body-input.test.mjs proof/browser/browser-body-host.test.mjs proof/browser/workspace-handoff.test.mjs
       - name: Prove the affected ${{ matrix.shard }} surface in pinned Chromium
         env:
-          BROWSER_PROOF_SPECS: ${{ matrix.specs }}
+          BROWSER_PROOF_SPECS: ${{ matrix.shard == 'browser-host' && 'proof/browser/presentation-nucleus.spec.mjs proof/browser/browser-application-package.spec.mjs proof/browser/browser-bundle-build.spec.mjs proof/browser/browser-boot-profile.spec.mjs proof/browser/browser-human-input.spec.mjs proof/browser/browser-form-runner.spec.mjs proof/browser/home-host.spec.mjs proof/browser/protected-line.spec.mjs proof/browser/native-webrtc-line.spec.mjs' || matrix.shard == 'creche-workspace' && 'proof/browser/workspace-arrival.spec.mjs proof/browser/workspace-birth-naming.spec.mjs proof/browser/sdk-external-body-execution.spec.mjs proof/browser/workspace-mixed-membership.spec.mjs proof/browser/workspace-library.spec.mjs proof/browser/creche-workspace-continuity.spec.mjs' || 'proof/browser/pages-front-door.spec.mjs proof/browser/web-accessibility.spec.mjs' }}
           CONDUIT_BROWSER_PROOF_SHARD: admission-${{ matrix.shard }}
         run: >-
           node proof/browser/node_modules/@playwright/test/cli.js test

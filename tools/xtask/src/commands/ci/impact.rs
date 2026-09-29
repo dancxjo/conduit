@@ -38,6 +38,7 @@ const CONDUITOS_X86_PROOFS: [&str; 9] = [
     "emergency-halt",
 ];
 const CONDUITOS_ARCHITECTURES: [&str; 4] = ["aarch64", "ia32", "riscv64", "loongarch64"];
+const BROWSER_ADMISSION_SHARDS: [&str; 3] = ["browser-host", "creche-workspace", "pages"];
 const GLOBAL_PREFIXES: [&str; 5] = [
     ".github/",
     ".cargo/",
@@ -267,6 +268,7 @@ struct ImpactPlan {
     esp32_required: bool,
     esp32_targets: Vec<String>,
     browser_required: bool,
+    browser_admission_shards: Vec<&'static str>,
     conduitos_required: bool,
     conduitos_x86_proofs: Vec<String>,
     conduitos_architectures: Vec<String>,
@@ -986,6 +988,8 @@ fn plan(
         } else {
             Vec::new()
         };
+    let browser_admission_shards =
+        browser_admission_shards(selected["browser"], full_fallback, &changed_paths);
     ImpactPlan {
         requested_base_sha: None,
         candidate_sha: None,
@@ -997,6 +1001,7 @@ fn plan(
         esp32_required: selected["esp32"],
         esp32_targets: machine.esp32.targets.into_iter().collect(),
         browser_required: selected["browser"],
+        browser_admission_shards,
         conduitos_required: selected["conduitos"],
         conduitos_x86_proofs: machine.conduitos.x86_proofs.into_iter().collect(),
         conduitos_architectures: machine.conduitos.architectures.into_iter().collect(),
@@ -1012,6 +1017,56 @@ fn plan(
         workspace_shards: workspace.shards,
         suite_reasons,
     }
+}
+
+fn browser_admission_shards(
+    browser_required: bool,
+    full_fallback: bool,
+    paths: &[String],
+) -> Vec<&'static str> {
+    if !browser_required {
+        return Vec::new();
+    }
+    if full_fallback
+        || paths.iter().any(|path| {
+            matches!(
+                path.as_str(),
+                ".github/workflows/tour-products.yml"
+                    | "proof/browser/playwright.config.mjs"
+                    | "proof/browser/package.json"
+                    | "proof/browser/package-lock.json"
+            )
+        })
+    {
+        return BROWSER_ADMISSION_SHARDS.to_vec();
+    }
+
+    let mut shards = vec!["browser-host"];
+    if paths.iter().any(|path| {
+        path.starts_with("products/creche/")
+            || path.starts_with("products/workspace/")
+            || path.starts_with("fabrication/workspace/")
+            || path.starts_with("targets/browser/runtime/src/creche/")
+            || path.starts_with("proof/browser/workspace-")
+            || path == "proof/browser/creche-workspace-continuity.spec.mjs"
+            || path == "proof/browser/browser-body-input.test.mjs"
+            || path == "proof/browser/browser-body-host.test.mjs"
+    }) {
+        shards.push("creche-workspace");
+    }
+    if paths.iter().any(|path| {
+        path.starts_with("site/")
+            || path.starts_with("products/home/")
+            || path.starts_with("products/shared/browser/")
+            || path.starts_with("semantics/presentation/")
+            || path.starts_with("targets/browser/host/")
+            || path.starts_with("proof/browser/pages-")
+            || path == "proof/browser/home-cross-front.spec.mjs"
+            || path == "proof/browser/web-accessibility.spec.mjs"
+    }) {
+        shards.push("pages");
+    }
+    shards
 }
 
 fn empty_reasons() -> BTreeMap<String, Vec<String>> {
@@ -1066,6 +1121,11 @@ fn write_github_outputs(plan: &ImpactPlan) {
         serde_json::to_string(&plan.esp32_targets).expect("ESP32 target matrix serializes")
     );
     println!("browser_required={}", plan.browser_required);
+    println!(
+        "browser_admission_matrix={}",
+        serde_json::to_string(&plan.browser_admission_shards)
+            .expect("browser admission shard matrix serializes")
+    );
     println!("conduitos_required={}", plan.conduitos_required);
     println!(
         "conduitos_x86_matrix={}",

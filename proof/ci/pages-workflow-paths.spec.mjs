@@ -92,6 +92,17 @@ test("product jobs build the immutable PR head and deployments queue", () => {
   assert.match(productWorkflow, /--retries 0/);
   assert.match(
     productWorkflow,
+    /browser_admission_matrix: \$\{\{ inputs\.full_suite && '\["browser-host","creche-workspace","pages"\]'/,
+  );
+  assert.match(
+    productWorkflow,
+    /shard: \$\{\{ fromJSON\(needs\.plan\.outputs\.browser_admission_matrix\) \}\}/,
+  );
+  const admissionJob = productWorkflow.split("  browser-admission-proof:\n")[1]
+    .split("\n  avr-release:\n")[0];
+  assert.doesNotMatch(admissionJob, /matrix:\n\s+include:/);
+  assert.match(
+    productWorkflow,
     /Retain the browser two-profile fabrication report\n        if: matrix\.shard == 'creche-machines'/,
   );
   assert.match(productWorkflow, /name: conduitos-release-\$\{\{ matrix\.architecture \}\}/);
