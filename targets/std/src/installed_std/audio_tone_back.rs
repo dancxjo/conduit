@@ -167,10 +167,11 @@ fn prepare(
         || placement.implementation_id != offer.implementation.implementation_id
         || placement.inputs != offer.inputs
         || placement.outputs != offer.outputs
-        || placement.terminal_transduction
+        || placement.terminal_transductions
             != conduit_semantic_catalog::audio_tone_semantic_contract()
-                .terminal_transduction()
+                .terminal_transductions()
                 .cloned()
+                .collect::<Vec<_>>()
         || !placement.configuration.is_empty()
         || !placement.host_calls.is_empty()
     {
@@ -190,7 +191,8 @@ mod tests {
     #[test]
     fn back_declares_the_exact_lowered_terminal_contract() {
         let profile = conduit_semantic_catalog::audio_tone_semantic_contract()
-            .terminal_transduction()
+            .terminal_transductions()
+            .next()
             .unwrap()
             .clone();
         let lowered = conduit_plan_lowering::lowering::LoweredTerminalTransduction {

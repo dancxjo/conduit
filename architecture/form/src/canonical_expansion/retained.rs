@@ -176,7 +176,7 @@ pub(super) fn initialized_structured_state(
             }],
             laws: Vec::new(),
         },
-        terminal_transduction: None,
+        terminal_transductions: Vec::new(),
         resource_ports: Vec::new(),
         configuration: vec![
             conduit_core::ConfigurationEntry {

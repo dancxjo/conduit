@@ -195,8 +195,8 @@ fn canonical_terminal_transduction_survives_expansion_and_changes_identity() {
         let planned_form = crate::parse(source, &profiles).unwrap();
         planned_form.validate_identities().unwrap();
         assert_eq!(
-            planned_form.gears[0].terminal_transduction,
-            expanded.gears[0].terminal_transduction
+            planned_form.gears[0].terminal_transductions,
+            expanded.gears[0].terminal_transductions
         );
         (expanded, planned_form.checked_form_id)
     }
@@ -204,14 +204,14 @@ fn canonical_terminal_transduction_survives_expansion_and_changes_identity() {
     let (propagating, propagating_checked) =
         expand(AbnormalTerminalTransduction::PropagateAfterDrain);
     assert_eq!(
-        propagating.gears[0].terminal_transduction,
-        Some(TerminalTransductionProfile {
+        propagating.gears[0].terminal_transductions,
+        vec![TerminalTransductionProfile {
             input_port_id: port_id("input"),
             output_port_id: port_id("output"),
             normal_close: NormalCloseTransduction::PropagateAfterDrain,
             abnormal: AbnormalTerminalTransduction::PropagateAfterDrain,
             cancellation: CancellationTransduction::NotCancellable,
-        })
+        }]
     );
     let (recovering, recovering_checked) = expand(AbnormalTerminalTransduction::Recover);
     assert_ne!(propagating_checked, recovering_checked);
@@ -1274,7 +1274,7 @@ fn nested_terminal_scheduler(
     )
     .unwrap();
     scheduler
-        .bind_terminal_transductions([None, sink.terminal_transduction()])
+        .bind_terminal_transductions([[None], [sink.terminal_transduction()]])
         .unwrap();
     scheduler
 }

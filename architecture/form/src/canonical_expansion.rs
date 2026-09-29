@@ -72,7 +72,7 @@ struct Instance {
     outputs: BTreeMap<String, TrackedEndpoint>,
     abnormal: Option<TrackedEndpoint>,
     bare_ports: Option<(Option<String>, Option<String>)>,
-    terminal_transduction: Option<conduit_core::TerminalTransductionProfile>,
+    terminal_transductions: Vec<conduit_core::TerminalTransductionProfile>,
 }
 
 #[derive(Debug, Clone)]
@@ -483,7 +483,7 @@ fn instantiate_gear(
             bare_ports: fragment
                 .shorthand
                 .map(|(input, output)| (Some(input), Some(output))),
-            terminal_transduction: None,
+            terminal_transductions: Vec::new(),
         });
     }
 
@@ -523,7 +523,7 @@ fn instantiate_gear(
                 )]),
                 abnormal: None,
                 bare_ports: Some((Some("next".into()), Some("current".into()))),
-                terminal_transduction: None,
+                terminal_transductions: Vec::new(),
             });
         }
         let value_kind = retained.value_kind.clone();
@@ -630,7 +630,7 @@ fn instantiate_gear(
                 inputs: vec![input.clone()],
                 outputs: vec![output.clone()],
                 semantic_contract: conduit_core::KindSemanticContract::default(),
-                terminal_transduction: None,
+                terminal_transductions: Vec::new(),
                 resource_ports: Vec::new(),
                 configuration,
                 pool_references: Vec::new(),
@@ -659,7 +659,7 @@ fn instantiate_gear(
                 )]),
                 abnormal: None,
                 bare_ports: Some((Some("in".into()), Some("out".into()))),
-                terminal_transduction: None,
+                terminal_transductions: Vec::new(),
             });
         }
     }
@@ -671,10 +671,10 @@ fn instantiate_gear(
             format!("primitive gear '{}' has no planning contract", gear.kind),
         )
     })?;
-    let terminal_transduction = catalog
+    let terminal_transductions = catalog
         .canonical_kind(&kind_id)
-        .and_then(conduit_core::Kind::terminal_transduction)
-        .cloned();
+        .map(|kind| kind.terminal_transductions().cloned().collect())
+        .unwrap_or_default();
     if let Some(back) = backs.get(&kind_id) {
         let mut selected = back.realization.clone();
         selected.invocation_path = child_path.join("/");
@@ -705,7 +705,7 @@ fn instantiate_gear(
             bare_ports: fragment
                 .shorthand
                 .map(|(input, output)| (Some(input), Some(output))),
-            terminal_transduction,
+            terminal_transductions,
         });
     }
     let gear_id = GearId::from(child_path.join("/"));
@@ -735,7 +735,7 @@ fn instantiate_gear(
                 configuration: definition.configuration.clone(),
                 laws: Vec::new(),
             }),
-        terminal_transduction: terminal_transduction.clone(),
+        terminal_transductions: terminal_transductions.clone(),
         resource_ports: catalog
             .canonical_kind(&kind_id)
             .map(conduit_core::Kind::resource_ports)
@@ -805,7 +805,7 @@ fn instantiate_gear(
         } else {
             None
         },
-        terminal_transduction,
+        terminal_transductions,
     })
 }
 

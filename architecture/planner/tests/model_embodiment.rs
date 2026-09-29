@@ -270,7 +270,7 @@ fn gear(id: &str, kind: &str) -> PlannedGear {
         },
         inputs: vec![],
         outputs: vec![],
-        terminal_transduction: None,
+        terminal_transductions: Vec::new(),
         host_calls: vec![],
         resources: vec![],
         authority: vec![],

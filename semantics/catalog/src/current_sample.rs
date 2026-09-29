@@ -151,7 +151,11 @@ mod tests {
             TERMINAL_INFO_ID
         );
         assert!(matches!(
-            contract.terminal_transduction().unwrap().normal_close,
+            contract
+                .terminal_transductions()
+                .next()
+                .unwrap()
+                .normal_close,
             NormalCloseTransduction::NotAccepted
         ));
     }

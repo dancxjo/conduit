@@ -112,7 +112,7 @@ pub struct CheckedGear {
     pub inputs: Vec<PortDescriptor>,
     pub outputs: Vec<PortDescriptor>,
     pub semantic_contract: conduit_core::KindSemanticContract,
-    pub terminal_transduction: Option<conduit_core::TerminalTransductionProfile>,
+    pub terminal_transductions: Vec<conduit_core::TerminalTransductionProfile>,
     pub resource_ports: Vec<conduit_core::ResourcePortContract>,
     pub configuration: Vec<ConfigurationEntry>,
     pub pool_references: Vec<conduit_core::SharedPoolId>,
@@ -862,7 +862,7 @@ fn canonical_form_text(
                     .map_or("none", conduit_core::KindId::as_str)
             ));
         }
-        push_terminal_transduction_text(&mut text, gear.terminal_transduction.as_ref());
+        push_terminal_transduction_text(&mut text, &gear.terminal_transductions);
         for resource in &gear.resource_ports {
             text.push_str(&format!(
                 "resource-port:{}:{}:{:?}:{:?}:{:?}|",
@@ -923,54 +923,55 @@ fn canonical_form_text(
 
 fn push_terminal_transduction_text(
     text: &mut String,
-    profile: Option<&conduit_core::TerminalTransductionProfile>,
+    profiles: &[conduit_core::TerminalTransductionProfile],
 ) {
     use conduit_core::{
         AbnormalTerminalTransduction as Abnormal, CancellationTransduction as Cancellation,
         NormalCloseTransduction as Normal,
     };
-    let Some(profile) = profile else {
-        return;
-    };
-    text.push_str("terminal-transduction:");
-    text.push_str(profile.input_port_id.as_str());
-    text.push('>');
-    text.push_str(profile.output_port_id.as_str());
-    text.push(':');
-    match &profile.normal_close {
-        Normal::NotAccepted => text.push_str("close/not-accepted"),
-        Normal::PropagateAfterDrain => text.push_str("close/propagate-after-drain"),
-        Normal::Consume => text.push_str("close/consume"),
-        Normal::FlushThenPropagate(bound) => text.push_str(&format!(
-            "close/flush-then-propagate/{}/{}",
-            bound.maximum_items, bound.maximum_bytes
-        )),
-        Normal::DomainSpecific { law } => text.push_str(&format!("close/domain/{}", law.as_str())),
-    }
-    text.push(':');
-    match &profile.abnormal {
-        Abnormal::NotAccepted => text.push_str("abnormal/not-accepted"),
-        Abnormal::PropagateAfterDrain => text.push_str("abnormal/propagate-after-drain"),
-        Abnormal::Recover => text.push_str("abnormal/recover"),
-        Abnormal::FinalizeThenPropagate(bound) => text.push_str(&format!(
-            "abnormal/finalize-then-propagate/{}/{}",
-            bound.maximum_items, bound.maximum_bytes
-        )),
-        Abnormal::DomainSpecific { law } => {
-            text.push_str(&format!("abnormal/domain/{}", law.as_str()))
+    for profile in profiles {
+        text.push_str("terminal-transduction:");
+        text.push_str(profile.input_port_id.as_str());
+        text.push('>');
+        text.push_str(profile.output_port_id.as_str());
+        text.push(':');
+        match &profile.normal_close {
+            Normal::NotAccepted => text.push_str("close/not-accepted"),
+            Normal::PropagateAfterDrain => text.push_str("close/propagate-after-drain"),
+            Normal::Consume => text.push_str("close/consume"),
+            Normal::FlushThenPropagate(bound) => text.push_str(&format!(
+                "close/flush-then-propagate/{}/{}",
+                bound.maximum_items, bound.maximum_bytes
+            )),
+            Normal::DomainSpecific { law } => {
+                text.push_str(&format!("close/domain/{}", law.as_str()))
+            }
         }
-    }
-    text.push(':');
-    match &profile.cancellation {
-        Cancellation::NotCancellable => text.push_str("cancel/not-cancellable"),
-        Cancellation::Request { disposition_kind } => {
-            text.push_str(&format!("cancel/request/{}", disposition_kind.as_str()))
+        text.push(':');
+        match &profile.abnormal {
+            Abnormal::NotAccepted => text.push_str("abnormal/not-accepted"),
+            Abnormal::PropagateAfterDrain => text.push_str("abnormal/propagate-after-drain"),
+            Abnormal::Recover => text.push_str("abnormal/recover"),
+            Abnormal::FinalizeThenPropagate(bound) => text.push_str(&format!(
+                "abnormal/finalize-then-propagate/{}/{}",
+                bound.maximum_items, bound.maximum_bytes
+            )),
+            Abnormal::DomainSpecific { law } => {
+                text.push_str(&format!("abnormal/domain/{}", law.as_str()))
+            }
         }
-        Cancellation::DomainSpecific { law } => {
-            text.push_str(&format!("cancel/domain/{}", law.as_str()))
+        text.push(':');
+        match &profile.cancellation {
+            Cancellation::NotCancellable => text.push_str("cancel/not-cancellable"),
+            Cancellation::Request { disposition_kind } => {
+                text.push_str(&format!("cancel/request/{}", disposition_kind.as_str()))
+            }
+            Cancellation::DomainSpecific { law } => {
+                text.push_str(&format!("cancel/domain/{}", law.as_str()))
+            }
         }
+        text.push('|');
     }
-    text.push('|');
 }
 
 fn checked_form_id(

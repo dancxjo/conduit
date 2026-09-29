@@ -155,7 +155,7 @@ mod tests {
             inputs: kind.inputs.clone(),
             outputs: kind.outputs.clone(),
             semantic_contract: kind.semantic_contract(),
-            terminal_transduction: None,
+            terminal_transductions: Vec::new(),
             resource_ports: Vec::new(),
             configuration: Vec::new(),
             pool_references: Vec::new(),
