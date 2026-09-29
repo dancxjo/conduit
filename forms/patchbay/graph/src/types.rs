@@ -4,7 +4,7 @@ use crate::prelude::*;
 
 use conduit_core::{
     CheckedFormId, CheckedValueContract, ExpandedFormId, GearId, KindId, KindIdentity,
-    PortDescriptor, PortTemporal, SourceDocumentId,
+    PortDescriptor, PortTemporal, SourceDocumentId, ValueConstraintRefusal,
 };
 
 pub const MAX_PATCHBAY_GEARS: usize = 128;
@@ -25,6 +25,7 @@ pub enum PatchbayGraphError {
     CordContractMismatch,
     StaleGraphBasis,
     UnknownSubject,
+    NoValueContract,
 }
 
 impl core::fmt::Display for PatchbayGraphError {
@@ -44,6 +45,9 @@ impl core::fmt::Display for PatchbayGraphError {
             }
             Self::StaleGraphBasis => "Patchbay selection candidate names a stale expanded Form",
             Self::UnknownSubject => "Patchbay inspector subject is not in the typed graph",
+            Self::NoValueContract => {
+                "Patchbay subject has no exact checked value contract to preflight"
+            }
         };
         formatter.write_str(message)
     }
@@ -159,6 +163,24 @@ pub struct PatchbayInspection {
     pub subject_identity: String,
     pub subject_kind: PatchbaySubjectKind,
     pub exact_facts: Vec<String>,
+}
+
+/// One exact contract preflight for a candidate canonical value.
+///
+/// This is inspectable prediction, not an observed runtime Sign. A Mask may
+/// explain it before commitment; observed acceptance/refusal evidence remains
+/// owned by the semantic interaction boundary.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct PatchbayValuePreflight {
+    pub subject_identity: String,
+    pub contract: CheckedValueContract,
+    pub disposition: PatchbayValueDisposition,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum PatchbayValueDisposition {
+    Accepted,
+    Refused(ValueConstraintRefusal),
 }
 
 /// Exact pre-admission subject resolved from renderer-local geometry.

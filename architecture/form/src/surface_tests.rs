@@ -17,8 +17,41 @@ fn checked_pattern_refinement_is_lossless_front_syntax() {
     );
     assert_eq!(document.round_trip(), source);
     let crate::ValueRefinement::TextPattern { source, .. } =
-        &document.forms[0].front.runtime_ports[0].refinements[0];
+        &document.forms[0].front.runtime_ports[0].refinements[0]
+    else {
+        panic!("expected the authored pattern refinement")
+    };
     assert_eq!(source.text, "[A-Z]{2}[0-9]{4}");
+}
+
+#[test]
+fn range_membership_and_composition_are_lossless_front_syntax() {
+    let source = "form choice (\n >> value: Count where range(1 exclusive, 4 inclusive) and member(2, 3, 4)\n) {\n}\n";
+    let document = parse_syntax_document(source);
+    assert!(
+        document.diagnostics.is_empty(),
+        "{:?}",
+        document.diagnostics
+    );
+    assert_eq!(document.round_trip(), source);
+    let refinements = &document.forms[0].front.runtime_ports[0].refinements;
+    assert_eq!(refinements.len(), 2);
+    assert!(matches!(
+        &refinements[0],
+        crate::ValueRefinement::Range {
+            minimum,
+            maximum,
+            minimum_endpoint: crate::RefinementIntervalEndpoint::Exclusive,
+            maximum_endpoint: crate::RefinementIntervalEndpoint::Inclusive,
+            ..
+        } if minimum.text == "1" && maximum.text == "4"
+    ));
+    assert!(matches!(
+        &refinements[1],
+        crate::ValueRefinement::Membership { members, .. }
+            if members.iter().map(|member| member.text.as_str()).collect::<Vec<_>>()
+                == ["2", "3", "4"]
+    ));
 }
 
 #[test]

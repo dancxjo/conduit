@@ -1,9 +1,10 @@
 //! Portable pulse-observation presentation front.
 
-use alloc::{string::ToString, vec, vec::Vec};
-use conduit_core::{
-    kind_id, port_id, CapabilityLimits, Kind, KindIdentity, PortDescriptor, PortDirection,
-};
+use alloc::string::ToString;
+use alloc::{vec, vec::Vec};
+#[cfg(feature = "form-catalog")]
+use conduit_core::KindIdentity;
+use conduit_core::{kind_id, port_id, CapabilityLimits, Kind, PortDescriptor, PortDirection};
 
 use super::{KindTerminalBehavior, StandardKindContract};
 

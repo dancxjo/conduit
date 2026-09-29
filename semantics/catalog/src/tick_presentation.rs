@@ -2,9 +2,9 @@ use super::{KindTerminalBehavior, StandardKindContract};
 use alloc::string::ToString;
 use alloc::vec;
 use alloc::vec::Vec;
-use conduit_core::{
-    kind_id, port_id, CapabilityLimits, Kind, KindIdentity, PortDescriptor, PortDirection,
-};
+#[cfg(feature = "form-catalog")]
+use conduit_core::KindIdentity;
+use conduit_core::{kind_id, port_id, CapabilityLimits, Kind, PortDescriptor, PortDirection};
 
 pub const TICK_PRESENTATION_KIND: &str = "presentation/tick";
 pub const TICK_PRESENTATION_CONTRACT_REVISION: &str = "conduit.std/presentation-tick@2";

@@ -208,6 +208,16 @@ snapshot independently of subscriptions.
 const snapshot = await body.snapshot();
 console.log(snapshot.evidence.body_id, snapshot.evidence.body.workload_revision);
 
+// Authored Form inspection creates no Body, Plan, Play, or authority. The
+// projected Front retains each exact Rust-checked value contract.
+const authored = host.form(`form code (
+  >> value: Text <= 8B where pattern(r"[A-Z]{2}[0-9]{2}")
+) {
+  upper: text/upper
+  value >> upper
+}`);
+const authoredPatchbay = authored.patchbay();
+
 // Patchbay is a Body-owned semantic projection. A workbench Mask, not the SDK,
 // decides how to realize it in HTML.
 const patchbay = await body.patchbay();

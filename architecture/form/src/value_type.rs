@@ -4,10 +4,13 @@ use crate::{FormSyntax, RuntimePortDirection, RuntimePortTemporal, SyntaxCheckDi
 use conduit_core::{
     data_reference_kind, kind_id, CheckedFront, CheckedValueContract, FrontStartupParameter,
     FrontValueContract, FrontValueLocation, KindId, PortDescriptor, PortDirection,
-    StructuredInfoRefusal, ValueConstraint,
+    StructuredInfoRefusal,
 };
 
 use crate::StartupCatalog;
+
+mod refinement;
+use refinement::checked_refinements;
 
 pub(crate) fn canonical_value_kind(source_type: &str) -> KindId {
     if let Some(value_type) = source_type.strip_prefix('&') {
@@ -145,10 +148,10 @@ pub(crate) fn checked_front(
                     maximum_bytes,
                     constraints,
                 )
-                .map_err(|_| SyntaxCheckDiagnostic {
+                .map_err(|error| SyntaxCheckDiagnostic {
                     code: "CND-FRM-053",
                     span: parameter.value_type.span,
-                    message: "startup value contract is invalid".into(),
+                    message: alloc::format!("startup value contract is invalid: {error:?}"),
                 })?,
             })
         })
@@ -199,10 +202,10 @@ pub(crate) fn checked_front(
                     maximum_bytes,
                     constraints,
                 )
-                .map_err(|_| SyntaxCheckDiagnostic {
+                .map_err(|error| SyntaxCheckDiagnostic {
                     code: "CND-FRM-053",
                     span: port.value_type.span,
-                    message: "runtime Port value contract is invalid".into(),
+                    message: alloc::format!("runtime Port value contract is invalid: {error:?}"),
                 })?,
             });
         }
@@ -223,56 +226,6 @@ pub(crate) fn checked_front(
         }),
     )
     .with_value_contracts(value_contracts))
-}
-
-fn checked_refinements(
-    refinements: &[crate::ValueRefinement],
-    maximum_bytes: Option<u64>,
-    value_kind: &KindId,
-    bound_span: crate::Span,
-) -> Result<(u32, Vec<ValueConstraint>), SyntaxCheckDiagnostic> {
-    if !refinements.is_empty() && value_kind.as_str() != conduit_core::TEXT_INFO_ID {
-        return Err(SyntaxCheckDiagnostic {
-            code: "CND-FRM-057",
-            span: bound_span,
-            message: "pattern(...) may refine only canonical Text info".into(),
-        });
-    }
-    let maximum_bytes = maximum_bytes.ok_or_else(|| SyntaxCheckDiagnostic {
-        code: "CND-FRM-057",
-        span: bound_span,
-        message: "a refined value requires an exact finite byte bound".into(),
-    })?;
-    let maximum_bytes = u32::try_from(maximum_bytes).map_err(|_| SyntaxCheckDiagnostic {
-        code: "CND-FRM-057",
-        span: bound_span,
-        message: "pattern input bound exceeds portable matching limits".into(),
-    })?;
-    let constraints = refinements
-        .iter()
-        .map(|refinement| match refinement {
-            crate::ValueRefinement::TextPattern { source, span } => {
-                let expression = crate::parse_text_pattern(&source.text).map_err(|error| {
-                    SyntaxCheckDiagnostic {
-                        code: "CND-FRM-057",
-                        span: source.span,
-                        message: alloc::format!("invalid portable text pattern: {error:?}"),
-                    }
-                })?;
-                expression
-                    .compile(maximum_bytes)
-                    .map(ValueConstraint::TextPattern)
-                    .map_err(|error| SyntaxCheckDiagnostic {
-                        code: "CND-FRM-057",
-                        span: *span,
-                        message: alloc::format!(
-                            "portable text pattern exceeds checked bounds: {error:?}"
-                        ),
-                    })
-            }
-        })
-        .collect::<Result<Vec<_>, _>>()?;
-    Ok((maximum_bytes, constraints))
 }
 
 pub(crate) fn canonical_port_temporal(source: RuntimePortTemporal) -> conduit_core::PortTemporal {

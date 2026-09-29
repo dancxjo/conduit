@@ -3,7 +3,9 @@
 use super::{
     KindConfigurationField, KindConfigurationRule, KindTerminalBehavior, StandardKindContract,
 };
-use alloc::{string::ToString, vec, vec::Vec};
+#[cfg(feature = "form-catalog")]
+use alloc::string::ToString;
+use alloc::{vec, vec::Vec};
 use conduit_core::{
     kind_id, port_id, CapabilityLimits, ConfigurationValue, Kind, KindIdentity, KindSemanticLaw,
     PortDescriptor, PortDirection, PortTemporal,

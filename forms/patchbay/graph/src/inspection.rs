@@ -1,6 +1,6 @@
 //! Exact subject references and inspection facts.
-use crate::*;
-use conduit_core::PortDirection;
+use crate::{prelude::*, *};
+use conduit_core::{CheckedValueContract, PortDirection, ValueConstraint};
 
 impl PatchbayGraph {
     pub fn subject_identities(&self) -> impl Iterator<Item = &str> {
@@ -77,16 +77,18 @@ impl PatchbayGraph {
                 PortDirection::Input => PatchbaySubjectKind::PortInput,
                 PortDirection::Output => PatchbaySubjectKind::PortOutput,
             };
+            let mut exact_facts = vec![
+                format!("Composition {}", composition.gear_name),
+                format!("Back {}", composition.back_name),
+                format!("Port {}", port.descriptor.port_id.as_str()),
+                format!("Info {}", port.descriptor.value_kind.as_str()),
+                format!("temporal={:?}", port.descriptor.temporal),
+            ];
+            append_contract_facts(&mut exact_facts, port.value_contract.as_ref());
             return Ok(PatchbayInspection {
                 subject_identity: identity.into(),
                 subject_kind,
-                exact_facts: vec![
-                    format!("Composition {}", composition.gear_name),
-                    format!("Back {}", composition.back_name),
-                    format!("Port {}", port.descriptor.port_id.as_str()),
-                    format!("Info {}", port.descriptor.value_kind.as_str()),
-                    format!("temporal={:?}", port.descriptor.temporal),
-                ],
+                exact_facts,
             });
         }
         if let Some(port) = self
@@ -99,16 +101,18 @@ impl PatchbayGraph {
                 PortDirection::Input => PatchbaySubjectKind::FaceInput,
                 PortDirection::Output => PatchbaySubjectKind::FaceOutput,
             };
+            let mut exact_facts = vec![
+                format!("Front Port {}", port.descriptor.port_id.as_str()),
+                format!("direction={:?}", port.descriptor.direction),
+                format!("Info {}", port.descriptor.value_kind.as_str()),
+                format!("temporal={:?}", port.descriptor.temporal),
+                "authoring boundary; runnable root requires an exact binding".into(),
+            ];
+            append_contract_facts(&mut exact_facts, port.value_contract.as_ref());
             return Ok(PatchbayInspection {
                 subject_identity: identity.into(),
                 subject_kind,
-                exact_facts: vec![
-                    format!("Front Port {}", port.descriptor.port_id.as_str()),
-                    format!("direction={:?}", port.descriptor.direction),
-                    format!("Info {}", port.descriptor.value_kind.as_str()),
-                    format!("temporal={:?}", port.descriptor.temporal),
-                    "authoring boundary; runnable root requires an exact binding".into(),
-                ],
+                exact_facts,
             });
         }
         if let Some(gear) = self.gears.iter().find(|gear| gear.identity == identity) {
@@ -136,15 +140,17 @@ impl PatchbayGraph {
                 PortDirection::Input => PatchbaySubjectKind::PortInput,
                 PortDirection::Output => PatchbaySubjectKind::PortOutput,
             };
+            let mut exact_facts = vec![
+                format!("Gear {}", port.gear_id.as_str()),
+                format!("Port {}", port.descriptor.port_id.as_str()),
+                format!("Info {}", port.descriptor.value_kind.as_str()),
+                format!("temporal={:?}", port.descriptor.temporal),
+            ];
+            append_contract_facts(&mut exact_facts, port.value_contract.as_ref());
             return Ok(PatchbayInspection {
                 subject_identity: identity.into(),
                 subject_kind,
-                exact_facts: vec![
-                    format!("Gear {}", port.gear_id.as_str()),
-                    format!("Port {}", port.descriptor.port_id.as_str()),
-                    format!("Info {}", port.descriptor.value_kind.as_str()),
-                    format!("temporal={:?}", port.descriptor.temporal),
-                ],
+                exact_facts,
             });
         }
         if let Some(cord) = self.cords.iter().find(|cord| cord.identity == identity) {
@@ -164,9 +170,199 @@ impl PatchbayGraph {
         Err(PatchbayGraphError::UnknownSubject)
     }
 
+    pub fn preflight_value(
+        &self,
+        identity: &str,
+        canonical: &[u8],
+    ) -> Result<PatchbayValuePreflight, PatchbayGraphError> {
+        let contract = self.value_contract(identity).ok_or_else(|| {
+            if self.subject_identities().any(|subject| subject == identity) {
+                PatchbayGraphError::NoValueContract
+            } else {
+                PatchbayGraphError::UnknownSubject
+            }
+        })?;
+        let disposition = match contract.validate(canonical) {
+            Ok(()) => PatchbayValueDisposition::Accepted,
+            Err(refusal) => PatchbayValueDisposition::Refused(refusal),
+        };
+        Ok(PatchbayValuePreflight {
+            subject_identity: identity.into(),
+            contract: contract.clone(),
+            disposition,
+        })
+    }
+
+    fn value_contract(&self, identity: &str) -> Option<&CheckedValueContract> {
+        self.front_inputs
+            .iter()
+            .chain(&self.front_outputs)
+            .find(|port| port.identity == identity)
+            .and_then(|port| port.value_contract.as_ref())
+            .or_else(|| {
+                self.compositions
+                    .iter()
+                    .flat_map(|composition| composition.inputs.iter().chain(&composition.outputs))
+                    .find(|port| port.identity == identity)
+                    .and_then(|port| port.value_contract.as_ref())
+            })
+            .or_else(|| {
+                self.gears
+                    .iter()
+                    .flat_map(|gear| gear.inputs.iter().chain(&gear.outputs))
+                    .find(|port| port.identity == identity)
+                    .and_then(|port| port.value_contract.as_ref())
+            })
+    }
+
     fn subject_index(&self, identity: &str) -> Result<usize, PatchbayGraphError> {
         self.subject_identities()
             .position(|candidate| candidate == identity)
             .ok_or(PatchbayGraphError::UnknownSubject)
+    }
+}
+
+fn append_contract_facts(facts: &mut Vec<String>, contract: Option<&CheckedValueContract>) {
+    let Some(contract) = contract else {
+        facts.push("value contract: no additional checked refinement".into());
+        return;
+    };
+    facts.push(format!("maximum-bytes={}", contract.maximum_bytes));
+    for constraint in &contract.constraints {
+        facts.push(constraint_fact(constraint));
+    }
+}
+
+fn constraint_fact(constraint: &ValueConstraint) -> String {
+    match constraint {
+        ValueConstraint::ByteLength { minimum, maximum } => {
+            format!("constraint byte-length minimum={minimum} maximum={maximum}")
+        }
+        ValueConstraint::UnsignedRange {
+            minimum,
+            maximum,
+            minimum_endpoint,
+            maximum_endpoint,
+        } => format!(
+            "constraint unsigned-range minimum={minimum}({minimum_endpoint:?}) maximum={maximum}({maximum_endpoint:?})"
+        ),
+        ValueConstraint::SignedRange {
+            minimum,
+            maximum,
+            minimum_endpoint,
+            maximum_endpoint,
+        } => format!(
+            "constraint signed-range minimum={minimum}({minimum_endpoint:?}) maximum={maximum}({maximum_endpoint:?})"
+        ),
+        ValueConstraint::QuantityRange {
+            minimum,
+            maximum,
+            minimum_endpoint,
+            maximum_endpoint,
+        } => format!(
+            "constraint quantity-range minimum={}{}({minimum_endpoint:?}) maximum={}{}({maximum_endpoint:?})",
+            minimum.value(),
+            minimum.unit().form_suffix(),
+            maximum.value(),
+            maximum.unit().form_suffix(),
+        ),
+        ValueConstraint::CanonicalMembership { members } => format!(
+            "constraint canonical-membership values={} bytes={}",
+            members.len(),
+            members.iter().map(Vec::len).sum::<usize>()
+        ),
+        ValueConstraint::TextPattern(pattern) => format!(
+            "constraint text-pattern states={} start={} maximum-characters={} maximum-steps={}",
+            pattern.states.len(),
+            pattern.start_state,
+            pattern.maximum_input_characters,
+            pattern.maximum_match_steps,
+        ),
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use conduit_core::{
+        encode_count, kind_id, port_id, CheckedFormId, ExpandedFormId, IntervalEndpoint,
+        PortDescriptor, PortTemporal, SourceDocumentId, ValueConstraintRefusal,
+    };
+
+    fn graph() -> PatchbayGraph {
+        let contract = CheckedValueContract::new(
+            kind_id(conduit_core::COUNT_INFO_ID),
+            conduit_core::COUNT_ENCODED_LEN as u32,
+            vec![ValueConstraint::UnsignedRange {
+                minimum: 1,
+                maximum: 4,
+                minimum_endpoint: IntervalEndpoint::Exclusive,
+                maximum_endpoint: IntervalEndpoint::Inclusive,
+            }],
+        )
+        .unwrap();
+        PatchbayGraph {
+            source_document_id: SourceDocumentId::from("source/refined"),
+            checked_form_id: CheckedFormId::from("checked/refined"),
+            expanded_form_id: ExpandedFormId::from("expanded/refined"),
+            form_name: "refined".into(),
+            front_inputs: vec![PatchbayFrontPort {
+                identity: "front/input/count".into(),
+                descriptor: PortDescriptor {
+                    port_id: port_id("count"),
+                    value_kind: kind_id(conduit_core::COUNT_INFO_ID),
+                    direction: PortDirection::Input,
+                    temporal: PortTemporal::Value,
+                    abnormal_kind: None,
+                },
+                value_contract: Some(contract),
+            }],
+            front_outputs: Vec::new(),
+            compositions: Vec::new(),
+            gears: Vec::new(),
+            cords: Vec::new(),
+        }
+    }
+
+    #[test]
+    fn inspection_exposes_exact_constraint_not_only_kind_and_bound() {
+        let inspection = graph().inspect("front/input/count").unwrap();
+        assert!(inspection.exact_facts.contains(&"maximum-bytes=8".into()));
+        assert!(inspection.exact_facts.iter().any(|fact| {
+            fact == "constraint unsigned-range minimum=1(Exclusive) maximum=4(Inclusive)"
+        }));
+    }
+
+    #[test]
+    fn preflight_preserves_exact_refusal_without_claiming_observed_evidence() {
+        let graph = graph();
+        assert_eq!(
+            graph
+                .preflight_value("front/input/count", &encode_count(2))
+                .unwrap()
+                .disposition,
+            PatchbayValueDisposition::Accepted
+        );
+        assert_eq!(
+            graph
+                .preflight_value("front/input/count", &encode_count(1))
+                .unwrap()
+                .disposition,
+            PatchbayValueDisposition::Refused(ValueConstraintRefusal::UnsignedRange)
+        );
+        assert_eq!(
+            graph.preflight_value("renderer/invented", &encode_count(2)),
+            Err(PatchbayGraphError::UnknownSubject)
+        );
+    }
+
+    #[test]
+    fn unrefined_subject_is_distinct_from_unknown_subject() {
+        let mut graph = graph();
+        graph.front_inputs[0].value_contract = None;
+        assert_eq!(
+            graph.preflight_value("front/input/count", &encode_count(2)),
+            Err(PatchbayGraphError::NoValueContract)
+        );
     }
 }

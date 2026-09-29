@@ -1,6 +1,8 @@
 //! Triggered observation of one exact current-value specialization.
 
-use alloc::{string::ToString, vec, vec::Vec};
+#[cfg(feature = "form-catalog")]
+use alloc::string::ToString;
+use alloc::{vec, vec::Vec};
 use conduit_core::{
     kind_id, port_id, AbnormalTerminalTransduction, CancellationTransduction, CapabilityLimits,
     CheckedValueContract, FrontValueContract, FrontValueLocation, Kind, KindIdentity,

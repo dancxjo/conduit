@@ -1,6 +1,8 @@
 //! Portable camera and microphone acquisition/use catalog contracts.
 
-use alloc::{string::ToString, vec};
+#[cfg(feature = "form-catalog")]
+use alloc::string::ToString;
+use alloc::vec;
 use conduit_core::{
     kind_id, port_id, CapabilityLimits, Kind, KindIdentity, PortDescriptor, PortDirection,
     PortTemporal,

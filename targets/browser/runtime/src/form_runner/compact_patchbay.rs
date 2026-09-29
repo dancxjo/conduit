@@ -8,6 +8,7 @@ use crate::installed_browser::{
     backs, catalogs_for_presentation, PresentationProfile, MAXIMUM_BROWSER_FORM_CORDS,
     MAXIMUM_BROWSER_FORM_GEARS,
 };
+use conduit_core::{CheckedFront, CheckedValueContract, FrontValueLocation, PortDirection};
 use conduit_form::ExpandedCanonicalForm;
 use serde::Serialize;
 
@@ -24,6 +25,8 @@ pub(super) struct CompactPatchbayProjection {
     pub(super) realization_expanded_form_id: String,
     pub(super) form_name: String,
     pub(super) realization: &'static str,
+    pub(super) front_inputs: Vec<CompactPort>,
+    pub(super) front_outputs: Vec<CompactPort>,
     pub(super) gears: Vec<CompactGear>,
     pub(super) cords: Vec<CompactCord>,
     pub(super) realization_gears: Vec<CompactGear>,
@@ -45,6 +48,7 @@ pub(super) struct CompactPort {
     pub(super) port_id: String,
     pub(super) info_kind: String,
     pub(super) temporal: &'static str,
+    pub(super) value_contract: Option<CheckedValueContract>,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize)]
@@ -156,7 +160,7 @@ fn project_with_schema(
     // checked gear/Port/Cord front shown beside the source.
     let visible =
         match conduit_form::expand_canonical_form_for_authoring(&checked, &entry, &catalog) {
-            Ok(visible) => visible.expanded,
+            Ok(visible) => visible,
             Err(error) if error.code == "CND-FRM-045" => {
                 return project_incompatible_cord(
                     schema,
@@ -170,7 +174,7 @@ fn project_with_schema(
             }
             Err(error) => return Err(format!("expand checked-Form Patchbay: {error:?}")),
         };
-    admit_topology(&visible)?;
+    admit_topology(&visible.expanded)?;
     let realized = recursive
         .then(|| {
             conduit_form::expand_canonical_form_for_authoring_with_backs(
@@ -183,30 +187,34 @@ fn project_with_schema(
             .map_err(|error| format!("expand recursive checked-Form Patchbay: {error:?}"))
         })
         .transpose()?;
-    let realization = realized.as_ref().unwrap_or(&visible);
+    let realization = realized.as_ref().unwrap_or(&visible.expanded);
     admit_topology(realization)?;
 
     Ok(CompactPatchbayProjection {
         schema,
         sequence,
         source_proposal_id: interaction.proposal_identity,
-        source_document_id: visible.source_document_id.as_str().into(),
-        checked_form_id: visible.checked_form_id.as_str().into(),
-        visible_expanded_form_id: visible.expanded_form_id.as_str().into(),
+        source_document_id: visible.expanded.source_document_id.as_str().into(),
+        checked_form_id: visible.expanded.checked_form_id.as_str().into(),
+        visible_expanded_form_id: visible.expanded.expanded_form_id.as_str().into(),
         realization_expanded_form_id: realization.expanded_form_id.as_str().into(),
-        form_name: visible.name.clone(),
+        form_name: visible.expanded.name.clone(),
         realization: if recursive { "recursive" } else { "direct" },
+        front_inputs: front_ports(&visible.front, PortDirection::Input),
+        front_outputs: front_ports(&visible.front, PortDirection::Output),
         gears: visible
+            .expanded
             .gears
             .iter()
             .map(|gear| CompactGear {
                 gear_id: gear.gear_id.as_str().into(),
                 kind_id: gear.kind_id.as_str().into(),
-                inputs: gear.inputs.iter().map(port).collect(),
-                outputs: gear.outputs.iter().map(port).collect(),
+                inputs: front_ports(&gear.checked_front(), PortDirection::Input),
+                outputs: front_ports(&gear.checked_front(), PortDirection::Output),
             })
             .collect(),
         cords: visible
+            .expanded
             .connections
             .iter()
             .map(|cord| CompactCord {
@@ -225,8 +233,8 @@ fn project_with_schema(
             .map(|gear| CompactGear {
                 gear_id: gear.gear_id.as_str().into(),
                 kind_id: gear.kind_id.as_str().into(),
-                inputs: gear.inputs.iter().map(port).collect(),
-                outputs: gear.outputs.iter().map(port).collect(),
+                inputs: front_ports(&gear.checked_front(), PortDirection::Input),
+                outputs: front_ports(&gear.checked_front(), PortDirection::Output),
             })
             .collect(),
         realization_cords: realization
@@ -282,8 +290,8 @@ fn project_incompatible_cord(
         gears.push(CompactGear {
             gear_id: format!("{prefix}{name}"),
             kind_id: gear.kind.clone(),
-            inputs: definition.inputs.iter().map(port).collect(),
-            outputs: definition.outputs.iter().map(port).collect(),
+            inputs: descriptor_ports(&definition.inputs),
+            outputs: descriptor_ports(&definition.outputs),
         });
     }
     let mut cords = Vec::new();
@@ -360,6 +368,8 @@ fn project_incompatible_cord(
         realization_expanded_form_id: String::new(),
         form_name: form.name.clone(),
         realization: "invalid-source-proposal",
+        front_inputs: front_ports(&form.runtime_front, PortDirection::Input),
+        front_outputs: front_ports(&form.runtime_front, PortDirection::Output),
         realization_gears: gears.clone(),
         realization_cords: cords.clone(),
         gears,
@@ -408,12 +418,38 @@ fn admit_topology(form: &ExpandedCanonicalForm) -> Result<(), String> {
     Ok(())
 }
 
-fn port(port: &conduit_core::PortDescriptor) -> CompactPort {
-    CompactPort {
-        port_id: port.port_id.as_str().into(),
-        info_kind: port.value_kind.as_str().into(),
-        temporal: port.temporal.as_str(),
-    }
+fn front_ports(front: &CheckedFront, direction: PortDirection) -> Vec<CompactPort> {
+    let descriptors = match direction {
+        PortDirection::Input => front.inputs(),
+        PortDirection::Output => front.outputs(),
+    };
+    descriptors
+        .iter()
+        .map(|descriptor| {
+            let location = match direction {
+                PortDirection::Input => FrontValueLocation::Input(descriptor.port_id.clone()),
+                PortDirection::Output => FrontValueLocation::Output(descriptor.port_id.clone()),
+            };
+            CompactPort {
+                port_id: descriptor.port_id.as_str().into(),
+                info_kind: descriptor.value_kind.as_str().into(),
+                temporal: descriptor.temporal.as_str(),
+                value_contract: front.value_contract(&location).cloned(),
+            }
+        })
+        .collect()
+}
+
+fn descriptor_ports(descriptors: &[conduit_core::PortDescriptor]) -> Vec<CompactPort> {
+    descriptors
+        .iter()
+        .map(|descriptor| CompactPort {
+            port_id: descriptor.port_id.as_str().into(),
+            info_kind: descriptor.value_kind.as_str().into(),
+            temporal: descriptor.temporal.as_str(),
+            value_contract: None,
+        })
+        .collect()
 }
 
 #[cfg(test)]
