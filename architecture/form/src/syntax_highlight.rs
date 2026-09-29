@@ -197,10 +197,9 @@ fn punctuation(text: &str) -> Option<(usize, SyntaxHighlightKind)> {
 
 fn classify_word(word: &str) -> SyntaxHighlightKind {
     match word {
-        "form" | "host" | "body" | "pool" | "use" | "as" | "without" | "glyphs" | "where"
-        | "pattern" | "range" | "member" | "and" | "inclusive" | "exclusive" | "type" => {
-            SyntaxHighlightKind::Keyword
-        }
+        "form" | "host" | "body" | "package" | "export" | "require" | "version" | "pool"
+        | "use" | "as" | "without" | "glyphs" | "where" | "pattern" | "range" | "member"
+        | "and" | "inclusive" | "exclusive" | "type" => SyntaxHighlightKind::Keyword,
         "true" | "false" => SyntaxHighlightKind::Literal,
         _ if word.parse::<i128>().is_ok() || word.parse::<u128>().is_ok() => {
             SyntaxHighlightKind::Number
@@ -250,6 +249,25 @@ mod tests {
         }
         assert!(pieces.contains(&(SyntaxHighlightKind::Identity, "text/upper")));
         assert!(pieces.contains(&(SyntaxHighlightKind::Operator, "^^")));
+    }
+
+    #[test]
+    fn package_source_uses_the_shared_lossless_highlighter() {
+        let source = "package house/sensors (\n version = \"1.4.0\"\n) {\n export temperature\n require math/geometry = \"^2.1\"\n}\n";
+        let spans = highlight_syntax(source).unwrap();
+        let pieces = pieces(source, &spans);
+        for keyword in ["package", "version", "export", "require"] {
+            assert!(pieces.contains(&(SyntaxHighlightKind::Keyword, keyword)));
+        }
+        assert!(pieces.contains(&(SyntaxHighlightKind::Identity, "house/sensors")));
+        assert!(pieces.contains(&(SyntaxHighlightKind::Identity, "math/geometry")));
+        assert_eq!(
+            spans
+                .iter()
+                .map(|span| &source[span.start..span.end])
+                .collect::<String>(),
+            source
+        );
     }
 
     #[test]

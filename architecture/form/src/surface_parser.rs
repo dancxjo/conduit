@@ -16,9 +16,11 @@ use crate::{
 
 mod construction;
 pub(crate) mod front;
+mod package;
 mod shared_pool;
 use construction::parse_construction;
 use front::{canonical_default_bound, parse_finite_bound, parse_port_type};
+use package::parse_package;
 use shared_pool::parse_pool_declaration;
 
 pub(crate) fn parse_surface(source: &str) -> SyntaxDocument {
@@ -28,8 +30,7 @@ pub(crate) fn parse_surface(source: &str) -> SyntaxDocument {
             Vec::new(),
             Vec::new(),
             true,
-            Vec::new(),
-            Vec::new(),
+            (Vec::new(), Vec::new(), Vec::new()),
             vec![diagnostic(
                 FormError::SourceLimitExceeded,
                 crate::whole_source_span(source),
@@ -44,8 +45,7 @@ pub(crate) fn parse_surface(source: &str) -> SyntaxDocument {
                 Vec::new(),
                 Vec::new(),
                 true,
-                Vec::new(),
-                Vec::new(),
+                (Vec::new(), Vec::new(), Vec::new()),
                 vec![diagnostic(FormError::TokenLimitExceeded, span)],
             );
         }
@@ -56,8 +56,7 @@ pub(crate) fn parse_surface(source: &str) -> SyntaxDocument {
             tokens,
             parsed.uses,
             parsed.standard_glyphs,
-            parsed.forms,
-            parsed.constructions,
+            (parsed.forms, parsed.constructions, parsed.packages),
             Vec::new(),
         ),
         Err((error, span)) => SyntaxDocument::new(
@@ -65,8 +64,7 @@ pub(crate) fn parse_surface(source: &str) -> SyntaxDocument {
             tokens,
             Vec::new(),
             true,
-            Vec::new(),
-            Vec::new(),
+            (Vec::new(), Vec::new(), Vec::new()),
             vec![diagnostic(error, span)],
         ),
     }
@@ -83,6 +81,7 @@ struct ParsedSurface {
     standard_glyphs: bool,
     forms: Vec<FormSyntax>,
     constructions: Vec<ConstructionSyntax>,
+    packages: Vec<crate::syntax::PackageSyntax>,
 }
 
 impl<'a> Parser<'a> {
@@ -109,6 +108,7 @@ impl<'a> Parser<'a> {
         let mut standard_glyphs = true;
         let mut forms = Vec::new();
         let mut constructions = Vec::new();
+        let mut packages = Vec::new();
         self.skip_empty();
         while self.index < self.lines.len() {
             let (text, start) = self.lines[self.index].statement();
@@ -155,24 +155,40 @@ impl<'a> Parser<'a> {
                     ConstructionRole::Body,
                     "body",
                 )?);
+            } else if text.starts_with("package ") {
+                packages.push(parse_package(&mut self)?);
             } else {
                 return Err((
                     FormError::InvalidSyntax(
-                        "expected 'form NAME', 'host NAME', or 'body NAME' definition".into(),
+                        "expected 'form NAME', 'host NAME', 'body NAME', or 'package PATH' definition".into(),
                     ),
                     self.line_span(self.lines[self.index]),
                 ));
             }
             self.skip_empty();
         }
-        if forms.is_empty() && constructions.is_empty() {
+        if forms.is_empty() && constructions.is_empty() && packages.is_empty() {
             return Err((FormError::IncompleteForm, eof_span(self.source)));
+        }
+        if !packages.is_empty()
+            && (!forms.is_empty()
+                || !constructions.is_empty()
+                || !uses.is_empty()
+                || packages.len() != 1)
+        {
+            return Err((
+                FormError::InvalidSyntax(
+                    "package.conduit contains exactly one package declaration and no form, host, body, or use declarations".into(),
+                ),
+                packages[0].span,
+            ));
         }
         Ok(ParsedSurface {
             uses,
             standard_glyphs,
             forms,
             constructions,
+            packages,
         })
     }
 

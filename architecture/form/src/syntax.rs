@@ -13,6 +13,7 @@ pub struct SyntaxDocument {
     pub standard_glyphs: bool,
     pub forms: Vec<FormSyntax>,
     pub constructions: Vec<ConstructionSyntax>,
+    pub packages: Vec<PackageSyntax>,
     pub diagnostics: Vec<FormDiagnostic>,
 }
 
@@ -33,15 +34,21 @@ impl SyntaxDocument {
             .map_or(Ok(self.constructions.as_slice()), Err)
     }
 
+    pub fn packages(&self) -> Result<&[PackageSyntax], &FormDiagnostic> {
+        self.diagnostics
+            .first()
+            .map_or(Ok(self.packages.as_slice()), Err)
+    }
+
     pub(crate) fn new(
         source: String,
         tokens: Vec<CstToken>,
         uses: Vec<UseDeclaration>,
         standard_glyphs: bool,
-        forms: Vec<FormSyntax>,
-        constructions: Vec<ConstructionSyntax>,
+        definitions: (Vec<FormSyntax>, Vec<ConstructionSyntax>, Vec<PackageSyntax>),
         diagnostics: Vec<FormDiagnostic>,
     ) -> Self {
+        let (forms, constructions, packages) = definitions;
         Self {
             source,
             tokens,
@@ -49,9 +56,27 @@ impl SyntaxDocument {
             standard_glyphs,
             forms,
             constructions,
+            packages,
             diagnostics,
         }
     }
+}
+
+/// One finite authored `package.conduit` declaration.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct PackageSyntax {
+    pub path: SpannedText,
+    pub version: SpannedText,
+    pub exports: Vec<SpannedText>,
+    pub requirements: Vec<PackageRequirementSyntax>,
+    pub span: Span,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct PackageRequirementSyntax {
+    pub path: SpannedText,
+    pub version_requirement: SpannedText,
+    pub span: Span,
 }
 
 /// One explicit source name imported into the document lexical scope.
