@@ -418,6 +418,47 @@ pub fn time_debounce_offer() -> CapabilityOffer {
     )
 }
 
+pub fn time_deadline_offer() -> CapabilityOffer {
+    timing_offer(
+        conduit_semantic_catalog::time_deadline_contract(),
+        conduit_semantic_catalog::TIME_DEADLINE_CONTRACT_REVISION,
+        "conduitos/kernel-time-deadline@1",
+    )
+}
+
+pub fn time_sample_offer(
+    value: &conduit_core::CheckedValueContract,
+) -> Result<CapabilityOffer, &'static str> {
+    if value.maximum_bytes > 4_096 {
+        return Err("ConduitOS time/sample specialization exceeds the finite value bound");
+    }
+    Ok(realize_kind(
+        conduit_semantic_catalog::time_sample_semantic_contract(value)?,
+        "conduitos-time-sample@1",
+        "conduitos/kernel-time-sample@1",
+    ))
+}
+
+pub fn time_window_offer(
+    value: &conduit_core::CheckedValueContract,
+    maximum_items: u16,
+) -> Result<CapabilityOffer, &'static str> {
+    if value.maximum_bytes > 4_096 {
+        return Err("ConduitOS time/window specialization exceeds the finite value bound");
+    }
+    let mut offer = realize_kind(
+        conduit_semantic_catalog::time_window_semantic_contract(value, maximum_items)?,
+        "conduitos-time-window@1",
+        "conduitos/kernel-time-window@1",
+    );
+    offer.implementation.execution_profile_id =
+        ExecutionProfileId::from("conduitos/monotonic-timing-fixed@1");
+    offer.implementation.artifact_id = ArtifactId::from("conduitos/timing-nucleus@1");
+    offer.host_calls = vec![monotonic_timer_host_call_requirement()];
+    offer.resource_requirements = vec![monotonic_timer_resource_requirement()];
+    Ok(offer)
+}
+
 pub fn time_timeout_offer() -> CapabilityOffer {
     timing_offer(
         conduit_semantic_catalog::time_timeout_contract(),

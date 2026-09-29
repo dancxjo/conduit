@@ -58,90 +58,7 @@ pub(super) struct TimeoutBack {
     arm_after_emit: bool,
 }
 
-pub(super) struct DeadlineBack {
-    duration: Option<ValueRef>,
-    request_value: Option<ValueRef>,
-    pending: bool,
-    armed: bool,
-    input_closed: bool,
-    closing_unarmed: bool,
-}
-
-impl<const PORTS: usize> StepBack<PORTS> for DeadlineBack {
-    fn step(&mut self, io: &mut StepIo<PORTS>, inputs: &StepInputBytes<'_, PORTS>) -> StepOutcome {
-        if self.closing_unarmed {
-            return self.finish_unarmed(io);
-        }
-        if let Some((request, outcome)) = io.host_completion() {
-            if !self.pending
-                || request != RequestId(1)
-                || outcome.disposition != HostCallDisposition::Completed
-                || outcome.output.is_some()
-                || outcome.failure.is_some()
-            {
-                return outcome
-                    .failure
-                    .map_or_else(|| step_fail(783), StepOutcome::Fail);
-            }
-            if !io.output_ready(PortId(0)) {
-                return StepOutcome::Await;
-            }
-            let Some(value) = self.request_value.take() else {
-                return step_fail(784);
-            };
-            io.consume_host_completion()
-                .expect("observed time/deadline completion");
-            io.send(PortId(0), value)
-                .expect("ready cancellation-request output");
-            self.pending = false;
-            self.duration = None;
-            return StepOutcome::Complete;
-        }
-
-        if io.input(PortId(0)).is_some() {
-            if self.armed || self.input_closed || inputs.input(PortId(0)) != Some(&[]) {
-                return step_fail(785);
-            }
-            io.consume(PortId(0)).expect("present Unit deadline arm");
-            let Some(duration) = self.duration else {
-                return step_fail(786);
-            };
-            io.request_host_call(
-                RequestId(1),
-                HostCallId(0),
-                BoundedValueRef::new(duration, 8)
-                    .expect("time/deadline duration is exactly eight bytes"),
-            )
-            .expect("time/deadline monotonic Host Call");
-            self.armed = true;
-            self.pending = true;
-            return StepOutcome::Progress;
-        }
-
-        if io.input_closed(PortId(0)) && !self.input_closed {
-            io.consume_closed(PortId(0))
-                .expect("observed time/deadline arm closure");
-            self.input_closed = true;
-            if !self.armed {
-                self.closing_unarmed = true;
-                return self.finish_unarmed(io);
-            }
-            return StepOutcome::Progress;
-        }
-
-        StepOutcome::Await
-    }
-
-    fn accepts_input_while_host_call_pending(&self) -> bool {
-        true
-    }
-
-    fn cancel(&mut self) {
-        self.pending = false;
-        self.duration = None;
-        self.request_value = None;
-    }
-}
+pub(super) type DeadlineBack = conduit_time::CancellationDeadlineBack;
 
 impl<const PORTS: usize> StepBack<PORTS> for DebounceBack {
     fn step(&mut self, io: &mut StepIo<PORTS>, _: &StepInputBytes<'_, PORTS>) -> StepOutcome {
@@ -468,25 +385,6 @@ impl TimeoutBack {
     }
 }
 
-impl DeadlineBack {
-    pub(super) const fn allocation_capacity(&self) -> usize {
-        0
-    }
-
-    fn finish_unarmed<const PORTS: usize>(&mut self, io: &mut StepIo<PORTS>) -> StepOutcome {
-        if let Some(value) = self.duration.take() {
-            io.discard(value).expect("unused deadline duration");
-            return StepOutcome::Progress;
-        }
-        if let Some(value) = self.request_value.take() {
-            io.discard(value).expect("unused cancellation request");
-            return StepOutcome::Progress;
-        }
-        self.closing_unarmed = false;
-        StepOutcome::Complete
-    }
-}
-
 const fn step_fail(detail: u16) -> StepOutcome {
     StepOutcome::Fail(Failure {
         code: FailureCode::InvalidLifecycle,
@@ -610,14 +508,10 @@ fn prepare_deadline(
     let request_value = values
         .store(&[])
         .map_err(|error| format!("store admitted cancellation request: {error:?}"))?;
-    Ok(InstalledBack::TimeDeadline(DeadlineBack {
-        duration: Some(duration),
-        request_value: Some(request_value),
-        pending: false,
-        armed: false,
-        input_closed: false,
-        closing_unarmed: false,
-    }))
+    Ok(InstalledBack::TimeDeadline(DeadlineBack::prepare(
+        duration,
+        request_value,
+    )))
 }
 
 fn store_durations(

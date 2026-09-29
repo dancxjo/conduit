@@ -221,6 +221,17 @@ pub(crate) fn offers_for_expanded_time_windows(
         .collect()
 }
 
+pub(crate) fn offers_for_expanded_time_samples(
+    expanded: &conduit_form::ExpandedCanonicalForm,
+) -> Result<Vec<CapabilityOffer>, String> {
+    expanded
+        .gears
+        .iter()
+        .filter(|gear| gear.kind_id.as_str() == conduit_semantic_catalog::TIME_SAMPLE_KIND)
+        .map(super::time_sample::offer_for_expanded)
+        .collect()
+}
+
 pub(crate) fn backs(
     startup: &conduit_form::StartupCatalog,
     profile: &conduit_form::ProfileCatalog,

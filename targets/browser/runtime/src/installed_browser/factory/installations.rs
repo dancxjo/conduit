@@ -92,6 +92,7 @@ pub(super) static INSTALLATIONS: &[&BrowserInstallation] = &[
     &crate::installed_browser::morse_composition::SYMBOLS_TO_TEXT,
     &crate::installed_browser::state_time::TIME_EVERY,
     &crate::installed_browser::debounce::TIME_DEBOUNCE,
+    &crate::installed_browser::deadline::TIME_DEADLINE,
     &crate::installed_browser::delay::TIME_DELAY,
     &crate::installed_browser::state_time::STATE_COUNT,
     &crate::installed_browser::state_time::COUNT_PRESENTATION,
