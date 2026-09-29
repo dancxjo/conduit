@@ -2085,6 +2085,7 @@ where
         let mut input_closed = [false; PORTS];
         let mut input_abnormal = [None; PORTS];
         let mut output_maximum_bytes = [None; PORTS];
+        let node_id = NodeId(as_u16(node)?);
         let host_completion = self
             .pending_host_calls
             .iter()
@@ -2108,12 +2109,22 @@ where
                 continue;
             }
             let cord_index = usize::from(cord.0);
+            let projected_recovery_handles_source = self.cords[cord_index].producer_abnormal
+                && self.recovery_for_cord[..self.active_cords]
+                    .iter()
+                    .enumerate()
+                    .any(|(recovery_cord, recovery)| {
+                        *recovery == Some(node_id)
+                            && self.cord_specs[recovery_cord].source
+                                == self.cord_specs[cord_index].source
+                    });
             inputs[port] = self.peek(cord_index)?;
             input_closed[port] = self.cords[cord_index].producer_closed
-                && !self.cords[cord_index].producer_abnormal
+                && (!self.cords[cord_index].producer_abnormal || projected_recovery_handles_source)
                 && self.cords[cord_index].len == 0;
             input_abnormal[port] = (self.cords[cord_index].producer_closed
                 && self.cords[cord_index].producer_abnormal
+                && !projected_recovery_handles_source
                 && self.cords[cord_index].len == 0)
                 .then_some(self.cords[cord_index].abnormal_terminal)
                 .flatten();
