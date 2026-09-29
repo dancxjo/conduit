@@ -45,8 +45,6 @@ pub struct GlobalOpts {
 
 #[derive(Subcommand, Debug)]
 pub enum Command {
-    /// Prove bounded Pete forebrain-motherbrain coordination.
-    BodyCoordination(BodyCoordinationArgs),
     /// Execute repository validation check suites.
     Check(CheckArgs),
     /// Run the fast, local end-to-end developer truth loop.
@@ -124,9 +122,9 @@ pub struct ProveArgs {
     /// Which proof suite to execute.
     pub proof: Option<ProveTarget>,
 
-    /// Produce, verify, or publish bounded proof evidence.
+    /// Run a structured proof or produce, verify, or publish bounded proof evidence.
     #[command(subcommand)]
-    pub evidence: Option<EvidenceCommand>,
+    pub command: Option<ProveCommand>,
 
     /// List the versioned proof command contract instead of executing a proof.
     #[arg(
@@ -281,6 +279,15 @@ pub struct ProveArgs {
     /// Withhold the Pico region and require honest non-completion.
     #[arg(long)]
     pub withhold_lenia_pico: bool,
+}
+
+#[derive(Subcommand, Debug)]
+pub enum ProveCommand {
+    /// Prove bounded Pete forebrain-motherbrain coordination.
+    BodyCoordination(BodyCoordinationArgs),
+    /// Produce, verify, or publish bounded proof evidence.
+    #[command(flatten)]
+    Evidence(EvidenceCommand),
 }
 
 #[derive(ValueEnum, Debug, Clone, Copy, PartialEq, Eq)]
@@ -684,6 +691,35 @@ mod tests {
             .expect("prove command parses");
         assert!(matches!(prove.command, Command::Prove(_)));
 
+        let body_coordination = Cli::try_parse_from([
+            "xtask",
+            "prove",
+            "body-coordination",
+            "conformance",
+            "--forebrain-boot",
+            "forebrain-boot",
+            "--motherbrain-boot",
+            "motherbrain-boot",
+            "--admit-parts",
+        ])
+        .expect("body coordination proof parses beneath prove");
+        assert!(matches!(
+            body_coordination.command,
+            Command::Prove(args)
+                if matches!(args.command, Some(ProveCommand::BodyCoordination(_)))
+        ));
+        assert!(Cli::try_parse_from([
+            "xtask",
+            "body-coordination",
+            "conformance",
+            "--forebrain-boot",
+            "forebrain-boot",
+            "--motherbrain-boot",
+            "motherbrain-boot",
+            "--admit-parts",
+        ])
+        .is_err());
+
         let calendar = Cli::try_parse_from([
             "xtask",
             "prove",
@@ -824,7 +860,10 @@ mod tests {
         assert!(matches!(
             docs.command,
             Command::Prove(args)
-                if matches!(args.evidence, Some(EvidenceCommand::DocsVerify(_)))
+                if matches!(
+                    args.command,
+                    Some(ProveCommand::Evidence(EvidenceCommand::DocsVerify(_)))
+                )
         ));
         let verify = Cli::try_parse_from([
             "xtask",
@@ -840,7 +879,11 @@ mod tests {
         .expect("proof evidence verifier parses without an intermediate noun");
         assert!(matches!(
             verify.command,
-            Command::Prove(args) if matches!(args.evidence, Some(EvidenceCommand::Verify(_)))
+            Command::Prove(args)
+                if matches!(
+                    args.command,
+                    Some(ProveCommand::Evidence(EvidenceCommand::Verify(_)))
+                )
         ));
         assert!(Cli::try_parse_from(["xtask", "prove", "evidence", "verify"]).is_err());
         assert!(Cli::try_parse_from(["xtask", "evidence", "docs-verify"]).is_err());
