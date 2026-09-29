@@ -1,6 +1,6 @@
 use super::*;
 
-fn fixture() -> (Vec<u8>, BodyBoundArtifactIdentity) {
+pub(crate) fn fixture() -> (Vec<u8>, BodyBoundArtifactIdentity) {
     let payloads = vec![
         ZipEntry {
             name: "conduit-linux-x86_64".into(),

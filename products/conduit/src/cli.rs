@@ -60,7 +60,7 @@ pub(crate) enum Command {
 
 #[derive(Debug, Subcommand)]
 pub(crate) enum HostCommand {
-    /// Resolve and inspect one exact target installation without performing effects.
+    /// Install one exact reviewed target, or inspect its plan with --dry-run.
     Install {
         target: String,
         #[arg(long)]
@@ -77,8 +77,11 @@ pub(crate) enum HostCommand {
         carrier: Option<String>,
         #[arg(long, default_value_t = 0)]
         minimum_generation: u64,
+        /// Bounded carrier-specific installation request. Required unless --dry-run.
+        #[arg(long, required_unless_present = "dry_run")]
+        request: Option<PathBuf>,
         /// Inspect exact stages and authority without performing carrier effects.
-        #[arg(long, required = true, action = clap::ArgAction::SetTrue)]
+        #[arg(long, action = clap::ArgAction::SetTrue)]
         dry_run: bool,
     },
     /// Install, run, or inspect the durable local host owner.
