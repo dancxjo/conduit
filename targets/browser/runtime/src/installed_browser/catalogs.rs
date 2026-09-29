@@ -210,6 +210,17 @@ pub(crate) fn offers_for_expanded_pure_expressions(
     Ok(offers)
 }
 
+pub(crate) fn offers_for_expanded_time_windows(
+    expanded: &conduit_form::ExpandedCanonicalForm,
+) -> Result<Vec<CapabilityOffer>, String> {
+    expanded
+        .gears
+        .iter()
+        .filter(|gear| gear.kind_id.as_str() == conduit_semantic_catalog::TIME_WINDOW_KIND)
+        .map(super::time_window::offer_for_expanded)
+        .collect()
+}
+
 pub(crate) fn backs(
     startup: &conduit_form::StartupCatalog,
     profile: &conduit_form::ProfileCatalog,
