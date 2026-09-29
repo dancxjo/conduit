@@ -1,5 +1,8 @@
 use crate::prelude::*;
-use conduit_core::{port_id, CheckedFront, PortDescriptor, PortDirection};
+use conduit_core::{
+    port_id, CheckedFront, FrontValueLocation, Kind, KindIdentity, KindSemanticLaw, PortDescriptor,
+    PortDirection,
+};
 
 /// A reviewed, finite family of exact Fores whose inputs are homogeneous.
 ///
@@ -79,6 +82,99 @@ impl HomogeneousVariadicFore {
             None,
         ))
     }
+
+    /// Specializes the complete semantic Kind, including every port-owned law.
+    /// The resulting Kind is ordinary exact truth and has no variadic runtime.
+    pub fn specialize_kind(&self, template: &Kind, input_count: usize) -> Result<Kind, String> {
+        if template.inputs.as_slice() != [self.prototype.clone()]
+            || template.outputs.as_slice() != [self.output.clone()]
+        {
+            return Err("variadic Kind template differs from its reviewed Fore family".into());
+        }
+        let fore = self.specialize(input_count, template.startup_parameters.clone())?;
+        let inputs = fore.inputs().to_vec();
+        let mut semantic_laws = Vec::new();
+        for law in &template.semantic_laws {
+            match law {
+                KindSemanticLaw::TerminalTransduction(profile)
+                    if profile.input_port_id == self.prototype.port_id =>
+                {
+                    semantic_laws.extend(inputs.iter().map(|input| {
+                        let mut profile = profile.clone();
+                        profile.input_port_id = input.port_id.clone();
+                        KindSemanticLaw::TerminalTransduction(profile)
+                    }));
+                }
+                KindSemanticLaw::ResourcePorts(contracts) => {
+                    let mut specialized = Vec::new();
+                    for contract in contracts {
+                        if contract.port_id == self.prototype.port_id {
+                            specialized.extend(inputs.iter().map(|input| {
+                                let mut contract = contract.clone();
+                                contract.port_id = input.port_id.clone();
+                                contract
+                            }));
+                        } else {
+                            specialized.push(contract.clone());
+                        }
+                    }
+                    specialized.sort_by(|left, right| left.port_id.cmp(&right.port_id));
+                    semantic_laws.push(KindSemanticLaw::ResourcePorts(specialized));
+                }
+                KindSemanticLaw::ValueContracts(contracts) => {
+                    let mut specialized = Vec::new();
+                    for contract in contracts {
+                        match &contract.location {
+                            FrontValueLocation::Input(port) if *port == self.prototype.port_id => {
+                                specialized.extend(inputs.iter().map(|input| {
+                                    let mut contract = contract.clone();
+                                    contract.location =
+                                        FrontValueLocation::Input(input.port_id.clone());
+                                    contract
+                                }));
+                            }
+                            FrontValueLocation::InputAbnormal(port)
+                                if *port == self.prototype.port_id =>
+                            {
+                                specialized.extend(inputs.iter().map(|input| {
+                                    let mut contract = contract.clone();
+                                    contract.location =
+                                        FrontValueLocation::InputAbnormal(input.port_id.clone());
+                                    contract
+                                }));
+                            }
+                            _ => specialized.push(contract.clone()),
+                        }
+                    }
+                    specialized.sort();
+                    semantic_laws.push(KindSemanticLaw::ValueContracts(specialized));
+                }
+                _ => semantic_laws.push(law.clone()),
+            }
+        }
+        let specialized = Kind {
+            startup_parameters: template.startup_parameters.clone(),
+            shorthand: None,
+            kind_id: template.kind_id.clone(),
+            kind_contract_revision: specialized_kind_identity(
+                &template.kind_contract_revision,
+                input_count,
+            ),
+            inputs,
+            outputs: fore.outputs().to_vec(),
+            configuration: template.configuration.clone(),
+            semantic_laws,
+            limits: template.limits.clone(),
+        };
+        specialized
+            .validate()
+            .map_err(|error| format!("invalid specialized variadic Kind: {error:?}"))?;
+        Ok(specialized)
+    }
+}
+
+pub(crate) fn specialized_kind_identity(base: &KindIdentity, input_count: usize) -> KindIdentity {
+    KindIdentity::from(format!("{}/inputs/{input_count}", base.as_str()))
 }
 
 #[cfg(test)]

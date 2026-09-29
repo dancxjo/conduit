@@ -358,6 +358,7 @@ pub struct ProfileCatalog {
     kinds: BTreeMap<KindId, KindProjection>,
     canonical_kinds: BTreeMap<KindId, conduit_core::Kind>,
     variadic_fores: BTreeMap<KindId, HomogeneousVariadicFore>,
+    variadic_kinds: BTreeMap<KindId, conduit_core::Kind>,
 }
 
 impl ProfileCatalog {
@@ -403,6 +404,26 @@ impl ProfileCatalog {
         Ok(())
     }
 
+    /// Installs complete semantic Kind truth for a reviewed homogeneous
+    /// variadic family. The template itself is never exposed as an exact Kind.
+    pub fn insert_homogeneous_variadic_kind(
+        &mut self,
+        kind: conduit_core::Kind,
+        minimum_inputs: u16,
+        maximum_inputs: u16,
+    ) -> Result<(), FormError> {
+        kind.validate()
+            .map_err(|error| FormError::InvalidKind(format!("{error:?}")))?;
+        let kind_id = kind.kind_id.clone();
+        self.insert_homogeneous_variadic(
+            KindProjection::from(&kind),
+            minimum_inputs,
+            maximum_inputs,
+        )?;
+        self.variadic_kinds.insert(kind_id, kind);
+        Ok(())
+    }
+
     /// Installs canonical Kind truth while retaining the smaller checker view.
     pub fn insert_kind(&mut self, kind: conduit_core::Kind) -> Result<(), FormError> {
         kind.validate()
@@ -431,7 +452,10 @@ impl ProfileCatalog {
         let fore = family.specialize(input_count, Vec::new())?;
         Ok(Some(KindProjection {
             kind_id: definition.kind_id.clone(),
-            kind_contract_revision: definition.kind_contract_revision.clone(),
+            kind_contract_revision: specialized_kind_identity(
+                &definition.kind_contract_revision,
+                input_count,
+            ),
             inputs: fore.inputs().to_vec(),
             outputs: fore.outputs().to_vec(),
             configuration: definition.configuration.clone(),
@@ -440,6 +464,28 @@ impl ProfileCatalog {
 
     pub(crate) fn is_homogeneous_variadic(&self, kind_id: &KindId) -> bool {
         self.variadic_fores.contains_key(kind_id)
+    }
+
+    pub(crate) fn canonical_kind_for_arity(
+        &self,
+        kind_id: &KindId,
+        input_count: Option<usize>,
+    ) -> Result<Option<conduit_core::Kind>, String> {
+        if let Some(template) = self.variadic_kinds.get(kind_id) {
+            let input_count = input_count.ok_or_else(|| {
+                format!(
+                    "variadic Gear '{}' requires an exact relational operand count",
+                    kind_id.as_str()
+                )
+            })?;
+            return self
+                .variadic_fores
+                .get(kind_id)
+                .expect("variadic Kind retains its Fore family")
+                .specialize_kind(template, input_count)
+                .map(Some);
+        }
+        Ok(self.canonical_kinds.get(kind_id).cloned())
     }
 
     pub fn canonical_kind(&self, kind_id: &KindId) -> Option<&conduit_core::Kind> {
@@ -456,7 +502,9 @@ impl ProfileCatalog {
     pub fn startup_catalog(&self) -> Result<StartupCatalog, String> {
         let mut startup = StartupCatalog::new();
         for definition in self.kinds.values() {
-            let canonical_kind = self.canonical_kind(&definition.kind_id);
+            let canonical_kind = self
+                .canonical_kind(&definition.kind_id)
+                .or_else(|| self.variadic_kinds.get(&definition.kind_id));
             let signature = KindSignature {
                 kind: definition.kind_id.as_str().to_string(),
                 startup_parameters: canonical_kind.map_or_else(

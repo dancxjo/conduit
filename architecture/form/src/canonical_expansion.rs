@@ -697,8 +697,11 @@ fn instantiate_gear(
             )
         })?
     };
-    let terminal_transductions = catalog
-        .canonical_kind(&kind_id)
+    let semantic_kind = catalog
+        .canonical_kind_for_arity(&kind_id, relational_input_arity)
+        .map_err(|message| CanonicalExpansionDiagnostic::new("CND-FRM-043", message))?;
+    let terminal_transductions = semantic_kind
+        .as_ref()
         .map(|kind| kind.terminal_transductions().cloned().collect())
         .unwrap_or_default();
     if let Some(back) = backs.get(&kind_id) {
@@ -754,16 +757,16 @@ fn instantiate_gear(
         },
         inputs: definition.inputs.clone(),
         outputs: definition.outputs.clone(),
-        semantic_contract: catalog
-            .canonical_kind(&kind_id)
+        semantic_contract: semantic_kind
+            .as_ref()
             .map(conduit_core::Kind::semantic_contract)
             .unwrap_or_else(|| conduit_core::KindSemanticContract {
                 configuration: definition.configuration.clone(),
                 laws: Vec::new(),
             }),
         terminal_transductions: terminal_transductions.clone(),
-        resource_ports: catalog
-            .canonical_kind(&kind_id)
+        resource_ports: semantic_kind
+            .as_ref()
             .map(conduit_core::Kind::resource_ports)
             .unwrap_or_default()
             .to_vec(),
