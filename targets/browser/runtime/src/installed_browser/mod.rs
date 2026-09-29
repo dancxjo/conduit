@@ -59,6 +59,7 @@ pub(crate) mod template_storage;
 mod text;
 pub(crate) mod text_state;
 mod tick;
+mod time_window;
 pub(crate) mod timing;
 pub(crate) mod tutorial_presenter;
 pub(crate) mod typed_record;

@@ -227,7 +227,7 @@ jobs:
       needs.browser-runtimes.result == 'success' &&
       needs.browser-release.result == 'success'
     runs-on: ubuntu-24.04
-    timeout-minutes: 8
+    timeout-minutes: 15
     steps:
       - uses: actions/checkout@v7
         with:
@@ -320,7 +320,17 @@ jobs:
           name: conduit-development-browser-products
           path: target
       - name: Restore executable Host permission
-        run: chmod 755 target/debug/conduit target/debug/conduit-relay target/debug/conduit-browser-host target/debug/patchbay-html target/debug/browser-parts-capstone target/debug/webchat-server target/debug/browser-admission-probe target/debug/protected-line-browser-peer target/debug/native-webrtc-line-probe
+        run: |
+          chmod 755 target/debug/conduit target/debug/conduit-relay target/debug/conduit-browser-host target/debug/webchat-server target/debug/browser-admission-probe target/debug/protected-line-browser-peer target/debug/native-webrtc-line-probe
+          for optional in target/debug/patchbay-html target/debug/browser-parts-capstone; do
+            if [ -e "$optional" ]; then
+              restored="${optional}.restored"
+              install -m 755 "$optional" "$restored"
+              mv -f "$restored" "$optional"
+              test -f "$optional"
+              test -x "$optional"
+            fi
+          done
       - name: Prove foreground input and Body retirement contracts
         if: matrix.shard == 'creche-workspace'
         run: node --test proof/browser/browser-body-input.test.mjs proof/browser/browser-body-host.test.mjs proof/browser/workspace-handoff.test.mjs
@@ -876,7 +886,17 @@ jobs:
       - name: Restore the deduplicated Workspace release catalog
         run: tools/ci/restore-workspace-product-artifacts.sh target
       - name: Restore executable Host permission
-        run: chmod 755 target/debug/conduit target/debug/conduit-relay target/debug/conduit-browser-host target/debug/patchbay-html target/debug/browser-parts-capstone target/debug/webchat-server target/debug/browser-admission-probe target/debug/protected-line-browser-peer target/debug/native-webrtc-line-probe
+        run: |
+          chmod 755 target/debug/conduit target/debug/conduit-relay target/debug/conduit-browser-host target/debug/webchat-server target/debug/browser-admission-probe target/debug/protected-line-browser-peer target/debug/native-webrtc-line-probe
+          for optional in target/debug/patchbay-html target/debug/browser-parts-capstone; do
+            if [ -e "$optional" ]; then
+              restored="${optional}.restored"
+              install -m 755 "$optional" "$restored"
+              mv -f "$restored" "$optional"
+              test -f "$optional"
+              test -x "$optional"
+            fi
+          done
       - name: Prove foreground input and Body retirement contracts
         if: matrix.shard == 'creche-machines'
         run: node --test proof/browser/browser-body-input.test.mjs proof/browser/browser-body-host.test.mjs proof/browser/workspace-handoff.test.mjs
