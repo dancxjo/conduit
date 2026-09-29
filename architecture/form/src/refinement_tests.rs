@@ -50,6 +50,52 @@ fn authored_ranges_preserve_open_and_closed_endpoints() {
 }
 
 #[test]
+fn missing_range_ends_resolve_only_from_exact_primitive_bounds() {
+    let checked = check(
+        "form bounded (\n >> low: Count in ..=4\n >> high: Count in 4..\n >> scalar: Scalar in ..=1.000000\n) {\n}\n",
+    );
+    assert_eq!(
+        input_contract(&checked, "low").constraints,
+        vec![ValueConstraint::UnsignedRange {
+            minimum: u64::MIN,
+            maximum: 4,
+            minimum_endpoint: IntervalEndpoint::Inclusive,
+            maximum_endpoint: IntervalEndpoint::Inclusive,
+        }]
+    );
+    assert_eq!(
+        input_contract(&checked, "high").constraints,
+        vec![ValueConstraint::UnsignedRange {
+            minimum: 4,
+            maximum: u64::MAX,
+            minimum_endpoint: IntervalEndpoint::Inclusive,
+            maximum_endpoint: IntervalEndpoint::Inclusive,
+        }]
+    );
+    assert_eq!(
+        input_contract(&checked, "scalar").constraints,
+        vec![ValueConstraint::SignedRange {
+            minimum: i64::MIN,
+            maximum: 1_000_000,
+            minimum_endpoint: IntervalEndpoint::Inclusive,
+            maximum_endpoint: IntervalEndpoint::Inclusive,
+        }]
+    );
+    assert_eq!(
+        input_contract(&checked, "high").validate(&encode_count(u64::MAX)),
+        Ok(())
+    );
+
+    let explicit = check(
+        "form bounded (\n >> low: Count in 0..=4\n >> high: Count in 4..=18446744073709551615\n >> scalar: Scalar in -9223372036854.775808..=1.000000\n) {\n}\n",
+    );
+    assert_eq!(
+        checked.forms[0].checked_form_id, explicit.forms[0].checked_form_id,
+        "omitted endpoints canonicalize to exact primitive bounds"
+    );
+}
+
+#[test]
 fn membership_is_canonical_and_composes_with_pattern_independent_of_authored_order() {
     let first = check(
         "form choice (\n >> code: Text <= 8B in [\"AB12\", \"CD34\"] ~ /[A-Z]{2}[0-9]{2}/\n) {\n}\n",
@@ -177,6 +223,10 @@ fn malformed_or_incompatible_authored_refinements_refuse_during_checking() {
         (
             "form bad (\n >> value: Temperature in 1m..=2m\n) {\n}\n",
             "runtime Port value contract is invalid",
+        ),
+        (
+            "form bad (\n >> value: Temperature in ..=2m\n) {\n}\n",
+            "no canonical unit-bearing lower bound",
         ),
         (
             "form bad (\n >> value: Text <= 8B in []\n) {\n}\n",

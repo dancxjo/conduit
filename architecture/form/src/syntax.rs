@@ -189,8 +189,8 @@ pub enum ValueRefinement {
         span: Span,
     },
     Range {
-        minimum: SpannedText,
-        maximum: SpannedText,
+        minimum: Option<SpannedText>,
+        maximum: Option<SpannedText>,
         minimum_endpoint: RefinementIntervalEndpoint,
         maximum_endpoint: RefinementIntervalEndpoint,
         span: Span,

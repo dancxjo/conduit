@@ -348,17 +348,21 @@ impl Parser<'_> {
                 } else {
                     return Err(self.invalid_statement(line, start));
                 };
-            if minimum.is_empty() || maximum.is_empty() {
+            if minimum.is_empty() && maximum.is_empty() {
                 return Err(self.invalid_statement(line, start));
             }
             let clause_end = body_start + consumed;
-            let minimum_offset =
-                start + source_offset + body_start + interval.find(minimum).unwrap();
-            let maximum_offset =
-                start + source_offset + body_start + interval.rfind(maximum).unwrap();
+            let minimum = (!minimum.is_empty()).then(|| {
+                let offset = start + source_offset + body_start + interval.find(minimum).unwrap();
+                self.spanned(minimum, offset)
+            });
+            let maximum = (!maximum.is_empty()).then(|| {
+                let offset = start + source_offset + body_start + interval.rfind(maximum).unwrap();
+                self.spanned(maximum, offset)
+            });
             refinements.push(crate::ValueRefinement::Range {
-                minimum: self.spanned(minimum, minimum_offset),
-                maximum: self.spanned(maximum, maximum_offset),
+                minimum,
+                maximum,
                 minimum_endpoint: crate::RefinementIntervalEndpoint::Inclusive,
                 maximum_endpoint,
                 span: self.span(

@@ -116,10 +116,10 @@ fn endpoint(source: crate::RefinementIntervalEndpoint) -> IntervalEndpoint {
 
 fn checked_range(
     value_kind: &KindId,
-    minimum: &crate::SpannedText,
-    maximum: &crate::SpannedText,
-    minimum_endpoint: IntervalEndpoint,
-    maximum_endpoint: IntervalEndpoint,
+    minimum: &Option<crate::SpannedText>,
+    maximum: &Option<crate::SpannedText>,
+    mut minimum_endpoint: IntervalEndpoint,
+    mut maximum_endpoint: IntervalEndpoint,
     span: crate::Span,
 ) -> Result<ValueConstraint, SyntaxCheckDiagnostic> {
     let invalid = |message: alloc::string::String| SyntaxCheckDiagnostic {
@@ -128,29 +128,67 @@ fn checked_range(
         message,
     };
     match value_kind.as_str() {
-        conduit_core::COUNT_INFO_ID => Ok(ValueConstraint::UnsignedRange {
-            minimum: minimum.text.parse().map_err(|_| {
-                invalid("range minimum is not an exact canonical Count literal".into())
-            })?,
-            maximum: maximum.text.parse().map_err(|_| {
-                invalid("range maximum is not an exact canonical Count literal".into())
-            })?,
-            minimum_endpoint,
-            maximum_endpoint,
-        }),
-        conduit_core::SCALAR_INFO_ID => Ok(ValueConstraint::SignedRange {
-            minimum: crate::structured_startup::parse_scalar_literal(&minimum.text)
-                .ok_or_else(|| invalid("range minimum is not an exact Scalar literal".into()))?
-                .raw_microunits(),
-            maximum: crate::structured_startup::parse_scalar_literal(&maximum.text)
-                .ok_or_else(|| invalid("range maximum is not an exact Scalar literal".into()))?
-                .raw_microunits(),
-            minimum_endpoint,
-            maximum_endpoint,
-        }),
+        conduit_core::COUNT_INFO_ID => {
+            let minimum = match minimum {
+                Some(minimum) => minimum.text.parse().map_err(|_| {
+                    invalid("range minimum is not an exact canonical Count literal".into())
+                })?,
+                None => {
+                    minimum_endpoint = IntervalEndpoint::Inclusive;
+                    u64::MIN
+                }
+            };
+            let maximum = match maximum {
+                Some(maximum) => maximum.text.parse().map_err(|_| {
+                    invalid("range maximum is not an exact canonical Count literal".into())
+                })?,
+                None => {
+                    maximum_endpoint = IntervalEndpoint::Inclusive;
+                    u64::MAX
+                }
+            };
+            Ok(ValueConstraint::UnsignedRange {
+                minimum,
+                maximum,
+                minimum_endpoint,
+                maximum_endpoint,
+            })
+        }
+        conduit_core::SCALAR_INFO_ID => {
+            let minimum = match minimum {
+                Some(minimum) => crate::structured_startup::parse_scalar_literal(&minimum.text)
+                    .ok_or_else(|| invalid("range minimum is not an exact Scalar literal".into()))?
+                    .raw_microunits(),
+                None => {
+                    minimum_endpoint = IntervalEndpoint::Inclusive;
+                    i64::MIN
+                }
+            };
+            let maximum = match maximum {
+                Some(maximum) => crate::structured_startup::parse_scalar_literal(&maximum.text)
+                    .ok_or_else(|| invalid("range maximum is not an exact Scalar literal".into()))?
+                    .raw_microunits(),
+                None => {
+                    maximum_endpoint = IntervalEndpoint::Inclusive;
+                    i64::MAX
+                }
+            };
+            Ok(ValueConstraint::SignedRange {
+                minimum,
+                maximum,
+                minimum_endpoint,
+                maximum_endpoint,
+            })
+        }
         kind if kind == conduit_core::QUANTITY_INFO_ID
             || conduit_core::quantity_info_dimension(kind).is_some() =>
         {
+            let minimum = minimum.as_ref().ok_or_else(|| {
+                invalid("an open quantity range has no canonical unit-bearing lower bound".into())
+            })?;
+            let maximum = maximum.as_ref().ok_or_else(|| {
+                invalid("an open quantity range has no canonical unit-bearing upper bound".into())
+            })?;
             let minimum = conduit_core::Quantity::parse_form_literal(&minimum.text)
                 .map_err(|error| invalid(alloc::format!("invalid range minimum: {error:?}")))?;
             let maximum = conduit_core::Quantity::parse_form_literal(&maximum.text)
