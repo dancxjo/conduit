@@ -165,6 +165,13 @@ pub(crate) fn is_operation(text: &str) -> bool {
     text.split('/').all(is_name)
 }
 
+pub(crate) fn is_source_import_path(text: &str) -> bool {
+    is_operation(text)
+        || text
+            .strip_prefix("./")
+            .is_some_and(|relative| relative.contains('/') && is_operation(relative))
+}
+
 /// A punctuation-only lexical Gear name. Core grammar punctuation remains
 /// unavailable as a binding, so a glyph can never redefine cord, terminal,
 /// cancellation, route, grouping, or completion syntax.

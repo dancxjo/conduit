@@ -1,0 +1,182 @@
+use super::*;
+
+fn manifest() -> (String, PackageSyntax) {
+    let source =
+        "package example/tools (\n    version = \"1.0.0\"\n) {\n    export public\n}\n".to_string();
+    let document = parse_syntax_document(&source);
+    (source, document.packages[0].clone())
+}
+
+const SUPPORT: &str = "form helper (\n input: Text >> output: Text\n) {\n input >> output\n}\n";
+const PUBLIC_WITH_GLYPH: &str = "without glyphs\nuse ./support/helper as ^^\nform public (\n input: Text >> output: Text\n) {\n input ^^ output\n}\n";
+
+#[test]
+fn explicit_local_glyph_import_checks_as_the_exact_ordinary_form() {
+    let (manifest_source, manifest) = manifest();
+    let sources = [
+        PackageMemberSource {
+            path: "main",
+            source: PUBLIC_WITH_GLYPH,
+        },
+        PackageMemberSource {
+            path: "support",
+            source: SUPPORT,
+        },
+    ];
+    let bundle = CheckedPackageBundle::from_sources(&manifest_source, &manifest, &sources).unwrap();
+    let checked = check_package_bundle(
+        &bundle,
+        &manifest_source,
+        &manifest,
+        &sources,
+        &StartupCatalog::new(),
+    )
+    .unwrap();
+    let public = checked
+        .forms
+        .iter()
+        .find(|form| form.name == "public")
+        .unwrap();
+    assert_eq!(public.gears[0].kind, "helper");
+
+    let direct = check_syntax_document(
+        &parse_syntax_document(&format!(
+            "{SUPPORT}form public (\n input: Text >> output: Text\n) {{\n input >> helper() >> output\n}}\n"
+        )),
+        &StartupCatalog::new(),
+    )
+    .unwrap();
+    let direct_public = direct
+        .forms
+        .iter()
+        .find(|form| form.name == "public")
+        .unwrap();
+    assert_eq!(public.checked_form_id, direct_public.checked_form_id);
+    assert_ne!(checked.source_document_id, direct.source_document_id);
+}
+
+#[test]
+fn cross_module_form_is_not_ambiently_visible() {
+    let (manifest_source, manifest) = manifest();
+    let main =
+        "form public (\n input: Text >> output: Text\n) {\n input >> helper() >> output\n}\n";
+    let sources = [
+        PackageMemberSource {
+            path: "main",
+            source: main,
+        },
+        PackageMemberSource {
+            path: "support",
+            source: SUPPORT,
+        },
+    ];
+    let bundle = CheckedPackageBundle::from_sources(&manifest_source, &manifest, &sources).unwrap();
+    let error = check_package_bundle(
+        &bundle,
+        &manifest_source,
+        &manifest,
+        &sources,
+        &StartupCatalog::new(),
+    )
+    .unwrap_err();
+    assert_eq!(
+        error,
+        PackageCheckError::AmbientCrossModuleReference {
+            module: "main".into(),
+            form: "helper".into(),
+        }
+    );
+}
+
+#[test]
+fn explicit_local_import_resolves_a_pool_member_form() {
+    let (manifest_source, manifest) = manifest();
+    let main =
+        "use ./support/helper as worker\nform public {\n pool workers: worker(size = 2)\n}\n";
+    let sources = [
+        PackageMemberSource {
+            path: "main",
+            source: main,
+        },
+        PackageMemberSource {
+            path: "support",
+            source: SUPPORT,
+        },
+    ];
+    let bundle = CheckedPackageBundle::from_sources(&manifest_source, &manifest, &sources).unwrap();
+    let checked = check_package_bundle(
+        &bundle,
+        &manifest_source,
+        &manifest,
+        &sources,
+        &StartupCatalog::new(),
+    )
+    .unwrap();
+    let public = checked
+        .forms
+        .iter()
+        .find(|form| form.name == "public")
+        .unwrap();
+    assert_eq!(public.pools[0].member_form, "helper");
+}
+
+#[test]
+fn an_unimported_external_form_name_does_not_create_an_ambient_binding() {
+    let (manifest_source, manifest) = manifest();
+    let main = "form public (\n helper: Text >> output: Text\n) {\n helper >> output\n}\n";
+    let sources = [
+        PackageMemberSource {
+            path: "main",
+            source: main,
+        },
+        PackageMemberSource {
+            path: "support",
+            source: SUPPORT,
+        },
+    ];
+    let bundle = CheckedPackageBundle::from_sources(&manifest_source, &manifest, &sources).unwrap();
+    check_package_bundle(
+        &bundle,
+        &manifest_source,
+        &manifest,
+        &sources,
+        &StartupCatalog::new(),
+    )
+    .expect("a local port is not shadowed by an unimported package Form");
+}
+
+#[test]
+fn local_source_path_does_not_replace_the_canonical_form_name() {
+    let (manifest_source, manifest) = manifest();
+    let main = "without glyphs\nuse ./support/helper as ^^\nform public (\n input: Text >> output: Text\n) {\n input ^^ output\n}\n";
+    let support = "form utility/helper (\n input: Text >> output: Text\n) {\n input >> output\n}\n";
+    let sources = [
+        PackageMemberSource {
+            path: "main",
+            source: main,
+        },
+        PackageMemberSource {
+            path: "support",
+            source: support,
+        },
+    ];
+    let bundle = CheckedPackageBundle::from_sources(&manifest_source, &manifest, &sources).unwrap();
+    assert_eq!(
+        bundle.resolve_local_requirement("support/helper"),
+        Some("utility/helper")
+    );
+    let checked = check_package_bundle(
+        &bundle,
+        &manifest_source,
+        &manifest,
+        &sources,
+        &StartupCatalog::new(),
+    )
+    .unwrap();
+    let public = checked
+        .forms
+        .iter()
+        .find(|form| form.name == "public")
+        .unwrap();
+    assert_eq!(public.gears[0].kind, "utility/helper");
+}

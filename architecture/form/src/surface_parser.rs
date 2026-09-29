@@ -1,7 +1,8 @@
 use crate::prelude::*;
 use crate::surface_lex::{
-    delimiters_are_balanced, is_name, is_operation, is_reference, location, split_top_level,
-    split_top_level_token, top_level_positions, top_level_token_positions, SourceLine,
+    delimiters_are_balanced, is_name, is_reference, is_source_import_path, location,
+    split_top_level, split_top_level_token, top_level_positions, top_level_token_positions,
+    SourceLine,
 };
 use crate::syntax::{
     Argument, BackStatement, ConstructionRole, ConstructionSyntax, Cord, CordStage, Expression,
@@ -210,7 +211,7 @@ impl<'a> Parser<'a> {
                     self.line_span(self.lines[self.index]),
                 )
             })?;
-            if !is_operation(prefix) || members.trim().is_empty() {
+            if !is_source_import_path(prefix) || members.trim().is_empty() {
                 return Err(self.invalid_statement(line, start));
             }
             let mut declarations = Vec::new();
@@ -235,7 +236,7 @@ impl<'a> Parser<'a> {
             .map_or((import, None), |(path, alias)| {
                 (path.trim(), Some(alias.trim()))
             });
-        if !is_operation(path)
+        if !is_source_import_path(path)
             || alias.is_some_and(|alias| !crate::surface_lex::is_gear_name(alias))
         {
             return Err(self.invalid_statement(line, start));
