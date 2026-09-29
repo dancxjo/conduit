@@ -323,7 +323,7 @@ jobs:
         run: |
           chmod 755 target/debug/conduit target/debug/conduit-relay target/debug/conduit-browser-host target/debug/webchat-server target/debug/browser-admission-probe target/debug/protected-line-browser-peer target/debug/native-webrtc-line-probe
           for optional in target/debug/patchbay-html target/debug/browser-parts-capstone; do
-            if [[ -e "$optional" ]]; then
+            if [ -e "$optional" ]; then
               restored="${optional}.restored"
               install -m 755 "$optional" "$restored"
               mv -f "$restored" "$optional"
@@ -889,7 +889,7 @@ jobs:
         run: |
           chmod 755 target/debug/conduit target/debug/conduit-relay target/debug/conduit-browser-host target/debug/webchat-server target/debug/browser-admission-probe target/debug/protected-line-browser-peer target/debug/native-webrtc-line-probe
           for optional in target/debug/patchbay-html target/debug/browser-parts-capstone; do
-            if [[ -e "$optional" ]]; then
+            if [ -e "$optional" ]; then
               restored="${optional}.restored"
               install -m 755 "$optional" "$restored"
               mv -f "$restored" "$optional"
