@@ -34,6 +34,9 @@ mod expression_program_decode;
 mod expression_semantic_call;
 mod functional_front;
 mod integer_literal;
+mod package_resolution;
+#[cfg(test)]
+mod package_resolution_tests;
 mod pure_expression;
 mod structured_expression;
 mod structured_selector;
@@ -60,6 +63,7 @@ pub use expression_definition::*;
 pub use expression_evaluate::*;
 pub use expression_prepared::*;
 pub use expression_program::*;
+pub use package_resolution::*;
 pub use structured_startup::*;
 pub use syntax::*;
 pub use syntax_highlight::*;
@@ -71,6 +75,8 @@ pub const MAXIMUM_FORM_SOURCE_BYTES: usize = 1024 * 1024;
 pub const MAXIMUM_FORM_TOKENS: usize = 131_072;
 pub const MAXIMUM_USE_DECLARATIONS: usize = 256;
 pub const MAXIMUM_FORM_NESTING_DEPTH: usize = 16;
+pub const MAXIMUM_PACKAGE_EXPORTS: usize = 256;
+pub const MAXIMUM_PACKAGE_REQUIREMENTS: usize = 256;
 
 /// Exact UTF-8 byte extent plus one-based source locations.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
