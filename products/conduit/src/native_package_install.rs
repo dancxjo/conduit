@@ -21,11 +21,32 @@ const END: u32 = 0x0605_4b50;
 
 pub(crate) struct LocalNativeInstaller {
     state_dir: PathBuf,
+    installed_host: Option<crate::durable_host::InstalledHostIdentity>,
+    #[cfg(test)]
+    suppress_service_manager: bool,
 }
 
 impl LocalNativeInstaller {
     pub(crate) fn new(state_dir: PathBuf) -> Self {
-        Self { state_dir }
+        Self {
+            state_dir,
+            installed_host: None,
+            #[cfg(test)]
+            suppress_service_manager: false,
+        }
+    }
+
+    #[cfg(test)]
+    pub(crate) fn new_without_service_manager(state_dir: PathBuf) -> Self {
+        Self {
+            state_dir,
+            installed_host: None,
+            suppress_service_manager: true,
+        }
+    }
+
+    pub(crate) fn installed_host(&self) -> Option<&crate::durable_host::InstalledHostIdentity> {
+        self.installed_host.as_ref()
     }
 }
 
@@ -36,9 +57,16 @@ impl NativePackageInstaller for LocalNativeInstaller {
         artifact: &BodyBoundArtifactIdentity,
     ) -> Result<NativeInstallOutcome, NativeInstallRefusal> {
         let prepared = prepare(source, artifact, &self.state_dir)?;
+        #[cfg(test)]
+        let result = if self.suppress_service_manager {
+            crate::durable_host::install_for_activation_test(&prepared.manifest, &self.state_dir)
+        } else {
+            crate::durable_host::install_and_activate(&prepared.manifest, &self.state_dir)
+        };
+        #[cfg(not(test))]
         let result = crate::durable_host::install_and_activate(&prepared.manifest, &self.state_dir);
         let cleanup = fs::remove_dir_all(&prepared.root);
-        result.map_err(|_| NativeInstallRefusal::InstallationFailed)?;
+        self.installed_host = Some(result.map_err(|_| NativeInstallRefusal::InstallationFailed)?);
         cleanup.map_err(|_| NativeInstallRefusal::InstallationFailed)?;
         Ok(NativeInstallOutcome {
             package_bytes_consumed: artifact.artifact_bytes,
@@ -389,4 +417,4 @@ fn bundle_digest(files: &[ReleaseFile]) -> String {
 
 #[cfg(test)]
 #[path = "native_package_install_tests.rs"]
-mod tests;
+pub(crate) mod tests;

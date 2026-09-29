@@ -208,6 +208,7 @@ fn main() {
                 carrier_descriptors,
                 carrier,
                 minimum_generation,
+                request,
                 dry_run,
             } => host_install::run(host_install::InstallRequest {
                 target: &target,
@@ -218,6 +219,7 @@ fn main() {
                 carrier_descriptors: &carrier_descriptors,
                 carrier: carrier.as_deref(),
                 minimum_generation,
+                realization_request: request.as_deref(),
                 dry_run,
             }),
             cli::HostCommand::Service { command } => durable_host::dispatch(command),

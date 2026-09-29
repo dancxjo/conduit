@@ -125,6 +125,18 @@ pub(crate) fn install_and_activate(
     })
 }
 
+#[cfg(test)]
+pub(crate) fn install_for_activation_test(
+    manifest: &Path,
+    state_dir: &Path,
+) -> Result<InstalledHostIdentity, String> {
+    let installation = install(manifest, state_dir)?;
+    Ok(InstalledHostIdentity {
+        host_id: installation.host_id,
+        release_bundle_sha256: installation.release_bundle_sha256,
+    })
+}
+
 fn own_body(evidence_path: &Path, state_dir: &Path) -> Result<(), String> {
     let evidence_bytes = bounded_read(evidence_path, 2 * 1024 * 1024)?;
     let evidence: conduit_body::BodyBiographyEvidence = serde_json::from_slice(&evidence_bytes)
