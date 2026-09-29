@@ -23,24 +23,40 @@ pub(super) fn checked_refinements(
     let mut constraints = refinements
         .iter()
         .map(|refinement| match refinement {
-            crate::ValueRefinement::TextPattern { source, span } => {
+            crate::ValueRefinement::TextPattern {
+                source,
+                case_insensitive,
+                anchored_start,
+                anchored_end,
+                negated,
+                span,
+            } => {
                 if value_kind.as_str() != conduit_core::TEXT_INFO_ID {
                     return Err(SyntaxCheckDiagnostic {
                         code: "CND-FRM-057",
                         span: *span,
-                        message: "pattern(...) may refine only canonical Text info".into(),
+                        message: "the ~ and !~ relations may refine only canonical Text info"
+                            .into(),
                     });
                 }
-                let expression = crate::parse_text_pattern(&source.text).map_err(|error| {
+                let mut expression = crate::parse_text_pattern(&source.text).map_err(|error| {
                     SyntaxCheckDiagnostic {
                         code: "CND-FRM-057",
                         span: source.span,
                         message: alloc::format!("invalid portable text pattern: {error:?}"),
                     }
                 })?;
+                if *case_insensitive {
+                    expression = expression.ascii_case_insensitive();
+                }
                 expression
-                    .compile(maximum_bytes)
-                    .map(ValueConstraint::TextPattern)
+                    .compile_search(maximum_bytes)
+                    .map(|pattern| ValueConstraint::TextPattern {
+                        pattern,
+                        anchored_start: *anchored_start,
+                        anchored_end: *anchored_end,
+                        negated: *negated,
+                    })
                     .map_err(|error| SyntaxCheckDiagnostic {
                         code: "CND-FRM-057",
                         span: *span,
@@ -63,7 +79,11 @@ pub(super) fn checked_refinements(
                 endpoint(*maximum_endpoint),
                 *span,
             ),
-            crate::ValueRefinement::Membership { members, span } => {
+            crate::ValueRefinement::Membership {
+                members,
+                negated,
+                span,
+            } => {
                 let mut canonical = members
                     .iter()
                     .map(|member| checked_member(value_kind, member))
@@ -73,11 +93,13 @@ pub(super) fn checked_refinements(
                     return Err(SyntaxCheckDiagnostic {
                         code: "CND-FRM-057",
                         span: *span,
-                        message: "member(...) contains the same canonical value more than once"
-                            .into(),
+                        message: "the membership relation contains the same canonical value more than once".into(),
                     });
                 }
-                Ok(ValueConstraint::CanonicalMembership { members: canonical })
+                Ok(ValueConstraint::CanonicalMembership {
+                    members: canonical,
+                    negated: *negated,
+                })
             }
         })
         .collect::<Result<Vec<_>, _>>()?;
@@ -141,7 +163,7 @@ fn checked_range(
             })
         }
         _ => Err(invalid(
-            "range(...) requires Count, Scalar, or exact semantic Quantity info".into(),
+            "a range relation requires Count, Scalar, or exact semantic Quantity info".into(),
         )),
     }
 }
@@ -273,6 +295,6 @@ fn constraint_rank(constraint: &ValueConstraint) -> u8 {
         ValueConstraint::SignedRange { .. } => 2,
         ValueConstraint::QuantityRange { .. } => 3,
         ValueConstraint::CanonicalMembership { .. } => 4,
-        ValueConstraint::TextPattern(_) => 5,
+        ValueConstraint::TextPattern { .. } => 5,
     }
 }

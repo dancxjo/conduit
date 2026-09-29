@@ -120,7 +120,12 @@ fn presentation() -> Presentation {
                                 minimum: 1,
                                 maximum: 32,
                             },
-                            ValueConstraint::TextPattern(lowercase),
+                            ValueConstraint::TextPattern {
+                                pattern: lowercase,
+                                anchored_start: true,
+                                anchored_end: true,
+                                negated: false,
+                            },
                         ],
                     )
                     .expect("reviewed browser Face pattern contract is canonical"),
@@ -163,6 +168,7 @@ fn presentation() -> Presentation {
                         8,
                         vec![ValueConstraint::CanonicalMembership {
                             members: vec![b"careful".to_vec(), b"quick".to_vec()],
+                            negated: false,
                         }],
                     )
                     .expect("reviewed browser Face finite membership is canonical"),

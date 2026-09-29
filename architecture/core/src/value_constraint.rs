@@ -56,8 +56,14 @@ pub enum ValueConstraint {
     },
     CanonicalMembership {
         members: Vec<Vec<u8>>,
+        negated: bool,
     },
-    TextPattern(CheckedTextPattern),
+    TextPattern {
+        pattern: CheckedTextPattern,
+        anchored_start: bool,
+        anchored_end: bool,
+        negated: bool,
+    },
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]
@@ -170,7 +176,7 @@ impl CheckedValueContract {
     /// larger semantic identity. Authored spelling and Host representation are
     /// deliberately absent.
     pub fn identity_bytes(&self) -> Vec<u8> {
-        let mut canonical = b"conduit.value-contract@1\0".to_vec();
+        let mut canonical = b"conduit.value-contract@2\0".to_vec();
         push_bytes(&mut canonical, self.value_kind.as_str().as_bytes());
         push_u32(&mut canonical, self.maximum_bytes);
         push_u32(&mut canonical, self.constraints.len() as u32);
@@ -225,15 +231,24 @@ impl ValueConstraint {
                 canonical.push(*minimum_endpoint as u8);
                 canonical.push(*maximum_endpoint as u8);
             }
-            Self::CanonicalMembership { members } => {
+            Self::CanonicalMembership { members, negated } => {
                 canonical.push(4);
+                canonical.push(u8::from(*negated));
                 push_u32(canonical, members.len() as u32);
                 for member in members {
                     push_bytes(canonical, member);
                 }
             }
-            Self::TextPattern(pattern) => {
+            Self::TextPattern {
+                pattern,
+                anchored_start,
+                anchored_end,
+                negated,
+            } => {
                 canonical.push(5);
+                canonical.push(u8::from(*anchored_start));
+                canonical.push(u8::from(*anchored_end));
+                canonical.push(u8::from(*negated));
                 push_u32(canonical, u32::from(pattern.start_state));
                 push_u32(canonical, pattern.maximum_input_characters);
                 push_u32(canonical, pattern.maximum_match_steps);
@@ -258,7 +273,7 @@ impl ValueConstraint {
             Self::SignedRange { .. } => 2,
             Self::QuantityRange { .. } => 3,
             Self::CanonicalMembership { .. } => 4,
-            Self::TextPattern(_) => 5,
+            Self::TextPattern { .. } => 5,
         }
     }
 
@@ -314,13 +329,13 @@ impl ValueConstraint {
             {
                 Err(ConstraintDefinitionError::WrongConstraintKind)
             }
-            Self::CanonicalMembership { members } if members.is_empty() => {
+            Self::CanonicalMembership { members, .. } if members.is_empty() => {
                 Err(ConstraintDefinitionError::EmptyMembership)
             }
-            Self::CanonicalMembership { members } if members.len() > MAX_MEMBERSHIP_VALUES => {
+            Self::CanonicalMembership { members, .. } if members.len() > MAX_MEMBERSHIP_VALUES => {
                 Err(ConstraintDefinitionError::TooManyMembershipValues)
             }
-            Self::CanonicalMembership { members }
+            Self::CanonicalMembership { members, .. }
                 if members
                     .iter()
                     .any(|member| member.len() > maximum_bytes as usize)
@@ -328,22 +343,22 @@ impl ValueConstraint {
             {
                 Err(ConstraintDefinitionError::MembershipBytesExceeded)
             }
-            Self::CanonicalMembership { members }
+            Self::CanonicalMembership { members, .. }
                 if members.windows(2).any(|pair| pair[0] >= pair[1]) =>
             {
                 Err(ConstraintDefinitionError::NonCanonicalMembership)
             }
-            Self::CanonicalMembership { members }
+            Self::CanonicalMembership { members, .. }
                 if members
                     .iter()
                     .any(|member| validate_primitive_info(value_kind, member).is_err()) =>
             {
                 Err(ConstraintDefinitionError::MalformedMembership)
             }
-            Self::TextPattern(_) if value_kind != crate::TEXT_INFO_ID => {
+            Self::TextPattern { .. } if value_kind != crate::TEXT_INFO_ID => {
                 Err(ConstraintDefinitionError::WrongConstraintKind)
             }
-            Self::TextPattern(pattern) => pattern.validate_definition(),
+            Self::TextPattern { pattern, .. } => pattern.validate_definition(),
             _ => Ok(()),
         }
     }
@@ -411,19 +426,28 @@ impl ValueConstraint {
                     .then_some(())
                     .ok_or(ValueConstraintRefusal::QuantityRange)
             }
-            Self::CanonicalMembership { members } => members
-                .iter()
-                .any(|member| member.as_slice() == canonical)
-                .then_some(())
-                .ok_or(ValueConstraintRefusal::Membership),
-            Self::TextPattern(pattern) => {
+            Self::CanonicalMembership { members, negated } => {
+                (members.iter().any(|member| member.as_slice() == canonical) != *negated)
+                    .then_some(())
+                    .ok_or(ValueConstraintRefusal::Membership)
+            }
+            Self::TextPattern {
+                pattern,
+                anchored_start,
+                anchored_end,
+                negated,
+            } => {
                 if value_kind != crate::TEXT_INFO_ID {
                     return Err(ValueConstraintRefusal::WrongConstraintKind);
                 }
                 let text = core::str::from_utf8(canonical)
                     .map_err(|_| ValueConstraintRefusal::TextPattern)?;
-                pattern
-                    .is_match(text)
+                ((match (*anchored_start, *anchored_end) {
+                    (false, false) => pattern.has_match(text),
+                    (true, false) => pattern.has_prefix_match(text),
+                    (false, true) => pattern.has_suffix_match(text),
+                    (true, true) => pattern.is_match(text),
+                }) != *negated)
                     .then_some(())
                     .ok_or(ValueConstraintRefusal::TextPattern)
             }
@@ -565,6 +589,117 @@ impl CheckedTextPattern {
             state = next;
         }
         self.states[state].accepting
+    }
+
+    /// Returns whether any bounded substring satisfies this deterministic
+    /// pattern. Search remains portable checked work: every attempted start
+    /// shares the one admitted step budget carried by the pattern.
+    pub fn has_match(&self, input: &str) -> bool {
+        if input.chars().count() > self.maximum_input_characters as usize {
+            return false;
+        }
+        let mut steps = 0_u32;
+        for (start, _) in input
+            .char_indices()
+            .chain(core::iter::once((input.len(), '\0')))
+        {
+            let mut state = usize::from(self.start_state);
+            if self.states[state].accepting {
+                return true;
+            }
+            for character in input[start..].chars() {
+                let scalar = character as u32;
+                let mut target = None;
+                for transition in &self.states[state].transitions {
+                    steps = steps.saturating_add(1);
+                    if steps > self.maximum_match_steps {
+                        return false;
+                    }
+                    if scalar >= transition.first_scalar && scalar <= transition.last_scalar {
+                        target = Some(usize::from(transition.target_state));
+                        break;
+                    }
+                }
+                let Some(next) = target else {
+                    break;
+                };
+                state = next;
+                if self.states[state].accepting {
+                    return true;
+                }
+            }
+        }
+        false
+    }
+
+    pub fn has_prefix_match(&self, input: &str) -> bool {
+        if input.chars().count() > self.maximum_input_characters as usize {
+            return false;
+        }
+        let mut state = usize::from(self.start_state);
+        if self.states[state].accepting {
+            return true;
+        }
+        let mut steps = 0_u32;
+        for character in input.chars() {
+            let scalar = character as u32;
+            let mut target = None;
+            for transition in &self.states[state].transitions {
+                steps = steps.saturating_add(1);
+                if steps > self.maximum_match_steps {
+                    return false;
+                }
+                if scalar >= transition.first_scalar && scalar <= transition.last_scalar {
+                    target = Some(usize::from(transition.target_state));
+                    break;
+                }
+            }
+            let Some(next) = target else {
+                return false;
+            };
+            state = next;
+            if self.states[state].accepting {
+                return true;
+            }
+        }
+        false
+    }
+
+    pub fn has_suffix_match(&self, input: &str) -> bool {
+        if input.chars().count() > self.maximum_input_characters as usize {
+            return false;
+        }
+        let mut steps = 0_u32;
+        for offset in input
+            .char_indices()
+            .map(|(offset, _)| offset)
+            .chain(core::iter::once(input.len()))
+        {
+            let mut state = usize::from(self.start_state);
+            for character in input[offset..].chars() {
+                let scalar = character as u32;
+                let mut target = None;
+                for transition in &self.states[state].transitions {
+                    steps = steps.saturating_add(1);
+                    if steps > self.maximum_match_steps {
+                        return false;
+                    }
+                    if scalar >= transition.first_scalar && scalar <= transition.last_scalar {
+                        target = Some(usize::from(transition.target_state));
+                        break;
+                    }
+                }
+                let Some(next) = target else {
+                    state = usize::MAX;
+                    break;
+                };
+                state = next;
+            }
+            if state != usize::MAX && self.states[state].accepting {
+                return true;
+            }
+        }
+        false
     }
 }
 
@@ -802,8 +937,14 @@ mod tests {
             vec![
                 ValueConstraint::CanonicalMembership {
                     members: vec![b"ab".to_vec(), b"xy".to_vec()],
+                    negated: false,
                 },
-                ValueConstraint::TextPattern(literal_ab()),
+                ValueConstraint::TextPattern {
+                    pattern: literal_ab(),
+                    anchored_start: true,
+                    anchored_end: true,
+                    negated: false,
+                },
             ],
         )
         .unwrap();
@@ -815,6 +956,69 @@ mod tests {
         assert_eq!(
             contract.validate(b"zz"),
             Err(ValueConstraintRefusal::Membership)
+        );
+    }
+
+    #[test]
+    fn negated_membership_and_pattern_are_exact_checked_truth() {
+        let positive_membership = CheckedValueContract::new(
+            crate::kind_id(crate::TEXT_INFO_ID),
+            5,
+            vec![ValueConstraint::CanonicalMembership {
+                members: vec![b"admin".to_vec(), b"root".to_vec()],
+                negated: false,
+            }],
+        )
+        .unwrap();
+        let negative_membership = CheckedValueContract::new(
+            crate::kind_id(crate::TEXT_INFO_ID),
+            5,
+            vec![ValueConstraint::CanonicalMembership {
+                members: vec![b"admin".to_vec(), b"root".to_vec()],
+                negated: true,
+            }],
+        )
+        .unwrap();
+        assert_eq!(negative_membership.validate(b"guest"), Ok(()));
+        assert_eq!(
+            negative_membership.validate(b"root"),
+            Err(ValueConstraintRefusal::Membership)
+        );
+        assert_ne!(
+            positive_membership.identity_bytes(),
+            negative_membership.identity_bytes()
+        );
+
+        let positive_pattern = CheckedValueContract::new(
+            crate::kind_id(crate::TEXT_INFO_ID),
+            2,
+            vec![ValueConstraint::TextPattern {
+                pattern: literal_ab(),
+                anchored_start: true,
+                anchored_end: true,
+                negated: false,
+            }],
+        )
+        .unwrap();
+        let negative_pattern = CheckedValueContract::new(
+            crate::kind_id(crate::TEXT_INFO_ID),
+            2,
+            vec![ValueConstraint::TextPattern {
+                pattern: literal_ab(),
+                anchored_start: true,
+                anchored_end: true,
+                negated: true,
+            }],
+        )
+        .unwrap();
+        assert_eq!(negative_pattern.validate(b"xy"), Ok(()));
+        assert_eq!(
+            negative_pattern.validate(b"ab"),
+            Err(ValueConstraintRefusal::TextPattern)
+        );
+        assert_ne!(
+            positive_pattern.identity_bytes(),
+            negative_pattern.identity_bytes()
         );
     }
 
@@ -839,6 +1043,7 @@ mod tests {
                 crate::COUNT_ENCODED_LEN as u32,
                 vec![ValueConstraint::CanonicalMembership {
                     members: vec![vec![0]],
+                    negated: false,
                 }],
             ),
             Err(ConstraintDefinitionError::MalformedMembership)

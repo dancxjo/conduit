@@ -27,17 +27,17 @@ pub enum TextPatternSourceError {
     InvalidRepeat {
         offset: usize,
     },
-    UnboundedRepeat {
-        offset: usize,
-    },
 }
 
 /// Parses Conduit's deliberately bounded regular-expression surface.
 ///
-/// Matching is always a full match. The admitted source subset contains
-/// sequences, `|`, groups, scalar classes/ranges, `.`, `?`, and finite
-/// `{n}`/`{n,m}` repetition. `*` and `+` are refused because they promise no
-/// finite semantic maximum.
+/// This parses the expression inside a `~ /.../flags` relation. The expression
+/// itself compiles as an exact regular language; the relation's anchor profile
+/// then selects bounded search, prefix, suffix, or whole-value matching. The
+/// admitted subset contains sequences, `|`, groups, scalar classes/ranges,
+/// `.`, `?`, and finite `{n}`/`{n,m}` repetition. `*` and `+` are bounded by
+/// the refined Text contract's admitted input ceiling before the automaton
+/// enters a Plan.
 pub fn parse_text_pattern(source: &str) -> Result<TextPatternExpression, TextPatternSourceError> {
     if source.is_empty() {
         return Err(TextPatternSourceError::Empty);
@@ -116,10 +116,12 @@ impl PatternParser<'_> {
                     maximum,
                 };
             }
-            Some('*' | '+') => {
-                return Err(TextPatternSourceError::UnboundedRepeat {
-                    offset: self.offset,
-                });
+            Some(character @ ('*' | '+')) => {
+                self.take();
+                expression = TextPatternExpression::InputBoundRepeat {
+                    expression: Box::new(expression),
+                    minimum: u16::from(character == '+'),
+                };
             }
             _ => {}
         }
@@ -130,6 +132,22 @@ impl PatternParser<'_> {
         let offset = self.offset;
         match self.take() {
             Some('(') => {
+                if self.source[self.offset..].starts_with("?:") {
+                    self.offset += 2;
+                } else if self.source[self.offset..].starts_with("?<") {
+                    self.offset += 2;
+                    let name_start = self.offset;
+                    while self.peek().is_some_and(|character| character != '>') {
+                        self.take();
+                    }
+                    let name = &self.source[name_start..self.offset];
+                    if self.take() != Some('>') || !portable_group_name(name) {
+                        return Err(TextPatternSourceError::Unexpected {
+                            offset,
+                            character: self.peek(),
+                        });
+                    }
+                }
                 let expression = self.choice()?;
                 if self.take() != Some(')') {
                     return Err(TextPatternSourceError::UnclosedGroup { offset });
@@ -291,6 +309,14 @@ impl PatternParser<'_> {
             character: self.peek(),
         }
     }
+}
+
+fn portable_group_name(name: &str) -> bool {
+    let mut characters = name.chars();
+    characters
+        .next()
+        .is_some_and(|character| character.is_ascii_alphabetic() || character == '_')
+        && characters.all(|character| character.is_ascii_alphanumeric() || character == '_')
 }
 
 fn scalar_expression(character: char) -> TextPatternExpression {

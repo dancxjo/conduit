@@ -30,6 +30,10 @@ pub enum TextPatternExpression {
         minimum: u16,
         maximum: u16,
     },
+    InputBoundRepeat {
+        expression: Box<TextPatternExpression>,
+        minimum: u16,
+    },
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -66,13 +70,157 @@ struct Nfa {
 }
 
 impl TextPatternExpression {
+    /// Applies Conduit's portable `i` profile: ASCII letters compare without
+    /// case while all other Unicode scalars retain their exact identity.
+    pub fn ascii_case_insensitive(&self) -> Self {
+        match self {
+            Self::Empty => Self::Empty,
+            Self::ScalarRange { first, last } => {
+                let mut ranges = vec![Self::ScalarRange {
+                    first: *first,
+                    last: *last,
+                }];
+                let upper_first = (*first).max(u32::from(b'A'));
+                let upper_last = (*last).min(u32::from(b'Z'));
+                if upper_first <= upper_last {
+                    ranges.push(Self::ScalarRange {
+                        first: upper_first + 32,
+                        last: upper_last + 32,
+                    });
+                }
+                let lower_first = (*first).max(u32::from(b'a'));
+                let lower_last = (*last).min(u32::from(b'z'));
+                if lower_first <= lower_last {
+                    ranges.push(Self::ScalarRange {
+                        first: lower_first - 32,
+                        last: lower_last - 32,
+                    });
+                }
+                if ranges.len() == 1 {
+                    ranges.pop().expect("the exact source range remains")
+                } else {
+                    Self::Choice(ranges)
+                }
+            }
+            Self::Sequence(expressions) => Self::Sequence(
+                expressions
+                    .iter()
+                    .map(Self::ascii_case_insensitive)
+                    .collect(),
+            ),
+            Self::Choice(expressions) => Self::Choice(
+                expressions
+                    .iter()
+                    .map(Self::ascii_case_insensitive)
+                    .collect(),
+            ),
+            Self::Repeat {
+                expression,
+                minimum,
+                maximum,
+            } => Self::Repeat {
+                expression: Box::new(expression.ascii_case_insensitive()),
+                minimum: *minimum,
+                maximum: *maximum,
+            },
+            Self::InputBoundRepeat {
+                expression,
+                minimum,
+            } => Self::InputBoundRepeat {
+                expression: Box::new(expression.ascii_case_insensitive()),
+                minimum: *minimum,
+            },
+        }
+    }
+
     pub fn compile(
         &self,
         maximum_input_characters: u32,
     ) -> Result<CheckedTextPattern, TextPatternDefinitionError> {
+        let bounded = self.bind_input_repetition(maximum_input_characters)?;
         let mut nfa = Nfa { states: Vec::new() };
-        let fragment = nfa.build(self)?;
+        let fragment = nfa.build(&bounded)?;
         determinize(&nfa, fragment, maximum_input_characters)
+    }
+
+    fn bind_input_repetition(
+        &self,
+        maximum_input_characters: u32,
+    ) -> Result<Self, TextPatternDefinitionError> {
+        match self {
+            Self::Empty | Self::ScalarRange { .. } => Ok(self.clone()),
+            Self::Sequence(expressions) => expressions
+                .iter()
+                .map(|expression| expression.bind_input_repetition(maximum_input_characters))
+                .collect::<Result<Vec<_>, _>>()
+                .map(Self::Sequence),
+            Self::Choice(expressions) => expressions
+                .iter()
+                .map(|expression| expression.bind_input_repetition(maximum_input_characters))
+                .collect::<Result<Vec<_>, _>>()
+                .map(Self::Choice),
+            Self::Repeat {
+                expression,
+                minimum,
+                maximum,
+            } => Ok(Self::Repeat {
+                expression: Box::new(expression.bind_input_repetition(maximum_input_characters)?),
+                minimum: *minimum,
+                maximum: *maximum,
+            }),
+            Self::InputBoundRepeat {
+                expression,
+                minimum,
+            } => {
+                let maximum = u16::try_from(maximum_input_characters)
+                    .map_err(|_| TextPatternDefinitionError::ExpressionTooComplex)?;
+                if *minimum > maximum {
+                    return Err(TextPatternDefinitionError::InvalidRepeatRange {
+                        minimum: *minimum,
+                        maximum,
+                    });
+                }
+                Ok(Self::Repeat {
+                    expression: Box::new(
+                        expression.bind_input_repetition(maximum_input_characters)?,
+                    ),
+                    minimum: *minimum,
+                    maximum,
+                })
+            }
+        }
+    }
+
+    pub fn compile_search(
+        &self,
+        maximum_input_characters: u32,
+    ) -> Result<CheckedTextPattern, TextPatternDefinitionError> {
+        let pattern = self.compile(maximum_input_characters)?;
+        let maximum_fanout = pattern
+            .states
+            .iter()
+            .map(|state| state.transitions.len() as u32)
+            .max()
+            .unwrap_or(0)
+            .max(1);
+        let starts = maximum_input_characters
+            .checked_add(1)
+            .ok_or(TextPatternDefinitionError::MatchWorkExceeded)?;
+        let character_visits = maximum_input_characters
+            .checked_mul(starts)
+            .and_then(|value| value.checked_div(2))
+            .ok_or(TextPatternDefinitionError::MatchWorkExceeded)?;
+        let maximum_match_steps = character_visits
+            .checked_mul(maximum_fanout)
+            .filter(|steps| *steps <= MAX_PATTERN_MATCH_STEPS)
+            .ok_or(TextPatternDefinitionError::MatchWorkExceeded)?;
+        CheckedTextPattern::new(
+            pattern.states,
+            pattern.start_state,
+            pattern.maximum_input_characters,
+            maximum_match_steps,
+        )
+        .map_err(TextPatternDefinitionError::InvalidCompiledPattern)
     }
 }
 
@@ -159,6 +307,9 @@ impl Nfa {
                 minimum,
                 maximum,
             } => self.repeat(expression, *minimum, *maximum),
+            TextPatternExpression::InputBoundRepeat { .. } => {
+                Err(TextPatternDefinitionError::ExpressionTooComplex)
+            }
         }
     }
 
@@ -294,170 +445,4 @@ fn determinize(
         .ok_or(TextPatternDefinitionError::MatchWorkExceeded)?;
     CheckedTextPattern::new(states, 0, maximum_input_characters, maximum_match_steps)
         .map_err(TextPatternDefinitionError::InvalidCompiledPattern)
-}
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-    use crate::{parse_text_pattern, TextPatternSourceError};
-    use alloc::vec;
-
-    fn scalar(character: char) -> TextPatternExpression {
-        TextPatternExpression::ScalarRange {
-            first: character as u32,
-            last: character as u32,
-        }
-    }
-
-    #[test]
-    fn canonical_bounded_regex_source_compiles_before_play() {
-        let pattern = parse_text_pattern("[A-Z]{2}[0-9]{4}")
-            .unwrap()
-            .compile(16)
-            .unwrap();
-        assert!(pattern.is_match("AB1234"));
-        assert!(!pattern.is_match("Ab1234"));
-        assert!(!pattern.is_match("AB123"));
-    }
-
-    #[test]
-    fn source_refuses_unbounded_and_malformed_constructs() {
-        assert!(matches!(
-            parse_text_pattern("a*"),
-            Err(TextPatternSourceError::UnboundedRepeat { .. })
-        ));
-        assert!(matches!(
-            parse_text_pattern("[Z-A]"),
-            Err(TextPatternSourceError::InvalidRange { .. })
-        ));
-        assert!(matches!(
-            parse_text_pattern("a{2,}"),
-            Err(TextPatternSourceError::InvalidRepeat { .. })
-        ));
-        assert!(matches!(
-            parse_text_pattern("^a$"),
-            Err(TextPatternSourceError::Unexpected { .. })
-        ));
-        assert!(matches!(
-            parse_text_pattern(r"\d{2}"),
-            Err(TextPatternSourceError::Unexpected { .. })
-        ));
-    }
-
-    #[test]
-    fn sequence_choice_and_finite_repeat_compile_to_full_match() {
-        let expression = TextPatternExpression::Sequence(vec![
-            scalar('a'),
-            TextPatternExpression::Repeat {
-                expression: Box::new(TextPatternExpression::Choice(vec![
-                    scalar('b'),
-                    scalar('c'),
-                ])),
-                minimum: 1,
-                maximum: 2,
-            },
-        ]);
-        let pattern = expression.compile(3).unwrap();
-        assert!(pattern.is_match("ab"));
-        assert!(pattern.is_match("acc"));
-        assert!(pattern.is_match("abc"));
-        assert!(!pattern.is_match("a"));
-        assert!(!pattern.is_match("abbb"));
-    }
-
-    #[test]
-    fn empty_forms_have_exact_regular_language_meanings() {
-        assert!(TextPatternExpression::Empty
-            .compile(0)
-            .unwrap()
-            .is_match(""));
-        assert!(TextPatternExpression::Sequence(vec![])
-            .compile(0)
-            .unwrap()
-            .is_match(""));
-        let never = TextPatternExpression::Choice(vec![]).compile(1).unwrap();
-        assert!(!never.is_match(""));
-        assert!(!never.is_match("a"));
-    }
-
-    #[test]
-    fn unicode_range_crossing_surrogates_is_split_canonically() {
-        let pattern = TextPatternExpression::ScalarRange {
-            first: 0xd7ff,
-            last: 0xe000,
-        }
-        .compile(1)
-        .unwrap();
-        assert!(pattern.is_match("\u{d7ff}"));
-        assert!(pattern.is_match("\u{e000}"));
-        assert_eq!(pattern.states[0].transitions.len(), 2);
-    }
-
-    #[test]
-    fn overlapping_choices_are_determinized_into_disjoint_ranges() {
-        let pattern = TextPatternExpression::Choice(vec![
-            TextPatternExpression::ScalarRange {
-                first: 'a' as u32,
-                last: 'm' as u32,
-            },
-            TextPatternExpression::ScalarRange {
-                first: 'h' as u32,
-                last: 'z' as u32,
-            },
-        ])
-        .compile(1)
-        .unwrap();
-        assert!(pattern.is_match("a"));
-        assert!(pattern.is_match("j"));
-        assert!(pattern.is_match("z"));
-        assert!(!pattern.is_match("0"));
-        for pair in pattern.states[0].transitions.windows(2) {
-            assert!(pair[0].last_scalar < pair[1].first_scalar);
-        }
-    }
-
-    #[test]
-    fn malformed_source_has_exact_errors() {
-        assert_eq!(
-            TextPatternExpression::ScalarRange {
-                first: 0xd800,
-                last: 0xd800,
-            }
-            .compile(1),
-            Err(TextPatternDefinitionError::InvalidScalarRange {
-                first: 0xd800,
-                last: 0xd800,
-            })
-        );
-        assert_eq!(
-            TextPatternExpression::Repeat {
-                expression: Box::new(scalar('x')),
-                minimum: 2,
-                maximum: 1,
-            }
-            .compile(2),
-            Err(TextPatternDefinitionError::InvalidRepeatRange {
-                minimum: 2,
-                maximum: 1,
-            })
-        );
-    }
-
-    #[test]
-    fn admitted_match_work_is_refused_before_play() {
-        assert_eq!(
-            scalar('x').compile(MAX_PATTERN_MATCH_STEPS + 1),
-            Err(TextPatternDefinitionError::MatchWorkExceeded)
-        );
-    }
-
-    #[test]
-    fn compiled_state_ceiling_is_refused_exactly() {
-        let expression =
-            TextPatternExpression::Sequence((0..MAX_PATTERN_STATES).map(|_| scalar('x')).collect());
-        assert_eq!(
-            expression.compile(MAX_PATTERN_STATES as u32),
-            Err(TextPatternDefinitionError::TooManyStates)
-        );
-    }
 }

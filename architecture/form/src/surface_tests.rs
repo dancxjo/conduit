@@ -7,8 +7,7 @@ use alloc::vec::Vec;
 
 #[test]
 fn checked_pattern_refinement_is_lossless_front_syntax() {
-    let source =
-        "form code (\n >> value: Text <= 16B where pattern(r\"[A-Z]{2}[0-9]{4}\")\n) {\n}\n";
+    let source = "form code (\n >> value: Text <= 16B ~ /[A-Z]{2}[0-9]{4}/\n) {\n}\n";
     let document = parse_syntax_document(source);
     assert!(
         document.diagnostics.is_empty(),
@@ -26,7 +25,7 @@ fn checked_pattern_refinement_is_lossless_front_syntax() {
 
 #[test]
 fn range_membership_and_composition_are_lossless_front_syntax() {
-    let source = "form choice (\n >> value: Count where range(1 exclusive, 4 inclusive) and member(2, 3, 4)\n) {\n}\n";
+    let source = "form choice (\n >> value: Count in 1..=4 in [2, 3, 4]\n) {\n}\n";
     let document = parse_syntax_document(source);
     assert!(
         document.diagnostics.is_empty(),
@@ -41,7 +40,7 @@ fn range_membership_and_composition_are_lossless_front_syntax() {
         crate::ValueRefinement::Range {
             minimum,
             maximum,
-            minimum_endpoint: crate::RefinementIntervalEndpoint::Exclusive,
+            minimum_endpoint: crate::RefinementIntervalEndpoint::Inclusive,
             maximum_endpoint: crate::RefinementIntervalEndpoint::Inclusive,
             ..
         } if minimum.text == "1" && maximum.text == "4"

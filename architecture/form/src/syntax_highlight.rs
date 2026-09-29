@@ -198,8 +198,7 @@ fn punctuation(text: &str) -> Option<(usize, SyntaxHighlightKind)> {
 fn classify_word(word: &str) -> SyntaxHighlightKind {
     match word {
         "form" | "host" | "body" | "pack" | "ship" | "need" | "version" | "pool" | "with"
-        | "as" | "sans" | "glyphs" | "where" | "pattern" | "range" | "member" | "and"
-        | "inclusive" | "exclusive" | "type" => SyntaxHighlightKind::Keyword,
+        | "as" | "sans" | "glyphs" | "in" | "not" | "type" => SyntaxHighlightKind::Keyword,
         "true" | "false" => SyntaxHighlightKind::Literal,
         _ if word.parse::<i128>().is_ok() || word.parse::<u128>().is_ok() => {
             SyntaxHighlightKind::Number
@@ -237,7 +236,7 @@ mod tests {
     use alloc::{string::String, vec};
 
     #[test]
-    fn use_and_glyph_header_words_are_language_keywords() {
+    fn with_and_glyph_header_words_are_language_keywords() {
         let source = "sans glyphs\nwith text/upper as ^^\nform example {\n}\n";
         let spans = highlight_syntax(source).unwrap();
         let pieces = spans
@@ -272,13 +271,10 @@ mod tests {
 
     #[test]
     fn checked_pattern_spelling_is_one_lossless_language_construct() {
-        let source =
-            "form code (\n value: Text <= 16B where pattern(r\"[A-Z]{2}[0-9]{4}\")\n) {\n}\n";
+        let source = "form code (\n value: Text <= 16B ~ /[A-Z]{2}[0-9]{4}/\n) {\n}\n";
         let spans = highlight_syntax(source).unwrap();
         let pieces = pieces(source, &spans);
-        assert!(pieces.contains(&(SyntaxHighlightKind::Keyword, "where")));
-        assert!(pieces.contains(&(SyntaxHighlightKind::Keyword, "pattern")));
-        assert!(pieces.contains(&(SyntaxHighlightKind::String, "r\"[A-Z]{2}[0-9]{4}\"")));
+        assert!(pieces.contains(&(SyntaxHighlightKind::Operator, "~")));
         assert_eq!(
             spans
                 .iter()
@@ -299,12 +295,10 @@ mod tests {
 
     #[test]
     fn composed_refinement_words_are_language_keywords() {
-        let source = "form value (\n count: Count where range(1 exclusive, 4 inclusive) and member(2, 3, 4)\n) {\n}\n";
+        let source = "form value (\n count: Count in 1..=4 in [2, 3, 4]\n) {\n}\n";
         let spans = highlight_syntax(source).unwrap();
         let pieces = pieces(source, &spans);
-        for keyword in ["where", "range", "exclusive", "inclusive", "and", "member"] {
-            assert!(pieces.contains(&(SyntaxHighlightKind::Keyword, keyword)));
-        }
+        assert!(pieces.contains(&(SyntaxHighlightKind::Keyword, "in")));
     }
     fn pieces<'a>(
         source: &'a str,

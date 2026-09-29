@@ -21,7 +21,7 @@ fn input_contract<'a>(
 #[test]
 fn authored_ranges_preserve_open_and_closed_endpoints() {
     let checked = check(
-        "form bounded (\n >> count: Count where range(1 exclusive, 4 inclusive)\n >> temperature: Temperature where range(18°C inclusive, 24°C exclusive)\n) {\n}\n",
+        "form bounded (\n >> count: Count in 1..=4\n >> temperature: Temperature in 18°C..24°C\n) {\n}\n",
     );
     let count = input_contract(&checked, "count");
     assert_eq!(count.maximum_bytes, conduit_core::COUNT_ENCODED_LEN as u32);
@@ -30,14 +30,11 @@ fn authored_ranges_preserve_open_and_closed_endpoints() {
         vec![ValueConstraint::UnsignedRange {
             minimum: 1,
             maximum: 4,
-            minimum_endpoint: IntervalEndpoint::Exclusive,
+            minimum_endpoint: IntervalEndpoint::Inclusive,
             maximum_endpoint: IntervalEndpoint::Inclusive,
         }]
     );
-    assert_eq!(
-        count.validate(&encode_count(1)),
-        Err(ValueConstraintRefusal::UnsignedRange)
-    );
+    assert_eq!(count.validate(&encode_count(1)), Ok(()));
     assert_eq!(count.validate(&encode_count(4)), Ok(()));
 
     let temperature = input_contract(&checked, "temperature");
@@ -55,15 +52,15 @@ fn authored_ranges_preserve_open_and_closed_endpoints() {
 #[test]
 fn membership_is_canonical_and_composes_with_pattern_independent_of_authored_order() {
     let first = check(
-        "form choice (\n >> code: Text <= 8B where member(\"AB12\", \"CD34\") and pattern(r\"[A-Z]{2}[0-9]{2}\")\n) {\n}\n",
+        "form choice (\n >> code: Text <= 8B in [\"AB12\", \"CD34\"] ~ /[A-Z]{2}[0-9]{2}/\n) {\n}\n",
     );
     let reversed = check(
-        "form choice (\n >> code: Text <= 8B where pattern(r\"[A-Z]{2}[0-9]{2}\") and member(\"CD34\", \"AB12\")\n) {\n}\n",
+        "form choice (\n >> code: Text <= 8B ~ /[A-Z]{2}[0-9]{2}/ in [\"CD34\", \"AB12\"]\n) {\n}\n",
     );
     let contract = input_contract(&first, "code");
     assert!(matches!(
         contract.constraints.as_slice(),
-        [ValueConstraint::CanonicalMembership { members }, ValueConstraint::TextPattern(_)]
+        [ValueConstraint::CanonicalMembership { members, negated: false }, ValueConstraint::TextPattern { negated: false, .. }]
             if members == &[b"AB12".to_vec(), b"CD34".to_vec()]
     ));
     assert_eq!(contract.validate(b"AB12"), Ok(()));
@@ -78,22 +75,111 @@ fn membership_is_canonical_and_composes_with_pattern_independent_of_authored_ord
 }
 
 #[test]
+fn negated_membership_and_pattern_are_checked_relations() {
+    let checked = check(
+        "form guarded (\n >> name: Text <= 8B not in [\"admin\", \"root\"]\n >> code: Text <= 8B !~ /[A-Z]{2}/i\n) {\n}\n",
+    );
+    let name = input_contract(&checked, "name");
+    assert!(matches!(
+        name.constraints.as_slice(),
+        [ValueConstraint::CanonicalMembership { negated: true, .. }]
+    ));
+    assert_eq!(name.validate(b"guest"), Ok(()));
+    assert_eq!(
+        name.validate(b"root"),
+        Err(ValueConstraintRefusal::Membership)
+    );
+
+    let code = input_contract(&checked, "code");
+    assert!(matches!(
+        code.constraints.as_slice(),
+        [ValueConstraint::TextPattern { negated: true, .. }]
+    ));
+    assert_eq!(code.validate(b"12"), Ok(()));
+    assert_eq!(
+        code.validate(b"xxAByy"),
+        Err(ValueConstraintRefusal::TextPattern)
+    );
+    assert_eq!(
+        code.validate(b"xxabyy"),
+        Err(ValueConstraintRefusal::TextPattern)
+    );
+
+    let positive = check(
+        "form guarded (\n >> name: Text <= 8B in [\"admin\", \"root\"]\n >> code: Text <= 8B ~ /[A-Z]{2}/i\n) {\n}\n",
+    );
+    assert_ne!(
+        checked.forms[0].checked_form_id,
+        positive.forms[0].checked_form_id
+    );
+}
+
+#[test]
+fn canonical_anchors_select_prefix_suffix_and_whole_value_profiles() {
+    let checked = check(
+        r#"form anchored (
+ >> prefix: Text <= 8B ~ /^AB/
+ >> suffix: Text <= 8B ~ /AB$/
+ >> whole: Text <= 8B ~ /^AB$/
+ >> escaped-dollar: Text <= 8B ~ /USD\$/
+ >> backslash-suffix: Text <= 16B ~ /path\\$/
+) {
+}
+"#,
+    );
+    let prefix = input_contract(&checked, "prefix");
+    assert_eq!(prefix.validate(b"ABxx"), Ok(()));
+    assert_eq!(
+        prefix.validate(b"xxAB"),
+        Err(ValueConstraintRefusal::TextPattern)
+    );
+
+    let suffix = input_contract(&checked, "suffix");
+    assert_eq!(suffix.validate(b"xxAB"), Ok(()));
+    assert_eq!(
+        suffix.validate(b"ABxx"),
+        Err(ValueConstraintRefusal::TextPattern)
+    );
+
+    let whole = input_contract(&checked, "whole");
+    assert_eq!(whole.validate(b"AB"), Ok(()));
+    assert_eq!(
+        whole.validate(b"xxAB"),
+        Err(ValueConstraintRefusal::TextPattern)
+    );
+    assert_eq!(
+        whole.validate(b"ABxx"),
+        Err(ValueConstraintRefusal::TextPattern)
+    );
+
+    let escaped_dollar = input_contract(&checked, "escaped-dollar");
+    assert_eq!(escaped_dollar.validate(b"USD$ xx"), Ok(()));
+
+    let backslash_suffix = input_contract(&checked, "backslash-suffix");
+    assert_eq!(backslash_suffix.validate(b"before path\\"), Ok(()));
+    assert_eq!(
+        backslash_suffix.validate(b"path\\ after"),
+        Err(ValueConstraintRefusal::TextPattern)
+    );
+}
+
+#[test]
 fn malformed_or_incompatible_authored_refinements_refuse_during_checking() {
     for (source, expected) in [
         (
-            "form bad (\n >> value: Text <= 8B where range(1 inclusive, 2 inclusive)\n) {\n}\n",
+            "form bad (\n >> value: Text <= 8B in 1..=2\n) {\n}\n",
             "requires Count, Scalar, or exact semantic Quantity",
         ),
         (
-            "form bad (\n >> value: Count where member(1, 01)\n) {\n}\n",
+            "form bad (\n >> value: Count in [1, 01]\n) {\n}\n",
             "same canonical value",
         ),
         (
-            "form bad (\n >> value: Temperature where range(1m inclusive, 2m inclusive)\n) {\n}\n",
+            "form bad (\n >> value: Temperature in 1m..=2m\n) {\n}\n",
             "runtime Port value contract is invalid",
         ),
         (
-            "form bad (\n >> value: Text <= 8B where member()\n) {\n}\n",
+            "form bad (\n >> value: Text <= 8B in []\n) {\n}\n",
             "invalid",
         ),
     ] {
@@ -105,8 +191,7 @@ fn malformed_or_incompatible_authored_refinements_refuse_during_checking() {
 
 #[test]
 fn duplicate_constraint_family_refuses_instead_of_last_write_wins() {
-    let source =
-        "form bad (\n >> value: Count where range(1 inclusive, 4 inclusive) and range(2 inclusive, 3 inclusive)\n) {\n}\n";
+    let source = "form bad (\n >> value: Count in 1..=4 in 2..=3\n) {\n}\n";
     let error = check_syntax_document(&parse_syntax_document(source), &StartupCatalog::new())
         .expect_err("two range truths cannot silently overwrite one another");
     assert!(error

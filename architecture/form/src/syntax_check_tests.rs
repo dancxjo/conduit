@@ -3,7 +3,10 @@ use crate::{
     StartupCatalog, StartupParameterSignature,
 };
 use alloc::vec::Vec;
-use conduit_core::{kind_id, port_id, CheckedFront, PortDescriptor, PortDirection, PortTemporal};
+use conduit_core::{
+    kind_id, port_id, CheckedFront, PortDescriptor, PortDirection, PortTemporal, ValueConstraint,
+    MAX_PATTERN_MATCH_STEPS,
+};
 
 fn catalog() -> StartupCatalog {
     let mut catalog = StartupCatalog::new();
@@ -276,7 +279,7 @@ fn variadic_glyph_refuses_an_implicit_unary_specialization() {
 }
 
 #[test]
-fn without_glyphs_removes_only_the_standard_prelude() {
+fn sans_glyphs_removes_only_the_standard_prelude() {
     let catalog = standard_glyph_catalog();
     let body =
         "form example (\n >> a: Text\n >> b: Text\n result: Text >>\n) {\n a &> b >> result\n}\n";
@@ -333,8 +336,7 @@ fn grouped_with_resolves_each_exact_installed_kind() {
 
 #[test]
 fn text_pattern_refinement_enters_the_checked_fore_and_identity() {
-    let source =
-        "form code (\n >> value: Text <= 16B where pattern(r\"[A-Z]{2}[0-9]{4}\")\n) {\n}\n";
+    let source = "form code (\n >> value: Text <= 16B ~ /[A-Z]{2}[0-9]{4}/\n) {\n}\n";
     let checked = check(source);
     let location = conduit_core::FrontValueLocation::Input(conduit_core::port_id("value"));
     let contract = checked.forms[0]
@@ -347,8 +349,7 @@ fn text_pattern_refinement_enters_the_checked_fore_and_identity() {
         Err(conduit_core::ValueConstraintRefusal::TextPattern)
     );
 
-    let different =
-        check("form code (\n >> value: Text <= 16B where pattern(r\"[A-Z]{3}[0-9]{3}\")\n) {\n}\n");
+    let different = check("form code (\n >> value: Text <= 16B ~ /[A-Z]{3}[0-9]{3}/\n) {\n}\n");
     assert_ne!(
         checked.forms[0].checked_form_id,
         different.forms[0].checked_form_id
@@ -382,16 +383,22 @@ fn unresolved_unused_duplicate_and_shadowing_imports_refuse() {
 }
 
 #[test]
-fn pattern_refinement_refuses_wrong_kind_and_unbounded_source() {
-    let wrong_kind =
-        diagnostic("form code (\n >> value: Count where pattern(r\"[0-9]{1}\")\n) {\n}\n");
+fn pattern_refinement_refuses_wrong_kind_and_bounds_star_by_the_text_envelope() {
+    let wrong_kind = diagnostic("form code (\n >> value: Count ~ /[0-9]{1}/\n) {\n}\n");
     assert_eq!(wrong_kind.code, "CND-FRM-057");
     assert!(wrong_kind.message.contains("only canonical Text"));
 
-    let unbounded =
-        diagnostic("form code (\n >> value: Text <= 16B where pattern(r\"[A-Z]*\")\n) {\n}\n");
-    assert_eq!(unbounded.code, "CND-FRM-057");
-    assert!(unbounded.message.contains("UnboundedRepeat"));
+    let checked = check("form code (\n >> value: Text <= 16B ~ /[A-Z]*/\n) {\n}\n");
+    let [ValueConstraint::TextPattern { pattern, .. }] =
+        checked.forms[0].runtime_front.value_contracts()[0]
+            .contract
+            .constraints
+            .as_slice()
+    else {
+        panic!("expected one checked text-pattern refinement")
+    };
+    assert_eq!(pattern.maximum_input_characters, 16);
+    assert!(pattern.maximum_match_steps <= MAX_PATTERN_MATCH_STEPS);
 }
 
 #[test]

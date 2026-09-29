@@ -95,7 +95,12 @@ fn patterned_argument(maximum: u16) -> FaceActionArgument {
                     minimum: 1,
                     maximum: u32::from(maximum),
                 },
-                ValueConstraint::TextPattern(bounded_lowercase_pattern(maximum)),
+                ValueConstraint::TextPattern {
+                    pattern: bounded_lowercase_pattern(maximum),
+                    anchored_start: true,
+                    anchored_end: true,
+                    negated: false,
+                },
             ],
         )
         .expect("reviewed Face pattern contract is canonical"),
@@ -142,6 +147,7 @@ fn ranged_and_member_arguments() -> Vec<FaceActionArgument> {
                 8,
                 vec![ValueConstraint::CanonicalMembership {
                     members: vec![b"careful".to_vec(), b"quick".to_vec()],
+                    negated: false,
                 }],
             )
             .expect("reviewed Face finite membership is canonical"),
