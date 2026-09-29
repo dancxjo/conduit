@@ -59,45 +59,6 @@ pub const REPOSITORY_COMMANDS: &[RepositoryCommand] = &[
     },
 ];
 
-#[cfg(test)]
-#[derive(Clone, Copy, Debug, PartialEq, Eq)]
-pub struct JustAlias {
-    pub recipe: &'static str,
-    pub canonical_body: &'static str,
-}
-
-#[cfg(test)]
-pub const FRIENDLY_JUST_ALIASES: &[JustAlias] = &[
-    JustAlias {
-        recipe: "patchbay",
-        canonical_body: "cargo xtask prove journey patchbay --on native",
-    },
-    JustAlias {
-        recipe: "browser",
-        canonical_body: "cargo xtask fabricate host browser",
-    },
-    JustAlias {
-        recipe: "std-host",
-        canonical_body: "cargo xtask fabricate host std",
-    },
-    JustAlias {
-        recipe: "demo-std",
-        canonical_body: "cargo xtask fabricate host std",
-    },
-    JustAlias {
-        recipe: "demo-triple-local",
-        canonical_body: "cargo xtask prove journey triple",
-    },
-    JustAlias {
-        recipe: "check-kernel-s1",
-        canonical_body: "cargo xtask check kernel-takeover",
-    },
-    JustAlias {
-        recipe: "check-kernel-takeover",
-        canonical_body: "cargo xtask check kernel-takeover",
-    },
-];
-
 pub fn normalize_compatibility_aliases(mut args: Vec<OsString>) -> Vec<OsString> {
     debug_assert!(validate_registry(REPOSITORY_COMMANDS).is_ok());
     let Some(command_index) = args
@@ -284,13 +245,18 @@ mod tests {
     #[test]
     fn justfile_recipes_are_thin_registered_entrance_delegations() {
         let bodies = just_recipe_bodies(include_str!("../../../justfile")).unwrap();
-        for alias in FRIENDLY_JUST_ALIASES {
-            assert_eq!(
-                bodies.get(alias.recipe).map(String::as_str),
-                Some(alias.canonical_body),
-                "friendly recipe must delegate to its registered canonical command"
-            );
-        }
+        assert_eq!(
+            bodies,
+            std::collections::BTreeMap::from([
+                (
+                    "check".to_owned(),
+                    "cargo xtask check {{ args }}".to_owned()
+                ),
+                ("conduit".to_owned(), "conduit {{ args }}".to_owned()),
+                ("integrate".to_owned(), "cargo xtask integrate".to_owned()),
+                ("xtask".to_owned(), "cargo xtask {{ args }}".to_owned()),
+            ])
+        );
         assert!(just_recipe_bodies("bad:\n    cargo test --workspace\n")
             .unwrap_err()
             .contains("independent execution logic"));
