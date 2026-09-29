@@ -568,7 +568,7 @@ pub(crate) fn plan_validated_form_with_connection_limits(
             inputs: capability.inputs.clone(),
             outputs: capability.outputs.clone(),
             semantic_contract: capability.semantic_contract.clone(),
-            terminal_transduction: gear.terminal_transduction.clone(),
+            terminal_transductions: gear.terminal_transductions.clone(),
             host_calls: capability.host_calls.clone(),
             resources: resource_bindings,
             authority: authority_bindings,

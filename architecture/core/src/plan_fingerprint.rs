@@ -136,8 +136,9 @@ pub fn compute_fragment_id(fragment: &PlanFragment) -> FragmentId {
         push_ports(&mut canonical, &gear.inputs);
         push_ports(&mut canonical, &gear.outputs);
         push_semantic_contract(&mut canonical, &gear.semantic_contract);
-        if let Some(profile) = gear.terminal_transduction.as_ref() {
-            push_string(&mut canonical, "terminal-transduction@1");
+        push_u32(&mut canonical, gear.terminal_transductions.len() as u32);
+        for profile in &gear.terminal_transductions {
+            push_string(&mut canonical, "terminal-transduction@2");
             push_terminal_transduction(&mut canonical, profile);
         }
         push_u32(&mut canonical, gear.host_calls.len() as u32);

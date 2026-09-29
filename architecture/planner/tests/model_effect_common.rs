@@ -44,7 +44,7 @@ fn placement(
         },
         inputs,
         outputs,
-        terminal_transduction: None,
+        terminal_transductions: Vec::new(),
         host_calls: vec![],
         resources: vec![],
         authority: vec![],

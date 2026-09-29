@@ -262,7 +262,7 @@ fn expand_argument_expression(
             configuration: definition.configuration.clone(),
             laws: crate::pure_expression_semantic_laws(),
         },
-        terminal_transduction: None,
+        terminal_transductions: Vec::new(),
         resource_ports: Vec::new(),
         configuration: definition
             .configuration
@@ -512,7 +512,7 @@ fn expand_one(
         inputs: kind.inputs.clone(),
         outputs: kind.outputs.clone(),
         semantic_contract: kind.semantic_contract(),
-        terminal_transduction: kind.terminal_transduction().cloned(),
+        terminal_transductions: kind.terminal_transductions().cloned().collect(),
         resource_ports: kind.resource_ports().to_vec(),
         configuration: kind
             .configuration

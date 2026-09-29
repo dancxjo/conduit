@@ -571,8 +571,8 @@ pub struct PlannedGear {
     pub inputs: Vec<PortDescriptor>,
     pub outputs: Vec<PortDescriptor>,
     pub semantic_contract: KindSemanticContract,
-    #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub terminal_transduction: Option<TerminalTransductionProfile>,
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub terminal_transductions: Vec<TerminalTransductionProfile>,
     pub host_calls: Vec<HostCallRequirement>,
     pub resources: Vec<ResourceBinding>,
     pub authority: Vec<AuthorityBinding>,
@@ -1149,17 +1149,14 @@ pub fn verify_plan_fragment(fragment: &PlanFragment) -> bool {
     own_matches == 1
         && verify_fragment_fore_ports(fragment)
         && fragment.placements.iter().all(|placement| {
-            placement
-                .terminal_transduction
-                .as_ref()
-                .is_none_or(|profile| {
-                    capability_offer::validate_terminal_transduction_ports(
-                        &placement.inputs,
-                        &placement.outputs,
-                        profile,
-                    )
-                    .is_ok()
-                })
+            placement.terminal_transductions.iter().all(|profile| {
+                capability_offer::validate_terminal_transduction_ports(
+                    &placement.inputs,
+                    &placement.outputs,
+                    profile,
+                )
+                .is_ok()
+            })
         })
         && state_delay::verify_fragment_state(fragment)
         && execution::verify_execution_regions(fragment)

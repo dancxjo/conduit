@@ -384,7 +384,7 @@ fn expand_expression(
             configuration: definition.configuration.clone(),
             laws: crate::pure_expression_semantic_laws(),
         },
-        terminal_transduction: None,
+        terminal_transductions: Vec::new(),
         resource_ports: Vec::new(),
         configuration,
         pool_references: Vec::new(),

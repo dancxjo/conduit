@@ -208,7 +208,7 @@ fn current_frequency_drives_bounded_pcm_through_one_ordinary_play() {
         tone.outputs[0].abnormal_kind.as_ref().unwrap().as_str(),
         conduit_audio::AUDIO_TONE_TERMINAL_INFO_ID
     );
-    assert!(tone.terminal_transduction.is_some());
+    assert!(!tone.terminal_transductions.is_empty());
     let mut output = Vec::with_capacity(2_048);
     let mut timer = RecordingTimer { waits: Vec::new() };
     let report = host
@@ -389,8 +389,12 @@ fn authored_tone_cancellation_routes_exact_observed_terminal_truth() {
         .expect("recovery placement is exact Plan truth");
     assert!(matches!(
         recovery
-            .terminal_transduction
-            .as_ref()
+            .terminal_transductions
+            .iter()
+            .find(|profile| matches!(
+                profile.abnormal,
+                conduit_core::AbnormalTerminalTransduction::Recover
+            ))
             .map(|profile| &profile.abnormal),
         Some(conduit_core::AbnormalTerminalTransduction::Recover)
     ));

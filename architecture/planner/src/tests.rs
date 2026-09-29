@@ -457,7 +457,7 @@ fn planning_seals_canonical_terminal_transduction_into_the_exact_placement() {
         .iter()
         .find(|placement| placement.kind_id.as_str() == PULSE_KIND)
         .unwrap();
-    assert_eq!(pulse.terminal_transduction, Some(profile));
+    assert_eq!(pulse.terminal_transductions, vec![profile]);
     assert!(verify_plan(&planned));
 }
 

@@ -1,8 +1,8 @@
 use crate::{
-    ArtifactId, AuthorityRequirement, CapabilityId, CapabilityLimits, CapabilityOffer,
-    CheckedFront, ExecutionProfileId, FrontStartupParameter, HostCallRequirement, ImplementationId,
-    ImplementationOffer, KindConfigurationField, KindId, KindIdentity, KindSemanticLaw,
-    PortDescriptor, PortId, ResourceRequirement,
+    ArtifactId, AuthorityRequirement, CancellationTransduction, CapabilityId, CapabilityLimits,
+    CapabilityOffer, CheckedFront, ExecutionProfileId, FrontStartupParameter, HostCallRequirement,
+    ImplementationId, ImplementationOffer, KindConfigurationField, KindId, KindIdentity,
+    KindSemanticLaw, PortDescriptor, PortId, ResourceRequirement,
 };
 use alloc::{collections::BTreeSet, vec::Vec};
 
@@ -51,8 +51,10 @@ impl Kind {
         }
     }
 
-    pub fn terminal_transduction(&self) -> Option<&crate::TerminalTransductionProfile> {
-        self.semantic_laws.iter().find_map(|law| match law {
+    pub fn terminal_transductions(
+        &self,
+    ) -> impl Iterator<Item = &crate::TerminalTransductionProfile> {
+        self.semantic_laws.iter().filter_map(|law| match law {
             KindSemanticLaw::TerminalTransduction(profile) => Some(profile),
             _ => None,
         })
@@ -113,16 +115,45 @@ impl Kind {
                 return Err(KindValidationError::ConfigurationFrontMismatch);
             }
         }
-        let mut terminal_transduction = None;
+        let mut terminal_inputs = BTreeSet::new();
+        let mut previous_terminal_input = None;
+        let mut cancellation_behavior = None;
+        let mut cancellation_request = None;
         let mut resource_ports = None;
         let mut value_contracts = None;
         for law in &self.semantic_laws {
             match law {
                 KindSemanticLaw::TerminalTransduction(profile) => {
-                    if terminal_transduction.replace(profile).is_some() {
+                    if !terminal_inputs.insert(profile.input_port_id.as_str()) {
                         return Err(KindValidationError::DuplicateTerminalTransduction);
                     }
+                    if previous_terminal_input
+                        .is_some_and(|previous: &str| previous >= profile.input_port_id.as_str())
+                    {
+                        return Err(KindValidationError::NonCanonicalTerminalTransductionOrder);
+                    }
+                    previous_terminal_input = Some(profile.input_port_id.as_str());
                     validate_terminal_transduction(self, profile)?;
+                    if cancellation_behavior
+                        .as_ref()
+                        .is_some_and(|established| *established != &profile.cancellation)
+                    {
+                        return Err(KindValidationError::ConflictingCancellationTransduction);
+                    }
+                    cancellation_behavior = Some(&profile.cancellation);
+                    if matches!(
+                        profile.cancellation,
+                        CancellationTransduction::Request { .. }
+                    ) {
+                        let request = (&profile.output_port_id, &profile.cancellation);
+                        if cancellation_request
+                            .as_ref()
+                            .is_some_and(|established| *established != request)
+                        {
+                            return Err(KindValidationError::ConflictingCancellationTransduction);
+                        }
+                        cancellation_request = Some(request);
+                    }
                 }
                 KindSemanticLaw::ResourcePorts(ports) => {
                     if resource_ports.replace(ports).is_some() {
@@ -305,6 +336,7 @@ pub enum KindValidationError {
     ConfigurationFrontMismatch,
     EmptyAbnormalTerminalKind,
     DuplicateTerminalTransduction,
+    NonCanonicalTerminalTransductionOrder,
     EmptyTerminalEmissionBound,
     EmptyTerminalLawIdentity,
     UnknownTerminalTransductionInput,
@@ -313,6 +345,7 @@ pub enum KindValidationError {
     TerminalAbnormalKindMismatch,
     CancellationControlMismatch,
     CancellationDispositionMismatch,
+    ConflictingCancellationTransduction,
     DuplicateResourcePorts,
     DuplicateResourcePort,
     EmptyResourcePortClass,
@@ -829,6 +862,45 @@ mod tests {
         assert_eq!(
             missing_control.validate(),
             Err(KindValidationError::CancellationControlMismatch)
+        );
+
+        let mut multiple = contract.clone();
+        multiple.inputs.push(PortDescriptor {
+            port_id: port_id("later"),
+            direction: PortDirection::Input,
+            value_kind: kind_id("value/count"),
+            temporal: PortTemporal::Flow { closes: true },
+            abnormal_kind: Some(kind_id("test/work-terminal")),
+        });
+        let KindSemanticLaw::TerminalTransduction(first) = multiple.semantic_laws.last().unwrap()
+        else {
+            unreachable!()
+        };
+        let mut second = first.clone();
+        second.input_port_id = port_id("later");
+        multiple
+            .semantic_laws
+            .push(KindSemanticLaw::TerminalTransduction(second));
+        assert_eq!(multiple.validate(), Ok(()));
+
+        let mut conflicting_cancellation = multiple.clone();
+        let KindSemanticLaw::TerminalTransduction(second) =
+            conflicting_cancellation.semantic_laws.last_mut().unwrap()
+        else {
+            unreachable!()
+        };
+        second.cancellation = crate::CancellationTransduction::NotCancellable;
+        assert_eq!(
+            conflicting_cancellation.validate(),
+            Err(KindValidationError::ConflictingCancellationTransduction)
+        );
+
+        let mut noncanonical = multiple;
+        let second = noncanonical.semantic_laws.pop().unwrap();
+        noncanonical.semantic_laws.insert(0, second);
+        assert_eq!(
+            noncanonical.validate(),
+            Err(KindValidationError::NonCanonicalTerminalTransductionOrder)
         );
 
         let mut unbounded_flush = contract;

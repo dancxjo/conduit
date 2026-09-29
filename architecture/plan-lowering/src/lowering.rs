@@ -152,7 +152,7 @@ pub struct LoweredNode {
     pub maximum_step_fuel: u16,
     pub inputs: Vec<LoweredPort>,
     pub outputs: Vec<LoweredPort>,
-    pub terminal_transduction: Option<LoweredTerminalTransduction>,
+    pub terminal_transductions: Vec<LoweredTerminalTransduction>,
 }
 
 /// Plan-sealed semantic terminal mapping with exact kernel port ordinals.
@@ -808,9 +808,9 @@ pub fn lower_plan_fragment_for_profile(
             .and_then(|value| value.checked_add(placement.host_calls.len()))
             .ok_or(LoweringError::CapacityOverflow)
             .and_then(as_u16)?;
-        let terminal_transduction = placement
-            .terminal_transduction
-            .as_ref()
+        let terminal_transductions = placement
+            .terminal_transductions
+            .iter()
             .map(|profile| {
                 let input = inputs
                     .iter()
@@ -854,7 +854,7 @@ pub fn lower_plan_fragment_for_profile(
                     profile: profile.clone(),
                 })
             })
-            .transpose()?;
+            .collect::<Result<Vec<_>, _>>()?;
         identity_ports.extend(
             inputs
                 .iter()
@@ -872,7 +872,7 @@ pub fn lower_plan_fragment_for_profile(
             maximum_step_fuel,
             inputs,
             outputs,
-            terminal_transduction: terminal_transduction.clone(),
+            terminal_transductions: terminal_transductions.clone(),
         });
         node_specs.push(NodeSpec {
             input_cords,
