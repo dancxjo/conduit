@@ -65,7 +65,7 @@ pub fn generate_rust_bindings(
          use conduit_form::rust_binding::{BoundedBytes, BoundedSequence, NativeBindingRefusal, NativeRustBinding};\n\
          use conduit_core::{StructuredFieldValue, StructuredInfoType, StructuredInfoValue, StructuredInfoValueShape};\n\
          #[allow(unused_imports)]\n\
-         use alloc::{string::String, vec::Vec};\n\n",
+         use alloc::{string::String, vec, vec::Vec};\n\n",
     );
     for value_type in types {
         emit_type(&mut source, value_type, &names, &semantic_type_bytes)?;
@@ -271,7 +271,7 @@ pub(super) fn primitive_rust_type(identity: &str) -> Result<String, RustBindingG
         Some(PrimitiveInfoKind::I64) => "i64",
         Some(PrimitiveInfoKind::I128) => "i128",
         Some(PrimitiveInfoKind::Terminal) | None => {
-            return Err(RustBindingGenerationError::UnsupportedLeaf(identity.into()))
+            return Err(RustBindingGenerationError::UnsupportedLeaf(identity.into()));
         }
     };
     Ok(value.into())

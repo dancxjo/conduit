@@ -4,8 +4,8 @@ use conduit_core::{StructuredInfoType, StructuredInfoTypeShape};
 use core::fmt::Write;
 
 use super::generate::{
-    primitive_rust_type, rust_pascal_identifier, rust_snake_identifier, rust_type, unit_type,
-    RustBindingGenerationError,
+    RustBindingGenerationError, primitive_rust_type, rust_pascal_identifier, rust_snake_identifier,
+    rust_type, unit_type,
 };
 
 pub(super) fn emit_record_binding(
@@ -176,7 +176,9 @@ fn encode_expression(
         )),
         StructuredInfoTypeShape::Sequence { element, .. } => {
             let inner = encode_expression(element, "item", "element_type.clone()", names)?;
-            Ok(format!("{{ let element_type = conduit_form::rust_binding::sequence_element_type(&{expected})?; let _ = &element_type; let mut values = Vec::new(); for item in {value} {{ values.push({inner}); }} StructuredInfoValue::sequence({expected}, values).map_err(NativeBindingRefusal::InvalidValue)? }}"))
+            Ok(format!(
+                "{{ let element_type = conduit_form::rust_binding::sequence_element_type(&{expected})?; let _ = &element_type; let mut values = Vec::new(); for item in {value} {{ values.push({inner}); }} StructuredInfoValue::sequence({expected}, values).map_err(NativeBindingRefusal::InvalidValue)? }}"
+            ))
         }
         StructuredInfoTypeShape::Variant { schema, cases }
             if schema.as_str() == "conduit.conduitese.optional.v1" =>
@@ -186,7 +188,9 @@ fn encode_expression(
                 .find(|case| case.tag() == "some")
                 .ok_or(RustBindingGenerationError::InvalidSemanticType)?;
             let inner = encode_expression(some.payload_type(), "item", "payload_type", names)?;
-            Ok(format!("{{ match {value} {{ Some(item) => {{ let payload_type = conduit_form::rust_binding::variant_payload_type(&{expected}, \"some\")?; let payload = {inner}; StructuredInfoValue::variant({expected}, \"some\", payload).map_err(NativeBindingRefusal::InvalidValue)? }}, None => {{ let payload_type = conduit_form::rust_binding::variant_payload_type(&{expected}, \"none\")?; let payload = conduit_form::rust_binding::primitive_into_structured(payload_type, &())?; StructuredInfoValue::variant({expected}, \"none\", payload).map_err(NativeBindingRefusal::InvalidValue)? }} }} }}"))
+            Ok(format!(
+                "match {value} {{ Some(item) => {{ let payload_type = conduit_form::rust_binding::variant_payload_type(&{expected}, \"some\")?; let _ = &payload_type; let payload = {inner}; StructuredInfoValue::variant({expected}, \"some\", payload).map_err(NativeBindingRefusal::InvalidValue)? }}, None => {{ let payload_type = conduit_form::rust_binding::variant_payload_type(&{expected}, \"none\")?; let payload = conduit_form::rust_binding::primitive_into_structured(payload_type, &())?; StructuredInfoValue::variant({expected}, \"none\", payload).map_err(NativeBindingRefusal::InvalidValue)? }} }}"
+            ))
         }
         _ => Err(RustBindingGenerationError::InvalidSemanticType),
     }
@@ -218,7 +222,10 @@ fn decode_expression(
             ..
         } => {
             let decoded = decode_expression(element, "item.clone()", names)?;
-            Ok(format!("{{ let sequence_value = {value}; let StructuredInfoValueShape::Collection(items) = sequence_value.shape() else {{ return Err(NativeBindingRefusal::InvalidValue(conduit_core::StructuredInfoRefusal::WrongType)); }}; let mut result = BoundedSequence::<{}, {maximum_items}>::new(); for item in items {{ result.push({decoded}).map_err(|_| NativeBindingRefusal::InvalidValue(conduit_core::StructuredInfoRefusal::WrongCollectionLength))?; }} result }}", rust_type(element, names)?))
+            Ok(format!(
+                "{{ let sequence_value = {value}; let StructuredInfoValueShape::Collection(items) = sequence_value.shape() else {{ return Err(NativeBindingRefusal::InvalidValue(conduit_core::StructuredInfoRefusal::WrongType)); }}; let mut result = BoundedSequence::<{}, {maximum_items}>::new(); for item in items {{ result.push({decoded}).map_err(|_| NativeBindingRefusal::InvalidValue(conduit_core::StructuredInfoRefusal::WrongCollectionLength))?; }} result }}",
+                rust_type(element, names)?
+            ))
         }
         StructuredInfoTypeShape::Variant { schema, cases }
             if schema.as_str() == "conduit.conduitese.optional.v1" =>
@@ -227,9 +234,10 @@ fn decode_expression(
                 .iter()
                 .find(|case| case.tag() == "some")
                 .ok_or(RustBindingGenerationError::InvalidSemanticType)?;
-            let decoded =
-                decode_expression(some.payload_type(), "payload.as_ref().clone()", names)?;
-            Ok(format!("{{ let optional_value = {value}; let StructuredInfoValueShape::Variant {{ tag, payload }} = optional_value.shape() else {{ return Err(NativeBindingRefusal::InvalidValue(conduit_core::StructuredInfoRefusal::WrongType)); }}; match tag {{ \"none\" => None, \"some\" => Some({decoded}), _ => return Err(NativeBindingRefusal::InvalidValue(conduit_core::StructuredInfoRefusal::UnknownVariantTag)) }} }}"))
+            let decoded = decode_expression(some.payload_type(), "payload.clone()", names)?;
+            Ok(format!(
+                "{{ let optional_value = {value}; let StructuredInfoValueShape::Variant {{ tag, payload }} = optional_value.shape() else {{ return Err(NativeBindingRefusal::InvalidValue(conduit_core::StructuredInfoRefusal::WrongType)); }}; match tag {{ \"none\" => None, \"some\" => Some({decoded}), _ => return Err(NativeBindingRefusal::InvalidValue(conduit_core::StructuredInfoRefusal::UnknownVariantTag)) }} }}"
+            ))
         }
         _ => Err(RustBindingGenerationError::InvalidSemanticType),
     }

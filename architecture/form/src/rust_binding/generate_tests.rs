@@ -9,6 +9,11 @@ type Position = {
     y: Distance
 }
 
+type Observation = {
+    note: Note?
+    evidence: &Text
+}
+
 type MusicEvent =
     note {
         velocity: U8 in 0..=127
@@ -42,6 +47,7 @@ fn generation_is_deterministic_and_keeps_rust_spelling_out_of_identity() {
     assert_eq!(plain.semantic_type_bytes, prefixed.semantic_type_bytes);
     assert!(plain.source.contains("pub struct Note(u8);"));
     assert!(plain.source.contains("pub struct Position {"));
+    assert!(plain.source.contains("pub struct Observation {"));
     assert!(plain.source.contains("pub enum MusicEvent {"));
     assert!(plain.source.contains("pitches: BoundedSequence<Note, 16>"));
     assert!(plain.source.contains("Note(MusicEventNote)"));
@@ -126,6 +132,18 @@ mod generated_round_trip {
         let rest = MusicEvent::rest();
         let encoded = rest.clone().encode().unwrap();
         assert_eq!(MusicEvent::decode(&encoded).unwrap(), rest);
+
+        let position = Position::new(
+            conduit_core::Quantity::new(3, conduit_core::QuantityUnit::Meter),
+            conduit_core::Quantity::new(5, conduit_core::QuantityUnit::Meter),
+        ).unwrap();
+        let encoded = position.clone().encode().unwrap();
+        assert_eq!(Position::decode(&encoded).unwrap(), position);
+
+        let evidence = BoundedBytes::<4096>::new(b"sha256:truth").unwrap();
+        let observation = Observation::new(evidence, Some(Note::new(64).unwrap())).unwrap();
+        let encoded = observation.clone().encode().unwrap();
+        assert_eq!(Observation::decode(&encoded).unwrap(), observation);
     }
 }
 "#;
@@ -156,6 +174,29 @@ mod generated_round_trip {
         "generated Rust round trip failed:\n{}\n{}",
         String::from_utf8_lossy(&execution.stdout),
         String::from_utf8_lossy(&execution.stderr)
+    );
+
+    let no_std_source = directory.join("bindings-no-std.rs");
+    fs::write(&no_std_source, format!("#![no_std]\n{}", generated.source)).unwrap();
+    let no_std_library = directory.join("libbindings_no_std.rlib");
+    let no_std_output = Command::new(std::env::var_os("RUSTC").unwrap_or_else(|| "rustc".into()))
+        .args(["--edition=2021", "--crate-type=lib"])
+        .arg("-L")
+        .arg(format!("dependency={}", dependencies.display()))
+        .arg("--extern")
+        .arg(format!("conduit_form={}", form.display()))
+        .arg("--extern")
+        .arg(format!("conduit_core={}", core.display()))
+        .arg(&no_std_source)
+        .arg("-o")
+        .arg(&no_std_library)
+        .output()
+        .unwrap();
+    assert!(
+        no_std_output.status.success(),
+        "generated no_std Rust failed to compile:\n{}\n{}",
+        String::from_utf8_lossy(&no_std_output.stdout),
+        String::from_utf8_lossy(&no_std_output.stderr)
     );
     fs::remove_dir_all(directory).unwrap();
 }
