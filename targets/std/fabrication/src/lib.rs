@@ -5,6 +5,9 @@ use conduit_host_fabrication::{
 };
 use std::collections::BTreeMap;
 
+mod builder;
+pub use builder::*;
+
 pub struct HostedFabricationPackage;
 
 pub const HOSTED_TARGET_ID: &str = "std/x86_64/computer";
@@ -122,7 +125,7 @@ fn target(label: &str, architecture: &str, machine: &str, os: &str) -> TargetDes
         host_core: "host-core/std@1".into(),
         presenter: None,
         host_calls: Vec::new(),
-        toolchain_identity: "rustc:stable".into(),
+        toolchain_identity: "rustc:1.98.1".into(),
         builder_adapter: "conduit-host-hosted/build-native@1".into(),
         strategy: conduit_host_fabrication::FabricationStrategy::DeterministicSpecializedBuild,
         deployment_adapter: Some("conduit-host-hosted/launch@1".into()),
