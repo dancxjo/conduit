@@ -210,6 +210,29 @@ fn canonical_anchors_select_prefix_suffix_and_whole_value_profiles() {
 }
 
 #[test]
+fn leading_lookahead_is_checked_once_and_searches_within_the_admitted_text() {
+    let checked = check(
+        "form guarded (\n >> positive: Text <= 8B ~ /(?=AB)A./\n >> negative: Text <= 8B ~ /(?!AB)A./\n >> folded: Text <= 8B ~ /(?=ab)A./i\n) {\n}\n",
+    );
+    let positive = input_contract(&checked, "positive");
+    assert_eq!(positive.validate(b"xxAByy"), Ok(()));
+    assert_eq!(
+        positive.validate(b"xxACyy"),
+        Err(ValueConstraintRefusal::TextPattern)
+    );
+
+    let negative = input_contract(&checked, "negative");
+    assert_eq!(negative.validate(b"xxACyy"), Ok(()));
+    assert_eq!(
+        negative.validate(b"xxAByy"),
+        Err(ValueConstraintRefusal::TextPattern)
+    );
+
+    let folded = input_contract(&checked, "folded");
+    assert_eq!(folded.validate(b"xxAbyy"), Ok(()));
+}
+
+#[test]
 fn malformed_or_incompatible_authored_refinements_refuse_during_checking() {
     for (source, expected) in [
         (
