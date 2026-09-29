@@ -6,6 +6,7 @@
 mod bounded;
 mod generate;
 mod generate_conversion;
+mod generate_package;
 #[cfg(test)]
 mod generate_tests;
 mod generate_value;
@@ -15,6 +16,10 @@ mod value;
 pub use bounded::{BoundedBytes, BoundedSequence, BoundedText};
 pub use generate::{
     generate_rust_bindings, RustBindingGenerationError, RustBindingModule, RustBindingOptions,
+};
+pub use generate_package::{
+    generate_locked_package_rust_bindings, LockedPackageRustBindingInput,
+    LockedRustBindingGenerationError,
 };
 pub use primitive::{primitive_from_structured, primitive_into_structured, NativePrimitive};
 pub use value::{

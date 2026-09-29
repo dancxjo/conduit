@@ -4,8 +4,8 @@ use conduit_core::{StructuredInfoType, StructuredInfoTypeShape};
 use core::fmt::Write;
 
 use super::generate::{
-    RustBindingGenerationError, primitive_rust_type, rust_pascal_identifier, rust_snake_identifier,
-    rust_type, unit_type,
+    primitive_rust_type, rust_pascal_identifier, rust_snake_identifier, rust_type, unit_type,
+    RustBindingGenerationError,
 };
 
 pub(super) fn emit_record_binding(

@@ -146,6 +146,7 @@ mod generated_round_trip {
         assert_eq!(Observation::decode(&encoded).unwrap(), observation);
     }
 }
+
 "#;
     fs::write(&source, format!("{}{}", generated.source, exercise)).unwrap();
     let executable = directory.join("bindings-test");
@@ -199,4 +200,54 @@ mod generated_round_trip {
         String::from_utf8_lossy(&no_std_output.stderr)
     );
     fs::remove_dir_all(directory).unwrap();
+}
+
+#[test]
+fn locked_package_generation_revalidates_exact_source_without_network_work() {
+    let manifest_source = "pack example/music (\n    version = 1.0.0\n) {\n    ship Note\n}\n";
+    let parsed = crate::parse_syntax_document(manifest_source);
+    let manifest = &parsed.packages[0];
+    let members = [crate::PackageMemberSource {
+        path: "types",
+        source: "type Note = U8 in 0..=127\n",
+    }];
+    let bundle =
+        crate::CheckedPackageBundle::from_sources(manifest_source, manifest, &members).unwrap();
+    let lock = crate::resolve_package_lock(
+        core::slice::from_ref(&bundle.package),
+        &[(bundle.package.path.as_str(), bundle.package.version)],
+    )
+    .unwrap();
+    let generated = generate_locked_package_rust_bindings(
+        LockedPackageRustBindingInput {
+            bundle: &bundle,
+            manifest_source,
+            manifest,
+            member_sources: &members,
+            lock: &lock,
+            locked_catalog: core::slice::from_ref(&bundle.package),
+            semantic_catalog: &crate::StartupCatalog::new(),
+        },
+        &RustBindingOptions::default(),
+    )
+    .unwrap();
+    assert!(generated.source.contains("pub struct Note(u8);"));
+
+    let unlocked =
+        crate::resolve_package_lock(core::slice::from_ref(&bundle.package), &[]).unwrap();
+    assert_eq!(
+        generate_locked_package_rust_bindings(
+            LockedPackageRustBindingInput {
+                bundle: &bundle,
+                manifest_source,
+                manifest,
+                member_sources: &members,
+                lock: &unlocked,
+                locked_catalog: core::slice::from_ref(&bundle.package),
+                semantic_catalog: &crate::StartupCatalog::new(),
+            },
+            &RustBindingOptions::default(),
+        ),
+        Err(LockedRustBindingGenerationError::SourceNotLocked)
+    );
 }
