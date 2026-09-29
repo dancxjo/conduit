@@ -229,19 +229,6 @@ mod tests {
 
     #[test]
     fn kernel_failure_category_and_detail_cross_the_completion_abi() {
-        // Debug builds retain the bounded scheduler's per-input terminal tables
-        // as large by-value temporaries. Keep the test-thread stack explicit;
-        // this does not change the browser runtime's admitted storage budget.
-        std::thread::Builder::new()
-            .name("browser-completion-failure-abi".into())
-            .stack_size(8 * 1024 * 1024)
-            .spawn(assert_kernel_failure_category_and_detail)
-            .unwrap()
-            .join()
-            .unwrap();
-    }
-
-    fn assert_kernel_failure_category_and_detail() {
         use conduit_kernel::{Failure, FailureCode, HostCallDisposition, HostCallOutcome};
         let source = "form test {\n message: text/literal(\"SOS\")\n morse: text/morse(120)\n light: presentation/indicator\n message >> morse >> light\n}.\n";
         for (code, expected) in [
