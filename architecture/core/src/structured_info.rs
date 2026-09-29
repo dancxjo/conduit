@@ -77,6 +77,11 @@ pub struct StructuredInfoType(StructuredInfoTypeNode);
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum StructuredInfoTypeShape<'a> {
     Leaf(&'a KindId),
+    /// Nominal semantic identity over one exact finite representation.
+    Nominal {
+        schema: &'a KindId,
+        representation: &'a StructuredInfoType,
+    },
     Collection {
         element: &'a StructuredInfoType,
         length: u16,
@@ -99,6 +104,10 @@ pub enum StructuredInfoTypeShape<'a> {
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord)]
 enum StructuredInfoTypeNode {
     Leaf(KindId),
+    Nominal {
+        schema: KindId,
+        representation: alloc::boxed::Box<StructuredInfoType>,
+    },
     Collection {
         element: alloc::boxed::Box<StructuredInfoType>,
         length: u16,
@@ -172,6 +181,13 @@ impl StructuredInfoType {
     pub fn shape(&self) -> StructuredInfoTypeShape<'_> {
         match &self.0 {
             StructuredInfoTypeNode::Leaf(kind) => StructuredInfoTypeShape::Leaf(kind),
+            StructuredInfoTypeNode::Nominal {
+                schema,
+                representation,
+            } => StructuredInfoTypeShape::Nominal {
+                schema,
+                representation,
+            },
             StructuredInfoTypeNode::Collection { element, length } => {
                 StructuredInfoTypeShape::Collection {
                     element,
@@ -199,6 +215,20 @@ impl StructuredInfoType {
     pub fn leaf(kind: KindId) -> Result<Self, StructuredInfoRefusal> {
         validate_name(kind.as_str())?;
         Ok(Self(StructuredInfoTypeNode::Leaf(kind)))
+    }
+
+    /// Gives one exact representation a distinct authored semantic identity.
+    pub fn nominal(
+        schema: KindId,
+        representation: StructuredInfoType,
+    ) -> Result<Self, StructuredInfoRefusal> {
+        validate_name(schema.as_str())?;
+        let value = Self(StructuredInfoTypeNode::Nominal {
+            schema,
+            representation: alloc::boxed::Box::new(representation),
+        });
+        value.validate_limits()?;
+        Ok(value)
     }
 
     /// An absent length is explicitly unbounded and therefore refused.
@@ -536,6 +566,24 @@ impl StructuredInfoValue {
         validate_primitive_info(kind.as_str(), &canonical_value)
             .map_err(StructuredInfoRefusal::InvalidPrimitiveLeaf)?;
         Self::finish(value_type, StructuredInfoValueNode::Leaf(canonical_value))
+    }
+
+    /// Retags a value of the exact declared representation with its nominal Type.
+    pub fn nominal(
+        value_type: StructuredInfoType,
+        representation: StructuredInfoValue,
+    ) -> Result<Self, StructuredInfoRefusal> {
+        let StructuredInfoTypeNode::Nominal {
+            representation: expected,
+            ..
+        } = &value_type.0
+        else {
+            return Err(StructuredInfoRefusal::WrongType);
+        };
+        if representation.value_type != **expected {
+            return Err(StructuredInfoRefusal::WrongType);
+        }
+        Self::finish(value_type, representation.node)
     }
 
     pub fn collection(

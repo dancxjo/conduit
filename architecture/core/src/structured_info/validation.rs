@@ -63,6 +63,9 @@ fn validate_node(
 ) -> Result<(), Refusal> {
     *remaining = remaining.checked_sub(1).ok_or(Refusal::TooManyNodes)?;
     match ty.shape() {
+        Shape::Nominal { representation, .. } => {
+            validate_node(representation, cursor, remaining)?;
+        }
         Shape::Leaf(kind) => {
             expect(cursor.byte()? == 0)?;
             let encoded = cursor.bytes()?;

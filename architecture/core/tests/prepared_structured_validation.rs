@@ -62,6 +62,34 @@ fn prepared_validation_walks_exact_record_members() {
 }
 
 #[test]
+fn prepared_validation_preserves_nominal_identity_while_walking_its_representation() {
+    let representation = StructuredInfoType::leaf(kind_id(BOOL_INFO_ID)).unwrap();
+    let ty =
+        StructuredInfoType::nominal(kind_id("control/enabled@1"), representation.clone()).unwrap();
+    let value = StructuredInfoValue::nominal(
+        ty.clone(),
+        StructuredInfoValue::leaf(representation, InfoBool::TRUE.encode().to_vec()).unwrap(),
+    )
+    .unwrap()
+    .canonical_bytes()
+    .unwrap();
+    let validator = PreparedStructuredValueValidator::new(&ty, 128).unwrap();
+    validator.validate(&value).unwrap();
+
+    let other = StructuredInfoType::nominal(
+        kind_id("control/armed@1"),
+        StructuredInfoType::leaf(kind_id(BOOL_INFO_ID)).unwrap(),
+    )
+    .unwrap();
+    assert_eq!(
+        PreparedStructuredValueValidator::new(&other, 128)
+            .unwrap()
+            .validate(&value),
+        Err(StructuredInfoRefusal::WrongType)
+    );
+}
+
+#[test]
 fn prepared_validation_enforces_exact_sequence_cardinality_bounds() {
     let leaf = StructuredInfoType::leaf(kind_id(BOOL_INFO_ID)).unwrap();
     let ty = StructuredInfoType::bounded_sequence(leaf.clone(), 2, 3).unwrap();

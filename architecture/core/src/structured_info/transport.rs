@@ -182,6 +182,11 @@ fn decode_node(
     expected: &StructuredInfoType,
     cursor: &mut Cursor<'_>,
 ) -> Result<StructuredInfoValue, StructuredInfoTransportRefusal> {
+    if let StructuredInfoTypeShape::Nominal { representation, .. } = expected.shape() {
+        let representation_value = decode_node(representation, cursor)?;
+        return StructuredInfoValue::nominal(expected.clone(), representation_value)
+            .map_err(StructuredInfoTransportRefusal::Semantic);
+    }
     let tag = cursor.byte()?;
     let decoded = match expected.shape() {
         StructuredInfoTypeShape::Leaf(_) if tag == 0 => {
