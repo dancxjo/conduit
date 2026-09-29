@@ -79,6 +79,11 @@ mod debounce_back;
 pub use debounce_back::{DebouncePreparationError, TrailingDebounceBack};
 
 #[cfg(feature = "kernel-step")]
+mod window_back;
+#[cfg(feature = "kernel-step")]
+pub use window_back::ProcessingTimeWindowBack;
+
+#[cfg(feature = "kernel-step")]
 mod pulse_observation_back;
 #[cfg(feature = "kernel-step")]
 pub use pulse_observation_back::PulseObservationBack;
