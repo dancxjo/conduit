@@ -7,3 +7,4 @@ edition = "2021"
 conduit-host-fabrication = { path = "../../../fabrication/host" }
 conduit-semantic-catalog = { path = "../../../semantics/catalog" }
 conduit-std-offers = { path = "../offers" }
+sha2 = "0.10"

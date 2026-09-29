@@ -5,6 +5,7 @@
 
 mod artifact_output;
 mod build;
+mod builder_base;
 mod canonical;
 mod capability_intent;
 mod catalog;
@@ -30,6 +31,7 @@ mod test_packages;
 
 pub use artifact_output::*;
 pub use build::*;
+pub use builder_base::*;
 pub use canonical::{canonical_profile_json, ProfileId};
 pub use capability_intent::*;
 pub use catalog::FabricationCatalog;

@@ -25,7 +25,7 @@ impl HostFabricationPackage for Rp2040FabricationPackage {
                 host_core: "host-core/conduitos@1".into(),
                 presenter: None,
                 host_calls: Vec::new(),
-                toolchain_identity: "rustc:stable+thumbv6m-none-eabi".into(),
+                toolchain_identity: "rustc:1.98.1+thumbv6m-none-eabi".into(),
                 builder_adapter: BUILDER_ADAPTER.into(),
                 strategy:
                     conduit_host_fabrication::FabricationStrategy::DeterministicSpecializedBuild,
