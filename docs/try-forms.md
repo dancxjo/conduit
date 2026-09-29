@@ -10,8 +10,8 @@ Run these commands from the repository root after
 
 ```bash
 cargo xtask fabricate host std
-cargo xtask forms check
-cargo xtask forms report --output target/form-conformance.json
+cargo xtask check forms check
+cargo xtask check forms report --output target/form-conformance.json
 ```
 
 The first runs Hello on the native host. The second parses and checks the
@@ -56,7 +56,7 @@ and its form Gallery provide another route through the examples.
 ## Run the declared proofs
 
 ```bash
-cargo xtask forms run --deterministic
+cargo xtask check forms run --deterministic
 ```
 
 This runs the deterministic checks declared by the inventory. Those checks
@@ -68,7 +68,7 @@ For the declared browser-safe cases:
 
 ```bash
 cargo xtask doctor browser
-cargo xtask forms run --browser
+cargo xtask check forms run --browser
 ```
 
 This mode prepares the browser fixtures and executes eligible inventory cases.
@@ -87,7 +87,7 @@ it does not establish attached-board or physical acceptance.
 
 ## Find something to add
 
-Use the inventory and `cargo xtask catalog matrix` to distinguish authored
+Use the inventory and `cargo xtask check catalog matrix` to distinguish authored
 forms, installed implementations, and missing realizations. A good contribution
 can improve an example, add a meaningful negative check, or complete one
 missing implementation. Follow the [contributor guide](../CONTRIBUTING.md) and

@@ -22,7 +22,7 @@ contracts without launching a browser or fabricating product shells. `prove
 browser-host` stages the required artifacts and runs the pinned live-browser
 evidence matrix. Inspect prerequisites with `cargo xtask doctor browser`.
 For reviewed canonical forms specifically, use
-`cargo xtask forms run --browser`. See the [visual evidence guide](../../docs/visual-evidence.md)
+`cargo xtask check forms run --browser`. See the [visual evidence guide](../../docs/visual-evidence.md)
 for capture and publication rules.
 
 Browser acceptance uses pinned Chromium, one worker, zero retries, and ordinary

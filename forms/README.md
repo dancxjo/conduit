@@ -44,17 +44,17 @@ sound. The first is an optional browser default; the second demonstrates the
 reusable body-scoped first-wake source. Both use the same portable sound kind.
 
 `inventory.toml` is the bounded reviewed-membership registry. `cargo xtask
-forms check` validates every declared entry and ratchets every canonical
+check forms check` validates every declared entry and ratchets every canonical
 `forms/<name>/main.conduit` owner into the registry; it never promotes arbitrary
-source by scanning for `.conduit` files. `cargo xtask forms report` emits the
+source by scanning for `.conduit` files. `cargo xtask check forms report` emits the
 machine-readable per-form result seam. Gated execution remains `unavailable`
 until its deterministic, browser, device, or physical owner supplies evidence.
 
 Run the declared execution oracles with:
 
 ```sh
-cargo xtask forms run --deterministic
-cargo xtask forms run --browser
+cargo xtask check forms run --deterministic
+cargo xtask check forms run --browser
 ```
 
 Deterministic execution continues through individual form failures. Browser
@@ -63,7 +63,7 @@ pinned Chromium, one worker, and zero retries. It needs the repository's
 Playwright installation; absent prerequisites are reported as unavailable.
 These cases do not acquire devices or grant browser permissions.
 
-`cargo xtask forms report` executes deterministic declarations and includes
+`cargo xtask check forms report` executes deterministic declarations and includes
 availability for gated proofs. Add `--dry-run` to inspect planned work without
 running execution oracles. The report distinguishes failed, unavailable,
 not-applicable, and refused results.

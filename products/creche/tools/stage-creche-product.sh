@@ -23,7 +23,7 @@ if test -n "$initial_body_bundle"; then
   test -f "$initial_body_bundle"
   cp "$initial_body_bundle" "$destination/forms/initial-body.conduit"
 else
-  cargo xtask forms bundle-initial-body --output "$destination/forms/initial-body.conduit"
+  cargo xtask check forms bundle-initial-body --output "$destination/forms/initial-body.conduit"
 fi
 cp products/workspace/browser/body-bootstrap.mjs "$destination/creche-lifecycle.mjs"
 cp products/workspace/browser/reviewed-form-selection.mjs "$destination/creche-form-selection.mjs"
