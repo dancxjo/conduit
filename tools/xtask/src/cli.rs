@@ -1,4 +1,4 @@
-pub use crate::commands::audio::cli::{AudioArgs, AudioCommand};
+pub use crate::commands::audio::cli::{AudioPlaybackArgs, StartupCueArgs};
 use clap::{Args, Parser, Subcommand, ValueEnum};
 
 use crate::commands::avr::AvrArgs;
@@ -59,10 +59,6 @@ pub enum Command {
     Doctor(DoctorArgs),
     /// Install explicit prerequisites for a repository workflow.
     Setup(SetupArgs),
-    /// Inspect and prove one explicit hosted PCM playback resource.
-    Audio(AudioArgs),
-    /// Inspect exact hosted MIDI sequencer endpoints.
-    Midi(MidiArgs),
     /// Exercise explicit Pete development and hardware proof entrances.
     Pete(PeteArgs),
     /// Run interactive demonstrations.
@@ -97,6 +93,8 @@ pub enum FabricateTarget {
     UnifontSubset(UnifontSubsetArgs),
     /// Generate the bounded native masks for canonical palette icons.
     PaletteIcons(PaletteIconsArgs),
+    /// Render the bounded startup cue to a new WAV file without opening audio.
+    StartupCue(StartupCueArgs),
 }
 
 #[derive(Args, Debug)]
@@ -283,6 +281,8 @@ pub struct ProveArgs {
 
 #[derive(Subcommand, Debug)]
 pub enum ProveCommand {
+    /// Run the bounded audible specimen through one exact selected output.
+    AudioPlayback(AudioPlaybackArgs),
     /// Prove bounded Pete forebrain-motherbrain coordination.
     BodyCoordination(BodyCoordinationArgs),
     /// Produce, verify, or publish bounded proof evidence.
@@ -335,18 +335,6 @@ mod demo;
 pub use demo::{DemoArgs, DemoCommand, LightSwitchDemoArgs, PatchbayDemoArgs, PatchbayHost};
 
 #[derive(Args, Debug)]
-pub struct MidiArgs {
-    #[command(subcommand)]
-    pub command: MidiCommand,
-}
-
-#[derive(Subcommand, Debug)]
-pub enum MidiCommand {
-    /// List fresh directional ALSA sequencer metadata without opening a port.
-    List,
-}
-
-#[derive(Args, Debug)]
 pub struct DoctorArgs {
     /// What to inspect (default: all).
     #[arg(default_value = "all")]
@@ -356,7 +344,9 @@ pub struct DoctorArgs {
 #[derive(ValueEnum, Debug, Clone, Copy, PartialEq, Eq)]
 pub enum DoctorTarget {
     All,
+    Audio,
     Browser,
+    Midi,
     Pico,
     LinuxRelease,
 }
@@ -365,7 +355,9 @@ impl DoctorTarget {
     pub const fn as_str(self) -> &'static str {
         match self {
             Self::All => "all",
+            Self::Audio => "audio",
             Self::Browser => "browser",
+            Self::Midi => "midi",
             Self::Pico => "pico",
             Self::LinuxRelease => "linux-release",
         }
@@ -922,12 +914,24 @@ mod tests {
             })
         ));
 
-        let audio = Cli::try_parse_from(["xtask", "audio", "list"])
-            .expect("audio discovery command parses");
-        assert!(matches!(audio.command, Command::Audio(_)));
+        let audio =
+            Cli::try_parse_from(["xtask", "doctor", "audio"]).expect("audio inspection parses");
+        assert!(matches!(
+            audio.command,
+            Command::Doctor(DoctorArgs {
+                target: DoctorTarget::Audio
+            })
+        ));
         let midi =
-            Cli::try_parse_from(["xtask", "midi", "list"]).expect("MIDI discovery command parses");
-        assert!(matches!(midi.command, Command::Midi(_)));
+            Cli::try_parse_from(["xtask", "doctor", "midi"]).expect("MIDI inspection parses");
+        assert!(matches!(
+            midi.command,
+            Command::Doctor(DoctorArgs {
+                target: DoctorTarget::Midi
+            })
+        ));
+        assert!(Cli::try_parse_from(["xtask", "audio", "list"]).is_err());
+        assert!(Cli::try_parse_from(["xtask", "midi", "list"]).is_err());
         let pete = Cli::try_parse_from([
             "xtask",
             "pete",
@@ -1011,8 +1015,8 @@ mod tests {
         assert!(matches!(pete_drive.command, Command::Pete(_)));
         assert!(Cli::try_parse_from([
             "xtask",
-            "audio",
-            "playback-proof",
+            "prove",
+            "audio-playback",
             "--card-id",
             "PCH",
             "--device",
@@ -1021,8 +1025,8 @@ mod tests {
         .is_err());
         Cli::try_parse_from([
             "xtask",
-            "audio",
-            "playback-proof",
+            "prove",
+            "audio-playback",
             "--card-id",
             "PCH",
             "--device",
@@ -1030,5 +1034,20 @@ mod tests {
             "--authorize-output",
         ])
         .expect("audio proof requires explicit output authority");
+
+        let cue = Cli::try_parse_from([
+            "xtask",
+            "fabricate",
+            "startup-cue",
+            "--output",
+            "target/startup.wav",
+        ])
+        .expect("startup cue fabrication parses");
+        assert!(matches!(
+            cue.command,
+            Command::Fabricate(FabricateArgs {
+                target: FabricateTarget::StartupCue(_)
+            })
+        ));
     }
 }
