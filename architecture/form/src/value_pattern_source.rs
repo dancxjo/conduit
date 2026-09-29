@@ -27,17 +27,14 @@ pub enum TextPatternSourceError {
     InvalidRepeat {
         offset: usize,
     },
-    UnboundedRepeat {
-        offset: usize,
-    },
 }
 
 /// Parses Conduit's deliberately bounded regular-expression surface.
 ///
 /// Matching is always a full match. The admitted source subset contains
 /// sequences, `|`, groups, scalar classes/ranges, `.`, `?`, and finite
-/// `{n}`/`{n,m}` repetition. `*` and `+` are refused because they promise no
-/// finite semantic maximum.
+/// `{n}`/`{n,m}` repetition. `*` and `+` are bounded by the refined Text
+/// contract's admitted input ceiling before the automaton enters a Plan.
 pub fn parse_text_pattern(source: &str) -> Result<TextPatternExpression, TextPatternSourceError> {
     if source.is_empty() {
         return Err(TextPatternSourceError::Empty);
@@ -116,10 +113,12 @@ impl PatternParser<'_> {
                     maximum,
                 };
             }
-            Some('*' | '+') => {
-                return Err(TextPatternSourceError::UnboundedRepeat {
-                    offset: self.offset,
-                });
+            Some(character @ ('*' | '+')) => {
+                self.take();
+                expression = TextPatternExpression::InputBoundRepeat {
+                    expression: Box::new(expression),
+                    minimum: u16::from(character == '+'),
+                };
             }
             _ => {}
         }

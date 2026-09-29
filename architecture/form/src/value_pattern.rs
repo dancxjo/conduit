@@ -30,6 +30,10 @@ pub enum TextPatternExpression {
         minimum: u16,
         maximum: u16,
     },
+    InputBoundRepeat {
+        expression: Box<TextPatternExpression>,
+        minimum: u16,
+    },
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -119,6 +123,13 @@ impl TextPatternExpression {
                 minimum: *minimum,
                 maximum: *maximum,
             },
+            Self::InputBoundRepeat {
+                expression,
+                minimum,
+            } => Self::InputBoundRepeat {
+                expression: Box::new(expression.ascii_case_insensitive()),
+                minimum: *minimum,
+            },
         }
     }
 
@@ -126,9 +137,58 @@ impl TextPatternExpression {
         &self,
         maximum_input_characters: u32,
     ) -> Result<CheckedTextPattern, TextPatternDefinitionError> {
+        let bounded = self.bind_input_repetition(maximum_input_characters)?;
         let mut nfa = Nfa { states: Vec::new() };
-        let fragment = nfa.build(self)?;
+        let fragment = nfa.build(&bounded)?;
         determinize(&nfa, fragment, maximum_input_characters)
+    }
+
+    fn bind_input_repetition(
+        &self,
+        maximum_input_characters: u32,
+    ) -> Result<Self, TextPatternDefinitionError> {
+        match self {
+            Self::Empty | Self::ScalarRange { .. } => Ok(self.clone()),
+            Self::Sequence(expressions) => expressions
+                .iter()
+                .map(|expression| expression.bind_input_repetition(maximum_input_characters))
+                .collect::<Result<Vec<_>, _>>()
+                .map(Self::Sequence),
+            Self::Choice(expressions) => expressions
+                .iter()
+                .map(|expression| expression.bind_input_repetition(maximum_input_characters))
+                .collect::<Result<Vec<_>, _>>()
+                .map(Self::Choice),
+            Self::Repeat {
+                expression,
+                minimum,
+                maximum,
+            } => Ok(Self::Repeat {
+                expression: Box::new(expression.bind_input_repetition(maximum_input_characters)?),
+                minimum: *minimum,
+                maximum: *maximum,
+            }),
+            Self::InputBoundRepeat {
+                expression,
+                minimum,
+            } => {
+                let maximum = u16::try_from(maximum_input_characters)
+                    .map_err(|_| TextPatternDefinitionError::ExpressionTooComplex)?;
+                if *minimum > maximum {
+                    return Err(TextPatternDefinitionError::InvalidRepeatRange {
+                        minimum: *minimum,
+                        maximum,
+                    });
+                }
+                Ok(Self::Repeat {
+                    expression: Box::new(
+                        expression.bind_input_repetition(maximum_input_characters)?,
+                    ),
+                    minimum: *minimum,
+                    maximum,
+                })
+            }
+        }
     }
 
     pub fn compile_search(
@@ -247,6 +307,9 @@ impl Nfa {
                 minimum,
                 maximum,
             } => self.repeat(expression, *minimum, *maximum),
+            TextPatternExpression::InputBoundRepeat { .. } => {
+                Err(TextPatternDefinitionError::ExpressionTooComplex)
+            }
         }
     }
 
@@ -424,10 +487,6 @@ mod tests {
     #[test]
     fn source_refuses_unbounded_and_malformed_constructs() {
         assert!(matches!(
-            parse_text_pattern("a*"),
-            Err(TextPatternSourceError::UnboundedRepeat { .. })
-        ));
-        assert!(matches!(
             parse_text_pattern("[Z-A]"),
             Err(TextPatternSourceError::InvalidRange { .. })
         ));
@@ -443,6 +502,19 @@ mod tests {
             parse_text_pattern(r"\d{2}"),
             Err(TextPatternSourceError::Unexpected { .. })
         ));
+    }
+
+    #[test]
+    fn star_and_plus_are_finitely_bound_by_the_input_contract() {
+        let star = parse_text_pattern("a*").unwrap().compile(8).unwrap();
+        assert!(star.is_match(""));
+        assert!(star.is_match("aaaaaaaa"));
+        assert!(!star.is_match("aaaaaaaaa"));
+
+        let plus = parse_text_pattern("[A-Z]+").unwrap().compile(8).unwrap();
+        assert!(!plus.is_match(""));
+        assert!(plus.is_match("ABC"));
+        assert!(!plus.is_match("ABC1"));
     }
 
     #[test]
