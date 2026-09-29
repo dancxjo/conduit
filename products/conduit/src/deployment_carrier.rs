@@ -193,7 +193,7 @@ fn collect_availability(
     })
 }
 
-fn read_json<T: DeserializeOwned>(path: &Path) -> Result<T, String> {
+pub(crate) fn read_json<T: DeserializeOwned>(path: &Path) -> Result<T, String> {
     let metadata =
         fs::metadata(path).map_err(|error| format!("inspect {}: {error}", path.display()))?;
     if !metadata.is_file()
