@@ -4,7 +4,11 @@
 //! not derive semantic identity from Rust names, layout, or traits.
 
 mod bounded;
+mod generate;
 mod value;
 
 pub use bounded::{BoundedBytes, BoundedSequence, BoundedText};
-pub use value::{NativeBindingRefusal, NativeRustBinding};
+pub use generate::{
+    generate_rust_bindings, RustBindingGenerationError, RustBindingModule, RustBindingOptions,
+};
+pub use value::{validate_native_contracts, NativeBindingRefusal, NativeRustBinding};
