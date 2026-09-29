@@ -77,7 +77,7 @@ fn membership_is_canonical_and_composes_with_pattern_independent_of_authored_ord
 #[test]
 fn negated_membership_and_pattern_are_checked_relations() {
     let checked = check(
-        "form guarded (\n >> name: Text <= 8B not in [\"admin\", \"root\"]\n >> code: Text <= 8B !~ /[A-Z]{2}/\n) {\n}\n",
+        "form guarded (\n >> name: Text <= 8B not in [\"admin\", \"root\"]\n >> code: Text <= 8B !~ /[A-Z]{2}/i\n) {\n}\n",
     );
     let name = input_contract(&checked, "name");
     assert!(matches!(
@@ -95,14 +95,18 @@ fn negated_membership_and_pattern_are_checked_relations() {
         code.constraints.as_slice(),
         [ValueConstraint::TextPattern { negated: true, .. }]
     ));
-    assert_eq!(code.validate(b"ab"), Ok(()));
+    assert_eq!(code.validate(b"12"), Ok(()));
     assert_eq!(
         code.validate(b"xxAByy"),
         Err(ValueConstraintRefusal::TextPattern)
     );
+    assert_eq!(
+        code.validate(b"xxabyy"),
+        Err(ValueConstraintRefusal::TextPattern)
+    );
 
     let positive = check(
-        "form guarded (\n >> name: Text <= 8B in [\"admin\", \"root\"]\n >> code: Text <= 8B ~ /[A-Z]{2}/\n) {\n}\n",
+        "form guarded (\n >> name: Text <= 8B in [\"admin\", \"root\"]\n >> code: Text <= 8B ~ /[A-Z]{2}/i\n) {\n}\n",
     );
     assert_ne!(
         checked.forms[0].checked_form_id,

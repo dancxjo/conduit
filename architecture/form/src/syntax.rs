@@ -182,6 +182,7 @@ pub struct RuntimePort {
 pub enum ValueRefinement {
     TextPattern {
         source: SpannedText,
+        case_insensitive: bool,
         negated: bool,
         span: Span,
     },

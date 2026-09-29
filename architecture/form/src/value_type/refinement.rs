@@ -25,6 +25,7 @@ pub(super) fn checked_refinements(
         .map(|refinement| match refinement {
             crate::ValueRefinement::TextPattern {
                 source,
+                case_insensitive,
                 negated,
                 span,
             } => {
@@ -35,13 +36,16 @@ pub(super) fn checked_refinements(
                         message: "pattern(...) may refine only canonical Text info".into(),
                     });
                 }
-                let expression = crate::parse_text_pattern(&source.text).map_err(|error| {
+                let mut expression = crate::parse_text_pattern(&source.text).map_err(|error| {
                     SyntaxCheckDiagnostic {
                         code: "CND-FRM-057",
                         span: source.span,
                         message: alloc::format!("invalid portable text pattern: {error:?}"),
                     }
                 })?;
+                if *case_insensitive {
+                    expression = expression.ascii_case_insensitive();
+                }
                 expression
                     .compile_search(maximum_bytes)
                     .map(|pattern| ValueConstraint::TextPattern {

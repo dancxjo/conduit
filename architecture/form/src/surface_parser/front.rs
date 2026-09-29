@@ -269,12 +269,13 @@ impl Parser<'_> {
                 return Err(self.invalid_statement(line, start));
             };
             if relation == "pattern" {
-                let (pattern, consumed) = slash_pattern(&source[body_start..])
+                let (pattern, case_insensitive, consumed) = slash_pattern(&source[body_start..])
                     .ok_or_else(|| self.invalid_statement(line, start))?;
                 let clause_end = body_start + consumed;
                 let pattern_offset = start + source_offset + body_start + 1;
                 refinements.push(crate::ValueRefinement::TextPattern {
                     source: self.spanned(pattern, pattern_offset),
+                    case_insensitive,
                     negated,
                     span: self.span(
                         start + source_offset + cursor,
@@ -392,7 +393,7 @@ fn bracketed_members(source: &str) -> Option<usize> {
     None
 }
 
-fn slash_pattern(source: &str) -> Option<(&str, usize)> {
+fn slash_pattern(source: &str) -> Option<(&str, bool, usize)> {
     if !source.starts_with('/') {
         return None;
     }
@@ -411,10 +412,13 @@ fn slash_pattern(source: &str) -> Option<(&str, usize)> {
                 let flags_end = source[offset + 1..]
                     .find(|character: char| !character.is_ascii_alphabetic())
                     .map_or(source.len(), |relative| offset + 1 + relative);
-                if flags_end != offset + 1 {
-                    return None;
-                }
-                return Some((&source[1..offset], offset + 1));
+                let flags = &source[offset + 1..flags_end];
+                let case_insensitive = match flags {
+                    "" => false,
+                    "i" => true,
+                    _ => return None,
+                };
+                return Some((&source[1..offset], case_insensitive, flags_end));
             }
             _ => {}
         }

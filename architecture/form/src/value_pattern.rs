@@ -66,6 +66,62 @@ struct Nfa {
 }
 
 impl TextPatternExpression {
+    /// Applies Conduit's portable `i` profile: ASCII letters compare without
+    /// case while all other Unicode scalars retain their exact identity.
+    pub fn ascii_case_insensitive(&self) -> Self {
+        match self {
+            Self::Empty => Self::Empty,
+            Self::ScalarRange { first, last } => {
+                let mut ranges = vec![Self::ScalarRange {
+                    first: *first,
+                    last: *last,
+                }];
+                let upper_first = (*first).max(u32::from(b'A'));
+                let upper_last = (*last).min(u32::from(b'Z'));
+                if upper_first <= upper_last {
+                    ranges.push(Self::ScalarRange {
+                        first: upper_first + 32,
+                        last: upper_last + 32,
+                    });
+                }
+                let lower_first = (*first).max(u32::from(b'a'));
+                let lower_last = (*last).min(u32::from(b'z'));
+                if lower_first <= lower_last {
+                    ranges.push(Self::ScalarRange {
+                        first: lower_first - 32,
+                        last: lower_last - 32,
+                    });
+                }
+                if ranges.len() == 1 {
+                    ranges.pop().expect("the exact source range remains")
+                } else {
+                    Self::Choice(ranges)
+                }
+            }
+            Self::Sequence(expressions) => Self::Sequence(
+                expressions
+                    .iter()
+                    .map(Self::ascii_case_insensitive)
+                    .collect(),
+            ),
+            Self::Choice(expressions) => Self::Choice(
+                expressions
+                    .iter()
+                    .map(Self::ascii_case_insensitive)
+                    .collect(),
+            ),
+            Self::Repeat {
+                expression,
+                minimum,
+                maximum,
+            } => Self::Repeat {
+                expression: Box::new(expression.ascii_case_insensitive()),
+                minimum: *minimum,
+                maximum: *maximum,
+            },
+        }
+    }
+
     pub fn compile(
         &self,
         maximum_input_characters: u32,
