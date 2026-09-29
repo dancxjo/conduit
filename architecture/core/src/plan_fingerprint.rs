@@ -479,6 +479,10 @@ fn push_semantic_contract(canonical: &mut Vec<u8>, contract: &crate::KindSemanti
                     Terminal::SamplesLatestValueAtCadenceAndCompletesWhenCadenceCloses => {
                         canonical.push(25)
                     }
+                    Terminal::TumblingProcessingTimeWindow { maximum_items } => {
+                        canonical.push(26);
+                        canonical.extend_from_slice(&maximum_items.to_le_bytes());
+                    }
                     Terminal::SimulatedCurrentObservationEmitsOnce => canonical.push(16),
                     Terminal::HostInputEndsOrFailsSource => canonical.push(17),
                     Terminal::HostObservationEndsOrFailsSource => canonical.push(18),

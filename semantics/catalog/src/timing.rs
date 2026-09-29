@@ -6,9 +6,12 @@ use alloc::string::String;
 use alloc::string::ToString;
 use alloc::{vec, vec::Vec};
 use conduit_core::{
-    kind_id, port_id, CapabilityLimits, CheckedValueContract, ConfigurationValue,
-    FrontValueContract, FrontValueLocation, Kind, KindSemanticLaw, PortDescriptor, PortDirection,
-    PortTemporal, BOOL_INFO_ID, CANCELLATION_REQUEST_INFO_ID, UNIT_INFO_ID,
+    kind_id, port_id, AbnormalTerminalTransduction, CancellationTransduction, CapabilityLimits,
+    CheckedValueContract, ConfigurationValue, FiniteTerminalEmission, FrontValueContract,
+    FrontValueLocation, Kind, KindSemanticLaw, NormalCloseTransduction, PortDescriptor,
+    PortDirection, PortTemporal, PreparedLeafSequenceEncoder, TerminalTransductionProfile,
+    BOOL_INFO_ID, CANCELLATION_REQUEST_INFO_ID, TERMINAL_INFO_ENCODED_LEN, TERMINAL_INFO_ID,
+    UNIT_INFO_ID,
 };
 
 pub const TIME_DEBOUNCE_KIND: &str = "time/debounce";
@@ -27,6 +30,9 @@ pub const TIME_DEADLINE_KIND: &str = "time/deadline";
 pub const TIME_DEADLINE_CONTRACT_REVISION: &str = "conduit.std/time-deadline-cancellation@1";
 pub const TIME_SAMPLE_KIND: &str = "time/sample";
 pub const TIME_SAMPLE_CONTRACT_REVISION: &str = "conduit.std/time-sample@1";
+pub const TIME_WINDOW_KIND: &str = "time/window";
+pub const TIME_WINDOW_CONTRACT_REVISION: &str = "conduit.std/time-window@1";
+pub const TIME_WINDOW_MAXIMUM_ITEMS: u16 = 8;
 
 pub const TIME_POLICY_TRAILING: &str = "trailing";
 pub const TIME_POLICY_LEADING: &str = "leading";
@@ -258,6 +264,133 @@ pub fn time_sample_semantic_contract(value: &CheckedValueContract) -> Result<Kin
     })
 }
 
+/// Specializes a processing-time tumbling window over one exact finite value
+/// contract and one exact finite retained-item bound.
+///
+/// The duration remains authored configuration. The connected value contract
+/// and reviewed implementation bound are non-authored specialization truth and
+/// participate in the checked Fore and Plan identities.
+pub fn time_window_semantic_contract(
+    value: &CheckedValueContract,
+    maximum_items: u16,
+) -> Result<Kind, &'static str> {
+    if value.maximum_bytes == 0 && value.value_kind.as_str() != UNIT_INFO_ID {
+        return Err("time/window requires one finite canonical value envelope");
+    }
+    let encoder = PreparedLeafSequenceEncoder::new(
+        value.value_kind.clone(),
+        value.maximum_bytes,
+        maximum_items,
+    )
+    .map_err(|_| "time/window output exceeds structured Info bounds")?;
+    let window = CheckedValueContract::new(
+        encoder
+            .value_type()
+            .map_err(|_| "time/window output type is invalid")?
+            .profile()
+            .map_err(|_| "time/window output profile is invalid")?
+            .value_kind()
+            .clone(),
+        encoder.maximum_bytes(),
+        vec![],
+    )
+    .map_err(|_| "time/window output contract is invalid")?;
+    let terminal = CheckedValueContract::new(
+        kind_id(TERMINAL_INFO_ID),
+        TERMINAL_INFO_ENCODED_LEN as u32,
+        vec![],
+    )
+    .expect("canonical terminal info has one exact finite envelope");
+    Ok(Kind {
+        startup_parameters: super::startup_front(&[duration_field()]),
+        shorthand: None,
+        kind_id: kind_id(TIME_WINDOW_KIND),
+        kind_contract_revision: TIME_WINDOW_CONTRACT_REVISION.into(),
+        inputs: vec![PortDescriptor {
+            port_id: port_id("value"),
+            value_kind: value.value_kind.clone(),
+            direction: PortDirection::Input,
+            temporal: PortTemporal::Flow { closes: true },
+            abnormal_kind: Some(kind_id(TERMINAL_INFO_ID)),
+        }],
+        outputs: vec![PortDescriptor {
+            port_id: port_id("window"),
+            value_kind: window.value_kind.clone(),
+            direction: PortDirection::Output,
+            temporal: PortTemporal::Flow { closes: true },
+            abnormal_kind: Some(kind_id(TERMINAL_INFO_ID)),
+        }],
+        configuration: vec![duration_field()],
+        semantic_laws: vec![
+            KindSemanticLaw::Terminal(KindTerminalBehavior::TumblingProcessingTimeWindow {
+                maximum_items,
+            }),
+            KindSemanticLaw::ValueContracts(vec![
+                FrontValueContract {
+                    location: FrontValueLocation::Input(port_id("value")),
+                    contract: value.clone(),
+                },
+                FrontValueContract {
+                    location: FrontValueLocation::Output(port_id("window")),
+                    contract: window.clone(),
+                },
+                FrontValueContract {
+                    location: FrontValueLocation::InputAbnormal(port_id("value")),
+                    contract: terminal.clone(),
+                },
+                FrontValueContract {
+                    location: FrontValueLocation::OutputAbnormal(port_id("window")),
+                    contract: terminal,
+                },
+            ]),
+            KindSemanticLaw::TerminalTransduction(TerminalTransductionProfile {
+                input_port_id: port_id("value"),
+                output_port_id: port_id("window"),
+                normal_close: NormalCloseTransduction::FlushThenPropagate(FiniteTerminalEmission {
+                    maximum_items: 1,
+                    maximum_bytes: window.maximum_bytes,
+                }),
+                abnormal: AbnormalTerminalTransduction::DomainSpecific {
+                    law: kind_id("time/window/abnormal-cancels-boundary@1"),
+                },
+                cancellation: CancellationTransduction::NotCancellable,
+            }),
+        ],
+        limits: CapabilityLimits {
+            max_active_instances: 8,
+            max_queue_items: maximum_items
+                .checked_add(2)
+                .ok_or("time/window queue item envelope overflows")?,
+            max_queue_bytes: value
+                .maximum_bytes
+                .checked_mul(u32::from(maximum_items))
+                .and_then(|bytes| bytes.checked_add(window.maximum_bytes))
+                .and_then(|bytes| bytes.checked_add(TERMINAL_INFO_ENCODED_LEN as u32))
+                .ok_or("time/window finite queue envelope overflows")?,
+        },
+    })
+}
+
+#[cfg(feature = "form-catalog")]
+pub fn install_time_window_kind(
+    value: &CheckedValueContract,
+    maximum_items: u16,
+    startup: &mut conduit_form::StartupCatalog,
+    profile: &mut conduit_form::ProfileCatalog,
+) -> Result<(), alloc::string::String> {
+    startup.insert(conduit_form::KindSignature {
+        kind: TIME_WINDOW_KIND.to_string(),
+        startup_parameters: vec![conduit_form::StartupParameterSignature {
+            name: "duration-ms".into(),
+            value_type: "Duration".into(),
+            default: Some("100ms".into()),
+        }],
+    })?;
+    profile
+        .insert_kind(time_window_semantic_contract(value, maximum_items).map_err(str::to_string)?)
+        .map_err(|error| error.to_string())
+}
+
 #[cfg(feature = "form-catalog")]
 pub fn install_time_sample_kind(
     value: &CheckedValueContract,
@@ -431,6 +564,33 @@ mod tests {
             &CheckedValueContract::new(kind_id("value/empty"), 0, Vec::new()).unwrap()
         )
         .is_err());
+    }
+
+    #[test]
+    fn window_specialization_is_one_exact_finite_processing_time_contract() {
+        let text = CheckedValueContract::new(kind_id("value/text"), 32, Vec::new()).unwrap();
+        let contract = time_window_semantic_contract(&text, 8).unwrap();
+        assert_eq!(contract.inputs[0].value_kind, text.value_kind);
+        assert_ne!(contract.outputs[0].value_kind, text.value_kind);
+        assert_eq!(contract.terminal_transductions().count(), 1);
+        assert!(matches!(
+            contract.semantic_laws.iter().find_map(|law| match law {
+                KindSemanticLaw::Terminal(behavior) => Some(behavior),
+                _ => None,
+            }),
+            Some(KindTerminalBehavior::TumblingProcessingTimeWindow { maximum_items: 8 })
+        ));
+        let contracts = contract.value_contracts();
+        assert_eq!(contracts.len(), 4);
+        assert_eq!(
+            contracts
+                .iter()
+                .find(|entry| entry.location == FrontValueLocation::Input(port_id("value")))
+                .unwrap()
+                .contract,
+            text
+        );
+        contract.validate().unwrap();
     }
 
     #[test]

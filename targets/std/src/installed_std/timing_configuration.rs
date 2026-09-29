@@ -53,19 +53,27 @@ pub(super) fn parse(
 }
 
 pub(super) fn parse_deadline(placement: &PlannedGear) -> Result<u64, String> {
+    parse_duration_only(placement, "time/deadline")
+}
+
+pub(super) fn parse_window(placement: &PlannedGear) -> Result<u64, String> {
+    parse_duration_only(placement, "time/window")
+}
+
+fn parse_duration_only(placement: &PlannedGear, kind: &str) -> Result<u64, String> {
     if placement.configuration.len() != 1 {
-        return Err("time/deadline has an incomplete exact configuration".to_string());
+        return Err(format!("{kind} has an incomplete exact configuration"));
     }
     let entry = &placement.configuration[0];
     let ConfigurationValue::Quantity(value) = entry.value else {
-        return Err("time/deadline duration is invalid".to_string());
+        return Err(format!("{kind} duration is invalid"));
     };
     if entry.key != "duration-ms" {
-        return Err("time/deadline configuration field is invalid".to_string());
+        return Err(format!("{kind} configuration field is invalid"));
     }
     let duration_ms = quantity_milliseconds(value)?;
     if duration_ms > conduit_semantic_catalog::TIME_MAXIMUM_DURATION_MS {
-        return Err("time/deadline duration exceeds the reviewed maximum".to_string());
+        return Err(format!("{kind} duration exceeds the reviewed maximum"));
     }
     Ok(duration_ms)
 }

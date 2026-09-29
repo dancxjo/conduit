@@ -432,7 +432,9 @@ pub enum KindTerminalBehavior {
     EmitsOnce,
     EmitsOnceWhenScopeIsEligible,
     CompletesAfterConfiguredCount,
-    CompletesAfterFixedCount { count: u64 },
+    CompletesAfterFixedCount {
+        count: u64,
+    },
     CompletesWhenInputsClose,
     MirrorsInputTerminal,
     RetainsLatestUntilReleased,
@@ -447,6 +449,12 @@ pub enum KindTerminalBehavior {
     DelaysEachValueInOrderAndDrainsOnInputClosure,
     LeadingThrottleDropsValuesDuringIntervalAndCompletesWhenInputCloses,
     SamplesLatestValueAtCadenceAndCompletesWhenCadenceCloses,
+    /// Retain at most the stated number of values after the first arrival,
+    /// emit them in admission order when the local monotonic duration ends,
+    /// and let the boundary win an exactly simultaneous arrival tie.
+    TumblingProcessingTimeWindow {
+        maximum_items: u16,
+    },
     SimulatedCurrentObservationEmitsOnce,
     HostInputEndsOrFailsSource,
     HostObservationEndsOrFailsSource,
