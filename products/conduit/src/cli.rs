@@ -60,6 +60,27 @@ pub(crate) enum Command {
 
 #[derive(Debug, Subcommand)]
 pub(crate) enum HostCommand {
+    /// Resolve and inspect one exact target installation without performing effects.
+    Install {
+        target: String,
+        #[arg(long)]
+        catalog: PathBuf,
+        #[arg(long)]
+        catalog_id: String,
+        #[arg(long)]
+        mirror: PathBuf,
+        #[arg(long)]
+        cache: PathBuf,
+        #[arg(long = "carrier-descriptor", required = true, num_args = 1..)]
+        carrier_descriptors: Vec<PathBuf>,
+        #[arg(long)]
+        carrier: Option<String>,
+        #[arg(long, default_value_t = 0)]
+        minimum_generation: u64,
+        /// Inspect exact stages and authority without performing carrier effects.
+        #[arg(long, required = true, action = clap::ArgAction::SetTrue)]
+        dry_run: bool,
+    },
     /// Install, run, or inspect the durable local host owner.
     #[command(hide = true)]
     Service {
@@ -218,6 +239,7 @@ pub(crate) enum RendezvousCarrier {
 #[derive(Debug, Subcommand)]
 pub(crate) enum HostServiceCommand {
     /// Verify and install one reviewed release bundle without replacing durable identity.
+    #[command(hide = true)]
     Install {
         manifest: PathBuf,
         #[arg(long)]
@@ -351,6 +373,44 @@ mod public_surface_tests {
                 .expect("artifact inspection parses")
                 .command,
             Some(Command::Inspect { thing }) if thing == std::path::Path::new("run.json")
+        ));
+    }
+
+    #[test]
+    fn host_install_is_public_while_protocol_stages_stay_hidden() {
+        let host_help = HostCommand::augment_subcommands(clap::Command::new("host"))
+            .render_long_help()
+            .to_string();
+        assert!(host_help.contains("install"));
+        for hidden in ["obtain", "carry", "service"] {
+            assert!(
+                !host_help.contains(hidden),
+                "hidden {hidden} leaked in:\n{host_help}"
+            );
+        }
+        assert!(matches!(
+            Cli::try_parse_from([
+                "conduit",
+                "host",
+                "install",
+                "hosted/linux",
+                "--catalog",
+                "catalog.json",
+                "--catalog-id",
+                "stable",
+                "--mirror",
+                "mirror",
+                "--cache",
+                "cache",
+                "--carrier-descriptor",
+                "native.json",
+                "--dry-run",
+            ])
+            .expect("host install dry-run parses")
+            .command,
+            Some(Command::Host {
+                command: Some(HostCommand::Install { dry_run: true, .. })
+            })
         ));
     }
 }

@@ -378,6 +378,51 @@ fn form_fixture_code_uses_cargo_package_impact() {
 }
 
 #[test]
+fn browser_admission_runs_only_the_owned_product_shards() {
+    let root = crate::workspace::workspace_root().unwrap();
+    let packages = discover(&root).unwrap();
+
+    let semantic = plan_for_paths(
+        &root,
+        vec!["semantics/time/src/window_back.rs".to_owned()],
+        &packages,
+    )
+    .unwrap();
+    assert!(semantic.browser_required);
+    assert_eq!(semantic.browser_admission_shards, ["browser-host"]);
+
+    let creche = plan_for_paths(
+        &root,
+        vec!["targets/browser/runtime/src/creche/spore_target.rs".to_owned()],
+        &packages,
+    )
+    .unwrap();
+    assert_eq!(
+        creche.browser_admission_shards,
+        ["browser-host", "creche-workspace"]
+    );
+
+    let presentation = plan_for_paths(
+        &root,
+        vec!["semantics/presentation/src/interaction.rs".to_owned()],
+        &packages,
+    )
+    .unwrap();
+    assert_eq!(
+        presentation.browser_admission_shards,
+        ["browser-host", "pages"]
+    );
+
+    let workflow = plan_for_paths(
+        &root,
+        vec![".github/workflows/tour-products.yml".to_owned()],
+        &packages,
+    )
+    .unwrap();
+    assert_eq!(workflow.browser_admission_shards, BROWSER_ADMISSION_SHARDS);
+}
+
+#[test]
 fn complete_tongues_analysis_slice_avoids_unrelated_machine_fabrication() {
     let root = crate::workspace::workspace_root().unwrap();
     let packages = discover(&root).unwrap();

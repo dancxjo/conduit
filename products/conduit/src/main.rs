@@ -5,6 +5,7 @@ mod diagnostics;
 mod durable_host;
 mod durable_host_control;
 mod form_source;
+mod host_install;
 mod host_rendezvous;
 mod inspection;
 mod native_package_install;
@@ -198,6 +199,27 @@ fn main() {
         Some(cli::Command::Host {
             command: Some(command),
         }) => match command {
+            cli::HostCommand::Install {
+                target,
+                catalog,
+                catalog_id,
+                mirror,
+                cache,
+                carrier_descriptors,
+                carrier,
+                minimum_generation,
+                dry_run,
+            } => host_install::run(host_install::InstallRequest {
+                target: &target,
+                catalog: &catalog,
+                catalog_id: &catalog_id,
+                mirror: &mirror,
+                cache: &cache,
+                carrier_descriptors: &carrier_descriptors,
+                carrier: carrier.as_deref(),
+                minimum_generation,
+                dry_run,
+            }),
             cli::HostCommand::Service { command } => durable_host::dispatch(command),
             cli::HostCommand::Obtain {
                 target,
