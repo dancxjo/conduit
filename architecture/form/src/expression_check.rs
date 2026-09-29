@@ -7,7 +7,7 @@ use crate::prelude::*;
 use crate::{BinaryOperator, ExpressionProjection, ExpressionSyntax, Span, UnaryOperator};
 use alloc::collections::{BTreeMap, BTreeSet};
 use conduit_core::{
-    kind_id, semantic_digest, KindId, StructuredFieldType, StructuredInfoRefusal,
+    kind_id, semantic_digest, tuple_info_type, KindId, StructuredFieldType, StructuredInfoRefusal,
     StructuredInfoType, StructuredInfoTypeShape,
 };
 
@@ -95,17 +95,11 @@ impl CheckedExpressionType {
                 Some(*length),
             ),
             Self::Tuple(values) => {
-                let fields = values
+                let values = values
                     .iter()
-                    .enumerate()
-                    .map(|(index, value)| {
-                        StructuredFieldType::new(
-                            format!("item-{index:05}"),
-                            value.structured_info_type_with(semantic_structures)?,
-                        )
-                    })
+                    .map(|value| value.structured_info_type_with(semantic_structures))
                     .collect::<Result<Vec<_>, _>>()?;
-                anonymous_record("tuple", fields)
+                tuple_info_type(values)
             }
             Self::Record(values) => {
                 let fields = values

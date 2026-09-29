@@ -76,6 +76,7 @@ pub(super) use retained_run::{InstalledRunHost, RunLifecycle};
 mod current_sample_back;
 mod data_text_back;
 mod data_text_host;
+mod flow_zip_back;
 mod presentation_composition;
 mod presentation_construction_host;
 mod pulse_observation_back;

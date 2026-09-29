@@ -27,6 +27,7 @@ use super::flow_first_back::FLOW_FIRST_FACTORY;
 use super::flow_gate_back::FLOW_GATE_SCALAR_FACTORY;
 use super::flow_pressure_backs::{FLOW_BACKPRESSURE_FACTORY, FLOW_COALESCE_LATEST_FACTORY};
 use super::flow_state_backs::{FLOW_TEE_SCALAR_FACTORY, STATE_LATEST_SCALAR_FACTORY};
+use super::flow_zip_back::FACTORY as FLOW_ZIP_FACTORY;
 use super::generated_speech_commit_back::FACTORY as GENERATED_SPEECH_COMMIT_FACTORY;
 use super::generated_validation_backs::{
     ENVELOPE_FACTORY as GENERATED_VALIDATION_ENVELOPE_FACTORY,
@@ -279,6 +280,7 @@ const FACTORIES: &[&BackFactory] = &[
     &FLOW_TEE_SCALAR_FACTORY,
     &STATE_SELECT_SCALAR_FACTORY,
     &CURRENT_SAMPLE_FACTORY,
+    &FLOW_ZIP_FACTORY,
     &FLOW_GATE_SCALAR_FACTORY,
     &FLOW_FIRST_FACTORY,
     &KEY_EVENT_TEE_FACTORY,
