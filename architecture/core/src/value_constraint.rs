@@ -176,7 +176,7 @@ impl CheckedValueContract {
     /// larger semantic identity. Authored spelling and Host representation are
     /// deliberately absent.
     pub fn identity_bytes(&self) -> Vec<u8> {
-        let mut canonical = b"conduit.value-contract@1\0".to_vec();
+        let mut canonical = b"conduit.value-contract@2\0".to_vec();
         push_bytes(&mut canonical, self.value_kind.as_str().as_bytes());
         push_u32(&mut canonical, self.maximum_bytes);
         push_u32(&mut canonical, self.constraints.len() as u32);
