@@ -9,7 +9,7 @@ use serde::Serialize;
 use std::path::Path;
 
 #[derive(Debug, Serialize)]
-struct ObtainReceipt {
+pub(crate) struct ObtainReceipt {
     schema: &'static str,
     catalog_id: String,
     catalog_generation: u64,
@@ -51,7 +51,7 @@ pub(crate) fn run(
     Ok(())
 }
 
-fn obtain(
+pub(crate) fn obtain(
     target: &str,
     catalog_path: &Path,
     expected_catalog_id: &str,
