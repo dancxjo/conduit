@@ -285,7 +285,8 @@ pub(crate) fn validate_terminal_transduction_ports(
         return Err(KindValidationError::TerminalAbnormalKindMismatch);
     }
     let close_bound = match &profile.normal_close {
-        NormalCloseTransduction::FlushThenPropagate(bound) => Some(bound),
+        NormalCloseTransduction::FlushThenPropagate(bound)
+        | NormalCloseTransduction::FlushThenPropagateWhenAllClose(bound) => Some(bound),
         _ => None,
     };
     let abnormal_bound = match &profile.abnormal {

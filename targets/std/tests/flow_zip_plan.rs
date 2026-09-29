@@ -230,3 +230,117 @@ fn plan_seals_both_exact_inputs_pair_output_and_terminal_profiles() {
         "right"
     );
 }
+
+#[test]
+fn plan_seals_combine_latest_state_and_all_close_terminal_profiles() {
+    let text = CheckedValueContract::new(kind_id("value/text"), 64, vec![]).unwrap();
+    let count = CheckedValueContract::new(kind_id("value/count"), 8, vec![]).unwrap();
+    let combine =
+        conduit_semantic_catalog::combine_latest_semantic_contract(&text, &count).unwrap();
+    let latest = combine
+        .value_contracts()
+        .iter()
+        .find(|contract| contract.location == FrontValueLocation::Output(port_id("latest")))
+        .unwrap()
+        .contract
+        .clone();
+    let left = endpoint(
+        "test/latest-left-source",
+        "test/latest-left-source@1",
+        PortDirection::Output,
+        &text,
+    );
+    let right = endpoint(
+        "test/latest-right-source",
+        "test/latest-right-source@1",
+        PortDirection::Output,
+        &count,
+    );
+    let sink = endpoint(
+        "test/latest-pair-sink",
+        "test/latest-pair-sink@1",
+        PortDirection::Input,
+        &latest,
+    );
+    let left_recovery = recovery("test/latest-left-recovery");
+    let right_recovery = recovery("test/latest-right-recovery");
+    let pair_recovery = recovery("test/latest-pair-recovery");
+    let mut startup = conduit_form::StartupCatalog::new();
+    let mut profile = conduit_form::ProfileCatalog::new();
+    for kind in [
+        &left,
+        &right,
+        &sink,
+        &left_recovery,
+        &right_recovery,
+        &pair_recovery,
+    ] {
+        startup
+            .insert(conduit_form::KindSignature {
+                kind: kind.kind_id.as_str().into(),
+                startup_parameters: Vec::new(),
+            })
+            .unwrap();
+        profile.insert_kind((*kind).clone()).unwrap();
+    }
+    conduit_semantic_catalog::install_combine_latest_kind(
+        &text,
+        &count,
+        &mut startup,
+        &mut profile,
+    )
+    .unwrap();
+    let syntax = conduit_form::parse_syntax_document(
+        "form combine-two-flows {\n left: test/latest-left-source\n right: test/latest-right-source\n combine: state/combine-latest\n sink: test/latest-pair-sink\n left-recovery: test/latest-left-recovery\n right-recovery: test/latest-right-recovery\n pair-recovery: test/latest-pair-recovery\n left.out >> combine.left\n right.out >> combine.right\n combine.latest >> sink.in\n left.out! >> left-recovery.terminal\n right.out! >> right-recovery.terminal\n combine.latest! >> pair-recovery.terminal\n}\n",
+    );
+    let checked = conduit_form::check_syntax_document(&syntax, &startup).unwrap();
+    let expanded =
+        conduit_form::expand_canonical_form(&checked, "combine-two-flows", &profile).unwrap();
+    let host = HostAdvertisement {
+        protocol_version: PROTOCOL_VERSION,
+        host_id: HostId::from("host/combine-latest-proof"),
+        boot_id: "boot/combine-latest-proof".into(),
+        offer_generation: OfferGeneration(1),
+        profile: HostProfileId::from("std/combine-latest-proof@1"),
+        bases: Vec::new(),
+        resources: Vec::new(),
+        capabilities: vec![
+            offer(left, "test/latest-left-source-back@1"),
+            offer(right, "test/latest-right-source-back@1"),
+            conduit_std_offers::combine_latest_offer(&text, &count).unwrap(),
+            offer(sink, "test/latest-pair-sink-back@1"),
+            offer(left_recovery, "test/latest-left-recovery-back@1"),
+            offer(right_recovery, "test/latest-right-recovery-back@1"),
+            offer(pair_recovery, "test/latest-pair-recovery-back@1"),
+        ],
+        planner_capabilities: Vec::new(),
+    };
+    let placements =
+        conduit_planner::default_expanded_placements(&expanded, core::slice::from_ref(&host))
+            .unwrap();
+    let plan = conduit_planner::plan_expanded_canonical(
+        &expanded,
+        core::slice::from_ref(&host),
+        &placements,
+        &[BaseImplementationId::from("conduit.base/local@1")],
+    )
+    .unwrap();
+    let placement = plan.fragments[0]
+        .placements
+        .iter()
+        .find(|placement| {
+            placement.kind_id.as_str() == conduit_semantic_catalog::COMBINE_LATEST_KIND
+        })
+        .unwrap();
+    assert_eq!(placement.inputs[0].value_kind, text.value_kind);
+    assert_eq!(placement.inputs[1].value_kind, count.value_kind);
+    assert_eq!(placement.outputs[0].value_kind, latest.value_kind);
+    assert_eq!(placement.terminal_transductions.len(), 2);
+    assert!(placement
+        .terminal_transductions
+        .iter()
+        .all(|profile| matches!(
+            profile.normal_close,
+            NormalCloseTransduction::FlushThenPropagateWhenAllClose(_)
+        )));
+}

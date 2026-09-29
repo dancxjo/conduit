@@ -1,8 +1,9 @@
 use super::{
     AssignedAbnormalTransduction, AssignedCancellationTransduction, AssignedConnectionTrack,
-    AssignedNormalCloseTransduction, AssignedPressurePolicy, AssignedTerminalTransduction,
-    CordCapacity, CordSpec, FixedScheduler, NodeSpec, RemoteIngressOutcome, SchedulerError,
-    SchedulerStatus, StepBack, StepInputBytes, StepIo, StepOutcome,
+    AssignedFiniteTerminalEmission, AssignedNormalCloseTransduction, AssignedPressurePolicy,
+    AssignedTerminalTransduction, CordCapacity, CordSpec, FixedScheduler, NodeSpec,
+    RemoteIngressOutcome, SchedulerError, SchedulerStatus, StepBack, StepInputBytes, StepIo,
+    StepOutcome,
 };
 use crate::{
     BoundedValueRef, CanonicalValue, CordId, Failure, FailureCode, FixedHostCallBindings,
@@ -1158,6 +1159,92 @@ fn simultaneous_terminals_use_each_inputs_exact_contract_in_port_order() {
         ),
         "unexpected second terminal outcome: {second_outcome:?}"
     );
+}
+
+#[derive(Clone, Copy)]
+struct AllInputsCloseBack {
+    first_closed: bool,
+}
+
+impl StepBack<2> for AllInputsCloseBack {
+    fn terminal_transductions(&self) -> [Option<AssignedTerminalTransduction>; 2] {
+        let normal_close = AssignedNormalCloseTransduction::FlushThenPropagateWhenAllClose(
+            AssignedFiniteTerminalEmission {
+                maximum_items: 1,
+                maximum_bytes: 8,
+            },
+        );
+        [0, 1].map(|input| {
+            Some(AssignedTerminalTransduction {
+                input: PortId(input),
+                output: PortId(0),
+                normal_close,
+                abnormal: AssignedAbnormalTransduction::PropagateAfterDrain,
+                cancellation: AssignedCancellationTransduction::NotCancellable,
+            })
+        })
+    }
+
+    fn step(&mut self, io: &mut StepIo<2>, _input_bytes: &StepInputBytes<'_, 2>) -> StepOutcome {
+        if io.input_closed(PortId(0)) {
+            io.consume_closed(PortId(0)).unwrap();
+            self.first_closed = true;
+            return StepOutcome::Progress;
+        }
+        if io.input_closed(PortId(1)) {
+            io.consume_closed(PortId(1)).unwrap();
+            return StepOutcome::Complete;
+        }
+        StepOutcome::Await
+    }
+}
+
+#[test]
+fn all_inputs_close_contract_consumes_early_close_and_completes_on_last_close() {
+    let first = RemoteEndpointId(0);
+    let second = RemoteEndpointId(1);
+    let mut routes = FixedRoutes::<1, 1>::new(2);
+    routes.seal().unwrap();
+    let capacity = |slot_start| CordCapacity {
+        slot_start,
+        item_capacity: 1,
+        byte_capacity: 4,
+        pressure_policy: Default::default(),
+    };
+    let driver = AllInputsCloseBack {
+        first_closed: false,
+    };
+    let contracts = driver.terminal_transductions();
+    let mut scheduler = FixedScheduler::<_, _, _, 1, 2, 2, 2, 1, 1>::new(
+        [node([Some(CordId(0)), Some(CordId(1))])],
+        [
+            CordSpec::remote_ingress(CordId(0), first, (NodeId(0), PortId(0)), capacity(0)),
+            CordSpec::remote_ingress(CordId(1), second, (NodeId(0), PortId(1)), capacity(1)),
+        ],
+        routes,
+        [driver],
+        FixedValueStore::<2, 8>::new(8).unwrap(),
+        FixedSignLog::<16>::new_with_remote_storage(
+            (16 * core::mem::size_of::<crate::KernelEvent>()) as u32,
+            8,
+            crate::remote_sign_storage_bytes(8).unwrap(),
+        )
+        .unwrap(),
+    )
+    .unwrap();
+    scheduler.bind_terminal_transductions([contracts]).unwrap();
+    scheduler.close_remote_input(first, CordId(0)).unwrap();
+    scheduler.close_remote_input(second, CordId(1)).unwrap();
+
+    assert!(matches!(
+        scheduler.step().unwrap(),
+        SchedulerStatus::Progress { node: NodeId(0) }
+    ));
+    assert!(scheduler.drivers()[0].first_closed);
+    assert!(matches!(
+        scheduler.step().unwrap(),
+        SchedulerStatus::Drained
+    ));
 }
 
 #[test]

@@ -176,6 +176,7 @@ installed_step_dispatch!(
     FlowTeeScalar,
     StateSelectScalar,
     CurrentSample,
+    CombineLatest,
     FlowZip,
     FlowGateScalar,
     FlowFirst,

@@ -73,6 +73,7 @@ mod retained_run;
 pub(super) use retained_run::run_fragment;
 pub(crate) use retained_run::DurableStateRun;
 pub(super) use retained_run::{InstalledRunHost, RunLifecycle};
+mod combine_latest_back;
 mod current_sample_back;
 mod data_text_back;
 mod data_text_host;
