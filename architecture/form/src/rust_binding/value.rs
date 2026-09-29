@@ -1,13 +1,14 @@
 use crate::prelude::*;
 use conduit_core::{
-    CheckedValueContract, StructuredInfoRefusal, StructuredInfoType, StructuredInfoValue,
-    StructuredInfoValueShape, ValueConstraintRefusal,
+    CheckedValueContract, PrimitiveInfoRefusal, StructuredInfoRefusal, StructuredInfoType,
+    StructuredInfoValue, StructuredInfoValueShape, ValueConstraintRefusal,
 };
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum NativeBindingRefusal {
     InvalidSemanticType(StructuredInfoRefusal),
     InvalidValue(StructuredInfoRefusal),
+    InvalidPrimitive(PrimitiveInfoRefusal),
     ViolatedConstraint {
         representation_path: String,
         refusal: ValueConstraintRefusal,
