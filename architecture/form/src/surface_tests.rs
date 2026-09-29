@@ -43,13 +43,44 @@ fn range_membership_and_composition_are_lossless_front_syntax() {
             minimum_endpoint: crate::RefinementIntervalEndpoint::Inclusive,
             maximum_endpoint: crate::RefinementIntervalEndpoint::Inclusive,
             ..
-        } if minimum.text == "1" && maximum.text == "4"
+        } if minimum.as_ref().is_some_and(|value| value.text == "1")
+            && maximum.as_ref().is_some_and(|value| value.text == "4")
     ));
     assert!(matches!(
         &refinements[1],
         crate::ValueRefinement::Membership { members, .. }
             if members.iter().map(|member| member.text.as_str()).collect::<Vec<_>>()
                 == ["2", "3", "4"]
+    ));
+}
+
+#[test]
+fn open_ended_ranges_remain_lossless_until_the_type_supplies_their_bounds() {
+    let source = "form bounded (\n >> low: Count in ..=4\n >> high: Scalar in 1.000000..\n) {\n}\n";
+    let document = parse_syntax_document(source);
+    assert!(
+        document.diagnostics.is_empty(),
+        "{:?}",
+        document.diagnostics
+    );
+    assert_eq!(document.round_trip(), source);
+    let low = &document.forms[0].front.runtime_ports[0].refinements[0];
+    let high = &document.forms[0].front.runtime_ports[1].refinements[0];
+    assert!(matches!(
+        low,
+        crate::ValueRefinement::Range {
+            minimum: None,
+            maximum: Some(maximum),
+            ..
+        } if maximum.text == "4"
+    ));
+    assert!(matches!(
+        high,
+        crate::ValueRefinement::Range {
+            minimum: Some(minimum),
+            maximum: None,
+            ..
+        } if minimum.text == "1.000000"
     ));
 }
 
