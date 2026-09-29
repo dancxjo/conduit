@@ -220,6 +220,21 @@ fn product_planner_has_no_workspace_cache() {
 }
 
 #[test]
+fn browser_runtime_binaries_are_not_recompressed_during_artifact_upload() {
+    let root = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../..");
+    let workflow = fs::read_to_string(root.join(".github/workflows/tour-products.yml"))
+        .expect("read product workflow");
+    let browser_runtimes = workflow
+        .split("\n  browser-runtimes:\n")
+        .nth(1)
+        .and_then(|tail| tail.split("\n  standalone-locks:\n").next())
+        .expect("locate browser runtime job");
+
+    assert!(browser_runtimes.contains("name: conduit-browser-product-runtimes"));
+    assert!(browser_runtimes.contains("compression-level: 0"));
+}
+
+#[test]
 fn rust_target_caches_never_save_after_a_failed_proof() {
     let root = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../..");
     let workflows = root.join(".github/workflows");

@@ -184,6 +184,7 @@ jobs:
           path: target/browser-product-runtimes
           if-no-files-found: error
           retention-days: 7
+          compression-level: 0
 
   standalone-locks:
     needs: plan
