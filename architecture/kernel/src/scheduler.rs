@@ -84,9 +84,11 @@ pub enum AssignedCancellationTransduction {
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 enum ActiveTerminalPhase {
     Normal {
+        input: PortId,
         emitted: AssignedFiniteTerminalEmission,
     },
     Abnormal {
+        input: PortId,
         terminal: CanonicalValue,
         emitted: AssignedFiniteTerminalEmission,
     },
@@ -293,8 +295,21 @@ struct PendingHostCall {
 }
 
 pub trait StepBack<const PORTS: usize> {
-    /// Exact terminal contract implemented by this prepared Back. Preparation
-    /// must match this to the Plan-lowered contract before play.
+    /// Exact terminal contracts implemented by this prepared Back. Preparation
+    /// must match these to the Plan-lowered contracts before play.
+    fn terminal_transductions(&self) -> [Option<AssignedTerminalTransduction>; PORTS] {
+        let mut contracts = [None; PORTS];
+        if let Some(contract) = self.terminal_transduction() {
+            let input = usize::from(contract.input.0);
+            if input < PORTS {
+                contracts[input] = Some(contract);
+            }
+        }
+        contracts
+    }
+
+    /// Convenience for existing single-input Backs. Multi-input Backs override
+    /// `terminal_transductions`; the scheduler and Plan boundary are plural.
     fn terminal_transduction(&self) -> Option<AssignedTerminalTransduction> {
         None
     }
@@ -972,7 +987,8 @@ pub struct FixedScheduler<
     E: SignSink,
 {
     node_specs: [NodeSpec<PORTS>; NODES],
-    terminal_transductions: [Option<AssignedTerminalTransduction>; NODES],
+    terminal_transductions: [[Option<AssignedTerminalTransduction>; PORTS]; NODES],
+    terminal_inputs_consumed: [[bool; PORTS]; NODES],
     terminal_phases: [Option<ActiveTerminalPhase>; NODES],
     terminal_cancellation_pending: [bool; NODES],
     unresolved_abnormal: [Option<UnresolvedAbnormal>; NODES],
@@ -1073,7 +1089,8 @@ where
         )?;
         Ok(Self {
             node_specs,
-            terminal_transductions: [None; NODES],
+            terminal_transductions: [[None; PORTS]; NODES],
+            terminal_inputs_consumed: [[false; PORTS]; NODES],
             terminal_phases: [None; NODES],
             terminal_cancellation_pending: [false; NODES],
             unresolved_abnormal: [None; NODES],
@@ -1249,14 +1266,14 @@ where
     /// Back may not claim a different mapping or behavior.
     pub fn bind_terminal_transductions(
         &mut self,
-        contracts: [Option<AssignedTerminalTransduction>; NODES],
+        contracts: [[Option<AssignedTerminalTransduction>; PORTS]; NODES],
     ) -> Result<(), SchedulerError> {
         for (node, contract) in contracts.iter().copied().enumerate() {
             if node < self.active_nodes {
-                if self.drivers[node].terminal_transduction() != contract {
+                if self.drivers[node].terminal_transductions() != contract {
                     return Err(SchedulerError::InvalidPlan);
                 }
-            } else if contract.is_some() {
+            } else if contract.iter().any(Option::is_some) {
                 return Err(SchedulerError::InvalidPlan);
             }
         }
@@ -1279,7 +1296,11 @@ where
             else {
                 continue;
             };
-            let Some(contract) = self.terminal_transductions[usize::from(sink.0)] else {
+            let Some(contract) = self.terminal_transductions[usize::from(sink.0)]
+                .get(usize::from(sink_port.0))
+                .copied()
+                .flatten()
+            else {
                 continue;
             };
             if contract.input == sink_port
@@ -2064,6 +2085,7 @@ where
         let mut input_closed = [false; PORTS];
         let mut input_abnormal = [None; PORTS];
         let mut output_maximum_bytes = [None; PORTS];
+        let node_id = NodeId(as_u16(node)?);
         let host_completion = self
             .pending_host_calls
             .iter()
@@ -2083,13 +2105,26 @@ where
             let Some(cord) = cord else {
                 continue;
             };
+            if self.terminal_inputs_consumed[node][port] {
+                continue;
+            }
             let cord_index = usize::from(cord.0);
+            let projected_recovery_handles_source = self.cords[cord_index].producer_abnormal
+                && self.recovery_for_cord[..self.active_cords]
+                    .iter()
+                    .enumerate()
+                    .any(|(recovery_cord, recovery)| {
+                        *recovery == Some(node_id)
+                            && self.cord_specs[recovery_cord].source
+                                == self.cord_specs[cord_index].source
+                    });
             inputs[port] = self.peek(cord_index)?;
             input_closed[port] = self.cords[cord_index].producer_closed
-                && !self.cords[cord_index].producer_abnormal
+                && (!self.cords[cord_index].producer_abnormal || projected_recovery_handles_source)
                 && self.cords[cord_index].len == 0;
             input_abnormal[port] = (self.cords[cord_index].producer_closed
                 && self.cords[cord_index].producer_abnormal
+                && !projected_recovery_handles_source
                 && self.cords[cord_index].len == 0)
                 .then_some(self.cords[cord_index].abnormal_terminal)
                 .flatten();
@@ -2190,7 +2225,13 @@ where
                         && !matches!(
                             (
                                 self.terminal_phases[node],
-                                self.terminal_transductions[node]
+                                self.terminal_phases[node].and_then(|phase| {
+                                    let input = match phase {
+                                        ActiveTerminalPhase::Normal { input, .. }
+                                        | ActiveTerminalPhase::Abnormal { input, .. } => input,
+                                    };
+                                    self.terminal_transductions[node][usize::from(input.0)]
+                                })
                             ),
                             (
                                 Some(ActiveTerminalPhase::Abnormal { .. }),
@@ -2317,7 +2358,13 @@ where
                     self.unresolved_abnormal[usize::from(source.0)] = None;
                     self.signs.record(
                         NodeId(as_u16(node)?),
-                        self.terminal_transductions[node].map(|contract| contract.input),
+                        self.terminal_transductions[node]
+                            .iter()
+                            .flatten()
+                            .find(|contract| {
+                                matches!(contract.abnormal, AssignedAbnormalTransduction::Recover)
+                            })
+                            .map(|contract| contract.input),
                         None,
                         KernelEventKind::SemanticAbnormalRecovered,
                     )?;
@@ -2406,16 +2453,18 @@ where
     }
 
     fn step_begins_abnormal_finalization(&self, node: usize, io: &StepIo<PORTS>) -> bool {
-        let Some(AssignedTerminalTransduction {
-            input,
-            abnormal: AssignedAbnormalTransduction::FinalizeThenPropagate(_),
-            ..
-        }) = self.terminal_transductions[node]
-        else {
-            return false;
-        };
-        let input = usize::from(input.0);
-        input < PORTS && io.input_abnormal[input].is_some() && io.consumed_closed[input]
+        self.terminal_transductions[node]
+            .iter()
+            .flatten()
+            .any(|contract| {
+                let input = usize::from(contract.input.0);
+                matches!(
+                    contract.abnormal,
+                    AssignedAbnormalTransduction::FinalizeThenPropagate(_)
+                ) && input < PORTS
+                    && io.input_abnormal[input].is_some()
+                    && io.consumed_closed[input]
+            })
     }
 
     fn validate_terminal_cancellation(
@@ -2424,7 +2473,17 @@ where
         outcome: StepOutcome,
         io: &StepIo<PORTS>,
     ) -> Result<bool, SchedulerError> {
-        let Some(contract) = self.terminal_transductions[node] else {
+        let Some(contract) = self.terminal_transductions[node]
+            .iter()
+            .flatten()
+            .find(|contract| {
+                matches!(
+                    contract.cancellation,
+                    AssignedCancellationTransduction::Request { .. }
+                )
+            })
+            .copied()
+        else {
             return Ok(false);
         };
         let AssignedCancellationTransduction::Request { input, .. } = contract.cancellation else {
@@ -2455,8 +2514,49 @@ where
         outcome: StepOutcome,
         io: &StepIo<PORTS>,
     ) -> Result<Option<ActiveTerminalPhase>, SchedulerError> {
-        let Some(contract) = self.terminal_transductions[node] else {
-            if io.input_abnormal.iter().any(Option::is_some) {
+        let active_input = self.terminal_phases[node].map(|phase| match phase {
+            ActiveTerminalPhase::Normal { input, .. }
+            | ActiveTerminalPhase::Abnormal { input, .. } => input,
+        });
+        let first_consumed = io.consumed_closed.iter().position(|consumed| *consumed);
+        let mut contracted_consumed = io
+            .consumed_closed
+            .iter()
+            .enumerate()
+            .filter(|(port, consumed)| {
+                **consumed && self.terminal_transductions[node][*port].is_some()
+            })
+            .map(|(port, _)| port);
+        let consumed_input = contracted_consumed.next().or(first_consumed);
+        if contracted_consumed.next().is_some() {
+            return Err(SchedulerError::InvalidPlan);
+        }
+        if io
+            .input_abnormal
+            .iter()
+            .enumerate()
+            .any(|(port, terminal)| {
+                terminal.is_some() && self.terminal_transductions[node][port].is_none()
+            })
+        {
+            return Err(SchedulerError::InvalidPlan);
+        }
+        let selected_input = active_input
+            .map(|port| usize::from(port.0))
+            .or(consumed_input)
+            .or_else(|| {
+                (0..PORTS).find(|port| {
+                    io.inputs[*port].is_none()
+                        && (io.input_abnormal[*port].is_some()
+                            || (io.input_closed[*port]
+                                && self.terminal_transductions[node][*port].is_some()))
+                })
+            });
+        let Some(selected_input) = selected_input else {
+            return Ok(None);
+        };
+        let Some(contract) = self.terminal_transductions[node][selected_input] else {
+            if io.input_abnormal[selected_input].is_some() {
                 return Err(SchedulerError::InvalidPlan);
             }
             return Ok(None);
@@ -2534,9 +2634,11 @@ where
                             port,
                             terminal: propagated,
                         } if port == contract.output && propagated == terminal => Ok(None),
-                        StepOutcome::Progress => {
-                            Ok(Some(ActiveTerminalPhase::Abnormal { terminal, emitted }))
-                        }
+                        StepOutcome::Progress => Ok(Some(ActiveTerminalPhase::Abnormal {
+                            input: contract.input,
+                            terminal,
+                            emitted,
+                        })),
                         StepOutcome::Fail(_) => Ok(None),
                         _ => Err(SchedulerError::InvalidPlan),
                     }
@@ -2580,7 +2682,10 @@ where
                 )?;
                 match outcome {
                     StepOutcome::Complete => Ok(None),
-                    StepOutcome::Progress => Ok(Some(ActiveTerminalPhase::Normal { emitted })),
+                    StepOutcome::Progress => Ok(Some(ActiveTerminalPhase::Normal {
+                        input: contract.input,
+                        emitted,
+                    })),
                     StepOutcome::Fail(_) => Ok(None),
                     _ => Err(SchedulerError::InvalidPlan),
                 }
@@ -2609,7 +2714,7 @@ where
         io: &StepIo<PORTS>,
     ) -> Result<Option<ActiveTerminalPhase>, SchedulerError> {
         match phase {
-            ActiveTerminalPhase::Normal { emitted } => {
+            ActiveTerminalPhase::Normal { input, emitted } => {
                 let AssignedNormalCloseTransduction::FlushThenPropagate(bound) =
                     contract.normal_close
                 else {
@@ -2619,12 +2724,16 @@ where
                 match outcome {
                     StepOutcome::Complete => Ok(None),
                     StepOutcome::Progress | StepOutcome::Await | StepOutcome::Yield => {
-                        Ok(Some(ActiveTerminalPhase::Normal { emitted }))
+                        Ok(Some(ActiveTerminalPhase::Normal { input, emitted }))
                     }
                     _ => Err(SchedulerError::InvalidPlan),
                 }
             }
-            ActiveTerminalPhase::Abnormal { terminal, emitted } => {
+            ActiveTerminalPhase::Abnormal {
+                input,
+                terminal,
+                emitted,
+            } => {
                 let AssignedAbnormalTransduction::FinalizeThenPropagate(bound) = contract.abnormal
                 else {
                     return Err(SchedulerError::InvalidPlan);
@@ -2636,7 +2745,11 @@ where
                         terminal: propagated,
                     } if port == contract.output && propagated == terminal => Ok(None),
                     StepOutcome::Progress | StepOutcome::Await | StepOutcome::Yield => {
-                        Ok(Some(ActiveTerminalPhase::Abnormal { terminal, emitted }))
+                        Ok(Some(ActiveTerminalPhase::Abnormal {
+                            input,
+                            terminal,
+                            emitted,
+                        }))
                     }
                     _ => Err(SchedulerError::InvalidPlan),
                 }
@@ -2740,6 +2853,7 @@ where
                     None,
                     kind,
                 )?;
+                self.terminal_inputs_consumed[node][port] = true;
             }
         }
 

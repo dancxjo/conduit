@@ -15,7 +15,7 @@ pub(super) struct KernelTables {
     cords: [CordSpec; MAX_CORDS],
     routes: FixedRoutes<ROUTE_SLOTS, ROUTE_TARGETS>,
     host_bindings: FixedHostCallBindings<HOST_BINDING_SLOTS>,
-    terminal_transductions: [Option<AssignedTerminalTransduction>; MAX_NODES],
+    terminal_transductions: [[Option<AssignedTerminalTransduction>; PORTS]; MAX_NODES],
 }
 
 impl KernelTables {
@@ -30,7 +30,7 @@ impl KernelTables {
             cords: [CordSpec::inactive(); MAX_CORDS],
             routes: FixedRoutes::new(PORTS as u16),
             host_bindings: FixedHostCallBindings::new(HOST_CALLS_PER_NODE),
-            terminal_transductions: [None; MAX_NODES],
+            terminal_transductions: [[None; PORTS]; MAX_NODES],
         };
         for partition in partitions {
             if partition.nodes.len() != partition.node_specs.len() {
@@ -44,10 +44,17 @@ impl KernelTables {
                     .nodes
                     .get_mut(tables.active_nodes)
                     .ok_or_else(|| "combined kernel node capacity exceeded".to_string())? = *spec;
-                tables.terminal_transductions[tables.active_nodes] = node
-                    .terminal_transduction
-                    .as_ref()
-                    .map(|value| value.assigned());
+                for contract in &node.terminal_transductions {
+                    let assigned = contract.assigned();
+                    let input = usize::from(assigned.input.0);
+                    if input >= PORTS
+                        || tables.terminal_transductions[tables.active_nodes][input]
+                            .replace(assigned)
+                            .is_some()
+                    {
+                        return Err("invalid duplicate lowered terminal input".into());
+                    }
+                }
                 tables.active_nodes += 1;
             }
             for cord in &partition.cords {

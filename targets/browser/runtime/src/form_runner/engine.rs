@@ -52,7 +52,10 @@ type BrowserKernel = FixedScheduler<
 /// Host-prepared state accompanies, but never replaces, the production kernel.
 pub(super) struct TourScheduler {
     pub(super) failure: Option<conduit_kernel::Failure>,
-    kernel: BrowserKernel,
+    // Hosted preparation may allocate; keeping the fixed-capacity kernel in
+    // one stable allocation avoids copying its bounded tables through native
+    // and Wasm ABI session transitions. Play itself performs no allocation.
+    kernel: Box<BrowserKernel>,
     snapshots: Vec<Option<Box<resource_effect::SnapshotState>>>,
     selectors: Vec<Option<crate::installed_browser::pointer_selector::PreparedSelector>>,
     mappings: Vec<Option<conduit_semantic_catalog::QuantityMapping>>,

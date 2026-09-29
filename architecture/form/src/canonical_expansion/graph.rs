@@ -396,7 +396,11 @@ pub(super) fn infer_abnormal_export(
             gears
                 .iter()
                 .find(|gear| gear.gear_id == connection.sink_gear_id)
-                .and_then(|gear| gear.terminal_transduction.as_ref())
+                .and_then(|gear| {
+                    gear.terminal_transductions
+                        .iter()
+                        .find(|contract| contract.input_port_id == connection.sink_port_id)
+                })
                 .is_some_and(|contract| {
                     contract.input_port_id == connection.sink_port_id
                         && matches!(
@@ -591,9 +595,13 @@ pub(super) fn cancellation_sink(
     })?;
     if !matches!(
         instance
-            .terminal_transduction
-            .as_ref()
-            .map(|profile| &profile.cancellation),
+            .terminal_transductions
+            .iter()
+            .find_map(|profile| matches!(
+                profile.cancellation,
+                conduit_core::CancellationTransduction::Request { .. }
+            )
+            .then_some(&profile.cancellation)),
         Some(conduit_core::CancellationTransduction::Request { .. })
     ) {
         return Err(CanonicalExpansionDiagnostic::new(

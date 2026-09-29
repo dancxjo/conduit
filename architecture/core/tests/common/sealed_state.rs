@@ -53,7 +53,7 @@ pub fn fragment() -> PlanFragment {
             },
             inputs: vec![port("next", PortDirection::Input)],
             outputs: vec![port("current", PortDirection::Output)],
-            terminal_transduction: None,
+            terminal_transductions: Vec::new(),
             host_calls: vec![],
             resources: vec![],
             authority: vec![],

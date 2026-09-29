@@ -302,7 +302,7 @@ pub(in crate::form_runner) fn prepare_body_scheduler(
     .map_err(debug_error)?;
     Ok(TourScheduler {
         failure: None,
-        kernel,
+        kernel: Box::new(kernel),
         mappings,
         selectors,
         timing,

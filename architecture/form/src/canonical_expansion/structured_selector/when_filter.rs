@@ -99,7 +99,7 @@ pub(super) fn expand_when_filter(
             configuration: definition.configuration.clone(),
             laws: crate::pure_expression_semantic_laws(),
         },
-        terminal_transduction: None,
+        terminal_transductions: Vec::new(),
         resource_ports: Vec::new(),
         configuration: definition
             .configuration
