@@ -119,6 +119,100 @@ fn document_mentions_type(document: &crate::SyntaxDocument, name: &str) -> bool 
     })
 }
 
+pub(crate) fn validate_concrete_value(
+    source_type: &str,
+    value: &crate::CanonicalStructuredStartupValue,
+    catalog: &StartupCatalog,
+    span: crate::Span,
+) -> Result<(), SyntaxCheckDiagnostic> {
+    let Some(contracts) = catalog.structured_type_contracts(source_type) else {
+        return Ok(());
+    };
+    let Some(concrete) = value.try_concrete() else {
+        return Ok(());
+    };
+    for contract in contracts {
+        validate_at_path(&concrete, &contract.representation_path, &contract.contract).map_err(
+            |error| {
+                diagnostic(
+                    span,
+                    alloc::format!(
+                        "native Type '{}' refinement refuses this value at '{}': {error:?}",
+                        source_type,
+                        contract.representation_path
+                    ),
+                )
+            },
+        )?;
+    }
+    Ok(())
+}
+
+fn validate_at_path(
+    value: &conduit_core::StructuredInfoValue,
+    path: &str,
+    contract: &CheckedValueContract,
+) -> Result<(), conduit_core::ValueConstraintRefusal> {
+    if path.is_empty() {
+        let conduit_core::StructuredInfoValueShape::Leaf(bytes) = value.shape() else {
+            return Err(conduit_core::ValueConstraintRefusal::WrongConstraintKind);
+        };
+        return contract.validate(bytes);
+    }
+    if let Some(rest) = path.strip_prefix("[]") {
+        let conduit_core::StructuredInfoValueShape::Collection(values) = value.shape() else {
+            return Err(conduit_core::ValueConstraintRefusal::WrongConstraintKind);
+        };
+        for item in values {
+            validate_at_path(item, rest, contract)?;
+        }
+        return Ok(());
+    }
+    if let Some(rest) = path.strip_prefix("?some") {
+        let conduit_core::StructuredInfoValueShape::Variant { tag, payload } = value.shape() else {
+            return Err(conduit_core::ValueConstraintRefusal::WrongConstraintKind);
+        };
+        return if tag == "some" {
+            validate_at_path(payload, rest, contract)
+        } else {
+            Ok(())
+        };
+    }
+    if let Some(rest) = path.strip_prefix('.') {
+        let (name, remaining) = split_path_component(rest);
+        let conduit_core::StructuredInfoValueShape::Record(fields) = value.shape() else {
+            return Err(conduit_core::ValueConstraintRefusal::WrongConstraintKind);
+        };
+        let field = fields
+            .iter()
+            .find(|field| field.name() == name)
+            .ok_or(conduit_core::ValueConstraintRefusal::WrongConstraintKind)?;
+        return validate_at_path(field.value(), remaining, contract);
+    }
+    if let Some(rest) = path.strip_prefix('|') {
+        let (wanted, remaining) = split_path_component(rest);
+        let conduit_core::StructuredInfoValueShape::Variant { tag, payload } = value.shape() else {
+            return Err(conduit_core::ValueConstraintRefusal::WrongConstraintKind);
+        };
+        return if tag == wanted {
+            validate_at_path(payload, remaining, contract)
+        } else {
+            Ok(())
+        };
+    }
+    Err(conduit_core::ValueConstraintRefusal::WrongConstraintKind)
+}
+
+fn split_path_component(path: &str) -> (&str, &str) {
+    let end = path
+        .char_indices()
+        .find_map(|(index, character)| {
+            (index > 0 && matches!(character, '.' | '|' | '[' | '?')).then_some(index)
+        })
+        .unwrap_or(path.len());
+    path.split_at(end)
+}
+
 fn compile_named<'a>(
     name: &'a str,
     declarations: &alloc::collections::BTreeMap<&'a str, &'a TypeSyntax>,

@@ -1119,6 +1119,29 @@ fn native_types_work_in_keeps_and_data_refs_without_structural_interchange() {
         )
     );
 
+    let initialized = check_syntax_document(
+        &parse_syntax_document(
+            "type Note = U8 in 0..=127\nform memory {\n    cell: keep Note(60)\n}\n",
+        ),
+        &catalog,
+    )
+    .unwrap();
+    assert!(initialized.forms[0].gears[0]
+        .retained
+        .as_ref()
+        .unwrap()
+        .initial
+        .is_some());
+    let refused = check_syntax_document(
+        &parse_syntax_document(
+            "type Note = U8 in 0..=127\nform memory {\n    cell: keep Note(200)\n}\n",
+        ),
+        &catalog,
+    )
+    .unwrap_err();
+    assert_eq!(refused.code, "CND-FRM-058");
+    assert!(refused.message.contains("refinement refuses"));
+
     let mismatch = check_syntax_document(
         &parse_syntax_document(
             "type Note = U8 in 0..=127\ntype Velocity = U8 in 0..=127\nform wrong (\n    input: Note >> output: Velocity\n) {\n    input >> output\n}\n",

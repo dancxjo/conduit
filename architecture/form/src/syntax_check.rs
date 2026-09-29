@@ -756,6 +756,14 @@ fn check_form(
                                     .map_err(|error| error.diagnostic(initial.span))
                             })
                             .transpose()?;
+                        if let Some(CanonicalStartupValue::Structured(value)) = &initial {
+                            crate::native_type::validate_concrete_value(
+                                &retained.value_type.text,
+                                value,
+                                catalog,
+                                retained.value_type.span,
+                            )?;
+                        }
                         Ok(Box::new(crate::CheckedRetainedValue {
                             value_type,
                             value_kind,
