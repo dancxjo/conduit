@@ -298,9 +298,7 @@ mod tests {
         let source = "form value (\n count: Count in 1..=4 in [2, 3, 4]\n) {\n}\n";
         let spans = highlight_syntax(source).unwrap();
         let pieces = pieces(source, &spans);
-        for keyword in ["in"] {
-            assert!(pieces.contains(&(SyntaxHighlightKind::Keyword, keyword)));
-        }
+        assert!(pieces.contains(&(SyntaxHighlightKind::Keyword, "in")));
     }
     fn pieces<'a>(
         source: &'a str,

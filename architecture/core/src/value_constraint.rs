@@ -60,7 +60,8 @@ pub enum ValueConstraint {
     },
     TextPattern {
         pattern: CheckedTextPattern,
-        search: bool,
+        anchored_start: bool,
+        anchored_end: bool,
         negated: bool,
     },
 }
@@ -240,11 +241,13 @@ impl ValueConstraint {
             }
             Self::TextPattern {
                 pattern,
-                search,
+                anchored_start,
+                anchored_end,
                 negated,
             } => {
                 canonical.push(5);
-                canonical.push(u8::from(*search));
+                canonical.push(u8::from(*anchored_start));
+                canonical.push(u8::from(*anchored_end));
                 canonical.push(u8::from(*negated));
                 push_u32(canonical, u32::from(pattern.start_state));
                 push_u32(canonical, pattern.maximum_input_characters);
@@ -430,7 +433,8 @@ impl ValueConstraint {
             }
             Self::TextPattern {
                 pattern,
-                search,
+                anchored_start,
+                anchored_end,
                 negated,
             } => {
                 if value_kind != crate::TEXT_INFO_ID {
@@ -438,10 +442,11 @@ impl ValueConstraint {
                 }
                 let text = core::str::from_utf8(canonical)
                     .map_err(|_| ValueConstraintRefusal::TextPattern)?;
-                ((if *search {
-                    pattern.has_match(text)
-                } else {
-                    pattern.is_match(text)
+                ((match (*anchored_start, *anchored_end) {
+                    (false, false) => pattern.has_match(text),
+                    (true, false) => pattern.has_prefix_match(text),
+                    (false, true) => pattern.has_suffix_match(text),
+                    (true, true) => pattern.is_match(text),
                 }) != *negated)
                     .then_some(())
                     .ok_or(ValueConstraintRefusal::TextPattern)
@@ -622,6 +627,76 @@ impl CheckedTextPattern {
                 if self.states[state].accepting {
                     return true;
                 }
+            }
+        }
+        false
+    }
+
+    pub fn has_prefix_match(&self, input: &str) -> bool {
+        if input.chars().count() > self.maximum_input_characters as usize {
+            return false;
+        }
+        let mut state = usize::from(self.start_state);
+        if self.states[state].accepting {
+            return true;
+        }
+        let mut steps = 0_u32;
+        for character in input.chars() {
+            let scalar = character as u32;
+            let mut target = None;
+            for transition in &self.states[state].transitions {
+                steps = steps.saturating_add(1);
+                if steps > self.maximum_match_steps {
+                    return false;
+                }
+                if scalar >= transition.first_scalar && scalar <= transition.last_scalar {
+                    target = Some(usize::from(transition.target_state));
+                    break;
+                }
+            }
+            let Some(next) = target else {
+                return false;
+            };
+            state = next;
+            if self.states[state].accepting {
+                return true;
+            }
+        }
+        false
+    }
+
+    pub fn has_suffix_match(&self, input: &str) -> bool {
+        if input.chars().count() > self.maximum_input_characters as usize {
+            return false;
+        }
+        let mut steps = 0_u32;
+        for offset in input
+            .char_indices()
+            .map(|(offset, _)| offset)
+            .chain(core::iter::once(input.len()))
+        {
+            let mut state = usize::from(self.start_state);
+            for character in input[offset..].chars() {
+                let scalar = character as u32;
+                let mut target = None;
+                for transition in &self.states[state].transitions {
+                    steps = steps.saturating_add(1);
+                    if steps > self.maximum_match_steps {
+                        return false;
+                    }
+                    if scalar >= transition.first_scalar && scalar <= transition.last_scalar {
+                        target = Some(usize::from(transition.target_state));
+                        break;
+                    }
+                }
+                let Some(next) = target else {
+                    state = usize::MAX;
+                    break;
+                };
+                state = next;
+            }
+            if state != usize::MAX && self.states[state].accepting {
+                return true;
             }
         }
         false
@@ -866,7 +941,8 @@ mod tests {
                 },
                 ValueConstraint::TextPattern {
                     pattern: literal_ab(),
-                    search: false,
+                    anchored_start: true,
+                    anchored_end: true,
                     negated: false,
                 },
             ],
@@ -918,7 +994,8 @@ mod tests {
             2,
             vec![ValueConstraint::TextPattern {
                 pattern: literal_ab(),
-                search: false,
+                anchored_start: true,
+                anchored_end: true,
                 negated: false,
             }],
         )
@@ -928,7 +1005,8 @@ mod tests {
             2,
             vec![ValueConstraint::TextPattern {
                 pattern: literal_ab(),
-                search: false,
+                anchored_start: true,
+                anchored_end: true,
                 negated: true,
             }],
         )

@@ -269,13 +269,19 @@ impl Parser<'_> {
                 return Err(self.invalid_statement(line, start));
             };
             if relation == "pattern" {
-                let (pattern, case_insensitive, consumed) = slash_pattern(&source[body_start..])
-                    .ok_or_else(|| self.invalid_statement(line, start))?;
+                let (pattern, case_insensitive, anchored_start, anchored_end, consumed) =
+                    slash_pattern(&source[body_start..])
+                        .ok_or_else(|| self.invalid_statement(line, start))?;
                 let clause_end = body_start + consumed;
-                let pattern_offset = start + source_offset + body_start + 1;
+                let pattern_offset = start
+                    + source_offset
+                    + body_start
+                    + source[body_start..clause_end].find(pattern).unwrap();
                 refinements.push(crate::ValueRefinement::TextPattern {
                     source: self.spanned(pattern, pattern_offset),
                     case_insensitive,
+                    anchored_start,
+                    anchored_end,
                     negated,
                     span: self.span(
                         start + source_offset + cursor,
@@ -393,7 +399,7 @@ fn bracketed_members(source: &str) -> Option<usize> {
     None
 }
 
-fn slash_pattern(source: &str) -> Option<(&str, bool, usize)> {
+fn slash_pattern(source: &str) -> Option<(&str, bool, bool, bool, usize)> {
     if !source.starts_with('/') {
         return None;
     }
@@ -418,7 +424,29 @@ fn slash_pattern(source: &str) -> Option<(&str, bool, usize)> {
                     "i" => true,
                     _ => return None,
                 };
-                return Some((&source[1..offset], case_insensitive, flags_end));
+                let mut pattern = &source[1..offset];
+                let anchored_start = pattern.starts_with('^');
+                if anchored_start {
+                    pattern = &pattern[1..];
+                }
+                let anchored_end = pattern.ends_with('$')
+                    && !pattern
+                        .as_bytes()
+                        .get(pattern.len().saturating_sub(2))
+                        .is_some_and(|byte| *byte == b'\\');
+                if anchored_end {
+                    pattern = &pattern[..pattern.len() - 1];
+                }
+                if pattern.is_empty() {
+                    return None;
+                }
+                return Some((
+                    pattern,
+                    case_insensitive,
+                    anchored_start,
+                    anchored_end,
+                    flags_end,
+                ));
             }
             _ => {}
         }

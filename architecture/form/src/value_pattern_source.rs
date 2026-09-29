@@ -130,6 +130,22 @@ impl PatternParser<'_> {
         let offset = self.offset;
         match self.take() {
             Some('(') => {
+                if self.source[self.offset..].starts_with("?:") {
+                    self.offset += 2;
+                } else if self.source[self.offset..].starts_with("?<") {
+                    self.offset += 2;
+                    let name_start = self.offset;
+                    while self.peek().is_some_and(|character| character != '>') {
+                        self.take();
+                    }
+                    let name = &self.source[name_start..self.offset];
+                    if self.take() != Some('>') || !portable_group_name(name) {
+                        return Err(TextPatternSourceError::Unexpected {
+                            offset,
+                            character: self.peek(),
+                        });
+                    }
+                }
                 let expression = self.choice()?;
                 if self.take() != Some(')') {
                     return Err(TextPatternSourceError::UnclosedGroup { offset });
@@ -291,6 +307,14 @@ impl PatternParser<'_> {
             character: self.peek(),
         }
     }
+}
+
+fn portable_group_name(name: &str) -> bool {
+    let mut characters = name.chars();
+    characters
+        .next()
+        .is_some_and(|character| character.is_ascii_alphabetic() || character == '_')
+        && characters.all(|character| character.is_ascii_alphanumeric() || character == '_')
 }
 
 fn scalar_expression(character: char) -> TextPatternExpression {

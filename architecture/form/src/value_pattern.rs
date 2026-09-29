@@ -409,6 +409,19 @@ mod tests {
     }
 
     #[test]
+    fn noncapturing_and_named_groups_compile_to_the_same_boolean_language() {
+        let ordinary = parse_text_pattern("(AB){2}").unwrap().compile(8).unwrap();
+        let noncapturing = parse_text_pattern("(?:AB){2}").unwrap().compile(8).unwrap();
+        let named = parse_text_pattern("(?<code>AB){2}")
+            .unwrap()
+            .compile(8)
+            .unwrap();
+        assert_eq!(ordinary, noncapturing);
+        assert_eq!(ordinary, named);
+        assert!(named.is_match("ABAB"));
+    }
+
+    #[test]
     fn source_refuses_unbounded_and_malformed_constructs() {
         assert!(matches!(
             parse_text_pattern("a*"),

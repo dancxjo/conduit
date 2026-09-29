@@ -26,6 +26,8 @@ pub(super) fn checked_refinements(
             crate::ValueRefinement::TextPattern {
                 source,
                 case_insensitive,
+                anchored_start,
+                anchored_end,
                 negated,
                 span,
             } => {
@@ -50,7 +52,8 @@ pub(super) fn checked_refinements(
                     .compile_search(maximum_bytes)
                     .map(|pattern| ValueConstraint::TextPattern {
                         pattern,
-                        search: true,
+                        anchored_start: *anchored_start,
+                        anchored_end: *anchored_end,
                         negated: *negated,
                     })
                     .map_err(|error| SyntaxCheckDiagnostic {

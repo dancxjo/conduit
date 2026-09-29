@@ -115,6 +115,37 @@ fn negated_membership_and_pattern_are_checked_relations() {
 }
 
 #[test]
+fn canonical_anchors_select_prefix_suffix_and_whole_value_profiles() {
+    let checked = check(
+        "form anchored (\n >> prefix: Text <= 8B ~ /^AB/\n >> suffix: Text <= 8B ~ /AB$/\n >> whole: Text <= 8B ~ /^AB$/\n) {\n}\n",
+    );
+    let prefix = input_contract(&checked, "prefix");
+    assert_eq!(prefix.validate(b"ABxx"), Ok(()));
+    assert_eq!(
+        prefix.validate(b"xxAB"),
+        Err(ValueConstraintRefusal::TextPattern)
+    );
+
+    let suffix = input_contract(&checked, "suffix");
+    assert_eq!(suffix.validate(b"xxAB"), Ok(()));
+    assert_eq!(
+        suffix.validate(b"ABxx"),
+        Err(ValueConstraintRefusal::TextPattern)
+    );
+
+    let whole = input_contract(&checked, "whole");
+    assert_eq!(whole.validate(b"AB"), Ok(()));
+    assert_eq!(
+        whole.validate(b"xxAB"),
+        Err(ValueConstraintRefusal::TextPattern)
+    );
+    assert_eq!(
+        whole.validate(b"ABxx"),
+        Err(ValueConstraintRefusal::TextPattern)
+    );
+}
+
+#[test]
 fn malformed_or_incompatible_authored_refinements_refuse_during_checking() {
     for (source, expected) in [
         (

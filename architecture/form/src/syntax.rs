@@ -183,6 +183,8 @@ pub enum ValueRefinement {
     TextPattern {
         source: SpannedText,
         case_insensitive: bool,
+        anchored_start: bool,
+        anchored_end: bool,
         negated: bool,
         span: Span,
     },
