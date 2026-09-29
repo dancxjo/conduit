@@ -57,6 +57,7 @@ pub enum AssignedNormalCloseTransduction {
     PropagateAfterDrain,
     Consume,
     FlushThenPropagate(AssignedFiniteTerminalEmission),
+    PropagateWhenAllClose,
     FlushThenPropagateWhenAllClose(AssignedFiniteTerminalEmission),
     DomainSpecific { law: [u8; 32] },
 }
@@ -2725,6 +2726,22 @@ where
                         StepOutcome::Progress | StepOutcome::Fail(_) => Ok(None),
                         _ => Err(SchedulerError::InvalidPlan),
                     }
+                }
+            }
+            Normal::PropagateWhenAllClose => {
+                let last =
+                    self.terminal_transductions[node]
+                        .iter()
+                        .enumerate()
+                        .all(|(port, profile)| {
+                            profile.is_none()
+                                || port == input
+                                || self.terminal_inputs_consumed[node][port]
+                        });
+                match (last, outcome) {
+                    (false, StepOutcome::Progress | StepOutcome::Fail(_))
+                    | (true, StepOutcome::Complete | StepOutcome::Fail(_)) => Ok(None),
+                    _ => Err(SchedulerError::InvalidPlan),
                 }
             }
             Normal::Consume => {

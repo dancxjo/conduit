@@ -68,10 +68,12 @@ pub use completion::*;
 pub use conduit_assigned_plan::*;
 pub use configuration::{
     AbnormalTerminalTransduction, CancellationTransduction, ConfigurationEntry, ConfigurationValue,
-    ExternalEffectBehavior, FiniteTerminalEmission, KindConfigurationField, KindConfigurationRule,
-    KindSemanticContract, KindSemanticLaw, KindTerminalBehavior, NormalCloseTransduction,
-    ReplayBehavior, SemanticDependence, StructuredConfigurationValue, SuspensionBehavior,
-    TemporalStateBehavior, TerminalTransductionProfile, VariabilityBehavior,
+    ExternalEffectBehavior, FiniteTerminalEmission, KeyedJoinCapacityBehavior,
+    KeyedJoinOutputOrder, KeyedJoinPairing, KeyedJoinSemanticLaw, KeyedJoinUnmatchedCloseBehavior,
+    KindConfigurationField, KindConfigurationRule, KindSemanticContract, KindSemanticLaw,
+    KindTerminalBehavior, NormalCloseTransduction, ReplayBehavior, SemanticDependence,
+    StructuredConfigurationValue, SuspensionBehavior, TemporalStateBehavior,
+    TerminalTransductionProfile, VariabilityBehavior,
 };
 pub use consequential_effect::*;
 pub use control_loop::*;

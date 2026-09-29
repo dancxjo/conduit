@@ -1164,16 +1164,12 @@ fn simultaneous_terminals_use_each_inputs_exact_contract_in_port_order() {
 #[derive(Clone, Copy)]
 struct AllInputsCloseBack {
     first_closed: bool,
+    normal_close: AssignedNormalCloseTransduction,
 }
 
 impl StepBack<2> for AllInputsCloseBack {
     fn terminal_transductions(&self) -> [Option<AssignedTerminalTransduction>; 2] {
-        let normal_close = AssignedNormalCloseTransduction::FlushThenPropagateWhenAllClose(
-            AssignedFiniteTerminalEmission {
-                maximum_items: 1,
-                maximum_bytes: 8,
-            },
-        );
+        let normal_close = self.normal_close;
         [0, 1].map(|input| {
             Some(AssignedTerminalTransduction {
                 input: PortId(input),
@@ -1201,6 +1197,22 @@ impl StepBack<2> for AllInputsCloseBack {
 
 #[test]
 fn all_inputs_close_contract_consumes_early_close_and_completes_on_last_close() {
+    exercise_all_inputs_close(
+        AssignedNormalCloseTransduction::FlushThenPropagateWhenAllClose(
+            AssignedFiniteTerminalEmission {
+                maximum_items: 1,
+                maximum_bytes: 8,
+            },
+        ),
+    );
+}
+
+#[test]
+fn non_flushing_all_inputs_close_contract_waits_for_the_last_close() {
+    exercise_all_inputs_close(AssignedNormalCloseTransduction::PropagateWhenAllClose);
+}
+
+fn exercise_all_inputs_close(normal_close: AssignedNormalCloseTransduction) {
     let first = RemoteEndpointId(0);
     let second = RemoteEndpointId(1);
     let mut routes = FixedRoutes::<1, 1>::new(2);
@@ -1213,6 +1225,7 @@ fn all_inputs_close_contract_consumes_early_close_and_completes_on_last_close() 
     };
     let driver = AllInputsCloseBack {
         first_closed: false,
+        normal_close,
     };
     let contracts = driver.terminal_transductions();
     let mut scheduler = FixedScheduler::<_, _, _, 1, 2, 2, 2, 1, 1>::new(

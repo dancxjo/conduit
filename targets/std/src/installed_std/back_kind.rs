@@ -16,6 +16,7 @@ use super::distance_frequency_back::DistanceFrequencyBack;
 use super::final_normalized_pattern_back::FinalNormalizedPatternBack;
 use super::flow_first_back::FlowFirstBack;
 use super::flow_gate_back::FlowGateScalarBack;
+use super::flow_join_by_key_back::FlowJoinByKeyBack;
 use super::flow_pressure_backs::FlowPressureBack;
 use super::flow_state_backs::{FlowTeeScalarBack, StateLatestScalarBack};
 use super::flow_zip_back::FlowZipBack;
@@ -139,6 +140,7 @@ pub(super) enum InstalledBack {
     CurrentSample(CurrentSampleBack),
     CombineLatest(CombineLatestBack),
     FlowZip(FlowZipBack),
+    FlowJoinByKey(Box<FlowJoinByKeyBack>),
     FlowGateScalar(FlowGateScalarBack),
     FlowFirst(FlowFirstBack),
     KeyEventTee(KeyEventTeeBack),

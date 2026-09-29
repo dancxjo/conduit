@@ -585,6 +585,17 @@ fn push_semantic_contract(canonical: &mut Vec<u8>, contract: &crate::KindSemanti
                     push_value_contract(canonical, &value_contract.contract);
                 }
             }
+            Law::KeyedJoin(join) => {
+                canonical.push(12);
+                push_value_contract(canonical, &join.key);
+                push_value_contract(canonical, &join.left_value);
+                push_value_contract(canonical, &join.right_value);
+                canonical.extend_from_slice(&join.maximum_pending_per_side.to_le_bytes());
+                canonical.push(join.pairing as u8);
+                canonical.push(join.output_order as u8);
+                canonical.push(join.capacity as u8);
+                canonical.push(join.unmatched_on_close as u8);
+            }
         }
     }
 }
@@ -648,6 +659,7 @@ fn push_terminal_transduction(
             canonical.extend_from_slice(&bound.maximum_items.to_le_bytes());
             push_u32(canonical, bound.maximum_bytes);
         }
+        Normal::PropagateWhenAllClose => canonical.push(6),
     }
     match &profile.abnormal {
         Abnormal::NotAccepted => canonical.push(0),

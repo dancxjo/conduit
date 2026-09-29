@@ -115,6 +115,13 @@ impl KindSemanticContract {
             })
             .unwrap_or_default()
     }
+
+    pub fn keyed_join(&self) -> Option<&KeyedJoinSemanticLaw> {
+        self.laws.iter().find_map(|law| match law {
+            KindSemanticLaw::KeyedJoin(contract) => Some(contract),
+            _ => None,
+        })
+    }
 }
 
 /// Finite validation law for one Kind configuration field.
@@ -281,6 +288,40 @@ pub enum KindSemanticLaw {
     ResourcePorts(Vec<crate::ResourcePortContract>),
     /// Exact finite contracts for values at this Kind's Fore.
     ValueContracts(Vec<crate::FrontValueContract>),
+    /// Finite correlation semantics for a two-sided one-to-one keyed join.
+    KeyedJoin(KeyedJoinSemanticLaw),
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct KeyedJoinSemanticLaw {
+    pub key: crate::CheckedValueContract,
+    pub left_value: crate::CheckedValueContract,
+    pub right_value: crate::CheckedValueContract,
+    pub maximum_pending_per_side: u16,
+    pub pairing: KeyedJoinPairing,
+    pub output_order: KeyedJoinOutputOrder,
+    pub capacity: KeyedJoinCapacityBehavior,
+    pub unmatched_on_close: KeyedJoinUnmatchedCloseBehavior,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+pub enum KeyedJoinPairing {
+    OldestWithOldest,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+pub enum KeyedJoinOutputOrder {
+    MatchCompletionArrival,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+pub enum KeyedJoinCapacityBehavior {
+    BackpressureUnmatched,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+pub enum KeyedJoinUnmatchedCloseBehavior {
+    DiscardWhenMatchBecomesImpossible,
 }
 
 /// Independent terminal behaviors owned by a Kind's checked Fore.
@@ -305,6 +346,9 @@ pub enum NormalCloseTransduction {
     PropagateAfterDrain,
     Consume,
     FlushThenPropagate(FiniteTerminalEmission),
+    /// Consume each input close independently and propagate output closure
+    /// only after every contracted input has closed. Closure owes no output.
+    PropagateWhenAllClose,
     /// Consume each input close independently, retaining the Gear until every
     /// contracted input has closed. The last close propagates output closure;
     /// each close may flush only the stated finite already-owed output.

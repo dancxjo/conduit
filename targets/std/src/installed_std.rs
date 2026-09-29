@@ -77,6 +77,7 @@ mod combine_latest_back;
 mod current_sample_back;
 mod data_text_back;
 mod data_text_host;
+mod flow_join_by_key_back;
 mod flow_zip_back;
 mod presentation_composition;
 mod presentation_construction_host;
