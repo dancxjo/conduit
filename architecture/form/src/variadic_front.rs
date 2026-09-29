@@ -180,7 +180,10 @@ pub(crate) fn specialized_kind_identity(base: &KindIdentity, input_count: usize)
 #[cfg(test)]
 mod tests {
     use super::*;
-    use conduit_core::{kind_id, PortTemporal};
+    use conduit_core::{
+        kind_id, AbnormalTerminalTransduction, CancellationTransduction, CapabilityLimits,
+        NormalCloseTransduction, PortTemporal, TerminalTransductionProfile,
+    };
 
     fn port(name: &str, direction: PortDirection) -> PortDescriptor {
         PortDescriptor {
@@ -229,5 +232,56 @@ mod tests {
             u16::MAX,
         )
         .is_err());
+    }
+
+    #[test]
+    fn semantic_kind_specialization_repeats_exact_per_input_terminal_law() {
+        let mut prototype = port("operand", PortDirection::Input);
+        prototype.temporal = PortTemporal::Flow { closes: true };
+        prototype.abnormal_kind = Some(kind_id("test/fault"));
+        let mut output = port("result", PortDirection::Output);
+        output.temporal = PortTemporal::Flow { closes: true };
+        output.abnormal_kind = Some(kind_id("test/fault"));
+        let family =
+            HomogeneousVariadicFore::new(prototype.clone(), output.clone(), 2, 16).unwrap();
+        let template = Kind {
+            startup_parameters: Vec::new(),
+            shorthand: None,
+            kind_id: kind_id("flow/merge"),
+            kind_contract_revision: KindIdentity::from("flow/merge@1"),
+            inputs: vec![prototype],
+            outputs: vec![output],
+            configuration: Vec::new(),
+            semantic_laws: vec![KindSemanticLaw::TerminalTransduction(
+                TerminalTransductionProfile {
+                    input_port_id: port_id("operand"),
+                    output_port_id: port_id("result"),
+                    normal_close: NormalCloseTransduction::PropagateAfterDrain,
+                    abnormal: AbnormalTerminalTransduction::PropagateAfterDrain,
+                    cancellation: CancellationTransduction::NotCancellable,
+                },
+            )],
+            limits: CapabilityLimits {
+                max_active_instances: 1,
+                max_queue_items: 4,
+                max_queue_bytes: 1_024,
+            },
+        };
+        let specialized = family.specialize_kind(&template, 3).unwrap();
+        assert_eq!(
+            specialized.kind_contract_revision.as_str(),
+            "flow/merge@1/inputs/3"
+        );
+        assert_eq!(
+            specialized
+                .terminal_transductions()
+                .map(|profile| profile.input_port_id.as_str())
+                .collect::<Vec<_>>(),
+            ["operand-01", "operand-02", "operand-03"]
+        );
+        assert!(specialized.inputs.iter().all(|input| input
+            .abnormal_kind
+            .as_ref()
+            .is_some_and(|kind| kind.as_str() == "test/fault")));
     }
 }
