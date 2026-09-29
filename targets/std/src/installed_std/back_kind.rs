@@ -8,6 +8,7 @@ use super::body_conversation_context_back::BodyConversationContextBack;
 use super::bool_presentation::BoolPresentationBack;
 use super::calendar_proposal_back::CalendarProposalBack;
 use super::calendar_provider_back::CalendarProviderBack;
+use super::combine_latest_back::CombineLatestBack;
 use super::count_backs::{CountPresentationBack, StateCountBack};
 use super::current_sample_back::CurrentSampleBack;
 use super::data_text_back::DataTextBack;
@@ -136,6 +137,7 @@ pub(super) enum InstalledBack {
     FlowTeeScalar(FlowTeeScalarBack),
     StateSelectScalar(StateSelectScalarBack),
     CurrentSample(CurrentSampleBack),
+    CombineLatest(CombineLatestBack),
     FlowZip(FlowZipBack),
     FlowGateScalar(FlowGateScalarBack),
     FlowFirst(FlowFirstBack),

@@ -57,6 +57,7 @@ pub enum AssignedNormalCloseTransduction {
     PropagateAfterDrain,
     Consume,
     FlushThenPropagate(AssignedFiniteTerminalEmission),
+    FlushThenPropagateWhenAllClose(AssignedFiniteTerminalEmission),
     DomainSpecific { law: [u8; 32] },
 }
 
@@ -2585,6 +2586,7 @@ where
                 matches!(
                     contract.normal_close,
                     AssignedNormalCloseTransduction::FlushThenPropagate(_)
+                        | AssignedNormalCloseTransduction::FlushThenPropagateWhenAllClose(_)
                 )
             };
             return if may_wait_for_finite_output_capacity && outcome == StepOutcome::Await {
@@ -2690,6 +2692,41 @@ where
                     _ => Err(SchedulerError::InvalidPlan),
                 }
             }
+            Normal::FlushThenPropagateWhenAllClose(bound) => {
+                let emitted = self.accumulate_terminal_emission(
+                    AssignedFiniteTerminalEmission {
+                        maximum_items: 0,
+                        maximum_bytes: 0,
+                    },
+                    io,
+                    bound,
+                )?;
+                let last =
+                    self.terminal_transductions[node]
+                        .iter()
+                        .enumerate()
+                        .all(|(port, profile)| {
+                            profile.is_none()
+                                || port == input
+                                || self.terminal_inputs_consumed[node][port]
+                        });
+                if last {
+                    match outcome {
+                        StepOutcome::Complete => Ok(None),
+                        StepOutcome::Progress => Ok(Some(ActiveTerminalPhase::Normal {
+                            input: contract.input,
+                            emitted,
+                        })),
+                        StepOutcome::Fail(_) => Ok(None),
+                        _ => Err(SchedulerError::InvalidPlan),
+                    }
+                } else {
+                    match outcome {
+                        StepOutcome::Progress | StepOutcome::Fail(_) => Ok(None),
+                        _ => Err(SchedulerError::InvalidPlan),
+                    }
+                }
+            }
             Normal::Consume => {
                 if matches!(outcome, StepOutcome::Abnormal { .. }) {
                     Err(SchedulerError::InvalidPlan)
@@ -2715,10 +2752,12 @@ where
     ) -> Result<Option<ActiveTerminalPhase>, SchedulerError> {
         match phase {
             ActiveTerminalPhase::Normal { input, emitted } => {
-                let AssignedNormalCloseTransduction::FlushThenPropagate(bound) =
-                    contract.normal_close
-                else {
-                    return Err(SchedulerError::InvalidPlan);
+                let bound = match contract.normal_close {
+                    AssignedNormalCloseTransduction::FlushThenPropagate(bound)
+                    | AssignedNormalCloseTransduction::FlushThenPropagateWhenAllClose(bound) => {
+                        bound
+                    }
+                    _ => return Err(SchedulerError::InvalidPlan),
                 };
                 let emitted = self.accumulate_terminal_emission(emitted, io, bound)?;
                 match outcome {

@@ -643,6 +643,11 @@ fn push_terminal_transduction(
             canonical.push(4);
             push_string(canonical, law.as_str());
         }
+        Normal::FlushThenPropagateWhenAllClose(bound) => {
+            canonical.push(5);
+            canonical.extend_from_slice(&bound.maximum_items.to_le_bytes());
+            push_u32(canonical, bound.maximum_bytes);
+        }
     }
     match &profile.abnormal {
         Abnormal::NotAccepted => canonical.push(0),

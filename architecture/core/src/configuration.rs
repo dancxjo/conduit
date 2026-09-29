@@ -305,7 +305,13 @@ pub enum NormalCloseTransduction {
     PropagateAfterDrain,
     Consume,
     FlushThenPropagate(FiniteTerminalEmission),
-    DomainSpecific { law: KindId },
+    /// Consume each input close independently, retaining the Gear until every
+    /// contracted input has closed. The last close propagates output closure;
+    /// each close may flush only the stated finite already-owed output.
+    FlushThenPropagateWhenAllClose(FiniteTerminalEmission),
+    DomainSpecific {
+        law: KindId,
+    },
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
