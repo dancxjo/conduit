@@ -174,6 +174,7 @@ fn expand_instance_inner(
         let name = gear.name.as_deref().expect("named gears were filtered");
         let instance = instantiate_gear(
             gear,
+            None,
             name,
             form,
             forms,
@@ -218,6 +219,7 @@ fn expand_instance_inner(
                     *count += 1;
                     let instance = instantiate_gear(
                         gear,
+                        Some(operands.len()),
                         &name,
                         form,
                         forms,
@@ -314,6 +316,7 @@ fn expand_instance_inner(
                     *count += 1;
                     let instance = instantiate_gear(
                         gear,
+                        None,
                         &name,
                         form,
                         forms,
@@ -437,6 +440,7 @@ fn expand_instance_inner(
 #[allow(clippy::too_many_arguments)]
 fn instantiate_gear(
     gear: &CheckedCanonicalGear,
+    relational_input_arity: Option<usize>,
     instance_name: &str,
     source_form: &CheckedCanonicalForm,
     forms: &BTreeMap<&str, &CheckedCanonicalForm>,
@@ -665,14 +669,39 @@ fn instantiate_gear(
     }
 
     let kind_id = KindId::from(gear.kind.as_str());
-    let definition = catalog.get(&kind_id).ok_or_else(|| {
-        CanonicalExpansionDiagnostic::new(
-            "CND-FRM-037",
-            format!("primitive gear '{}' has no planning contract", gear.kind),
-        )
-    })?;
-    let terminal_transductions = catalog
-        .canonical_kind(&kind_id)
+    let specialized_definition;
+    let definition = if let Some(input_count) = relational_input_arity {
+        specialized_definition = catalog
+            .projection_for_arity(&kind_id, input_count)
+            .map_err(|message| CanonicalExpansionDiagnostic::new("CND-FRM-043", message))?;
+        specialized_definition.as_ref().ok_or_else(|| {
+            CanonicalExpansionDiagnostic::new(
+                "CND-FRM-037",
+                format!("primitive gear '{}' has no planning contract", gear.kind),
+            )
+        })?
+    } else {
+        if catalog.is_homogeneous_variadic(&kind_id) {
+            return Err(CanonicalExpansionDiagnostic::new(
+                "CND-FRM-043",
+                format!(
+                    "variadic Gear '{}' requires an exact relational operand count",
+                    gear.kind
+                ),
+            ));
+        }
+        catalog.get(&kind_id).ok_or_else(|| {
+            CanonicalExpansionDiagnostic::new(
+                "CND-FRM-037",
+                format!("primitive gear '{}' has no planning contract", gear.kind),
+            )
+        })?
+    };
+    let semantic_kind = catalog
+        .canonical_kind_for_arity(&kind_id, relational_input_arity)
+        .map_err(|message| CanonicalExpansionDiagnostic::new("CND-FRM-043", message))?;
+    let terminal_transductions = semantic_kind
+        .as_ref()
         .map(|kind| kind.terminal_transductions().cloned().collect())
         .unwrap_or_default();
     if let Some(back) = backs.get(&kind_id) {
@@ -728,16 +757,16 @@ fn instantiate_gear(
         },
         inputs: definition.inputs.clone(),
         outputs: definition.outputs.clone(),
-        semantic_contract: catalog
-            .canonical_kind(&kind_id)
+        semantic_contract: semantic_kind
+            .as_ref()
             .map(conduit_core::Kind::semantic_contract)
             .unwrap_or_else(|| conduit_core::KindSemanticContract {
                 configuration: definition.configuration.clone(),
                 laws: Vec::new(),
             }),
         terminal_transductions: terminal_transductions.clone(),
-        resource_ports: catalog
-            .canonical_kind(&kind_id)
+        resource_ports: semantic_kind
+            .as_ref()
             .map(conduit_core::Kind::resource_ports)
             .unwrap_or_default()
             .to_vec(),

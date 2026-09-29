@@ -278,18 +278,23 @@ fn resolve_stage_aliases(
             }
             CordStage::Glyph(glyph) => {
                 if let Some((canonical, _, used)) = aliases.get_mut(&glyph.text) {
-                    let fore = form_fronts
-                        .get(canonical)
-                        .or_else(|| catalog.fore(canonical))
-                        .ok_or_else(|| {
-                            use_diagnostic(
-                                glyph.span,
-                                format!(
-                                    "glyph '{}' requires the exact checked Fore for '{}'",
-                                    glyph.text, canonical
-                                ),
-                            )
-                        })?;
+                    let fore = if let Some(fore) = form_fronts.get(canonical) {
+                        fore.clone()
+                    } else {
+                        match catalog.fore_for_arity(canonical, 1) {
+                            Ok(Some(fore)) => fore,
+                            Ok(None) => {
+                                return Err(use_diagnostic(
+                                    glyph.span,
+                                    format!(
+                                        "glyph '{}' requires the exact checked Fore for '{}'",
+                                        glyph.text, canonical
+                                    ),
+                                ))
+                            }
+                            Err(message) => return Err(use_diagnostic(glyph.span, message)),
+                        }
+                    };
                     if fore.shorthand().is_none() {
                         return Err(use_diagnostic(
                             glyph.span,
@@ -324,18 +329,23 @@ fn resolve_stage_aliases(
                         format!("glyph '{}' did not resolve in lexical scope", glyph.text),
                     ));
                 };
-                let fore = form_fronts
-                    .get(canonical)
-                    .or_else(|| catalog.fore(canonical))
-                    .ok_or_else(|| {
-                        use_diagnostic(
-                            glyph.span,
-                            format!(
-                                "glyph '{}' requires the exact checked Fore for '{}'",
-                                glyph.text, canonical
-                            ),
-                        )
-                    })?;
+                let fore = if let Some(fore) = form_fronts.get(canonical) {
+                    fore.clone()
+                } else {
+                    match catalog.fore_for_arity(canonical, operands.len()) {
+                        Ok(Some(fore)) => fore,
+                        Ok(None) => catalog.fore(canonical).cloned().ok_or_else(|| {
+                            use_diagnostic(
+                                glyph.span,
+                                format!(
+                                    "glyph '{}' requires the exact checked Fore for '{}'",
+                                    glyph.text, canonical
+                                ),
+                            )
+                        })?,
+                        Err(message) => return Err(use_diagnostic(glyph.span, message)),
+                    }
+                };
                 if fore.inputs().len() != operands.len() || fore.outputs().len() != 1 {
                     return Err(use_diagnostic(
                         glyph.span,

@@ -49,6 +49,7 @@ pub(super) fn expand_literal(
     };
     let instance = instantiate_gear(
         &gear,
+        None,
         &name,
         source_form,
         forms,
