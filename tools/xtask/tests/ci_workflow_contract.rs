@@ -235,6 +235,29 @@ fn browser_runtime_binaries_are_not_recompressed_during_artifact_upload() {
 }
 
 #[test]
+fn pruned_browser_host_admission_still_carries_its_exact_wasm_runtime() {
+    let root = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../..");
+    let workflow = fs::read_to_string(root.join(".github/workflows/tour-products.yml"))
+        .expect("read product workflow");
+    let browser_runtimes = workflow
+        .split("\n  browser-runtimes:\n")
+        .nth(1)
+        .and_then(|tail| tail.split("\n  standalone-locks:\n").next())
+        .expect("locate browser runtime job");
+    let browser_stage = workflow
+        .split("\n  browser-admission-stage:\n")
+        .nth(1)
+        .and_then(|tail| tail.split("\n  browser-admission-proof:\n").next())
+        .expect("locate browser admission stage");
+
+    assert!(browser_runtimes.contains("--no-default-features --features protected-line"));
+    assert!(browser_runtimes.contains("browser-host-runtime.wasm"));
+    assert!(browser_stage.contains(
+        "cp target/browser-product-runtimes/browser-host-runtime.wasm target/wasm32-unknown-unknown/release/conduit_browser_runtime.wasm"
+    ));
+}
+
+#[test]
 fn rust_target_caches_never_save_after_a_failed_proof() {
     let root = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../..");
     let workflows = root.join(".github/workflows");
