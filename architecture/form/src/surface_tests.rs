@@ -73,7 +73,7 @@ fn forms_are_live_by_default_and_completion_is_explicit() {
 
 #[test]
 fn with_headers_and_glyph_opt_out_are_lossless_document_structure() {
-    let source = "without glyphs\nwith time/every as cadence\nwith math/geometry/{vector2, matrix2}\n\nform example {\n    tick: cadence(1s)\n}\n";
+    let source = "sans glyphs\nwith time/every as cadence\nwith math/geometry/{vector2, matrix2}\n\nform example {\n    tick: cadence(1s)\n}\n";
     let document = parse_syntax_document(source);
     assert!(
         document.diagnostics.is_empty(),
@@ -130,6 +130,13 @@ fn legacy_use_keyword_is_not_a_compatibility_spelling() {
         parse_syntax_document("use time/every as cadence\nform example {\n tick: cadence(1s)\n}\n");
     assert!(document.uses.is_empty());
     assert_eq!(document.diagnostics.len(), 1);
+}
+
+#[test]
+fn legacy_without_glyphs_header_is_not_a_compatibility_spelling() {
+    let document = parse_syntax_document("without glyphs\nform example {\n}\n");
+    assert_eq!(document.diagnostics.len(), 1);
+    assert!(document.forms.is_empty());
 }
 
 #[test]

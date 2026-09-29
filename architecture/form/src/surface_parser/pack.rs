@@ -32,21 +32,21 @@ pub(super) fn parse_pack(parser: &mut Parser<'_>) -> Result<PackageSyntax, (Form
         .ok_or_else(|| {
             invalid(
                 parser,
-                "pack header requires version = \"MAJOR.MINOR.PATCH\"",
+                "pack header needs version = MAJOR.MINOR.PATCH",
                 version_line,
             )
         })?;
-    let version = crate::text_value::parse_quoted_text(version_literal)
-        .filter(|value| valid_version(value))
+    let version = valid_version(version_literal)
+        .then_some(version_literal)
         .ok_or_else(|| {
             invalid(
                 parser,
-                "pack version must be a finite semantic version string",
+                "pack version must be a finite semantic version literal",
                 version_line,
             )
         })?;
     let literal_offset = version_start + version_statement.find(version_literal).unwrap_or(0);
-    let version = parser.spanned(&version, literal_offset + 1);
+    let version = parser.spanned(version, literal_offset);
     parser.index += 1;
     parser.skip_empty();
 
@@ -109,14 +109,14 @@ pub(super) fn parse_pack(parser: &mut Parser<'_>) -> Result<PackageSyntax, (Form
             parser.index += 1;
             continue;
         }
-        if let Some(requirement) = statement.strip_prefix("require ").map(str::trim) {
+        if let Some(requirement) = statement.strip_prefix("need ").map(str::trim) {
             let (required_path, version_literal) = requirement
                 .split_once('=')
                 .map(|(path, version)| (path.trim(), version.trim()))
-                .ok_or_else(|| invalid(parser, "require needs PATH = \"VERSION\"", line))?;
-            let version_requirement = crate::text_value::parse_quoted_text(version_literal)
-                .filter(|value| valid_requirement(value))
-                .ok_or_else(|| invalid(parser, "require version is invalid", line))?;
+                .ok_or_else(|| invalid(parser, "need takes PATH = VERSION", line))?;
+            let version_requirement = valid_requirement(version_literal)
+                .then_some(version_literal)
+                .ok_or_else(|| invalid(parser, "needed version is invalid", line))?;
             if !is_operation(required_path)
                 || !required_path.contains('/')
                 || requirements
@@ -133,10 +133,10 @@ pub(super) fn parse_pack(parser: &mut Parser<'_>) -> Result<PackageSyntax, (Form
                 ));
             }
             let path_offset = start + statement.find(required_path).unwrap_or(0);
-            let version_offset = start + statement.find(version_literal).unwrap_or(0) + 1;
+            let version_offset = start + statement.find(version_literal).unwrap_or(0);
             requirements.push(PackageRequirementSyntax {
                 path: parser.spanned(required_path, path_offset),
-                version_requirement: parser.spanned(&version_requirement, version_offset),
+                version_requirement: parser.spanned(version_requirement, version_offset),
                 span: parser.line_span(line),
             });
             parser.index += 1;
@@ -144,7 +144,7 @@ pub(super) fn parse_pack(parser: &mut Parser<'_>) -> Result<PackageSyntax, (Form
         }
         return Err(invalid(
             parser,
-            "pack body accepts only ship NAME or require PATH = \"VERSION\"",
+            "pack body accepts only ship NAME or need PATH = VERSION",
             line,
         ));
     }

@@ -203,7 +203,7 @@ fn configured_gear_occurrence_may_have_a_glyph_name() {
 #[test]
 fn fixed_arity_relational_glyph_binds_operands_in_checked_fore_order() {
     let checked = check(
-        "without glyphs\nwith pair as &>\nform pair (\n >> left: Text\n >> right: Text\n result: Text >>\n) {\n}\nform example (\n >> a: Text\n >> b: Text\n paired: Text >>\n) {\n a &> b >> paired\n}\n",
+        "sans glyphs\nwith pair as &>\nform pair (\n >> left: Text\n >> right: Text\n result: Text >>\n) {\n}\nform example (\n >> a: Text\n >> b: Text\n paired: Text >>\n) {\n a &> b >> paired\n}\n",
     );
     let crate::CheckedCordStage::RelationalGear {
         operands,
@@ -281,14 +281,14 @@ fn without_glyphs_removes_only_the_standard_prelude() {
     let body =
         "form example (\n >> a: Text\n >> b: Text\n result: Text >>\n) {\n a &> b >> result\n}\n";
     let missing = check_syntax_document(
-        &parse_syntax_document(&format!("without glyphs\n{body}")),
+        &parse_syntax_document(&format!("sans glyphs\n{body}")),
         &catalog,
     )
     .expect_err("opt-out removes the standard binding");
     assert!(missing.message.contains("did not resolve in lexical scope"));
 
     let explicit = check_syntax_document(
-        &parse_syntax_document(&format!("without glyphs\nwith flow/zip as &>\n{body}")),
+        &parse_syntax_document(&format!("sans glyphs\nwith flow/zip as &>\n{body}")),
         &catalog,
     )
     .expect("an explicit glyph import remains legal after opt-out");
@@ -299,17 +299,17 @@ fn without_glyphs_removes_only_the_standard_prelude() {
         &catalog,
     )
     .expect_err("a standard glyph must be opted out before rebinding");
-    assert!(occupied.message.contains("put 'without glyphs'"));
+    assert!(occupied.message.contains("put 'sans glyphs'"));
 }
 
 #[test]
 fn relational_glyph_refuses_wrong_arity_and_mixed_adjacent_meanings() {
-    let wrong_arity = "without glyphs\nwith pair as &>\nform pair (\n >> left: Text\n >> right: Text\n result: Text >>\n) {\n}\nform example (\n >> a: Text\n paired: Text >>\n) {\n a &> a &> a >> paired\n}\n";
+    let wrong_arity = "sans glyphs\nwith pair as &>\nform pair (\n >> left: Text\n >> right: Text\n result: Text >>\n) {\n}\nform example (\n >> a: Text\n paired: Text >>\n) {\n a &> a &> a >> paired\n}\n";
     let error = check_syntax_document(&parse_syntax_document(wrong_arity), &catalog())
         .expect_err("fixed arity comes from the exact checked Fore");
     assert!(error.message.contains("supplies 3 operands"));
 
-    let mixed = "without glyphs\nwith pair as &>\nwith time/default as ?>\nform pair (\n >> left: Text\n >> right: Text\n result: Text >>\n) {\n}\nform example (\n >> a: Text\n >> b: Text\n >> c: Text\n paired: Text >>\n) {\n a &> b ?> c >> paired\n}\n";
+    let mixed = "sans glyphs\nwith pair as &>\nwith time/default as ?>\nform pair (\n >> left: Text\n >> right: Text\n result: Text >>\n) {\n}\nform example (\n >> a: Text\n >> b: Text\n >> c: Text\n paired: Text >>\n) {\n a &> b ?> c >> paired\n}\n";
     let parsed = parse_syntax_document(mixed);
     assert!(parsed.diagnostics[0]
         .message

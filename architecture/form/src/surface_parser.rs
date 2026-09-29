@@ -113,10 +113,10 @@ impl<'a> Parser<'a> {
         self.skip_empty();
         while self.index < self.lines.len() {
             let (text, start) = self.lines[self.index].statement();
-            if text == "without glyphs" {
+            if text == "sans glyphs" {
                 if !standard_glyphs {
                     return Err((
-                        FormError::InvalidSyntax("duplicate 'without glyphs' header".into()),
+                        FormError::InvalidSyntax("duplicate 'sans glyphs' header".into()),
                         self.line_span(self.lines[self.index]),
                     ));
                 }

@@ -209,7 +209,7 @@ pub(crate) fn resolve_use_declarations(
             return Err(use_diagnostic(
                 declaration.alias.span,
                 format!(
-                    "standard glyph '{}' is already in scope; put 'without glyphs' before rebinding it",
+                    "standard glyph '{}' is already in scope; put 'sans glyphs' before rebinding it",
                     declaration.alias.text
                 ),
             ));

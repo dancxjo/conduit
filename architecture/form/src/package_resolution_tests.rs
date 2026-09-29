@@ -11,9 +11,9 @@ fn package(source: &str) -> CheckedPackageSource {
 }
 
 fn source(path: &str, version: &str, requirements: &[(&str, &str)]) -> String {
-    let mut value = format!("pack {path} (\n    version = \"{version}\"\n) {{\n    ship public\n");
+    let mut value = format!("pack {path} (\n    version = {version}\n) {{\n    ship public\n");
     for (path, version) in requirements {
-        value.push_str(&format!("    require {path} = \"{version}\"\n"));
+        value.push_str(&format!("    need {path} = {version}\n"));
     }
     value.push_str("}\n");
     value
@@ -21,7 +21,7 @@ fn source(path: &str, version: &str, requirements: &[(&str, &str)]) -> String {
 
 #[test]
 fn package_source_is_lossless_finite_and_canonicalizes_order() {
-    let source = "# pack truth\npack house/sensors (\n    version = \"1.4.0\"\n) {\n    ship temperature\n    ship humidity\n    require math/units = \"^2.1\"\n}\n";
+    let source = "# pack truth\npack house/sensors (\n    version = 1.4.0\n) {\n    ship temperature\n    ship humidity\n    need math/units = ^2.1\n}\n";
     let document = parse_syntax_document(source);
     assert_eq!(document.round_trip(), source);
     assert!(document.diagnostics.is_empty());
@@ -170,10 +170,10 @@ fn later_constraints_backtrack_to_the_highest_jointly_compatible_version() {
 #[test]
 fn malformed_package_source_never_falls_back_to_form_syntax() {
     for source in [
-        "pack house/sensors (\n version = \"01.0.0\"\n) {\n}\n",
-        "pack house/sensors (\n version = \"1.0.0\"\n) {\n ship x\n ship x\n}\n",
-        "pack house/sensors (\n version = \"1.0.0\"\n) {\n require ../ambient = \"^1.0\"\n}\n",
-        "pack house/sensors (\n version = \"1.0.0\"\n) {\n execute now\n}\n",
+        "pack house/sensors (\n version = 01.0.0\n) {\n}\n",
+        "pack house/sensors (\n version = 1.0.0\n) {\n ship x\n ship x\n}\n",
+        "pack house/sensors (\n version = 1.0.0\n) {\n need ../ambient = ^1.0\n}\n",
+        "pack house/sensors (\n version = 1.0.0\n) {\n execute now\n}\n",
     ] {
         let document = parse_syntax_document(source);
         assert_eq!(document.diagnostics.len(), 1, "{source}");
@@ -184,7 +184,7 @@ fn malformed_package_source_never_falls_back_to_form_syntax() {
 #[test]
 fn legacy_package_keyword_is_not_a_compatibility_spelling() {
     let document = parse_syntax_document(
-        "package house/sensors (\n version = \"1.0.0\"\n) {\n ship temperature\n}\n",
+        "package house/sensors (\n version = 1.0.0\n) {\n ship temperature\n}\n",
     );
     assert!(document.packages.is_empty());
     assert_eq!(document.diagnostics.len(), 1);
@@ -194,11 +194,24 @@ fn legacy_package_keyword_is_not_a_compatibility_spelling() {
 #[test]
 fn legacy_export_keyword_is_not_a_compatibility_spelling() {
     let document = parse_syntax_document(
-        "pack house/sensors (\n version = \"1.0.0\"\n) {\n export temperature\n}\n",
+        "pack house/sensors (\n version = 1.0.0\n) {\n export temperature\n}\n",
     );
     assert!(document.packages.is_empty());
     assert_eq!(document.diagnostics.len(), 1);
     assert!(document.diagnostics[0].message.contains("ship NAME"));
+}
+
+#[test]
+fn legacy_require_and_quoted_versions_are_not_compatibility_spellings() {
+    for source in [
+        "pack house/sensors (\n version = \"1.0.0\"\n) {\n ship temperature\n}\n",
+        "pack house/sensors (\n version = 1.0.0\n) {\n require math/units = \"^1.0\"\n}\n",
+        "pack house/sensors (\n version = 1.0.0\n) {\n need math/units = \"^1.0\"\n}\n",
+    ] {
+        let document = parse_syntax_document(source);
+        assert!(document.packages.is_empty(), "{source}");
+        assert_eq!(document.diagnostics.len(), 1, "{source}");
+    }
 }
 
 #[test]

@@ -1,7 +1,7 @@
 use super::*;
 
 fn package_manifest(exports: &[&str]) -> (String, PackageSyntax) {
-    let mut source = String::from("pack example/tools (\n    version = \"1.0.0\"\n) {\n");
+    let mut source = String::from("pack example/tools (\n    version = 1.0.0\n) {\n");
     for export in exports {
         source.push_str(&format!("    ship {export}\n"));
     }
