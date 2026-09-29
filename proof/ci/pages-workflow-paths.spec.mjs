@@ -70,7 +70,11 @@ test("product jobs build the immutable PR head and deployments queue", () => {
   assert.match(productWorkflow, /name: browser-admission-\$\{\{ matrix\.shard \}\}/);
   assert.match(
     productWorkflow,
-    /cargo build --locked[^\n]+-p patchbay-native --bin browser-parts-capstone --bin webchat-server/,
+    /cargo build --locked -p patchbay-html --bin patchbay-static-assets --bin patchbay-html -p patchbay-native --bin browser-parts-capstone/,
+  );
+  assert.match(
+    productWorkflow,
+    /cargo build --locked --bin webchat-server -p conduit-std-host --bin browser-admission-probe --bin protected-line-browser-peer/,
   );
   assert.match(
     productWorkflow,
@@ -92,7 +96,7 @@ test("product jobs build the immutable PR head and deployments queue", () => {
   assert.match(productWorkflow, /--retries 0/);
   assert.match(
     productWorkflow,
-    /browser_admission_matrix: \$\{\{ inputs\.full_suite && '\["browser-host","creche-workspace","pages"\]'/,
+    /browser_admission_matrix: \$\{\{ \(!inputs\.development_admission \|\| inputs\.full_suite\) && '\["browser-host","creche-workspace","pages"\]'/,
   );
   assert.match(
     productWorkflow,
@@ -101,6 +105,18 @@ test("product jobs build the immutable PR head and deployments queue", () => {
   const admissionJob = productWorkflow.split("  browser-admission-proof:\n")[1]
     .split("\n  avr-release:\n")[0];
   assert.doesNotMatch(admissionJob, /matrix:\n\s+include:/);
+  assert.match(
+    productWorkflow,
+    /BROWSER_ADMISSION_MATRIX: \$\{\{ needs\.plan\.outputs\.browser_admission_matrix \}\}/,
+  );
+  assert.match(
+    productWorkflow,
+    /if \[\[ "\$BROWSER_ADMISSION_MATRIX" == \*'"creche-workspace"'\* \|\| "\$BROWSER_ADMISSION_MATRIX" == \*'"pages"'\* \]\]; then\n\s+cargo build --locked -p conduit-browser-runtime[^\n]+--features creche-surface,form-runner/,
+  );
+  assert.match(
+    productWorkflow,
+    /if \[\[ "\$BROWSER_ADMISSION_MATRIX" == \*'"pages"'\* \]\]; then\n\s+cargo build --locked -p conduit-browser-runtime --target wasm32-unknown-unknown --release\n/,
+  );
   assert.match(
     productWorkflow,
     /Retain the browser two-profile fabrication report\n        if: matrix\.shard == 'creche-machines'/,
