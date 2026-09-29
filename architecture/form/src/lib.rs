@@ -56,6 +56,8 @@ mod syntax_identity;
 mod text_value;
 mod value_pattern;
 mod value_pattern_source;
+#[cfg(test)]
+mod value_pattern_tests;
 mod value_type;
 mod variadic_front;
 

@@ -236,7 +236,7 @@ mod tests {
     use alloc::{string::String, vec};
 
     #[test]
-    fn use_and_glyph_header_words_are_language_keywords() {
+    fn with_and_glyph_header_words_are_language_keywords() {
         let source = "sans glyphs\nwith text/upper as ^^\nform example {\n}\n";
         let spans = highlight_syntax(source).unwrap();
         let pieces = spans
