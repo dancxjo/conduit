@@ -473,6 +473,16 @@ fn instantiate_gear(
             .as_ref()
             .map(|initial| substitute(initial, environment))
             .transpose()?;
+        let initial_accumulator_bytes = match (
+            activation.accumulator_input.as_ref(),
+            initial_accumulator.as_ref(),
+        ) {
+            (Some(accumulator), Some(initial)) => Some(canonical_initial_bytes(
+                accumulator.value_kind.as_str(),
+                initial,
+            )?),
+            _ => None,
+        };
         let child = forms
             .get(activation.selected_form.as_str())
             .copied()
@@ -550,6 +560,7 @@ fn instantiate_gear(
             accumulator_input: activation.accumulator_input.clone(),
             output: activation.output.clone(),
             initial_accumulator,
+            initial_accumulator_bytes,
             source_span: gear.source_span,
         });
         return Ok(Instance {
@@ -998,4 +1009,91 @@ fn substitute(
             })
         }
     }
+}
+
+fn canonical_initial_bytes(
+    kind: &str,
+    value: &CanonicalStartupValue,
+) -> Result<Vec<u8>, CanonicalExpansionDiagnostic> {
+    let bytes = match value {
+        CanonicalStartupValue::Structured(value) => value
+            .try_concrete()
+            .and_then(|value| value.canonical_bytes().ok()),
+        CanonicalStartupValue::Quantity(value) => Some(value.encode().to_vec()),
+        CanonicalStartupValue::Literal(literal) => match conduit_core::primitive_info_kind(kind) {
+            Some(conduit_core::PrimitiveInfoKind::Unit) if literal == "unit" => Some(Vec::new()),
+            Some(conduit_core::PrimitiveInfoKind::Bool) => match literal.as_str() {
+                "true" => Some(conduit_core::InfoBool::TRUE.encode().to_vec()),
+                "false" => Some(conduit_core::InfoBool::FALSE.encode().to_vec()),
+                _ => None,
+            },
+            Some(conduit_core::PrimitiveInfoKind::Text) => {
+                crate::text_value::parse_quoted_text(literal).map(String::into_bytes)
+            }
+            Some(conduit_core::PrimitiveInfoKind::Count)
+            | Some(conduit_core::PrimitiveInfoKind::U64) => literal
+                .parse::<u64>()
+                .ok()
+                .map(u64::to_le_bytes)
+                .map(Vec::from),
+            Some(conduit_core::PrimitiveInfoKind::U8) => {
+                literal.parse::<u8>().ok().map(|v| vec![v])
+            }
+            Some(conduit_core::PrimitiveInfoKind::U16) => literal
+                .parse::<u16>()
+                .ok()
+                .map(u16::to_le_bytes)
+                .map(Vec::from),
+            Some(conduit_core::PrimitiveInfoKind::U32) => literal
+                .parse::<u32>()
+                .ok()
+                .map(u32::to_le_bytes)
+                .map(Vec::from),
+            Some(conduit_core::PrimitiveInfoKind::U128) => literal
+                .parse::<u128>()
+                .ok()
+                .map(u128::to_le_bytes)
+                .map(Vec::from),
+            Some(conduit_core::PrimitiveInfoKind::I8) => {
+                literal.parse::<i8>().ok().map(|v| vec![v as u8])
+            }
+            Some(conduit_core::PrimitiveInfoKind::I16) => literal
+                .parse::<i16>()
+                .ok()
+                .map(i16::to_le_bytes)
+                .map(Vec::from),
+            Some(conduit_core::PrimitiveInfoKind::I32) => literal
+                .parse::<i32>()
+                .ok()
+                .map(i32::to_le_bytes)
+                .map(Vec::from),
+            Some(conduit_core::PrimitiveInfoKind::I64) => literal
+                .parse::<i64>()
+                .ok()
+                .map(i64::to_le_bytes)
+                .map(Vec::from),
+            Some(conduit_core::PrimitiveInfoKind::I128) => literal
+                .parse::<i128>()
+                .ok()
+                .map(i128::to_le_bytes)
+                .map(Vec::from),
+            _ => None,
+        },
+        CanonicalStartupValue::FormParameter(_) | CanonicalStartupValue::PoolReference(_) => None,
+    }
+    .ok_or_else(|| {
+        CanonicalExpansionDiagnostic::new(
+            "CND-FRM-064",
+            "fold initial accumulator has no exact canonical encoding".into(),
+        )
+    })?;
+    if conduit_core::primitive_info_kind(kind).is_some() {
+        conduit_core::validate_primitive_info(kind, &bytes).map_err(|_| {
+            CanonicalExpansionDiagnostic::new(
+                "CND-FRM-064",
+                "fold initial accumulator differs from its exact Value contract".into(),
+            )
+        })?;
+    }
+    Ok(bytes)
 }

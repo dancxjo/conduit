@@ -1455,6 +1455,7 @@ fn checked_activation(
             accumulator_input: Some(accumulator.clone()),
             output: combined.clone(),
             initial_accumulator: Some(initial),
+            initial_accumulator_bytes: None,
         });
     }
     let ([input], [output]) = (front.inputs(), front.outputs()) else {
@@ -1491,6 +1492,7 @@ fn checked_activation(
         accumulator_input: None,
         output: output.clone(),
         initial_accumulator: None,
+        initial_accumulator_bytes: None,
     })
 }
 

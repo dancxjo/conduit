@@ -264,6 +264,10 @@ fn fold_retains_exact_initial_and_two_input_combine_truth() {
         expanded.activations[0].initial_accumulator,
         Some(crate::CanonicalStartupValue::Literal("7".into()))
     );
+    assert_eq!(
+        expanded.activations[0].initial_accumulator_bytes,
+        Some(7_u64.to_le_bytes().to_vec())
+    );
     expanded.validate_expansion().unwrap();
 
     let mut unresolved = expanded.clone();
