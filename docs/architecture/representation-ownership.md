@@ -19,6 +19,7 @@ There is no “small stable handwritten mapping” category.
 | Surface | Class | Evidence |
 |---|---:|---|
 | Data save/load Text terminals | 1 | `semantics/data/types.conduit` selects compact `u8` representation; authored Type order supplies iota tags, while checked language law supplies bounded invalid-tag refusal. Generated Rust and ECMAScript consume those same facts. |
+| Audio tone terminal, PCM, gate and modulation discriminants | 1 | `semantics/audio/types.conduit` selects their exact one-byte representations; generated bindings own the iota mappings, compatibility identities, bounds and invalid-input refusal. Gate uses an explicit exhaustive order to preserve its established compatibility independently of Type order. |
 | Native Rust Type/value bindings | 2 | `architecture/form/src/rust_binding/**` lowers checked Types and representations without domain tables. |
 | Canonical structured Info | 2 | `architecture/core/src/structured_info/**` encodes the generic checked value graph, not a domain schema. |
 
@@ -32,7 +33,7 @@ representation migration or a more precise external-boundary justification.
 |---|---|
 | AI | `hybrid_retrieval_codec.rs`, `model_signature.rs`, `probability_digest.rs`, `source_extraction_codec.rs` |
 | Artificial life | `lenia_line_frame.rs`, `lenia_region_wire.rs`, `reaction_diffusion_boundary_codec.rs` |
-| Audio | `audio_info.rs`, `sound_info.rs`, `tone_terminal.rs`, `pcm_clip.rs` |
+| Audio | compound frame layout in `audio_info.rs`, plus `sound_info.rs` and `pcm_clip.rs` |
 | Catalog | `button_attempt_codec.rs`, `navigation_codec.rs`, `navigation_goal_codec.rs`, `pattern_comparison_codec.rs`, `sequence_normalization_codec.rs`, `timed_interval_codec.rs` |
 | Data | `data_reference.rs`, `measurement_profile_wire.rs`, `measurement_threshold_wire.rs`, `measurement_wire.rs`, `tensor_codec.rs` |
 | Human | `image_text_codec.rs`, `input_chord.rs`, `key_event.rs`, `human_interaction/canonical.rs` |

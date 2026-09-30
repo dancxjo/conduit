@@ -1,4 +1,4 @@
-use conduit_form::rust_binding::{generate_rust_bindings, RustBindingOptions};
+use conduit_form::rust_binding::{generate_rust_bindings_with_representations, RustBindingOptions};
 use conduit_form::{check_syntax_document, parse_syntax_document, StartupCatalog};
 use std::{env, fs, path::PathBuf};
 
@@ -9,14 +9,15 @@ fn main() {
         &StartupCatalog::new(),
     )
     .expect("audio semantic Types must check");
-    let generated = generate_rust_bindings(
+    let generated = generate_rust_bindings_with_representations(
         &checked.native_types,
+        &checked.representations,
         &RustBindingOptions {
             derive_serde_for_unit_variants: true,
             ..RustBindingOptions::default()
         },
     )
-    .expect("audio semantic Types must generate exact Rust bindings");
+    .expect("audio semantic Types and representations must generate exact Rust bindings");
     let output = PathBuf::from(env::var_os("OUT_DIR").expect("Cargo supplies OUT_DIR"))
         .join("semantic_types.rs");
     fs::write(output, generated.source).expect("write generated audio bindings");
