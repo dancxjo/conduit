@@ -15,9 +15,10 @@ use conduit_core::{
 use serde::{Deserialize, Serialize};
 
 use crate::{
-    llm_contract, LlmDeterminismProfile, LlmWorkBounds, LLM_CLASSIFY_KIND, LLM_EMBED_KIND,
-    LLM_EXTRACT_KIND, LLM_GENERATE_FLOW_KIND, LLM_GENERATE_KIND, LLM_INTERPRET_KIND,
-    LLM_PRESENT_KIND, LLM_STREAM_GENERATE_KIND,
+    llm_contract, LlmDeterminismProfile, LlmWorkBounds, LocalModelCachePolicy, LocalModelFailure,
+    LocalModelKindProfile, LocalModelLifecycleState, LocalModelOfferInvalidity, LocalModelRefusal,
+    LLM_CLASSIFY_KIND, LLM_EMBED_KIND, LLM_EXTRACT_KIND, LLM_GENERATE_FLOW_KIND, LLM_GENERATE_KIND,
+    LLM_INTERPRET_KIND, LLM_PRESENT_KIND, LLM_STREAM_GENERATE_KIND,
 };
 
 pub const LOCAL_MODEL_OPERATION: &str = "conduit.host/local-model-inference@1";
@@ -33,18 +34,6 @@ pub const LOCAL_MODEL_ARTIFACT: &str = "conduit-std-host/local-model-adapter@1";
 pub const LOCAL_MODEL_CAPABILITY_PREFIX: &str = "local-model";
 pub const MAXIMUM_LOCAL_MODEL_IDENTITY_BYTES: usize = 256;
 pub const MAXIMUM_LOCAL_MODEL_KINDS: usize = 8;
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
-pub enum LocalModelKindProfile {
-    Generate,
-    StreamGenerate,
-    GenerateFlow,
-    ClassifyFiniteLabels,
-    ExtractValidatedInfo,
-    EmbedFiniteVector,
-    InterpretSignEvidence,
-    PresentSemanticFront,
-}
 
 impl LocalModelKindProfile {
     pub const fn kind(self) -> &'static str {
@@ -62,23 +51,6 @@ impl LocalModelKindProfile {
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
-pub enum LocalModelCachePolicy {
-    OneLoadedModelUntilShutdown,
-}
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
-pub enum LocalModelLifecycleState {
-    Discovered,
-    Loading,
-    Warming,
-    Ready,
-    Inference,
-    Unloading,
-    Shutdown,
-    Lost,
-}
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 pub enum LocalModelTerminal {
     Produced,
     Truncated,
@@ -86,29 +58,6 @@ pub enum LocalModelTerminal {
     Failed(LocalModelFailure),
     Cancelled,
     ProviderLost,
-}
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
-pub enum LocalModelRefusal {
-    NotInitialized,
-    UnsupportedKind,
-    UnsupportedProfile,
-    InputOverflow,
-    ContextOverflow,
-    OutputOverflow,
-    QueueFull,
-    MemoryCeiling,
-}
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
-pub enum LocalModelFailure {
-    Load,
-    Warmup,
-    MalformedRequest,
-    MalformedResult,
-    Inference,
-    ResourceExhausted,
-    Shutdown,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
@@ -152,20 +101,6 @@ pub struct LocalModelOffer {
     pub initialized: bool,
     pub lifecycle: LocalModelLifecycleState,
     pub determinism: LlmDeterminismProfile,
-}
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
-pub enum LocalModelOfferInvalidity {
-    MissingIdentity,
-    IdentityOverflow,
-    InvalidLimits,
-    ModelExceedsMemoryCeiling,
-    InvalidConcurrency,
-    InvalidQueue,
-    MissingProfile,
-    DuplicateProfile,
-    NotReady,
-    DeterministicClaim,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]

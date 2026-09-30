@@ -480,3 +480,57 @@ type ModelTextRefusal =
     | invalid_utf8
     | empty_text
     | text_bound_exceeded
+
+type LocalModelKindProfile =
+    generate
+    | stream_generate
+    | generate_flow
+    | classify_finite_labels
+    | extract_validated_info
+    | embed_finite_vector
+    | interpret_sign_evidence
+    | present_semantic_front
+
+type LocalModelCachePolicy =
+    one_loaded_model_until_shutdown
+
+type LocalModelLifecycleState =
+    discovered
+    | loading
+    | warming
+    | ready
+    | inference
+    | unloading
+    | shutdown
+    | lost
+
+type LocalModelRefusal =
+    not_initialized
+    | unsupported_kind
+    | unsupported_profile
+    | input_overflow
+    | context_overflow
+    | output_overflow
+    | queue_full
+    | memory_ceiling
+
+type LocalModelFailure =
+    load
+    | warmup
+    | malformed_request
+    | malformed_result
+    | inference
+    | resource_exhausted
+    | shutdown
+
+type LocalModelOfferInvalidity =
+    missing_identity
+    | identity_overflow
+    | invalid_limits
+    | model_exceeds_memory_ceiling
+    | invalid_concurrency
+    | invalid_queue
+    | missing_profile
+    | duplicate_profile
+    | not_ready
+    | deterministic_claim
