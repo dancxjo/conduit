@@ -9,7 +9,8 @@ use crate::{
     TemporalEvidenceBatch, TemporalEvidenceCandidate, TemporalEvidenceSelection,
     TemporalEvidenceSelectionRefusal, TemporalReference, TemporalSource, TemporalValidity,
     TransitionDirection, VectorIndexHandle, VectorIndexQueryAdmission, VectorIndexResourceRefusal,
-    VectorIndexState, VectorRecord, VectorRefusal, MAXIMUM_VECTOR_INDEX_MEMBERS,
+    VectorIndexState, VectorRecord, VectorRefusal, VectorSearchProofClass,
+    MAXIMUM_VECTOR_INDEX_MEMBERS,
 };
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
@@ -19,11 +20,6 @@ pub struct ExactVectorSearchCandidate<T> {
     pub boundary: Option<EntityBoundary>,
     pub transition: Option<TransitionDirection>,
     pub validity: TemporalValidity,
-}
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
-pub enum VectorSearchProofClass {
-    DeterministicExactOracle,
 }
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]

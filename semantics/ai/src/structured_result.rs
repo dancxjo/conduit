@@ -1,6 +1,8 @@
 use alloc::{string::String, vec::Vec};
 use serde::{Deserialize, Serialize};
 
+use crate::StructuredResultInvalidity;
+
 pub const MAXIMUM_CLASSIFICATION_LABELS: usize = 32;
 pub const MAXIMUM_CLASSIFICATION_LABEL_BYTES: usize = 64;
 pub const MAXIMUM_EXTRACTION_FIELDS: usize = 32;
@@ -32,17 +34,6 @@ pub struct FiniteEmbedding {
     pub profile_identity: String,
     pub dimensions: u32,
     pub values: Vec<f32>,
-}
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
-pub enum StructuredResultInvalidity {
-    Empty,
-    TooManyMembers,
-    MemberTooLarge,
-    DuplicateMember,
-    LabelNotAllowed,
-    DimensionMismatch,
-    NonFiniteValue,
 }
 
 impl FiniteClassification {

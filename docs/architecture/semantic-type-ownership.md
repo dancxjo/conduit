@@ -162,6 +162,7 @@ are satisfied.
 | RAG span, selection, truncation, and grounding vocabularies | `semantics/ai/types.conduit` | generated at build time | yes | yes | exact native round trips plus RAG semantics and grounded-answer suites |
 | Model interpretation and result provenance, disposition, refusal, and failure vocabularies | `semantics/ai/types.conduit` | generated at build time | yes | yes | exact native round trips plus interpretation and model-result suites |
 | House-context and retrieval provenance/proof vocabularies | `semantics/ai/types.conduit` | generated at build time | yes | yes | exact native round trips plus house-context, hybrid-retrieval, and reranking suites |
+| AI result, contract-offer, temporal-context and vector-proof validation vocabularies | `semantics/ai/types.conduit` | generated at build time | yes | yes | exact native round trips plus AI behavior and contract suites |
 | System-continuity reboot denial | `semantics/system-continuity/types.conduit` | generated at build time | yes | yes | exact native round trip plus continuity and no-std suites |
 | Remaining P families in `semantics/**` | family-owned `.conduit` source required | binding machinery available | in progress | in progress | exact std/browser/ConduitOS/embedded applicability per family |
 

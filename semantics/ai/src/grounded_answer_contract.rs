@@ -1,5 +1,6 @@
 //! Portable provider-free `rag/answer` front and reviewed plan configuration.
 
+use crate::RagAnswerOfferInvalidity;
 use alloc::{vec, vec::Vec};
 use conduit_core::{
     kind_id, port_id, ArtifactId, CapabilityId, CapabilityLimits, CapabilityOffer,
@@ -24,12 +25,6 @@ pub struct RagAnswerContract {
     pub inputs: Vec<PortDescriptor>,
     pub outputs: Vec<PortDescriptor>,
     pub limits: CapabilityLimits,
-}
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum RagAnswerOfferInvalidity {
-    EmptyProcessIdentity,
-    ProcessIdentityTooLarge,
 }
 
 pub fn rag_answer_contract() -> RagAnswerContract {
