@@ -203,3 +203,48 @@ type RerankingStrategy =
         proof_class: RerankingProofClass
         scoring_run_identity: Text <= 256B not in [""]
     }
+
+type RandomnessProfile =
+    deterministic
+    | explicit_seed {
+        seed: U64
+    }
+    | provider_chosen {
+        seed: U64
+        nonce: Text <= 128B not in [""]
+    }
+
+type DrawRelationship =
+    independent
+    | correlated {
+        profile: Text <= 128B not in [""]
+    }
+
+type ProbabilisticDisposition =
+    exact
+    | approximate {
+        method_profile: Text <= 128B not in [""]
+    }
+    | truncated {
+        retained_samples: U32
+        requested_samples: U32
+    }
+
+type LogScoreKind =
+    probability_mass
+    | density
+    | unnormalized_score
+
+type ProbabilityRefusal =
+    missing_identity
+    | invalid_disposition
+    | empty_samples
+    | sample_count_overflow
+    | invalid_sample
+    | shape_mismatch
+    | weight_count_mismatch
+    | invalid_weight_sum
+    | invalid_variance
+    | invalid_covariance
+    | covariance_dimension_overflow
+    | invalid_log_probability

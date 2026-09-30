@@ -18,21 +18,21 @@ impl StochasticProvenance {
         bytes.extend_from_slice(&self.query_identity);
         match &self.randomness {
             RandomnessProfile::Deterministic => bytes.push(0),
-            RandomnessProfile::ExplicitSeed(seed) => {
+            RandomnessProfile::ExplicitSeed(payload) => {
                 bytes.push(1);
-                bytes.extend_from_slice(&seed.to_le_bytes());
+                bytes.extend_from_slice(&payload.seed().to_le_bytes());
             }
-            RandomnessProfile::ProviderChosen { seed, nonce } => {
+            RandomnessProfile::ProviderChosen(payload) => {
                 bytes.push(2);
-                bytes.extend_from_slice(&seed.to_le_bytes());
-                push_text(&mut bytes, nonce);
+                bytes.extend_from_slice(&payload.seed().to_le_bytes());
+                push_text(&mut bytes, payload.nonce());
             }
         }
         match &self.draws {
             DrawRelationship::Independent => bytes.push(0),
-            DrawRelationship::Correlated { profile } => {
+            DrawRelationship::Correlated(payload) => {
                 bytes.push(1);
-                push_text(&mut bytes, profile);
+                push_text(&mut bytes, payload.profile());
             }
         }
         Ok(semantic_digest(
@@ -205,17 +205,14 @@ fn probabilistic_digest(
 fn encode_disposition(output: &mut Vec<u8>, disposition: &ProbabilisticDisposition) {
     match disposition {
         ProbabilisticDisposition::Exact => output.push(0),
-        ProbabilisticDisposition::Approximate { method_profile } => {
+        ProbabilisticDisposition::Approximate(payload) => {
             output.push(1);
-            push_text(output, method_profile);
+            push_text(output, payload.method_profile());
         }
-        ProbabilisticDisposition::Truncated {
-            retained_samples,
-            requested_samples,
-        } => {
+        ProbabilisticDisposition::Truncated(payload) => {
             output.push(2);
-            output.extend_from_slice(&retained_samples.to_le_bytes());
-            output.extend_from_slice(&requested_samples.to_le_bytes());
+            output.extend_from_slice(&payload.retained_samples().to_le_bytes());
+            output.extend_from_slice(&payload.requested_samples().to_le_bytes());
         }
     }
 }

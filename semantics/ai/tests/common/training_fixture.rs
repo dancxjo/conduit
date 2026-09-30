@@ -147,7 +147,7 @@ pub fn session(
         split_membership_identity: split.semantic_digest().unwrap(),
         objective_profile: "tongues/shared-latent-objectives@1".into(),
         objectives: objectives(),
-        randomness: RandomnessProfile::ExplicitSeed(42),
+        randomness: RandomnessProfile::explicit_seed(42).unwrap(),
         precision_profile: artifact.precision_profile.clone(),
         model_modalities: vec!["audio".into(), "ema".into()],
         missing_modality_policy: MissingModalityPolicy::PermitDeclared {

@@ -28,7 +28,7 @@ fn provenance() -> StochasticProvenance {
         model_artifact_identity: [1; 32],
         checkpoint_identity: Some([2; 32]),
         query_identity: [3; 32],
-        randomness: RandomnessProfile::ExplicitSeed(42),
+        randomness: RandomnessProfile::explicit_seed(42).unwrap(),
         draws: DrawRelationship::Independent,
     }
 }
@@ -59,9 +59,7 @@ fn weighted_alternatives_are_finite_normalized_and_seeded() {
         alternatives: vec![first.clone(), second.clone()],
         weights: vec![600_000_000, 400_000_000],
         provenance: provenance(),
-        disposition: ProbabilisticDisposition::Approximate {
-            method_profile: "empirical-posterior@1".into(),
-        },
+        disposition: ProbabilisticDisposition::approximate("empirical-posterior@1".into()).unwrap(),
     };
     weighted.validate().unwrap();
     assert_ne!(weighted.semantic_digest().unwrap(), [0; 32]);
@@ -111,9 +109,8 @@ fn moments_covariance_log_scores_and_truncation_refuse_malformed_claims() {
             vec![TensorAxisRole::Feature, TensorAxisRole::Feature],
         ),
         provenance: provenance(),
-        disposition: ProbabilisticDisposition::Approximate {
-            method_profile: "finite-sample-covariance@1".into(),
-        },
+        disposition: ProbabilisticDisposition::approximate("finite-sample-covariance@1".into())
+            .unwrap(),
     };
     covariance.validate().unwrap();
     covariance.covariance = tensor(&[1.0, 0.2], vec![2], vec![TensorAxisRole::Feature]);
@@ -137,10 +134,7 @@ fn moments_covariance_log_scores_and_truncation_refuse_malformed_claims() {
     let truncated = ProbabilitySampleSet {
         alternatives: vec![tensor(&[1.0], vec![1], vec![TensorAxisRole::Feature])],
         provenance: provenance(),
-        disposition: ProbabilisticDisposition::Truncated {
-            retained_samples: 2,
-            requested_samples: 3,
-        },
+        disposition: ProbabilisticDisposition::truncated(3, 2).unwrap(),
     };
     assert_eq!(
         truncated.validate(),
@@ -154,16 +148,14 @@ fn one_observation_yields_multiple_plausible_articulations_not_one_truth() {
         observation_identity: semantic_digest("test/synthetic-audio@1", b"observation"),
         plausible_alternatives: vec![trajectory(-0.4), trajectory(0.0), trajectory(0.4)],
         provenance: provenance(),
-        disposition: ProbabilisticDisposition::Approximate {
-            method_profile: "conditional-sampler@1".into(),
-        },
+        disposition: ProbabilisticDisposition::approximate("conditional-sampler@1".into()).unwrap(),
     };
     alternatives.validate().unwrap();
     assert_eq!(alternatives.plausible_alternatives.len(), 3);
     assert_eq!(alternatives.summary().unwrap().result_count, 3);
     assert_eq!(
         alternatives.provenance.randomness,
-        RandomnessProfile::ExplicitSeed(42)
+        RandomnessProfile::explicit_seed(42).unwrap()
     );
     assert_ne!(alternatives.semantic_digest().unwrap(), [0; 32]);
 

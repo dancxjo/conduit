@@ -8,15 +8,19 @@ mod generated {
 }
 pub use generated::{
     CandidateLifecycle, ContextOmissionReason, ContextOrderingPolicy, ContextRedundancyPolicy,
-    ContextSelectionRationale, ContextTruncationReason, EmbeddingNormalization, EntityBoundary,
-    GeneratedTextFlowTerminal, GroundedAnswerDisposition, GroundingDisposition,
-    HouseContextProvenanceClass, InterpretationDisposition, InterpretationProvenance,
-    LlmDeterminismProfile, LlmImplementationControl, LlmInterruptionReason, LlmPlanningRefusal,
-    LlmTerminalOutcome, ModelFailure, ModelOperation, ModelPortPresence, ModelRefusal,
-    ModelResultProvenance, RerankingProofClass, RerankingStrategy, RerankingStrategyObservedScores,
-    RetrievalMechanism, SelectedContextRationale, SimilarityMetric, SourceSpanUnit, TemporalSource,
-    TemporalValidity, TemporalWindowRelation, TrainingLifecyclePhase,
-    TrainingLifecyclePhaseActiveStep, TransitionDirection,
+    ContextSelectionRationale, ContextTruncationReason, DrawRelationship,
+    DrawRelationshipCorrelated, EmbeddingNormalization, EntityBoundary, GeneratedTextFlowTerminal,
+    GroundedAnswerDisposition, GroundingDisposition, HouseContextProvenanceClass,
+    InterpretationDisposition, InterpretationProvenance, LlmDeterminismProfile,
+    LlmImplementationControl, LlmInterruptionReason, LlmPlanningRefusal, LlmTerminalOutcome,
+    LogScoreKind, ModelFailure, ModelOperation, ModelPortPresence, ModelRefusal,
+    ModelResultProvenance, ProbabilisticDisposition, ProbabilisticDispositionApproximate,
+    ProbabilisticDispositionTruncated, ProbabilityRefusal, RandomnessProfile,
+    RandomnessProfileExplicitSeed, RandomnessProfileProviderChosen, RerankingProofClass,
+    RerankingStrategy, RerankingStrategyObservedScores, RetrievalMechanism,
+    SelectedContextRationale, SimilarityMetric, SourceSpanUnit, TemporalSource, TemporalValidity,
+    TemporalWindowRelation, TrainingLifecyclePhase, TrainingLifecyclePhaseActiveStep,
+    TransitionDirection,
 };
 
 mod bases;
