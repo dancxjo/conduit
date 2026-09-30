@@ -1,7 +1,7 @@
 use crate::{
-    BoundedActivationAdmission, BoundedActivationError, BoundedActivationHost,
-    BoundedActivationState, KernelCompositeDefinition, KernelCompositeHostRequest,
-    KernelOperationRegistry,
+    AdmittedKernelCompositeHostRequest, BoundedActivationAdmission, BoundedActivationError,
+    BoundedActivationHost, BoundedActivationState, KernelCompositeDefinition,
+    KernelCompositeHostRequest, KernelOperationRegistry,
 };
 use conduit_core::{InfoBool, KindId, PlannedActivation, ValuePayload, BOOL_INFO_ID};
 use conduit_kernel::HostCallOutcome;
@@ -370,7 +370,7 @@ impl FlowSelectCoordinator {
 
     pub fn complete_host_call(
         &mut self,
-        request: &KernelCompositeHostRequest,
+        request: &AdmittedKernelCompositeHostRequest,
         outcome: HostCallOutcome,
     ) -> Result<(), FlowSelectError> {
         self.activation.complete_host_call(request, outcome)?;

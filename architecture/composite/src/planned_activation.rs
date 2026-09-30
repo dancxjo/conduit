@@ -1,10 +1,11 @@
 use crate::{
     BoundedActivationError, BoundedActivationHost, BoundedFoldActivationHost, BoundedFoldError,
     BoundedScanActivationHost, BoundedScanError, KernelCompositeDefinition,
-    KernelCompositeDefinitionError, KernelCompositeHost, KernelOperationRegistry,
+    KernelCompositeDefinitionError, KernelCompositeHost,
 };
 use conduit_core::{
-    semantic_digest, verify_prepared_plan, Plan, PlanId, PlannedActivationEntry, PreparedPlan,
+    semantic_digest, verify_prepared_plan, HostPreparationRefusal, Plan, PlanId,
+    PlanPreparationHost, PlannedActivationEntry, PreparedFragmentReceipt, PreparedPlan,
 };
 
 pub struct PreparedActivationChildPool {
@@ -26,10 +27,23 @@ pub enum PlannedActivationCompositeError {
     Definition(KernelCompositeDefinitionError),
     MissingActivation,
     StaleOrSubstitutedHandoff,
+    HostPreparation(HostPreparationRefusal),
     ChildPreparation(crate::KernelCompositeError),
     Unary(BoundedActivationError),
     Fold(BoundedFoldError),
     Scan(BoundedScanError),
+}
+
+/// Host-owned, single-use conversion of exact subordinate reservations into
+/// initialized child kernels. Implementations must consume their retained
+/// reservations and refuse a repeated receipt.
+pub trait PlannedActivationChildPoolHost: PlanPreparationHost {
+    fn take_activation_child_pool(
+        &mut self,
+        receipts: &[PreparedFragmentReceipt],
+        definition: &KernelCompositeDefinition,
+        maximum_items: usize,
+    ) -> Result<Vec<KernelCompositeHost>, HostPreparationRefusal>;
 }
 
 impl PreparedActivationChildPool {
@@ -39,7 +53,7 @@ impl PreparedActivationChildPool {
         outer: &Plan,
         prepared: &PreparedPlan,
         activation_id: &str,
-        registry: &KernelOperationRegistry,
+        host: &mut dyn PlannedActivationChildPoolHost,
     ) -> Result<Self, PlannedActivationCompositeError> {
         let definition =
             KernelCompositeDefinition::from_planned_activation(outer, prepared, activation_id)
@@ -47,13 +61,26 @@ impl PreparedActivationChildPool {
         let entry = activation(outer, activation_id)
             .ok_or(PlannedActivationCompositeError::MissingActivation)?;
         let maximum_items = usize::from(limits(entry).maximum_items);
-        let mut ready = Vec::with_capacity(maximum_items);
-        for _ in 0..maximum_items {
-            ready.push(
-                KernelCompositeHost::prepare(definition.clone(), registry)
-                    .map_err(PlannedActivationCompositeError::ChildPreparation)?,
-            );
+        if host.preparation_identity().host_id != definition.host_id
+            || host.preparation_identity().boot_id != definition.boot_id
+            || host.preparation_identity().offer_generation != definition.offer_generation
+        {
+            return Err(PlannedActivationCompositeError::StaleOrSubstitutedHandoff);
         }
+        let receipts = prepared
+            .subordinate_receipts()
+            .iter()
+            .filter(|(id, _)| id == activation_id)
+            .map(|(_, receipt)| receipt.clone())
+            .collect::<Vec<_>>();
+        let mut returned = host
+            .take_activation_child_pool(&receipts, &definition, maximum_items)
+            .map_err(PlannedActivationCompositeError::HostPreparation)?;
+        if returned.len() != maximum_items {
+            return Err(PlannedActivationCompositeError::StaleOrSubstitutedHandoff);
+        }
+        let mut ready = Vec::with_capacity(maximum_items);
+        ready.append(&mut returned);
         Ok(Self {
             outer_plan_id: outer.plan_id.clone(),
             activation_id: activation_id.into(),

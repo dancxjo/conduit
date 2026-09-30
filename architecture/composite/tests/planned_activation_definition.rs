@@ -1,6 +1,7 @@
 use conduit_composite::{
     KernelCompositeDefinition, KernelOperationBudget, KernelOperationFactory,
-    KernelOperationRegistry, PreparedActivationChildPool, PreparedPlannedActivationComposite,
+    KernelOperationRegistry, PlannedActivationChildPoolHost, PreparedActivationChildPool,
+    PreparedPlannedActivationComposite,
 };
 use conduit_core::{
     prepare_plan_on_hosts, ActivePlayId, HostPreparationRefusal, Plan, PlanFragment,
@@ -20,6 +21,7 @@ mod common;
 struct Host {
     identity: PreparationHostIdentity,
     receipts: Vec<PreparedFragmentReceipt>,
+    registry: KernelOperationRegistry,
 }
 
 impl Host {
@@ -32,7 +34,38 @@ impl Host {
                 offer_generation: fragment.offer_generation,
             },
             receipts: vec![],
+            registry: KernelOperationRegistry::new(),
         }
+    }
+}
+
+impl PlannedActivationChildPoolHost for Host {
+    fn take_activation_child_pool(
+        &mut self,
+        receipts: &[PreparedFragmentReceipt],
+        definition: &KernelCompositeDefinition,
+        maximum_items: usize,
+    ) -> Result<Vec<conduit_composite::KernelCompositeHost>, HostPreparationRefusal> {
+        for receipt in receipts {
+            if !self.receipts.contains(receipt) {
+                return Err(HostPreparationRefusal::PreparedBindingMismatch);
+            }
+        }
+        let ready = (0..maximum_items)
+            .map(|_| {
+                conduit_composite::KernelCompositeHost::prepare(definition.clone(), &self.registry)
+                    .map_err(|_| HostPreparationRefusal::ImplementationUnavailable)
+            })
+            .collect::<Result<Vec<_>, _>>()?;
+        for receipt in receipts {
+            let index = self
+                .receipts
+                .iter()
+                .position(|candidate| candidate == receipt)
+                .unwrap();
+            self.receipts.remove(index);
+        }
+        Ok(ready)
     }
 }
 
@@ -265,16 +298,17 @@ fn receipted_child_pool_is_initialized_exactly_n_then_consumed_without_registry(
     let mut host = Host::new();
     let prepared = prepare_plan_on_hosts(&plan, &mut [&mut host]).unwrap();
     let count = Arc::new(AtomicUsize::new(0));
-    let mut registry = KernelOperationRegistry::new();
-    registry.install(PreparedFactory(count.clone())).unwrap();
+    host.registry
+        .install(PreparedFactory(count.clone()))
+        .unwrap();
     let pool =
-        PreparedActivationChildPool::prepare_on_host(&plan, &prepared, "each", &registry).unwrap();
+        PreparedActivationChildPool::prepare_on_host(&plan, &prepared, "each", &mut host).unwrap();
     assert_eq!(count.load(Ordering::SeqCst), 2);
-    drop(registry);
-    assert!(matches!(
-        PreparedPlannedActivationComposite::prepare(&plan, &prepared, "each", pool),
-        Ok(PreparedPlannedActivationComposite::Unary(_))
-    ));
+    assert!(
+        PreparedActivationChildPool::prepare_on_host(&plan, &prepared, "each", &mut host).is_err()
+    );
+    let composite = PreparedPlannedActivationComposite::prepare(&plan, &prepared, "each", pool);
+    assert!(composite.is_ok(), "{:?}", composite.err());
     assert_eq!(count.load(Ordering::SeqCst), 2);
 }
 
@@ -283,13 +317,34 @@ fn missing_factory_is_refused_during_receipted_host_preparation() {
     let plan = activation_plan();
     let mut host = Host::new();
     let prepared = prepare_plan_on_hosts(&plan, &mut [&mut host]).unwrap();
-    assert!(PreparedActivationChildPool::prepare_on_host(
-        &plan,
-        &prepared,
-        "each",
-        &KernelOperationRegistry::new(),
-    )
-    .is_err());
+    assert!(
+        PreparedActivationChildPool::prepare_on_host(&plan, &prepared, "each", &mut host,).is_err()
+    );
+}
+
+#[test]
+fn child_pool_refuses_current_boot_and_offer_drift_before_consuming_receipts() {
+    let plan = activation_plan();
+    let mut host = Host::new();
+    let prepared = prepare_plan_on_hosts(&plan, &mut [&mut host]).unwrap();
+    host.registry
+        .install(PreparedFactory(Arc::new(AtomicUsize::new(0))))
+        .unwrap();
+    let retained = host.receipts.len();
+    host.identity.boot_id = conduit_core::BootId::from("replacement-boot");
+    assert!(
+        PreparedActivationChildPool::prepare_on_host(&plan, &prepared, "each", &mut host).is_err()
+    );
+    assert_eq!(host.receipts.len(), retained);
+    host.identity = PreparationHostIdentity {
+        host_id: conduit_core::HostId::from("host"),
+        boot_id: conduit_core::BootId::from("boot"),
+        offer_generation: conduit_core::OfferGeneration(99),
+    };
+    assert!(
+        PreparedActivationChildPool::prepare_on_host(&plan, &prepared, "each", &mut host).is_err()
+    );
+    assert_eq!(host.receipts.len(), retained);
 }
 
 #[test]
@@ -297,11 +352,10 @@ fn child_pool_cannot_be_substituted_for_another_activation_identity() {
     let plan = activation_plan();
     let mut host = Host::new();
     let prepared = prepare_plan_on_hosts(&plan, &mut [&mut host]).unwrap();
-    let mut registry = KernelOperationRegistry::new();
-    registry
+    host.registry
         .install(PreparedFactory(Arc::new(AtomicUsize::new(0))))
         .unwrap();
     let pool =
-        PreparedActivationChildPool::prepare_on_host(&plan, &prepared, "each", &registry).unwrap();
+        PreparedActivationChildPool::prepare_on_host(&plan, &prepared, "each", &mut host).unwrap();
     assert!(PreparedPlannedActivationComposite::prepare(&plan, &prepared, "other", pool,).is_err());
 }

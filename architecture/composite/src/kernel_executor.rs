@@ -1,8 +1,9 @@
 use crate::child::{BoundaryEndpoint, BoundaryTerminal, ChildKernel};
 use crate::{KernelCompositeDefinition, KernelOperationRegistry};
 use conduit_core::{
-    bind_active_play, semantic_digest, ActivePlayId, ConnectionId, HostId, Plan, PortDirection,
-    PortId, ValuePayload,
+    bind_active_play, semantic_digest, ActivePlayId, AuthorityBinding, ConnectionId,
+    HostCallRequirement, HostId, Plan, PortDirection, PortId, PreparationHostIdentity,
+    ResourceBinding, ValuePayload,
 };
 use conduit_kernel::scheduler::{HostCallRequest, RemoteIngressOutcome, SchedulerStatus};
 use conduit_kernel::RemoteTerminalDisposition;
@@ -30,6 +31,7 @@ pub enum KernelCompositeError {
     StaleChild(HostId),
     MalformedBoundary(PortId),
     InvalidLifecycle,
+    CancellationRefused { failed_children: usize },
 }
 
 impl core::fmt::Display for KernelCompositeError {
@@ -102,6 +104,29 @@ pub struct KernelCompositeHostRequest {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
+pub struct KernelCompositeHostCallObligation {
+    pub host: PreparationHostIdentity,
+    pub requirement: HostCallRequirement,
+    pub resources: Vec<ResourceBinding>,
+    pub authorities: Vec<AuthorityBinding>,
+}
+
+/// A dispatch admitted against the exact selected host identity, resources and grants.
+/// Its fields are private so an adapter cannot manufacture admission.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct AdmittedKernelCompositeHostRequest {
+    request: KernelCompositeHostRequest,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+struct OutstandingHostCall {
+    token: u64,
+    child: HostId,
+    request: HostCallRequest,
+    obligation_identity: [u8; 32],
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub enum KernelCompositeStatus {
     Active,
     Complete,
@@ -122,9 +147,11 @@ pub struct KernelCompositeHost {
     active_plays: BTreeMap<HostId, ActivePlayId>,
     started: bool,
     cancelled: bool,
-    host_call_obligations: BTreeMap<(HostId, NodeId, HostCallId), [u8; 32]>,
-    outstanding_host_calls: BTreeMap<u64, (HostId, HostCallRequest, [u8; 32])>,
+    host_call_obligations:
+        BTreeMap<(HostId, NodeId, HostCallId), ([u8; 32], KernelCompositeHostCallObligation)>,
+    outstanding_host_calls: Vec<Option<OutstandingHostCall>>,
     next_dispatch_token: u64,
+    cancellation_failures: Vec<(HostId, String)>,
 }
 
 impl KernelCompositeHost {
@@ -212,17 +239,60 @@ impl KernelCompositeHost {
         let mut host_call_obligations = BTreeMap::new();
         for (child, lowered) in preparation.children() {
             for (node, call, contract) in &lowered.identity.host_calls {
-                let placement = lowered.identity.placement_for_node(*node).ok_or_else(|| {
+                let placement_id = lowered.identity.placement_for_node(*node).ok_or_else(|| {
                     KernelCompositeError::InvalidBoundary("Host Call owner is absent".into())
                 })?;
+                let fragment = definition
+                    .internal_plan
+                    .fragments
+                    .iter()
+                    .find(|fragment| fragment.host_id == *child)
+                    .ok_or_else(|| KernelCompositeError::StaleChild(child.clone()))?;
+                let placement = fragment
+                    .placements
+                    .iter()
+                    .find(|placement| placement.placement_id == *placement_id)
+                    .ok_or_else(|| {
+                        KernelCompositeError::InvalidBoundary(
+                            "Host Call placement is absent".into(),
+                        )
+                    })?;
+                let requirement = placement
+                    .host_calls
+                    .iter()
+                    .find(|item| item.contract_id == *contract)
+                    .ok_or_else(|| {
+                        KernelCompositeError::InvalidBoundary(
+                            "lowered Host Call contract is absent from its selected placement"
+                                .into(),
+                        )
+                    })?;
+                let obligation = KernelCompositeHostCallObligation {
+                    host: PreparationHostIdentity {
+                        host_id: fragment.host_id.clone(),
+                        boot_id: fragment.boot_id.clone(),
+                        offer_generation: fragment.offer_generation,
+                    },
+                    requirement: requirement.clone(),
+                    resources: placement.resources.clone(),
+                    authorities: placement
+                        .authority
+                        .iter()
+                        .filter(|grant| grant.host_call_contract_id == *contract)
+                        .cloned()
+                        .collect(),
+                };
                 host_call_obligations.insert(
                     (child.clone(), *node, *call),
-                    host_call_obligation_identity(
-                        lowered.identity.plan_id.as_str(),
-                        lowered.identity.fragment_id.as_str(),
-                        placement.as_str(),
-                        *call,
-                        contract.as_str(),
+                    (
+                        host_call_obligation_identity(
+                            lowered.identity.plan_id.as_str(),
+                            lowered.identity.fragment_id.as_str(),
+                            placement.placement_id.as_str(),
+                            *call,
+                            contract.as_str(),
+                        ),
+                        obligation,
                     ),
                 );
             }
@@ -246,6 +316,11 @@ impl KernelCompositeHost {
             })?;
             children.insert(child, kernel);
         }
+        let outstanding_host_call_bound = host_call_obligations
+            .values()
+            .map(|(_, obligation)| usize::from(obligation.requirement.maximum_in_flight))
+            .sum();
+        let child_count = children.len();
         Ok(Self {
             definition,
             children,
@@ -255,8 +330,9 @@ impl KernelCompositeHost {
             started: false,
             cancelled: false,
             host_call_obligations,
-            outstanding_host_calls: BTreeMap::new(),
+            outstanding_host_calls: (0..outstanding_host_call_bound).map(|_| None).collect(),
             next_dispatch_token: 0,
+            cancellation_failures: Vec::with_capacity(child_count),
         })
     }
 
@@ -392,6 +468,10 @@ impl KernelCompositeHost {
         if !self.started || self.cancelled {
             return None;
         }
+        let slot = self
+            .outstanding_host_calls
+            .iter()
+            .position(Option::is_none)?;
         let next_dispatch_token = self.next_dispatch_token.checked_add(1)?;
         let surfaced = self.children.iter_mut().find_map(|(child, kernel)| {
             kernel
@@ -402,20 +482,16 @@ impl KernelCompositeHost {
         let obligation_identity = self
             .host_call_obligations
             .get(&(child.clone(), request.node, request.call))
-            .copied()
+            .map(|(identity, _)| *identity)
             .expect("lowered Host Call has a sealed obligation");
         let dispatch_token = self.next_dispatch_token;
         self.next_dispatch_token = next_dispatch_token;
-        if self
-            .outstanding_host_calls
-            .insert(
-                dispatch_token,
-                (child.clone(), request, obligation_identity),
-            )
-            .is_some()
-        {
-            return None;
-        }
+        self.outstanding_host_calls[slot] = Some(OutstandingHostCall {
+            token: dispatch_token,
+            child: child.clone(),
+            request,
+            obligation_identity,
+        });
         Some(KernelCompositeHostRequest {
             dispatch_token,
             child,
@@ -424,25 +500,64 @@ impl KernelCompositeHost {
         })
     }
 
+    pub fn host_request_obligation(
+        &self,
+        request: &KernelCompositeHostRequest,
+    ) -> Result<&KernelCompositeHostCallObligation, KernelCompositeError> {
+        self.verify_host_call_obligation(request)?;
+        self.host_call_obligations
+            .get(&(
+                request.child.clone(),
+                request.request.node,
+                request.request.call,
+            ))
+            .map(|(_, obligation)| obligation)
+            .ok_or_else(|| {
+                KernelCompositeError::InvalidBoundary("Host Call has no selected obligation".into())
+            })
+    }
+
+    pub fn admit_host_request(
+        &self,
+        request: &KernelCompositeHostRequest,
+        host: &PreparationHostIdentity,
+        resources: &[ResourceBinding],
+        authorities: &[AuthorityBinding],
+    ) -> Result<AdmittedKernelCompositeHostRequest, KernelCompositeError> {
+        let exact = self.host_request_obligation(request)?;
+        if !dispatch_matches(exact, host, resources, authorities) {
+            return Err(KernelCompositeError::InvalidBoundary(
+                "Host Call dispatch lacks its exact selected host, resource, or authority binding"
+                    .into(),
+            ));
+        }
+        Ok(AdmittedKernelCompositeHostRequest {
+            request: request.clone(),
+        })
+    }
+
     pub fn complete_host_call(
         &mut self,
-        request: &KernelCompositeHostRequest,
+        admitted: &AdmittedKernelCompositeHostRequest,
         outcome: HostCallOutcome,
     ) -> Result<(), KernelCompositeError> {
         self.require_started()?;
-        self.consume_host_call_obligation(request)?;
+        let request = &admitted.request;
+        self.verify_host_call_obligation(request)?;
         self.children
             .get_mut(&request.child)
             .ok_or_else(|| KernelCompositeError::StaleChild(request.child.clone()))?
             .complete_host_call(request.request.node, request.request.request, outcome)
-            .map_err(|reason| execution(&request.child, reason))
+            .map_err(|reason| execution(&request.child, reason))?;
+        self.consume_host_call_obligation(request)
     }
 
     /// Resolve the exact admitted input for a surfaced Host Call.
     pub fn host_request_input(
         &self,
-        request: &KernelCompositeHostRequest,
+        admitted: &AdmittedKernelCompositeHostRequest,
     ) -> Result<&[u8], KernelCompositeError> {
+        let request = &admitted.request;
         self.verify_host_call_obligation(request)?;
         self.children
             .get(&request.child)
@@ -454,11 +569,18 @@ impl KernelCompositeHost {
     /// Store a bounded adapter result in the owning child and complete its call.
     pub fn complete_host_call_bytes(
         &mut self,
-        request: &KernelCompositeHostRequest,
+        admitted: &AdmittedKernelCompositeHostRequest,
         bytes: &[u8],
     ) -> Result<(), KernelCompositeError> {
         self.require_started()?;
-        self.consume_host_call_obligation(request)?;
+        let request = &admitted.request;
+        self.verify_host_call_obligation(request)?;
+        let obligation = self.host_request_obligation(request)?;
+        if bytes.len() > obligation.requirement.maximum_output_bytes as usize {
+            return Err(KernelCompositeError::InvalidBoundary(
+                "Host Call output exceeds its exact selected byte bound".into(),
+            ));
+        }
         let child = self
             .children
             .get_mut(&request.child)
@@ -478,7 +600,8 @@ impl KernelCompositeHost {
                     failure: None,
                 },
             )
-            .map_err(|reason| execution(&request.child, reason))
+            .map_err(|reason| execution(&request.child, reason))?;
+        self.consume_host_call_obligation(request)
     }
 
     fn verify_host_call_obligation(
@@ -493,7 +616,15 @@ impl KernelCompositeHost {
         request: &KernelCompositeHostRequest,
     ) -> Result<(), KernelCompositeError> {
         self.verify_host_call_obligation(request)?;
-        self.outstanding_host_calls.remove(&request.dispatch_token);
+        let slot = self
+            .outstanding_host_calls
+            .iter_mut()
+            .find(|slot| {
+                slot.as_ref()
+                    .is_some_and(|item| item.token == request.dispatch_token)
+            })
+            .expect("verified outstanding dispatch has a slot");
+        *slot = None;
         Ok(())
     }
 
@@ -521,12 +652,25 @@ impl KernelCompositeHost {
     pub fn cancel(&mut self) -> Result<(), KernelCompositeError> {
         // Cancellation consumes adapter authority even if a child later
         // reports mechanism trouble while cancelling.
-        self.outstanding_host_calls.clear();
-        for (child, kernel) in &mut self.children {
-            kernel.cancel().map_err(|reason| execution(child, reason))?;
-        }
         self.cancelled = true;
-        Ok(())
+        self.outstanding_host_calls.fill(None);
+        self.cancellation_failures.clear();
+        for (child, kernel) in &mut self.children {
+            if let Err(reason) = kernel.cancel() {
+                self.cancellation_failures.push((child.clone(), reason));
+            }
+        }
+        if self.cancellation_failures.is_empty() {
+            Ok(())
+        } else {
+            Err(KernelCompositeError::CancellationRefused {
+                failed_children: self.cancellation_failures.len(),
+            })
+        }
+    }
+
+    pub fn cancellation_failures(&self) -> &[(HostId, String)] {
+        &self.cancellation_failures
     }
 
     pub fn signs(&self) -> BTreeMap<HostId, Vec<KernelEvent>> {
@@ -631,18 +775,25 @@ impl KernelCompositeHost {
     }
 }
 
+fn dispatch_matches(
+    exact: &KernelCompositeHostCallObligation,
+    host: &PreparationHostIdentity,
+    resources: &[ResourceBinding],
+    authorities: &[AuthorityBinding],
+) -> bool {
+    &exact.host == host && exact.resources == resources && exact.authorities == authorities
+}
+
 fn verify_outstanding_host_call(
-    outstanding: &BTreeMap<u64, (HostId, HostCallRequest, [u8; 32])>,
+    outstanding: &[Option<OutstandingHostCall>],
     request: &KernelCompositeHostRequest,
 ) -> Result<(), KernelCompositeError> {
-    let expected = outstanding.get(&request.dispatch_token);
-    if expected
-        == Some(&(
-            request.child.clone(),
-            request.request,
-            request.obligation_identity,
-        ))
-    {
+    if outstanding.iter().flatten().any(|expected| {
+        expected.token == request.dispatch_token
+            && expected.child == request.child
+            && expected.request == request.request
+            && expected.obligation_identity == request.obligation_identity
+    }) {
         Ok(())
     } else {
         Err(KernelCompositeError::InvalidBoundary(
@@ -799,7 +950,12 @@ mod tests {
         };
         let child = HostId::from("child");
         let identity = [7; 32];
-        let mut outstanding = BTreeMap::from([(9, (child.clone(), request, identity))]);
+        let mut outstanding = vec![Some(OutstandingHostCall {
+            token: 9,
+            child: child.clone(),
+            request,
+            obligation_identity: identity,
+        })];
         let exact = KernelCompositeHostRequest {
             dispatch_token: 9,
             child,
@@ -813,8 +969,106 @@ mod tests {
         let mut swapped = exact.clone();
         swapped.request.input.value.generation = 8;
         assert!(verify_outstanding_host_call(&outstanding, &swapped).is_err());
-        outstanding.remove(&exact.dispatch_token);
+        outstanding[0] = None;
         assert!(verify_outstanding_host_call(&outstanding, &exact).is_err());
         assert!(verify_outstanding_host_call(&outstanding, &exact).is_err());
+    }
+
+    #[test]
+    fn dispatch_requires_exact_current_host_resources_and_authority() {
+        use conduit_core::{
+            AuthorityContractId, AuthorityGrantId, BootId, CapabilityId, HostCallContractId,
+            KindId, OfferGeneration, ResourceClassId, ResourcePoolId,
+        };
+        let host = PreparationHostIdentity {
+            host_id: HostId::from("host"),
+            boot_id: BootId::from("boot"),
+            offer_generation: OfferGeneration(1),
+        };
+        let resource = ResourceBinding {
+            pool_id: ResourcePoolId::from("pool"),
+            class_id: ResourceClassId::from("class"),
+            units: 1,
+            protected: None,
+            compute: None,
+            content: None,
+        };
+        let authority = AuthorityBinding {
+            grant_id: AuthorityGrantId::from("grant"),
+            contract_id: AuthorityContractId::from("authority"),
+            host_call_contract_id: HostCallContractId::from("call"),
+            subject_kind: KindId::from("subject"),
+            host_id: host.host_id.clone(),
+            boot_id: host.boot_id.clone(),
+            capability_id: CapabilityId::from("capability"),
+        };
+        let exact = KernelCompositeHostCallObligation {
+            host: host.clone(),
+            requirement: HostCallRequirement {
+                contract_id: HostCallContractId::from("call"),
+                target_kind: Some(KindId::from("subject")),
+                maximum_in_flight: 1,
+                maximum_input_bytes: 1,
+                maximum_output_bytes: 1,
+            },
+            resources: vec![resource.clone()],
+            authorities: vec![authority.clone()],
+        };
+        assert!(dispatch_matches(
+            &exact,
+            &host,
+            core::slice::from_ref(&resource),
+            core::slice::from_ref(&authority)
+        ));
+        assert!(!dispatch_matches(
+            &exact,
+            &host,
+            &[],
+            core::slice::from_ref(&authority)
+        ));
+        assert!(!dispatch_matches(
+            &exact,
+            &host,
+            core::slice::from_ref(&resource),
+            &[]
+        ));
+        let mut stale = host;
+        stale.offer_generation = OfferGeneration(2);
+        assert!(!dispatch_matches(
+            &exact,
+            &stale,
+            core::slice::from_ref(&resource),
+            core::slice::from_ref(&authority)
+        ));
+    }
+
+    #[test]
+    fn fixed_dispatch_slots_reuse_without_capacity_growth() {
+        let mut slots: Vec<Option<OutstandingHostCall>> = (0..2).map(|_| None).collect();
+        let capacity = slots.capacity();
+        for token in 0..32 {
+            slots[0] = Some(OutstandingHostCall {
+                token,
+                child: HostId::from("child"),
+                request: HostCallRequest {
+                    node: NodeId(0),
+                    request: conduit_kernel::RequestId(token as u32),
+                    call: HostCallId(0),
+                    input: conduit_kernel::BoundedValueRef::new(
+                        conduit_kernel::ValueRef {
+                            slot: 0,
+                            generation: 0,
+                            byte_len: 0,
+                        },
+                        0,
+                    )
+                    .unwrap(),
+                },
+                obligation_identity: [0; 32],
+            });
+            slots[0] = None;
+        }
+        assert_eq!(slots.capacity(), capacity);
+        assert_eq!(slots.len(), 2);
     }
 }

@@ -1,9 +1,9 @@
 //! Kernel-backed execution of one exact planned bounded fold.
 
 use crate::{
-    KernelCompositeDefinition, KernelCompositeError, KernelCompositeHost,
-    KernelCompositeHostRequest, KernelCompositeStatus, KernelCompositeTerminal,
-    KernelOperationRegistry,
+    AdmittedKernelCompositeHostRequest, KernelCompositeDefinition, KernelCompositeError,
+    KernelCompositeHost, KernelCompositeHostRequest, KernelCompositeStatus,
+    KernelCompositeTerminal, KernelOperationRegistry,
 };
 use conduit_core::{
     verify_plan, PlannedActivationEffectMultiplicity, PlannedActivationFront,
@@ -335,7 +335,7 @@ impl BoundedFoldActivationHost {
     }
     pub fn complete_host_call(
         &mut self,
-        request: &KernelCompositeHostRequest,
+        request: &AdmittedKernelCompositeHostRequest,
         outcome: HostCallOutcome,
     ) -> Result<(), BoundedFoldError> {
         self.active

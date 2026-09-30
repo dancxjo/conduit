@@ -1,7 +1,7 @@
 use crate::{
-    KernelCompositeDefinition, KernelCompositeError, KernelCompositeHost,
-    KernelCompositeHostRequest, KernelCompositeStatus, KernelCompositeTerminal,
-    KernelOperationRegistry,
+    AdmittedKernelCompositeHostRequest, KernelCompositeDefinition, KernelCompositeError,
+    KernelCompositeHost, KernelCompositeHostRequest, KernelCompositeStatus,
+    KernelCompositeTerminal, KernelOperationRegistry,
 };
 use conduit_core::{
     semantic_digest, verify_plan, KindId, PlanId, PlannedActivation, PortDirection, PortId,
@@ -469,7 +469,7 @@ impl BoundedActivationHost {
 
     pub fn complete_host_call(
         &mut self,
-        request: &KernelCompositeHostRequest,
+        request: &AdmittedKernelCompositeHostRequest,
         outcome: HostCallOutcome,
     ) -> Result<(), BoundedActivationError> {
         self.active
