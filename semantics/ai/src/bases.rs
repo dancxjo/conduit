@@ -1,4 +1,7 @@
-use crate::{llm_contract, LLM_GENERATE_KIND, LOCAL_MODEL_OPERATION, MAXIMUM_LLM_INPUT_BYTES};
+use crate::{
+    llm_contract, BaseProofClass, DataHandling, Metering, LLM_GENERATE_KIND, LOCAL_MODEL_OPERATION,
+    MAXIMUM_LLM_INPUT_BYTES,
+};
 use alloc::string::{String, ToString};
 use alloc::vec;
 use conduit_core::{
@@ -29,23 +32,6 @@ pub const MAXIMUM_CONTEXT_CHARACTERISTIC: &str = "conduit.realization/maximum-co
 pub const MAXIMUM_OUTPUT_CHARACTERISTIC: &str = "conduit.realization/maximum-output-bytes@1";
 pub const DATA_EGRESS_CHARACTERISTIC: &str = "conduit.realization/data-egress@1";
 pub const METERED_COST_CHARACTERISTIC: &str = "conduit.realization/metered-cost@1";
-
-#[derive(Debug, Copy, Clone, PartialEq, Eq, Serialize, Deserialize)]
-pub enum BaseProofClass {
-    DeterministicConformanceFixture,
-}
-
-#[derive(Debug, Copy, Clone, PartialEq, Eq, Serialize, Deserialize)]
-pub enum DataHandling {
-    LocalOnly,
-    RemoteEgress,
-}
-
-#[derive(Debug, Copy, Clone, PartialEq, Eq, Serialize, Deserialize)]
-pub enum Metering {
-    UnmeteredFixture,
-    MeteredFixture,
-}
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct LlmGenerateBaseFacts {
