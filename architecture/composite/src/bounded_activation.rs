@@ -114,6 +114,10 @@ pub enum BoundedActivationState {
     Succeeded {
         sequence: u64,
     },
+    Abnormal {
+        sequence: u64,
+        terminal: ValuePayload,
+    },
     Faulted {
         sequence: u64,
         fault: BoundedActivationFault,
@@ -126,7 +130,10 @@ pub enum BoundedActivationState {
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum BoundedActivationFault {
     Execution(KernelCompositeError),
-    Abnormal(ValuePayload),
+    MalformedAbnormalTerminal {
+        expected: Option<KindId>,
+        actual: KindId,
+    },
     MissingOutput,
 }
 
@@ -273,21 +280,12 @@ impl BoundedActivationHost {
                 self.last_signs = activation.signs();
                 self.active = None;
                 self.input_close_pending = false;
-                self.state = match terminal {
-                    Some(KernelCompositeTerminal::Abnormal(terminal)) => {
-                        BoundedActivationState::Faulted {
-                            sequence,
-                            fault: BoundedActivationFault::Abnormal(terminal),
-                        }
-                    }
-                    Some(KernelCompositeTerminal::Normal) if self.output_completed => {
-                        BoundedActivationState::Succeeded { sequence }
-                    }
-                    _ => BoundedActivationState::Faulted {
-                        sequence,
-                        fault: BoundedActivationFault::MissingOutput,
-                    },
-                };
+                self.state = activation_terminal_state(
+                    sequence,
+                    terminal,
+                    self.contract.output_abnormal_kind.as_ref(),
+                    self.output_completed,
+                );
             }
             Ok(KernelCompositeStatus::Cancelled) => {
                 self.last_signs = activation.signs();
@@ -362,5 +360,84 @@ fn encode_optional_kind(encoded: &mut Vec<u8>, value: Option<&KindId>) {
             encode_string(encoded, kind.as_str());
         }
         None => encoded.push(0),
+    }
+}
+
+fn activation_terminal_state(
+    sequence: u64,
+    terminal: Option<KernelCompositeTerminal>,
+    expected_abnormal_kind: Option<&KindId>,
+    output_completed: bool,
+) -> BoundedActivationState {
+    match terminal {
+        Some(KernelCompositeTerminal::Abnormal(terminal))
+            if expected_abnormal_kind == Some(&terminal.value_kind) =>
+        {
+            BoundedActivationState::Abnormal { sequence, terminal }
+        }
+        Some(KernelCompositeTerminal::Abnormal(terminal)) => BoundedActivationState::Faulted {
+            sequence,
+            fault: BoundedActivationFault::MalformedAbnormalTerminal {
+                expected: expected_abnormal_kind.cloned(),
+                actual: terminal.value_kind,
+            },
+        },
+        Some(KernelCompositeTerminal::Normal) if output_completed => {
+            BoundedActivationState::Succeeded { sequence }
+        }
+        _ => BoundedActivationState::Faulted {
+            sequence,
+            fault: BoundedActivationFault::MissingOutput,
+        },
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use conduit_core::kind_id;
+
+    #[test]
+    fn exact_abnormal_terminal_is_not_execution_failure_or_success() {
+        let terminal = ValuePayload {
+            value_kind: kind_id("test/transform-terminal"),
+            encoded: vec![7],
+        };
+        assert_eq!(
+            activation_terminal_state(
+                4,
+                Some(KernelCompositeTerminal::Abnormal(terminal.clone())),
+                Some(&kind_id("test/transform-terminal")),
+                false,
+            ),
+            BoundedActivationState::Abnormal {
+                sequence: 4,
+                terminal,
+            }
+        );
+    }
+
+    #[test]
+    fn wrong_or_unpromised_abnormal_kind_is_a_malformed_execution_terminal() {
+        for expected in [None, Some(kind_id("test/expected-terminal"))] {
+            assert_eq!(
+                activation_terminal_state(
+                    5,
+                    Some(KernelCompositeTerminal::Abnormal(ValuePayload {
+                        value_kind: kind_id("test/wrong-terminal"),
+                        encoded: vec![9],
+                    })),
+                    expected.as_ref(),
+                    false,
+                ),
+                BoundedActivationState::Faulted {
+                    sequence: 5,
+                    fault: BoundedActivationFault::MalformedAbnormalTerminal {
+                        expected,
+                        actual: kind_id("test/wrong-terminal"),
+                    },
+                }
+            );
+        }
     }
 }
