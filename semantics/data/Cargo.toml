@@ -9,3 +9,6 @@ conduit-form = { path = "../../architecture/form" }
 
 [dev-dependencies]
 conduit-little-seismograph-fixture = { path = "../../forms/little-seismograph/fixture" }
+
+[build-dependencies]
+conduit-form = { path = "../../architecture/form" }
