@@ -1,5 +1,3 @@
-# Evidence and proof
-
 Conduit treats evidence as typed truth with a scope.
 
 A passing test, browser run, emulator boot, physical device run, and human enactment establish different things. One does not magically upgrade into another.
