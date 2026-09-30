@@ -13,8 +13,9 @@ pub use generated::{
     DataSaveTextTerminal, DataSaveTextTerminalRepresentation, FullWindowPolicy,
     MeasurementPlotOverflowPolicy, MeasurementPlotRefusal, MeasurementSummaryRefusal,
     MeasurementThresholdRefusal, MeasurementThresholdState, MeasurementThresholdTransition,
-    MeasurementWindowRefusal, SampledSignalRefusal, ScientificObservationRefusal, TensorAxisRole,
-    TensorAxisRoleOther, TensorElement, TensorRefusal,
+    MeasurementWindowRefusal, SampledSignalRefusal, ScientificObservationRefusal, SignalContinuity,
+    SignalContinuityClockReset, SignalContinuityDiscontinuous, TensorAxisRole, TensorAxisRoleOther,
+    TensorElement, TensorRefusal,
 };
 
 mod data_catalog;

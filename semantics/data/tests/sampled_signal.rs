@@ -73,9 +73,7 @@ fn concatenation_requires_exact_contiguity_and_compatible_descriptors() {
         Err(SampledSignalRefusal::NoncontiguousSignals)
     );
     let mut discontinuous = second;
-    discontinuous.continuity = SignalContinuity::Discontinuous {
-        gap_identity: "capture-gap".into(),
-    };
+    discontinuous.continuity = SignalContinuity::discontinuous("capture-gap".into()).unwrap();
     assert_eq!(
         concatenate(&[first, discontinuous]),
         Err(SampledSignalRefusal::IncompatibleSignals)
