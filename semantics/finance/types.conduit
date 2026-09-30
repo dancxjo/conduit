@@ -9,3 +9,8 @@ type FinanceMoneyComparison =
     equal
     | greater
     | less
+
+type FinanceCurrencyPair = {
+    base: FinanceCurrency
+    quote: FinanceCurrency
+}

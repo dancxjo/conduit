@@ -241,13 +241,7 @@ pub fn finance_money_type() -> StructuredInfoType {
 }
 
 pub fn finance_instrument_type() -> StructuredInfoType {
-    record(
-        "finance/currency-pair@1",
-        vec![
-            field("base", finance_currency_type()),
-            field("quote", finance_currency_type()),
-        ],
-    )
+    crate::FinanceCurrencyPair::semantic_type().expect("checked native finance currency-pair Type")
 }
 
 pub fn finance_instant_type() -> StructuredInfoType {
