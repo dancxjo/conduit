@@ -13,3 +13,6 @@ sha2 = { version = "0.10", default-features = false }
 [dev-dependencies]
 conduit-planner = { path = "../../architecture/planner" }
 conduit-wire = { path = "../../architecture/wire" }
+
+[build-dependencies]
+conduit-form = { path = "../../architecture/form" }

@@ -2,6 +2,12 @@
 
 extern crate alloc;
 
+#[allow(dead_code)]
+mod generated {
+    include!(concat!(env!("OUT_DIR"), "/semantic_types.rs"));
+}
+pub use generated::{LeniaBoundary, ReactionDiffusionBoundaryEdge};
+
 mod distributed_catalog;
 mod distributed_expansion;
 mod field_bitmap;
