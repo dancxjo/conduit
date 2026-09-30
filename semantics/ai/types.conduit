@@ -335,6 +335,38 @@ type ModelResultInvalidity =
     | terminal_payload_present
     | produced_payload_missing
 
+type ModelResultDisposition =
+    produced
+    | truncated
+    | refused ModelRefusal
+    | failed ModelFailure
+    | cancelled
+    | provider_lost
+
+type GroundedAnswerRefusal =
+    empty_identity
+    | identity_too_large
+    | invalid_bound
+    | invalid_retrieval_intent
+    | invalid_context
+    | duplicate_context_item
+    | context_accounting_mismatch
+    | invalid_model_result ModelResultInvalidity
+    | model_request_mismatch
+    | model_did_not_produce ModelResultDisposition
+    | output_bound_exceeded
+    | work_bound_exceeded
+    | empty_claims
+    | claim_limit_exceeded
+    | citation_limit_exceeded
+    | invalid_answer_span
+    | citation_not_in_context
+    | duplicate_citation
+    | empty_citation_set
+    | empty_limitation
+    | limitation_too_large
+    | arithmetic_overflow
+
 type StructuredResultInvalidity =
     empty
     | too_many_members

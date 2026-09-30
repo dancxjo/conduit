@@ -198,6 +198,7 @@ are satisfied.
 | Context selection redundancy, ordering, rationale, and omission vocabularies | `semantics/ai/types.conduit` | generated at build time | yes | yes | exact native round trips plus context selection and planning suites |
 | RAG span, selection, truncation, and grounding vocabularies | `semantics/ai/types.conduit` | generated at build time | yes | yes | exact native round trips plus RAG semantics and grounded-answer suites |
 | Model interpretation and result provenance, disposition, refusal, and failure vocabularies | `semantics/ai/types.conduit` | generated at build time | yes | yes | exact native round trips plus interpretation and model-result suites |
+| Model-result disposition and grounded-answer payload-bearing refusal | `semantics/ai/types.conduit` | generated at build time with direct Type payloads | yes | yes | exact native round trips plus model-result and grounded-answer suites |
 | House-context and retrieval provenance/proof vocabularies | `semantics/ai/types.conduit` | generated at build time | yes | yes | exact native round trips plus house-context, hybrid-retrieval, and reranking suites |
 | AI result, contract-offer, temporal-context and vector-proof validation vocabularies | `semantics/ai/types.conduit` | generated at build time | yes | yes | exact native round trips plus AI behavior and contract suites |
 | Form Library availability and refusal vocabularies | `semantics/form-library/types.conduit` | generated at build time | yes | yes | exact native round trips and capability-reason bounds plus library behavior suite |

@@ -1,8 +1,8 @@
 //! Grounded answer assembly from one admitted context and ordinary LLM result.
 
 use crate::{
-    llm_contract, AnswerSpan, Citation, GroundedAnswerDisposition, ModelDerivedResult,
-    ModelResultDisposition, ModelResultInvalidity, ModelResultProvenance, RetrievalIntent,
+    llm_contract, AnswerSpan, Citation, GroundedAnswerDisposition, GroundedAnswerRefusal,
+    ModelDerivedResult, ModelResultDisposition, ModelResultProvenance, RetrievalIntent,
     StructuredContext, LLM_GENERATE_KIND, MAXIMUM_CITATIONS, MAXIMUM_GROUNDED_ANSWER_BYTES,
     MAXIMUM_GROUNDED_CLAIMS, MAXIMUM_RAG_IDENTITY_BYTES, MAXIMUM_RAG_TEXT_BYTES,
 };
@@ -72,32 +72,6 @@ pub struct GroundedAnswer {
     pub claims: Vec<AnswerClaimSupport>,
     pub citations: Vec<Citation>,
     pub limitations: Vec<String>,
-}
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum GroundedAnswerRefusal {
-    EmptyIdentity,
-    IdentityTooLarge,
-    InvalidBound,
-    InvalidRetrievalIntent,
-    InvalidContext,
-    DuplicateContextItem,
-    ContextAccountingMismatch,
-    InvalidModelResult(ModelResultInvalidity),
-    ModelRequestMismatch,
-    ModelDidNotProduce(ModelResultDisposition),
-    OutputBoundExceeded,
-    WorkBoundExceeded,
-    EmptyClaims,
-    ClaimLimitExceeded,
-    CitationLimitExceeded,
-    InvalidAnswerSpan,
-    CitationNotInContext,
-    DuplicateCitation,
-    EmptyCitationSet,
-    EmptyLimitation,
-    LimitationTooLarge,
-    ArithmeticOverflow,
 }
 
 impl GroundedAnswerPolicy {
