@@ -39,22 +39,24 @@ export function parseTourPages(chapters) {
           || stages.length === MAXIMUM_STAGES_PER_PAGE) throw new Error("Tour stage metadata is malformed or over capacity");
         stages.push(Object.freeze({ identity, mode }));
       } else {
-        if (!["page", "route", "companion"].includes(key) || metadata.has(key) || !IDENTITY.test(value)) {
+        if (!["page", "journey", "route", "companion"].includes(key) || metadata.has(key) || !IDENTITY.test(value)) {
           throw new Error("Tour page metadata is malformed");
         }
         metadata.set(key, value);
       }
     }
     const identity = metadata.get("page");
+    const journey = metadata.get("journey");
     const route = metadata.get("route");
     const companion = metadata.get("companion");
     const title = match[2].match(/^# (.+)$/m)?.[1];
-    if (!identity || !route || !companion || !title || identities.has(identity) || routes.has(route)) {
-      throw new Error("Tour page identity, route, companion, or title is invalid or duplicated");
+    if (!identity || journey !== "conduit-tour" || !route || !companion || !title
+      || identities.has(identity) || routes.has(route)) {
+      throw new Error("Tour page identity, journey, route, companion, or title is invalid or duplicated");
     }
     identities.add(identity);
     routes.add(route);
-    return Object.freeze({ identity, route, companion, title, stages: Object.freeze(stages), markdown: match[2] });
+    return Object.freeze({ identity, journey, route, companion, title, stages: Object.freeze(stages), markdown: match[2] });
   }));
 }
 

@@ -870,7 +870,7 @@ test("a missing ESP32 release in the prefixed staged Crèche refuses before bind
 
 test("the Tour renders admitted Markdown emphasis semantically and leaves raw HTML inert", async ({ page }) => {
   const canonical = await readFile(
-    new URL("../../products/tour/content/chapter-1.md", import.meta.url),
+    new URL("../../docs/journeys/tour/chapter-1.md", import.meta.url),
     "utf8",
   );
   const body = `${canonical}\n\n*asterisk* _underscore_ **strong asterisk** __strong underscore__ <img src=x onerror=globalThis.__rawHtmlRan=true>`;
