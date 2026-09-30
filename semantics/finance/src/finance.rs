@@ -28,14 +28,9 @@ pub struct FixedDecimal {
     scale: u8,
 }
 
-#[derive(Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord)]
-pub enum Currency {
-    Eur,
-    Gbp,
-    Usd,
-}
+pub type Currency = crate::FinanceCurrency;
 
-#[derive(Debug, Copy, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Money {
     pub amount: FixedDecimal,
     pub currency: Currency,
@@ -153,7 +148,7 @@ impl FixedDecimal {
 }
 
 impl Currency {
-    pub const fn tag(self) -> &'static str {
+    pub const fn tag(&self) -> &'static str {
         match self {
             Self::Eur => "eur",
             Self::Gbp => "gbp",
@@ -172,15 +167,15 @@ impl Currency {
 }
 
 pub fn add_money(left: Money, right: Money) -> Result<Money, FinanceRefusal> {
-    require_same_currency(left.currency, right.currency)?;
+    require_same_currency(&left.currency, &right.currency)?;
     Ok(Money {
         amount: left.amount.checked_add(right.amount)?,
-        currency: left.currency,
+        currency: left.currency.clone(),
     })
 }
 
 pub fn compare_money(left: Money, right: Money) -> Result<Ordering, FinanceRefusal> {
-    require_same_currency(left.currency, right.currency)?;
+    require_same_currency(&left.currency, &right.currency)?;
     left.amount.checked_cmp(right.amount)
 }
 
@@ -193,13 +188,16 @@ pub fn convert_money(money: Money, rate: &RateObservation<'_>) -> Result<Money, 
     }
     Ok(Money {
         amount: money.amount.checked_mul(rate.rate)?,
-        currency: rate.quote,
+        currency: rate.quote.clone(),
     })
 }
 
-fn require_same_currency(left: Currency, right: Currency) -> Result<(), FinanceRefusal> {
+fn require_same_currency(left: &Currency, right: &Currency) -> Result<(), FinanceRefusal> {
     if left != right {
-        return Err(FinanceRefusal::CurrencyMismatch { left, right });
+        return Err(FinanceRefusal::CurrencyMismatch {
+            left: left.clone(),
+            right: right.clone(),
+        });
     }
     Ok(())
 }
@@ -229,15 +227,7 @@ pub fn finance_fixed_decimal_type() -> StructuredInfoType {
 }
 
 pub fn finance_currency_type() -> StructuredInfoType {
-    StructuredInfoType::variant(
-        kind_id("finance/currency@1"),
-        vec![
-            case("eur", unit_type()),
-            case("gbp", unit_type()),
-            case("usd", unit_type()),
-        ],
-    )
-    .expect("reviewed currency identity")
+    crate::FinanceCurrency::semantic_type().expect("checked native finance currency Type")
 }
 
 pub fn finance_money_type() -> StructuredInfoType {

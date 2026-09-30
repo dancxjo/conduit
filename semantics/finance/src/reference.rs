@@ -115,7 +115,7 @@ fn rate_observation_value(
         vec![
             (
                 "instrument",
-                instrument_value(observation.base, observation.quote)?,
+                instrument_value(observation.base.clone(), observation.quote.clone())?,
             ),
             ("observed_at", instant_value(observation.observed_ticks)?),
             ("profile", text_value(observation.profile)),
@@ -193,7 +193,7 @@ fn deterministic_transaction_events() -> Result<StructuredInfoValue, FinanceRefu
         record_value(
             variant_payload_type(&event_type, "placed")?,
             vec![
-                ("amount", money_value(amount)?),
+                ("amount", money_value(amount.clone())?),
                 ("observed_at", instant_value(1_788_000_001)?),
                 ("order_id", text_value("fixture/order-1")),
             ],

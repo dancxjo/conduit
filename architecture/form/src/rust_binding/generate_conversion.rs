@@ -101,7 +101,12 @@ pub(super) fn emit_variant_binding(
     writeln!(out, "    fn from_structured(value: StructuredInfoValue) -> Result<Self, NativeBindingRefusal> {{")
         .expect("String writing is infallible");
     exact_type_guard(out);
-    writeln!(out, "        let StructuredInfoValueShape::Variant {{ tag, payload }} = value.shape() else {{ return Err(NativeBindingRefusal::InvalidValue(conduit_core::StructuredInfoRefusal::WrongType)); }};")
+    let payload = if cases.iter().all(|case| unit_type(case.payload_type())) {
+        "_payload"
+    } else {
+        "payload"
+    };
+    writeln!(out, "        let StructuredInfoValueShape::Variant {{ tag, payload: {payload} }} = value.shape() else {{ return Err(NativeBindingRefusal::InvalidValue(conduit_core::StructuredInfoRefusal::WrongType)); }};")
         .expect("String writing is infallible");
     writeln!(out, "        match tag {{").expect("String writing is infallible");
     for case in cases {
