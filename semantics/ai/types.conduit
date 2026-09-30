@@ -157,3 +157,19 @@ type ModelFailure =
     | implementation_failure
     | resource_exhausted
     | output_bound_exceeded
+
+type HouseContextProvenanceClass =
+    observed_sign
+    | declared_configuration
+    | model_derived_history
+
+type RetrievalMechanism =
+    vector_similarity
+    | lexical
+    | metadata
+    | temporal
+    | domain_exact
+
+type RerankingProofClass =
+    deterministic_conformance
+    | model_derived

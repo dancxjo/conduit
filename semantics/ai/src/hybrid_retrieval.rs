@@ -3,8 +3,9 @@
 use alloc::{string::String, vec::Vec};
 
 use crate::{
-    Chunk, RagSemanticRefusal, TemporalEvidenceBatch, TemporalEvidenceSelection,
-    TemporalEvidenceSelectionRefusal, TemporalRetrievalIntent, MAXIMUM_RAG_IDENTITY_BYTES,
+    Chunk, RagSemanticRefusal, RetrievalMechanism, TemporalEvidenceBatch,
+    TemporalEvidenceSelection, TemporalEvidenceSelectionRefusal, TemporalRetrievalIntent,
+    MAXIMUM_RAG_IDENTITY_BYTES,
 };
 
 pub const MAXIMUM_HYBRID_RETRIEVERS: usize = 8;
@@ -12,15 +13,6 @@ pub const MAXIMUM_HYBRID_CANDIDATES_PER_STAGE: u16 = 1_024;
 pub const MAXIMUM_HYBRID_OUTPUT_CANDIDATES: u16 = 1_024;
 pub const MAXIMUM_HYBRID_WORK_UNITS: u32 = 1_048_576;
 const FUSION_SCORE_SCALE: u64 = 1_000_000;
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
-pub enum RetrievalMechanism {
-    VectorSimilarity,
-    Lexical,
-    Metadata,
-    Temporal,
-    DomainExact,
-}
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct RetrieverIdentity {
