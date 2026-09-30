@@ -201,6 +201,9 @@ pub(crate) fn canonical_gear(gear: &CheckedCanonicalGear) -> String {
         if let Some(initial) = &activation.initial_accumulator {
             push_field(&mut value, &canonical_value(initial));
         }
+        if let Some(bytes) = &activation.initial_accumulator_bytes {
+            push_field(&mut value, &format!("{bytes:02x?}"));
+        }
     }
     value
 }

@@ -111,10 +111,12 @@ impl ExpandedCanonicalForm {
                                         if value.try_concrete().is_none()
                                 )
                             })
+                        && activation.initial_accumulator_bytes.is_some()
                 }
                 _ => {
                     activation.accumulator_input.is_none()
                         && activation.initial_accumulator.is_none()
+                        && activation.initial_accumulator_bytes.is_none()
                 }
             };
             if !activation_ids.insert(activation.activation_id.as_str())
@@ -420,6 +422,9 @@ pub(super) fn expanded_identity(
                 &mut canonical,
                 &crate::syntax_identity::canonical_value(initial),
             );
+        }
+        if let Some(bytes) = &activation.initial_accumulator_bytes {
+            push(&mut canonical, &hex(bytes));
         }
     }
     ExpandedFormId::from(hash_string(&canonical))
