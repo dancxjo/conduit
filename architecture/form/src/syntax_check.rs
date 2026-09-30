@@ -1410,8 +1410,14 @@ fn checked_activation(
             .find(|value| value.location == location)
             .map(|value| value.contract.clone())
     };
-    if let crate::ActivationSyntax::Fold { initial, .. } | crate::ActivationSyntax::Scan { initial, .. } = &mode {
-        let (name, code) = if matches!(mode, crate::ActivationSyntax::Fold { .. }) { ("fold", "CND-FRM-064") } else { ("scan", "CND-FRM-065") };
+    if let crate::ActivationSyntax::Fold { initial, .. }
+    | crate::ActivationSyntax::Scan { initial, .. } = &mode
+    {
+        let (name, code) = if matches!(mode, crate::ActivationSyntax::Fold { .. }) {
+            ("fold", "CND-FRM-064")
+        } else {
+            ("scan", "CND-FRM-065")
+        };
         let accumulator = front
             .inputs()
             .iter()

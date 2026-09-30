@@ -521,7 +521,9 @@ fn instantiate_gear(
                 }
                 output.clone()
             }
-            crate::ActivationSyntax::Fold { .. } | crate::ActivationSyntax::Scan { .. } => activation.output.clone(),
+            crate::ActivationSyntax::Fold { .. } | crate::ActivationSyntax::Scan { .. } => {
+                activation.output.clone()
+            }
         };
         output.temporal = if matches!(activation.mode, crate::ActivationSyntax::Fold { .. }) {
             conduit_core::PortTemporal::Value

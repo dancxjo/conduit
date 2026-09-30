@@ -26,7 +26,11 @@ pub fn flow_scan_semantic_contract(
     accumulator: &CheckedValueContract,
     initial_accumulator: &[u8],
     abnormal: Option<&CheckedValueContract>,
+    maximum_items: u16,
 ) -> Result<Kind, &'static str> {
+    if maximum_items == 0 {
+        return Err("flow/scan maximum-items must be positive");
+    }
     require_finite(item, "item")?;
     require_finite(accumulator, "accumulator")?;
     if accumulator.validate(initial_accumulator).is_err() {
@@ -94,6 +98,7 @@ pub fn flow_scan_semantic_contract(
                 combine_output_port_id: port_id(FLOW_SCAN_COMBINE_OUTPUT_PORT),
                 maximum_active: 1,
                 maximum_queued: 1,
+                maximum_items,
                 invocation: FlowScanInvocation::OncePerAcceptedInput,
                 progression: FlowScanProgression::EmitCombinedAccumulatorExactlyOnceInInputOrder,
                 empty: FlowScanEmptyDisposition::EmitNothing,
@@ -133,6 +138,7 @@ pub fn install_flow_scan_kind(
     accumulator: &CheckedValueContract,
     initial_accumulator: &[u8],
     abnormal: Option<&CheckedValueContract>,
+    maximum_items: u16,
     startup: &mut conduit_form::StartupCatalog,
     profile: &mut conduit_form::ProfileCatalog,
 ) -> Result<(), alloc::string::String> {
@@ -142,8 +148,14 @@ pub fn install_flow_scan_kind(
     })?;
     profile
         .insert_kind(
-            flow_scan_semantic_contract(item, accumulator, initial_accumulator, abnormal)
-                .map_err(str::to_string)?,
+            flow_scan_semantic_contract(
+                item,
+                accumulator,
+                initial_accumulator,
+                abnormal,
+                maximum_items,
+            )
+            .map_err(str::to_string)?,
         )
         .map_err(|error| error.to_string())
 }
@@ -164,6 +176,7 @@ mod tests {
             &value("value/u64", 8),
             &initial,
             Some(&value("terminal/scan", 2)),
+            4,
         )
         .unwrap();
         let KindSemanticLaw::FlowScan(law) = &kind.semantic_laws[1] else {
@@ -196,6 +209,7 @@ mod tests {
             &value("value/u64", 8),
             &0_u64.to_le_bytes(),
             None,
+            4,
         )
         .unwrap();
         let KindSemanticLaw::FlowScan(law) = &kind.semantic_laws[1] else {
@@ -217,12 +231,13 @@ mod tests {
     fn refuses_inexact_initial_and_unbounded_storage() {
         let item = value("value/u32", 4);
         let accumulator = value("value/u64", 8);
-        assert!(flow_scan_semantic_contract(&item, &accumulator, &[0; 7], None).is_err());
+        assert!(flow_scan_semantic_contract(&item, &accumulator, &[0; 7], None, 4).is_err());
         assert!(flow_scan_semantic_contract(
             &value("value/unbounded", 0),
             &accumulator,
             &[0; 8],
-            None
+            None,
+            4
         )
         .is_err());
     }

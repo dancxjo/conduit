@@ -4,7 +4,9 @@ use conduit_core::{
     PlannedActivation, PlannedActivationCancellationPolicy, PlannedActivationEffectMultiplicity,
     PlannedActivationEntry, PlannedActivationFront, PlannedActivationLimits,
     PlannedActivationTerminalPolicy, PlannedFoldAbnormalPolicy, PlannedFoldActivation,
-    PlannedFoldCancellationPolicy, PlannedFoldTerminalPolicy, SignStorageBudget,
+    PlannedFoldCancellationPolicy, PlannedFoldTerminalPolicy, PlannedScanAbnormalPolicy,
+    PlannedScanActivation, PlannedScanCancellationPolicy, PlannedScanTerminalPolicy,
+    SignStorageBudget,
 };
 
 #[allow(clippy::too_many_arguments)]
@@ -135,7 +137,11 @@ fn attach_activations(
             maximum_queue_bytes: owner.limits.max_queue_bytes,
             maximum_items: activation.mode.maximum_items(),
         };
-        if matches!(activation.mode, conduit_form::ActivationSyntax::Fold { .. }) {
+        if matches!(
+            activation.mode,
+            conduit_form::ActivationSyntax::Fold { .. }
+                | conduit_form::ActivationSyntax::Scan { .. }
+        ) {
             let accumulator = activation.accumulator_input.as_ref().ok_or_else(|| {
                 PlannerError::InvalidFormIdentity(
                     "fold activation lost its accumulator front".into(),
@@ -153,39 +159,83 @@ fn attach_activations(
                 .semantic_contract
                 .laws
                 .iter()
-                .find_map(|law| match law {
-                    conduit_core::KindSemanticLaw::FlowFold(law) => Some(law),
+                .find_map(|law| match (&activation.mode, law) {
+                    (
+                        conduit_form::ActivationSyntax::Fold { .. },
+                        conduit_core::KindSemanticLaw::FlowFold(law),
+                    ) => Some((
+                        &law.initial_accumulator,
+                        &law.item,
+                        &law.accumulator,
+                        law.maximum_items,
+                        law.accumulator.maximum_bytes,
+                        law.item.maximum_bytes,
+                    )),
+                    (
+                        conduit_form::ActivationSyntax::Scan { .. },
+                        conduit_core::KindSemanticLaw::FlowScan(law),
+                    ) => Some((
+                        &law.initial_accumulator,
+                        &law.item,
+                        &law.accumulator,
+                        law.maximum_items,
+                        law.accumulator.maximum_bytes,
+                        law.item.maximum_bytes,
+                    )),
                     _ => None,
                 })
                 .ok_or_else(|| {
                     PlannerError::InvalidFormIdentity(
-                        "fold coordinator has no exact fold law".into(),
+                        "fold or scan coordinator has no exact progression law".into(),
                     )
                 })?;
-            if law.initial_accumulator != initial
-                || law.item.value_kind != item.value_kind
-                || law.accumulator.value_kind != accumulator.value_kind
-                || law.maximum_items != limits.maximum_items
+            if law.0 != &initial
+                || law.1.value_kind != item.value_kind
+                || law.2.value_kind != accumulator.value_kind
+                || law.3 != limits.maximum_items
             {
                 return Err(PlannerError::InvalidFormIdentity(
-                    "fold activation differs from its selected coordinator law".into(),
+                    "progression activation differs from its selected coordinator law".into(),
                 ));
+            }
+            let accumulator_input = PlannedActivationFront {
+                front_port_id: accumulator.port_id.clone(),
+                value_kind: accumulator.value_kind.clone(),
+                abnormal_kind: accumulator.abnormal_kind.clone(),
+            };
+            if matches!(activation.mode, conduit_form::ActivationSyntax::Scan { .. }) {
+                planned.push(PlannedActivationEntry::Scan(PlannedScanActivation {
+                    activation_id: activation.activation_id.clone(),
+                    owner_placement_id: owner.placement_id.clone(),
+                    selected_plan_id: child.plan_id.clone(),
+                    selected_plan: Box::new(child),
+                    accumulator_input,
+                    item_input: item,
+                    output,
+                    initial_accumulator: initial,
+                    retained_accumulator_bytes: law.4,
+                    retained_item_bytes: law.5,
+                    limits,
+                    terminal_policy: PlannedScanTerminalPolicy::DrainThenCloseWithoutExtraEmission,
+                    abnormal_policy: PlannedScanAbnormalPolicy::DiscardAccumulatorAndPropagateExact,
+                    cancellation_policy:
+                        PlannedScanCancellationPolicy::DiscardAccumulatorWithoutEmission,
+                    effect_multiplicity: PlannedActivationEffectMultiplicity::OncePerAcceptedInput,
+                    per_activation_sign_budget: sign_budget,
+                }));
+                continue;
             }
             planned.push(PlannedActivationEntry::Fold(PlannedFoldActivation {
                 activation_id: activation.activation_id.clone(),
                 owner_placement_id: owner.placement_id.clone(),
                 selected_plan_id: child.plan_id.clone(),
                 selected_plan: Box::new(child),
-                accumulator_input: PlannedActivationFront {
-                    front_port_id: accumulator.port_id.clone(),
-                    value_kind: accumulator.value_kind.clone(),
-                    abnormal_kind: accumulator.abnormal_kind.clone(),
-                },
+                accumulator_input,
                 item_input: item,
                 output,
                 initial_accumulator: initial,
-                retained_accumulator_bytes: law.accumulator.maximum_bytes,
-                retained_item_bytes: law.item.maximum_bytes,
+                retained_accumulator_bytes: law.4,
+                retained_item_bytes: law.5,
                 limits,
                 terminal_policy: PlannedFoldTerminalPolicy::DrainThenEmitAccumulatorExactlyOnce,
                 abnormal_policy: PlannedFoldAbnormalPolicy::DiscardAccumulatorAndPropagateExact,

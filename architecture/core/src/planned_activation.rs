@@ -52,6 +52,18 @@ pub enum PlannedFoldAbnormalPolicy {
 pub enum PlannedFoldCancellationPolicy {
     DiscardAccumulatorWithoutEmission,
 }
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+pub enum PlannedScanTerminalPolicy {
+    DrainThenCloseWithoutExtraEmission,
+}
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+pub enum PlannedScanAbnormalPolicy {
+    DiscardAccumulatorAndPropagateExact,
+}
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+pub enum PlannedScanCancellationPolicy {
+    DiscardAccumulatorWithoutEmission,
+}
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct PlannedActivation {
@@ -72,6 +84,27 @@ pub struct PlannedActivation {
 pub enum PlannedActivationEntry {
     Unary(PlannedActivation),
     Fold(PlannedFoldActivation),
+    Scan(PlannedScanActivation),
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct PlannedScanActivation {
+    pub activation_id: String,
+    pub owner_placement_id: PlacementId,
+    pub selected_plan_id: crate::PlanId,
+    pub selected_plan: Box<Plan>,
+    pub accumulator_input: PlannedActivationFront,
+    pub item_input: PlannedActivationFront,
+    pub output: PlannedActivationFront,
+    pub initial_accumulator: Vec<u8>,
+    pub retained_accumulator_bytes: u32,
+    pub retained_item_bytes: u32,
+    pub limits: PlannedActivationLimits,
+    pub terminal_policy: PlannedScanTerminalPolicy,
+    pub abnormal_policy: PlannedScanAbnormalPolicy,
+    pub cancellation_policy: PlannedScanCancellationPolicy,
+    pub effect_multiplicity: PlannedActivationEffectMultiplicity,
+    pub per_activation_sign_budget: SignStorageBudget,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
@@ -128,7 +161,43 @@ pub(crate) fn verify_planned_activations(plan: &Plan, depth: u8) -> bool {
         PlannedActivationEntry::Fold(activation) => {
             verify_fold(plan, activation, depth, &mut identities)
         }
+        PlannedActivationEntry::Scan(activation) => {
+            verify_scan(plan, activation, depth, &mut identities)
+        }
     })
+}
+
+fn verify_scan(
+    plan: &Plan,
+    activation: &PlannedScanActivation,
+    depth: u8,
+    identities: &mut alloc::collections::BTreeSet<String>,
+) -> bool {
+    let common = PlannedFoldActivation {
+        activation_id: activation.activation_id.clone(),
+        owner_placement_id: activation.owner_placement_id.clone(),
+        selected_plan_id: activation.selected_plan_id.clone(),
+        selected_plan: activation.selected_plan.clone(),
+        accumulator_input: activation.accumulator_input.clone(),
+        item_input: activation.item_input.clone(),
+        output: activation.output.clone(),
+        initial_accumulator: activation.initial_accumulator.clone(),
+        retained_accumulator_bytes: activation.retained_accumulator_bytes,
+        retained_item_bytes: activation.retained_item_bytes,
+        limits: activation.limits,
+        terminal_policy: PlannedFoldTerminalPolicy::DrainThenEmitAccumulatorExactlyOnce,
+        abnormal_policy: PlannedFoldAbnormalPolicy::DiscardAccumulatorAndPropagateExact,
+        cancellation_policy: PlannedFoldCancellationPolicy::DiscardAccumulatorWithoutEmission,
+        effect_multiplicity: activation.effect_multiplicity,
+        per_activation_sign_budget: activation.per_activation_sign_budget,
+    };
+    verify_fold(plan, &common, depth, identities)
+        && activation.terminal_policy
+            == PlannedScanTerminalPolicy::DrainThenCloseWithoutExtraEmission
+        && activation.abnormal_policy
+            == PlannedScanAbnormalPolicy::DiscardAccumulatorAndPropagateExact
+        && activation.cancellation_policy
+            == PlannedScanCancellationPolicy::DiscardAccumulatorWithoutEmission
 }
 
 fn verify_fold(
