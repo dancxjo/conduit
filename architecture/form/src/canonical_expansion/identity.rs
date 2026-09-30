@@ -23,6 +23,7 @@ impl ExpandedCanonicalForm {
             &self.shared_pools,
             &self.provenance,
             &self.realization_backs,
+            &self.activations,
         );
         if self.expanded_form_id != expected {
             return Err(CanonicalExpansionDiagnostic::new(
@@ -56,6 +57,32 @@ impl ExpandedCanonicalForm {
                 "CND-FRM-038",
                 "expanded gear paths are not unique".into(),
             ));
+        }
+        let mut activation_ids = BTreeSet::new();
+        for activation in &self.activations {
+            let owner = gears.get(&activation.owner_gear_id);
+            let owner_matches = owner.is_some_and(|owner| {
+                let mut input = activation.input.clone();
+                input.temporal = conduit_core::PortTemporal::Flow { closes: true };
+                let mut output = activation.output.clone();
+                output.temporal = conduit_core::PortTemporal::Flow { closes: true };
+                owner.inputs == [input] && owner.outputs == [output]
+            });
+            if !activation_ids.insert(activation.activation_id.as_str())
+                || !owner_matches
+                || activation.input.temporal != conduit_core::PortTemporal::Value
+                || activation.output.temporal != conduit_core::PortTemporal::Value
+                || activation.input.direction != conduit_core::PortDirection::Input
+                || activation.output.direction != conduit_core::PortDirection::Output
+                || activation.input.abnormal_kind != activation.output.abnormal_kind
+                || activation.selected_form.is_empty()
+                || activation.selected_checked_form_id.as_str().is_empty()
+            {
+                return Err(CanonicalExpansionDiagnostic::new(
+                    "CND-FRM-049",
+                    "expanded activation differs from its exact selected Value Form".into(),
+                ));
+            }
         }
         for connection in &self.connections {
             let source = gears.get(&connection.source_gear_id).and_then(|gear| {
@@ -166,6 +193,7 @@ pub(super) fn expanded_identity(
     shared_pools: &[ExpandedSharedPool],
     provenance: &[ExpandedGearProvenance],
     realization_backs: &[conduit_core::FormBack],
+    activations: &[ExpandedActivation],
 ) -> ExpandedFormId {
     let mut canonical = format!("canonical-expanded:{}", form.checked_form_id.as_str());
     for gear in gears {
@@ -308,6 +336,24 @@ pub(super) fn expanded_identity(
         push(&mut canonical, back.kind_contract_revision.as_str());
         push(&mut canonical, back.source_document_id.as_str());
         push(&mut canonical, back.checked_form_id.as_str());
+    }
+    for activation in activations {
+        push(&mut canonical, "activation-each");
+        push(&mut canonical, &activation.activation_id);
+        push(&mut canonical, activation.owner_gear_id.as_str());
+        push(&mut canonical, &activation.selected_form);
+        push(&mut canonical, activation.selected_checked_form_id.as_str());
+        for port in [&activation.input, &activation.output] {
+            push(&mut canonical, port.port_id.as_str());
+            push(&mut canonical, port.value_kind.as_str());
+            push(&mut canonical, port.temporal.as_str());
+            push(
+                &mut canonical,
+                port.abnormal_kind
+                    .as_ref()
+                    .map_or("none", conduit_core::KindId::as_str),
+            );
+        }
     }
     ExpandedFormId::from(hash_string(&canonical))
 }

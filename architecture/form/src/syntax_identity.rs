@@ -172,6 +172,22 @@ pub(crate) fn canonical_gear(gear: &CheckedCanonicalGear) -> String {
                 .map_or_else(|| "none".into(), canonical_value),
         );
     }
+    if let Some(activation) = &gear.activation {
+        push_field(&mut value, "activate-each");
+        push_field(&mut value, &activation.selected_form);
+        push_field(&mut value, activation.input.port_id.as_str());
+        push_field(&mut value, activation.input.value_kind.as_str());
+        push_field(&mut value, activation.output.port_id.as_str());
+        push_field(&mut value, activation.output.value_kind.as_str());
+        push_field(
+            &mut value,
+            activation
+                .input
+                .abnormal_kind
+                .as_ref()
+                .map_or("normal", conduit_core::KindId::as_str),
+        );
+    }
     value
 }
 

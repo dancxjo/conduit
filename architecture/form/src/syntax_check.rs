@@ -750,6 +750,8 @@ fn check_form(
                     &gear.invocation,
                     catalog,
                     form_signatures,
+                    Some(form_fronts),
+                    gear.activation,
                     &mut resolver,
                 )?;
                 checked.retained = gear
@@ -1005,7 +1007,15 @@ fn check_cord_stages(
                 output_port,
                 ..
             } => {
-                let gear = check_invocation(None, invocation, catalog, form_signatures, resolver)?;
+                let gear = check_invocation(
+                    None,
+                    invocation,
+                    catalog,
+                    form_signatures,
+                    None,
+                    None,
+                    resolver,
+                )?;
                 stages.push(CheckedCordStage::RelationalGear {
                     operands: operands
                         .iter()
@@ -1037,7 +1047,15 @@ fn check_cord_stages(
                 source_span: expression.span,
             }),
             CordStage::InlineGear(invocation) => {
-                let gear = check_invocation(None, invocation, catalog, form_signatures, resolver)?;
+                let gear = check_invocation(
+                    None,
+                    invocation,
+                    catalog,
+                    form_signatures,
+                    None,
+                    None,
+                    resolver,
+                )?;
                 stages.push(CheckedCordStage::InlineGear(gear.clone()));
                 gears.push(gear);
             }
@@ -1274,6 +1292,8 @@ fn check_invocation(
     invocation: &Invocation,
     catalog: &StartupCatalog,
     form_signatures: &BTreeMap<String, KindSignature>,
+    form_fronts: Option<&BTreeMap<String, CheckedFront>>,
+    activation: Option<crate::ActivationSyntax>,
     resolver: &mut Resolver<'_>,
 ) -> Result<CheckedCanonicalGear, SyntaxCheckDiagnostic> {
     let signature = form_signatures
@@ -1345,6 +1365,14 @@ fn check_invocation(
             value,
         });
     }
+    let activation = activation
+        .map(|_| {
+            checked_activation(
+                invocation,
+                form_fronts.expect("activation checking receives source Form fronts"),
+            )
+        })
+        .transpose()?;
     Ok(CheckedCanonicalGear {
         name,
         kind: signature.kind.clone(),
@@ -1357,7 +1385,44 @@ fn check_invocation(
             })?,
         startup_bindings,
         retained: None,
+        activation,
         source_span: invocation.span,
+    })
+}
+
+fn checked_activation(
+    invocation: &Invocation,
+    form_fronts: &BTreeMap<String, CheckedFront>,
+) -> Result<crate::CheckedActivation, SyntaxCheckDiagnostic> {
+    let front = form_fronts
+        .get(&invocation.kind.text)
+        .ok_or_else(|| SyntaxCheckDiagnostic {
+            code: "CND-FRM-062",
+            span: invocation.span,
+            message: "activate requires one exact checked source Form".into(),
+        })?;
+    let ([input], [output]) = (front.inputs(), front.outputs()) else {
+        return Err(SyntaxCheckDiagnostic {
+            code: "CND-FRM-062",
+            span: invocation.span,
+            message: "activate requires an exact unary Value-to-Value Form".into(),
+        });
+    };
+    if input.temporal != conduit_core::PortTemporal::Value
+        || output.temporal != conduit_core::PortTemporal::Value
+        || input.abnormal_kind != output.abnormal_kind
+        || !front.startup_parameters().is_empty()
+    {
+        return Err(SyntaxCheckDiagnostic {
+            code: "CND-FRM-062",
+            span: invocation.span,
+            message: "activate requires startup-free Value fronts with one exact propagated abnormal terminal".into(),
+        });
+    }
+    Ok(crate::CheckedActivation {
+        selected_form: invocation.kind.text.clone(),
+        input: input.clone(),
+        output: output.clone(),
     })
 }
 

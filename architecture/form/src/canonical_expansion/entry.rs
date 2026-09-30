@@ -129,6 +129,7 @@ pub fn expand_canonical_form_for_authoring_with_backs(
     let mut connections = fragment.connections;
     let mut shared_pools = fragment.shared_pools;
     let mut provenance = fragment.provenance;
+    let mut activations = fragment.activations;
     gears.sort_by(|left, right| left.gear_id.cmp(&right.gear_id));
     connections.sort_by(|left, right| {
         (
@@ -145,6 +146,7 @@ pub fn expand_canonical_form_for_authoring_with_backs(
             ))
     });
     provenance.sort_by(|left, right| left.gear_id.cmp(&right.gear_id));
+    activations.sort_by(|left, right| left.activation_id.cmp(&right.activation_id));
     seal_pool_consumers(&mut shared_pools, &gears)?;
     realization_backs.sort();
     let expanded_form_id = expanded_identity(
@@ -154,6 +156,7 @@ pub fn expand_canonical_form_for_authoring_with_backs(
         &shared_pools,
         &provenance,
         &realization_backs,
+        &activations,
     );
     let provenance_digest = provenance_digest(&document.source_document_id, &provenance);
     Ok(ExpandedAuthoringForm {
@@ -169,6 +172,7 @@ pub fn expand_canonical_form_for_authoring_with_backs(
             provenance,
             provenance_digest,
             realization_backs,
+            activations,
         },
         front,
         input_bindings,
