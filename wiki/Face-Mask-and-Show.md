@@ -1,5 +1,3 @@
-# Face, Mask and Show
-
 Conduit's human-interface architecture separates **what a person should be able to understand or do** from **how a particular medium realizes that encounter**.
 
 ```text
@@ -11,6 +9,18 @@ mask
       ↓
 show
 ```
+
+## The human interface has a semantic waist
+
+Conduit does not try to invent one universal widget toolkit.
+
+Instead, it asks for the smallest renderer-neutral layer rich enough to preserve **what the person is meant to understand and what agency the person is meant to have**.
+
+That layer is the **face**.
+
+Everything above the face is domain and body truth. Everything below it is realization for a medium, user agent, device, accessibility mode, or presentation technology.
+
+This is the same architectural move used elsewhere: meaning first, exact realization second.
 
 ## Face
 
@@ -30,12 +40,12 @@ Face is not a widget tree. It does not mean HTML, windows, panes, pixels, speech
 
 ## Mask
 
-A **mask** is an ordinary form serving the user-agent realization role.
+A **mask** is an ordinary plot serving the user-agent realization role.
 
 Current tree graphical mask:
 
 ```conduit
-form native-graphical (
+plot native-graphical (
     >> face: Presentation
     interaction: FaceInteraction...| >>
     show: Show >>
@@ -55,7 +65,7 @@ form native-graphical (
 
 The spoken mask has the same semantic role but may be realized through speech/audio machinery.
 
-There is no special `mask` declaration. Mask is a role played by an ordinary checked form.
+There is no special `mask` declaration. Mask is a role played by an ordinary checked plot.
 
 ## Show
 
@@ -71,6 +81,14 @@ Examples:
 - another admitted medium.
 
 Shows need not look or sound alike.
+
+## Semantic fidelity is not visual sameness
+
+Two shows can differ radically while remaining faithful to the same face.
+
+A graphical show may use spatial layout; a spoken show may use sequence and prosody; a terminal show may use terse text. The invariant is not pixel identity. The invariant is preservation of the face's semantic structure, relationships, actions, state, and relevant emphasis.
+
+This makes accessibility and alternative media architectural peers rather than after-the-fact translations of a privileged screen.
 
 ## Same meaning does not mean same furniture
 
