@@ -51,7 +51,6 @@ members = [
 
 	# Product and application compositions.
 	"products/conduit",
-	"products/creche/model",
 	"forms/birth",
 	"semantics/home",
 	"semantics/form-library",

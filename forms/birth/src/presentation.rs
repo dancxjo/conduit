@@ -1,11 +1,12 @@
-//! The live widget projection; it consumes renderer-neutral Birth draft state.
+//! The Birth Form's live Face projection over renderer-neutral draft state.
 use alloc::{format, string::String, vec, vec::Vec};
-use conduit_birth_form::{BirthDraft, names::MAX_FRIENDLY_NAME_BYTES};
 use conduit_presentation::{
     ActionAvailability, ApplicationEventKind, ChoiceMultiplicity, ChoiceOption, FieldKind,
     FormField, PresentationMechanism, SelectOption, SemanticAction, SemanticApplicationView,
     SemanticPresentationNode, SemanticPresentationRefusal, StatusKind,
 };
+
+use crate::{BirthDraft, names::MAX_FRIENDLY_NAME_BYTES};
 
 /// The current browser/native widget view, separate from Birth form meaning.
 pub trait BirthPresentation {

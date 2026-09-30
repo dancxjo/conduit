@@ -1,6 +1,8 @@
-use conduit_birth_form::{BirthDraft, BirthDraftRefusal, BirthFormChoice};
+use conduit_birth_form::{
+    BirthActionOutcome, BirthActions, BirthDraft, BirthDraftRefusal, BirthFormChoice,
+    BirthPresentation,
+};
 use conduit_body::ResidentForm;
-use conduit_creche_model::birth::{BirthActionOutcome, BirthActions, BirthPresentation};
 use conduit_presentation::ApplicationEventKind;
 
 fn draft() -> BirthDraft {

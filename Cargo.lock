@@ -751,6 +751,7 @@ name = "conduit-birth-form"
 version = "0.1.0"
 dependencies = [
  "conduit-body",
+ "conduit-presentation",
  "serde",
  "serde_json",
  "sha2 0.10.9",
@@ -835,7 +836,6 @@ dependencies = [
  "conduit-body-make",
  "conduit-chat",
  "conduit-core",
- "conduit-creche-model",
  "conduit-data",
  "conduit-form",
  "conduit-form-library",
@@ -925,15 +925,6 @@ dependencies = [
 [[package]]
 name = "conduit-create-oi"
 version = "0.1.0"
-
-[[package]]
-name = "conduit-creche-model"
-version = "0.1.0"
-dependencies = [
- "conduit-birth-form",
- "conduit-body",
- "conduit-presentation",
-]
 
 [[package]]
 name = "conduit-data"
@@ -1593,7 +1584,6 @@ dependencies = [
  "conduit-birth-form",
  "conduit-body",
  "conduit-core",
- "conduit-creche-model",
  "conduit-form",
  "conduit-home-model",
  "conduit-human",
