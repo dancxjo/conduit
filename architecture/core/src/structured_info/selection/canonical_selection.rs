@@ -168,6 +168,9 @@ fn skip_value_node(
     cursor: &mut Cursor<'_>,
 ) -> Result<(), StructuredSelectorRefusal> {
     match expected.shape() {
+        crate::StructuredInfoTypeShape::Nominal { representation, .. } => {
+            skip_value_node(representation, cursor)?;
+        }
         crate::StructuredInfoTypeShape::Leaf(_) => {
             expect_byte(cursor, 0)?;
             cursor.bytes().map_err(malformed)?;

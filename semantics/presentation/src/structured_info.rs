@@ -168,7 +168,26 @@ fn add_node_properties(
             PresentationPropertyValue::Flag(true),
         )),
     }
-    match &node.shape {
+    add_shape_properties(properties, subject, &node.shape);
+}
+
+fn add_shape_properties(
+    properties: &mut Vec<PresentationProperty>,
+    subject: &str,
+    shape: &StructuredInfoInspectionShape,
+) {
+    match shape {
+        StructuredInfoInspectionShape::Nominal {
+            schema,
+            representation,
+        } => {
+            properties.push(property(
+                subject,
+                "nominal-schema",
+                PresentationPropertyValue::Identity(schema.as_str().to_string()),
+            ));
+            add_shape_properties(properties, subject, representation);
+        }
         StructuredInfoInspectionShape::Leaf {
             kind,
             byte_len,

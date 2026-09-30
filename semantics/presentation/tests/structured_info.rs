@@ -165,3 +165,24 @@ fn sequence_face_preserves_exact_minimum_and_maximum_cardinality() {
         .iter()
         .any(|property| property.name == "sequence-capacity"));
 }
+
+#[test]
+fn nominal_face_preserves_semantic_identity_and_representation_shape() {
+    let representation_type = leaf_type("value/u8");
+    let note_type =
+        StructuredInfoType::nominal(KindId::from("music/note@1"), representation_type.clone())
+            .unwrap();
+    let representation = StructuredInfoValue::leaf(representation_type, vec![60]).unwrap();
+    let note = StructuredInfoValue::nominal(note_type.clone(), representation).unwrap();
+    let artifact = StructuredSignPresentation::from_sign(5, &sign(&note), &note_type).unwrap();
+
+    for (name, expected) in [
+        ("nominal-schema", "music/note@1"),
+        ("leaf-kind", "value/u8"),
+    ] {
+        assert!(artifact.presentation.properties.iter().any(|property| {
+            property.name == name
+                && property.value == PresentationPropertyValue::Identity(expected.into())
+        }));
+    }
+}

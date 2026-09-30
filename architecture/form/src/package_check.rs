@@ -47,6 +47,7 @@ pub fn check_package_bundle(
         .collect::<BTreeMap<_, _>>();
     let mut documents = Vec::with_capacity(bundle.members.len());
     let mut all_forms = Vec::new();
+    let mut all_types = Vec::new();
     let mut owners = BTreeMap::new();
     for member in &bundle.members {
         let source = source_by_path
@@ -57,8 +58,18 @@ pub fn check_package_bundle(
             owners.insert(form.name.text.clone(), member.path.clone());
             all_forms.push(form.clone());
         }
+        all_types.extend(document.types.iter().cloned());
         documents.push((member.path.clone(), document));
     }
+
+    let (native_types, package_catalog) =
+        crate::native_type::check_native_types(&all_types, catalog).map_err(|diagnostic| {
+            PackageCheckError::Syntax {
+                module: "<package>".into(),
+                diagnostic,
+            }
+        })?;
+    let catalog = &package_catalog;
 
     let signatures = crate::syntax_check::form_signatures(&all_forms).map_err(|diagnostic| {
         PackageCheckError::Syntax {
@@ -106,15 +117,17 @@ pub fn check_package_bundle(
         Vec::new(),
         Vec::new(),
         false,
-        (resolved_forms, Vec::new(), Vec::new()),
+        (Vec::new(), resolved_forms, Vec::new(), Vec::new()),
         Vec::new(),
     );
-    crate::check_syntax_document(&document, catalog).map_err(|diagnostic| {
+    let mut checked = crate::check_syntax_document(&document, catalog).map_err(|diagnostic| {
         PackageCheckError::Syntax {
             module: "<package>".into(),
             diagnostic,
         }
-    })
+    })?;
+    checked.native_types = native_types;
+    Ok(checked)
 }
 
 fn local_source_paths(bundle: &CheckedPackageBundle, current: &str) -> BTreeMap<String, String> {

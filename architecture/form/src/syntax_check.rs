@@ -56,6 +56,10 @@ pub(crate) fn check_document(
             message: diagnostic.message.clone(),
         });
     }
+    let aliased_catalog = crate::native_type::install_import_aliases(document, catalog)?;
+    let (native_types, checked_catalog) =
+        crate::native_type::check_native_types(&document.types, &aliased_catalog)?;
+    let catalog = &checked_catalog;
     let unresolved_form_signatures = form_signatures(&document.forms)?;
     let mut form_fronts = BTreeMap::new();
     for form in document
@@ -189,6 +193,7 @@ pub(crate) fn check_document(
             "canonical-source:{}",
             document.round_trip()
         ))),
+        native_types,
         forms: checked_forms,
         source_sugar_expansions,
         structured_types,
@@ -211,6 +216,9 @@ pub(crate) fn resolve_use_declarations(
     }
     for declaration in &document.uses {
         let path = declaration.path.as_str();
+        if catalog.structured_type(path).is_some() {
+            continue;
+        }
         let canonical = if catalog.get(path).is_some() || forms.contains_key(path) {
             path
         } else if let Some(form) = source_paths.get(path) {
@@ -748,6 +756,14 @@ fn check_form(
                                     .map_err(|error| error.diagnostic(initial.span))
                             })
                             .transpose()?;
+                        if let Some(CanonicalStartupValue::Structured(value)) = &initial {
+                            crate::native_type::validate_concrete_value(
+                                &retained.value_type.text,
+                                value,
+                                catalog,
+                                retained.value_type.span,
+                            )?;
+                        }
                         Ok(Box::new(crate::CheckedRetainedValue {
                             value_type,
                             value_kind,
@@ -761,6 +777,7 @@ fn check_form(
                 gears.push(checked);
             }
             BackStatement::Cord(cord) => {
+                check_direct_cord_type(cord, form, catalog)?;
                 let stages = check_cord_stages(
                     &cord.stages,
                     catalog,
@@ -832,6 +849,70 @@ fn check_form(
         gears,
         cords,
     })
+}
+
+fn check_direct_cord_type(
+    cord: &crate::Cord,
+    form: &FormSyntax,
+    catalog: &StartupCatalog,
+) -> Result<(), SyntaxCheckDiagnostic> {
+    let [CordStage::Reference(source), CordStage::Reference(target)] = cord.stages.as_slice()
+    else {
+        return Ok(());
+    };
+    let Some(source_port) = form
+        .front
+        .runtime_ports
+        .iter()
+        .find(|port| port.name.text == source.text)
+    else {
+        return Ok(());
+    };
+    let Some(target_port) = form
+        .front
+        .runtime_ports
+        .iter()
+        .find(|port| port.name.text == target.text)
+    else {
+        return Ok(());
+    };
+    let source_kind = crate::value_type::checked_value_kind_with_modality(
+        &source_port.value_type.text,
+        matches!(
+            source_port.temporal,
+            crate::RuntimePortTemporal::OptionalValue | crate::RuntimePortTemporal::CurrentOptional
+        ),
+        catalog,
+    )
+    .map_err(|_| type_mismatch(cord.span, "source has no exact checked semantic Type"))?;
+    let target_kind = crate::value_type::checked_value_kind_with_modality(
+        &target_port.value_type.text,
+        matches!(
+            target_port.temporal,
+            crate::RuntimePortTemporal::OptionalValue | crate::RuntimePortTemporal::CurrentOptional
+        ),
+        catalog,
+    )
+    .map_err(|_| type_mismatch(cord.span, "target has no exact checked semantic Type"))?;
+    if source_kind != target_kind {
+        return Err(type_mismatch(
+            cord.span,
+            &alloc::format!(
+                "semantic Type mismatch: '{}' and '{}' are not interchangeable even when their representations are compatible",
+                source_port.value_type.text,
+                target_port.value_type.text
+            ),
+        ));
+    }
+    Ok(())
+}
+
+fn type_mismatch(span: crate::Span, message: &str) -> SyntaxCheckDiagnostic {
+    SyntaxCheckDiagnostic {
+        code: "CND-FRM-058",
+        span,
+        message: message.into(),
+    }
 }
 
 fn check_cord_stages(

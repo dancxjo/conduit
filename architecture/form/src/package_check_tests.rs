@@ -179,3 +179,102 @@ fn local_source_path_does_not_replace_the_canonical_form_name() {
         .unwrap();
     assert_eq!(public.gears[0].kind, "utility/helper");
 }
+
+#[test]
+fn pack_can_define_ship_and_use_native_semantic_types() {
+    let manifest_source = "pack example/music (\n    version = 1.0.0\n) {\n    ship Note\n    ship Position\n    ship MusicEvent\n    ship public\n}\n";
+    let manifest_document = parse_syntax_document(manifest_source);
+    let manifest = &manifest_document.packages[0];
+    let source = r#"type Note = U8 in 0..=127
+type Position = {
+    x: Distance
+    y: Distance
+}
+type MusicEvent =
+    note {
+        velocity: U8 in 0..=127
+        pitches: sequence Note <= 16
+    }
+    | rest
+form public (
+    >> note: Note
+    >> position: Position
+    event: MusicEvent >>
+) {
+}
+"#;
+    let sources = [PackageMemberSource {
+        path: "main",
+        source,
+    }];
+    let bundle = CheckedPackageBundle::from_sources(manifest_source, manifest, &sources).unwrap();
+
+    assert_eq!(
+        bundle.resolve_type_export("example/music/Note"),
+        Some("Note")
+    );
+    assert_eq!(
+        bundle.resolve_export("example/music/public"),
+        Some("public")
+    );
+    let exports =
+        PackageExportCatalog::from_bundle(&bundle, manifest_source, manifest, &sources).unwrap();
+    assert_eq!(
+        exports
+            .resolve_type("example/music/MusicEvent")
+            .unwrap()
+            .name
+            .text,
+        "MusicEvent"
+    );
+
+    let checked = check_package_bundle(
+        &bundle,
+        manifest_source,
+        manifest,
+        &sources,
+        &StartupCatalog::new(),
+    )
+    .unwrap();
+    assert_eq!(checked.native_types.len(), 3);
+    assert_eq!(checked.forms.len(), 1);
+
+    let mut downstream_catalog = StartupCatalog::new();
+    let shipped = exports
+        .install_shipped_types(&mut downstream_catalog)
+        .unwrap();
+    let downstream = check_syntax_document(
+        &parse_syntax_document(
+            "with example/music/Note as Pitch\nform consumer (\n    >> value: Pitch\n) {\n}\n",
+        ),
+        &downstream_catalog,
+    )
+    .unwrap();
+    assert_eq!(
+        downstream.forms[0].checked_front().inputs()[0].value_kind,
+        shipped
+            .iter()
+            .find(|value_type| value_type.name == "Note")
+            .unwrap()
+            .value_type
+            .profile()
+            .unwrap()
+            .value_kind()
+            .clone()
+    );
+
+    let direct =
+        check_syntax_document(&parse_syntax_document(source), &StartupCatalog::new()).unwrap();
+    assert_eq!(
+        checked
+            .native_types
+            .iter()
+            .map(|value_type| &value_type.identity)
+            .collect::<Vec<_>>(),
+        direct
+            .native_types
+            .iter()
+            .map(|value_type| &value_type.identity)
+            .collect::<Vec<_>>()
+    );
+}

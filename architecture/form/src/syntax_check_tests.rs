@@ -956,6 +956,205 @@ fn fixed_width_integer_defaults_are_checked_before_identity() {
 }
 
 #[test]
+fn native_scalar_record_and_variant_types_own_nominal_checked_identity() {
+    let source = r#"type Note = U8 in 0..=127
+
+type Position = {
+    x: Distance
+    y: Distance
+}
+
+type MusicEvent =
+    note {
+        velocity: U8 in 0..=127
+        pitches: sequence Note <= 16
+    }
+    | rest
+
+form perform (
+    >> note: Note
+    >> position: Position
+    event: MusicEvent >>
+) {
+}
+"#;
+    let checked =
+        check_syntax_document(&parse_syntax_document(source), &StartupCatalog::new()).unwrap();
+
+    assert_eq!(checked.native_types.len(), 3);
+    assert!(matches!(
+        checked.native_types[0].value_type.shape(),
+        conduit_core::StructuredInfoTypeShape::Nominal { .. }
+    ));
+    assert!(matches!(
+        checked.native_types[1].value_type.shape(),
+        conduit_core::StructuredInfoTypeShape::Record { .. }
+    ));
+    assert!(matches!(
+        checked.native_types[2].value_type.shape(),
+        conduit_core::StructuredInfoTypeShape::Variant { .. }
+    ));
+    assert_eq!(checked.native_types[0].value_contracts.len(), 1);
+    assert_eq!(
+        checked.native_types[2].value_contracts[0].representation_path,
+        "|note.velocity"
+    );
+    let front = checked.forms[0].checked_front();
+    assert_eq!(
+        front.inputs()[0].value_kind,
+        checked.native_types[0]
+            .value_type
+            .profile()
+            .unwrap()
+            .value_kind()
+            .clone()
+    );
+    assert_eq!(
+        front.outputs()[0].value_kind,
+        checked.native_types[2]
+            .value_type
+            .profile()
+            .unwrap()
+            .value_kind()
+            .clone()
+    );
+}
+
+#[test]
+fn native_type_identity_ignores_source_trivia_but_not_semantic_name() {
+    let first = check_syntax_document(
+        &parse_syntax_document("type Note = U8 in 0..=127\n"),
+        &StartupCatalog::new(),
+    )
+    .unwrap();
+    let spaced = check_syntax_document(
+        &parse_syntax_document("\n\ntype Note = U8 in 0..=127\n\n"),
+        &StartupCatalog::new(),
+    )
+    .unwrap();
+    let renamed = check_syntax_document(
+        &parse_syntax_document("type Velocity = U8 in 0..=127\n"),
+        &StartupCatalog::new(),
+    )
+    .unwrap();
+
+    assert_eq!(
+        first.native_types[0].identity,
+        spaced.native_types[0].identity
+    );
+    assert_ne!(
+        first.native_types[0].identity,
+        renamed.native_types[0].identity
+    );
+}
+
+#[test]
+fn native_text_bounds_and_negated_refinements_remain_checked_contracts() {
+    let checked = check_syntax_document(
+        &parse_syntax_document("type Code = Text <= 8B not in [\"root\", \"admin\"] !~ /root/\n"),
+        &StartupCatalog::new(),
+    )
+    .unwrap();
+    let contract = &checked.native_types[0].value_contracts[0].contract;
+    assert_eq!(contract.maximum_bytes, 8);
+    assert_eq!(contract.constraints.len(), 2);
+    assert!(matches!(
+        contract.constraints[0],
+        conduit_core::ValueConstraint::CanonicalMembership { negated: true, .. }
+    ));
+    assert!(matches!(
+        contract.constraints[1],
+        conduit_core::ValueConstraint::TextPattern { negated: true, .. }
+    ));
+}
+
+#[test]
+fn native_types_resolve_forward_references_and_refuse_recursive_cycles() {
+    let forward = check_syntax_document(
+        &parse_syntax_document("type Phrase = sequence Note <= 4\ntype Note = U8 in 0..=127\n"),
+        &StartupCatalog::new(),
+    )
+    .unwrap();
+    assert_eq!(forward.native_types[0].name, "Phrase");
+    assert_eq!(
+        forward.native_types[0].value_contracts[0].representation_path,
+        "[]"
+    );
+
+    let cycle = check_syntax_document(
+        &parse_syntax_document("type Left = Right?\ntype Right = Left?\n"),
+        &StartupCatalog::new(),
+    )
+    .unwrap_err();
+    assert_eq!(cycle.code, "CND-FRM-058");
+    assert!(cycle.message.contains("Left -> Right -> Left"));
+}
+
+#[test]
+fn native_types_work_in_keeps_and_data_refs_without_structural_interchange() {
+    let mut catalog = StartupCatalog::new();
+    catalog
+        .insert(KindSignature {
+            kind: "state/latest".into(),
+            startup_parameters: Vec::new(),
+        })
+        .unwrap();
+    let checked = check_syntax_document(
+        &parse_syntax_document(
+            "type Note = U8 in 0..=127\nform memory (\n    >> saved: &Note\n) {\n    cell: keep Note\n}\n",
+        ),
+        &catalog,
+    )
+    .unwrap();
+    let retained = checked.forms[0].gears[0].retained.as_ref().unwrap();
+    assert_eq!(retained.value_type, checked.native_types[0].value_type);
+    assert_eq!(
+        checked.forms[0].checked_front().inputs()[0].value_kind,
+        conduit_core::data_reference_kind(
+            checked.native_types[0]
+                .value_type
+                .profile()
+                .unwrap()
+                .value_kind()
+        )
+    );
+
+    let initialized = check_syntax_document(
+        &parse_syntax_document(
+            "type Note = U8 in 0..=127\nform memory {\n    cell: keep Note(60)\n}\n",
+        ),
+        &catalog,
+    )
+    .unwrap();
+    assert!(initialized.forms[0].gears[0]
+        .retained
+        .as_ref()
+        .unwrap()
+        .initial
+        .is_some());
+    let refused = check_syntax_document(
+        &parse_syntax_document(
+            "type Note = U8 in 0..=127\nform memory {\n    cell: keep Note(200)\n}\n",
+        ),
+        &catalog,
+    )
+    .unwrap_err();
+    assert_eq!(refused.code, "CND-FRM-058");
+    assert!(refused.message.contains("refinement refuses"));
+
+    let mismatch = check_syntax_document(
+        &parse_syntax_document(
+            "type Note = U8 in 0..=127\ntype Velocity = U8 in 0..=127\nform wrong (\n    input: Note >> output: Velocity\n) {\n    input >> output\n}\n",
+        ),
+        &StartupCatalog::new(),
+    )
+    .unwrap_err();
+    assert_eq!(mismatch.code, "CND-FRM-058");
+    assert!(mismatch.message.contains("semantic Type mismatch"));
+    assert!(mismatch.message.contains("representations are compatible"));
+}
+
+#[test]
 fn pure_expression_identity_is_structural_and_ignores_parentheses_and_trivia() {
     let compact = check_syntax_document(
         &parse_syntax_document(

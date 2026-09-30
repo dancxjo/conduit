@@ -34,6 +34,7 @@ mod expression_program_decode;
 mod expression_semantic_call;
 mod functional_front;
 mod integer_literal;
+mod native_type;
 mod package_bundle;
 #[cfg(test)]
 mod package_bundle_tests;

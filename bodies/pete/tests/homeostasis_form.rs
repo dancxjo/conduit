@@ -79,6 +79,9 @@ fn observation_inputs_keep_domain_values_typed() {
 fn contains_leaf(value: &conduit_core::StructuredInfoType, identity: &str) -> bool {
     match value.shape() {
         StructuredInfoTypeShape::Leaf(kind) => kind.as_str() == identity,
+        StructuredInfoTypeShape::Nominal { representation, .. } => {
+            contains_leaf(representation, identity)
+        }
         StructuredInfoTypeShape::Collection { element, .. }
         | StructuredInfoTypeShape::Sequence { element, .. } => contains_leaf(element, identity),
         StructuredInfoTypeShape::Record { fields, .. } => fields
@@ -93,6 +96,9 @@ fn contains_leaf(value: &conduit_core::StructuredInfoType, identity: &str) -> bo
 fn contains_variant(value: &conduit_core::StructuredInfoType, tag: &str) -> bool {
     match value.shape() {
         StructuredInfoTypeShape::Leaf(_) => false,
+        StructuredInfoTypeShape::Nominal { representation, .. } => {
+            contains_variant(representation, tag)
+        }
         StructuredInfoTypeShape::Collection { element, .. }
         | StructuredInfoTypeShape::Sequence { element, .. } => contains_variant(element, tag),
         StructuredInfoTypeShape::Record { fields, .. } => fields

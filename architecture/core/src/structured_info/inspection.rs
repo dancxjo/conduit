@@ -40,6 +40,10 @@ pub enum StructuredInfoInspectionMember {
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum StructuredInfoInspectionShape {
+    Nominal {
+        schema: KindId,
+        representation: alloc::boxed::Box<StructuredInfoInspectionShape>,
+    },
     Leaf {
         kind: KindId,
         byte_len: u32,
@@ -203,6 +207,22 @@ fn inspection_shape(
     value: &StructuredInfoValue,
 ) -> Result<StructuredInfoInspectionShape, StructuredInfoInspectionRefusal> {
     match (value.value_type().shape(), value.shape()) {
+        (
+            StructuredInfoTypeShape::Nominal {
+                schema,
+                representation,
+            },
+            _,
+        ) => {
+            let representation = StructuredInfoValue {
+                value_type: representation.clone(),
+                node: value.node.clone(),
+            };
+            Ok(StructuredInfoInspectionShape::Nominal {
+                schema: schema.clone(),
+                representation: alloc::boxed::Box::new(inspection_shape(&representation)?),
+            })
+        }
         (StructuredInfoTypeShape::Leaf(kind), StructuredInfoValueShape::Leaf(bytes)) => {
             let semantic = if kind.as_str() == QUANTITY_INFO_ID {
                 Some(StructuredInfoLeafSemantic::Quantity(

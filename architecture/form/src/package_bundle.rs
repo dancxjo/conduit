@@ -3,7 +3,7 @@
 use crate::prelude::*;
 use crate::{
     CheckedPackageSource, FormSyntax, PackageResolutionError, PackageSyntax, SourceDocumentId,
-    MAXIMUM_PACKAGE_CONTENT_BYTES, MAXIMUM_PACKAGE_MEMBERS,
+    TypeSyntax, MAXIMUM_PACKAGE_CONTENT_BYTES, MAXIMUM_PACKAGE_MEMBERS,
 };
 use alloc::collections::{BTreeMap, BTreeSet};
 use serde::{Deserialize, Serialize};
@@ -21,6 +21,7 @@ pub struct CheckedPackageMember {
     pub source_document_id: SourceDocumentId,
     pub content_digest: [u8; 32],
     pub forms: Vec<String>,
+    pub types: Vec<String>,
     pub local_requirements: Vec<String>,
 }
 
@@ -38,6 +39,7 @@ pub struct CheckedPackageBundle {
 pub struct PackageExportCatalog {
     package_content_digest: [u8; 32],
     exports: BTreeMap<String, FormSyntax>,
+    type_exports: BTreeMap<String, TypeSyntax>,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -50,6 +52,7 @@ pub enum PackageBundleError {
     DuplicateMemberPath(String),
     InvalidMemberSource(String),
     DuplicateForm(String),
+    DuplicateType(String),
     MissingLocalMember(String),
     MissingLocalForm(String),
     AmbiguousLocalForm(String),
@@ -94,6 +97,7 @@ impl CheckedPackageBundle {
         let mut members = Vec::with_capacity(sources.len());
         let mut member_forms = BTreeMap::<String, BTreeSet<String>>::new();
         let mut all_forms = BTreeSet::new();
+        let mut all_types = BTreeSet::new();
         for member in sources {
             if !crate::surface_lex::is_operation(member.path) {
                 return Err(PackageBundleError::InvalidMemberPath(member.path.into()));
@@ -122,6 +126,17 @@ impl CheckedPackageBundle {
                     return Err(PackageBundleError::DuplicateForm(form.clone()));
                 }
             }
+            let mut types = document
+                .types
+                .iter()
+                .map(|value_type| value_type.name.text.clone())
+                .collect::<Vec<_>>();
+            types.sort();
+            for value_type in &types {
+                if !all_types.insert(value_type.clone()) {
+                    return Err(PackageBundleError::DuplicateType(value_type.clone()));
+                }
+            }
             member_forms.insert(member.path.into(), forms.iter().cloned().collect());
             let mut local_requirements = document
                 .uses
@@ -139,13 +154,14 @@ impl CheckedPackageBundle {
                 ))),
                 content_digest: Sha256::digest(member.source.as_bytes()).into(),
                 forms,
+                types,
                 local_requirements,
             });
         }
         validate_local_requirements(&members, &member_forms)?;
         reject_member_cycles(&members)?;
         for export in &package.exports {
-            exported_form_name(&members, export)?;
+            exported_member_name(&members, export)?;
         }
         package.content_digest = bundle_digest(manifest_source, &members);
         Ok(Self { package, members })
@@ -185,6 +201,24 @@ impl CheckedPackageBundle {
         exported_form_name(&self.members, export).ok()
     }
 
+    /// Resolves one shipped semantic Type without folding package identity into
+    /// the Type's own checked semantic identity.
+    pub fn resolve_type_export(&self, source_path: &str) -> Option<&str> {
+        let export = source_path
+            .strip_prefix(&self.package.path)?
+            .strip_prefix('/')?;
+        if export.contains('/')
+            || self
+                .package
+                .exports
+                .binary_search_by(|candidate| candidate.as_str().cmp(export))
+                .is_err()
+        {
+            return None;
+        }
+        exported_type_name(&self.members, export).ok()
+    }
+
     pub fn member_owning_form(&self, form: &str) -> Option<&str> {
         self.members
             .iter()
@@ -213,30 +247,76 @@ impl PackageExportCatalog {
     ) -> Result<Self, PackageBundleError> {
         bundle.validate_against(manifest_source, manifest, member_sources)?;
         let mut forms = BTreeMap::new();
+        let mut types = BTreeMap::new();
         for member in member_sources {
             let document = crate::parse_syntax_document(member.source);
             for form in document.forms {
                 forms.insert(form.name.text.clone(), form);
             }
+            for value_type in document.types {
+                types.insert(value_type.name.text.clone(), value_type);
+            }
         }
         let mut exports = BTreeMap::new();
+        let mut type_exports = BTreeMap::new();
         for export in &bundle.package.exports {
-            let canonical = bundle
-                .resolve_export(&format!("{}/{export}", bundle.package.path))
-                .ok_or_else(|| PackageBundleError::MissingExport(export.clone()))?;
-            let form = forms
-                .remove(canonical)
-                .ok_or_else(|| PackageBundleError::MissingExport(export.clone()))?;
-            exports.insert(format!("{}/{export}", bundle.package.path), form);
+            let source_path = format!("{}/{export}", bundle.package.path);
+            if let Some(canonical) = bundle.resolve_export(&source_path) {
+                let form = forms
+                    .remove(canonical)
+                    .ok_or_else(|| PackageBundleError::MissingExport(export.clone()))?;
+                exports.insert(source_path, form);
+            } else if let Some(canonical) = bundle.resolve_type_export(&source_path) {
+                let value_type = types
+                    .remove(canonical)
+                    .ok_or_else(|| PackageBundleError::MissingExport(export.clone()))?;
+                type_exports.insert(source_path, value_type);
+            } else {
+                return Err(PackageBundleError::MissingExport(export.clone()));
+            }
         }
         Ok(Self {
             package_content_digest: bundle.package.content_digest,
             exports,
+            type_exports,
         })
     }
 
     pub fn resolve(&self, source_path: &str) -> Option<&FormSyntax> {
         self.exports.get(source_path)
+    }
+
+    pub fn resolve_type(&self, source_path: &str) -> Option<&TypeSyntax> {
+        self.type_exports.get(source_path)
+    }
+
+    /// Installs shipped Type paths for downstream `with ... as ...` checking.
+    /// The package path is a source lookup name only; the checked Type keeps
+    /// the same semantic identity it had in its defining pack.
+    pub fn install_shipped_types(
+        &self,
+        catalog: &mut crate::StartupCatalog,
+    ) -> Result<Vec<crate::CheckedNativeType>, crate::SyntaxCheckDiagnostic> {
+        let declarations = self.type_exports.values().cloned().collect::<Vec<_>>();
+        let (checked, _) = crate::native_type::check_native_types(&declarations, catalog)?;
+        for (source_path, syntax) in &self.type_exports {
+            let value_type = checked
+                .iter()
+                .find(|candidate| candidate.name == syntax.name.text)
+                .expect("every shipped Type was checked");
+            catalog
+                .insert_native_type(
+                    source_path.clone(),
+                    value_type.value_type.clone(),
+                    value_type.value_contracts.clone(),
+                )
+                .map_err(|message| crate::SyntaxCheckDiagnostic {
+                    code: "CND-FRM-058",
+                    span: syntax.name.span,
+                    message,
+                })?;
+        }
+        Ok(checked)
     }
 
     pub fn package_content_digest(&self) -> [u8; 32] {
@@ -252,6 +332,34 @@ fn exported_form_name<'a>(
         Ok(form) => Ok(form),
         Err(FormLeafError::Missing) => Err(PackageBundleError::MissingExport(export.into())),
         Err(FormLeafError::Ambiguous) => Err(PackageBundleError::AmbiguousExport(export.into())),
+    }
+}
+
+fn exported_type_name<'a>(
+    members: &'a [CheckedPackageMember],
+    export: &str,
+) -> Result<&'a str, PackageBundleError> {
+    match unique_form_leaf(members.iter().flat_map(|member| &member.types), export) {
+        Ok(value_type) => Ok(value_type),
+        Err(FormLeafError::Missing) => Err(PackageBundleError::MissingExport(export.into())),
+        Err(FormLeafError::Ambiguous) => Err(PackageBundleError::AmbiguousExport(export.into())),
+    }
+}
+
+fn exported_member_name<'a>(
+    members: &'a [CheckedPackageMember],
+    export: &str,
+) -> Result<&'a str, PackageBundleError> {
+    match (
+        exported_form_name(members, export),
+        exported_type_name(members, export),
+    ) {
+        (Ok(name), Err(PackageBundleError::MissingExport(_)))
+        | (Err(PackageBundleError::MissingExport(_)), Ok(name)) => Ok(name),
+        (Err(PackageBundleError::MissingExport(_)), Err(PackageBundleError::MissingExport(_))) => {
+            Err(PackageBundleError::MissingExport(export.into()))
+        }
+        _ => Err(PackageBundleError::AmbiguousExport(export.into())),
     }
 }
 

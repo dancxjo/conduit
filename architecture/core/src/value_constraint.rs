@@ -48,6 +48,12 @@ pub enum ValueConstraint {
         minimum_endpoint: IntervalEndpoint,
         maximum_endpoint: IntervalEndpoint,
     },
+    FixedIntegerRange {
+        minimum: Vec<u8>,
+        maximum: Vec<u8>,
+        minimum_endpoint: IntervalEndpoint,
+        maximum_endpoint: IntervalEndpoint,
+    },
     QuantityRange {
         minimum: crate::Quantity,
         maximum: crate::Quantity,
@@ -95,6 +101,7 @@ pub enum ConstraintDefinitionError {
     InvalidByteRange,
     InvalidUnsignedRange,
     InvalidSignedRange,
+    InvalidFixedIntegerRange,
     InvalidQuantityRange,
     EmptyMembership,
     TooManyMembershipValues,
@@ -120,6 +127,7 @@ pub enum ValueConstraintRefusal {
     ByteLength,
     UnsignedRange,
     SignedRange,
+    FixedIntegerRange,
     QuantityRange,
     Membership,
     TextPattern,
@@ -219,6 +227,18 @@ impl ValueConstraint {
                 canonical.push(*minimum_endpoint as u8);
                 canonical.push(*maximum_endpoint as u8);
             }
+            Self::FixedIntegerRange {
+                minimum,
+                maximum,
+                minimum_endpoint,
+                maximum_endpoint,
+            } => {
+                canonical.push(6);
+                push_bytes(canonical, minimum);
+                push_bytes(canonical, maximum);
+                canonical.push(*minimum_endpoint as u8);
+                canonical.push(*maximum_endpoint as u8);
+            }
             Self::QuantityRange {
                 minimum,
                 maximum,
@@ -271,9 +291,10 @@ impl ValueConstraint {
             Self::ByteLength { .. } => 0,
             Self::UnsignedRange { .. } => 1,
             Self::SignedRange { .. } => 2,
-            Self::QuantityRange { .. } => 3,
-            Self::CanonicalMembership { .. } => 4,
-            Self::TextPattern { .. } => 5,
+            Self::FixedIntegerRange { .. } => 3,
+            Self::QuantityRange { .. } => 4,
+            Self::CanonicalMembership { .. } => 5,
+            Self::TextPattern { .. } => 6,
         }
     }
 
@@ -309,6 +330,26 @@ impl ValueConstraint {
             }
             Self::SignedRange { .. } if value_kind != crate::SCALAR_INFO_ID => {
                 Err(ConstraintDefinitionError::WrongConstraintKind)
+            }
+            Self::FixedIntegerRange {
+                minimum,
+                maximum,
+                minimum_endpoint,
+                maximum_endpoint,
+            } => {
+                let kind = crate::primitive_info_kind(value_kind)
+                    .ok_or(ConstraintDefinitionError::WrongConstraintKind)?;
+                let minimum = crate::FixedInteger::decode(kind, minimum)
+                    .map_err(|_| ConstraintDefinitionError::WrongConstraintKind)?;
+                let maximum = crate::FixedInteger::decode(kind, maximum)
+                    .map_err(|_| ConstraintDefinitionError::WrongConstraintKind)?;
+                let ordering = fixed_integer_cmp(minimum, maximum)
+                    .ok_or(ConstraintDefinitionError::WrongConstraintKind)?;
+                if interval_is_empty(ordering, *minimum_endpoint, *maximum_endpoint) {
+                    Err(ConstraintDefinitionError::InvalidFixedIntegerRange)
+                } else {
+                    Ok(())
+                }
             }
             Self::QuantityRange {
                 minimum,
@@ -408,6 +449,28 @@ impl ValueConstraint {
                 .then_some(())
                 .ok_or(ValueConstraintRefusal::SignedRange)
             }
+            Self::FixedIntegerRange {
+                minimum,
+                maximum,
+                minimum_endpoint,
+                maximum_endpoint,
+            } => {
+                let kind = crate::primitive_info_kind(value_kind)
+                    .ok_or(ValueConstraintRefusal::WrongConstraintKind)?;
+                let value = crate::FixedInteger::decode(kind, canonical)
+                    .map_err(|_| ValueConstraintRefusal::FixedIntegerRange)?;
+                let minimum = crate::FixedInteger::decode(kind, minimum)
+                    .map_err(|_| ValueConstraintRefusal::FixedIntegerRange)?;
+                let maximum = crate::FixedInteger::decode(kind, maximum)
+                    .map_err(|_| ValueConstraintRefusal::FixedIntegerRange)?;
+                let above = fixed_integer_cmp(value, minimum)
+                    .is_some_and(|order| lower_accepts(order, *minimum_endpoint));
+                let below = fixed_integer_cmp(value, maximum)
+                    .is_some_and(|order| upper_accepts(order, *maximum_endpoint));
+                (above && below)
+                    .then_some(())
+                    .ok_or(ValueConstraintRefusal::FixedIntegerRange)
+            }
             Self::QuantityRange {
                 minimum,
                 maximum,
@@ -473,6 +536,22 @@ fn interval_is_empty(
         || (endpoint_order.is_eq()
             && (minimum_endpoint == IntervalEndpoint::Exclusive
                 || maximum_endpoint == IntervalEndpoint::Exclusive))
+}
+
+fn fixed_integer_cmp(
+    left: crate::FixedInteger,
+    right: crate::FixedInteger,
+) -> Option<core::cmp::Ordering> {
+    if left.kind() != right.kind() {
+        return None;
+    }
+    left.signed()
+        .and_then(|left| right.signed().map(|right| left.cmp(&right)))
+        .or_else(|_| {
+            left.unsigned()
+                .and_then(|left| right.unsigned().map(|right| left.cmp(&right)))
+        })
+        .ok()
 }
 
 fn lower_accepts(order: core::cmp::Ordering, endpoint: IntervalEndpoint) -> bool {

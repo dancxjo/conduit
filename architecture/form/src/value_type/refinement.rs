@@ -2,7 +2,7 @@ use crate::prelude::*;
 use crate::SyntaxCheckDiagnostic;
 use conduit_core::{IntervalEndpoint, KindId, PrimitiveInfoKind, ValueConstraint};
 
-pub(super) fn checked_refinements(
+pub(crate) fn checked_refinements(
     refinements: &[crate::ValueRefinement],
     maximum_bytes: Option<u64>,
     value_kind: &KindId,
@@ -180,6 +180,51 @@ fn checked_range(
                 maximum_endpoint,
             })
         }
+        kind if conduit_core::primitive_info_kind(kind).is_some_and(|kind| {
+            matches!(
+                kind,
+                PrimitiveInfoKind::U8
+                    | PrimitiveInfoKind::U16
+                    | PrimitiveInfoKind::U32
+                    | PrimitiveInfoKind::U64
+                    | PrimitiveInfoKind::U128
+                    | PrimitiveInfoKind::I8
+                    | PrimitiveInfoKind::I16
+                    | PrimitiveInfoKind::I32
+                    | PrimitiveInfoKind::I64
+                    | PrimitiveInfoKind::I128
+            )
+        }) =>
+        {
+            let kind = conduit_core::primitive_info_kind(kind).expect("matched integer kind");
+            let (intrinsic_minimum, intrinsic_maximum) = fixed_integer_bounds(kind);
+            let minimum = match minimum {
+                Some(value) => checked_integer_member(kind, value_kind.as_str(), &value.text)
+                    .ok_or_else(|| {
+                        invalid("range minimum is outside its exact integer Type".into())
+                    })?,
+                None => {
+                    minimum_endpoint = IntervalEndpoint::Inclusive;
+                    intrinsic_minimum
+                }
+            };
+            let maximum = match maximum {
+                Some(value) => checked_integer_member(kind, value_kind.as_str(), &value.text)
+                    .ok_or_else(|| {
+                        invalid("range maximum is outside its exact integer Type".into())
+                    })?,
+                None => {
+                    maximum_endpoint = IntervalEndpoint::Inclusive;
+                    intrinsic_maximum
+                }
+            };
+            Ok(ValueConstraint::FixedIntegerRange {
+                minimum,
+                maximum,
+                minimum_endpoint,
+                maximum_endpoint,
+            })
+        }
         kind if kind == conduit_core::QUANTITY_INFO_ID
             || conduit_core::quantity_info_dimension(kind).is_some() =>
         {
@@ -297,6 +342,52 @@ fn checked_integer_member(
     Some(bytes[..length].to_vec())
 }
 
+fn fixed_integer_bounds(kind: PrimitiveInfoKind) -> (Vec<u8>, Vec<u8>) {
+    let bytes = conduit_core::fixed_integer_bytes(kind);
+    let signed = matches!(
+        kind,
+        PrimitiveInfoKind::I8
+            | PrimitiveInfoKind::I16
+            | PrimitiveInfoKind::I32
+            | PrimitiveInfoKind::I64
+            | PrimitiveInfoKind::I128
+    );
+    if signed {
+        let bits = (bytes * 8) as u32;
+        let (minimum, maximum) = if bits == 128 {
+            (i128::MIN, i128::MAX)
+        } else {
+            (-(1_i128 << (bits - 1)), (1_i128 << (bits - 1)) - 1)
+        };
+        let minimum = conduit_core::FixedInteger::from_signed(kind, minimum)
+            .expect("intrinsic signed minimum");
+        let maximum = conduit_core::FixedInteger::from_signed(kind, maximum)
+            .expect("intrinsic signed maximum");
+        let (minimum, minimum_len) = minimum.encode();
+        let (maximum, maximum_len) = maximum.encode();
+        (
+            minimum[..minimum_len].to_vec(),
+            maximum[..maximum_len].to_vec(),
+        )
+    } else {
+        let maximum = if bytes == 16 {
+            u128::MAX
+        } else {
+            (1_u128 << (bytes * 8)) - 1
+        };
+        let minimum =
+            conduit_core::FixedInteger::from_unsigned(kind, 0).expect("intrinsic unsigned minimum");
+        let maximum = conduit_core::FixedInteger::from_unsigned(kind, maximum)
+            .expect("intrinsic unsigned maximum");
+        let (minimum, minimum_len) = minimum.encode();
+        let (maximum, maximum_len) = maximum.encode();
+        (
+            minimum[..minimum_len].to_vec(),
+            maximum[..maximum_len].to_vec(),
+        )
+    }
+}
+
 fn intrinsic_maximum_bytes(value_kind: &str) -> Option<u32> {
     match conduit_core::primitive_info_kind(value_kind)? {
         PrimitiveInfoKind::Unit | PrimitiveInfoKind::CancellationRequest => Some(0),
@@ -331,8 +422,9 @@ fn constraint_rank(constraint: &ValueConstraint) -> u8 {
         ValueConstraint::ByteLength { .. } => 0,
         ValueConstraint::UnsignedRange { .. } => 1,
         ValueConstraint::SignedRange { .. } => 2,
-        ValueConstraint::QuantityRange { .. } => 3,
-        ValueConstraint::CanonicalMembership { .. } => 4,
-        ValueConstraint::TextPattern { .. } => 5,
+        ValueConstraint::FixedIntegerRange { .. } => 3,
+        ValueConstraint::QuantityRange { .. } => 4,
+        ValueConstraint::CanonicalMembership { .. } => 5,
+        ValueConstraint::TextPattern { .. } => 6,
     }
 }

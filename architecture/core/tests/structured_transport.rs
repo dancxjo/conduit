@@ -104,6 +104,32 @@ fn bounded_sequence_round_trips_through_transport_with_actual_length() {
 }
 
 #[test]
+fn nominal_identity_round_trips_without_changing_the_wire_representation() {
+    let representation = leaf_type("value/count");
+    let ty =
+        StructuredInfoType::nominal(KindId::from("music/note@1"), representation.clone()).unwrap();
+    let value = StructuredInfoValue::nominal(
+        ty.clone(),
+        StructuredInfoValue::leaf(representation, encode_count(60).to_vec()).unwrap(),
+    )
+    .unwrap();
+    let encoded =
+        encode_structured_transport(&value, MAXIMUM_STRUCTURED_TRANSPORT_BYTES as u32).unwrap();
+
+    assert_eq!(
+        decode_structured_transport(&ty, &encoded, MAXIMUM_STRUCTURED_TRANSPORT_BYTES as u32),
+        Ok(value)
+    );
+    let other =
+        StructuredInfoType::nominal(KindId::from("music/velocity@1"), leaf_type("value/count"))
+            .unwrap();
+    assert_eq!(
+        decode_structured_transport(&other, &encoded, MAXIMUM_STRUCTURED_TRANSPORT_BYTES as u32),
+        Err(StructuredInfoTransportRefusal::ProfileMismatch)
+    );
+}
+
+#[test]
 fn music_and_llm_values_share_one_bounded_versioned_transport() {
     for value in [music_value(), llm_value()] {
         let encoded = encode_structured_transport(

@@ -69,6 +69,11 @@ pub(crate) fn check_structured_expression(
         &StructuredInfoType,
     ) -> Result<CanonicalStartupValue, SyntaxCheckDiagnostic>,
 ) -> Result<CanonicalStructuredStartupValue, SyntaxCheckDiagnostic> {
+    if let StructuredInfoTypeShape::Nominal { representation, .. } = expected.shape() {
+        let mut checked = check_structured_expression(expression, representation, resolve_atomic)?;
+        checked.value_type = expected.clone();
+        return Ok(checked);
+    }
     match expression {
         ExpressionSyntax::Atomic(atomic) => match resolve_atomic(atomic, expected)? {
             CanonicalStartupValue::Literal(value) => {
@@ -290,6 +295,14 @@ pub(crate) fn check_structured_expression(
 }
 
 fn concrete(value: &CanonicalStructuredStartupValue) -> Result<StructuredInfoValue, ()> {
+    if let StructuredInfoTypeShape::Nominal { representation, .. } = value.value_type.shape() {
+        let represented = CanonicalStructuredStartupValue {
+            value_type: representation.clone(),
+            node: value.node.clone(),
+        };
+        return StructuredInfoValue::nominal(value.value_type.clone(), concrete(&represented)?)
+            .map_err(|_| ());
+    }
     match &value.node {
         CanonicalStructuredStartupNode::Literal { canonical, .. } => {
             StructuredInfoValue::leaf(value.value_type.clone(), canonical.clone()).map_err(|_| ())
@@ -433,6 +446,39 @@ fn canonical_leaf_literal(
             _ => None,
         },
         "value/scalar" => parse_scalar_literal(literal).map(|value| value.encode().to_vec()),
+        integer_kind
+            if conduit_core::primitive_info_kind(integer_kind).is_some_and(|kind| {
+                matches!(
+                    kind,
+                    conduit_core::PrimitiveInfoKind::U8
+                        | conduit_core::PrimitiveInfoKind::U16
+                        | conduit_core::PrimitiveInfoKind::U32
+                        | conduit_core::PrimitiveInfoKind::U64
+                        | conduit_core::PrimitiveInfoKind::U128
+                        | conduit_core::PrimitiveInfoKind::I8
+                        | conduit_core::PrimitiveInfoKind::I16
+                        | conduit_core::PrimitiveInfoKind::I32
+                        | conduit_core::PrimitiveInfoKind::I64
+                        | conduit_core::PrimitiveInfoKind::I128
+                )
+            }) =>
+        {
+            crate::integer_literal::canonicalize(literal, integer_kind)
+                .ok()
+                .flatten()
+                .and_then(|canonical| {
+                    let kind = conduit_core::primitive_info_kind(integer_kind)?;
+                    let value = if integer_kind.starts_with("value/i") {
+                        conduit_core::FixedInteger::from_signed(kind, canonical.parse().ok()?)
+                            .ok()?
+                    } else {
+                        conduit_core::FixedInteger::from_unsigned(kind, canonical.parse().ok()?)
+                            .ok()?
+                    };
+                    let (bytes, length) = value.encode();
+                    Some(bytes[..length].to_vec())
+                })
+        }
         _ if !matches!(
             kind,
             "value/unit" | "value/text" | "value/count" | "value/bool" | "value/scalar"

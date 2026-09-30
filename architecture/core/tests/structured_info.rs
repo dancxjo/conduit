@@ -134,6 +134,34 @@ fn nominal_schemas_prevent_protocol_and_portable_records_from_accidental_aliasin
 }
 
 #[test]
+fn nominal_types_keep_distinct_identity_over_the_same_exact_representation() {
+    let representation = leaf_type("value/count");
+    let note =
+        StructuredInfoType::nominal(KindId::from("music/note@1"), representation.clone()).unwrap();
+    let velocity =
+        StructuredInfoType::nominal(KindId::from("music/velocity@1"), representation.clone())
+            .unwrap();
+    let represented = StructuredInfoValue::leaf(representation, encode_count(64).to_vec()).unwrap();
+    let note_value = StructuredInfoValue::nominal(note.clone(), represented.clone()).unwrap();
+    let velocity_value = StructuredInfoValue::nominal(velocity.clone(), represented).unwrap();
+
+    assert_ne!(note, velocity);
+    assert_ne!(note.profile().unwrap(), velocity.profile().unwrap());
+    assert_ne!(
+        note_value.semantic_digest().unwrap(),
+        velocity_value.semantic_digest().unwrap()
+    );
+    assert_eq!(
+        StructuredInfoValue::from_canonical_bytes(&note_value.canonical_bytes().unwrap()),
+        Ok(note_value)
+    );
+    assert_eq!(
+        StructuredInfoValue::nominal(note, velocity_value),
+        Err(StructuredInfoRefusal::WrongType)
+    );
+}
+
+#[test]
 fn variants_keep_exact_tags_and_validate_payload_types() {
     let event = StructuredInfoType::variant(
         KindId::from("music/event@1"),

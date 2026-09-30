@@ -11,6 +11,7 @@ pub struct SyntaxDocument {
     pub tokens: Vec<CstToken>,
     pub uses: Vec<UseDeclaration>,
     pub standard_glyphs: bool,
+    pub types: Vec<TypeSyntax>,
     pub forms: Vec<FormSyntax>,
     pub constructions: Vec<ConstructionSyntax>,
     pub packages: Vec<PackageSyntax>,
@@ -45,21 +46,81 @@ impl SyntaxDocument {
         tokens: Vec<CstToken>,
         uses: Vec<UseDeclaration>,
         standard_glyphs: bool,
-        definitions: (Vec<FormSyntax>, Vec<ConstructionSyntax>, Vec<PackageSyntax>),
+        definitions: (
+            Vec<TypeSyntax>,
+            Vec<FormSyntax>,
+            Vec<ConstructionSyntax>,
+            Vec<PackageSyntax>,
+        ),
         diagnostics: Vec<FormDiagnostic>,
     ) -> Self {
-        let (forms, constructions, packages) = definitions;
+        let (types, forms, constructions, packages) = definitions;
         Self {
             source,
             tokens,
             uses,
             standard_glyphs,
+            types,
             forms,
             constructions,
             packages,
             diagnostics,
         }
     }
+}
+
+/// One authored nominal semantic Type declaration.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct TypeSyntax {
+    pub name: SpannedText,
+    pub definition: TypeDefinitionSyntax,
+    pub span: Span,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum TypeDefinitionSyntax {
+    Scalar(TypeExpressionSyntax),
+    Record(Vec<TypeFieldSyntax>),
+    Variant(Vec<TypeVariantCaseSyntax>),
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct TypeFieldSyntax {
+    pub name: SpannedText,
+    pub value_type: TypeExpressionSyntax,
+    pub span: Span,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct TypeVariantCaseSyntax {
+    pub tag: SpannedText,
+    pub fields: Vec<TypeFieldSyntax>,
+    pub span: Span,
+}
+
+/// Finite structural representation used inside one nominal Type.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum TypeExpressionSyntax {
+    Reference {
+        value_type: SpannedText,
+        maximum_bytes: Option<u64>,
+        refinements: Vec<ValueRefinement>,
+        span: Span,
+    },
+    Optional {
+        value: Box<TypeExpressionSyntax>,
+        span: Span,
+    },
+    DataReference {
+        value: Box<TypeExpressionSyntax>,
+        span: Span,
+    },
+    Sequence {
+        element: Box<TypeExpressionSyntax>,
+        minimum_items: u16,
+        maximum_items: u16,
+        span: Span,
+    },
 }
 
 /// One finite authored `pack.conduit` declaration.

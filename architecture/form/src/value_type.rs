@@ -9,7 +9,7 @@ use conduit_core::{
 
 use crate::StartupCatalog;
 
-mod refinement;
+pub(crate) mod refinement;
 use refinement::checked_refinements;
 
 pub(crate) fn canonical_value_kind(source_type: &str) -> KindId {
@@ -240,7 +240,7 @@ pub(crate) fn canonical_port_temporal(source: RuntimePortTemporal) -> conduit_co
     }
 }
 
-fn checked_value_kind_with_modality(
+pub(crate) fn checked_value_kind_with_modality(
     source_type: &str,
     optional: bool,
     catalog: &StartupCatalog,

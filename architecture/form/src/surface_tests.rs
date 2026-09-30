@@ -1,7 +1,7 @@
 use crate::{
     parse_syntax_document, Argument, BackStatement, BinaryOperator, ConstructionRole, CordStage,
     CstTokenKind, Expression, ExpressionProjection, ExpressionSyntax, FormCompletionPolicy,
-    RuntimePortDirection, RuntimePortTemporal,
+    RuntimePortDirection, RuntimePortTemporal, TypeDefinitionSyntax, TypeExpressionSyntax,
 };
 use alloc::vec::Vec;
 
@@ -170,6 +170,63 @@ fn authored_imports_have_one_explicit_finite_document_bound() {
     let document = parse_syntax_document(&source);
     assert!(document.forms().is_err());
     assert!(document.diagnostics[0].message.contains("import bound"));
+}
+
+#[test]
+fn native_semantic_types_are_lossless_finite_syntax_not_rust_shapes() {
+    let source = "type Note = U8 in 0..=127\n\ntype Position = {\n    x: Distance\n    y: Distance\n}\n\ntype MusicEvent =\n    note {\n        velocity: U8 in 0..=127\n        pitches: sequence Note <= 16\n    }\n    | rest\n\nform perform (\n    >> event: MusicEvent\n) {\n}\n";
+    let document = parse_syntax_document(source);
+    assert!(
+        document.diagnostics.is_empty(),
+        "{:?}",
+        document.diagnostics
+    );
+    assert_eq!(document.round_trip(), source);
+    assert_eq!(document.types.len(), 3);
+    assert_eq!(document.types[0].name.text, "Note");
+    assert!(matches!(
+        &document.types[0].definition,
+        TypeDefinitionSyntax::Scalar(TypeExpressionSyntax::Reference {
+            value_type,
+            refinements,
+            ..
+        }) if value_type.text == "U8" && refinements.len() == 1
+    ));
+    assert!(matches!(
+        &document.types[1].definition,
+        TypeDefinitionSyntax::Record(fields)
+            if fields.iter().map(|field| field.name.text.as_str()).collect::<Vec<_>>() == ["x", "y"]
+    ));
+    let TypeDefinitionSyntax::Variant(cases) = &document.types[2].definition else {
+        panic!("expected closed variant syntax")
+    };
+    assert_eq!(cases.len(), 2);
+    assert_eq!(cases[0].tag.text, "note");
+    assert_eq!(cases[1].tag.text, "rest");
+    assert!(matches!(
+        &cases[0].fields[1].value_type,
+        TypeExpressionSyntax::Sequence {
+            minimum_items: 0,
+            maximum_items: 16,
+            ..
+        }
+    ));
+    assert_eq!(
+        document.forms[0].front.runtime_ports[0].value_type.text,
+        "MusicEvent"
+    );
+}
+
+#[test]
+fn native_sequence_type_requires_one_explicit_finite_cardinality_bound() {
+    for source in [
+        "type Notes = sequence Note\n",
+        "type Notes = sequence Note <= 0\n",
+        "type Notes = sequence Note <= 257\n",
+    ] {
+        let document = parse_syntax_document(source);
+        assert!(!document.diagnostics.is_empty(), "accepted {source}");
+    }
 }
 
 #[test]
