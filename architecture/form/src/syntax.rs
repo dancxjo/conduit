@@ -381,7 +381,13 @@ pub struct NamedGear {
     pub name: SpannedText,
     pub invocation: Invocation,
     pub retained: Option<Box<RetainedValue>>,
+    pub activation: Option<ActivationSyntax>,
     pub span: Span,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum ActivationSyntax {
+    Each,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]

@@ -203,8 +203,10 @@ pub(super) fn resolve_selectors(
                 value: CanonicalStartupValue::Literal(format!("\"{selector_configuration}\"")),
             }],
             retained: None,
+            activation: None,
             source_span: *source_span,
         };
+        let mut generated_activations = Vec::new();
         let instance = instantiate_gear(
             &gear,
             None,
@@ -223,6 +225,7 @@ pub(super) fn resolve_selectors(
             connections,
             shared_pools,
             provenance,
+            &mut generated_activations,
             gear_ids,
         )?;
         stages.push(stage_for_instance(&name, &instance, None)?);

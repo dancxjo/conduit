@@ -5,11 +5,11 @@ use crate::surface_lex::{
     SourceLine,
 };
 use crate::syntax::{
-    Argument, BackStatement, CodeSyntax, ConstructionRole, ConstructionSyntax, Cord, CordStage,
-    Expression, FormCompletionPolicy, FormFront, FormSyntax, Invocation, LocalValue, MatchedRoute,
-    MatchedRouteArm, MatchedRoutePattern, NamedGear, RetainedDuration, RetainedValue,
-    RuntimePortDirection, RuntimePortTemporal, SpannedText, SyntaxDefinitions, SyntaxDocument,
-    TypeSyntax, UseDeclaration,
+    ActivationSyntax, Argument, BackStatement, CodeSyntax, ConstructionRole, ConstructionSyntax,
+    Cord, CordStage, Expression, FormCompletionPolicy, FormFront, FormSyntax, Invocation,
+    LocalValue, MatchedRoute, MatchedRouteArm, MatchedRoutePattern, NamedGear, RetainedDuration,
+    RetainedValue, RuntimePortDirection, RuntimePortTemporal, SpannedText, SyntaxDefinitions,
+    SyntaxDocument, TypeSyntax, UseDeclaration,
 };
 use crate::{
     diagnostic, eof_span, tokenize_losslessly, FormError, Span, MAXIMUM_FORM_SOURCE_BYTES,
@@ -631,14 +631,26 @@ impl<'a> Parser<'a> {
                         span: self.span(invoked_start, start + text.len()),
                     },
                     retained: Some(Box::new(retained)),
+                    activation: None,
                     span: self.span(start, start + text.len()),
                 }));
             }
+            let (activation, invoked, invoked_start) =
+                if let Some(selected) = invoked.strip_prefix("activate ") {
+                    (
+                        Some(ActivationSyntax::Each),
+                        selected,
+                        invoked_start + "activate ".len(),
+                    )
+                } else {
+                    (None, invoked, invoked_start)
+                };
             let invocation = self.parse_invocation(invoked, invoked_start)?;
             return Ok(BackStatement::NamedGear(NamedGear {
                 name: self.spanned_at(name, text, start),
                 invocation,
                 retained: None,
+                activation,
                 span: self.span(start, start + text.len()),
             }));
         }
