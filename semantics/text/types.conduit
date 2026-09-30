@@ -3,3 +3,6 @@
 type MorseKeyPhase =
     pressed
     | released
+
+type AddressDetectionRefusal =
+    recognized_text_too_large
