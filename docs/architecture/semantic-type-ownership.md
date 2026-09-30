@@ -177,6 +177,7 @@ are satisfied.
 | AI randomness, draw relationship, probability disposition, log-score and refusal vocabularies | `semantics/ai/types.conduit` | generated at build time | yes | yes | exact native round trips plus probability, relation, dynamics and training suites |
 | Presentation mechanism, status, evidence, choice, navigation, utterance, disclosure and temporal vocabularies | `semantics/presentation/types.conduit` | generated at build time | yes | yes | exact native round trips plus presentation and consumer suites |
 | Presentation layout axis and alignment vocabularies | `semantics/presentation/types.conduit` | generated at build time | yes | yes | exact native round trips plus layout and renderer consumer suites |
+| Presentation graphics clip-class vocabulary | `semantics/presentation/types.conduit` | generated at build time | yes | yes | exhaustive native round trips plus graphics classification, Patchbay and ConduitOS consumer suites |
 | Robotics beacon/charging, chat connection/presence, HTTP method/failures | domain `types.conduit` sources | generated at build time | yes | yes | exact native round trips plus std/no-std domain suites |
 | Robotics simulation availability extracted from the catalog | `semantics/robotics/types.conduit` | generated at build time | yes | yes | exact native round trips plus robotics catalog and std/ConduitOS consumers |
 | HTTP contract refusal vocabulary | `semantics/web/types.conduit` | generated at build time | yes | yes | exact native round trips plus HTTP codec and hosted-HTTP suites |
