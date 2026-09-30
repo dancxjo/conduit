@@ -1,39 +1,58 @@
-# Types and state
-
 > **Canonical reference.** These pages were migrated from issue [#4109](https://github.com/dancxjo/conduit/issues/4109) on 2026-09-29. The wiki is now the readable language reference; implementation tickets remain evidence of conformance and provenance.
 
-## Finite by default
+## Semantic domains may be open; execution may not be
 
-> **Every checked value type has an exact finite bound.**
+Conduit distinguishes **the set of values a type means** from **the resources required to represent and execute one actual value**.
 
-Fixed-width values are intrinsically finite. Variable-size semantic types publish canonical finite defaults, inserted into checked meaning when omitted.
+A semantic numeric domain may therefore be open-ended:
 
-Initial canonical rule:
+```conduit
+type Temperature = Scalar in -273.15..
+type Count = Integer in 0..
+type AtMostOne = Scalar in ..=1
+```
+
+The semantic meaning is not truncated merely because one host uses a finite machine representation.
+
+The runtime promise is different:
+
+> **Semantic domains may be unbounded; execution resources may not be.**
+
+An actual value must still be representable by the selected form/back and admitted within finite resource envelopes. A semantically valid value that a particular host cannot represent is a representation/admission problem, not a reason to lie about the type's meaning.
+
+Variable-sized values and collections still need finite execution bounds. For example:
 
 ```conduit
 name: Text
-```
-
-checks with the same bound as:
-
-```conduit
-name: Text <= 256B
-```
-
-when 256B is the current canonical Text default.
-
-Explicit bounds use `<=`:
-
-```conduit
-title: Text <= 128B
 memo: Text <= 4KiB
 ```
 
-Bounds constrain values. They do not imply retention, persistence, allocation strategy, or authority.
+A bare `Text` receives the canonical finite value-size default during checking; explicit bounds use `<=`.
 
-No target may choose an unknown/implicit bound after checking.
+The distinction is:
 
-Provenance: #3955.
+```text
+unbounded semantic value domain     allowed
+unbounded collection growth         not implicit
+unbounded stream backlog            not implicit
+unbounded retained storage growth   not implicit
+unbounded execution resource use    not admitted
+```
+
+Bounds constrain realizable values and resource use. They do not themselves imply retention, persistence, allocation strategy, or authority.
+
+## Type versus form
+
+A **type** is semantic meaning. A **form** is one concrete portable representation of that meaning.
+
+```text
+type  what values mean
+form  how values are carried/stored in one compatibility contract
+```
+
+A variant case does not mean its byte tag; the tag belongs to a form. The same type may therefore have more than one form without changing semantic identity.
+
+Exact forms can expose facts such as width, tags, byte order, maximum encoded extent, malformed-input behavior, and compatibility identity to checking and planning without contaminating the type itself.
 
 ---
 
@@ -181,7 +200,7 @@ T     the value itself
 
 keep duration and explicit publication are different promises:
 
-> **If a Form says a value must last, planning selects a Back that can truthfully make it last or refuses. save is publication, not survival.**
+> **If a plot says a value must last, planning selects a Back that can truthfully make it last or refuses. save is publication, not survival.**
 
 Therefore:
 
@@ -340,7 +359,7 @@ Provenance: #4002.
 
 ## Resource/capability-valued ports
 
-Low-level forms may pass admitted runtime resources through typed ports, but **descriptive info cannot forge authority**.
+Low-level plots may pass admitted runtime resources through typed ports, but **descriptive info cannot forge authority**.
 
 ```text
 { address, length }        descriptive info
