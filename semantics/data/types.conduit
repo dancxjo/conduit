@@ -41,6 +41,12 @@ type TensorAxisRole =
         identity: Text <= 64B not in [""]
     }
 
+type ClockRelationQuality =
+    exact
+    | estimated {
+        maximum-error: Duration
+    }
+
 type SampledSignalRefusal =
     invalid_clock
     | invalid_start
