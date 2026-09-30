@@ -414,7 +414,7 @@ mod public_surface_tests {
 
     #[test]
     fn body_help_exposes_joining_intent_without_protocol_phases() {
-        let body = Cli::command()
+        let mut body = Cli::command()
             .find_subcommand("body")
             .expect("body command")
             .clone();
