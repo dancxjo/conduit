@@ -15,3 +15,18 @@ type MeasurementThresholdState =
 type MeasurementThresholdTransition =
     rose_above
     | fell_below
+
+type SampledSignalRefusal =
+    invalid_clock
+    | invalid_start
+    | invalid_cadence
+    | invalid_continuity
+    | empty_signal
+    | tensor_invalid
+    | sample_count_mismatch
+    | missing_sample_axis
+    | window_out_of_bounds
+    | temporal_overflow
+    | incompatible_signals
+    | noncontiguous_signals
+    | too_many_parts

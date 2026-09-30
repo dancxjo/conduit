@@ -9,7 +9,7 @@ mod generated {
 
 pub use generated::{
     FullWindowPolicy, MeasurementPlotOverflowPolicy, MeasurementThresholdState,
-    MeasurementThresholdTransition,
+    MeasurementThresholdTransition, SampledSignalRefusal,
 };
 
 mod data_catalog;
