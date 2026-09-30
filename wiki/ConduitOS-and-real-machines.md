@@ -1,5 +1,3 @@
-# ConduitOS and real machines
-
 ConduitOS is Conduit's freestanding host environment. It runs the same architectural model without assuming Linux, Windows, a browser, or another general-purpose OS underneath it.
 
 ## Current product targets
