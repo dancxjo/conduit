@@ -1,5 +1,6 @@
 use conduit_ai::{
-    GeneratedTextFlowTerminal, LlmDeterminismProfile, LlmImplementationControl, LlmTerminalOutcome,
+    CandidateLifecycle, GeneratedTextFlowTerminal, LlmDeterminismProfile, LlmImplementationControl,
+    LlmInterruptionReason, LlmPlanningRefusal, LlmTerminalOutcome, TrainingLifecyclePhase,
 };
 use conduit_form::rust_binding::NativeRustBinding;
 
@@ -55,5 +56,40 @@ fn llm_contract_vocabularies_round_trip_through_their_native_types() {
         LlmImplementationControl::ProviderFunctionJson,
     ] {
         assert_round_trip(value);
+    }
+}
+
+#[test]
+fn ai_lifecycle_vocabularies_round_trip_through_their_native_types() {
+    for value in [
+        LlmInterruptionReason::ModelProviderLost,
+        LlmInterruptionReason::PartOrLineLost,
+    ] {
+        assert_round_trip(value);
+    }
+    assert_round_trip(LlmPlanningRefusal::MissingLlmRealization);
+    assert_round_trip(CandidateLifecycle::AwaitingExplicitValidationPlanAndPlay);
+
+    let active = TrainingLifecyclePhase::active_step(7).unwrap();
+    let structured = active.clone().into_structured().unwrap();
+    assert_eq!(
+        TrainingLifecyclePhase::from_structured(structured).unwrap(),
+        active
+    );
+    for phase in [
+        TrainingLifecyclePhase::Unloaded,
+        TrainingLifecyclePhase::Loading,
+        TrainingLifecyclePhase::Ready,
+        TrainingLifecyclePhase::Evaluating,
+        TrainingLifecyclePhase::Checkpointing,
+        TrainingLifecyclePhase::Cancelled,
+        TrainingLifecyclePhase::ProviderLost,
+        TrainingLifecyclePhase::Failed,
+    ] {
+        let structured = phase.clone().into_structured().unwrap();
+        assert_eq!(
+            TrainingLifecyclePhase::from_structured(structured).unwrap(),
+            phase
+        );
     }
 }

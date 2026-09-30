@@ -9,8 +9,8 @@ use serde::{Deserialize, Serialize};
 use sha2::{Digest, Sha256};
 
 use crate::{
-    llm_contract, ModelDerivedResult, ModelResultDisposition, ModelResultInvalidity,
-    LLM_COMPOSE_KIND,
+    llm_contract, CandidateLifecycle, ModelDerivedResult, ModelResultDisposition,
+    ModelResultInvalidity, LLM_COMPOSE_KIND,
 };
 
 pub const MAXIMUM_COMPOSITION_INTENT_BYTES: usize = 16_384;
@@ -29,11 +29,6 @@ pub struct CandidateFormProvenance {
     pub request_identity: String,
     pub run_identity: String,
     pub catalog_basis_identity: String,
-}
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
-pub enum CandidateLifecycle {
-    AwaitingExplicitValidationPlanAndPlay,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
