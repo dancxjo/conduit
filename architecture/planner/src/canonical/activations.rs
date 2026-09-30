@@ -93,6 +93,15 @@ fn attach_activations(
                     "activation coordinator has no exact planned placement".into(),
                 )
             })?;
+        if child.fragments.iter().any(|fragment| {
+            fragment.host_id != owner.host_id
+                || fragment.boot_id != owner.boot_id
+                || fragment.offer_generation != owner.offer_generation
+        }) {
+            return Err(PlannerError::InvalidFormIdentity(
+                "activation selected Plan must be prepared on the coordinator owner host, boot, and offer generation".into(),
+            ));
+        }
         if owner.limits.max_queue_bytes == 0 {
             return Err(PlannerError::InvalidConnectionBudget(
                 "activation coordinator offers no finite queue bytes".into(),

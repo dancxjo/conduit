@@ -5,6 +5,93 @@ use crate::{
 use alloc::{boxed::Box, string::String, vec::Vec};
 use serde::{Deserialize, Serialize};
 
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct PlannedActivationPreparationBinding {
+    pub activation_id: String,
+    pub owner_placement_id: PlacementId,
+    pub owner_fragment_id: crate::FragmentId,
+    pub owner_host_id: crate::HostId,
+    pub owner_boot_id: crate::BootId,
+    pub owner_offer_generation: crate::OfferGeneration,
+    pub selected_plan_id: crate::PlanId,
+    pub child_fragments: Vec<PlannedSubordinateFragmentBinding>,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct PlannedSubordinateFragmentBinding {
+    pub fragment_id: crate::FragmentId,
+    pub host_id: crate::HostId,
+    pub boot_id: crate::BootId,
+    pub offer_generation: crate::OfferGeneration,
+    pub obligation_digest: [u8; 32],
+}
+
+pub(crate) fn derive_activation_preparations(
+    activations: &[PlannedActivationEntry],
+    fragments: &[crate::PlanFragment],
+) -> Vec<PlannedActivationPreparationBinding> {
+    activations
+        .iter()
+        .filter_map(|entry| {
+            let (activation_id, owner, selected) = match entry {
+                PlannedActivationEntry::Unary(v) => (
+                    &v.activation_id,
+                    &v.owner_placement_id,
+                    v.selected_plan.as_ref(),
+                ),
+                PlannedActivationEntry::Fold(v) => (
+                    &v.activation_id,
+                    &v.owner_placement_id,
+                    v.selected_plan.as_ref(),
+                ),
+                PlannedActivationEntry::Scan(v) => (
+                    &v.activation_id,
+                    &v.owner_placement_id,
+                    v.selected_plan.as_ref(),
+                ),
+            };
+            let outer = fragments
+                .iter()
+                .find(|f| f.placements.iter().any(|p| &p.placement_id == owner))?;
+            Some(PlannedActivationPreparationBinding {
+                activation_id: activation_id.clone(),
+                owner_placement_id: owner.clone(),
+                owner_fragment_id: outer.fragment_id.clone(),
+                owner_host_id: outer.host_id.clone(),
+                owner_boot_id: outer.boot_id.clone(),
+                owner_offer_generation: outer.offer_generation,
+                selected_plan_id: selected.plan_id.clone(),
+                child_fragments: selected
+                    .fragments
+                    .iter()
+                    .map(|child| PlannedSubordinateFragmentBinding {
+                        fragment_id: child.fragment_id.clone(),
+                        host_id: child.host_id.clone(),
+                        boot_id: child.boot_id.clone(),
+                        offer_generation: child.offer_generation,
+                        obligation_digest: crate::semantic_digest(
+                            "conduit/activation-child-obligations@1",
+                            child.fragment_id.as_str().as_bytes(),
+                        ),
+                    })
+                    .collect(),
+            })
+        })
+        .collect()
+}
+
+pub(crate) fn verify_activation_preparations(plan: &Plan) -> bool {
+    plan.activation_preparations
+        == derive_activation_preparations(&plan.activations, &plan.fragments)
+        && plan.activation_preparations.iter().all(|binding| {
+            binding.child_fragments.iter().all(|child| {
+                child.host_id == binding.owner_host_id
+                    && child.boot_id == binding.owner_boot_id
+                    && child.offer_generation == binding.owner_offer_generation
+            })
+        })
+}
+
 pub const MAXIMUM_PLANNED_ACTIVATION_DEPTH: u8 = 8;
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]

@@ -817,6 +817,8 @@ pub struct Plan {
     pub realization_backs: Vec<FormBack>,
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub activations: Vec<PlannedActivationEntry>,
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub activation_preparations: Vec<PlannedActivationPreparationBinding>,
     pub fragments: Vec<PlanFragment>,
 }
 
@@ -902,6 +904,8 @@ pub fn seal_plan_with_activation_entries(
         fragment.fragment_id = compute_fragment_id(fragment);
         fragment.plan_fragments.clear();
     }
+    let activation_preparations =
+        planned_activation::derive_activation_preparations(&activations, &fragments);
     let mut commitments = fragments
         .iter()
         .map(|fragment| FragmentCommitment {
@@ -915,6 +919,7 @@ pub fn seal_plan_with_activation_entries(
         &realization_backs,
         &activations,
         &commitments,
+        &activation_preparations,
     );
     for fragment in &mut fragments {
         fragment.plan_id = plan_id.clone();
@@ -928,6 +933,7 @@ pub fn seal_plan_with_activation_entries(
         completion_policy,
         realization_backs,
         activations,
+        activation_preparations,
         fragments,
     }
 }
@@ -967,6 +973,7 @@ pub(crate) fn verify_plan_at_depth(plan: &Plan, depth: u8) -> bool {
                 &plan.realization_backs,
                 &plan.activations,
                 &commitments,
+                &plan.activation_preparations,
             )
         && plan.fragments.iter().all(verify_plan_fragment_contents)
         && plan.fragments.iter().all(|fragment| {
@@ -995,6 +1002,7 @@ pub(crate) fn verify_plan_at_depth(plan: &Plan, depth: u8) -> bool {
         && verify_plan_shared_pools(plan)
         && verify_plan_connections(plan)
         && planned_activation::verify_planned_activations(plan, depth)
+        && planned_activation::verify_activation_preparations(plan)
 }
 
 fn verify_plan_shared_pools(plan: &Plan) -> bool {
@@ -1211,6 +1219,7 @@ pub fn verify_plan_fragment(fragment: &PlanFragment) -> bool {
         &fragment.realization_backs,
         &[],
         &commitments,
+        &[],
     ) == fragment.plan_id
 }
 
