@@ -4,7 +4,9 @@ use alloc::{string::String, vec::Vec};
 use conduit_core::ComputeServiceGuarantee;
 use conduit_data::TensorElement;
 
-use crate::{ModelComputeOperation, ModelComputeRefusal, PortableComputeClass};
+use crate::{
+    ModelComputeLifecycle, ModelComputeOperation, ModelComputeRefusal, PortableComputeClass,
+};
 
 pub const MAXIMUM_MODEL_COMPUTE_PROFILES: usize = 16;
 pub const MAXIMUM_MODEL_COMPUTE_FORMATS: usize = 16;
@@ -90,19 +92,6 @@ pub struct ModelComputeRuntimeIdentity {
     pub adapter_artifact_identity: String,
     pub device_evidence: String,
     pub precision_profile: String,
-}
-
-#[derive(Debug, Copy, Clone, PartialEq, Eq)]
-pub enum ModelComputeLifecycle {
-    Discovered,
-    Loading,
-    Warming,
-    Ready,
-    Active(ModelComputeOperation),
-    Unloading,
-    Lost,
-    Failed,
-    Shutdown,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]

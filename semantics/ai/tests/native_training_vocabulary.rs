@@ -1,7 +1,8 @@
 use conduit_ai::{
-    BatchOrder, ModelComputeOperation, ModelComputeRefusal, ModelSignatureRefusal,
-    ObjectiveParticipation, PortableComputeClass, RelationQueryMode, RelationRefusal,
-    TrainingRefusal, VectorIndexHealth, VectorIndexMaintenanceKind, VectorIndexResourceRefusal,
+    BatchOrder, ModelComputeLifecycle, ModelComputeOperation, ModelComputeRefusal,
+    ModelSignatureRefusal, ObjectiveParticipation, PortableComputeClass, RelationQueryMode,
+    RelationRefusal, TrainingRefusal, VectorIndexHealth, VectorIndexMaintenanceKind,
+    VectorIndexResourceRefusal,
 };
 use conduit_form::rust_binding::NativeRustBinding;
 
@@ -37,6 +38,14 @@ fn training_vocabularies_round_trip_through_native_types() {
         ModelComputeOperation::RelationQuery,
     ] {
         assert_round_trip(operation);
+    }
+    for lifecycle in [
+        ModelComputeLifecycle::Discovered,
+        ModelComputeLifecycle::Active(ModelComputeOperation::Inference),
+        ModelComputeLifecycle::Lost,
+        ModelComputeLifecycle::Shutdown,
+    ] {
+        assert_round_trip(lifecycle);
     }
     for class in [
         PortableComputeClass::GeneralCpu,

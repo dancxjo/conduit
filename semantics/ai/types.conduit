@@ -403,6 +403,17 @@ type ModelComputeOperation =
     | integrate_dynamics
     | relation_query
 
+type ModelComputeLifecycle =
+    discovered
+    | loading
+    | warming
+    | ready
+    | active ModelComputeOperation
+    | unloading
+    | lost
+    | failed
+    | shutdown
+
 type PortableComputeClass =
     general_cpu
     | vector_compute

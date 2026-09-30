@@ -166,6 +166,9 @@ fn generation_is_deterministic_and_keeps_rust_spelling_out_of_identity() {
     assert!(plain.source.contains("Refused(Refusal),"));
     assert!(plain
         .source
+        .contains("#[derive(Debug, Clone, Copy, PartialEq, Eq)]\npub enum Outcome"));
+    assert!(plain
+        .source
         .contains("pub fn refused(payload: Refusal) -> Result<Self, NativeBindingRefusal>"));
     assert!(!plain.source.contains("struct OutcomeRefused"));
     assert!(plain.source.contains(
@@ -176,7 +179,7 @@ fn generation_is_deterministic_and_keeps_rust_spelling_out_of_identity() {
         .source
         .contains("Hash, serde::Serialize, serde::Deserialize)]\npub enum Direction"));
     assert!(serde_unit_variants.source.contains(
-        "#[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]\npub enum Outcome"
+        "#[derive(Debug, Clone, Copy, PartialEq, Eq, serde::Serialize, serde::Deserialize)]\npub enum Outcome"
     ));
     assert!(!serde_unit_variants
         .source
