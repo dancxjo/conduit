@@ -121,3 +121,16 @@ type TemporalWindowRefusal =
     | reversed
     | indeterminate_boundary_order
     | empty
+
+type SequenceNormalizationRefusal =
+    malformed
+    | empty
+    | too-many-values
+    | zero-duration
+
+type PatternComparisonRefusal =
+    malformed
+    | unsupported-metric
+    | tolerance-out-of-range
+    | algorithm-mismatch
+    | length-mismatch
