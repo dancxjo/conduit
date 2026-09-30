@@ -77,7 +77,7 @@ pub(super) struct MaskControl {
     presentation: Option<Presentation>,
     shows: Vec<MaskShow>,
     evidence: Option<NativeMaskEvidence>,
-    surface_provider: Option<crate::product_bases::NativeSurfaceProvider>,
+    surface_provider: Option<crate::native_surface_provider::NativeSurfaceProvider>,
 }
 
 #[derive(Clone)]
@@ -90,7 +90,7 @@ impl MaskControl {
     pub(super) fn graphical(
         host_id: HostId,
         boot_id: conduit_core::BootId,
-        surface_provider: Option<crate::product_bases::NativeSurfaceProvider>,
+        surface_provider: Option<crate::native_surface_provider::NativeSurfaceProvider>,
     ) -> Result<Self, ()> {
         #[cfg(test)]
         let surface_provider =

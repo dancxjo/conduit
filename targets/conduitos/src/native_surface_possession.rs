@@ -9,7 +9,7 @@ use conduit_core::{
 };
 use serde::Serialize;
 
-use crate::product_bases::NativeSurfaceProvider;
+use crate::native_surface_provider::NativeSurfaceProvider;
 
 #[derive(Clone, Debug, Eq, PartialEq, Serialize)]
 pub struct NativeSurfacePossessionReceipt {

@@ -8,20 +8,12 @@ use conduit_core::{
     ResourcePoolId,
 };
 
+pub use crate::native_surface_provider::NativeSurfaceProvider;
 use crate::{arch::UsbDevice, identity, offer::HostOffer};
 
 const MAXIMUM_EFFECT_BASES: u16 = 5;
 const INPUT_CONTROLLER_FAMILY: &str = "conduitos.base/input-controller@1";
 pub const FRAMEBUFFER_RESOURCE_CLASS: &str = conduit_presentation::SHOW_RESOURCE_CLASS;
-
-/// Exact discovered surface provider plus issuer-private material. The key is
-/// never descriptive Base truth and is deliberately not serializable or
-/// exposed through inspection.
-#[derive(Clone)]
-pub struct NativeSurfaceProvider {
-    pub entry: BaseProviderEntry,
-    pub(crate) issuer_key: [u8; 32],
-}
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum EffectFamily {
