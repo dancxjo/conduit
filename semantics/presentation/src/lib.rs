@@ -17,8 +17,10 @@ mod generated {
 }
 pub use generated::{
     AdmittedNavigationDestination, ChoiceMultiplicity, EvidenceDisposition,
-    FaceUtteranceClauseKind, PresentationDisclosureLevel, PresentationMechanismKind,
-    PresentationTemporalRole, StatusKind,
+    FaceUtteranceClauseKind, GraphicsCommandKind, GraphicsCommandKindRepresentation,
+    GraphicsPaintRole, GraphicsPaintRoleRepresentation, GraphicsShapeStyle,
+    GraphicsShapeStyleRepresentation, GraphicsTextRole, GraphicsTextRoleRepresentation,
+    PresentationDisclosureLevel, PresentationMechanismKind, PresentationTemporalRole, StatusKind,
 };
 
 mod application_event;
