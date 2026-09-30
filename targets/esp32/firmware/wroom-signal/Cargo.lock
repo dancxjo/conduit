@@ -360,6 +360,7 @@ name = "conduit-human"
 version = "0.1.0"
 dependencies = [
  "conduit-core",
+ "conduit-form",
  "serde",
  "sha2",
 ]
@@ -433,6 +434,7 @@ dependencies = [
  "conduit-alife",
  "conduit-audio",
  "conduit-core",
+ "conduit-data",
  "conduit-form",
  "conduit-human",
  "conduit-midi",
@@ -453,7 +455,6 @@ dependencies = [
  "conduit-form",
  "conduit-semantic-catalog",
  "conduit-time",
- "serde",
 ]
 
 [[package]]
