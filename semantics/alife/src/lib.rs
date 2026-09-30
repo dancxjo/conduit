@@ -7,7 +7,8 @@ mod generated {
     include!(concat!(env!("OUT_DIR"), "/semantic_types.rs"));
 }
 pub use generated::{
-    FieldBitmapRefusal, GardenEvolutionRefusal, LeniaBoundary, ReactionDiffusionBoundaryEdge,
+    FieldBitmapRefusal, GardenEvolutionRefusal, LeniaBoundary, LeniaRegionChunkKind,
+    LeniaRegionChunkKindRepresentation, ReactionDiffusionBoundaryEdge,
     ReactionDiffusionBoundaryEdgeRepresentation,
 };
 
