@@ -6,7 +6,7 @@ extern crate alloc;
 mod generated {
     include!(concat!(env!("OUT_DIR"), "/semantic_types.rs"));
 }
-pub use generated::{LeniaBoundary, ReactionDiffusionBoundaryEdge};
+pub use generated::{FieldBitmapRefusal, LeniaBoundary, ReactionDiffusionBoundaryEdge};
 
 mod distributed_catalog;
 mod distributed_expansion;
