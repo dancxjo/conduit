@@ -260,6 +260,8 @@ type RetrievalMechanism =
     | temporal
     | domain_exact
 
+representation ai/retrieval-mechanism = RetrievalMechanism as u8
+
 type RerankingProofClass =
     deterministic_conformance
     | model_derived

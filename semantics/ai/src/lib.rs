@@ -20,12 +20,12 @@ pub use generated::{
     ProbabilisticDispositionTruncated, ProbabilityRefusal, PromotionDecision, PromotionTerminal,
     R3OfferInvalidity, RagAnswerOfferInvalidity, RandomnessProfile, RandomnessProfileExplicitSeed,
     RandomnessProfileProviderChosen, RerankingProofClass, RerankingStrategy,
-    RerankingStrategyObservedScores, RetrievalMechanism, RollbackTerminal,
-    SelectedContextRationale, ShadowTerminal, SimilarityMetric, SourceExtractionOfferInvalidity,
-    SourceSpanUnit, StructuredResultInvalidity, TemporalContextRefusal, TemporalSource,
-    TemporalValidity, TemporalWindowRelation, TrainingLifecyclePhase,
-    TrainingLifecyclePhaseActiveStep, TransitionDirection, VectorSearchExecutionProofClass,
-    VectorSearchOfferInvalidity, VectorSearchProofClass,
+    RerankingStrategyObservedScores, RetrievalMechanism, RetrievalMechanismRepresentation,
+    RollbackTerminal, SelectedContextRationale, ShadowTerminal, SimilarityMetric,
+    SourceExtractionOfferInvalidity, SourceSpanUnit, StructuredResultInvalidity,
+    TemporalContextRefusal, TemporalSource, TemporalValidity, TemporalWindowRelation,
+    TrainingLifecyclePhase, TrainingLifecyclePhaseActiveStep, TransitionDirection,
+    VectorSearchExecutionProofClass, VectorSearchOfferInvalidity, VectorSearchProofClass,
 };
 
 mod bases;
