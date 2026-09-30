@@ -1,7 +1,7 @@
 use crate::prelude::*;
 use crate::{
-    hash_string, CanonicalStartupValue, CheckedCanonicalCord, CheckedCanonicalGear,
-    CheckedCordStage, CheckedStartupParameter, FormCompletionPolicy,
+    CanonicalStartupValue, CheckedCanonicalCord, CheckedCanonicalGear, CheckedCordStage,
+    CheckedStartupParameter, FormCompletionPolicy, hash_string,
 };
 use conduit_core::CheckedFormId;
 
@@ -176,11 +176,12 @@ pub(crate) fn canonical_gear(gear: &CheckedCanonicalGear) -> String {
         push_field(
             &mut value,
             match activation.mode {
-                crate::ActivationSyntax::Each => "activate-each",
-                crate::ActivationSyntax::Select => "activate-select",
+                crate::ActivationSyntax::Each { .. } => "activate-each",
+                crate::ActivationSyntax::Select { .. } => "activate-select",
                 crate::ActivationSyntax::Fold { .. } => "activate-fold",
             },
         );
+        push_field(&mut value, &activation.mode.maximum_items().to_string());
         push_field(&mut value, &activation.selected_form);
         push_field(&mut value, activation.input.port_id.as_str());
         push_field(&mut value, activation.input.value_kind.as_str());

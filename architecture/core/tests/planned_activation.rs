@@ -60,6 +60,7 @@ fn activation(selected_plan: Plan) -> PlannedActivation {
             maximum_active: 1,
             maximum_queue_items: 1,
             maximum_queue_bytes: 1,
+            maximum_items: 2,
         },
         terminal_policy: PlannedActivationTerminalPolicy::DrainThenPropagateExact,
         cancellation_policy:
@@ -173,6 +174,7 @@ fn fold_activation_seals_two_inputs_initial_storage_and_child_plan() {
             maximum_active: 1,
             maximum_queue_items: 1,
             maximum_queue_bytes: 4,
+            maximum_items: 2,
         },
         terminal_policy: PlannedFoldTerminalPolicy::DrainThenEmitAccumulatorExactlyOnce,
         abnormal_policy: PlannedFoldAbnormalPolicy::DiscardAccumulatorAndPropagateExact,

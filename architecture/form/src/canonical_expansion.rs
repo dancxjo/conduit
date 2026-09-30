@@ -1,10 +1,11 @@
 use crate::prelude::*;
 use crate::{
-    hash_string, AuthoringFrontBinding, CanonicalBackCatalog, CanonicalExpansionDiagnostic,
+    AuthoringFrontBinding, CanonicalBackCatalog, CanonicalExpansionDiagnostic,
     CanonicalStartupValue, CheckedCanonicalForm, CheckedCanonicalGear, CheckedConnection,
     CheckedCordStage, CheckedGear, CheckedSyntaxDocument, ConfigurationValue, ExpandedActivation,
     ExpandedAuthoringForm, ExpandedCanonicalForm, ExpandedGearProvenance, ExpandedSharedPool,
-    KindConfigurationRule, ProfileCatalog, RuntimePortDirection, MAXIMUM_FORM_NESTING_DEPTH,
+    KindConfigurationRule, MAXIMUM_FORM_NESTING_DEPTH, ProfileCatalog, RuntimePortDirection,
+    hash_string,
 };
 use alloc::collections::{BTreeMap, BTreeSet};
 use conduit_core::{GearId, KindId, PortDescriptor};
@@ -502,8 +503,8 @@ fn instantiate_gear(
         let mut input = activation.input.clone();
         input.temporal = conduit_core::PortTemporal::Flow { closes: true };
         let mut output = match activation.mode {
-            crate::ActivationSyntax::Each => activation.output.clone(),
-            crate::ActivationSyntax::Select => {
+            crate::ActivationSyntax::Each { .. } => activation.output.clone(),
+            crate::ActivationSyntax::Select { .. } => {
                 let [output] = source_form.runtime_front.outputs() else {
                     return Err(CanonicalExpansionDiagnostic::new(
                         "CND-FRM-063",
@@ -531,8 +532,8 @@ fn instantiate_gear(
         let activation_id = format!("{}/activation", gear_id.as_str());
         gears.push(crate::checked_gear_from_parts! {
             gear_id: gear_id.clone(),
-            kind_id: KindId::from(match activation.mode { crate::ActivationSyntax::Each => "flow/each", crate::ActivationSyntax::Select => "flow/select", crate::ActivationSyntax::Fold { .. } => "flow/fold" }),
-            kind_contract_revision: conduit_core::KindIdentity::from(match activation.mode { crate::ActivationSyntax::Each => "conduit.flow/each@1", crate::ActivationSyntax::Select => "conduit.flow/select@1", crate::ActivationSyntax::Fold { .. } => "conduit.flow/fold@1" }),
+            kind_id: KindId::from(match activation.mode { crate::ActivationSyntax::Each { .. } => "flow/each", crate::ActivationSyntax::Select { .. } => "flow/select", crate::ActivationSyntax::Fold { .. } => "flow/fold" }),
+            kind_contract_revision: conduit_core::KindIdentity::from(match activation.mode { crate::ActivationSyntax::Each { .. } => "conduit.flow/each@1", crate::ActivationSyntax::Select { .. } => "conduit.flow/select@1", crate::ActivationSyntax::Fold { .. } => "conduit.flow/fold@1" }),
             startup_parameters: Vec::new(),
             shorthand: Some((input.port_id.clone(), output.port_id.clone())),
             inputs: vec![input.clone()],

@@ -1,15 +1,15 @@
 use conduit_core::{
-    kind_id, port_id, verify_plan, ArtifactId, BaseImplementationId, BootId, CapabilityId,
-    CapabilityLimits, ExecutionProfileId, HostAdvertisement, HostId, HostProfileId,
-    ImplementationId, KindIdentity, OfferGeneration, PlannedActivationEffectMultiplicity,
-    PortDescriptor, PortDirection, PortTemporal, PROTOCOL_VERSION,
+    ArtifactId, BaseImplementationId, BootId, CapabilityId, CapabilityLimits, ExecutionProfileId,
+    HostAdvertisement, HostId, HostProfileId, ImplementationId, KindIdentity, OfferGeneration,
+    PROTOCOL_VERSION, PlannedActivationEffectMultiplicity, PortDescriptor, PortDirection,
+    PortTemporal, kind_id, port_id, verify_plan,
 };
 use conduit_form::{
-    check_syntax_document, expand_canonical_form_for_authoring, parse_syntax_document,
     CanonicalBackCatalog, KindProjection, KindSignature, ProfileCatalog, StartupCatalog,
+    check_syntax_document, expand_canonical_form_for_authoring, parse_syntax_document,
 };
 use conduit_planner::{
-    default_expanded_placements, plan_expanded_canonical_with_activations, PlanningOptions,
+    PlanningOptions, default_expanded_placements, plan_expanded_canonical_with_activations,
 };
 use std::collections::BTreeMap;
 
@@ -33,7 +33,7 @@ form flow/each (
  >> values: item...|
  mapped: result...| >>
 ) {
- each: activate transform()
+ each: activate(maximum-items = 4) transform()
  values >> each.value
  each.mapped >> mapped
 }
@@ -187,12 +187,14 @@ fn authored_each_plans_one_exact_ordinary_child_plan() {
     );
     assert_eq!(activation.limits.maximum_active, 1);
     assert_eq!(activation.limits.maximum_queue_items, 1);
-    assert!(activation
-        .selected_plan
-        .fragments
-        .iter()
-        .flat_map(|fragment| &fragment.placements)
-        .any(|placement| placement.kind_id == kind_id("test/normalize")));
+    assert!(
+        activation
+            .selected_plan
+            .fragments
+            .iter()
+            .flat_map(|fragment| &fragment.placements)
+            .any(|placement| placement.kind_id == kind_id("test/normalize"))
+    );
     assert_eq!(
         activation
             .selected_plan
