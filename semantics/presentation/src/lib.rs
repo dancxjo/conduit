@@ -16,11 +16,13 @@ mod generated {
     include!(concat!(env!("OUT_DIR"), "/semantic_types.rs"));
 }
 pub use generated::{
-    AdmittedNavigationDestination, ChoiceMultiplicity, EvidenceDisposition,
-    FaceUtteranceClauseKind, GraphicsCommandKind, GraphicsCommandKindRepresentation,
-    GraphicsPaintRole, GraphicsPaintRoleRepresentation, GraphicsShapeStyle,
-    GraphicsShapeStyleRepresentation, GraphicsTextRole, GraphicsTextRoleRepresentation,
-    PresentationDisclosureLevel, PresentationMechanismKind, PresentationTemporalRole, StatusKind,
+    AdmittedNavigationDestination, ChoiceMultiplicity, CompositionItemKind,
+    CompositionItemKindRepresentation, CompositionRole, CompositionRoleRepresentation,
+    EvidenceDisposition, FaceUtteranceClauseKind, GraphicsCommandKind,
+    GraphicsCommandKindRepresentation, GraphicsPaintRole, GraphicsPaintRoleRepresentation,
+    GraphicsShapeStyle, GraphicsShapeStyleRepresentation, GraphicsTextRole,
+    GraphicsTextRoleRepresentation, PresentationDisclosureLevel, PresentationMechanismKind,
+    PresentationTemporalRole, StatusKind,
 };
 
 mod application_event;

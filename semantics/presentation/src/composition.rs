@@ -4,6 +4,11 @@
 //! deliberately **not** the universal grammar's semantic composition, which
 //! is represented by [`crate::PresentationCompositionRelation`].
 
+use crate::{
+    CompositionItemKind, CompositionItemKindRepresentation, CompositionRole,
+    CompositionRoleRepresentation,
+};
+
 pub const PRESENTATION_COMPOSITION_KIND: &str = "presentation/composition@1";
 pub const MAX_COMPOSITION_ITEMS: usize = 8;
 pub const MAX_COMPOSITION_TOKEN_BYTES: usize = 32;
@@ -144,22 +149,6 @@ impl PresentationIconKey {
             .copied()
             .find(|candidate| candidate.as_str() == token)
     }
-}
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-#[repr(u8)]
-pub enum CompositionItemKind {
-    Icon = 1,
-    Frame = 2,
-    Badge = 3,
-}
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-#[repr(u8)]
-pub enum CompositionRole {
-    Image = 1,
-    Group = 2,
-    Status = 3,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -321,8 +310,8 @@ impl PresentationComposition {
         let mut cursor = 2;
         for item in self.items() {
             output[cursor..cursor + 4].copy_from_slice(&[
-                item.kind as u8,
-                item.role as u8,
+                CompositionItemKindRepresentation::encode(item.kind)[0],
+                CompositionRoleRepresentation::encode(item.role)[0],
                 item.token_len,
                 item.name_len,
             ]);
@@ -394,21 +383,12 @@ pub fn is_authoritative_icon(token: &str) -> bool {
 }
 
 fn decode_kind(value: u8) -> Result<CompositionItemKind, CompositionError> {
-    match value {
-        1 => Ok(CompositionItemKind::Icon),
-        2 => Ok(CompositionItemKind::Frame),
-        3 => Ok(CompositionItemKind::Badge),
-        _ => Err(CompositionError::MalformedEncoding),
-    }
+    CompositionItemKindRepresentation::decode(&[value])
+        .map_err(|_| CompositionError::MalformedEncoding)
 }
 
 fn decode_role(value: u8) -> Result<CompositionRole, CompositionError> {
-    match value {
-        1 => Ok(CompositionRole::Image),
-        2 => Ok(CompositionRole::Group),
-        3 => Ok(CompositionRole::Status),
-        _ => Err(CompositionError::MalformedEncoding),
-    }
+    CompositionRoleRepresentation::decode(&[value]).map_err(|_| CompositionError::MalformedEncoding)
 }
 
 #[cfg(test)]
