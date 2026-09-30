@@ -143,3 +143,15 @@ type GraphicsClipClass =
     fully_visible
     | partially_clipped
     | fully_clipped
+
+type GeneratedManifestationDisposition =
+    produced
+    | truncated
+    | refused
+    | failed
+    | cancelled
+    | provider_lost
+
+type GeneratedContentRole =
+    speech
+    | presented_thought

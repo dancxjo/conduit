@@ -18,10 +18,11 @@ mod generated {
 pub use generated::{
     AdmittedNavigationDestination, ChoiceMultiplicity, CompositionItemKind,
     CompositionItemKindCode, CompositionRole, CompositionRoleCode, EvidenceDisposition,
-    FaceUtteranceClauseKind, GraphicsClipClass, GraphicsCommandKind, GraphicsCommandKindCode,
-    GraphicsPaintRole, GraphicsPaintRoleCode, GraphicsShapeStyle, GraphicsShapeStyleCode,
-    GraphicsTextRole, GraphicsTextRoleCode, LayoutAlignment, LayoutAxis,
-    PresentationDisclosureLevel, PresentationMechanismKind, PresentationTemporalRole, StatusKind,
+    FaceUtteranceClauseKind, GeneratedContentRole, GeneratedManifestationDisposition,
+    GraphicsClipClass, GraphicsCommandKind, GraphicsCommandKindCode, GraphicsPaintRole,
+    GraphicsPaintRoleCode, GraphicsShapeStyle, GraphicsShapeStyleCode, GraphicsTextRole,
+    GraphicsTextRoleCode, LayoutAlignment, LayoutAxis, PresentationDisclosureLevel,
+    PresentationMechanismKind, PresentationTemporalRole, StatusKind,
 };
 
 mod application_event;
