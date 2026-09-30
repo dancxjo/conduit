@@ -19,7 +19,7 @@ There is no “small stable handwritten mapping” category.
 | Surface | Class | Evidence |
 |---|---:|---|
 | Data save/load Text terminals | 1 | `semantics/data/types.conduit` selects compact `u8` representation; authored Type order supplies iota tags, while checked language law supplies bounded invalid-tag refusal. Generated Rust and ECMAScript consume those same facts. |
-| Audio tone terminal and PCM discriminants | 1 | `semantics/audio/types.conduit` selects their exact one-byte representations; generated bindings own the iota mappings, compatibility identities, bounds and invalid-input refusal. |
+| Audio tone terminal, PCM, gate and modulation discriminants | 1 | `semantics/audio/types.conduit` selects their exact one-byte representations; generated bindings own the iota mappings, compatibility identities, bounds and invalid-input refusal. Gate uses an explicit exhaustive order to preserve its established compatibility independently of Type order. |
 | Native Rust Type/value bindings | 2 | `architecture/form/src/rust_binding/**` lowers checked Types and representations without domain tables. |
 | Canonical structured Info | 2 | `architecture/core/src/structured_info/**` encodes the generic checked value graph, not a domain schema. |
 
