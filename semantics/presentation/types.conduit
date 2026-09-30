@@ -138,3 +138,8 @@ type LayoutAlignment =
     start
     | center
     | end
+
+type GraphicsClipClass =
+    fully_visible
+    | partially_clipped
+    | fully_clipped
