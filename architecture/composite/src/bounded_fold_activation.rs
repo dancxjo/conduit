@@ -1,10 +1,12 @@
 //! Kernel-backed execution of one exact planned bounded fold.
 
+#[cfg_attr(not(feature = "fixture-registry-preparation"), allow(unused_imports))]
 use crate::{
     AdmittedKernelCompositeHostRequest, KernelCompositeDefinition, KernelCompositeError,
     KernelCompositeHost, KernelCompositeHostRequest, KernelCompositeStatus,
     KernelCompositeTerminal, KernelOperationRegistry,
 };
+#[cfg_attr(not(feature = "fixture-registry-preparation"), allow(unused_imports))]
 use conduit_core::{
     verify_plan, PlannedActivationEffectMultiplicity, PlannedActivationFront,
     PlannedFoldAbnormalPolicy, PlannedFoldActivation, PlannedFoldCancellationPolicy,
@@ -53,6 +55,7 @@ pub struct BoundedFoldActivationHost {
 }
 
 impl BoundedFoldActivationHost {
+    #[cfg(feature = "fixture-registry-preparation")]
     pub fn prepare(
         planned: &PlannedFoldActivation,
         definition: KernelCompositeDefinition,
@@ -378,6 +381,7 @@ impl BoundedFoldActivationHost {
     }
 }
 
+#[cfg(feature = "fixture-registry-preparation")]
 fn front_matches(
     definition: &KernelCompositeDefinition,
     expected: &PlannedActivationFront,

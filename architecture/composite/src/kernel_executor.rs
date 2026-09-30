@@ -1,4 +1,4 @@
-use crate::child::{BoundaryEndpoint, BoundaryTerminal, ChildKernel};
+use crate::child::{BoundaryEndpoint, BoundaryTerminal, ChildKernel, ChildTransportError};
 use crate::{KernelCompositeDefinition, KernelOperationRegistry};
 use conduit_core::{
     bind_active_play, semantic_digest, ActivePlayId, AuthorityBinding, ConnectionId,
@@ -23,15 +23,30 @@ pub struct KernelCompositePreparation {
 pub enum KernelCompositeError {
     Empty,
     DuplicateChild(HostId),
-    Lowering { child: HostId, error: LoweringError },
+    Lowering {
+        child: HostId,
+        error: LoweringError,
+    },
     InvalidBoundary(String),
-    ChildRefused { child: HostId, reason: String },
-    Execution { child: HostId, reason: String },
+    ChildRefused {
+        child: HostId,
+        reason: String,
+    },
+    Execution {
+        child: HostId,
+        reason: String,
+    },
     UnknownFront(PortId),
     StaleChild(HostId),
     MalformedBoundary(PortId),
     InvalidLifecycle,
-    CancellationRefused { failed_children: usize },
+    CancellationRefused {
+        failed_children: usize,
+    },
+    InternalTransport {
+        link: usize,
+        reason: ChildTransportError,
+    },
 }
 
 impl core::fmt::Display for KernelCompositeError {
@@ -709,7 +724,7 @@ impl KernelCompositeHost {
 
     fn pump_internal(&mut self) -> Result<(), KernelCompositeError> {
         let (children, links) = (&mut self.children, &mut self.links);
-        for link in links {
+        for (link_index, link) in links.iter_mut().enumerate() {
             if link.closed {
                 continue;
             }
@@ -717,26 +732,38 @@ impl KernelCompositeHost {
                 .get_mut(&link.source_child)
                 .ok_or_else(|| KernelCompositeError::StaleChild(link.source_child.clone()))?
                 .remote_offer_into(link.source_endpoint, link.source_cord, &mut link.transfer)
-                .map_err(|reason| execution(&link.source_child, reason))?;
+                .map_err(|reason| KernelCompositeError::InternalTransport {
+                    link: link_index,
+                    reason,
+                })?;
             if let Some(sequence) = offer {
                 let accepted = children
                     .get_mut(&link.sink_child)
                     .ok_or_else(|| KernelCompositeError::StaleChild(link.sink_child.clone()))?
                     .remote_admit(link.sink_endpoint, link.sink_cord, sequence, &link.transfer)
-                    .map_err(|reason| execution(&link.sink_child, reason))?;
+                    .map_err(|reason| KernelCompositeError::InternalTransport {
+                        link: link_index,
+                        reason,
+                    })?;
                 if matches!(accepted, RemoteIngressOutcome::Accepted { .. }) {
                     children
                         .get_mut(&link.source_child)
                         .ok_or_else(|| KernelCompositeError::StaleChild(link.source_child.clone()))?
                         .remote_delivered(link.source_endpoint, link.source_cord, sequence)
-                        .map_err(|reason| execution(&link.source_child, reason))?;
+                        .map_err(|reason| KernelCompositeError::InternalTransport {
+                            link: link_index,
+                            reason,
+                        })?;
                 }
             } else {
                 let terminal = children
                     .get(&link.source_child)
                     .ok_or_else(|| KernelCompositeError::StaleChild(link.source_child.clone()))?
                     .remote_terminal_disposition(link.source_endpoint, link.source_cord)
-                    .map_err(|reason| execution(&link.source_child, reason))?;
+                    .map_err(|reason| KernelCompositeError::InternalTransport {
+                        link: link_index,
+                        reason,
+                    })?;
                 match terminal {
                     Some(RemoteTerminalDisposition::NormalClose) => {
                         children
@@ -745,7 +772,10 @@ impl KernelCompositeHost {
                                 KernelCompositeError::StaleChild(link.sink_child.clone())
                             })?
                             .remote_close(link.sink_endpoint, link.sink_cord)
-                            .map_err(|reason| execution(&link.sink_child, reason))?;
+                            .map_err(|reason| KernelCompositeError::InternalTransport {
+                                link: link_index,
+                                reason,
+                            })?;
                         link.closed = true;
                     }
                     Some(RemoteTerminalDisposition::Abnormal) => {
@@ -755,12 +785,13 @@ impl KernelCompositeHost {
                                 KernelCompositeError::StaleChild(link.source_child.clone())
                             })?
                             .remote_abnormal_terminal(link.source_endpoint, link.source_cord)
-                            .map_err(|reason| execution(&link.source_child, reason))?
-                            .ok_or_else(|| {
-                                execution(
-                                    &link.source_child,
-                                    "abnormal internal terminal omitted its exact value".into(),
-                                )
+                            .map_err(|reason| KernelCompositeError::InternalTransport {
+                                link: link_index,
+                                reason,
+                            })?
+                            .ok_or(KernelCompositeError::InternalTransport {
+                                link: link_index,
+                                reason: ChildTransportError::TransferBufferTooSmall,
                             })?;
                         children
                             .get_mut(&link.sink_child)
@@ -768,7 +799,10 @@ impl KernelCompositeHost {
                                 KernelCompositeError::StaleChild(link.sink_child.clone())
                             })?
                             .remote_close_abnormal(link.sink_endpoint, link.sink_cord, abnormal)
-                            .map_err(|reason| execution(&link.sink_child, reason))?;
+                            .map_err(|reason| KernelCompositeError::InternalTransport {
+                                link: link_index,
+                                reason,
+                            })?;
                         link.closed = true;
                     }
                     None => {}

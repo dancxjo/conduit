@@ -2,8 +2,15 @@ use crate::boundary::augment_boundary_cords;
 use crate::{BoxedKernelBack, KernelOperationRegistry};
 use conduit_core::{PlanFragment, PortDirection, PortId as SemanticPortId, ValuePayload};
 use conduit_kernel::scheduler::{
-    CordSpec, FixedScheduler, HostCallRequest, RemoteIngressOutcome, SchedulerStatus,
+    CordSpec, FixedScheduler, HostCallRequest, RemoteIngressOutcome, SchedulerError,
+    SchedulerStatus,
 };
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum ChildTransportError {
+    Scheduler(SchedulerError),
+    TransferBufferTooSmall,
+}
 use conduit_kernel::{
     CanonicalValue, CordId, FixedHostCallBindings, FixedRoutes, HostedSignLog, HostedValueStore,
     KernelEvent, NodeId, RemoteEndpointId, RemoteTerminalDisposition, ValueStorage,
@@ -414,17 +421,21 @@ impl ChildKernel {
         endpoint: RemoteEndpointId,
         cord: CordId,
         output: &mut Vec<u8>,
-    ) -> Result<Option<u64>, String> {
+    ) -> Result<Option<u64>, ChildTransportError> {
         let Some(offer) = self
             .scheduler
             .remote_egress_offer(endpoint, cord)
-            .map_err(debug)?
+            .map_err(ChildTransportError::Scheduler)?
         else {
             return Ok(None);
         };
-        let bytes = self.scheduler.values().get(offer.value).map_err(debug)?;
+        let bytes = self
+            .scheduler
+            .values()
+            .get(offer.value)
+            .map_err(|error| ChildTransportError::Scheduler(error.into()))?;
         if bytes.len() > output.capacity() {
-            return Err("prepared internal transfer buffer is smaller than its exact Cord".into());
+            return Err(ChildTransportError::TransferBufferTooSmall);
         }
         output.clear();
         output.extend_from_slice(bytes);
@@ -436,14 +447,14 @@ impl ChildKernel {
         endpoint: RemoteEndpointId,
         cord: CordId,
         sequence: u64,
-    ) -> Result<(), String> {
+    ) -> Result<(), ChildTransportError> {
         self.scheduler
             .remote_egress_accept(endpoint, cord, sequence)
             .and_then(|()| {
                 self.scheduler
                     .remote_egress_delivered(endpoint, cord, sequence)
             })
-            .map_err(debug)
+            .map_err(ChildTransportError::Scheduler)
     }
 
     pub(crate) fn remote_admit(
@@ -452,40 +463,40 @@ impl ChildKernel {
         cord: CordId,
         sequence: u64,
         bytes: &[u8],
-    ) -> Result<RemoteIngressOutcome, String> {
+    ) -> Result<RemoteIngressOutcome, ChildTransportError> {
         self.scheduler
             .admit_remote_input(endpoint, cord, sequence, bytes)
-            .map_err(debug)
+            .map_err(ChildTransportError::Scheduler)
     }
 
     pub(crate) fn remote_terminal_disposition(
         &self,
         endpoint: RemoteEndpointId,
         cord: CordId,
-    ) -> Result<Option<RemoteTerminalDisposition>, String> {
+    ) -> Result<Option<RemoteTerminalDisposition>, ChildTransportError> {
         self.scheduler
             .remote_egress_terminal_disposition(endpoint, cord)
-            .map_err(debug)
+            .map_err(ChildTransportError::Scheduler)
     }
 
     pub(crate) fn remote_abnormal_terminal(
         &self,
         endpoint: RemoteEndpointId,
         cord: CordId,
-    ) -> Result<Option<CanonicalValue>, String> {
+    ) -> Result<Option<CanonicalValue>, ChildTransportError> {
         self.scheduler
             .remote_egress_abnormal_terminal(endpoint, cord)
-            .map_err(debug)
+            .map_err(ChildTransportError::Scheduler)
     }
 
     pub(crate) fn remote_close(
         &mut self,
         endpoint: RemoteEndpointId,
         cord: CordId,
-    ) -> Result<(), String> {
+    ) -> Result<(), ChildTransportError> {
         self.scheduler
             .close_remote_input(endpoint, cord)
-            .map_err(debug)
+            .map_err(ChildTransportError::Scheduler)
     }
 
     pub(crate) fn remote_close_abnormal(
@@ -493,10 +504,10 @@ impl ChildKernel {
         endpoint: RemoteEndpointId,
         cord: CordId,
         terminal: CanonicalValue,
-    ) -> Result<(), String> {
+    ) -> Result<(), ChildTransportError> {
         self.scheduler
             .close_remote_input_abnormal(endpoint, cord, terminal)
-            .map_err(debug)
+            .map_err(ChildTransportError::Scheduler)
     }
 }
 

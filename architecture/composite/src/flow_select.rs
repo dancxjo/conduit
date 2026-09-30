@@ -1,8 +1,10 @@
+#[cfg_attr(not(feature = "fixture-registry-preparation"), allow(unused_imports))]
 use crate::{
     AdmittedKernelCompositeHostRequest, BoundedActivationAdmission, BoundedActivationError,
     BoundedActivationHost, BoundedActivationState, KernelCompositeDefinition,
     KernelCompositeHostRequest, KernelOperationRegistry,
 };
+#[cfg_attr(not(feature = "fixture-registry-preparation"), allow(unused_imports))]
 use conduit_core::{InfoBool, KindId, PlannedActivation, ValuePayload, BOOL_INFO_ID};
 use conduit_kernel::HostCallOutcome;
 
@@ -112,6 +114,7 @@ impl FlowSelectCoordinator {
         })
     }
 
+    #[cfg(feature = "fixture-registry-preparation")]
     pub fn prepare_planned(
         planned: &PlannedActivation,
         definition: KernelCompositeDefinition,

@@ -1,8 +1,10 @@
+#[cfg_attr(not(feature = "fixture-registry-preparation"), allow(unused_imports))]
 use crate::{
     AdmittedKernelCompositeHostRequest, KernelCompositeDefinition, KernelCompositeError,
     KernelCompositeHost, KernelCompositeHostRequest, KernelCompositeStatus,
     KernelCompositeTerminal, KernelOperationRegistry,
 };
+#[cfg_attr(not(feature = "fixture-registry-preparation"), allow(unused_imports))]
 use conduit_core::{
     semantic_digest, verify_plan, KindId, PlanId, PlannedActivation, PortDirection, PortId,
     PortTemporal, ValuePayload,
@@ -176,6 +178,7 @@ pub struct BoundedActivationHost {
 }
 
 impl BoundedActivationHost {
+    #[cfg(feature = "fixture-registry-preparation")]
     pub fn prepare(
         definition: KernelCompositeDefinition,
         registry: &KernelOperationRegistry,
@@ -192,10 +195,13 @@ impl BoundedActivationHost {
         Self::prepare_with_contract(definition, registry, contract)
     }
 
-    /// Prepare the production adapter from exact Plan truth. The selected
+    /// Fixture-only registry preparation from exact Plan truth. Production
+    /// enters through `PreparedActivationChildPool`, which consumes subordinate
+    /// preparation receipts. The selected
     /// subplan, Value fronts, and finite activation limits must be identical
     /// to the executable composite definition; no runtime lookup or widening
     /// may repair a disagreement.
+    #[cfg(feature = "fixture-registry-preparation")]
     pub fn prepare_planned(
         planned: &PlannedActivation,
         definition: KernelCompositeDefinition,
@@ -228,6 +234,7 @@ impl BoundedActivationHost {
         Self::prepare_with_contract(definition, registry, contract)
     }
 
+    #[cfg(feature = "fixture-registry-preparation")]
     fn prepare_with_contract(
         definition: KernelCompositeDefinition,
         registry: &KernelOperationRegistry,
