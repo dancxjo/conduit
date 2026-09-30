@@ -192,6 +192,7 @@ installed_step_dispatch!(
     CurrentSample,
     CombineLatest,
     FlowZip,
+    FlowCollect,
     FlowGateScalar,
     FlowFirst,
     KeyEventTee,
