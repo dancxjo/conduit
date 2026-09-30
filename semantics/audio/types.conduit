@@ -63,3 +63,9 @@ representation audio/tone-terminal = AudioToneTerminal as u8
 representation audio/pcm-sample-representation = PcmSampleRepresentation as u8
 
 representation audio/pcm-channel-layout = PcmChannelLayout as u8
+
+representation audio/gate = Gate as u8
+    off
+    on
+
+representation audio/modulation-destination = ModulationDestination as u8
