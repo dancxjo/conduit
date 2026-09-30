@@ -9,6 +9,7 @@ use alloc::vec::Vec;
 use serde::{Deserialize, Serialize};
 use sha2::{Digest, Sha256};
 
+mod activation_contract;
 mod base_capability;
 mod base_registry;
 mod capability_offer;
@@ -61,6 +62,7 @@ mod temporal_quantity;
 mod terminal_info;
 mod value_constraint;
 
+pub use activation_contract::*;
 pub use base_capability::*;
 pub use base_registry::*;
 pub use capability_offer::*;

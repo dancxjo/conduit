@@ -4,10 +4,10 @@
 use alloc::string::ToString;
 use alloc::{vec, vec::Vec};
 use conduit_core::{
-    AbnormalTerminalTransduction, CancellationTransduction, CapabilityLimits, CheckedValueContract,
-    FiniteTerminalEmission, FlowEachSemanticLaw, FrontValueContract, FrontValueLocation, Kind,
+    kind_id, port_id, AbnormalTerminalTransduction, CancellationTransduction, CapabilityLimits,
+    CheckedValueContract, FiniteTerminalEmission, FrontValueContract, FrontValueLocation, Kind,
     KindIdentity, KindSemanticLaw, NormalCloseTransduction, PortDescriptor, PortDirection,
-    PortTemporal, TerminalTransductionProfile, kind_id, port_id,
+    PortTemporal, TerminalTransductionProfile,
 };
 
 pub const FLOW_EACH_KIND: &str = "flow/each";
@@ -76,6 +76,32 @@ pub fn flow_each_semantic_contract(
     }
 
     let terminal_bytes = abnormal.map_or(0, |contract| contract.maximum_bytes);
+    drop(value_contracts);
+    let mut semantic_laws = conduit_core::flow_each_activation_contract(
+        input,
+        output,
+        abnormal,
+        input_port.port_id.clone(),
+        output_port.port_id.clone(),
+        maximum_items,
+    )
+    .laws;
+    semantic_laws.push(KindSemanticLaw::TerminalTransduction(
+        TerminalTransductionProfile {
+            input_port_id: port_id(FLOW_EACH_INPUT_PORT),
+            output_port_id: port_id(FLOW_EACH_OUTPUT_PORT),
+            normal_close: NormalCloseTransduction::FlushThenPropagate(FiniteTerminalEmission {
+                maximum_items: 1,
+                maximum_bytes: output.maximum_bytes,
+            }),
+            abnormal: if abnormal.is_some() {
+                AbnormalTerminalTransduction::PropagateAfterDrain
+            } else {
+                AbnormalTerminalTransduction::NotAccepted
+            },
+            cancellation: CancellationTransduction::NotCancellable,
+        },
+    ));
     Ok(Kind {
         startup_parameters: Vec::new(),
         shorthand: None,
@@ -84,28 +110,7 @@ pub fn flow_each_semantic_contract(
         inputs: vec![input_port],
         outputs: vec![output_port],
         configuration: Vec::new(),
-        semantic_laws: vec![
-            KindSemanticLaw::ValueContracts(value_contracts),
-            KindSemanticLaw::FlowEach(FlowEachSemanticLaw {
-                input_port_id: port_id(FLOW_EACH_INPUT_PORT),
-                output_port_id: port_id(FLOW_EACH_OUTPUT_PORT),
-                maximum_items,
-            }),
-            KindSemanticLaw::TerminalTransduction(TerminalTransductionProfile {
-                input_port_id: port_id(FLOW_EACH_INPUT_PORT),
-                output_port_id: port_id(FLOW_EACH_OUTPUT_PORT),
-                normal_close: NormalCloseTransduction::FlushThenPropagate(FiniteTerminalEmission {
-                    maximum_items: 1,
-                    maximum_bytes: output.maximum_bytes,
-                }),
-                abnormal: if abnormal.is_some() {
-                    AbnormalTerminalTransduction::PropagateAfterDrain
-                } else {
-                    AbnormalTerminalTransduction::NotAccepted
-                },
-                cancellation: CancellationTransduction::NotCancellable,
-            }),
-        ],
+        semantic_laws,
         limits: CapabilityLimits {
             max_active_instances: 1,
             max_queue_items: 3,

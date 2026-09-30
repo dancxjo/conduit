@@ -23,7 +23,7 @@ mod resolution;
 mod shared_pool;
 mod specialization;
 mod structured_selector;
-use resolution::{Resolver, is_atomic_literal};
+use resolution::{is_atomic_literal, Resolver};
 use shared_pool::{check_pool_declarations, checked_pool};
 use specialization::specialize_named_type_parameters;
 
@@ -1403,6 +1403,13 @@ fn checked_activation(
             span: invocation.span,
             message: "activate requires one exact checked source Form".into(),
         })?;
+    let contract = |location: conduit_core::FrontValueLocation| {
+        front
+            .value_contracts()
+            .iter()
+            .find(|value| value.location == location)
+            .map(|value| value.contract.clone())
+    };
     if let crate::ActivationSyntax::Fold { initial, .. } = &mode {
         let accumulator = front
             .inputs()
@@ -1456,6 +1463,37 @@ fn checked_activation(
             output: combined.clone(),
             initial_accumulator: Some(initial),
             initial_accumulator_bytes: None,
+            input_contract: contract(conduit_core::FrontValueLocation::Input(
+                item.port_id.clone(),
+            ))
+            .ok_or_else(|| SyntaxCheckDiagnostic {
+                code: "CND-FRM-064",
+                span: invocation.span,
+                message: "fold item requires one exact finite value contract".into(),
+            })?,
+            output_contract: contract(conduit_core::FrontValueLocation::Output(
+                combined.port_id.clone(),
+            ))
+            .ok_or_else(|| SyntaxCheckDiagnostic {
+                code: "CND-FRM-064",
+                span: invocation.span,
+                message: "fold output requires one exact finite value contract".into(),
+            })?,
+            abnormal_contract: item.abnormal_kind.as_ref().and_then(|_| {
+                contract(conduit_core::FrontValueLocation::InputAbnormal(
+                    item.port_id.clone(),
+                ))
+            }),
+            accumulator_contract: Some(
+                contract(conduit_core::FrontValueLocation::Input(
+                    accumulator.port_id.clone(),
+                ))
+                .ok_or_else(|| SyntaxCheckDiagnostic {
+                    code: "CND-FRM-064",
+                    span: invocation.span,
+                    message: "fold accumulator requires one exact finite value contract".into(),
+                })?,
+            ),
         });
     }
     let ([input], [output]) = (front.inputs(), front.outputs()) else {
@@ -1493,6 +1531,28 @@ fn checked_activation(
         output: output.clone(),
         initial_accumulator: None,
         initial_accumulator_bytes: None,
+        input_contract: contract(conduit_core::FrontValueLocation::Input(
+            input.port_id.clone(),
+        ))
+        .ok_or_else(|| SyntaxCheckDiagnostic {
+            code: "CND-FRM-062",
+            span: invocation.span,
+            message: "activation input requires one exact finite value contract".into(),
+        })?,
+        output_contract: contract(conduit_core::FrontValueLocation::Output(
+            output.port_id.clone(),
+        ))
+        .ok_or_else(|| SyntaxCheckDiagnostic {
+            code: "CND-FRM-062",
+            span: invocation.span,
+            message: "activation output requires one exact finite value contract".into(),
+        })?,
+        abnormal_contract: input.abnormal_kind.as_ref().and_then(|_| {
+            contract(conduit_core::FrontValueLocation::InputAbnormal(
+                input.port_id.clone(),
+            ))
+        }),
+        accumulator_contract: None,
     })
 }
 

@@ -4,10 +4,13 @@
 use alloc::string::ToString;
 use alloc::{vec, vec::Vec};
 use conduit_core::{
-    CapabilityLimits, CheckedValueContract, FlowFoldAbnormalDisposition,
-    FlowFoldCancellationDisposition, FlowFoldCloseDisposition, FlowFoldInvocation,
-    FlowFoldSemanticLaw, FrontValueContract, FrontValueLocation, Kind, KindIdentity,
-    KindSemanticLaw, PortDescriptor, PortDirection, PortTemporal, kind_id, port_id,
+    kind_id, port_id, CapabilityLimits, CheckedValueContract, FrontValueContract,
+    FrontValueLocation, Kind, KindIdentity, PortDescriptor, PortDirection, PortTemporal,
+};
+#[cfg(test)]
+use conduit_core::{
+    FlowFoldAbnormalDisposition, FlowFoldCancellationDisposition, FlowFoldCloseDisposition,
+    FlowFoldInvocation, KindSemanticLaw,
 };
 
 pub const FLOW_FOLD_KIND: &str = "flow/fold";
@@ -74,6 +77,20 @@ pub fn flow_fold_semantic_contract(
         ]);
     }
     let terminal_bytes = abnormal.map_or(0, |value| value.maximum_bytes);
+    drop(contracts);
+    let semantic_laws = conduit_core::flow_fold_activation_contract(
+        item,
+        accumulator,
+        initial_accumulator.to_vec(),
+        abnormal,
+        input.port_id.clone(),
+        output.port_id.clone(),
+        port_id(FLOW_FOLD_COMBINE_ACCUMULATOR_PORT),
+        port_id(FLOW_FOLD_COMBINE_ITEM_PORT),
+        port_id(FLOW_FOLD_COMBINE_OUTPUT_PORT),
+        maximum_items,
+    )
+    .laws;
     Ok(Kind {
         startup_parameters: Vec::new(),
         shorthand: None,
@@ -82,26 +99,7 @@ pub fn flow_fold_semantic_contract(
         inputs: vec![input],
         outputs: vec![output],
         configuration: Vec::new(),
-        semantic_laws: vec![
-            KindSemanticLaw::ValueContracts(contracts),
-            KindSemanticLaw::FlowFold(FlowFoldSemanticLaw {
-                input_port_id: port_id(FLOW_FOLD_INPUT_PORT),
-                output_port_id: port_id(FLOW_FOLD_OUTPUT_PORT),
-                item: item.clone(),
-                accumulator: accumulator.clone(),
-                initial_accumulator: initial_accumulator.to_vec(),
-                combine_accumulator_port_id: port_id(FLOW_FOLD_COMBINE_ACCUMULATOR_PORT),
-                combine_item_port_id: port_id(FLOW_FOLD_COMBINE_ITEM_PORT),
-                combine_output_port_id: port_id(FLOW_FOLD_COMBINE_OUTPUT_PORT),
-                maximum_active: 1,
-                maximum_queued: 1,
-                maximum_items,
-                invocation: FlowFoldInvocation::OncePerAcceptedInput,
-                close: FlowFoldCloseDisposition::DrainThenEmitAccumulatorExactlyOnce,
-                abnormal: FlowFoldAbnormalDisposition::DiscardAccumulatorAndPropagateExact,
-                cancellation: FlowFoldCancellationDisposition::DiscardAccumulatorWithoutEmission,
-            }),
-        ],
+        semantic_laws,
         limits: CapabilityLimits {
             max_active_instances: 1,
             // retained accumulator, active item, queued item, and final output
@@ -218,16 +216,14 @@ mod tests {
         let item = value("value/u32", 4);
         let accumulator = value("value/u64", 8);
         assert!(flow_fold_semantic_contract(&item, &accumulator, &[0; 7], None, 4).is_err());
-        assert!(
-            flow_fold_semantic_contract(
-                &value("value/unbounded", 0),
-                &accumulator,
-                &[0; 8],
-                None,
-                4,
-            )
-            .is_err()
-        );
+        assert!(flow_fold_semantic_contract(
+            &value("value/unbounded", 0),
+            &accumulator,
+            &[0; 8],
+            None,
+            4,
+        )
+        .is_err());
     }
 
     #[test]

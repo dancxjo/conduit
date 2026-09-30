@@ -1,15 +1,15 @@
 use conduit_core::{
-    ArtifactId, BOOL_INFO_ID, BaseImplementationId, BootId, CapabilityId, CapabilityLimits,
-    ExecutionProfileId, HostAdvertisement, HostId, HostProfileId, ImplementationId, KindIdentity,
-    OfferGeneration, PROTOCOL_VERSION, PortDescriptor, PortDirection, PortTemporal, kind_id,
-    port_id, verify_plan,
+    kind_id, port_id, verify_plan, ArtifactId, BaseImplementationId, BootId, CapabilityId,
+    CapabilityLimits, ExecutionProfileId, HostAdvertisement, HostId, HostProfileId,
+    ImplementationId, KindIdentity, OfferGeneration, PortDescriptor, PortDirection, PortTemporal,
+    BOOL_INFO_ID, PROTOCOL_VERSION,
 };
 use conduit_form::{
-    CanonicalBackCatalog, KindProjection, KindSignature, ProfileCatalog, StartupCatalog,
     check_syntax_document, expand_canonical_form_for_authoring, parse_syntax_document,
+    CanonicalBackCatalog, KindProjection, KindSignature, ProfileCatalog, StartupCatalog,
 };
 use conduit_planner::{
-    PlanningOptions, default_expanded_placements, plan_expanded_canonical_with_activations,
+    default_expanded_placements, plan_expanded_canonical_with_activations, PlanningOptions,
 };
 use std::collections::BTreeMap;
 
@@ -95,8 +95,21 @@ fn capability(
     input: PortDescriptor,
     output: PortDescriptor,
 ) -> conduit_core::CapabilityOffer {
+    let semantic_contract = if kind == "flow/select" {
+        let item =
+            conduit_core::CheckedValueContract::new(input.value_kind.clone(), 256, vec![]).unwrap();
+        conduit_core::flow_select_activation_contract(
+            &item,
+            None,
+            input.port_id.clone(),
+            output.port_id.clone(),
+            4,
+        )
+    } else {
+        Default::default()
+    };
     conduit_core::capability_offer_from_parts! {
-        semantic_contract: Default::default(),
+        semantic_contract: semantic_contract,
         startup_parameters: vec![],
         shorthand: None,
         capability_id: CapabilityId::from(id),
@@ -200,18 +213,17 @@ fn authored_select_seals_the_exact_value_to_boolean_predicate_plan() {
         panic!("select must seal exactly one predicate activation")
     };
     let conduit_core::PlannedActivationEntry::Unary(activation) = activation else {
-        panic!("select must seal a unary predicate activation")
+        panic!("flow/select must retain a unary activation")
     };
     assert_eq!(activation.input.value_kind.as_str(), "value/text");
     assert_eq!(activation.output.value_kind.as_str(), BOOL_INFO_ID);
     assert_eq!(activation.limits.maximum_active, 1);
     assert_eq!(activation.limits.maximum_queue_items, 1);
-    assert!(
-        activation
-            .selected_plan
-            .fragments
-            .iter()
-            .flat_map(|fragment| &fragment.placements)
-            .any(|placement| placement.kind_id == kind_id("test/predicate"))
-    );
+    assert_eq!(activation.limits.maximum_items, 4);
+    assert!(activation
+        .selected_plan
+        .fragments
+        .iter()
+        .flat_map(|fragment| &fragment.placements)
+        .any(|placement| placement.kind_id == kind_id("test/predicate")));
 }
