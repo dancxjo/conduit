@@ -130,6 +130,11 @@ type MathScalarRefusal =
     invalid-configuration
     | overflow
 
+type NormalizedQuantityRefusal =
+    malformed-or-wrong-type
+    | incompatible-unit
+    | out-of-domain
+
 type DataSaveTextTerminal =
     value_too_large
     | generation_capacity_exhausted

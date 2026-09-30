@@ -165,6 +165,7 @@ are satisfied.
 | Quantity-mapping range, quantization and refusal vocabularies extracted from the catalog | `semantics/data/types.conduit` | generated at build time | yes | yes | exact native round trips plus catalog, std and browser quantity-mapping suites |
 | Scalar comparison vocabulary extracted from the catalog | `semantics/data/types.conduit` | generated at build time | yes | yes | exact native round trips plus logic catalog and std/browser/ConduitOS consumers |
 | Math scalar refusal vocabulary extracted from the catalog | `semantics/data/types.conduit` | generated at build time | yes | yes | exact native round trips plus math catalog and std/ConduitOS consumers |
+| Normalized-quantity refusal vocabulary extracted from the catalog | `semantics/data/types.conduit` | generated at build time | yes | yes | exact native round trips plus normalized-quantity catalog and browser consumer suites |
 | LLM determinism, terminal-outcome, and implementation-control vocabularies | `semantics/ai/types.conduit` | generated at build time | yes | yes | exact native round trips plus AI semantic-contract suite |
 | AI planning, interruption, candidate and training lifecycle vocabularies | `semantics/ai/types.conduit` | generated at build time | yes | yes | exact native round trips plus cross-host, composition and training lifecycle suites |
 | Reranking strategy and its bounded observed-score payload | `semantics/ai/types.conduit` | generated at build time | yes | yes | exact native payload round trip plus retrieval and context-selection suites |
