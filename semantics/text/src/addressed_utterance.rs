@@ -3,7 +3,9 @@
 use alloc::{string::String, vec::Vec};
 use serde::{Deserialize, Serialize};
 
-use crate::{AddressDetectionRefusal, MAX_TEXT_BYTES};
+use crate::{
+    AddressConfigurationError, AddressDetectionRefusal, AddressValueError, MAX_TEXT_BYTES,
+};
 
 pub const MAX_ADDRESS_NAMES: usize = 8;
 pub const MAX_ADDRESS_NAME_BYTES: usize = 64;
@@ -16,24 +18,6 @@ const ADDRESS_DETECTION_SCHEMA: &str = "conduit.text/address-detection-value@1";
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct AddressSet {
     names: Vec<String>,
-}
-
-#[derive(Clone, Debug, Eq, PartialEq)]
-pub enum AddressConfigurationError {
-    Empty,
-    TooManyNames,
-    EmptyName,
-    NameTooLarge,
-    InvalidName,
-    DuplicateName,
-}
-
-#[derive(Clone, Debug, Eq, PartialEq)]
-pub enum AddressValueError {
-    BoundExceeded,
-    Malformed,
-    NonCanonical,
-    InvalidValue,
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]

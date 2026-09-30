@@ -3,30 +3,12 @@
 use alloc::{string::String, vec::Vec};
 
 use crate::{
-    MorseError, MorseKeyPhase, MorseKeyTransition, MorsePattern, MorseSegment,
+    MorseKeyPhase, MorseKeyRefusal, MorseKeyTransition, MorsePattern, MorseSegment,
     MAXIMUM_MORSE_SEGMENTS, MAXIMUM_MORSE_UNIT_MILLIS, MINIMUM_MORSE_UNIT_MILLIS,
 };
 
 pub const MAXIMUM_MORSE_CLOCK_BASIS_BYTES: usize = 96;
 pub const MAXIMUM_MORSE_KEY_TRANSITIONS: u16 = (MAXIMUM_MORSE_SEGMENTS as u16) * 2;
-
-#[derive(Clone, Debug, PartialEq, Eq)]
-pub enum MorseKeyRefusal {
-    InvalidUnitMillis,
-    InvalidTransitionCapacity,
-    InvalidClockBasis,
-    ClockBasisMismatch,
-    DuplicateSequence,
-    SequenceGap,
-    NonMonotonicTime,
-    WrongPhase,
-    AmbiguousDuration,
-    TransitionPressure,
-    Empty,
-    Incomplete,
-    Cancelled,
-    InvalidPattern(MorseError),
-}
 
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct MorseKeyInterpreter {
@@ -140,7 +122,10 @@ impl MorseKeyInterpreter {
             unit_millis: self.unit_millis,
             segments: self.segments,
         };
-        pattern.to_text().map_err(MorseKeyRefusal::InvalidPattern)?;
+        pattern.to_text().map_err(|error| {
+            MorseKeyRefusal::invalid_pattern(error)
+                .expect("a checked Morse error always forms a key refusal")
+        })?;
         Ok(pattern)
     }
 

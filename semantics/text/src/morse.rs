@@ -9,6 +9,8 @@ use conduit_core::{
     PortTemporal,
 };
 
+use crate::MorseError;
+
 pub const MORSE_PATTERN_VALUE_KIND: &str = "value/morse-pattern@1";
 pub const TEXT_MORSE_KIND: &str = "text/morse";
 pub const TEXT_MORSE_CONTRACT_REVISION: &str = "conduit.text/morse@1";
@@ -32,20 +34,6 @@ pub struct MorseSegment {
 pub struct MorsePattern {
     pub unit_millis: u16,
     pub segments: Vec<MorseSegment>,
-}
-
-#[derive(Clone, Copy, Debug, PartialEq, Eq)]
-pub enum MorseError {
-    Empty,
-    TextTooLong,
-    UnsupportedCharacter,
-    InvalidWordGap,
-    InvalidUnitMillis,
-    SegmentCapacity,
-    OutputCapacity,
-    MalformedEncoding,
-    NonCanonicalEncoding,
-    InvalidPattern,
 }
 
 pub fn text_morse_semantics() -> MorseKindContract {
