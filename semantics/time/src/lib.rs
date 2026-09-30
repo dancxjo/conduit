@@ -7,9 +7,10 @@ mod generated {
     include!(concat!(env!("OUT_DIR"), "/semantic_types.rs"));
 }
 pub use generated::{
-    AvailabilityState, CivilFoldPolicy, CivilGapPolicy, CivilResolutionChoice, ClockChangeBehavior,
-    HistoricalEntryOrigin, HistoricalOverflowPolicy, InvitationState, ParticipantRole,
-    SuspendBehavior, TemporalBoundary, TemporalWindowPosition,
+    AvailabilityState, CalendarRefusal, CivilFoldPolicy, CivilGapPolicy, CivilResolutionChoice,
+    ClockChangeBehavior, HistoricalEntryOrigin, HistoricalOverflowPolicy, InvitationState,
+    MeetingProposalRefusal, ParticipantRole, RecurrenceRefusal, ScheduledIntentRefusal,
+    SuspendBehavior, TemporalBoundary, TemporalWindowPosition, TemporalWindowRefusal,
 };
 
 mod tick;

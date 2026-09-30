@@ -4,9 +4,9 @@ use alloc::{string::String, vec::Vec};
 use serde::{Deserialize, Serialize};
 
 use crate::{
-    AvailabilityState, InvitationState, LocalDate, LocalDateTime, NamedTimeZone, ParticipantRole,
-    RecurrenceDefinition, TemporalInstant, TemporalRelation, TemporalWindow, TemporalWindowRefusal,
-    MAXIMUM_TEMPORAL_IDENTITY_BYTES,
+    AvailabilityState, CalendarRefusal, InvitationState, LocalDate, LocalDateTime, NamedTimeZone,
+    ParticipantRole, RecurrenceDefinition, TemporalInstant, TemporalRelation, TemporalWindow,
+    TemporalWindowRefusal, MAXIMUM_TEMPORAL_IDENTITY_BYTES,
 };
 
 pub const MAXIMUM_CALENDAR_TEXT_BYTES: usize = 1_024;
@@ -98,20 +98,6 @@ pub struct ParticipantAvailability {
     pub zone: NamedTimeZone,
     pub basis: AvailabilityBasis,
     pub intervals: Vec<AvailabilityInterval>,
-}
-
-#[derive(Debug, Copy, Clone, PartialEq, Eq)]
-pub enum CalendarRefusal {
-    InvalidIdentity,
-    InvalidText,
-    InvalidTime,
-    InvalidParticipants,
-    InvalidInvitationEvidence,
-    InvalidReminder,
-    InvalidRecurrence,
-    InvalidAvailability,
-    StaleAvailability,
-    IncomparableTime,
 }
 
 impl Participant {

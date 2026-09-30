@@ -4,7 +4,7 @@ use serde::{Deserialize, Serialize};
 
 use crate::{
     TemporalBoundary, TemporalInstant, TemporalRelation, TemporalRelationError,
-    TemporalWindowPosition,
+    TemporalWindowPosition, TemporalWindowRefusal,
 };
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
@@ -14,16 +14,6 @@ pub struct TemporalWindow {
     start_boundary: TemporalBoundary,
     end: TemporalInstant,
     end_boundary: TemporalBoundary,
-}
-
-#[derive(Debug, Copy, Clone, PartialEq, Eq)]
-pub enum TemporalWindowRefusal {
-    InvalidInstant,
-    Incomparable,
-    IntervalOverflow,
-    Reversed,
-    IndeterminateBoundaryOrder,
-    Empty,
 }
 
 impl TemporalWindow {
