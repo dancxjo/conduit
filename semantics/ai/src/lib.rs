@@ -9,9 +9,11 @@ mod generated {
 pub use generated::{
     ContextOmissionReason, ContextOrderingPolicy, ContextRedundancyPolicy,
     ContextSelectionRationale, ContextTruncationReason, EmbeddingNormalization, EntityBoundary,
-    GeneratedTextFlowTerminal, GroundedAnswerDisposition, GroundingDisposition, ModelOperation,
-    ModelPortPresence, SelectedContextRationale, SimilarityMetric, SourceSpanUnit, TemporalSource,
-    TemporalValidity, TemporalWindowRelation, TransitionDirection,
+    GeneratedTextFlowTerminal, GroundedAnswerDisposition, GroundingDisposition,
+    InterpretationDisposition, InterpretationProvenance, ModelFailure, ModelOperation,
+    ModelPortPresence, ModelRefusal, ModelResultProvenance, SelectedContextRationale,
+    SimilarityMetric, SourceSpanUnit, TemporalSource, TemporalValidity, TemporalWindowRelation,
+    TransitionDirection,
 };
 
 mod bases;

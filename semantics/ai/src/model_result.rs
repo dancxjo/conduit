@@ -1,31 +1,13 @@
 use alloc::{string::String, vec::Vec};
 use serde::{Deserialize, Serialize};
 
-use crate::{LlmDeterminismProfile, LlmSemanticContract, LlmTerminalOutcome};
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
-pub enum ModelResultProvenance {
-    ModelDerived,
-}
+use crate::{
+    LlmDeterminismProfile, LlmSemanticContract, LlmTerminalOutcome, ModelFailure, ModelRefusal,
+    ModelResultProvenance,
+};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 pub struct ConfidencePermille(pub u16);
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
-pub enum ModelRefusal {
-    UnsupportedRequest,
-    PolicyDenied,
-    ContextUnavailable,
-    CapacityUnavailable,
-}
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
-pub enum ModelFailure {
-    MalformedResult,
-    ImplementationFailure,
-    ResourceExhausted,
-    OutputBoundExceeded,
-}
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 pub enum ModelResultDisposition {
