@@ -221,7 +221,7 @@ mod tests {
         bytes[11] = 0b0101;
         bytes[12..14].copy_from_slice(&(-120_i16).to_be_bytes());
         bytes[14..16].copy_from_slice(&(30_i16).to_be_bytes());
-        bytes[16] = ChargingState::Trickle as u8;
+        bytes[16] = ChargingState::Trickle.wire_tag();
         bytes[17..19].copy_from_slice(&14_200_u16.to_be_bytes());
         bytes[19..21].copy_from_slice(&(-240_i16).to_be_bytes());
         bytes[21] = 31;
