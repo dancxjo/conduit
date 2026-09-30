@@ -1403,7 +1403,14 @@ fn checked_activation(
             span: invocation.span,
             message: "activate requires one exact checked source Form".into(),
         })?;
-    if let crate::ActivationSyntax::Fold { initial } = &mode {
+    if let crate::ActivationSyntax::Fold { initial } | crate::ActivationSyntax::Scan { initial } =
+        &mode
+    {
+        let (name, code) = if matches!(mode, crate::ActivationSyntax::Fold { .. }) {
+            ("fold", "CND-FRM-064")
+        } else {
+            ("scan", "CND-FRM-065")
+        };
         let accumulator = front
             .inputs()
             .iter()
@@ -1418,9 +1425,9 @@ fn checked_activation(
             .find(|port| port.port_id.as_str() == "combined");
         let (Some(accumulator), Some(item), Some(combined)) = (accumulator, item, combined) else {
             return Err(SyntaxCheckDiagnostic {
-                code: "CND-FRM-064",
+                code,
                 span: invocation.span,
-                message: "fold requires exact Value inputs 'accumulator' and 'item' and Value output 'combined'".into(),
+                message: alloc::format!("{name} requires exact Value inputs 'accumulator' and 'item' and Value output 'combined'"),
             });
         };
         if front.inputs().len() != 2
@@ -1434,9 +1441,9 @@ fn checked_activation(
             || !front.startup_parameters().is_empty()
         {
             return Err(SyntaxCheckDiagnostic {
-                code: "CND-FRM-064",
+                code,
                 span: invocation.span,
-                message: "fold combine must be startup-free and preserve one exact accumulator Value and abnormal terminal".into(),
+                message: alloc::format!("{name} combine must be startup-free and preserve one exact accumulator Value and abnormal terminal"),
             });
         }
         let initial = resolver
