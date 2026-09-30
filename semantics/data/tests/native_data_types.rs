@@ -3,9 +3,9 @@ use conduit_data::{
     ClockRelationQuality, DataLoadTextTerminal, DataSaveTextTerminal, FullWindowPolicy,
     MathScalarRefusal, MeasurementPlotOverflowPolicy, MeasurementPlotRefusal,
     MeasurementSummaryRefusal, MeasurementThresholdRefusal, MeasurementThresholdState,
-    MeasurementThresholdTransition, MeasurementWindowRefusal, QuantityMappingRefusal,
-    QuantizationPolicy, RangePolicy, SampledSignalRefusal, ScalarComparison, SignalContinuity,
-    TensorAxisRole, TensorElement,
+    MeasurementThresholdTransition, MeasurementWindowRefusal, NormalizedQuantityRefusal,
+    QuantityMappingRefusal, QuantizationPolicy, RangePolicy, SampledSignalRefusal,
+    ScalarComparison, SignalContinuity, TensorAxisRole, TensorElement,
 };
 use conduit_form::rust_binding::NativeRustBinding;
 
@@ -186,6 +186,17 @@ fn math_scalar_refusals_round_trip_through_their_exact_native_type() {
     for value in [
         MathScalarRefusal::InvalidConfiguration,
         MathScalarRefusal::Overflow,
+    ] {
+        assert_round_trip(value);
+    }
+}
+
+#[test]
+fn normalized_quantity_refusals_round_trip_through_their_exact_native_type() {
+    for value in [
+        NormalizedQuantityRefusal::MalformedOrWrongType,
+        NormalizedQuantityRefusal::IncompatibleUnit,
+        NormalizedQuantityRefusal::OutOfDomain,
     ] {
         assert_round_trip(value);
     }

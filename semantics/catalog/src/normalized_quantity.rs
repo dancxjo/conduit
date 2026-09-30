@@ -2,6 +2,7 @@
 
 use alloc::vec::Vec;
 use conduit_core::{Kind, Quantity, QuantityUnit, Scalar, QUANTITY_ENCODED_LEN};
+pub use conduit_data::NormalizedQuantityRefusal;
 
 pub const NORMALIZED_QUANTITY_KIND: &str = "math/normalized-quantity-scalar";
 pub const NORMALIZED_QUANTITY_REVISION: &str = "conduit.std/normalized-quantity-scalar@1";
@@ -50,13 +51,6 @@ pub fn install_normalized_quantity_catalog(
     profile
         .insert_kind(normalized_quantity_semantic_contract())
         .map_err(|error| alloc::format!("{error}"))
-}
-
-#[derive(Clone, Copy, Debug, PartialEq, Eq)]
-pub enum NormalizedQuantityRefusal {
-    MalformedOrWrongType,
-    IncompatibleUnit,
-    OutOfDomain,
 }
 
 /// The canonical leaf envelope is admitted once, before execution.

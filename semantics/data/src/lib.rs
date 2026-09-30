@@ -13,10 +13,11 @@ pub use generated::{
     DataSaveTextTerminal, DataSaveTextTerminalRepresentation, FullWindowPolicy, MathScalarRefusal,
     MeasurementPlotOverflowPolicy, MeasurementPlotRefusal, MeasurementSummaryRefusal,
     MeasurementThresholdRefusal, MeasurementThresholdState, MeasurementThresholdTransition,
-    MeasurementWindowRefusal, QuantityMappingRefusal, QuantizationPolicy, RangePolicy,
-    SampledSignalRefusal, ScalarComparison, ScientificObservationRefusal, SignalContinuity,
-    SignalContinuityClockReset, SignalContinuityDiscontinuous, TensorAxisRole, TensorAxisRoleOther,
-    TensorElement, TensorRefusal,
+    MeasurementWindowRefusal, NormalizedQuantityRefusal, QuantityMappingRefusal,
+    QuantizationPolicy, RangePolicy, SampledSignalRefusal, ScalarComparison,
+    ScientificObservationRefusal, SignalContinuity, SignalContinuityClockReset,
+    SignalContinuityDiscontinuous, TensorAxisRole, TensorAxisRoleOther, TensorElement,
+    TensorRefusal,
 };
 
 mod data_catalog;
