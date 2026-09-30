@@ -330,14 +330,14 @@ pub(super) fn recovery_offer() -> CapabilityOffer {
 }
 
 fn recovery_input() -> PortDescriptor {
-    let mut input = port(
-        "terminal",
-        conduit_audio::AUDIO_TONE_TERMINAL_INFO_ID,
-        PortDirection::Input,
-        PortTemporal::Value,
-    );
-    input.abnormal_kind = Some(kind_id(conduit_audio::AUDIO_TONE_TERMINAL_INFO_ID));
-    input
+    let terminal = conduit_audio::audio_tone_terminal_kind_id();
+    PortDescriptor {
+        port_id: port_id("terminal"),
+        value_kind: terminal.clone(),
+        direction: PortDirection::Input,
+        temporal: PortTemporal::Value,
+        abnormal_kind: Some(terminal),
+    }
 }
 
 fn recovery_output() -> PortDescriptor {

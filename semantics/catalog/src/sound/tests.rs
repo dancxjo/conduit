@@ -35,7 +35,7 @@ fn audio_tone_is_exactly_typed_bounded_and_cancellable() {
     assert_eq!(contract.outputs[0].value_kind.as_str(), AUDIO_PCM_INFO_ID);
     assert_eq!(
         contract.outputs[0].abnormal_kind.as_ref().unwrap().as_str(),
-        conduit_audio::AUDIO_TONE_TERMINAL_INFO_ID
+        conduit_audio::audio_tone_terminal_kind_id().as_str()
     );
     let terminal = contract.terminal_transductions().next().unwrap();
     assert_eq!(terminal.input_port_id, conduit_core::port_id("frequency"));
@@ -51,7 +51,7 @@ fn audio_tone_is_exactly_typed_bounded_and_cancellable() {
     assert_eq!(
         terminal.cancellation,
         conduit_core::CancellationTransduction::Request {
-            disposition_kind: conduit_core::kind_id(conduit_audio::AUDIO_TONE_TERMINAL_INFO_ID),
+            disposition_kind: conduit_audio::audio_tone_terminal_kind_id(),
         }
     );
     contract.validate().unwrap();

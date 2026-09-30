@@ -7,6 +7,13 @@
 
 extern crate alloc;
 
+#[allow(dead_code)]
+mod generated {
+    include!(concat!(env!("OUT_DIR"), "/semantic_types.rs"));
+}
+
+pub use generated::AudioToneTerminal;
+
 mod audio_info;
 mod audio_render_demand;
 mod pcm_clip;

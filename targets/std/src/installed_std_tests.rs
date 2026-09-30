@@ -206,7 +206,7 @@ fn current_frequency_drives_bounded_pcm_through_one_ordinary_play() {
     );
     assert_eq!(
         tone.outputs[0].abnormal_kind.as_ref().unwrap().as_str(),
-        conduit_audio::AUDIO_TONE_TERMINAL_INFO_ID
+        conduit_audio::audio_tone_terminal_kind_id().as_str()
     );
     assert!(!tone.terminal_transductions.is_empty());
     let mut output = Vec::with_capacity(2_048);
@@ -374,7 +374,7 @@ fn authored_tone_cancellation_routes_exact_observed_terminal_truth() {
     let terminal = form
         .connections
         .iter()
-        .find(|cord| cord.value_kind.as_str() == conduit_audio::AUDIO_TONE_TERMINAL_INFO_ID)
+        .find(|cord| cord.value_kind == conduit_audio::audio_tone_terminal_kind_id())
         .unwrap();
     assert_eq!(cancellation.track, conduit_core::ConnectionTrack::Payload);
     assert_eq!(
