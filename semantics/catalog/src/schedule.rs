@@ -14,6 +14,7 @@ use conduit_core::{
 use conduit_core::{Quantity, QuantityDimension};
 pub use conduit_time::{
     ScheduleRefusal, TemporalWindowPosition as ScheduleWindowPosition, WorkflowLifecycle,
+    WorkflowTimingOutcome,
 };
 
 #[cfg(feature = "form-catalog")]
@@ -25,18 +26,6 @@ pub const SCHEDULED_INTENT_TYPE: &str = "ScheduledIntent";
 pub const SCHEDULE_WORKFLOW_LIFECYCLE_TYPE: &str = "ScheduleWorkflowLifecycle";
 pub const SCHEDULE_OBSERVATION_TYPE: &str = "ScheduleObservation";
 pub const SCHEDULE_ASSESSMENT_TYPE: &str = "ScheduleAssessment";
-
-#[derive(Debug, Copy, Clone, PartialEq, Eq)]
-pub enum WorkflowTimingOutcome {
-    Awaiting,
-    OnTime,
-    Late { lateness: Quantity },
-    MissedWindow,
-    ClockUncertain { uncertainty: Quantity },
-    Failed,
-    Cancelled,
-    Expired,
-}
 
 pub fn assess_workflow_timing(
     lifecycle: WorkflowLifecycle,
@@ -53,7 +42,8 @@ pub fn assess_workflow_timing(
         WorkflowLifecycle::Pending | WorkflowLifecycle::Running | WorkflowLifecycle::Completed => {}
     }
     if position == ScheduleWindowPosition::Indeterminate || uncertainty.value() > 0 {
-        return Ok(WorkflowTimingOutcome::ClockUncertain { uncertainty });
+        return WorkflowTimingOutcome::clock_uncertain(uncertainty)
+            .map_err(|_| ScheduleRefusal::NonTemporalQuantity);
     }
     match (lifecycle, position) {
         (
@@ -70,9 +60,8 @@ pub fn assess_workflow_timing(
         (
             WorkflowLifecycle::Running | WorkflowLifecycle::Completed,
             ScheduleWindowPosition::After,
-        ) => Ok(WorkflowTimingOutcome::Late {
-            lateness: offset_from_boundary,
-        }),
+        ) => WorkflowTimingOutcome::late(offset_from_boundary)
+            .map_err(|_| ScheduleRefusal::NonTemporalQuantity),
         (
             WorkflowLifecycle::Running | WorkflowLifecycle::Completed,
             ScheduleWindowPosition::Before,

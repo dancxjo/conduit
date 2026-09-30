@@ -13,6 +13,7 @@ pub use generated::{
     ScheduleRefusal, ScheduledIntentRefusal, SuspendBehavior, TemporalBoundary,
     ReplayPolicy, ReplayPolicyRate, SequenceNormalizationRefusal, TemporalWindowPosition,
     TemporalWindowRefusal, TimedPatternRefusal, WorkflowLifecycle,
+    WorkflowTimingOutcome, WorkflowTimingOutcomeClockUncertain, WorkflowTimingOutcomeLate,
 };
 
 mod timed_pattern_refusal;
