@@ -16,7 +16,7 @@ use std::collections::BTreeMap;
 const SOURCE: &str = "
 form text/is-useful (
  >> value: Text
- accepted: Boolean >>
+ accepted: Boolean <= 21B >>
 ) {
  predicate: test/predicate
  value >> predicate.value
@@ -27,7 +27,7 @@ form flow/select (
  item: type
  predicate: kind (
   >> value: item
-  accepted: Boolean >>
+  accepted: Boolean <= 21B >>
  )
  >> values: item...|
  selected: item...| >>
@@ -99,7 +99,7 @@ fn catalogs() -> (StartupCatalog, ProfileCatalog) {
                     location: conduit_core::FrontValueLocation::Output(port_id("accepted")),
                     contract: conduit_core::CheckedValueContract::new(
                         kind_id(BOOL_INFO_ID),
-                        1,
+                        21,
                         vec![],
                     )
                     .unwrap(),
@@ -149,7 +149,7 @@ fn capability(
                     location: conduit_core::FrontValueLocation::Output(output.port_id.clone()),
                     contract: conduit_core::CheckedValueContract::new(
                         output.value_kind.clone(),
-                        1,
+                        21,
                         vec![],
                     )
                     .unwrap(),
