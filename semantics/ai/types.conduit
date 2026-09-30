@@ -444,3 +444,39 @@ type ModelSignatureRefusal =
     | duplicate_port
     | invalid_tensor_constraint
     | invalid_signal_constraint
+
+type ModelEvidenceRefusal =
+    missing_artifact_identity
+    | missing_checkpoint_identity
+    | missing_signature_identity
+    | invalid_runtime_identity
+    | invalid_precision_profile
+    | missing_input_identity
+    | too_many_input_identities
+    | work_not_admitted
+
+type ModelCompatibilityRefusal =
+    invalid_artifact
+    | invalid_signature
+    | signature_mismatch
+    | invalid_state
+    | invalid_checkpoint
+    | artifact_mismatch
+    | architecture_mismatch
+    | state_schema_mismatch
+    | corrupt_content_identity
+    | invalid_runtime
+    | unsupported_format
+    | unsupported_precision
+    | runtime_loaded_different_artifact
+    | runtime_loaded_different_checkpoint
+
+type ModelTextRefusal =
+    envelope_bound_exceeded
+    | malformed_envelope
+    | non_canonical_envelope
+    | invalid_generation_result
+    | not_produced
+    | invalid_utf8
+    | empty_text
+    | text_bound_exceeded

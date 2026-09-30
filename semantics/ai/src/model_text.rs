@@ -11,7 +11,7 @@ use conduit_core::{
 };
 
 use crate::{
-    llm_contract, GeneratedTextChunk, ModelDerivedResult, ModelResultDisposition,
+    llm_contract, GeneratedTextChunk, ModelDerivedResult, ModelResultDisposition, ModelTextRefusal,
     GENERATED_RESULT_VALUE_KIND, GENERATED_TEXT_CHUNK_VALUE_KIND, LLM_GENERATE_KIND,
     MAXIMUM_GENERATED_TEXT_CHUNK_BYTES, MAXIMUM_GENERATED_TEXT_IN_FLIGHT_ITEMS, TEXT_VALUE_KIND,
 };
@@ -48,18 +48,6 @@ impl ModelTextContract {
             limits: self.limits,
         }
     }
-}
-
-#[derive(Clone, Copy, Debug, Eq, PartialEq)]
-pub enum ModelTextRefusal {
-    EnvelopeBoundExceeded,
-    MalformedEnvelope,
-    NonCanonicalEnvelope,
-    InvalidGenerationResult,
-    NotProduced,
-    InvalidUtf8,
-    EmptyText,
-    TextBoundExceeded,
 }
 
 pub fn model_result_to_text_contract() -> ModelTextContract {
