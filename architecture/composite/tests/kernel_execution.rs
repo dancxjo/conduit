@@ -492,3 +492,41 @@ fn bounded_activation_fault_and_cancellation_are_not_success() {
         &BoundedActivationState::Cancelled { sequence: Some(4) }
     );
 }
+
+#[test]
+fn bounded_activation_drains_one_owed_value_before_normal_close() {
+    let mut each = BoundedActivationHost::prepare(
+        definition(),
+        &registry(),
+        conduit_core::port_id("input"),
+        conduit_core::port_id("output"),
+    )
+    .unwrap();
+    assert_eq!(
+        each.activate(11, &value(b"owed")).unwrap(),
+        BoundedActivationAdmission::Accepted { sequence: 11 }
+    );
+    each.close_input().unwrap();
+    assert_eq!(
+        each.activate(12, &value(b"late")),
+        Err(conduit_composite::BoundedActivationError::InvalidLifecycle)
+    );
+
+    for _ in 0..64 {
+        each.step().unwrap();
+        if let Some((sequence, output)) = each.output().unwrap() {
+            assert_eq!((sequence, output), (11, value(b"owed")));
+            each.complete_output(sequence).unwrap();
+            break;
+        }
+    }
+    for _ in 0..64 {
+        if matches!(
+            each.step().unwrap(),
+            BoundedActivationState::Succeeded { sequence: 11 }
+        ) {
+            break;
+        }
+    }
+    assert_eq!(each.step().unwrap(), &BoundedActivationState::Drained);
+}
