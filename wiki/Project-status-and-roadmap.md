@@ -1,5 +1,3 @@
-# Project status and roadmap
-
 Conduit is experimental, but it is far beyond a paper architecture.
 
 The current development tree includes checked `.conduit` source, immutable planning, one bounded kernel, hosted/browser/ConduitOS execution, body lifecycle, lines, Patchbay, Face/Mask/Show work, physical-device paths, and substantial evidence machinery.
