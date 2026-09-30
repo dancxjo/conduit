@@ -878,6 +878,32 @@ fn canonical_parser_accepts_multiple_forms_without_semantic_lowering() {
 }
 
 #[test]
+fn expression_body_is_one_lossless_sugar_for_an_explicit_cord() {
+    let source = "form increment (\n    >> value: U8\n    result: U8 >>\n) = (. + 1)\n";
+    let document = parse_syntax_document(source);
+    assert!(document.diagnostics.is_empty());
+    let BackStatement::Cord(cord) = &document.forms[0].back[0] else {
+        panic!("expression body lowers to one ordinary Cord")
+    };
+    assert!(matches!(
+        cord.stages.as_slice(),
+        [
+            CordStage::Reference(input),
+            CordStage::PureExpression(_),
+            CordStage::Reference(output)
+        ] if input.text == "value" && output.text == "result"
+    ));
+
+    let ambiguous = parse_syntax_document(
+        "form ambiguous (\n    >> left: U8\n    >> right: U8\n    result: U8 >>\n) = (. + 1)\n",
+    );
+    assert_eq!(ambiguous.diagnostics.len(), 1);
+    assert!(ambiguous.diagnostics[0]
+        .message
+        .contains("write an ordinary explicit Form back"));
+}
+
+#[test]
 fn canonical_parser_handles_inline_form_calls_and_quoted_punctuation() {
     let source = "form demo {\n    label = \"{ready} > waiting\"\n    greet(\"hello\") >> presentation/text\n}\n";
     let document = parse_syntax_document(source);
