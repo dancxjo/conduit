@@ -2,6 +2,13 @@
 //! Resident, portable library of reviewed Forms beside the authoritative Body workset.
 
 extern crate alloc;
+
+#[allow(dead_code)]
+mod generated {
+    include!(concat!(env!("OUT_DIR"), "/semantic_types.rs"));
+}
+pub use generated::{LibraryAvailability, LibraryAvailabilityNeedsCapability, LibraryRefusal};
+
 use alloc::{format, string::String, vec, vec::Vec};
 use conduit_body::{BodyLifecycleSession, MAX_BODY_FORMS, ResidentForm};
 use conduit_presentation::{
@@ -29,21 +36,8 @@ pub struct LibraryFallback {
     pub availability: LibraryAvailability,
 }
 
-#[derive(Clone, Debug)]
-pub enum LibraryAvailability {
-    Available,
-    NeedsCapability(String),
-}
-
 pub struct FormLibrary {
     entries: Vec<LibraryEntry>,
-}
-
-#[derive(Clone, Copy, Debug, Eq, PartialEq)]
-pub enum LibraryRefusal {
-    InvalidInventory,
-    SearchBound,
-    Presentation,
 }
 
 impl FormLibrary {
@@ -55,19 +49,8 @@ impl FormLibrary {
                     || entry.search_text.len() > 2_048
                     || entry.form.source_document_id.as_str().is_empty()
                     || entry.form.checked_form_id.as_str().is_empty()
-                    || matches!(
-                        &entry.availability,
-                        LibraryAvailability::NeedsCapability(reason)
-                            if reason.is_empty() || reason.len() > 512
-                    )
                     || entry.graceful_fallback.as_ref().is_some_and(|fallback| {
-                        fallback.title.is_empty()
-                            || fallback.title.len() > 256
-                            || matches!(
-                                &fallback.availability,
-                                LibraryAvailability::NeedsCapability(reason)
-                                    if reason.is_empty() || reason.len() > 512
-                            )
+                        fallback.title.is_empty() || fallback.title.len() > 256
                     })
                     || entries[..index]
                         .iter()
@@ -154,7 +137,7 @@ impl FormLibrary {
                     .into(),
                     detail: match &entry.availability {
                         LibraryAvailability::Available => String::new(),
-                        LibraryAvailability::NeedsCapability(reason) => reason.clone(),
+                        LibraryAvailability::NeedsCapability(payload) => payload.reason().clone(),
                     },
                 },
                 vec![],
@@ -170,8 +153,8 @@ impl FormLibrary {
                                 "This fallback has a reviewed realization on the current host."
                                     .into()
                             }
-                            LibraryAvailability::NeedsCapability(reason) => {
-                                format!("The fallback still needs capability: {reason}")
+                            LibraryAvailability::NeedsCapability(payload) => {
+                                format!("The fallback still needs capability: {}", payload.reason())
                             }
                         },
                     },

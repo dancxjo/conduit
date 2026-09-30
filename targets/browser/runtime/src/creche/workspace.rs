@@ -134,7 +134,8 @@ fn catalog_availability(
     use conduit_form_library::LibraryAvailability;
     match catalog_form_plan(entry, observed_hosts, host, boot, joined_lines) {
         Ok(()) => LibraryAvailability::Available,
-        Err(_) => LibraryAvailability::NeedsCapability(entry.unavailable_hint.clone()),
+        Err(_) => LibraryAvailability::needs_capability(entry.unavailable_hint.clone())
+            .expect("reviewed library capability hint is bounded"),
     }
 }
 

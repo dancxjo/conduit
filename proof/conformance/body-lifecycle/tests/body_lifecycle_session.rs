@@ -1205,9 +1205,10 @@ fn library_projects_the_current_workset_and_preserves_exact_indices_when_filtere
             form: form("notes"),
             title: "Notes".into(),
             search_text: "keyboard text".into(),
-            availability: LibraryAvailability::NeedsCapability(
+            availability: LibraryAvailability::needs_capability(
                 "Needs a text model realization.".into(),
-            ),
+            )
+            .unwrap(),
             graceful_fallback: Some(conduit_form_library::LibraryFallback {
                 title: "Keyboard Notes".into(),
                 availability: LibraryAvailability::Available,
