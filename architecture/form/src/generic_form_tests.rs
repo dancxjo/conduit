@@ -295,3 +295,202 @@ fn named_parameters_specialize_independently_to_structured_and_scalar_types() {
         conduit_core::kind_id("value/count")
     );
 }
+
+#[test]
+fn exact_source_form_behavior_parameter_specializes_to_an_ordinary_gear() {
+    let checked = check(
+        "form text/upper (\n >> value: Text\n mapped: Text >>\n) {\n value >> mapped\n}\n\nform apply (\n transform: kind (\n  >> value: Text\n  mapped: Text >>\n )\n >> value: Text\n mapped: Text >>\n) {\n value >> transform() >> mapped\n}\n\nform main {\n applied: apply(transform = text/upper)\n}\n",
+    );
+    assert!(checked.forms.iter().all(|form| form.name != "apply"));
+    let specialized = checked
+        .forms
+        .iter()
+        .find(|form| form.name == "apply[transform=text/upper]")
+        .unwrap();
+    assert!(specialized.startup_parameters.is_empty());
+    assert_eq!(specialized.gears[0].kind, "text/upper");
+    assert!(specialized.gears[0].startup_bindings.is_empty());
+}
+
+#[test]
+fn behavior_parameter_refuses_an_incompatible_named_fore() {
+    let parsed = parse_syntax_document(
+        "form wrong (\n >> other: Text\n mapped: Text >>\n) {\n other >> mapped\n}\n\nform apply (\n transform: kind (\n  >> value: Text\n  mapped: Text >>\n )\n >> value: Text\n mapped: Text >>\n) {\n value >> transform() >> mapped\n}\n\nform main {\n applied: apply(transform = wrong)\n}\n",
+    );
+    let error = check_syntax_document(&parsed, &StartupCatalog::new()).unwrap_err();
+    assert_eq!(error.code, "CND-FRM-057");
+    assert!(error.message.contains("incompatible exact Fore"));
+}
+
+#[test]
+fn multi_port_behavior_parameter_preserves_every_named_fore_role() {
+    let checked = check(
+        "form pair/swap (\n >> left: Text\n >> right: Text\n first: Text >>\n second: Text >>\n) {\n left >> second\n right >> first\n}\n\nform apply-pair (\n operation: kind (\n  >> left: Text\n  >> right: Text\n  first: Text >>\n  second: Text >>\n )\n >> left: Text\n >> right: Text\n first: Text >>\n second: Text >>\n) {\n selected: operation()\n left >> selected.left\n right >> selected.right\n selected.first >> first\n selected.second >> second\n}\n\nform main {\n pair: apply-pair(operation = pair/swap)\n}\n",
+    );
+    let specialized = checked
+        .forms
+        .iter()
+        .find(|form| form.name == "apply-pair[operation=pair/swap]")
+        .unwrap();
+    assert_eq!(specialized.gears[0].kind, "pair/swap");
+    assert_eq!(specialized.runtime_front.inputs().len(), 2);
+    assert_eq!(specialized.runtime_front.outputs().len(), 2);
+}
+
+#[test]
+fn installed_kind_and_source_form_arguments_share_the_same_fore_check() {
+    let port = |name: &str, direction| conduit_core::PortDescriptor {
+        port_id: conduit_core::port_id(name),
+        value_kind: conduit_core::kind_id("value/text"),
+        direction,
+        temporal: conduit_core::PortTemporal::Value,
+        abnormal_kind: None,
+    };
+    let mut catalog = StartupCatalog::new();
+    catalog
+        .insert(crate::KindSignature {
+            kind: "text/installed-upper".into(),
+            startup_parameters: vec![],
+        })
+        .unwrap();
+    catalog
+        .insert_fore(
+            "text/installed-upper",
+            conduit_core::CheckedFront::new(
+                vec![],
+                vec![port("value", conduit_core::PortDirection::Input)],
+                vec![port("mapped", conduit_core::PortDirection::Output)],
+                None,
+            ),
+        )
+        .unwrap();
+    let parsed = parse_syntax_document(
+        "form apply (\n transform: kind (\n  >> value: Text\n  mapped: Text >>\n )\n >> value: Text\n mapped: Text >>\n) {\n value >> transform() >> mapped\n}\n\nform main {\n applied: apply(transform = text/installed-upper)\n}\n",
+    );
+    let checked = check_syntax_document(&parsed, &catalog).unwrap();
+    let specialized = checked
+        .forms
+        .iter()
+        .find(|form| form.name == "apply[transform=text/installed-upper]")
+        .unwrap();
+    assert_eq!(specialized.gears[0].kind, "text/installed-upper");
+}
+
+#[test]
+fn supplied_behavior_laws_survive_specialization_into_the_ordinary_graph() {
+    use conduit_core::{
+        AbnormalTerminalTransduction, CancellationTransduction, ExternalEffectBehavior,
+        KindSemanticLaw, NormalCloseTransduction, SemanticDependence, SuspensionBehavior,
+        TemporalStateBehavior, TerminalTransductionProfile,
+    };
+
+    let port = |name: &str, direction| conduit_core::PortDescriptor {
+        port_id: conduit_core::port_id(name),
+        value_kind: conduit_core::kind_id("value/text"),
+        direction,
+        temporal: conduit_core::PortTemporal::Value,
+        abnormal_kind: None,
+    };
+    let mut laws = crate::pure_expression_semantic_laws();
+    laws[0] = KindSemanticLaw::ExternalEffects(ExternalEffectBehavior::Observable);
+    laws[1] = KindSemanticLaw::TemporalState(TemporalStateBehavior::Retained);
+    laws[4] = KindSemanticLaw::ResourceDependence(SemanticDependence::Ambient);
+    laws[5] = KindSemanticLaw::Suspension(SuspensionBehavior::MaySuspend);
+    laws.push(KindSemanticLaw::TerminalTransduction(
+        TerminalTransductionProfile {
+            input_port_id: conduit_core::port_id("value"),
+            output_port_id: conduit_core::port_id("mapped"),
+            normal_close: NormalCloseTransduction::NotAccepted,
+            abnormal: AbnormalTerminalTransduction::NotAccepted,
+            cancellation: CancellationTransduction::NotCancellable,
+        },
+    ));
+    let kind = conduit_core::Kind {
+        kind_id: conduit_core::kind_id("text/effectful"),
+        kind_contract_revision: conduit_core::KindIdentity::from("text/effectful@1"),
+        startup_parameters: vec![],
+        shorthand: Some((
+            conduit_core::port_id("value"),
+            conduit_core::port_id("mapped"),
+        )),
+        inputs: vec![port("value", conduit_core::PortDirection::Input)],
+        outputs: vec![port("mapped", conduit_core::PortDirection::Output)],
+        configuration: vec![],
+        semantic_laws: laws.clone(),
+        limits: conduit_core::CapabilityLimits {
+            max_active_instances: 1,
+            max_queue_items: 1,
+            max_queue_bytes: 256,
+        },
+    };
+    let mut profile = crate::ProfileCatalog::new();
+    profile.insert_kind(kind).unwrap();
+    let parsed = parse_syntax_document(
+        "form apply (\n transform: kind (\n  value: Text >> mapped: Text\n )\n value: Text >> mapped: Text\n) {\n value >> transform() >> mapped\n}\n\nform main {\n applied: apply(transform = text/effectful)\n}\n",
+    );
+    let checked = check_syntax_document(&parsed, &profile.startup_catalog().unwrap()).unwrap();
+    let specialized = checked
+        .forms
+        .iter()
+        .find(|form| form.name == "apply[transform=text/effectful]")
+        .unwrap();
+    let expanded =
+        crate::expand_canonical_form_for_authoring(&checked, &specialized.name, &profile).unwrap();
+    assert_eq!(expanded.expanded.gears.len(), 1);
+    assert_eq!(expanded.expanded.gears[0].semantic_contract.laws, laws);
+    assert_eq!(expanded.expanded.gears[0].terminal_transductions.len(), 1);
+}
+
+#[test]
+fn same_fore_effectful_behavior_refuses_when_the_use_requires_purity() {
+    let port = |name: &str, direction| conduit_core::PortDescriptor {
+        port_id: conduit_core::port_id(name),
+        value_kind: conduit_core::kind_id("value/scalar"),
+        direction,
+        temporal: conduit_core::PortTemporal::Value,
+        abnormal_kind: None,
+    };
+    let mut laws = crate::pure_expression_semantic_laws();
+    laws[0] = conduit_core::KindSemanticLaw::ExternalEffects(
+        conduit_core::ExternalEffectBehavior::Observable,
+    );
+    let mut profile = crate::ProfileCatalog::new();
+    profile
+        .insert_kind(conduit_core::Kind {
+            kind_id: conduit_core::kind_id("test/effect"),
+            kind_contract_revision: conduit_core::KindIdentity::from("test/effect@1"),
+            startup_parameters: vec![],
+            shorthand: Some((
+                conduit_core::port_id("value"),
+                conduit_core::port_id("result"),
+            )),
+            inputs: vec![port("value", conduit_core::PortDirection::Input)],
+            outputs: vec![port("result", conduit_core::PortDirection::Output)],
+            configuration: vec![],
+            semantic_laws: laws,
+            limits: conduit_core::CapabilityLimits {
+                max_active_instances: 1,
+                max_queue_items: 1,
+                max_queue_bytes: 8,
+            },
+        })
+        .unwrap();
+    let parsed = parse_syntax_document(
+        "form apply (\n transform: kind (\n  value: Scalar >> result: Scalar\n )\n value: Scalar >> result: Scalar\n) = (transform(.))\n\nform main {\n applied: apply(transform = test/effect)\n}\n",
+    );
+    let checked = check_syntax_document(&parsed, &profile.startup_catalog().unwrap()).unwrap();
+    let refusal = crate::expand_canonical_form_for_authoring(
+        &checked,
+        "apply[transform=test/effect]",
+        &profile,
+    )
+    .unwrap_err();
+    assert_eq!(refusal.code, "CND-FRM-046");
+    assert!(
+        refusal
+            .message
+            .contains("ineligible for pure expression use"),
+        "{}",
+        refusal.message
+    );
+}

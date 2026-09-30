@@ -1,7 +1,7 @@
 use crate::checked_syntax::{StartupCatalog, SyntaxCheckDiagnostic};
 use crate::syntax::{
     Argument, BackStatement, CordStage, Expression, ExpressionSyntax, FormSyntax, Invocation,
-    MatchedRoutePattern, SpannedText,
+    SpannedText,
 };
 use crate::Span;
 use alloc::collections::{BTreeMap, BTreeSet};
@@ -9,18 +9,26 @@ use alloc::format;
 use alloc::string::{String, ToString};
 use alloc::vec::Vec;
 
+mod behavior;
+mod instantiate;
+mod substitution;
+
 const MAXIMUM_GENERIC_SPECIALIZATIONS: usize = 4_096;
 
 /// Turns authored generic Form templates into exact ordinary Forms before the
-/// existing checker constructs Fores. Type parameters are compile-time names;
-/// they never become startup values or runtime ports.
+/// existing checker constructs Fores. Type and Kind/Form parameters are
+/// compile-time names; they never become startup values or runtime ports.
 pub(super) fn specialize_named_type_parameters(
     forms: Vec<FormSyntax>,
     catalog: &StartupCatalog,
 ) -> Result<Vec<FormSyntax>, SyntaxCheckDiagnostic> {
+    let available_forms = forms
+        .iter()
+        .map(|form| (form.name.text.clone(), form.clone()))
+        .collect::<BTreeMap<_, _>>();
     let templates = forms
         .iter()
-        .filter(|form| !type_parameters(form).is_empty())
+        .filter(|form| has_compile_time_parameters(form))
         .map(|form| (form.name.text.clone(), form.clone()))
         .collect::<BTreeMap<_, _>>();
     if templates.is_empty() {
@@ -37,7 +45,8 @@ pub(super) fn specialize_named_type_parameters(
         .collect::<BTreeSet<_>>();
     let mut index = 0;
     while index < concrete.len() {
-        let requests = rewrite_form_invocations(&mut concrete[index], &templates, catalog)?;
+        let requests =
+            rewrite_form_invocations(&mut concrete[index], &templates, &available_forms, catalog)?;
         index += 1;
         for request in requests {
             if identities.insert(request.identity.clone()) {
@@ -52,7 +61,12 @@ pub(super) fn specialize_named_type_parameters(
                 let template = templates
                     .get(&request.template)
                     .expect("specialization requests name a generic template");
-                concrete.push(instantiate(template, &request));
+                concrete.push(instantiate::exact(
+                    template,
+                    &request.identity,
+                    &request.type_substitutions,
+                    &request.behavior_substitutions,
+                ));
             }
         }
     }
@@ -63,7 +77,12 @@ pub(super) fn specialize_named_type_parameters(
 struct SpecializationRequest {
     template: String,
     identity: String,
-    substitutions: BTreeMap<String, String>,
+    type_substitutions: BTreeMap<String, String>,
+    behavior_substitutions: BTreeMap<String, String>,
+}
+
+pub(super) fn has_compile_time_parameters(form: &FormSyntax) -> bool {
+    !type_parameters(form).is_empty() || !form.front.kind_parameters.is_empty()
 }
 
 fn type_parameters(form: &FormSyntax) -> &[crate::TypeParameter] {
@@ -73,6 +92,7 @@ fn type_parameters(form: &FormSyntax) -> &[crate::TypeParameter] {
 fn rewrite_form_invocations(
     form: &mut FormSyntax,
     templates: &BTreeMap<String, FormSyntax>,
+    available_forms: &BTreeMap<String, FormSyntax>,
     catalog: &StartupCatalog,
 ) -> Result<Vec<SpecializationRequest>, SyntaxCheckDiagnostic> {
     let mut requests = Vec::new();
@@ -88,6 +108,7 @@ fn rewrite_form_invocations(
                 rewrite_invocation(
                     &mut gear.invocation,
                     templates,
+                    available_forms,
                     catalog,
                     &BTreeMap::new(),
                     &mut requests,
@@ -97,6 +118,7 @@ fn rewrite_form_invocations(
                 rewrite_stages(
                     &mut cord.stages,
                     templates,
+                    available_forms,
                     catalog,
                     &front_types,
                     &mut requests,
@@ -107,6 +129,7 @@ fn rewrite_form_invocations(
                     rewrite_stages(
                         &mut arm.stages,
                         templates,
+                        available_forms,
                         catalog,
                         &front_types,
                         &mut requests,
@@ -122,6 +145,7 @@ fn rewrite_form_invocations(
 fn rewrite_stages(
     stages: &mut [CordStage],
     templates: &BTreeMap<String, FormSyntax>,
+    available_forms: &BTreeMap<String, FormSyntax>,
     catalog: &StartupCatalog,
     front_types: &BTreeMap<String, String>,
     requests: &mut Vec<SpecializationRequest>,
@@ -130,7 +154,14 @@ fn rewrite_stages(
         let inferred =
             infer_from_adjacent_front_ports(stages, index, templates, catalog, front_types)?;
         if let CordStage::InlineGear(invocation) = &mut stages[index] {
-            rewrite_invocation(invocation, templates, catalog, &inferred, requests)?;
+            rewrite_invocation(
+                invocation,
+                templates,
+                available_forms,
+                catalog,
+                &inferred,
+                requests,
+            )?;
         }
     }
     Ok(())
@@ -139,6 +170,7 @@ fn rewrite_stages(
 fn rewrite_invocation(
     invocation: &mut Invocation,
     templates: &BTreeMap<String, FormSyntax>,
+    available_forms: &BTreeMap<String, FormSyntax>,
     catalog: &StartupCatalog,
     inferred: &BTreeMap<String, String>,
     requests: &mut Vec<SpecializationRequest>,
@@ -147,18 +179,46 @@ fn rewrite_invocation(
         return Ok(());
     };
     let parameters = type_parameters(template);
-    let mut substitutions = BTreeMap::new();
+    let behavior_parameters = &template.front.kind_parameters;
+    let mut type_substitutions = BTreeMap::new();
+    let mut behavior_substitutions = BTreeMap::new();
     let mut retained_arguments = Vec::new();
     for argument in core::mem::take(&mut invocation.arguments) {
         let Argument::Named { name, value, .. } = &argument else {
             retained_arguments.push(argument);
             continue;
         };
-        if !parameters
+        let is_type = parameters
             .iter()
-            .any(|parameter| parameter.name.text == name.text)
-        {
+            .any(|parameter| parameter.name.text == name.text);
+        let behavior = behavior_parameters
+            .iter()
+            .find(|parameter| parameter.name.text == name.text);
+        if !is_type && behavior.is_none() {
             retained_arguments.push(argument);
+            continue;
+        }
+        if behavior.is_some() {
+            let selected = crate::surface_lex::is_gear_name(value.text.trim())
+                .then(|| value.text.trim())
+                .ok_or_else(|| {
+                    diagnostic(
+                        value.span,
+                        format!(
+                            "behavior argument '{}' must name one exact installed Kind or checked source Form",
+                            name.text
+                        ),
+                    )
+                })?;
+            if behavior_substitutions
+                .insert(name.text.clone(), selected.to_string())
+                .is_some()
+            {
+                return Err(diagnostic(
+                    name.span,
+                    format!("behavior argument '{}' is bound more than once", name.text),
+                ));
+            }
             continue;
         }
         let source_type = atomic_type_name(value).ok_or_else(|| {
@@ -180,7 +240,7 @@ fn rewrite_invocation(
                     ),
                 )
             })?;
-        if substitutions
+        if type_substitutions
             .insert(name.text.clone(), canonical.as_str().to_string())
             .is_some()
         {
@@ -191,7 +251,7 @@ fn rewrite_invocation(
         }
     }
     for (name, concrete) in inferred {
-        if let Some(explicit) = substitutions.get(name) {
+        if let Some(explicit) = type_substitutions.get(name) {
             if explicit != concrete {
                 return Err(diagnostic(
                     invocation.span,
@@ -201,11 +261,11 @@ fn rewrite_invocation(
                 ));
             }
         } else {
-            substitutions.insert(name.clone(), concrete.clone());
+            type_substitutions.insert(name.clone(), concrete.clone());
         }
     }
     for parameter in parameters {
-        if !substitutions.contains_key(&parameter.name.text) {
+        if !type_substitutions.contains_key(&parameter.name.text) {
             return Err(diagnostic(
                 invocation.span,
                 format!(
@@ -215,13 +275,39 @@ fn rewrite_invocation(
             ));
         }
     }
+    for parameter in behavior_parameters {
+        let selected = behavior_substitutions
+            .get(&parameter.name.text)
+            .ok_or_else(|| {
+                diagnostic(
+                    invocation.span,
+                    format!(
+                        "generic Form '{}' requires exact behavior argument '{}'",
+                        template.name.text, parameter.name.text
+                    ),
+                )
+            })?;
+        behavior::validate(
+            parameter,
+            selected,
+            &type_substitutions,
+            available_forms,
+            catalog,
+            invocation.span,
+        )?;
+    }
     invocation.arguments = retained_arguments;
-    let identity = specialization_identity(&template.name.text, &substitutions);
+    let identity = specialization_identity(
+        &template.name.text,
+        &type_substitutions,
+        &behavior_substitutions,
+    );
     invocation.kind.text.clone_from(&identity);
     requests.push(SpecializationRequest {
         template: template.name.text.clone(),
         identity,
-        substitutions,
+        type_substitutions,
+        behavior_substitutions,
     });
     Ok(())
 }
@@ -327,122 +413,18 @@ fn atomic_type_name(expression: &Expression) -> Option<&str> {
     }
 }
 
-fn specialization_identity(template: &str, substitutions: &BTreeMap<String, String>) -> String {
-    let arguments = substitutions
+fn specialization_identity(
+    template: &str,
+    type_substitutions: &BTreeMap<String, String>,
+    behavior_substitutions: &BTreeMap<String, String>,
+) -> String {
+    let arguments = type_substitutions
         .iter()
+        .chain(behavior_substitutions)
         .map(|(name, value)| format!("{name}={value}"))
         .collect::<Vec<_>>()
         .join(",");
     format!("{template}[{arguments}]")
-}
-
-fn instantiate(template: &FormSyntax, request: &SpecializationRequest) -> FormSyntax {
-    let mut form = template.clone();
-    form.name.text.clone_from(&request.identity);
-    form.front.type_parameters.clear();
-    for parameter in &mut form.front.startup_parameters {
-        substitute(&mut parameter.value_type, &request.substitutions);
-        if parameter.maximum_bytes.is_none() {
-            parameter.maximum_bytes =
-                crate::surface_parser::front::canonical_default_bound(&parameter.value_type.text);
-        }
-    }
-    for port in &mut form.front.runtime_ports {
-        substitute(&mut port.value_type, &request.substitutions);
-        if port.maximum_bytes.is_none() {
-            port.maximum_bytes =
-                crate::surface_parser::front::canonical_default_bound(&port.value_type.text);
-        }
-    }
-    for statement in &mut form.back {
-        match statement {
-            BackStatement::NamedGear(gear) => {
-                substitute_invocation_arguments(&mut gear.invocation, &request.substitutions);
-                if let Some(retained) = &mut gear.retained {
-                    substitute(&mut retained.value_type, &request.substitutions);
-                    if retained.maximum_bytes.is_none() {
-                        retained.maximum_bytes =
-                            crate::surface_parser::front::canonical_default_bound(
-                                &retained.value_type.text,
-                            );
-                    }
-                }
-            }
-            BackStatement::Cord(cord) => {
-                substitute_stages(&mut cord.stages, &request.substitutions)
-            }
-            BackStatement::MatchedRoute(route) => {
-                for arm in &mut route.arms {
-                    if let MatchedRoutePattern::Variant { value_type, .. }
-                    | MatchedRoutePattern::Guard { value_type, .. } = &mut arm.pattern
-                    {
-                        substitute(value_type, &request.substitutions);
-                    }
-                    substitute_stages(&mut arm.stages, &request.substitutions);
-                }
-            }
-            BackStatement::Pool(_) | BackStatement::LocalValue(_) => {}
-        }
-    }
-    for local in &mut form.local_forms {
-        substitute_form(local, &request.substitutions);
-    }
-    form
-}
-
-fn substitute_form(form: &mut FormSyntax, substitutions: &BTreeMap<String, String>) {
-    for parameter in &mut form.front.startup_parameters {
-        substitute(&mut parameter.value_type, substitutions);
-    }
-    for port in &mut form.front.runtime_ports {
-        substitute(&mut port.value_type, substitutions);
-    }
-    for local in &mut form.local_forms {
-        substitute_form(local, substitutions);
-    }
-}
-
-fn substitute_stages(stages: &mut [CordStage], substitutions: &BTreeMap<String, String>) {
-    for stage in stages {
-        match stage {
-            CordStage::InlineGear(invocation) => {
-                substitute_invocation_arguments(invocation, substitutions)
-            }
-            CordStage::StructuredSelector(selector) => match selector {
-                crate::StructuredSelectorSyntax::Field { value_type, .. }
-                | crate::StructuredSelectorSyntax::Index { value_type, .. }
-                | crate::StructuredSelectorSyntax::Variant { value_type, .. } => {
-                    substitute(value_type, substitutions)
-                }
-            },
-            _ => {}
-        }
-    }
-}
-
-fn substitute_invocation_arguments(
-    invocation: &mut Invocation,
-    substitutions: &BTreeMap<String, String>,
-) {
-    for argument in &mut invocation.arguments {
-        let value = match argument {
-            Argument::Positional(value) | Argument::Named { value, .. } => value,
-        };
-        if let ExpressionSyntax::Atomic(atom) = &mut value.syntax {
-            substitute(atom, substitutions);
-            value.text.clone_from(&atom.text);
-        }
-    }
-}
-
-fn substitute(value_type: &mut SpannedText, substitutions: &BTreeMap<String, String>) {
-    if let Some(concrete) = substitutions.get(&value_type.text) {
-        value_type.text.clone_from(concrete);
-    } else if let Some(inner) = value_type.text.strip_prefix('&') {
-        if let Some(concrete) = substitutions.get(inner) {
-            value_type.text = format!("&{concrete}");
-        }
-    }
 }
 
 fn diagnostic(span: Span, message: String) -> SyntaxCheckDiagnostic {

@@ -198,7 +198,7 @@ fn punctuation(text: &str) -> Option<(usize, SyntaxHighlightKind)> {
 fn classify_word(word: &str) -> SyntaxHighlightKind {
     match word {
         "form" | "host" | "body" | "pack" | "ship" | "need" | "version" | "pool" | "with"
-        | "as" | "sans" | "glyphs" | "in" | "not" | "type" => SyntaxHighlightKind::Keyword,
+        | "as" | "sans" | "glyphs" | "in" | "not" | "type" | "kind" => SyntaxHighlightKind::Keyword,
         "true" | "false" => SyntaxHighlightKind::Literal,
         _ if word.parse::<i128>().is_ok() || word.parse::<u128>().is_ok() => {
             SyntaxHighlightKind::Number
@@ -248,6 +248,14 @@ mod tests {
         }
         assert!(pieces.contains(&(SyntaxHighlightKind::Identity, "text/upper")));
         assert!(pieces.contains(&(SyntaxHighlightKind::Operator, "^^")));
+    }
+
+    #[test]
+    fn kind_parameter_uses_the_compile_time_keyword() {
+        let source =
+            "form apply (\n transform: kind (\n  value: Text >> mapped: Text\n )\n) {\n}\n";
+        let spans = highlight_syntax(source).unwrap();
+        assert!(pieces(source, &spans).contains(&(SyntaxHighlightKind::Keyword, "kind")));
     }
 
     #[test]

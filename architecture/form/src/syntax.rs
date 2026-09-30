@@ -194,10 +194,22 @@ pub enum FormCompletionPolicy {
 #[derive(Debug, Clone, Default, PartialEq, Eq)]
 pub struct FormFront {
     pub type_parameters: Vec<TypeParameter>,
+    pub kind_parameters: Vec<KindParameter>,
     pub startup_parameters: Vec<StartupParameter>,
     pub runtime_ports: Vec<RuntimePort>,
     pub shorthand: Option<ShorthandPair>,
     pub span: Option<Span>,
+}
+
+/// One exact compile-time Kind or checked source Form parameter.
+///
+/// The parameter disappears during specialization. Its Fore is a semantic
+/// compatibility constraint, never a runtime callable value.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct KindParameter {
+    pub name: SpannedText,
+    pub front: FormFront,
+    pub span: Span,
 }
 
 /// One compile-time checked type name. It is never a startup value.

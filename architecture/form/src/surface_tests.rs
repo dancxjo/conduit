@@ -22,6 +22,23 @@ fn local_forms_are_lossless_nested_source_syntax() {
 }
 
 #[test]
+fn kind_parameter_retains_its_exact_named_fore_constraint() {
+    let source = "form each (\n transform: kind (\n  >> value: Text\n  mapped: Text >>\n )\n >> values: Text...|\n mapped: Text...| >>\n) {\n}\n";
+    let document = parse_syntax_document(source);
+    assert!(
+        document.diagnostics.is_empty(),
+        "{:?}",
+        document.diagnostics
+    );
+    let parameter = &document.forms[0].front.kind_parameters[0];
+    assert_eq!(parameter.name.text, "transform");
+    assert_eq!(parameter.front.runtime_ports.len(), 2);
+    assert_eq!(parameter.front.runtime_ports[0].name.text, "value");
+    assert_eq!(parameter.front.runtime_ports[1].name.text, "mapped");
+    assert_eq!(document.round_trip(), source);
+}
+
+#[test]
 fn checked_pattern_refinement_is_lossless_front_syntax() {
     let source = "form code (\n >> value: Text <= 16B ~ /[A-Z]{2}[0-9]{4}/\n) {\n}\n";
     let document = parse_syntax_document(source);
