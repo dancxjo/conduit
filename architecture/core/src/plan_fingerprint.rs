@@ -8,7 +8,7 @@ use crate::{
     push_string, push_u32, push_u64, AdmittedLine, BoundLink, CancellationPolicy, CheckedFront,
     ConfigurationValue, ExpectedSign, ExpectedTerminal, FormBack, FormIdentity, FragmentCommitment,
     FragmentId, LinkAuthorityReference, LinkCredentialReference, PlanFragment, PlanId,
-    PortDescriptor, PortDirection, PortTemporal, TerminalPolicy,
+    PlannedActivation, PortDescriptor, PortDirection, PortTemporal, TerminalPolicy,
 };
 use alloc::string::String;
 use alloc::vec::Vec;
@@ -808,6 +808,7 @@ fn push_admitted_line(canonical: &mut Vec<u8>, line: &AdmittedLine) {
 pub(crate) fn compute_plan_id(
     form_identity: &FormIdentity,
     realization_backs: &[FormBack],
+    activations: &[PlannedActivation],
     commitments: &[FragmentCommitment],
 ) -> PlanId {
     let mut canonical = Vec::new();
@@ -817,12 +818,47 @@ pub(crate) fn compute_plan_id(
     if !realization_backs.is_empty() {
         plan_realization::push_canonical(&mut canonical, realization_backs);
     }
+    if !activations.is_empty() {
+        push_u32(&mut canonical, activations.len() as u32);
+        for activation in activations {
+            push_string(&mut canonical, "planned-activation@1");
+            push_string(&mut canonical, &activation.activation_id);
+            push_string(&mut canonical, activation.owner_placement_id.as_str());
+            push_string(&mut canonical, activation.selected_plan_id.as_str());
+            push_activation_front(&mut canonical, &activation.input);
+            push_activation_front(&mut canonical, &activation.output);
+            canonical.extend_from_slice(&activation.limits.maximum_active.to_le_bytes());
+            canonical.extend_from_slice(&activation.limits.maximum_queue_items.to_le_bytes());
+            push_u32(&mut canonical, activation.limits.maximum_queue_bytes);
+            canonical.push(activation.terminal_policy as u8);
+            canonical.push(activation.cancellation_policy as u8);
+            canonical.extend_from_slice(
+                &activation
+                    .per_activation_sign_budget
+                    .item_capacity
+                    .to_le_bytes(),
+            );
+            push_u32(
+                &mut canonical,
+                activation.per_activation_sign_budget.byte_capacity,
+            );
+        }
+    }
     push_u32(&mut canonical, commitments.len() as u32);
     for commitment in commitments {
         push_string(&mut canonical, commitment.host_id.as_str());
         push_string(&mut canonical, commitment.fragment_id.as_str());
     }
     PlanId::from(hash_bytes(&canonical))
+}
+
+fn push_activation_front(canonical: &mut Vec<u8>, front: &crate::PlannedActivationFront) {
+    push_string(canonical, front.front_port_id.as_str());
+    push_string(canonical, front.value_kind.as_str());
+    push_optional_string(
+        canonical,
+        front.abnormal_kind.as_ref().map(|kind| kind.as_str()),
+    );
 }
 
 fn push_ports(canonical: &mut Vec<u8>, ports: &[PortDescriptor]) {

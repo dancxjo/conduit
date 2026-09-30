@@ -4,7 +4,8 @@ use crate::{
     KernelOperationRegistry,
 };
 use conduit_core::{
-    semantic_digest, KindId, PlanId, PortDirection, PortId, PortTemporal, ValuePayload,
+    semantic_digest, verify_plan, KindId, PlanId, PlannedActivation, PortDirection, PortId,
+    PortTemporal, ValuePayload,
 };
 use conduit_kernel::scheduler::RemoteIngressOutcome;
 use conduit_kernel::{HostCallOutcome, KernelEvent};
@@ -104,6 +105,7 @@ pub enum BoundedActivationError {
         input: KindId,
         output: Option<KindId>,
     },
+    PlannedContractMismatch,
     InvalidLifecycle,
 }
 
@@ -174,6 +176,48 @@ impl BoundedActivationHost {
     ) -> Result<Self, BoundedActivationError> {
         let contract =
             BoundedActivationContract::for_definition(&definition, input_port, output_port)?;
+        Self::prepare_with_contract(definition, registry, contract)
+    }
+
+    /// Prepare the production adapter from exact Plan truth. The selected
+    /// subplan, Value fronts, and finite activation limits must be identical
+    /// to the executable composite definition; no runtime lookup or widening
+    /// may repair a disagreement.
+    pub fn prepare_planned(
+        planned: &PlannedActivation,
+        definition: KernelCompositeDefinition,
+        registry: &KernelOperationRegistry,
+    ) -> Result<Self, BoundedActivationError> {
+        if planned.selected_plan_id != planned.selected_plan.plan_id
+            || planned.selected_plan.as_ref() != &definition.internal_plan
+            || !verify_plan(&planned.selected_plan)
+        {
+            return Err(BoundedActivationError::PlannedContractMismatch);
+        }
+        let contract = BoundedActivationContract::for_definition(
+            &definition,
+            planned.input.front_port_id.clone(),
+            planned.output.front_port_id.clone(),
+        )?;
+        if contract.selected_plan_id != planned.selected_plan_id
+            || contract.input_value_kind != planned.input.value_kind
+            || contract.input_abnormal_kind != planned.input.abnormal_kind
+            || contract.output_value_kind != planned.output.value_kind
+            || contract.output_abnormal_kind != planned.output.abnormal_kind
+            || contract.maximum_active != planned.limits.maximum_active
+            || contract.maximum_queue_items != planned.limits.maximum_queue_items
+            || contract.maximum_queue_bytes != planned.limits.maximum_queue_bytes
+        {
+            return Err(BoundedActivationError::PlannedContractMismatch);
+        }
+        Self::prepare_with_contract(definition, registry, contract)
+    }
+
+    fn prepare_with_contract(
+        definition: KernelCompositeDefinition,
+        registry: &KernelOperationRegistry,
+        contract: BoundedActivationContract,
+    ) -> Result<Self, BoundedActivationError> {
         // Refuse an unavailable or over-budget exact subgraph before any input
         // can become owed work. Each activation is prepared afresh below.
         let ready = KernelCompositeHost::prepare(definition.clone(), registry)
