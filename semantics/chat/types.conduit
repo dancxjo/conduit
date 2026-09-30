@@ -23,6 +23,8 @@ type BodyChatRole =
     human
     | body
 
+representation chat/body-role = BodyChatRole as u8
+
 type BodyChatMessage = Text <= 4096B not in [""]
 
 type BodyChatHistoryItem = {
