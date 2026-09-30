@@ -11,7 +11,7 @@ fn native_offset_basis_owns_catalog_identity_and_round_trip() {
         LinguisticOffsetBasis::unicode_scalar(),
         LinguisticOffsetBasis::utf8_byte(),
     ] {
-        let encoded = basis.clone().encode().unwrap();
+        let encoded = basis.encode().unwrap();
         assert_eq!(LinguisticOffsetBasis::decode(&encoded).unwrap(), basis);
     }
 }

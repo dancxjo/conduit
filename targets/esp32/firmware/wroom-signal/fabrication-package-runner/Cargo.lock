@@ -50,6 +50,7 @@ version = "0.1.0"
 dependencies = [
  "conduit-core",
  "conduit-data",
+ "conduit-form",
  "libm",
  "serde",
 ]
@@ -170,6 +171,7 @@ name = "conduit-robotics"
 version = "0.1.0"
 dependencies = [
  "conduit-core",
+ "conduit-form",
  "conduit-presentation",
 ]
 
