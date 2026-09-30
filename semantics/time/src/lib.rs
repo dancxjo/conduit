@@ -7,7 +7,8 @@ mod generated {
     include!(concat!(env!("OUT_DIR"), "/semantic_types.rs"));
 }
 pub use generated::{
-    AvailabilityState, ClockChangeBehavior, InvitationState, ParticipantRole, SuspendBehavior,
+    AvailabilityState, ClockChangeBehavior, HistoricalEntryOrigin, HistoricalOverflowPolicy,
+    InvitationState, ParticipantRole, SuspendBehavior, TemporalBoundary, TemporalWindowPosition,
 };
 
 mod tick;

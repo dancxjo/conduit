@@ -1448,6 +1448,7 @@ dependencies = [
  "conduit-form",
  "conduit-kernel",
  "serde",
+ "serde_json",
 ]
 
 [[package]]

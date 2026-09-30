@@ -25,3 +25,21 @@ type AvailabilityState =
     | tentative
     | busy
     | unavailable
+
+type HistoricalEntryOrigin =
+    machine_observation
+    | operator_authored
+
+type HistoricalOverflowPolicy =
+    refuse
+    | evict_oldest_with_gap
+
+type TemporalBoundary =
+    inclusive
+    | exclusive
+
+type TemporalWindowPosition =
+    before
+    | within
+    | after
+    | indeterminate
