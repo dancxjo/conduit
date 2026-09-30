@@ -243,6 +243,38 @@ impl BoundedActivationHost {
                     .map_err(BoundedActivationError::Refused)?,
             );
         }
+        Self::prepare_with_ready(contract, ready)
+    }
+
+    pub(crate) fn prepare_planned_with_ready(
+        planned: &PlannedActivation,
+        definition: &KernelCompositeDefinition,
+        ready: Vec<KernelCompositeHost>,
+    ) -> Result<Self, BoundedActivationError> {
+        let contract = BoundedActivationContract::for_definition(
+            definition,
+            planned.input.front_port_id.clone(),
+            planned.output.front_port_id.clone(),
+            planned.limits.maximum_items,
+        )?;
+        if planned.selected_plan.as_ref() != &definition.internal_plan
+            || contract.selected_plan_id != planned.selected_plan_id
+            || contract.input_value_kind != planned.input.value_kind
+            || contract.output_value_kind != planned.output.value_kind
+        {
+            return Err(BoundedActivationError::PlannedContractMismatch);
+        }
+        Self::prepare_with_ready(contract, ready)
+    }
+
+    fn prepare_with_ready(
+        contract: BoundedActivationContract,
+        ready: Vec<KernelCompositeHost>,
+    ) -> Result<Self, BoundedActivationError> {
+        let maximum_items = usize::from(contract.maximum_items);
+        if ready.len() != maximum_items || ready.capacity() != maximum_items {
+            return Err(BoundedActivationError::PlannedContractMismatch);
+        }
         let output_buffer = ValuePayload {
             value_kind: contract.output_value_kind.clone(),
             encoded: Vec::with_capacity(contract.maximum_queue_bytes as usize),

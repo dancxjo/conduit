@@ -10,6 +10,9 @@ pub(crate) fn augment_boundary_cords(
     boundaries: &[BoundaryEndpoint],
 ) -> Result<(), String> {
     for boundary in boundaries {
+        if boundary.already_lowered {
+            continue;
+        }
         let identity = lowered
             .identity
             .ports

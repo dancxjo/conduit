@@ -46,6 +46,7 @@ pub(crate) struct BoundaryEndpoint {
     pub abnormal_kind: Option<conduit_core::KindId>,
     pub item_capacity: u16,
     pub byte_capacity: u32,
+    pub already_lowered: bool,
 }
 
 pub(crate) struct ChildKernel {

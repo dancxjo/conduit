@@ -93,6 +93,7 @@ struct InternalLink {
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct KernelCompositeHostRequest {
+    pub dispatch_token: u64,
     pub child: HostId,
     pub request: HostCallRequest,
     /// Commitment to the selected fragment, placement, call and Host Call
@@ -122,6 +123,8 @@ pub struct KernelCompositeHost {
     started: bool,
     cancelled: bool,
     host_call_obligations: BTreeMap<(HostId, NodeId, HostCallId), [u8; 32]>,
+    outstanding_host_calls: BTreeMap<u64, (HostId, HostCallRequest, [u8; 32])>,
+    next_dispatch_token: u64,
 }
 
 impl KernelCompositeHost {
@@ -157,18 +160,30 @@ impl KernelCompositeHost {
                 .ok_or_else(|| {
                     invalid_front(&front.external_port.port_id, "missing internal port")
                 })?;
+            let existing = lowered.fore_ports.iter().find(|item| {
+                item.front_port_id == front.external_port.port_id
+                    && item.direction == front.external_port.direction
+            });
             let boundary_count = child_boundaries
                 .get(&front.internal_child)
                 .map_or(0, Vec::len);
-            let endpoint = RemoteEndpointId(
-                u16::try_from(lowered.remote_endpoints.len() + boundary_count).map_err(|_| {
-                    invalid_front(&front.external_port.port_id, "endpoint overflow")
-                })?,
-            );
-            let cord = conduit_kernel::CordId(
-                u16::try_from(lowered.cords.len() + boundary_count)
-                    .map_err(|_| invalid_front(&front.external_port.port_id, "Cord overflow"))?,
-            );
+            let (endpoint, cord, already_lowered) = if let Some(existing) = existing {
+                (existing.endpoint, existing.cord, true)
+            } else {
+                (
+                    RemoteEndpointId(
+                        u16::try_from(lowered.remote_endpoints.len() + boundary_count).map_err(
+                            |_| invalid_front(&front.external_port.port_id, "endpoint overflow"),
+                        )?,
+                    ),
+                    conduit_kernel::CordId(
+                        u16::try_from(lowered.cords.len() + boundary_count).map_err(|_| {
+                            invalid_front(&front.external_port.port_id, "Cord overflow")
+                        })?,
+                    ),
+                    false,
+                )
+            };
             child_boundaries
                 .entry(front.internal_child.clone())
                 .or_default()
@@ -182,6 +197,7 @@ impl KernelCompositeHost {
                     abnormal_kind: front.external_port.abnormal_kind.clone(),
                     item_capacity: definition.external_capability.limits.max_queue_items,
                     byte_capacity: definition.external_capability.limits.max_queue_bytes,
+                    already_lowered,
                 });
             fronts.insert(
                 front.external_port.port_id.clone(),
@@ -239,6 +255,8 @@ impl KernelCompositeHost {
             started: false,
             cancelled: false,
             host_call_obligations,
+            outstanding_host_calls: BTreeMap::new(),
+            next_dispatch_token: 0,
         })
     }
 
@@ -374,18 +392,35 @@ impl KernelCompositeHost {
         if !self.started || self.cancelled {
             return None;
         }
-        self.children.iter_mut().find_map(|(child, kernel)| {
+        let next_dispatch_token = self.next_dispatch_token.checked_add(1)?;
+        let surfaced = self.children.iter_mut().find_map(|(child, kernel)| {
             kernel
                 .next_host_request()
-                .map(|request| KernelCompositeHostRequest {
-                    child: child.clone(),
-                    obligation_identity: self
-                        .host_call_obligations
-                        .get(&(child.clone(), request.node, request.call))
-                        .copied()
-                        .expect("lowered Host Call has a sealed obligation"),
-                    request,
-                })
+                .map(|request| (child.clone(), request))
+        })?;
+        let (child, request) = surfaced;
+        let obligation_identity = self
+            .host_call_obligations
+            .get(&(child.clone(), request.node, request.call))
+            .copied()
+            .expect("lowered Host Call has a sealed obligation");
+        let dispatch_token = self.next_dispatch_token;
+        self.next_dispatch_token = next_dispatch_token;
+        if self
+            .outstanding_host_calls
+            .insert(
+                dispatch_token,
+                (child.clone(), request, obligation_identity),
+            )
+            .is_some()
+        {
+            return None;
+        }
+        Some(KernelCompositeHostRequest {
+            dispatch_token,
+            child,
+            request,
+            obligation_identity,
         })
     }
 
@@ -395,7 +430,7 @@ impl KernelCompositeHost {
         outcome: HostCallOutcome,
     ) -> Result<(), KernelCompositeError> {
         self.require_started()?;
-        self.verify_host_call_obligation(request)?;
+        self.consume_host_call_obligation(request)?;
         self.children
             .get_mut(&request.child)
             .ok_or_else(|| KernelCompositeError::StaleChild(request.child.clone()))?
@@ -408,6 +443,7 @@ impl KernelCompositeHost {
         &self,
         request: &KernelCompositeHostRequest,
     ) -> Result<&[u8], KernelCompositeError> {
+        self.verify_host_call_obligation(request)?;
         self.children
             .get(&request.child)
             .ok_or_else(|| KernelCompositeError::StaleChild(request.child.clone()))?
@@ -422,7 +458,7 @@ impl KernelCompositeHost {
         bytes: &[u8],
     ) -> Result<(), KernelCompositeError> {
         self.require_started()?;
-        self.verify_host_call_obligation(request)?;
+        self.consume_host_call_obligation(request)?;
         let child = self
             .children
             .get_mut(&request.child)
@@ -449,18 +485,16 @@ impl KernelCompositeHost {
         &self,
         request: &KernelCompositeHostRequest,
     ) -> Result<(), KernelCompositeError> {
-        let expected = self.host_call_obligations.get(&(
-            request.child.clone(),
-            request.request.node,
-            request.request.call,
-        ));
-        if expected == Some(&request.obligation_identity) {
-            Ok(())
-        } else {
-            Err(KernelCompositeError::InvalidBoundary(
-                "Host Call completion differs from its sealed child obligation".into(),
-            ))
-        }
+        verify_outstanding_host_call(&self.outstanding_host_calls, request)
+    }
+
+    fn consume_host_call_obligation(
+        &mut self,
+        request: &KernelCompositeHostRequest,
+    ) -> Result<(), KernelCompositeError> {
+        self.verify_host_call_obligation(request)?;
+        self.outstanding_host_calls.remove(&request.dispatch_token);
+        Ok(())
     }
 
     pub fn step(&mut self) -> Result<KernelCompositeStatus, KernelCompositeError> {
@@ -485,6 +519,9 @@ impl KernelCompositeHost {
     }
 
     pub fn cancel(&mut self) -> Result<(), KernelCompositeError> {
+        // Cancellation consumes adapter authority even if a child later
+        // reports mechanism trouble while cancelling.
+        self.outstanding_host_calls.clear();
         for (child, kernel) in &mut self.children {
             kernel.cancel().map_err(|reason| execution(child, reason))?;
         }
@@ -591,6 +628,26 @@ impl KernelCompositeHost {
             }
         }
         Ok(())
+    }
+}
+
+fn verify_outstanding_host_call(
+    outstanding: &BTreeMap<u64, (HostId, HostCallRequest, [u8; 32])>,
+    request: &KernelCompositeHostRequest,
+) -> Result<(), KernelCompositeError> {
+    let expected = outstanding.get(&request.dispatch_token);
+    if expected
+        == Some(&(
+            request.child.clone(),
+            request.request,
+            request.obligation_identity,
+        ))
+    {
+        Ok(())
+    } else {
+        Err(KernelCompositeError::InvalidBoundary(
+            "Host Call completion differs from its outstanding sealed dispatch".into(),
+        ))
     }
 }
 
@@ -721,5 +778,43 @@ mod tests {
         ] {
             assert_ne!(drifted, exact);
         }
+    }
+
+    #[test]
+    fn dispatch_token_refuses_forged_cross_swapped_duplicate_and_late_completion() {
+        use conduit_kernel::{BoundedValueRef, RequestId, ValueRef};
+        let request = HostCallRequest {
+            node: NodeId(1),
+            request: RequestId(2),
+            call: HostCallId(3),
+            input: BoundedValueRef::new(
+                ValueRef {
+                    slot: 4,
+                    generation: 5,
+                    byte_len: 6,
+                },
+                6,
+            )
+            .unwrap(),
+        };
+        let child = HostId::from("child");
+        let identity = [7; 32];
+        let mut outstanding = BTreeMap::from([(9, (child.clone(), request, identity))]);
+        let exact = KernelCompositeHostRequest {
+            dispatch_token: 9,
+            child,
+            request,
+            obligation_identity: identity,
+        };
+        assert!(verify_outstanding_host_call(&outstanding, &exact).is_ok());
+        let mut forged = exact.clone();
+        forged.request.request = RequestId(8);
+        assert!(verify_outstanding_host_call(&outstanding, &forged).is_err());
+        let mut swapped = exact.clone();
+        swapped.request.input.value.generation = 8;
+        assert!(verify_outstanding_host_call(&outstanding, &swapped).is_err());
+        outstanding.remove(&exact.dispatch_token);
+        assert!(verify_outstanding_host_call(&outstanding, &exact).is_err());
+        assert!(verify_outstanding_host_call(&outstanding, &exact).is_err());
     }
 }

@@ -83,6 +83,32 @@ impl BoundedFoldActivationHost {
         {
             return Err(BoundedFoldError::PlannedContractMismatch);
         }
+        let maximum_items = usize::from(planned.limits.maximum_items);
+        if maximum_items == 0 {
+            return Err(BoundedFoldError::PlannedContractMismatch);
+        }
+        let mut ready = Vec::with_capacity(maximum_items);
+        for _ in 0..maximum_items {
+            ready.push(
+                KernelCompositeHost::prepare(definition.clone(), registry)
+                    .map_err(BoundedFoldError::Refused)?,
+            );
+        }
+        Self::prepare_with_ready(planned, definition, ready)
+    }
+
+    pub(crate) fn prepare_with_ready(
+        planned: &PlannedFoldActivation,
+        definition: KernelCompositeDefinition,
+        ready: Vec<KernelCompositeHost>,
+    ) -> Result<Self, BoundedFoldError> {
+        if planned.selected_plan.as_ref() != &definition.internal_plan
+            || !verify_plan(&planned.selected_plan)
+            || ready.len() != usize::from(planned.limits.maximum_items)
+            || ready.capacity() != usize::from(planned.limits.maximum_items)
+        {
+            return Err(BoundedFoldError::PlannedContractMismatch);
+        }
         let mut accumulator_bytes = Vec::with_capacity(planned.retained_accumulator_bytes as usize);
         accumulator_bytes.extend_from_slice(&planned.initial_accumulator);
         let accumulator = ValuePayload {
@@ -101,17 +127,7 @@ impl BoundedFoldActivationHost {
             value_kind: planned.item_input.value_kind.clone(),
             encoded: Vec::with_capacity(planned.retained_item_bytes as usize),
         };
-        let maximum_items = usize::from(planned.limits.maximum_items);
-        if maximum_items == 0 {
-            return Err(BoundedFoldError::PlannedContractMismatch);
-        }
-        let mut ready = Vec::with_capacity(maximum_items);
-        for _ in 0..maximum_items {
-            ready.push(
-                KernelCompositeHost::prepare(definition.clone(), registry)
-                    .map_err(BoundedFoldError::Refused)?,
-            );
-        }
+        let maximum_items = ready.len();
         Ok(Self {
             planned: planned.clone(),
             ready,
