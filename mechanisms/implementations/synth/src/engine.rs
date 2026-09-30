@@ -106,7 +106,8 @@ impl ReferenceSynth {
     ) -> Result<SynthEventOutcome, SynthEventError> {
         self.require_current_or_future(event.event_time_micros)?;
         match event.control {
-            MusicalControl::Sustain { down } => {
+            MusicalControl::Sustain(payload) => {
+                let down = payload.down().get();
                 let mut released = 0;
                 if self.sustain_down && !down {
                     for voice in self.voices.iter_mut().flatten() {
@@ -122,20 +123,14 @@ impl ReferenceSynth {
                     released_voices: released,
                 })
             }
-            MusicalControl::PitchBend {
-                amount_millionths,
-                range_microcents,
-            } => {
-                self.pitch_bend_amount_millionths = amount_millionths;
-                self.pitch_bend_range_microcents = range_microcents;
+            MusicalControl::PitchBend(payload) => {
+                self.pitch_bend_amount_millionths = *payload.amount_millionths();
+                self.pitch_bend_range_microcents = *payload.range_microcents();
                 Ok(SynthEventOutcome::PitchBend)
             }
-            MusicalControl::Modulation {
-                amount_millionths,
-                destination,
-            } => {
-                self.modulation_amount_millionths = amount_millionths;
-                self.modulation_destination = destination;
+            MusicalControl::Modulation(payload) => {
+                self.modulation_amount_millionths = *payload.amount_millionths();
+                self.modulation_destination = *payload.destination();
                 Ok(SynthEventOutcome::Modulation)
             }
         }

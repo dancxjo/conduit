@@ -35,7 +35,12 @@ fn sustain_holds_key_release_then_releases_exact_voices() {
         .unwrap();
     synth
         .apply_control(
-            MusicalControlEvent::new(MusicalControl::Sustain { down: true }, 0, 1).unwrap(),
+            MusicalControlEvent::new(
+                MusicalControl::sustain(conduit_core::InfoBool::TRUE).unwrap(),
+                0,
+                1,
+            )
+            .unwrap(),
         )
         .unwrap();
     let outcome = synth
@@ -61,8 +66,12 @@ fn sustain_holds_key_release_then_releases_exact_voices() {
     assert_eq!(
         synth
             .apply_control(
-                MusicalControlEvent::new(MusicalControl::Sustain { down: false }, 208_334, 3,)
-                    .unwrap()
+                MusicalControlEvent::new(
+                    MusicalControl::sustain(conduit_core::InfoBool::FALSE).unwrap(),
+                    208_334,
+                    3,
+                )
+                .unwrap()
             )
             .unwrap(),
         SynthEventOutcome::Sustain {

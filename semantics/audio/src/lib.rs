@@ -13,7 +13,8 @@ mod generated {
 }
 
 pub use generated::{
-    AudioToneTerminal, CancellationDisposition, Gate, ModulationDestination, PcmChannelLayout,
+    AudioToneTerminal, CancellationDisposition, Gate, ModulationDestination, MusicalControl,
+    MusicalControlModulation, MusicalControlPitchBend, MusicalControlSustain, PcmChannelLayout,
     PcmSampleRepresentation, PressureDisposition, SoundSeam, SoundStreamState,
     SoundTerminalBehavior,
 };

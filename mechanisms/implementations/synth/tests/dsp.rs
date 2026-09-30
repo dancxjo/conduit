@@ -65,10 +65,7 @@ fn pitch_bend_and_lfo_modulation_change_normalized_output() {
         .unwrap();
     bent.apply_control(
         MusicalControlEvent::new(
-            MusicalControl::PitchBend {
-                amount_millionths: 500_000,
-                range_microcents: 200_000_000,
-            },
+            MusicalControl::pitch_bend(500_000, 200_000_000).unwrap(),
             0,
             1,
         )
@@ -85,10 +82,7 @@ fn pitch_bend_and_lfo_modulation_change_normalized_output() {
     modulated
         .apply_control(
             MusicalControlEvent::new(
-                MusicalControl::Modulation {
-                    amount_millionths: 1_000_000,
-                    destination: ModulationDestination::FilterCutoff,
-                },
+                MusicalControl::modulation(1_000_000, ModulationDestination::FilterCutoff).unwrap(),
                 0,
                 1,
             )
