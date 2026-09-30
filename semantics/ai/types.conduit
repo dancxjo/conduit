@@ -130,13 +130,13 @@ type ModelOperation =
     | evaluate
     | train
 
-representation ai/model-operation = ModelOperation as u8
+code ai/model-operation = ModelOperation as u8
 
 type ModelPortPresence =
     required
     | optional
 
-representation ai/model-port-presence = ModelPortPresence as u8
+code ai/model-port-presence = ModelPortPresence as u8
 
 type SimilarityMetric =
     cosine_similarity
@@ -264,7 +264,7 @@ type RetrievalMechanism =
     | temporal
     | domain_exact
 
-representation ai/retrieval-mechanism = RetrievalMechanism as u8
+code ai/retrieval-mechanism = RetrievalMechanism as u8
 
 type RerankingProofClass =
     deterministic_conformance

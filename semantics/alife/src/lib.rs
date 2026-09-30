@@ -8,8 +8,7 @@ mod generated {
 }
 pub use generated::{
     FieldBitmapRefusal, GardenEvolutionRefusal, LeniaBoundary, LeniaRegionChunkKind,
-    LeniaRegionChunkKindRepresentation, ReactionDiffusionBoundaryEdge,
-    ReactionDiffusionBoundaryEdgeRepresentation,
+    LeniaRegionChunkKindCode, ReactionDiffusionBoundaryEdge, ReactionDiffusionBoundaryEdgeCode,
 };
 
 mod distributed_catalog;

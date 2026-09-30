@@ -180,20 +180,19 @@ impl WheelDropObservation {
     }
 }
 
-use crate::{ChargingState, ChargingStateRepresentation};
+use crate::{ChargingState, ChargingStateCode};
 
 impl TryFrom<u8> for ChargingState {
     type Error = InfoDecodeError;
 
     fn try_from(value: u8) -> Result<Self, Self::Error> {
-        ChargingStateRepresentation::decode(&[value])
-            .map_err(|_| InfoDecodeError::NonCanonicalEnum(value))
+        ChargingStateCode::decode(&[value]).map_err(|_| InfoDecodeError::NonCanonicalEnum(value))
     }
 }
 
 impl ChargingState {
     pub const fn wire_tag(self) -> u8 {
-        ChargingStateRepresentation::encode(self)[0]
+        ChargingStateCode::encode(self)[0]
     }
 }
 

@@ -4,10 +4,7 @@ use alloc::{string::String, vec::Vec};
 use conduit_core::semantic_digest;
 use conduit_data::{TensorAxisRole, TensorElement};
 
-use crate::{
-    ModelOperation, ModelOperationRepresentation, ModelPortPresence,
-    ModelPortPresenceRepresentation,
-};
+use crate::{ModelOperation, ModelOperationCode, ModelPortPresence, ModelPortPresenceCode};
 
 pub const MODEL_SIGNATURE_INFO_ID: &str = "model/signature@1";
 pub const MAXIMUM_MODEL_PORTS: usize = 32;
@@ -124,7 +121,7 @@ impl ModelSignature {
         bytes.extend_from_slice(&self.compatibility_version.to_le_bytes());
         push_len(&mut bytes, self.operations.len());
         for operation in &self.operations {
-            bytes.push(ModelOperationRepresentation::encode(*operation)[0]);
+            bytes.push(ModelOperationCode::encode(*operation)[0]);
         }
         encode_ports(&mut bytes, &self.inputs, 0);
         encode_ports(&mut bytes, &self.outputs, 1);
@@ -185,7 +182,7 @@ fn encode_ports(output: &mut Vec<u8>, ports: &[ModelPortConstraint], direction: 
     for port in ports {
         push_text(output, &port.identity);
         push_text(output, &port.semantic_kind);
-        output.push(ModelPortPresenceRepresentation::encode(port.presence)[0]);
+        output.push(ModelPortPresenceCode::encode(port.presence)[0]);
         let tensor = match &port.value {
             ModelValueConstraint::Tensor(value) => {
                 output.push(0);

@@ -1,8 +1,7 @@
 //! Fixed bounded Lenia region chunks carried as ordinary session payloads.
 
 use crate::{
-    LeniaFieldId, LeniaRegion, LeniaRegionChunkKind, LeniaRegionChunkKindRepresentation,
-    LeniaRegionId,
+    LeniaFieldId, LeniaRegion, LeniaRegionChunkKind, LeniaRegionChunkKindCode, LeniaRegionId,
 };
 
 pub const LENIA_REGION_CHUNK_MAX_BYTES: usize = 1_024;
@@ -108,7 +107,7 @@ impl LeniaRegionChunkHeader {
         output[..length].fill(0);
         output[0..4].copy_from_slice(&MAGIC);
         output[4] = VERSION;
-        output[5] = LeniaRegionChunkKindRepresentation::encode(self.kind)[0];
+        output[5] = LeniaRegionChunkKindCode::encode(self.kind)[0];
         output[6] = self.region.id.0;
         output[8..24].copy_from_slice(&self.field_id.0);
         output[24..32].copy_from_slice(&self.generation.to_le_bytes());
@@ -230,7 +229,7 @@ impl<'a> LeniaRegionChunkView<'a> {
         if encoded[4] != VERSION || encoded[7] != 0 {
             return Err(LeniaRegionChunkRefusal::WrongVersion);
         }
-        let kind = LeniaRegionChunkKindRepresentation::decode(&encoded[5..6])
+        let kind = LeniaRegionChunkKindCode::decode(&encoded[5..6])
             .map_err(|_| LeniaRegionChunkRefusal::WrongKind)?;
         let header = LeniaRegionChunkHeader {
             kind,

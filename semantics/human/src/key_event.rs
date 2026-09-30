@@ -35,7 +35,7 @@ pub const KEY_EVENT_CONFORMANCE_VECTORS: [KeyEventConformanceVector; 8] = [
     vector("simultaneous-b-second", 0x05, 0, 0),
 ];
 
-use crate::{KeyTransition, KeyTransitionRepresentation};
+use crate::{KeyTransition, KeyTransitionCode};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub struct KeyModifiers(u8);
@@ -119,7 +119,7 @@ impl KeyEvent {
     pub const fn encode(self) -> [u8; KEY_EVENT_ENCODED_LEN] {
         [
             self.usage,
-            KeyTransitionRepresentation::encode(self.transition)[0],
+            KeyTransitionCode::encode(self.transition)[0],
             self.modifiers_after.bits(),
         ]
     }
@@ -131,7 +131,7 @@ impl KeyEvent {
                 actual: encoded.len(),
             });
         }
-        let transition = KeyTransitionRepresentation::decode(&encoded[1..2])
+        let transition = KeyTransitionCode::decode(&encoded[1..2])
             .map_err(|_| InfoDecodeError::NonCanonicalEnum(encoded[1]))?;
         Self::new(encoded[0], transition, KeyModifiers::from_bits(encoded[2]))
     }

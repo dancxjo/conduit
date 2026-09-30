@@ -49,13 +49,13 @@ type HistoricalEntryOrigin =
     machine_observation
     | operator_authored
 
-representation time/historical-entry-origin = HistoricalEntryOrigin as u8
+code time/historical-entry-origin = HistoricalEntryOrigin as u8
 
 type HistoricalOverflowPolicy =
     refuse
     | evict_oldest_with_gap
 
-representation time/historical-overflow-policy = HistoricalOverflowPolicy as u8
+code time/historical-overflow-policy = HistoricalOverflowPolicy as u8
 
 type ReplayPolicy =
     step

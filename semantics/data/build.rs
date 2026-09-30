@@ -1,7 +1,6 @@
-use conduit_form::rust_binding::{generate_rust_bindings_with_representations, RustBindingOptions};
+use conduit_form::rust_binding::{generate_rust_bindings_with_codes, RustBindingOptions};
 use conduit_form::{
-    check_syntax_document, generate_ecmascript_representations, parse_syntax_document,
-    StartupCatalog,
+    check_syntax_document, generate_ecmascript_codes, parse_syntax_document, StartupCatalog,
 };
 use std::{env, fs, path::PathBuf};
 
@@ -12,23 +11,20 @@ fn main() {
         &StartupCatalog::new(),
     )
     .expect("data semantic Types must check");
-    let generated = generate_rust_bindings_with_representations(
+    let generated = generate_rust_bindings_with_codes(
         &checked.native_types,
-        &checked.representations,
+        &checked.codes,
         &RustBindingOptions::default(),
     )
-    .expect("data semantic Types and representations must generate exact Rust bindings");
+    .expect("data semantic Types and codes must generate exact Rust bindings");
     let output_directory = PathBuf::from(env::var_os("OUT_DIR").expect("Cargo supplies OUT_DIR"));
     let output = output_directory.join("semantic_types.rs");
     fs::write(output, generated.source).expect("write generated data bindings");
-    let ecmascript = output_directory.join("representations.mjs");
-    fs::write(
-        &ecmascript,
-        generate_ecmascript_representations(&checked.representations),
-    )
-    .expect("write generated ECMAScript representation bindings");
+    let ecmascript = output_directory.join("codes.mjs");
+    fs::write(&ecmascript, generate_ecmascript_codes(&checked.codes))
+        .expect("write generated ECMAScript code bindings");
     println!(
-        "cargo:rustc-env=CONDUIT_DATA_REPRESENTATIONS_MJS={}",
+        "cargo:rustc-env=CONDUIT_DATA_CODES_MJS={}",
         ecmascript.display()
     );
 }

@@ -1,5 +1,5 @@
 use crate::prelude::*;
-use crate::{CheckedNativeType, CheckedRepresentation};
+use crate::{CheckedCode, CheckedNativeType};
 use alloc::collections::{BTreeMap, BTreeSet};
 use conduit_core::{PrimitiveInfoKind, StructuredInfoType, StructuredInfoTypeShape};
 use core::fmt::Write;
@@ -8,7 +8,7 @@ use core::fmt::Write;
 pub struct RustBindingOptions {
     /// A Rust-only spelling prefix. It never participates in semantic identity.
     pub type_prefix: String,
-    /// Adds representation-only Serde derives to payload-free variants.
+    /// Adds code-only Serde derives to payload-free variants.
     /// This never participates in semantic identity and requires the consuming
     /// crate to provide `serde` with derive support.
     pub derive_serde_for_unit_variants: bool,
@@ -33,12 +33,12 @@ pub fn generate_rust_bindings(
     types: &[CheckedNativeType],
     options: &RustBindingOptions,
 ) -> Result<RustBindingModule, RustBindingGenerationError> {
-    generate_rust_bindings_with_representations(types, &[], options)
+    generate_rust_bindings_with_codes(types, &[], options)
 }
 
-pub fn generate_rust_bindings_with_representations(
+pub fn generate_rust_bindings_with_codes(
     types: &[CheckedNativeType],
-    representations: &[CheckedRepresentation],
+    codes: &[CheckedCode],
     options: &RustBindingOptions,
 ) -> Result<RustBindingModule, RustBindingGenerationError> {
     if types.is_empty() {
@@ -74,7 +74,7 @@ pub fn generate_rust_bindings_with_representations(
          // Rust names and layout are bindings, never semantic identity.\n\
          extern crate alloc;\n\
          #[allow(unused_imports)]\n\
-         use conduit_form::rust_binding::{BoundedBytes, BoundedSequence, NativeBindingRefusal, NativeRepresentationRefusal, NativeRustBinding};\n\
+         use conduit_form::rust_binding::{BoundedBytes, BoundedSequence, NativeBindingRefusal, NativeCodeRefusal, NativeRustBinding};\n\
          use conduit_form::rust_binding::semantic_core as conduit_core;\n\
          #[allow(unused_imports)]\n\
          use conduit_core::{StructuredFieldValue, StructuredInfoType, StructuredInfoValue, StructuredInfoValueShape};\n\
@@ -90,53 +90,53 @@ pub fn generate_rust_bindings_with_representations(
             options,
         )?;
     }
-    emit_representations(&mut source, representations, &names)?;
+    emit_codes(&mut source, codes, &names)?;
     Ok(RustBindingModule {
         source,
         semantic_type_bytes,
     })
 }
 
-fn emit_representations(
+fn emit_codes(
     out: &mut String,
-    representations: &[CheckedRepresentation],
+    codes: &[CheckedCode],
     names: &BTreeMap<String, String>,
 ) -> Result<(), RustBindingGenerationError> {
     let mut codec_names = BTreeSet::new();
-    for representation in representations {
+    for code in codes {
         let rust_type = names
-            .get(representation.value_type.as_str())
+            .get(code.value_type.as_str())
             .ok_or(RustBindingGenerationError::InvalidSemanticType)?;
-        let codec = format!("{rust_type}Representation");
+        let codec = format!("{rust_type}Code");
         if !codec_names.insert(codec.clone()) {
             return Err(RustBindingGenerationError::DuplicateRustIdentifier(codec));
         }
         writeln!(out, "pub struct {codec};").expect("String writing is infallible");
         writeln!(out, "impl {codec} {{").expect("String writing is infallible");
-        writeln!(out, "    pub const NAME: &str = {:?};", representation.name)
+        writeln!(out, "    pub const NAME: &str = {:?};", code.name)
             .expect("String writing is infallible");
         writeln!(
             out,
             "    pub const IDENTITY: &str = {:?};",
-            representation.compatibility_id
+            code.compatibility_id
         )
         .expect("String writing is infallible");
         writeln!(
             out,
             "    pub const EXACT_BYTES: usize = {};",
-            representation.exact_bytes
+            code.exact_bytes
         )
         .expect("String writing is infallible");
         writeln!(
             out,
             "    pub const MAXIMUM_BYTES: usize = {};",
-            representation.maximum_bytes
+            code.maximum_bytes
         )
         .expect("String writing is infallible");
         writeln!(
             out,
             "    pub const MAXIMUM_DECODE_STEPS: usize = {};",
-            representation.maximum_decode_steps
+            code.maximum_decode_steps
         )
         .expect("String writing is infallible");
         writeln!(
@@ -145,7 +145,7 @@ fn emit_representations(
         )
         .expect("String writing is infallible");
         writeln!(out, "        [match value {{").expect("String writing is infallible");
-        for mapping in &representation.mappings {
+        for mapping in &code.mappings {
             writeln!(
                 out,
                 "            {rust_type}::{} => {},",
@@ -156,12 +156,15 @@ fn emit_representations(
         }
         writeln!(out, "        }}]").expect("String writing is infallible");
         writeln!(out, "    }}").expect("String writing is infallible");
-        writeln!(out, "    pub fn decode(encoded: &[u8]) -> Result<{rust_type}, NativeRepresentationRefusal> {{")
-            .expect("String writing is infallible");
-        writeln!(out, "        let [tag] = encoded else {{ return Err(NativeRepresentationRefusal::WrongLength {{ actual: encoded.len() }}); }};")
+        writeln!(
+            out,
+            "    pub fn decode(encoded: &[u8]) -> Result<{rust_type}, NativeCodeRefusal> {{"
+        )
+        .expect("String writing is infallible");
+        writeln!(out, "        let [tag] = encoded else {{ return Err(NativeCodeRefusal::WrongLength {{ actual: encoded.len() }}); }};")
             .expect("String writing is infallible");
         writeln!(out, "        match *tag {{").expect("String writing is infallible");
-        for mapping in &representation.mappings {
+        for mapping in &code.mappings {
             writeln!(
                 out,
                 "            {} => Ok({rust_type}::{}),",
@@ -172,7 +175,7 @@ fn emit_representations(
         }
         writeln!(
             out,
-            "            actual => Err(NativeRepresentationRefusal::InvalidTag {{ actual }}),"
+            "            actual => Err(NativeCodeRefusal::InvalidTag {{ actual }}),"
         )
         .expect("String writing is infallible");
         writeln!(out, "        }}").expect("String writing is infallible");

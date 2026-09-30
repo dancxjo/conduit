@@ -4,10 +4,9 @@ use alloc::{string::String, vec::Vec};
 use conduit_core::{semantic_digest, BoundedResourceRef, KindId, TemporalInstant, TemporalScale};
 
 use crate::{
-    BoundedHistoricalTimeline, HistoricalEntryOriginRepresentation,
-    HistoricalOverflowPolicyRepresentation, HistoricalRetentionGap, HistoricalTimelineEntry,
-    HistoricalTimelineRefusal, MAXIMUM_HISTORICAL_ENTRY_IDENTITY_BYTES,
-    MAXIMUM_HISTORICAL_TIMELINE_ENTRIES,
+    BoundedHistoricalTimeline, HistoricalEntryOriginCode, HistoricalOverflowPolicyCode,
+    HistoricalRetentionGap, HistoricalTimelineEntry, HistoricalTimelineRefusal,
+    MAXIMUM_HISTORICAL_ENTRY_IDENTITY_BYTES, MAXIMUM_HISTORICAL_TIMELINE_ENTRIES,
 };
 
 pub const HISTORICAL_TIMELINE_SNAPSHOT_VERSION: u8 = 1;
@@ -47,7 +46,7 @@ pub fn encode_historical_timeline_into(
     writer.u8(encode_scale(scale))?;
     writer.u16(maximum_entries as u16)?;
     writer.u64(maximum_bytes)?;
-    writer.u8(HistoricalOverflowPolicyRepresentation::encode(overflow)[0])?;
+    writer.u8(HistoricalOverflowPolicyCode::encode(overflow)[0])?;
     writer.u64(next)?;
     writer.u64(clear)?;
     match timeline.retention_gap() {
@@ -74,7 +73,7 @@ pub fn encode_historical_timeline_into(
         writer.text(&entry.event_time.clock_basis)?;
         writer.u64(entry.event_time.resolution_ticks)?;
         writer.u64(entry.event_time.uncertainty_ticks)?;
-        writer.u8(HistoricalEntryOriginRepresentation::encode(entry.origin)[0])?;
+        writer.u8(HistoricalEntryOriginCode::encode(entry.origin)[0])?;
         let resource = entry
             .value
             .encode()
@@ -110,7 +109,7 @@ pub fn decode_historical_timeline(
     let scale = decode_scale(cursor.u8()?)?;
     let maximum_entries = usize::from(cursor.u16()?);
     let maximum_bytes = cursor.u64()?;
-    let overflow = HistoricalOverflowPolicyRepresentation::decode(&[cursor.u8()?])
+    let overflow = HistoricalOverflowPolicyCode::decode(&[cursor.u8()?])
         .map_err(|_| HistoricalTimelineCodecRefusal::InvalidEnum)?;
     let next = cursor.u64()?;
     let clear = cursor.u64()?;
@@ -146,7 +145,7 @@ pub fn decode_historical_timeline(
             resolution_ticks: cursor.u64()?,
             uncertainty_ticks: cursor.u64()?,
         };
-        let origin = HistoricalEntryOriginRepresentation::decode(&[cursor.u8()?])
+        let origin = HistoricalEntryOriginCode::decode(&[cursor.u8()?])
             .map_err(|_| HistoricalTimelineCodecRefusal::InvalidEnum)?;
         let resource = BoundedResourceRef::decode(cursor.length_prefixed()?)
             .map_err(|_| HistoricalTimelineCodecRefusal::Resource)?;

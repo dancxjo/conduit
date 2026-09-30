@@ -1,20 +1,18 @@
 use crate::checked_syntax::{
-    CheckedNativeType, CheckedRepresentation, CheckedRepresentationMapping,
-    CheckedRepresentationRefusal, CheckedRepresentationStorage, SyntaxCheckDiagnostic,
+    CheckedCode, CheckedCodeMapping, CheckedCodeRefusal, CheckedCodeStorage, CheckedNativeType,
+    SyntaxCheckDiagnostic,
 };
 use crate::prelude::*;
-use crate::syntax::{
-    RepresentationStorageSyntax, RepresentationSyntax, TypeDefinitionSyntax, TypeSyntax,
-};
+use crate::syntax::{CodeStorageSyntax, CodeSyntax, TypeDefinitionSyntax, TypeSyntax};
 use alloc::collections::{BTreeMap, BTreeSet};
 use conduit_core::{kind_id, StructuredInfoTypeShape};
 use sha2::{Digest, Sha256};
 
-pub(crate) fn check_representations(
-    declarations: &[RepresentationSyntax],
+pub(crate) fn check_codes(
+    declarations: &[CodeSyntax],
     type_declarations: &[TypeSyntax],
     native_types: &[CheckedNativeType],
-) -> Result<Vec<CheckedRepresentation>, SyntaxCheckDiagnostic> {
+) -> Result<Vec<CheckedCode>, SyntaxCheckDiagnostic> {
     let types = native_types
         .iter()
         .map(|value_type| (value_type.name.as_str(), value_type))
@@ -26,7 +24,7 @@ pub(crate) fn check_representations(
             return Err(diagnostic(
                 declaration.name.span,
                 alloc::format!(
-                    "representation '{}' is declared more than once",
+                    "code '{}' is declared more than once",
                     declaration.name.text
                 ),
             ));
@@ -37,7 +35,7 @@ pub(crate) fn check_representations(
                 diagnostic(
                     declaration.value_type.span,
                     alloc::format!(
-                        "representation '{}' names unknown source Type '{}'",
+                        "code '{}' names unknown source Type '{}'",
                         declaration.name.text,
                         declaration.value_type.text
                     ),
@@ -48,7 +46,7 @@ pub(crate) fn check_representations(
             _ => {
                 return Err(diagnostic(
                     declaration.value_type.span,
-                    "u8 representation requires a finite variant Type".into(),
+                    "u8 code requires a finite variant Type".into(),
                 ));
             }
         };
@@ -82,7 +80,7 @@ pub(crate) fn check_representations(
                 return Err(diagnostic(
                     declaration.value_type.span,
                     alloc::format!(
-                        "u8 representation cannot encode payload-bearing variant '{}'",
+                        "u8 code cannot encode payload-bearing variant '{}'",
                         case.tag()
                     ),
                 ));
@@ -98,7 +96,7 @@ pub(crate) fn check_representations(
                 if !authored.contains_key(case.tag()) {
                     return Err(diagnostic(
                         declaration.span,
-                        alloc::format!("representation is missing variant '{}'", case.tag()),
+                        alloc::format!("code is missing variant '{}'", case.tag()),
                     ));
                 }
             }
@@ -108,7 +106,7 @@ pub(crate) fn check_representations(
             {
                 return Err(diagnostic(
                     mapping.variant.span,
-                    alloc::format!("representation names unknown variant '{unknown}'"),
+                    alloc::format!("code names unknown variant '{unknown}'"),
                 ));
             }
             declaration
@@ -121,42 +119,32 @@ pub(crate) fn check_representations(
             .into_iter()
             .enumerate()
             .map(|(offset, variant)| {
-                Ok(CheckedRepresentationMapping {
+                Ok(CheckedCodeMapping {
                     variant: variant.into(),
                     discriminant: declaration
                         .first_discriminant
                         .checked_add(u8::try_from(offset).map_err(|_| {
-                            diagnostic(
-                                declaration.span,
-                                "u8 representation has too many variants".into(),
-                            )
+                            diagnostic(declaration.span, "u8 code has too many variants".into())
                         })?)
                         .ok_or_else(|| {
-                            diagnostic(
-                                declaration.span,
-                                "u8 representation iota exceeds 255".into(),
-                            )
+                            diagnostic(declaration.span, "u8 code iota exceeds 255".into())
                         })?,
                 })
             })
             .collect::<Result<Vec<_>, SyntaxCheckDiagnostic>>()?;
         let storage = match declaration.storage {
-            RepresentationStorageSyntax::U8 => CheckedRepresentationStorage::U8,
+            CodeStorageSyntax::U8 => CheckedCodeStorage::U8,
         };
-        let maximum_decode_steps = u16::try_from(mappings.len() + 1).map_err(|_| {
-            diagnostic(
-                declaration.span,
-                "representation decode work exceeds bounds".into(),
-            )
-        })?;
-        let invalid_refusal = CheckedRepresentationRefusal::InvalidTag;
+        let maximum_decode_steps = u16::try_from(mappings.len() + 1)
+            .map_err(|_| diagnostic(declaration.span, "code decode work exceeds bounds".into()))?;
+        let invalid_refusal = CheckedCodeRefusal::InvalidTag;
         let compatibility_id = compatibility_id(
             &declaration.name.text,
             value_type.identity.as_str(),
             &mappings,
             invalid_refusal.as_str(),
         );
-        checked.push(CheckedRepresentation {
+        checked.push(CheckedCode {
             name: declaration.name.text.clone(),
             compatibility_id,
             value_type_name: value_type.name.clone(),
@@ -176,10 +164,10 @@ pub(crate) fn check_representations(
 fn compatibility_id(
     identity: &str,
     value_type: &str,
-    mappings: &[CheckedRepresentationMapping],
+    mappings: &[CheckedCodeMapping],
     invalid_refusal: &str,
 ) -> String {
-    let mut canonical = b"conduit.representation.u8@1\0".to_vec();
+    let mut canonical = b"conduit.code.u8@1\0".to_vec();
     push(&mut canonical, identity.as_bytes());
     push(&mut canonical, value_type.as_bytes());
     for mapping in mappings {

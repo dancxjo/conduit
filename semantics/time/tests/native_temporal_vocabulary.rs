@@ -1,6 +1,6 @@
 use conduit_form::rust_binding::NativeRustBinding;
 use conduit_time::{
-    HistoricalEntryOrigin, HistoricalOverflowPolicy, HistoricalOverflowPolicyRepresentation,
+    HistoricalEntryOrigin, HistoricalOverflowPolicy, HistoricalOverflowPolicyCode,
     TemporalBoundary, TemporalWindowPosition,
 };
 
@@ -13,26 +13,24 @@ where
 }
 
 #[test]
-fn historical_overflow_representation_preserves_snapshot_tags() {
+fn historical_overflow_code_preserves_snapshot_tags() {
     assert_eq!(
-        HistoricalOverflowPolicyRepresentation::encode(HistoricalOverflowPolicy::Refuse),
+        HistoricalOverflowPolicyCode::encode(HistoricalOverflowPolicy::Refuse),
         [0]
     );
     assert_eq!(
-        HistoricalOverflowPolicyRepresentation::encode(
-            HistoricalOverflowPolicy::EvictOldestWithGap
-        ),
+        HistoricalOverflowPolicyCode::encode(HistoricalOverflowPolicy::EvictOldestWithGap),
         [1]
     );
     assert_eq!(
-        HistoricalOverflowPolicyRepresentation::decode(&[0]),
+        HistoricalOverflowPolicyCode::decode(&[0]),
         Ok(HistoricalOverflowPolicy::Refuse)
     );
     assert_eq!(
-        HistoricalOverflowPolicyRepresentation::decode(&[1]),
+        HistoricalOverflowPolicyCode::decode(&[1]),
         Ok(HistoricalOverflowPolicy::EvictOldestWithGap)
     );
-    assert!(HistoricalOverflowPolicyRepresentation::decode(&[2]).is_err());
+    assert!(HistoricalOverflowPolicyCode::decode(&[2]).is_err());
 }
 
 #[test]

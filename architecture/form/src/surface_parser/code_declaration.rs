@@ -1,20 +1,16 @@
-//! Lossless syntax for named finite representations.
+//! Lossless syntax for named finite codes.
 
 use super::Parser;
 use crate::prelude::*;
 use crate::surface_lex::{is_name, is_operation};
-use crate::syntax::{
-    RepresentationMappingSyntax, RepresentationStorageSyntax, RepresentationSyntax,
-};
+use crate::syntax::{CodeMappingSyntax, CodeStorageSyntax, CodeSyntax};
 use crate::{FormError, Span};
 
-pub(super) fn parse_representation(
-    parser: &mut Parser<'_>,
-) -> Result<RepresentationSyntax, (FormError, Span)> {
+pub(super) fn parse_code(parser: &mut Parser<'_>) -> Result<CodeSyntax, (FormError, Span)> {
     let header_line = parser.lines[parser.index];
     let (header, start) = header_line.statement();
     let declaration = header
-        .strip_prefix("representation ")
+        .strip_prefix("code ")
         .ok_or_else(|| parser.invalid_statement(header, start))?;
     let (name, realization) = declaration
         .split_once(" = ")
@@ -51,17 +47,17 @@ pub(super) fn parse_representation(
         if !is_name(text) {
             return Err(parser.invalid_statement(text, line_start));
         }
-        mappings.push(RepresentationMappingSyntax {
+        mappings.push(CodeMappingSyntax {
             variant: parser.spanned_at(text, text, line_start),
             span: parser.line_span(line),
         });
         end = line;
         parser.index += 1;
     }
-    Ok(RepresentationSyntax {
+    Ok(CodeSyntax {
         name,
         value_type,
-        storage: RepresentationStorageSyntax::U8,
+        storage: CodeStorageSyntax::U8,
         first_discriminant,
         mappings,
         span: parser.span(start, end.start + end.text.len()),

@@ -4,7 +4,7 @@ type BeaconKind =
     virtual_wall
     | infrared_code
 
-representation robotics/beacon-kind = BeaconKind as u8
+code robotics/beacon-kind = BeaconKind as u8
 
 type ChargingState =
     not_charging
@@ -14,7 +14,7 @@ type ChargingState =
     | waiting
     | fault
 
-representation robotics/charging-state = ChargingState as u8
+code robotics/charging-state = ChargingState as u8
 
 type RoboticsSimulationAvailability =
     fresh

@@ -17,11 +17,10 @@ mod generated {
 }
 pub use generated::{
     AdmittedNavigationDestination, ChoiceMultiplicity, CompositionItemKind,
-    CompositionItemKindRepresentation, CompositionRole, CompositionRoleRepresentation,
-    EvidenceDisposition, FaceUtteranceClauseKind, GraphicsCommandKind,
-    GraphicsCommandKindRepresentation, GraphicsPaintRole, GraphicsPaintRoleRepresentation,
-    GraphicsShapeStyle, GraphicsShapeStyleRepresentation, GraphicsTextRole,
-    GraphicsTextRoleRepresentation, PresentationDisclosureLevel, PresentationMechanismKind,
+    CompositionItemKindCode, CompositionRole, CompositionRoleCode, EvidenceDisposition,
+    FaceUtteranceClauseKind, GraphicsCommandKind, GraphicsCommandKindCode, GraphicsPaintRole,
+    GraphicsPaintRoleCode, GraphicsShapeStyle, GraphicsShapeStyleCode, GraphicsTextRole,
+    GraphicsTextRoleCode, PresentationDisclosureLevel, PresentationMechanismKind,
     PresentationTemporalRole, StatusKind,
 };
 

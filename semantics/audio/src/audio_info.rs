@@ -1,8 +1,8 @@
 //! Canonical bounded PCM frame information.
 
 use crate::{
-    PcmChannelLayout, PcmChannelLayoutRepresentation, PcmSampleRepresentation,
-    PcmSampleRepresentationRepresentation, SoundInfoError,
+    PcmChannelLayout, PcmChannelLayoutCode, PcmSampleRepresentation, PcmSampleRepresentationCode,
+    SoundInfoError,
 };
 use alloc::vec::Vec;
 use conduit_core::semantic_digest;
@@ -93,9 +93,9 @@ impl PcmFrameHeader {
 
     pub fn encode(self) -> [u8; PCM_FRAME_HEADER_ENCODED_LEN] {
         let mut out = [0; PCM_FRAME_HEADER_ENCODED_LEN];
-        out[0] = PcmSampleRepresentationRepresentation::encode(self.representation)[0];
+        out[0] = PcmSampleRepresentationCode::encode(self.representation)[0];
         out[1..5].copy_from_slice(&self.sample_rate_hz.to_le_bytes());
-        out[5] = PcmChannelLayoutRepresentation::encode(self.layout)[0];
+        out[5] = PcmChannelLayoutCode::encode(self.layout)[0];
         out[6..8].copy_from_slice(&self.frame_count.to_le_bytes());
         out[8..16].copy_from_slice(&self.clock_id.to_le_bytes());
         out[16..24].copy_from_slice(&self.start_frame.to_le_bytes());
@@ -165,16 +165,14 @@ impl PcmFrameHeader {
 }
 
 fn decode_sample_representation(actual: u8) -> Result<PcmSampleRepresentation, SoundInfoError> {
-    PcmSampleRepresentationRepresentation::decode(&[actual]).map_err(|_| {
-        SoundInfoError::InvalidTag {
-            field: "sample-representation",
-            actual,
-        }
+    PcmSampleRepresentationCode::decode(&[actual]).map_err(|_| SoundInfoError::InvalidTag {
+        field: "sample-representation",
+        actual,
     })
 }
 
 fn decode_channel_layout(actual: u8) -> Result<PcmChannelLayout, SoundInfoError> {
-    PcmChannelLayoutRepresentation::decode(&[actual]).map_err(|_| SoundInfoError::InvalidTag {
+    PcmChannelLayoutCode::decode(&[actual]).map_err(|_| SoundInfoError::InvalidTag {
         field: "channel-layout",
         actual,
     })

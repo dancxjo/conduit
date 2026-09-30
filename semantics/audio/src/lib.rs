@@ -13,11 +13,11 @@ mod generated {
 }
 
 pub use generated::{
-    AudioToneTerminal, AudioToneTerminalRepresentation, CancellationDisposition, Gate,
-    GateRepresentation, ModulationDestination, ModulationDestinationRepresentation, MusicalControl,
-    MusicalControlModulation, MusicalControlPitchBend, MusicalControlSustain, PcmChannelLayout,
-    PcmChannelLayoutRepresentation, PcmSampleRepresentation, PcmSampleRepresentationRepresentation,
-    PressureDisposition, SoundSeam, SoundStreamState, SoundTerminalBehavior,
+    AudioToneTerminal, AudioToneTerminalCode, CancellationDisposition, Gate, GateCode,
+    ModulationDestination, ModulationDestinationCode, MusicalControl, MusicalControlModulation,
+    MusicalControlPitchBend, MusicalControlSustain, PcmChannelLayout, PcmChannelLayoutCode,
+    PcmSampleRepresentation, PcmSampleRepresentationCode, PressureDisposition, SoundSeam,
+    SoundStreamState, SoundTerminalBehavior,
 };
 
 mod audio_info;

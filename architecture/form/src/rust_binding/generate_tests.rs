@@ -50,42 +50,38 @@ type Timing =
 }
 
 #[test]
-fn checked_representation_generates_the_only_rust_discriminant_table() {
-    let source =
-        "type Outcome =\n    ready\n    | refused\n\nrepresentation test/outcome = Outcome as u8\n";
+fn checked_code_generates_the_only_rust_discriminant_table() {
+    let source = "type Outcome =\n    ready\n    | refused\n\ncode test/outcome = Outcome as u8\n";
     let checked = crate::check_syntax_document(
         &crate::parse_syntax_document(source),
         &crate::StartupCatalog::new(),
     )
     .unwrap();
-    let generated = generate_rust_bindings_with_representations(
+    let generated = generate_rust_bindings_with_codes(
         &checked.native_types,
-        &checked.representations,
+        &checked.codes,
         &RustBindingOptions::default(),
     )
     .unwrap();
-    assert!(generated
-        .source
-        .contains("pub struct OutcomeRepresentation;"));
+    assert!(generated.source.contains("pub struct OutcomeCode;"));
     assert!(generated.source.contains("Outcome::Ready => 0"));
     assert!(generated.source.contains("1 => Ok(Outcome::Refused)"));
     assert!(generated.source.contains("MAXIMUM_DECODE_STEPS: usize = 3"));
-    assert!(generated
-        .source
-        .contains("NativeRepresentationRefusal::InvalidTag"));
+    assert!(generated.source.contains("NativeCodeRefusal::InvalidTag"));
 }
 
 #[test]
-fn generated_representation_preserves_explicit_iota_origin() {
-    let source = "type Outcome =\n    ready\n    | refused\n\nrepresentation test/outcome = Outcome as u8 from 1\n";
+fn generated_code_preserves_explicit_iota_origin() {
+    let source =
+        "type Outcome =\n    ready\n    | refused\n\ncode test/outcome = Outcome as u8 from 1\n";
     let checked = crate::check_syntax_document(
         &crate::parse_syntax_document(source),
         &crate::StartupCatalog::new(),
     )
     .unwrap();
-    let generated = generate_rust_bindings_with_representations(
+    let generated = generate_rust_bindings_with_codes(
         &checked.native_types,
-        &checked.representations,
+        &checked.codes,
         &RustBindingOptions::default(),
     )
     .unwrap();

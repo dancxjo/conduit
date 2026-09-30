@@ -64,61 +64,63 @@ fn check(source: &str) -> crate::CheckedSyntaxDocument {
     check_syntax_document(&parsed, &catalog()).expect("canonical syntax checks")
 }
 
-const REPRESENTED_OUTCOME: &str =
-    "type Outcome =\n    ready\n    | refused\n\nrepresentation test/outcome = Outcome as u8\n";
+const CODED_OUTCOME: &str =
+    "type Outcome =\n    ready\n    | refused\n\ncode test/outcome = Outcome as u8\n";
 
 #[test]
-fn representation_is_named_bounded_and_distinct_from_type_identity() {
-    let checked = check(REPRESENTED_OUTCOME);
-    let value_type = &checked.native_types[0];
-    let representation = &checked.representations[0];
-    assert_eq!(representation.name, "test/outcome");
-    assert_eq!(representation.value_type, value_type.identity);
-    assert_ne!(
-        representation.compatibility_id,
-        value_type.identity.as_str()
+fn pre_v1_representation_keyword_is_not_a_compatibility_alias() {
+    let parsed = parse_syntax_document(
+        "type Outcome =\n    ready\n    | refused\n\nrepresentation test/outcome = Outcome as u8\n",
     );
-    assert_eq!(representation.exact_bytes, 1);
-    assert_eq!(representation.maximum_bytes, 1);
-    assert_eq!(representation.maximum_decode_steps, 3);
-    assert_eq!(
-        representation.invalid_refusal,
-        crate::CheckedRepresentationRefusal::InvalidTag
-    );
-    assert_eq!(representation.mappings[0].variant, "ready");
-    assert_eq!(representation.mappings[0].discriminant, 0);
+    assert!(!parsed.diagnostics.is_empty());
 }
 
 #[test]
-fn representation_iota_may_start_at_an_explicit_u8_value() {
+fn code_is_named_bounded_and_distinct_from_type_identity() {
+    let checked = check(CODED_OUTCOME);
+    let value_type = &checked.native_types[0];
+    let code = &checked.codes[0];
+    assert_eq!(code.name, "test/outcome");
+    assert_eq!(code.value_type, value_type.identity);
+    assert_ne!(code.compatibility_id, value_type.identity.as_str());
+    assert_eq!(code.exact_bytes, 1);
+    assert_eq!(code.maximum_bytes, 1);
+    assert_eq!(code.maximum_decode_steps, 3);
+    assert_eq!(code.invalid_refusal, crate::CheckedCodeRefusal::InvalidTag);
+    assert_eq!(code.mappings[0].variant, "ready");
+    assert_eq!(code.mappings[0].discriminant, 0);
+}
+
+#[test]
+fn code_iota_may_start_at_an_explicit_u8_value() {
     let checked = check(
-        "type Outcome =\n    ready\n    | refused\n\nrepresentation test/outcome = Outcome as u8 from 1\n",
+        "type Outcome =\n    ready\n    | refused\n\ncode test/outcome = Outcome as u8 from 1\n",
     );
-    let mappings = &checked.representations[0].mappings;
+    let mappings = &checked.codes[0].mappings;
     assert_eq!(mappings[0].discriminant, 1);
     assert_eq!(mappings[1].discriminant, 2);
 }
 
 #[test]
-fn representation_iota_refuses_u8_overflow() {
+fn code_iota_refuses_u8_overflow() {
     let parsed = parse_syntax_document(
-        "type Outcome =\n    ready\n    | refused\n\nrepresentation test/outcome = Outcome as u8 from 255\n",
+        "type Outcome =\n    ready\n    | refused\n\ncode test/outcome = Outcome as u8 from 255\n",
     );
     let error = check_syntax_document(&parsed, &catalog()).unwrap_err();
     assert!(error.message.contains("iota exceeds 255"));
 }
 
 #[test]
-fn representation_mapping_changes_compatibility_not_semantic_type_identity() {
-    let first = check(REPRESENTED_OUTCOME);
-    let second = check("type Outcome =\n    ready\n    | refused\n\nrepresentation test/outcome = Outcome as u8\n    refused\n    ready\n");
+fn code_mapping_changes_compatibility_not_semantic_type_identity() {
+    let first = check(CODED_OUTCOME);
+    let second = check("type Outcome =\n    ready\n    | refused\n\ncode test/outcome = Outcome as u8\n    refused\n    ready\n");
     assert_eq!(
         first.native_types[0].identity,
         second.native_types[0].identity
     );
     assert_ne!(
-        first.representations[0].compatibility_id,
-        second.representations[0].compatibility_id
+        first.codes[0].compatibility_id,
+        second.codes[0].compatibility_id
     );
 }
 
@@ -132,7 +134,7 @@ fn explicit_iota_order_requires_each_variant_exactly_once() {
         ),
         ("    ready\n    refused\n    imaginary\n", "unknown variant"),
     ] {
-        let source = alloc::format!("{REPRESENTED_OUTCOME}{mapping}");
+        let source = alloc::format!("{CODED_OUTCOME}{mapping}");
         let error = check_syntax_document(&parse_syntax_document(&source), &catalog()).unwrap_err();
         assert_eq!(error.code, "CND-FRM-059");
         assert!(error.message.contains(expected), "{}", error.message);
@@ -1328,7 +1330,7 @@ fn native_types_work_in_keeps_and_data_refs_without_structural_interchange() {
     .unwrap_err();
     assert_eq!(mismatch.code, "CND-FRM-058");
     assert!(mismatch.message.contains("semantic Type mismatch"));
-    assert!(mismatch.message.contains("representations are compatible"));
+    assert!(mismatch.message.contains("codes are compatible"));
 }
 
 #[test]

@@ -3,8 +3,7 @@
 use conduit_core::{semantic_digest, InfoDecodeError};
 
 use crate::{
-    ChordPhase, ChordPhaseRepresentation, CoreChordId, CoreChordIdRepresentation, KeyEvent,
-    KeyModifiers, KeyTransition,
+    ChordPhase, ChordPhaseCode, CoreChordId, CoreChordIdCode, KeyEvent, KeyModifiers, KeyTransition,
 };
 
 pub const CHORD_INFO_ID: &str = "input/chord@1";
@@ -68,8 +67,8 @@ impl ChordInfo {
         [
             self.modifiers.bits(),
             self.usage,
-            ChordPhaseRepresentation::encode(self.phase)[0],
-            CoreChordIdRepresentation::encode(self.chord_id)[0],
+            ChordPhaseCode::encode(self.phase)[0],
+            CoreChordIdCode::encode(self.chord_id)[0],
         ]
     }
 
@@ -84,10 +83,10 @@ impl ChordInfo {
                 actual: encoded.len(),
             });
         }
-        let phase = ChordPhaseRepresentation::decode(&encoded[2..3])
+        let phase = ChordPhaseCode::decode(&encoded[2..3])
             .map_err(|_| InfoDecodeError::NonCanonicalEnum(encoded[2]))?;
         let modifiers = KeyModifiers::from_bits(encoded[0]);
-        let chord_id = CoreChordIdRepresentation::decode(&encoded[3..4])
+        let chord_id = CoreChordIdCode::decode(&encoded[3..4])
             .map_err(|_| InfoDecodeError::NonCanonicalEnum(encoded[3]))?;
         if core_chord_id(modifiers, encoded[1]) != Some(chord_id) {
             return Err(InfoDecodeError::InconsistentValue("canonical-chord-id"));

@@ -8,8 +8,8 @@ mod generated {
 }
 pub use generated::{
     AvailabilityState, CalendarRefusal, CivilFoldPolicy, CivilGapPolicy, CivilResolutionChoice,
-    ClockChangeBehavior, HistoricalEntryOrigin, HistoricalEntryOriginRepresentation,
-    HistoricalOverflowPolicy, HistoricalOverflowPolicyRepresentation, InvitationState,
+    ClockChangeBehavior, HistoricalEntryOrigin, HistoricalEntryOriginCode,
+    HistoricalOverflowPolicy, HistoricalOverflowPolicyCode, InvitationState,
     MeetingProposalRefusal, ParticipantRole, PatternComparisonRefusal, RecurrenceRefusal,
     ReplayPolicy, ReplayPolicyRate, ScheduleRefusal, ScheduledIntentRefusal,
     SequenceNormalizationRefusal, SuspendBehavior, TemplateCollectionRefusal, TemporalBoundary,

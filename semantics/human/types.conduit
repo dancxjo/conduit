@@ -4,12 +4,12 @@ type KeyTransition =
     pressed
     | released
 
-representation human/key-transition = KeyTransition as u8
+code human/key-transition = KeyTransition as u8
 
 type ChordPhase =
     triggered
 
-representation human/chord-phase = ChordPhase as u8 from 2
+code human/chord-phase = ChordPhase as u8 from 2
 
 type CoreChordId =
     cancel_or_escape
@@ -21,7 +21,7 @@ type CoreChordId =
     | command
     | activate
 
-representation human/core-chord-id = CoreChordId as u8 from 1
+code human/core-chord-id = CoreChordId as u8 from 1
 
 type ExperienceDomain =
     visual

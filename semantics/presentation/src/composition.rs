@@ -4,10 +4,7 @@
 //! deliberately **not** the universal grammar's semantic composition, which
 //! is represented by [`crate::PresentationCompositionRelation`].
 
-use crate::{
-    CompositionItemKind, CompositionItemKindRepresentation, CompositionRole,
-    CompositionRoleRepresentation,
-};
+use crate::{CompositionItemKind, CompositionItemKindCode, CompositionRole, CompositionRoleCode};
 
 pub const PRESENTATION_COMPOSITION_KIND: &str = "presentation/composition@1";
 pub const MAX_COMPOSITION_ITEMS: usize = 8;
@@ -310,8 +307,8 @@ impl PresentationComposition {
         let mut cursor = 2;
         for item in self.items() {
             output[cursor..cursor + 4].copy_from_slice(&[
-                CompositionItemKindRepresentation::encode(item.kind)[0],
-                CompositionRoleRepresentation::encode(item.role)[0],
+                CompositionItemKindCode::encode(item.kind)[0],
+                CompositionRoleCode::encode(item.role)[0],
                 item.token_len,
                 item.name_len,
             ]);
@@ -383,12 +380,11 @@ pub fn is_authoritative_icon(token: &str) -> bool {
 }
 
 fn decode_kind(value: u8) -> Result<CompositionItemKind, CompositionError> {
-    CompositionItemKindRepresentation::decode(&[value])
-        .map_err(|_| CompositionError::MalformedEncoding)
+    CompositionItemKindCode::decode(&[value]).map_err(|_| CompositionError::MalformedEncoding)
 }
 
 fn decode_role(value: u8) -> Result<CompositionRole, CompositionError> {
-    CompositionRoleRepresentation::decode(&[value]).map_err(|_| CompositionError::MalformedEncoding)
+    CompositionRoleCode::decode(&[value]).map_err(|_| CompositionError::MalformedEncoding)
 }
 
 #[cfg(test)]

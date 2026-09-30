@@ -7,7 +7,7 @@ use conduit_core::{
 };
 
 use crate::{
-    HistoricalEntryOrigin, HistoricalEntryOriginRepresentation, HistoricalReplayEntry,
+    HistoricalEntryOrigin, HistoricalEntryOriginCode, HistoricalReplayEntry,
     MAXIMUM_REPLAY_ENTRIES, MAXIMUM_REPLAY_IDENTITY_BYTES,
 };
 
@@ -327,10 +327,10 @@ fn decode_scale(value: u8) -> Result<TemporalScale, ReplayTimelineCodecRefusal> 
 }
 
 fn encode_origin(origin: HistoricalEntryOrigin) -> u8 {
-    HistoricalEntryOriginRepresentation::encode(origin)[0]
+    HistoricalEntryOriginCode::encode(origin)[0]
 }
 
 fn decode_origin(value: u8) -> Result<HistoricalEntryOrigin, ReplayTimelineCodecRefusal> {
-    HistoricalEntryOriginRepresentation::decode(&[value])
+    HistoricalEntryOriginCode::decode(&[value])
         .map_err(|_| ReplayTimelineCodecRefusal::UnknownOrigin)
 }
