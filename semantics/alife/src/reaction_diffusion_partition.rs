@@ -4,10 +4,11 @@ use alloc::vec;
 use alloc::vec::Vec;
 
 use crate::{
-    GrayScottParameters, ReactionDiffusionCell, ReactionDiffusionFieldId,
-    ReactionDiffusionFieldState, ReactionDiffusionRefusal, REACTION_DIFFUSION_MAXIMUM_BOUNDARIES,
-    REACTION_DIFFUSION_MAXIMUM_CELLS, REACTION_DIFFUSION_MAXIMUM_EXTENT,
-    REACTION_DIFFUSION_MAXIMUM_REGIONS, REACTION_DIFFUSION_MINIMUM_EXTENT,
+    GrayScottParameters, ReactionDiffusionBoundaryEdge, ReactionDiffusionCell,
+    ReactionDiffusionFieldId, ReactionDiffusionFieldState, ReactionDiffusionRefusal,
+    REACTION_DIFFUSION_MAXIMUM_BOUNDARIES, REACTION_DIFFUSION_MAXIMUM_CELLS,
+    REACTION_DIFFUSION_MAXIMUM_EXTENT, REACTION_DIFFUSION_MAXIMUM_REGIONS,
+    REACTION_DIFFUSION_MINIMUM_EXTENT,
 };
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
@@ -25,14 +26,6 @@ pub struct ReactionDiffusionRegion {
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct ReactionDiffusionPartition {
     pub regions: Vec<ReactionDiffusionRegion>,
-}
-
-#[derive(Debug, Copy, Clone, PartialEq, Eq)]
-pub enum ReactionDiffusionBoundaryEdge {
-    North,
-    South,
-    West,
-    East,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]

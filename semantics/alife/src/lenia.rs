@@ -8,6 +8,8 @@
 use alloc::{vec, vec::Vec};
 use sha2::{Digest, Sha256};
 
+use crate::LeniaBoundary;
+
 pub const SCALAR_FIELD2_INFO_ID: &str = "alife/scalar-field2@1";
 pub const LENIA_NUMERIC_PROFILE: &str = "alife/fixed-q16.16@1";
 pub const LENIA_MINIMUM_EXTENT: u16 = 32;
@@ -25,11 +27,6 @@ const LENIA_FIELD_DIGEST_DOMAIN: &[u8] = b"conduit.alife.scalar-field2.v1";
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
 pub struct LeniaFieldId(pub [u8; 16]);
-
-#[derive(Debug, Copy, Clone, PartialEq, Eq)]
-pub enum LeniaBoundary {
-    Wrap,
-}
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
 pub struct LeniaParameters {

@@ -1,0 +1,10 @@
+# Authoritative portable artificial-life meaning. Rust consumes generated bindings.
+
+type LeniaBoundary =
+    wrap
+
+type ReactionDiffusionBoundaryEdge =
+    north
+    | south
+    | west
+    | east
