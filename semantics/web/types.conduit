@@ -9,6 +9,23 @@ type HttpMethod =
     | delete
     | options
 
+type HttpScheme =
+    http
+    | https
+
+type HttpTransactionId = U64
+
+type HttpTarget = {
+    scheme: HttpScheme
+    authority: Text <= 255B not in [""]
+    path_and_query: Text <= 2048B not in [""]
+}
+
+type HttpHeader = {
+    name: Text <= 64B not in [""]
+    value: Bytes <= 512B
+}
+
 type HttpExchangeFailure =
     name_resolution
     | route_unavailable

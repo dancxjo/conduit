@@ -24,18 +24,22 @@ impl HttpNetworkBase for LocalEndpoint {
 }
 
 fn request(scheme: &str, authority: &str) -> alloc::vec::Vec<u8> {
+    let scheme = match scheme {
+        "http" => conduit_web::HttpScheme::Http,
+        "https" => conduit_web::HttpScheme::Https,
+        _ => panic!("test requests use one declared HTTP scheme"),
+    };
     encode_request(&HttpRequest {
-        transaction_id: HttpTransactionId(44),
+        transaction_id: HttpTransactionId::new(44).unwrap(),
         method: HttpMethod::Post,
-        target: HttpTarget {
-            scheme: scheme.into(),
-            authority: authority.into(),
-            path_and_query: "/v1/check?q=1".into(),
-        },
-        headers: alloc::vec![conduit_web::HttpHeader {
-            name: "x-test".into(),
-            value: b"yes".to_vec(),
-        }],
+        target: HttpTarget::new(authority.into(), "/v1/check?q=1".into(), scheme).unwrap(),
+        headers: alloc::vec![
+            conduit_web::HttpHeader::new(
+                "x-test".into(),
+                conduit_form::rust_binding::BoundedBytes::new(b"yes").unwrap(),
+            )
+            .unwrap()
+        ],
         body: conduit_web::HttpBody::inline(b"hello".to_vec()),
     })
     .unwrap()
@@ -99,7 +103,7 @@ fn request_encoding_and_response_parsing_preserve_status_as_data() {
         b"POST /v1/check?q=1 HTTP/1.1\r\nHost: 192.0.2.1:8080\r\nx-test: yes\r\nContent-Length: 5\r\nConnection: close\r\n\r\nhello"
     );
     let response = decode_response(output.as_bytes()).unwrap();
-    assert_eq!(response.transaction_id, HttpTransactionId(44));
+    assert_eq!(response.transaction_id, HttpTransactionId::new(44).unwrap());
     assert_eq!(response.status, 500);
     assert_eq!(response.body.as_inline(), Some(b"oops".as_slice()));
     assert_eq!(client.sign_count(), 3);
@@ -206,7 +210,7 @@ fn base_connect_provider_close_and_overflow_failures_do_not_become_statuses() {
 #[test]
 fn semantic_response_matches_the_shared_http_contract() {
     let response = HttpResponse {
-        transaction_id: HttpTransactionId(44),
+        transaction_id: HttpTransactionId::new(44).unwrap(),
         status: 204,
         headers: alloc::vec::Vec::new(),
         body: conduit_web::HttpBody::inline(alloc::vec::Vec::new()),

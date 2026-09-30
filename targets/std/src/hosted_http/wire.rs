@@ -15,14 +15,14 @@ pub(crate) fn encode_request(request: &HttpRequest) -> Result<Vec<u8>, HttpExcha
     let mut out = Vec::with_capacity(MAXIMUM_HEAD_BYTES.min(8_192) + body.len());
     out.extend_from_slice(method(request.method));
     out.push(b' ');
-    out.extend_from_slice(request.target.path_and_query.as_bytes());
+    out.extend_from_slice(request.target.path_and_query().as_bytes());
     out.extend_from_slice(b" HTTP/1.1\r\nHost: ");
-    out.extend_from_slice(request.target.authority.as_bytes());
+    out.extend_from_slice(request.target.authority().as_bytes());
     out.extend_from_slice(b"\r\nConnection: close\r\nAccept-Encoding: identity\r\n");
     for header in &request.headers {
-        out.extend_from_slice(header.name.as_bytes());
+        out.extend_from_slice(header.name().as_bytes());
         out.extend_from_slice(b": ");
-        out.extend_from_slice(&header.value);
+        out.extend_from_slice(header.value().as_slice());
         out.extend_from_slice(b"\r\n");
     }
     out.extend_from_slice(format!("Content-Length: {}\r\n\r\n", body.len()).as_bytes());
@@ -36,9 +36,9 @@ pub(super) fn encode_response(response: &HttpResponse) -> Result<Vec<u8>, HttpEx
     out.extend_from_slice(format!("HTTP/1.1 {} Conduit\r\n", response.status).as_bytes());
     out.extend_from_slice(b"Connection: close\r\n");
     for header in &response.headers {
-        out.extend_from_slice(header.name.as_bytes());
+        out.extend_from_slice(header.name().as_bytes());
         out.extend_from_slice(b": ");
-        out.extend_from_slice(&header.value);
+        out.extend_from_slice(header.value().as_slice());
         out.extend_from_slice(b"\r\n");
     }
     out.extend_from_slice(format!("Content-Length: {}\r\n\r\n", body.len()).as_bytes());
@@ -87,14 +87,14 @@ pub(super) fn read_request(
         .to_string();
     let authority = headers
         .iter()
-        .find(|header| header.name == "host")
-        .and_then(|header| String::from_utf8(header.value.clone()).ok())
+        .find(|header| header.name() == "host")
+        .and_then(|header| String::from_utf8(header.value().as_slice().to_vec()).ok())
         .ok_or(HttpExchangeFailure::ProviderLost)?;
     let semantic_headers = headers
         .into_iter()
         .filter(|header| {
             !matches!(
-                header.name.as_str(),
+                header.name().as_str(),
                 "host" | "connection" | "accept-encoding"
             )
         })
@@ -102,11 +102,8 @@ pub(super) fn read_request(
     Ok(HttpRequest {
         transaction_id,
         method,
-        target: HttpTarget {
-            scheme: "http".into(),
-            authority,
-            path_and_query,
-        },
+        target: HttpTarget::new(authority, path_and_query, conduit_web::HttpScheme::Http)
+            .map_err(|_| HttpExchangeFailure::ProviderLost)?,
         headers: semantic_headers,
         body: HttpBody::inline(body),
     })
@@ -170,7 +167,14 @@ fn read_message(
             }
             continue;
         }
-        headers.push(HttpHeader { name, value });
+        headers.push(
+            HttpHeader::new(
+                name,
+                conduit_form::rust_binding::BoundedBytes::new(&value)
+                    .ok_or(HttpExchangeFailure::ResponseHeaderOverflow)?,
+            )
+            .map_err(|_| HttpExchangeFailure::ProviderLost)?,
+        );
     }
     let body_length = content_length.ok_or(HttpExchangeFailure::ProviderLost)?;
     if body_length > maximum_body {

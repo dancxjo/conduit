@@ -64,25 +64,29 @@ mod tests {
         UnmatchedVariantDisposition,
     };
 
+    fn transaction_id(value: u64) -> HttpTransactionId {
+        HttpTransactionId::new(value).unwrap()
+    }
+
+    fn header(name: &str, value: &[u8]) -> HttpHeader {
+        HttpHeader::new(
+            name.into(),
+            conduit_form::rust_binding::BoundedBytes::new(value).unwrap(),
+        )
+        .unwrap()
+    }
+
     fn request() -> HttpRequest {
         HttpRequest {
-            transaction_id: HttpTransactionId(42),
+            transaction_id: transaction_id(42),
             method: HttpMethod::Post,
-            target: HttpTarget {
-                scheme: "https".into(),
-                authority: "api.example.test".into(),
-                path_and_query: "/v1/items?q=one".into(),
-            },
-            headers: vec![
-                HttpHeader {
-                    name: "x-order".into(),
-                    value: b"first".to_vec(),
-                },
-                HttpHeader {
-                    name: "x-order".into(),
-                    value: b"second".to_vec(),
-                },
-            ],
+            target: HttpTarget::new(
+                "api.example.test".into(),
+                "/v1/items?q=one".into(),
+                crate::HttpScheme::Https,
+            )
+            .unwrap(),
+            headers: vec![header("x-order", b"first"), header("x-order", b"second")],
             body: HttpBody::inline(b"bounded".to_vec()),
         }
     }
@@ -145,7 +149,7 @@ mod tests {
     #[test]
     fn response_status_is_data_including_500() {
         let value = HttpResponse {
-            transaction_id: HttpTransactionId(42),
+            transaction_id: transaction_id(42),
             status: 500,
             headers: Vec::new(),
             body: HttpBody::inline(b"error document".to_vec()),
@@ -196,7 +200,7 @@ mod tests {
     #[test]
     fn invalid_headers_and_inline_body_overflow_refuse() {
         let mut value = request();
-        value.headers[0].name = "Upper".into();
+        value.headers[0] = header("Upper", b"first");
         assert_eq!(value.validate(), Err(HttpContractError::InvalidHeaderName));
         value = request();
         value.body = HttpBody::Inline(vec![0; crate::HTTP_MAXIMUM_REQUEST_BODY_BYTES + 1]);
@@ -215,7 +219,7 @@ mod tests {
             "set-cookie",
         ] {
             let mut value = request();
-            value.headers[0].name = name.into();
+            value.headers[0] = header(name, b"first");
             assert_eq!(
                 value.validate(),
                 Err(HttpContractError::SensitiveHeaderRequiresProtectedPath)
@@ -223,7 +227,7 @@ mod tests {
         }
         for name in ["content-length", "transfer-encoding"] {
             let mut value = request();
-            value.headers[0].name = name.into();
+            value.headers[0] = header(name, b"first");
             assert_eq!(
                 value.validate(),
                 Err(HttpContractError::FramingHeaderIsDerived)

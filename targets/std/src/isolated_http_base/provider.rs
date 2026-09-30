@@ -121,7 +121,9 @@ fn exchange(
             });
         }
     };
-    if request.target.scheme != "http" || request.target.authority != bootstrap.expected_authority {
+    if request.target.scheme() != &conduit_web::HttpScheme::Http
+        || request.target.authority() != &bootstrap.expected_authority
+    {
         table.complete(handle, lease, 0).map_err(capability_error)?;
         return write(&ResponseFrame::Refused {
             reason: "endpoint:wrong-authority".into(),
@@ -131,7 +133,7 @@ fn exchange(
         .map_err(|failure| format!("encode exact HTTP request: {failure:?}"))?;
     stream.write_all(&wire).map_err(io_error)?;
     stream.flush().map_err(io_error)?;
-    let response = crate::hosted_http::wire::read_response(stream, request.transaction_id)
+    let response = crate::hosted_http::wire::read_response(stream, request.transaction_id.clone())
         .map_err(|failure| format!("read exact HTTP response: {failure:?}"))?;
     let response = conduit_web::encode_response(&response)
         .map_err(|_| "encode bounded HTTP response".to_string())?;
