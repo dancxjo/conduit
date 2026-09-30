@@ -8,16 +8,18 @@ use std::net::TcpStream;
 
 pub(super) fn open(
     snapshot: &crate::RendererSnapshot,
-) -> Result<Option<patchbay_model::PatchbayBodyWorkloadSession>, ServerError> {
+) -> Result<Option<conduit_body_make::BodyWorkloadSession>, ServerError> {
     snapshot
         .body_workbench
         .as_ref()
         .map(|workbench| {
-            patchbay_model::PatchbayBodyWorkloadSession::open_serialized(
+            patchbay_model::PatchbayBodyAttachment::open_serialized(
                 &workbench.encoded_evidence,
                 crate::body_workbench::model_entrance(&workbench.entrance),
             )
-            .map_err(|error| ServerError::Interaction(format!("{error:?}")))
+            .map_err(|error| ServerError::Interaction(format!("{error:?}")))?;
+            conduit_body_make::BodyWorkloadSession::open_serialized(&workbench.encoded_evidence)
+                .map_err(|error| ServerError::Interaction(format!("{error:?}")))
         })
         .transpose()
 }

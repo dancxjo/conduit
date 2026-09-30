@@ -116,7 +116,7 @@ pub struct PatchbayHtmlServer {
     front_door: Option<std::sync::Arc<std::sync::Mutex<patchbay_model::LocalFrontDoor>>>,
     zero_body_front_door:
         Option<std::sync::Arc<std::sync::Mutex<patchbay_model::ZeroBodyFrontDoor>>>,
-    body_workload: Option<patchbay_model::PatchbayBodyWorkloadSession>,
+    body_workload: Option<conduit_body_make::BodyWorkloadSession>,
     body_planning_forms: Vec<patchbay_model::FormCandidate>,
     body_planning: Option<conduit_body::BodyPlanningSession>,
     mask_control: Option<patchbay_model::MaskControlSession>,

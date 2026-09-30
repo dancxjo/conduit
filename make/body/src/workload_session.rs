@@ -1,18 +1,11 @@
-//! Atomic adult Form-workload changes at the ordinary Patchbay boundary.
-//!
-//! This session owns no second body truth. Each accepted transition delegates
-//! to the body lifecycle, appends its exact Sign to retained biography
-//! evidence, and publishes the resulting bounded evidence document.
+//! Atomic, bounded changes to a Body's resident Form workset.
 
 use conduit_body::{
     BodyBiographyError, BodyBiographyEvidence, BodyId, BodyLifecycleError, BodyState, ResidentForm,
 };
 use conduit_core::SignId;
 
-use crate::{
-    PatchbayBodyApplicationEntrance, PatchbayBodyAttachment, PatchbayBodyEntranceError,
-    MAX_PATCHBAY_BODY_EVIDENCE_BYTES,
-};
+pub const MAX_BODY_EVIDENCE_BYTES: usize = 32 * 1_024;
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
 pub enum BodyWorkloadChangeKind {
@@ -32,33 +25,39 @@ pub struct BodyWorkloadChange {
 }
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
-pub enum PatchbayBodyWorkloadError {
-    Entrance(PatchbayBodyEntranceError),
+pub enum BodyWorkloadError {
+    EmptyEvidence,
+    EvidenceTooLarge,
+    MalformedEvidence,
+    InvalidEvidence,
     StaleWorkloadRevision { current: u64, offered: u64 },
     BodyAwake,
     Lifecycle(BodyLifecycleError),
     Biography(BodyBiographyError),
     EvidenceEncoding,
-    EvidenceTooLarge,
 }
 
 #[derive(Debug, Clone)]
-pub struct PatchbayBodyWorkloadSession {
-    entrance: PatchbayBodyApplicationEntrance,
+pub struct BodyWorkloadSession {
     evidence: BodyBiographyEvidence,
     encoded: Vec<u8>,
 }
 
-impl PatchbayBodyWorkloadSession {
-    pub fn open_serialized(
-        encoded: &[u8],
-        entrance: PatchbayBodyApplicationEntrance,
-    ) -> Result<Self, PatchbayBodyWorkloadError> {
-        let attachment = PatchbayBodyAttachment::open_serialized(encoded, entrance.clone())
-            .map_err(PatchbayBodyWorkloadError::Entrance)?;
+impl BodyWorkloadSession {
+    pub fn open_serialized(encoded: &[u8]) -> Result<Self, BodyWorkloadError> {
+        if encoded.is_empty() {
+            return Err(BodyWorkloadError::EmptyEvidence);
+        }
+        if encoded.len() > MAX_BODY_EVIDENCE_BYTES {
+            return Err(BodyWorkloadError::EvidenceTooLarge);
+        }
+        let evidence: BodyBiographyEvidence =
+            serde_json::from_slice(encoded).map_err(|_| BodyWorkloadError::MalformedEvidence)?;
+        evidence
+            .validate()
+            .map_err(|_| BodyWorkloadError::InvalidEvidence)?;
         Ok(Self {
-            entrance,
-            evidence: attachment.evidence().clone(),
+            evidence,
             encoded: encoded.to_vec(),
         })
     }
@@ -71,10 +70,6 @@ impl PatchbayBodyWorkloadSession {
         &self.encoded
     }
 
-    pub fn entrance(&self) -> &PatchbayBodyApplicationEntrance {
-        &self.entrance
-    }
-
     /// Publish an exact lifecycle extension without dropping workload or
     /// membership evidence. A failed append or encoded-size check is atomic.
     pub fn retain_wake(
@@ -82,14 +77,13 @@ impl PatchbayBodyWorkloadSession {
         body: conduit_body::Body,
         wake: conduit_body::Wake,
         first_sequence: u64,
-    ) -> Result<(), PatchbayBodyWorkloadError> {
+    ) -> Result<(), BodyWorkloadError> {
         let mut next = self.evidence.clone();
         next.append_wake(body, wake, first_sequence)
-            .map_err(PatchbayBodyWorkloadError::Biography)?;
-        let encoded =
-            serde_json::to_vec(&next).map_err(|_| PatchbayBodyWorkloadError::EvidenceEncoding)?;
-        if encoded.len() > MAX_PATCHBAY_BODY_EVIDENCE_BYTES {
-            return Err(PatchbayBodyWorkloadError::EvidenceTooLarge);
+            .map_err(BodyWorkloadError::Biography)?;
+        let encoded = serde_json::to_vec(&next).map_err(|_| BodyWorkloadError::EvidenceEncoding)?;
+        if encoded.len() > MAX_BODY_EVIDENCE_BYTES {
+            return Err(BodyWorkloadError::EvidenceTooLarge);
         }
         self.evidence = next;
         self.encoded = encoded;
@@ -102,7 +96,7 @@ impl PatchbayBodyWorkloadSession {
         form: ResidentForm,
         sign_id: SignId,
         biography_sequence: u64,
-    ) -> Result<BodyWorkloadChange, PatchbayBodyWorkloadError> {
+    ) -> Result<BodyWorkloadChange, BodyWorkloadError> {
         self.change(
             expected_workload_revision,
             form,
@@ -118,7 +112,7 @@ impl PatchbayBodyWorkloadSession {
         form: ResidentForm,
         sign_id: SignId,
         biography_sequence: u64,
-    ) -> Result<BodyWorkloadChange, PatchbayBodyWorkloadError> {
+    ) -> Result<BodyWorkloadChange, BodyWorkloadError> {
         self.change(
             expected_workload_revision,
             form,
@@ -135,16 +129,16 @@ impl PatchbayBodyWorkloadSession {
         sign_id: SignId,
         biography_sequence: u64,
         kind: BodyWorkloadChangeKind,
-    ) -> Result<BodyWorkloadChange, PatchbayBodyWorkloadError> {
+    ) -> Result<BodyWorkloadChange, BodyWorkloadError> {
         let current = self.evidence.body.workload_revision;
         if expected_workload_revision != current {
-            return Err(PatchbayBodyWorkloadError::StaleWorkloadRevision {
+            return Err(BodyWorkloadError::StaleWorkloadRevision {
                 current,
                 offered: expected_workload_revision,
             });
         }
         if self.evidence.body.state != BodyState::Lulled {
-            return Err(PatchbayBodyWorkloadError::BodyAwake);
+            return Err(BodyWorkloadError::BodyAwake);
         }
 
         let next_body = match kind {
@@ -155,15 +149,15 @@ impl PatchbayBodyWorkloadSession {
                 self.evidence.body.remove_form(&form, sign_id.clone())
             }
         }
-        .map_err(PatchbayBodyWorkloadError::Lifecycle)?;
+        .map_err(BodyWorkloadError::Lifecycle)?;
         let mut next_evidence = self.evidence.clone();
         next_evidence
             .append_body_workload_events(next_body, &[(sign_id.clone(), biography_sequence)])
-            .map_err(PatchbayBodyWorkloadError::Biography)?;
-        let next_encoded = serde_json::to_vec(&next_evidence)
-            .map_err(|_| PatchbayBodyWorkloadError::EvidenceEncoding)?;
-        if next_encoded.len() > MAX_PATCHBAY_BODY_EVIDENCE_BYTES {
-            return Err(PatchbayBodyWorkloadError::EvidenceTooLarge);
+            .map_err(BodyWorkloadError::Biography)?;
+        let next_encoded =
+            serde_json::to_vec(&next_evidence).map_err(|_| BodyWorkloadError::EvidenceEncoding)?;
+        if next_encoded.len() > MAX_BODY_EVIDENCE_BYTES {
+            return Err(BodyWorkloadError::EvidenceTooLarge);
         }
 
         let change = BodyWorkloadChange {
