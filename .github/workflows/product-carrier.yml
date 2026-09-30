@@ -734,7 +734,9 @@ jobs:
       needs.conduitos-releases.result == 'success' &&
       needs.conduitos-oci-provenance.result == 'success'
     runs-on: ubuntu-24.04
-    timeout-minutes: 10
+    # The final staged carrier now exceeds 360 MiB. Keep a bounded margin for
+    # artifact download, assembly, and upload on ordinary hosted runners.
+    timeout-minutes: 15
     steps:
       - uses: actions/checkout@v7
         with:
