@@ -101,8 +101,7 @@ impl BoundedFoldActivationHost {
             value_kind: planned.item_input.value_kind.clone(),
             encoded: Vec::with_capacity(planned.retained_item_bytes as usize),
         };
-        let maximum_items = usize::try_from(planned.limits.maximum_items)
-            .map_err(|_| BoundedFoldError::PlannedContractMismatch)?;
+        let maximum_items = usize::from(planned.limits.maximum_items);
         if maximum_items == 0 {
             return Err(BoundedFoldError::PlannedContractMismatch);
         }
@@ -227,17 +226,16 @@ impl BoundedFoldActivationHost {
         let Some(active) = self.active.as_mut() else {
             return Ok(&self.state);
         };
-        if !self.candidate_ready {
-            if active
+        if !self.candidate_ready
+            && active
                 .output_into(&self.planned.output.front_port_id, &mut self.candidate)
                 .map_err(BoundedFoldError::Refused)?
                 .is_some()
-            {
-                active
-                    .complete_output(&self.planned.output.front_port_id, 0)
-                    .map_err(BoundedFoldError::Refused)?;
-                self.candidate_ready = true;
-            }
+        {
+            active
+                .complete_output(&self.planned.output.front_port_id, 0)
+                .map_err(BoundedFoldError::Refused)?;
+            self.candidate_ready = true;
         }
         match active.step().map_err(BoundedFoldError::Refused)? {
             KernelCompositeStatus::Active => {}
