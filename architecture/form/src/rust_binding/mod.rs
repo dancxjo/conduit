@@ -18,8 +18,8 @@ pub use generate::{
     generate_rust_bindings, RustBindingGenerationError, RustBindingModule, RustBindingOptions,
 };
 pub use generate_package::{
-    generate_locked_package_rust_bindings, LockedPackageRustBindingInput,
-    LockedRustBindingGenerationError,
+    generate_locked_package_rust_bindings, LockedPackageBindingSource,
+    LockedPackageRustBindingInput, LockedRustBindingGenerationError,
 };
 pub use primitive::{primitive_from_structured, primitive_into_structured, NativePrimitive};
 pub use value::{

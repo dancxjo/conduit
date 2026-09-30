@@ -218,15 +218,17 @@ fn locked_package_generation_revalidates_exact_source_without_network_work() {
         &[(bundle.package.path.as_str(), bundle.package.version)],
     )
     .unwrap();
+    let root = LockedPackageBindingSource {
+        bundle: &bundle,
+        manifest_source,
+        manifest,
+        member_sources: &members,
+    };
     let generated = generate_locked_package_rust_bindings(
         LockedPackageRustBindingInput {
-            bundle: &bundle,
-            manifest_source,
-            manifest,
-            member_sources: &members,
+            root,
+            locked_sources: core::slice::from_ref(&root),
             lock: &lock,
-            locked_catalog: core::slice::from_ref(&bundle.package),
-            semantic_catalog: &crate::StartupCatalog::new(),
         },
         &RustBindingOptions::default(),
     )
@@ -238,16 +240,90 @@ fn locked_package_generation_revalidates_exact_source_without_network_work() {
     assert_eq!(
         generate_locked_package_rust_bindings(
             LockedPackageRustBindingInput {
-                bundle: &bundle,
-                manifest_source,
-                manifest,
-                member_sources: &members,
+                root,
+                locked_sources: core::slice::from_ref(&root),
                 lock: &unlocked,
-                locked_catalog: core::slice::from_ref(&bundle.package),
-                semantic_catalog: &crate::StartupCatalog::new(),
             },
             &RustBindingOptions::default(),
         ),
         Err(LockedRustBindingGenerationError::SourceNotLocked)
+    );
+}
+
+#[test]
+fn locked_dependency_types_come_only_from_their_exact_source_bundle() {
+    let base_manifest_source = "pack example/base (\n    version = 1.0.0\n) {\n    ship Note\n}\n";
+    let base_document = crate::parse_syntax_document(base_manifest_source);
+    let base_manifest = &base_document.packages[0];
+    let base_members = [crate::PackageMemberSource {
+        path: "types",
+        source: "type Note = U8 in 0..=127\n",
+    }];
+    let base_bundle = crate::CheckedPackageBundle::from_sources(
+        base_manifest_source,
+        base_manifest,
+        &base_members,
+    )
+    .unwrap();
+
+    let root_manifest_source = "pack example/music (\n    version = 1.0.0\n) {\n    ship Event\n    need example/base = ^1.0\n}\n";
+    let root_document = crate::parse_syntax_document(root_manifest_source);
+    let root_manifest = &root_document.packages[0];
+    let root_members = [crate::PackageMemberSource {
+        path: "types",
+        source: "type Event = {\n    pitch: example/base/Note\n}\n",
+    }];
+    let root_bundle = crate::CheckedPackageBundle::from_sources(
+        root_manifest_source,
+        root_manifest,
+        &root_members,
+    )
+    .unwrap();
+    let package_catalog = [root_bundle.package.clone(), base_bundle.package.clone()];
+    let lock = crate::resolve_package_lock(
+        &package_catalog,
+        &[(
+            root_bundle.package.path.as_str(),
+            root_bundle.package.version,
+        )],
+    )
+    .unwrap();
+    let root = LockedPackageBindingSource {
+        bundle: &root_bundle,
+        manifest_source: root_manifest_source,
+        manifest: root_manifest,
+        member_sources: &root_members,
+    };
+    let base = LockedPackageBindingSource {
+        bundle: &base_bundle,
+        manifest_source: base_manifest_source,
+        manifest: base_manifest,
+        member_sources: &base_members,
+    };
+    let generated = generate_locked_package_rust_bindings(
+        LockedPackageRustBindingInput {
+            root,
+            locked_sources: &[root, base],
+            lock: &lock,
+        },
+        &RustBindingOptions::default(),
+    )
+    .unwrap();
+    assert!(generated.source.contains("pub struct Event {"));
+    assert!(generated.source.contains("pub struct Note(u8);"));
+    assert!(generated.source.contains("pitch: Note"));
+
+    assert_eq!(
+        generate_locked_package_rust_bindings(
+            LockedPackageRustBindingInput {
+                root,
+                locked_sources: &[root],
+                lock: &lock,
+            },
+            &RustBindingOptions::default(),
+        ),
+        Err(LockedRustBindingGenerationError::MissingLockedSource(
+            "example/base".into()
+        ))
     );
 }
