@@ -849,3 +849,14 @@ type EmbodimentStage =
     perception_only
     | expressive
     | authorized_effect
+
+type RerankScore =
+    hybrid_fusion U64
+    | model_derived I64
+
+type MechanismScore =
+    similarity_micros I64
+    | lexical_score U32
+    | metadata_match
+    | temporal_boundary
+    | exact_match

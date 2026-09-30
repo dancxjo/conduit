@@ -3,7 +3,7 @@
 use alloc::{string::String, vec::Vec};
 
 use crate::{
-    Chunk, RagSemanticRefusal, RetrievalMechanism, TemporalEvidenceBatch,
+    Chunk, MechanismScore, RagSemanticRefusal, RetrievalMechanism, TemporalEvidenceBatch,
     TemporalEvidenceSelection, TemporalEvidenceSelectionRefusal, TemporalRetrievalIntent,
     MAXIMUM_RAG_IDENTITY_BYTES,
 };
@@ -22,15 +22,6 @@ pub struct RetrieverIdentity {
 
 /// A retriever-local observation. These values are retained for inspection
 /// and are never compared across mechanisms by the portable fusion policy.
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum MechanismScore {
-    SimilarityMicros(i64),
-    LexicalScore(u32),
-    MetadataMatch,
-    TemporalBoundary,
-    ExactMatch,
-}
-
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct StageCandidate<T> {
     pub chunk: Chunk<T>,

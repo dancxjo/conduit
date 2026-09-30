@@ -3,8 +3,9 @@
 use alloc::{string::String, vec::Vec};
 
 use crate::{
-    ChunkIdentity, ExtractedSourceValue, HybridCandidate, RerankingProofClass, RerankingRefusal,
-    RerankingStrategy, MAXIMUM_HYBRID_OUTPUT_CANDIDATES, MAXIMUM_RAG_IDENTITY_BYTES,
+    ChunkIdentity, ExtractedSourceValue, HybridCandidate, RerankScore, RerankingProofClass,
+    RerankingRefusal, RerankingStrategy, MAXIMUM_HYBRID_OUTPUT_CANDIDATES,
+    MAXIMUM_RAG_IDENTITY_BYTES,
 };
 
 pub const MAXIMUM_RERANKING_WORK_UNITS: u32 = 1_048_576;
@@ -23,12 +24,6 @@ pub struct RerankObservation {
     /// Scorer-local ordering value; never evidence confidence.
     pub score_micros: i64,
     pub work_units: u32,
-}
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum RerankScore {
-    HybridFusion(u64),
-    ModelDerived(i64),
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
