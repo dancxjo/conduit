@@ -860,3 +860,13 @@ type MechanismScore =
     | metadata_match
     | temporal_boundary
     | exact_match
+
+type CheckpointPolicy =
+    none
+    | every_steps U64
+    | at_completion
+
+type EvaluationPolicy =
+    none
+    | every_steps U64
+    | at_completion

@@ -5,8 +5,8 @@ use conduit_core::{PlannedStateBoundary, StateContinuation};
 use conduit_data::{DatasetDescriptor, DatasetSplitMembership};
 
 use crate::{
-    BatchOrder, ModelArtifact, MutableModelState, ObjectiveParticipation, RandomnessProfile,
-    TrainStepFailure, TrainingRefusal,
+    BatchOrder, CheckpointPolicy, EvaluationPolicy, ModelArtifact, MutableModelState,
+    ObjectiveParticipation, RandomnessProfile, TrainStepFailure, TrainingRefusal,
 };
 
 #[path = "training_request.rs"]
@@ -69,20 +69,6 @@ pub struct TrainingResourceEnvelope {
     pub maximum_work_units: u64,
     pub maximum_checkpoint_bytes: u64,
     pub maximum_in_flight_steps: u16,
-}
-
-#[derive(Debug, Copy, Clone, PartialEq, Eq)]
-pub enum CheckpointPolicy {
-    None,
-    EverySteps(u64),
-    AtCompletion,
-}
-
-#[derive(Debug, Copy, Clone, PartialEq, Eq)]
-pub enum EvaluationPolicy {
-    None,
-    EverySteps(u64),
-    AtCompletion,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]

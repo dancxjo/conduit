@@ -7,13 +7,13 @@ mod generated {
     include!(concat!(env!("OUT_DIR"), "/semantic_types.rs"));
 }
 pub use generated::{
-    BaseProofClass, BatchOrder, CandidateLifecycle, ContextOmissionReason, ContextOrderingPolicy,
-    ContextRedundancyPolicy, ContextSelectionRationale, ContextSelectionRefusal,
-    ContextTruncationReason, DataHandling, DrawRelationship, DrawRelationshipCorrelated,
-    DynamicsRefusal, EmbeddingNormalization, EmbodimentStage, EntityBoundary,
-    EvaluationDisposition, ExactVectorSearchRefusal, GeneratedTextFlowRefusal,
-    GeneratedTextFlowTerminal, GroundedAnswerDisposition, GroundedAnswerRefusal,
-    GroundingDisposition, HouseContextProvenanceClass, HouseContextRefusal,
+    BaseProofClass, BatchOrder, CandidateLifecycle, CheckpointPolicy, ContextOmissionReason,
+    ContextOrderingPolicy, ContextRedundancyPolicy, ContextSelectionRationale,
+    ContextSelectionRefusal, ContextTruncationReason, DataHandling, DrawRelationship,
+    DrawRelationshipCorrelated, DynamicsRefusal, EmbeddingNormalization, EmbodimentStage,
+    EntityBoundary, EvaluationDisposition, EvaluationPolicy, ExactVectorSearchRefusal,
+    GeneratedTextFlowRefusal, GeneratedTextFlowTerminal, GroundedAnswerDisposition,
+    GroundedAnswerRefusal, GroundingDisposition, HouseContextProvenanceClass, HouseContextRefusal,
     HumanAssessmentDisposition, HybridRetrievalOfferInvalidity, IntegrationTerminal,
     InterpretationDisposition, InterpretationInvalidity, InterpretationProvenance,
     LearnedLifecycleRefusal, LlmDeterminismProfile, LlmImplementationControl,

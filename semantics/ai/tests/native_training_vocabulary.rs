@@ -1,8 +1,8 @@
 use conduit_ai::{
-    BatchOrder, ModelComputeLifecycle, ModelComputeOperation, ModelComputeRefusal,
-    ModelSignatureRefusal, ObjectiveParticipation, PortableComputeClass, RelationQueryMode,
-    RelationRefusal, TrainingRefusal, VectorIndexHealth, VectorIndexMaintenanceKind,
-    VectorIndexResourceRefusal,
+    BatchOrder, CheckpointPolicy, EvaluationPolicy, ModelComputeLifecycle, ModelComputeOperation,
+    ModelComputeRefusal, ModelSignatureRefusal, ObjectiveParticipation, PortableComputeClass,
+    RelationQueryMode, RelationRefusal, TrainingRefusal, VectorIndexHealth,
+    VectorIndexMaintenanceKind, VectorIndexResourceRefusal,
 };
 use conduit_form::rust_binding::NativeRustBinding;
 
@@ -24,6 +24,20 @@ fn training_vocabularies_round_trip_through_native_types() {
     }
     for order in [BatchOrder::Stable, BatchOrder::Shuffled] {
         assert_round_trip(order);
+    }
+    for policy in [
+        CheckpointPolicy::None,
+        CheckpointPolicy::EverySteps(7),
+        CheckpointPolicy::AtCompletion,
+    ] {
+        assert_round_trip(policy);
+    }
+    for policy in [
+        EvaluationPolicy::None,
+        EvaluationPolicy::EverySteps(11),
+        EvaluationPolicy::AtCompletion,
+    ] {
+        assert_round_trip(policy);
     }
     for operation in [
         ModelComputeOperation::Inference,
