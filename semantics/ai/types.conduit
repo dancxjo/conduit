@@ -134,3 +134,26 @@ type GroundedAnswerDisposition =
     | partially_supported
     | insufficient_evidence
     | conflicting_evidence
+
+type InterpretationProvenance =
+    model_derived
+
+type InterpretationDisposition =
+    interpreted
+    | insufficient_evidence
+    | contradictory_evidence
+
+type ModelResultProvenance =
+    model_derived
+
+type ModelRefusal =
+    unsupported_request
+    | policy_denied
+    | context_unavailable
+    | capacity_unavailable
+
+type ModelFailure =
+    malformed_result
+    | implementation_failure
+    | resource_exhausted
+    | output_bound_exceeded

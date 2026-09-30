@@ -10,9 +10,11 @@ pub use generated::{
     ContextOmissionReason, ContextOrderingPolicy, ContextRedundancyPolicy,
     ContextSelectionRationale, ContextTruncationReason, EmbeddingNormalization, EntityBoundary,
     GeneratedTextFlowTerminal, GroundedAnswerDisposition, GroundingDisposition,
-    LlmDeterminismProfile, LlmImplementationControl, LlmTerminalOutcome, ModelOperation,
-    ModelPortPresence, SelectedContextRationale, SimilarityMetric, SourceSpanUnit,
-    TemporalSource, TemporalValidity, TemporalWindowRelation, TransitionDirection,
+    InterpretationDisposition, InterpretationProvenance, LlmDeterminismProfile,
+    LlmImplementationControl, LlmTerminalOutcome, ModelFailure, ModelOperation,
+    ModelPortPresence, ModelRefusal, ModelResultProvenance, SelectedContextRationale,
+    SimilarityMetric, SourceSpanUnit, TemporalSource, TemporalValidity, TemporalWindowRelation,
+    TransitionDirection,
 };
 
 mod bases;
