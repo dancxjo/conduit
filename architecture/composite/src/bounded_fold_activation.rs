@@ -49,6 +49,7 @@ pub struct BoundedFoldActivationHost {
     admission: ValuePayload,
     active: Option<KernelCompositeHost>,
     candidate: ValuePayload,
+    abnormal_buffer: Option<ValuePayload>,
     candidate_ready: bool,
     closing: bool,
     state: BoundedFoldState,
@@ -131,6 +132,14 @@ impl BoundedFoldActivationHost {
             encoded: Vec::with_capacity(planned.retained_item_bytes as usize),
         };
         let maximum_items = ready.len();
+        let abnormal_buffer = planned
+            .output
+            .abnormal_kind
+            .clone()
+            .map(|value_kind| ValuePayload {
+                value_kind,
+                encoded: Vec::with_capacity(planned.retained_accumulator_bytes as usize),
+            });
         Ok(Self {
             planned: planned.clone(),
             ready,
@@ -141,6 +150,7 @@ impl BoundedFoldActivationHost {
             admission,
             active: None,
             candidate,
+            abnormal_buffer,
             candidate_ready: false,
             closing: false,
             state: BoundedFoldState::Idle,
@@ -261,13 +271,15 @@ impl BoundedFoldActivationHost {
         match active.step().map_err(BoundedFoldError::Refused)? {
             KernelCompositeStatus::Active => {}
             KernelCompositeStatus::Complete => {
+                let terminal_buffer = self.abnormal_buffer.as_mut().unwrap_or(&mut self.candidate);
                 let terminal = active
-                    .output_terminal(&self.planned.output.front_port_id)
+                    .output_terminal_into(&self.planned.output.front_port_id, terminal_buffer)
                     .map_err(BoundedFoldError::Refused)?;
-                if let Some(KernelCompositeTerminal::Abnormal(terminal)) = terminal {
-                    if self.planned.output.abnormal_kind.as_ref() != Some(&terminal.value_kind) {
-                        return Err(BoundedFoldError::PlannedContractMismatch);
-                    }
+                if let Some(KernelCompositeTerminal::Abnormal) = terminal {
+                    let terminal = self
+                        .abnormal_buffer
+                        .take()
+                        .ok_or(BoundedFoldError::PlannedContractMismatch)?;
                     let completed = self.active.take().expect("active fold child was borrowed");
                     self.receipts.push(completed);
                     self.queued_ready = false;

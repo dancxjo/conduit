@@ -5,7 +5,7 @@ mod bounded_activation;
 mod bounded_fold_activation;
 mod bounded_scan_activation;
 mod child;
-pub use child::ChildTransportError;
+pub use child::{ChildTerminalError, ChildTransportError};
 mod definition;
 mod flow_select;
 mod kernel_executor;

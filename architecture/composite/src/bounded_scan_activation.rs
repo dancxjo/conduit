@@ -49,6 +49,7 @@ pub struct BoundedScanActivationHost {
     admission: ValuePayload,
     active: Option<KernelCompositeHost>,
     candidate: ValuePayload,
+    abnormal_buffer: Option<ValuePayload>,
     candidate_ready: bool,
     output_ready: bool,
     closing: bool,
@@ -132,6 +133,14 @@ impl BoundedScanActivationHost {
             encoded: Vec::with_capacity(planned.retained_item_bytes as usize),
         };
         let maximum_items = ready.len();
+        let abnormal_buffer = planned
+            .output
+            .abnormal_kind
+            .clone()
+            .map(|value_kind| ValuePayload {
+                value_kind,
+                encoded: Vec::with_capacity(planned.retained_accumulator_bytes as usize),
+            });
         Ok(Self {
             planned: planned.clone(),
             ready,
@@ -142,6 +151,7 @@ impl BoundedScanActivationHost {
             admission,
             active: None,
             candidate,
+            abnormal_buffer,
             candidate_ready: false,
             output_ready: false,
             closing: false,
@@ -268,13 +278,15 @@ impl BoundedScanActivationHost {
         match active.step().map_err(BoundedScanError::Refused)? {
             KernelCompositeStatus::Active => {}
             KernelCompositeStatus::Complete => {
+                let terminal_buffer = self.abnormal_buffer.as_mut().unwrap_or(&mut self.candidate);
                 let terminal = active
-                    .output_terminal(&self.planned.output.front_port_id)
+                    .output_terminal_into(&self.planned.output.front_port_id, terminal_buffer)
                     .map_err(BoundedScanError::Refused)?;
-                if let Some(KernelCompositeTerminal::Abnormal(terminal)) = terminal {
-                    if self.planned.output.abnormal_kind.as_ref() != Some(&terminal.value_kind) {
-                        return Err(BoundedScanError::PlannedContractMismatch);
-                    }
+                if let Some(KernelCompositeTerminal::Abnormal) = terminal {
+                    let terminal = self
+                        .abnormal_buffer
+                        .take()
+                        .ok_or(BoundedScanError::PlannedContractMismatch)?;
                     let completed = self.active.take().expect("active scan child was borrowed");
                     self.receipts.push(completed);
                     self.queued_ready = false;

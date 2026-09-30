@@ -1,4 +1,4 @@
-use crate::child::{BoundaryEndpoint, BoundaryTerminal, ChildKernel, ChildTransportError};
+use crate::child::{BoundaryEndpoint, ChildKernel, ChildTerminalError, ChildTransportError};
 use crate::{KernelCompositeDefinition, KernelOperationRegistry};
 use conduit_core::{
     bind_active_play, semantic_digest, ActivePlayId, AuthorityBinding, ConnectionId,
@@ -36,7 +36,7 @@ pub enum KernelCompositeError {
         child: HostId,
         reason: String,
     },
-    UnknownFront(PortId),
+    UnknownFront,
     StaleChild(HostId),
     MalformedBoundary(PortId),
     InvalidLifecycle,
@@ -47,6 +47,7 @@ pub enum KernelCompositeError {
         link: usize,
         reason: ChildTransportError,
     },
+    Terminal(ChildTerminalError),
 }
 
 impl core::fmt::Display for KernelCompositeError {
@@ -152,7 +153,7 @@ pub enum KernelCompositeStatus {
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum KernelCompositeTerminal {
     Normal,
-    Abnormal(ValuePayload),
+    Abnormal,
 }
 
 pub struct KernelCompositeHost {
@@ -432,7 +433,11 @@ impl KernelCompositeHost {
         port_id: &PortId,
     ) -> Result<Option<(u64, ValuePayload)>, KernelCompositeError> {
         self.require_started()?;
-        let route = self.front(port_id, PortDirection::Output)?.clone();
+        let route = self
+            .fronts
+            .get(port_id)
+            .filter(|route| route.direction == PortDirection::Output)
+            .ok_or(KernelCompositeError::UnknownFront)?;
         self.children
             .get_mut(&route.child)
             .ok_or_else(|| KernelCompositeError::StaleChild(route.child.clone()))?
@@ -446,7 +451,11 @@ impl KernelCompositeHost {
         output: &mut ValuePayload,
     ) -> Result<Option<u64>, KernelCompositeError> {
         self.require_started()?;
-        let route = self.front(port_id, PortDirection::Output)?.clone();
+        let route = self
+            .fronts
+            .get(port_id)
+            .filter(|route| route.direction == PortDirection::Output)
+            .ok_or(KernelCompositeError::UnknownFront)?;
         self.children
             .get_mut(&route.child)
             .ok_or_else(|| KernelCompositeError::StaleChild(route.child.clone()))?
@@ -460,7 +469,11 @@ impl KernelCompositeHost {
         sequence: u64,
     ) -> Result<(), KernelCompositeError> {
         self.require_started()?;
-        let route = self.front(port_id, PortDirection::Output)?.clone();
+        let route = self
+            .fronts
+            .get(port_id)
+            .filter(|route| route.direction == PortDirection::Output)
+            .ok_or(KernelCompositeError::UnknownFront)?;
         self.children
             .get_mut(&route.child)
             .ok_or_else(|| KernelCompositeError::StaleChild(route.child.clone()))?
@@ -468,23 +481,24 @@ impl KernelCompositeHost {
             .map_err(|reason| execution(&route.child, reason))
     }
 
-    pub fn output_terminal(
+    pub fn output_terminal_into(
         &self,
         port_id: &PortId,
+        abnormal: &mut ValuePayload,
     ) -> Result<Option<KernelCompositeTerminal>, KernelCompositeError> {
         self.require_started()?;
-        let route = self.front(port_id, PortDirection::Output)?.clone();
+        let route = self.front(port_id, PortDirection::Output)?;
         self.children
             .get(&route.child)
             .ok_or_else(|| KernelCompositeError::StaleChild(route.child.clone()))?
-            .boundary_terminal(port_id)
+            .boundary_terminal_into(port_id, abnormal)
             .map(|terminal| {
                 terminal.map(|terminal| match terminal {
-                    BoundaryTerminal::Normal => KernelCompositeTerminal::Normal,
-                    BoundaryTerminal::Abnormal(value) => KernelCompositeTerminal::Abnormal(value),
+                    RemoteTerminalDisposition::NormalClose => KernelCompositeTerminal::Normal,
+                    RemoteTerminalDisposition::Abnormal => KernelCompositeTerminal::Abnormal,
                 })
             })
-            .map_err(|reason| execution(&route.child, reason))
+            .map_err(KernelCompositeError::Terminal)
     }
 
     pub fn next_host_request(&mut self) -> Option<KernelCompositeHostRequest> {
@@ -711,7 +725,7 @@ impl KernelCompositeHost {
         self.fronts
             .get(port_id)
             .filter(|route| route.direction == direction)
-            .ok_or_else(|| KernelCompositeError::UnknownFront(port_id.clone()))
+            .ok_or(KernelCompositeError::UnknownFront)
     }
 
     fn require_started(&self) -> Result<(), KernelCompositeError> {

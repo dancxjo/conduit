@@ -173,8 +173,14 @@ pub struct BoundedActivationHost {
     output_completed: bool,
     output_sequence: Option<u64>,
     output_buffer: ValuePayload,
-    pending_input_terminal: Option<KernelCompositeTerminal>,
+    abnormal_buffer: Option<ValuePayload>,
+    pending_input_terminal: Option<PendingInputTerminal>,
     state: BoundedActivationState,
+}
+
+enum PendingInputTerminal {
+    Normal,
+    Abnormal(ValuePayload),
 }
 
 impl BoundedActivationHost {
@@ -286,6 +292,14 @@ impl BoundedActivationHost {
             value_kind: contract.output_value_kind.clone(),
             encoded: Vec::with_capacity(contract.maximum_queue_bytes as usize),
         };
+        let abnormal_buffer =
+            contract
+                .output_abnormal_kind
+                .clone()
+                .map(|value_kind| ValuePayload {
+                    value_kind,
+                    encoded: Vec::with_capacity(contract.maximum_queue_bytes as usize),
+                });
         Ok(Self {
             contract,
             ready,
@@ -295,6 +309,7 @@ impl BoundedActivationHost {
             output_completed: false,
             output_sequence: None,
             output_buffer,
+            abnormal_buffer,
             pending_input_terminal: None,
             state: BoundedActivationState::Idle,
         })
@@ -413,18 +428,24 @@ impl BoundedActivationHost {
                 }
             }
             Ok(KernelCompositeStatus::Complete) => {
+                let terminal_buffer = self
+                    .abnormal_buffer
+                    .as_mut()
+                    .unwrap_or(&mut self.output_buffer);
                 let terminal = activation
-                    .output_terminal(&self.contract.output_port)
+                    .output_terminal_into(&self.contract.output_port, terminal_buffer)
                     .map_err(BoundedActivationError::Refused)?;
+                let abnormal =
+                    matches!(terminal, Some(KernelCompositeTerminal::Abnormal)).then(|| {
+                        self.abnormal_buffer
+                            .take()
+                            .expect("planned abnormal buffer")
+                    });
                 let completed = self.active.take().expect("active child was borrowed");
                 self.receipts.push(completed);
                 self.input_close_pending = false;
-                self.state = activation_terminal_state(
-                    sequence,
-                    terminal,
-                    self.contract.output_abnormal_kind.as_ref(),
-                    self.output_completed,
-                );
+                self.state =
+                    activation_terminal_state(sequence, terminal, abnormal, self.output_completed);
                 if !matches!(self.state, BoundedActivationState::Succeeded { .. }) {
                     self.pending_input_terminal = None;
                 }
@@ -543,7 +564,7 @@ impl BoundedActivationHost {
     /// active, closure remains one finite owed terminal until that activation
     /// succeeds; no later value can be admitted.
     pub fn close_input(&mut self) -> Result<(), BoundedActivationError> {
-        self.admit_input_terminal(KernelCompositeTerminal::Normal)
+        self.admit_input_terminal(PendingInputTerminal::Normal)
     }
 
     /// Admit one exact typed abnormal input terminal for propagation after the
@@ -559,12 +580,12 @@ impl BoundedActivationHost {
             self.contract.output_abnormal_kind.as_ref(),
             &terminal.value_kind,
         )?;
-        self.admit_input_terminal(KernelCompositeTerminal::Abnormal(terminal))
+        self.admit_input_terminal(PendingInputTerminal::Abnormal(terminal))
     }
 
     fn admit_input_terminal(
         &mut self,
-        terminal: KernelCompositeTerminal,
+        terminal: PendingInputTerminal,
     ) -> Result<(), BoundedActivationError> {
         if self.pending_input_terminal.is_some()
             || matches!(
@@ -590,8 +611,8 @@ impl BoundedActivationHost {
             .take()
             .ok_or(BoundedActivationError::InvalidLifecycle)?
         {
-            KernelCompositeTerminal::Normal => Ok(BoundedActivationState::Drained),
-            KernelCompositeTerminal::Abnormal(terminal) => {
+            PendingInputTerminal::Normal => Ok(BoundedActivationState::Drained),
+            PendingInputTerminal::Abnormal(terminal) => {
                 Ok(BoundedActivationState::InputAbnormal { terminal })
             }
         }
@@ -616,21 +637,17 @@ fn encode_optional_kind(encoded: &mut Vec<u8>, value: Option<&KindId>) {
 fn activation_terminal_state(
     sequence: u64,
     terminal: Option<KernelCompositeTerminal>,
-    expected_abnormal_kind: Option<&KindId>,
+    abnormal: Option<ValuePayload>,
     output_completed: bool,
 ) -> BoundedActivationState {
     match terminal {
-        Some(KernelCompositeTerminal::Abnormal(terminal))
-            if expected_abnormal_kind == Some(&terminal.value_kind) =>
-        {
+        Some(KernelCompositeTerminal::Abnormal) if abnormal.is_some() => {
+            let terminal = abnormal.expect("matched prepared abnormal terminal");
             BoundedActivationState::Abnormal { sequence, terminal }
         }
-        Some(KernelCompositeTerminal::Abnormal(terminal)) => BoundedActivationState::Faulted {
+        Some(KernelCompositeTerminal::Abnormal) => BoundedActivationState::Faulted {
             sequence,
-            fault: BoundedActivationFault::MalformedAbnormalTerminal {
-                expected: expected_abnormal_kind.cloned(),
-                actual: terminal.value_kind,
-            },
+            fault: BoundedActivationFault::MissingOutput,
         },
         Some(KernelCompositeTerminal::Normal) if output_completed => {
             BoundedActivationState::Succeeded { sequence }
@@ -676,8 +693,8 @@ mod tests {
         assert_eq!(
             activation_terminal_state(
                 4,
-                Some(KernelCompositeTerminal::Abnormal(terminal.clone())),
-                Some(&kind_id("test/transform-terminal")),
+                Some(KernelCompositeTerminal::Abnormal),
+                Some(terminal.clone()),
                 false,
             ),
             BoundedActivationState::Abnormal {
@@ -688,27 +705,14 @@ mod tests {
     }
 
     #[test]
-    fn wrong_or_unpromised_abnormal_kind_is_a_malformed_execution_terminal() {
-        for expected in [None, Some(kind_id("test/expected-terminal"))] {
-            assert_eq!(
-                activation_terminal_state(
-                    5,
-                    Some(KernelCompositeTerminal::Abnormal(ValuePayload {
-                        value_kind: kind_id("test/wrong-terminal"),
-                        encoded: vec![9],
-                    })),
-                    expected.as_ref(),
-                    false,
-                ),
-                BoundedActivationState::Faulted {
-                    sequence: 5,
-                    fault: BoundedActivationFault::MalformedAbnormalTerminal {
-                        expected,
-                        actual: kind_id("test/wrong-terminal"),
-                    },
-                }
-            );
-        }
+    fn absent_prepared_abnormal_buffer_is_a_malformed_execution_terminal() {
+        assert_eq!(
+            activation_terminal_state(5, Some(KernelCompositeTerminal::Abnormal), None, false),
+            BoundedActivationState::Faulted {
+                sequence: 5,
+                fault: BoundedActivationFault::MissingOutput,
+            }
+        );
     }
 
     #[test]

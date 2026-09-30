@@ -11,6 +11,15 @@ pub enum ChildTransportError {
     Scheduler(SchedulerError),
     TransferBufferTooSmall,
 }
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum ChildTerminalError {
+    UnknownFront,
+    MissingAbnormalKind,
+    MissingAbnormalValue,
+    BufferContractMismatch,
+    Scheduler(SchedulerError),
+}
 use conduit_kernel::{
     CanonicalValue, CordId, FixedHostCallBindings, FixedRoutes, HostedSignLog, HostedValueStore,
     KernelEvent, NodeId, RemoteEndpointId, RemoteTerminalDisposition, ValueStorage,
@@ -60,12 +69,6 @@ pub(crate) struct ChildKernel {
     scheduler: ChildScheduler,
     boundaries: BTreeMap<SemanticPortId, BoundaryEndpoint>,
     status: SchedulerStatus,
-}
-
-#[derive(Debug, Clone, PartialEq, Eq)]
-pub(crate) enum BoundaryTerminal {
-    Normal,
-    Abnormal(ValuePayload),
 }
 
 impl ChildKernel {
@@ -373,35 +376,43 @@ impl ChildKernel {
             .map_err(debug)
     }
 
-    pub(crate) fn boundary_terminal(
+    pub(crate) fn boundary_terminal_into(
         &self,
         port_id: &SemanticPortId,
-    ) -> Result<Option<BoundaryTerminal>, String> {
+        abnormal: &mut ValuePayload,
+    ) -> Result<Option<RemoteTerminalDisposition>, ChildTerminalError> {
         let boundary = self
             .boundaries
             .get(port_id)
             .filter(|boundary| boundary.direction == PortDirection::Output)
-            .ok_or_else(|| "unknown composite output front".to_string())?;
+            .ok_or(ChildTerminalError::UnknownFront)?;
         match self
             .scheduler
             .remote_egress_terminal_disposition(boundary.endpoint, boundary.cord)
-            .map_err(debug)?
+            .map_err(ChildTerminalError::Scheduler)?
         {
             None => Ok(None),
-            Some(RemoteTerminalDisposition::NormalClose) => Ok(Some(BoundaryTerminal::Normal)),
+            Some(RemoteTerminalDisposition::NormalClose) => {
+                Ok(Some(RemoteTerminalDisposition::NormalClose))
+            }
             Some(RemoteTerminalDisposition::Abnormal) => {
-                let kind = boundary.abnormal_kind.clone().ok_or_else(|| {
-                    "composite output emitted abnormal truth without an exact kind".to_string()
-                })?;
+                let kind = boundary
+                    .abnormal_kind
+                    .as_ref()
+                    .ok_or(ChildTerminalError::MissingAbnormalKind)?;
                 let terminal = self
                     .scheduler
                     .remote_egress_abnormal_terminal(boundary.endpoint, boundary.cord)
-                    .map_err(debug)?
-                    .ok_or_else(|| "composite abnormal output omitted its value".to_string())?;
-                Ok(Some(BoundaryTerminal::Abnormal(ValuePayload {
-                    value_kind: kind,
-                    encoded: terminal.as_slice().to_vec(),
-                })))
+                    .map_err(ChildTerminalError::Scheduler)?
+                    .ok_or(ChildTerminalError::MissingAbnormalValue)?;
+                if &abnormal.value_kind != kind
+                    || terminal.as_slice().len() > abnormal.encoded.capacity()
+                {
+                    return Err(ChildTerminalError::BufferContractMismatch);
+                }
+                abnormal.encoded.clear();
+                abnormal.encoded.extend_from_slice(terminal.as_slice());
+                Ok(Some(RemoteTerminalDisposition::Abnormal))
             }
         }
     }
