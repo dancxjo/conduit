@@ -14,7 +14,7 @@ pub use generated::{
     MeasurementPlotOverflowPolicy, MeasurementPlotRefusal, MeasurementSummaryRefusal,
     MeasurementThresholdRefusal, MeasurementThresholdState, MeasurementThresholdTransition,
     MeasurementWindowRefusal, QuantityMappingRefusal, QuantizationPolicy, RangePolicy,
-    SampledSignalRefusal, ScientificObservationRefusal, SignalContinuity,
+    SampledSignalRefusal, ScalarComparison, ScientificObservationRefusal, SignalContinuity,
     SignalContinuityClockReset, SignalContinuityDiscontinuous, TensorAxisRole, TensorAxisRoleOther,
     TensorElement, TensorRefusal,
 };
@@ -37,6 +37,7 @@ mod measurement_window;
 mod measurement_window_catalog;
 mod measurement_wire;
 mod sampled_signal;
+mod scalar_comparison;
 mod scientific_alignment;
 mod scientific_corpus;
 mod scientific_digest;

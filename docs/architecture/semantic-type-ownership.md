@@ -159,6 +159,7 @@ are satisfied.
 | Tensor, scientific-observation, immutable-reference and namespace refusal vocabularies | `semantics/data/types.conduit` | generated at build time | yes | yes | exact native round trips plus data behavior and codec suites |
 | Scientific clock-relation quality | `semantics/data/types.conduit` | generated at build time | yes | yes | exact native payload round trip plus scientific corpus and digest suites |
 | Quantity-mapping range, quantization and refusal vocabularies extracted from the catalog | `semantics/data/types.conduit` | generated at build time | yes | yes | exact native round trips plus catalog, std and browser quantity-mapping suites |
+| Scalar comparison vocabulary extracted from the catalog | `semantics/data/types.conduit` | generated at build time | yes | yes | exact native round trips plus logic catalog and std/browser/ConduitOS consumers |
 | LLM determinism, terminal-outcome, and implementation-control vocabularies | `semantics/ai/types.conduit` | generated at build time | yes | yes | exact native round trips plus AI semantic-contract suite |
 | AI planning, interruption, candidate and training lifecycle vocabularies | `semantics/ai/types.conduit` | generated at build time | yes | yes | exact native round trips plus cross-host, composition and training lifecycle suites |
 | Reranking strategy and its bounded observed-score payload | `semantics/ai/types.conduit` | generated at build time | yes | yes | exact native payload round trip plus retrieval and context-selection suites |

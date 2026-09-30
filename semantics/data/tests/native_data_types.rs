@@ -4,7 +4,7 @@ use conduit_data::{
     MeasurementPlotOverflowPolicy, MeasurementPlotRefusal, MeasurementSummaryRefusal,
     MeasurementThresholdRefusal, MeasurementThresholdState, MeasurementThresholdTransition,
     MeasurementWindowRefusal, QuantityMappingRefusal, QuantizationPolicy, RangePolicy,
-    SampledSignalRefusal, SignalContinuity, TensorAxisRole, TensorElement,
+    SampledSignalRefusal, ScalarComparison, SignalContinuity, TensorAxisRole, TensorElement,
 };
 use conduit_form::rust_binding::NativeRustBinding;
 
@@ -161,6 +161,20 @@ fn quantity_mapping_vocabulary_round_trips_through_exact_native_types() {
         QuantityMappingRefusal::OutOfRange,
         QuantityMappingRefusal::Inexact,
         QuantityMappingRefusal::Overflow,
+    ] {
+        assert_round_trip(value);
+    }
+}
+
+#[test]
+fn scalar_comparisons_round_trip_through_their_exact_native_type() {
+    for value in [
+        ScalarComparison::Less,
+        ScalarComparison::LessOrEqual,
+        ScalarComparison::Equal,
+        ScalarComparison::NotEqual,
+        ScalarComparison::GreaterOrEqual,
+        ScalarComparison::Greater,
     ] {
         assert_round_trip(value);
     }
