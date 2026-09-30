@@ -25,8 +25,9 @@ use conduit_signal::{
     decode_signal_bytes, encode_signal, parse_pulse_configuration, pulse_contract_revision,
     pulse_execution_profile, pulse_host_call_requirements, pulse_outputs,
     pulse_resource_requirements, show_contract_revision, show_execution_profile,
-    show_host_call_requirements, show_inputs, show_resource_requirements, signal_profile_catalog,
-    signal_resource_offers, Signal, PULSE_KIND, SHOW_KIND, SIGNAL_ENCODED_LEN,
+    show_host_call_requirements, show_inputs, show_resource_requirements,
+    signal_level_for_sequence, signal_profile_catalog, signal_resource_offers, Signal, PULSE_KIND,
+    SHOW_KIND, SIGNAL_ENCODED_LEN,
 };
 use std::{cell::RefCell, collections::BTreeMap};
 
@@ -736,12 +737,12 @@ fn prepare_kernel(
     let configuration =
         parse_pulse_configuration(&fragment.placements[usize::from(pulse_node.0)].configuration)
             .map_err(|_| ERROR_START)?;
-    let count = usize::try_from(configuration.count).map_err(|_| ERROR_START)?;
+    let count = usize::try_from(*configuration.count()).map_err(|_| ERROR_START)?;
     let wait_count = count.saturating_sub(1);
     let item_capacity =
         u16::try_from(count.saturating_add(wait_count).max(1)).map_err(|_| ERROR_START)?;
     let byte_capacity = configuration
-        .count
+        .count()
         .checked_mul(u64::from(SIGNAL_ENCODED_LEN))
         .and_then(|bytes| bytes.checked_add(u64::try_from(wait_count).ok()?.checked_mul(8)?))
         .and_then(|bytes| u32::try_from(bytes.max(1)).ok())
@@ -749,22 +750,17 @@ fn prepare_kernel(
     let mut values = HostedValueStore::new(item_capacity, SIGNAL_ENCODED_LEN, byte_capacity)
         .map_err(|_| ERROR_START)?;
     let mut signal_values = Vec::with_capacity(count);
-    for sequence in 0..configuration.count {
-        let payload = encode_signal(&Signal {
-            sequence,
-            level: if sequence.is_multiple_of(2) {
-                configuration.initial_level
-            } else {
-                !configuration.initial_level
-            },
-        });
+    for sequence in 0..*configuration.count() {
+        let level = signal_level_for_sequence(sequence, *configuration.initial_level());
+        let payload =
+            encode_signal(&Signal::new(level, sequence).expect("planned Signal fields are valid"));
         signal_values.push(values.store(&payload.encoded).map_err(|_| ERROR_START)?);
     }
     let mut wait_values = Vec::with_capacity(wait_count);
     for _ in 0..wait_count {
         wait_values.push(
             values
-                .store(&configuration.period_ms.to_le_bytes())
+                .store(&configuration.period_ms().to_le_bytes())
                 .map_err(|_| ERROR_START)?,
         );
     }
@@ -864,14 +860,11 @@ fn prepare_kernel(
             .bind_request(&lowered.identity, show_node, request, HostCallId(0))
             .map_err(|_| ERROR_START)?;
         let sequence = u64::try_from(sequence).map_err(|_| ERROR_START)?;
-        let signal = Signal {
+        let signal = Signal::new(
+            signal_level_for_sequence(sequence, *configuration.initial_level()),
             sequence,
-            level: if sequence.is_multiple_of(2) {
-                configuration.initial_level
-            } else {
-                !configuration.initial_level
-            },
-        };
+        )
+        .expect("planned Signal fields are valid");
         let presentation = bind_presentation(
             &active_play.active_play_id,
             &show_placement.placement_id,

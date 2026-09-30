@@ -5,6 +5,7 @@
 //! not provide a timer-backed compatibility implementation: deliberate input must
 //! be fulfilled through an admitted Host Call boundary.
 
+use crate::{ToggleConfiguration, Trigger, TriggerConfiguration, MAX_SIGNAL_COUNT};
 use alloc::string::ToString;
 use alloc::vec;
 use alloc::vec::Vec;
@@ -14,9 +15,6 @@ use conduit_core::{
     KindConfigurationField, KindConfigurationRule, KindId, KindIdentity, PortDescriptor,
     PortDirection, ResourceRequirement, ValuePayload, INPUT_RESOURCE_CLASS,
 };
-use serde::{Deserialize, Serialize};
-
-use crate::MAX_SIGNAL_COUNT;
 
 pub const TRIGGER_VALUE_KIND: &str = conduit_time::TICK_VALUE_KIND;
 pub const TRIGGER_KIND: &str = "interaction/trigger";
@@ -45,21 +43,6 @@ pub const TRIGGER_PORT: &str = "trigger";
 pub const TRIGGER_ENCODED_LEN: u32 = 8;
 pub const TRIGGER_CONTRACT_REVISION: &str = "conduit.signal/interaction-trigger@1";
 pub const TRIGGER_EXECUTION_PROFILE: &str = "conduit.signal/trigger-hosted@1";
-
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
-pub struct Trigger {
-    pub sequence: u64,
-}
-
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
-pub struct TriggerConfiguration {
-    pub count: u64,
-}
-
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
-pub struct ToggleConfiguration {
-    pub initial: bool,
-}
 
 pub fn trigger_kind() -> KindId {
     kind_id(TRIGGER_KIND)
@@ -147,7 +130,7 @@ pub fn toggle_outputs() -> Vec<PortDescriptor> {
 pub fn trigger_configuration_entries(config: &TriggerConfiguration) -> Vec<ConfigurationEntry> {
     vec![ConfigurationEntry {
         key: "count".to_string(),
-        value: ConfigurationValue::U64(config.count),
+        value: ConfigurationValue::U64(*config.count()),
     }]
 }
 
@@ -168,13 +151,14 @@ pub fn parse_trigger_configuration(
     if count > MAX_SIGNAL_COUNT {
         return Err(crate::SignalProfileError::InvalidConfiguration("count"));
     }
-    Ok(TriggerConfiguration { count })
+    TriggerConfiguration::new(count)
+        .map_err(|_| crate::SignalProfileError::InvalidConfiguration("count"))
 }
 
 pub fn toggle_configuration_entries(config: &ToggleConfiguration) -> Vec<ConfigurationEntry> {
     vec![ConfigurationEntry {
         key: "initial".to_string(),
-        value: ConfigurationValue::Bool(config.initial),
+        value: ConfigurationValue::Bool(*config.initial()),
     }]
 }
 
@@ -191,14 +175,15 @@ pub fn parse_toggle_configuration(
             _ => {}
         }
     }
-    Ok(ToggleConfiguration {
-        initial: initial.ok_or(crate::SignalProfileError::MissingConfiguration("initial"))?,
-    })
+    ToggleConfiguration::new(
+        initial.ok_or(crate::SignalProfileError::MissingConfiguration("initial"))?,
+    )
+    .map_err(|_| crate::SignalProfileError::InvalidConfiguration("initial"))
 }
 
 pub fn encode_trigger(trigger: &Trigger) -> ValuePayload {
     let mut encoded = Vec::with_capacity(TRIGGER_ENCODED_LEN as usize);
-    encoded.extend_from_slice(&trigger.sequence.to_le_bytes());
+    encoded.extend_from_slice(&trigger.sequence().to_le_bytes());
     ValuePayload {
         value_kind: trigger_value_kind(),
         encoded,
@@ -218,9 +203,8 @@ pub fn decode_trigger_bytes(encoded: &[u8]) -> Result<Trigger, crate::SignalProf
     }
     let mut sequence = [0u8; 8];
     sequence.copy_from_slice(encoded);
-    Ok(Trigger {
-        sequence: u64::from_le_bytes(sequence),
-    })
+    Trigger::new(u64::from_le_bytes(sequence))
+        .map_err(|_| crate::SignalProfileError::InvalidConfiguration("sequence"))
 }
 
 #[cfg(feature = "host-profile")]
@@ -241,7 +225,7 @@ mod tests {
 
     #[test]
     fn round_trips_trigger_payload() {
-        let trigger = Trigger { sequence: 42 };
+        let trigger = Trigger::new(42).unwrap();
         let payload = encode_trigger(&trigger);
         assert_eq!(payload.encoded.len(), TRIGGER_ENCODED_LEN as usize);
         assert_eq!(decode_trigger(&payload).unwrap(), trigger);
@@ -249,7 +233,7 @@ mod tests {
 
     #[test]
     fn round_trips_trigger_configuration_entries() {
-        let config = TriggerConfiguration { count: 5 };
+        let config = TriggerConfiguration::new(5).unwrap();
         let parsed = parse_trigger_configuration(&trigger_configuration_entries(&config))
             .expect("trigger configuration should parse");
         assert_eq!(parsed, config);
@@ -257,7 +241,7 @@ mod tests {
 
     #[test]
     fn round_trips_toggle_configuration_entries() {
-        let config = ToggleConfiguration { initial: true };
+        let config = ToggleConfiguration::new(true).unwrap();
         let parsed = parse_toggle_configuration(&toggle_configuration_entries(&config))
             .expect("toggle configuration should parse");
         assert_eq!(parsed, config);

@@ -570,7 +570,6 @@ dependencies = [
  "conduit-form",
  "conduit-semantic-catalog",
  "conduit-time",
- "serde",
 ]
 
 [[package]]

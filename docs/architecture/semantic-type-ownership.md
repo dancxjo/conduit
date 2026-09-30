@@ -149,6 +149,7 @@ are satisfied.
 | Morse key transition record | `semantics/text/types.conduit` | generated at build time | yes | yes | exact native record round trip plus interpreter and ESP32 tooling suites |
 | Address configuration/value and Morse pattern/key refusal vocabularies | `semantics/text/types.conduit` | generated at build time | yes | yes | exact native round trips plus address and Morse behavior suites |
 | Speech commit/recognition dispositions and typed refusals | `semantics/tongues/types.conduit` | generated at build time | yes | yes | exact native round trips plus speech recognition and commit suites |
+| Signal, Trigger and finite pulse/trigger/toggle configurations | `semantics/signal/types.conduit` | generated at build time | yes | yes | exact native record round trips plus Signal, std, browser and embedded compile suites |
 | Address-detection typed terminal | `semantics/text/types.conduit` | generated at build time | yes | yes | exact native round trip plus address-detection behavior suite |
 | Address-detection result and bounded addressed payload | `semantics/text/types.conduit` | generated at build time | yes | yes | exact native round trips and index/text bounds plus text, speech and std Host suites |
 | Human experience, source-availability, visual-evidence and relation vocabularies | `semantics/human/types.conduit` | generated at build time | yes | yes | exact native round trips plus human experience and visual behavior suites |

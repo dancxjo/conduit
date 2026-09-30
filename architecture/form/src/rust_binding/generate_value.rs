@@ -25,7 +25,13 @@ pub(super) fn emit_value_impl(
             emit_scalar(out, rust_name, constant, representation, names)?
         }
         StructuredInfoTypeShape::Record { fields, .. } => {
-            emit_record_constructor(out, rust_name, fields, names)?;
+            emit_record_constructor(
+                out,
+                rust_name,
+                fields,
+                names,
+                value_type.value_contracts.is_empty(),
+            )?;
             super::generate_conversion::emit_record_binding(
                 out, rust_name, constant, fields, names,
             )?
@@ -133,6 +139,7 @@ fn emit_record_constructor(
     rust_name: &str,
     fields: &[conduit_core::StructuredFieldType],
     names: &BTreeMap<String, String>,
+    is_unconstrained: bool,
 ) -> Result<(), RustBindingGenerationError> {
     writeln!(out, "impl {rust_name} {{").expect("String writing is infallible");
     write!(out, "    pub fn new(").expect("String writing is infallible");
@@ -150,20 +157,33 @@ fn emit_record_constructor(
     }
     writeln!(out, ") -> Result<Self, NativeBindingRefusal> {{")
         .expect("String writing is infallible");
-    write!(out, "        let candidate = Self {{ ").expect("String writing is infallible");
+    write!(
+        out,
+        "        {}Self {{ ",
+        if is_unconstrained {
+            "Ok("
+        } else {
+            "let candidate = "
+        }
+    )
+    .expect("String writing is infallible");
     for field in fields {
         write!(out, "{}, ", rust_snake_identifier(field.name())?)
             .expect("String writing is infallible");
     }
-    writeln!(out, "}};").expect("String writing is infallible");
-    writeln!(
-        out,
-        "        let structured = candidate.clone().into_structured()?;"
-    )
-    .expect("String writing is infallible");
-    writeln!(out, "        conduit_form::rust_binding::validate_native_contracts(&structured, &Self::value_contracts())?;")
+    if is_unconstrained {
+        writeln!(out, "}})\n    }}").expect("String writing is infallible");
+    } else {
+        writeln!(out, "}};").expect("String writing is infallible");
+        writeln!(
+            out,
+            "        let structured = candidate.clone().into_structured()?;"
+        )
         .expect("String writing is infallible");
-    writeln!(out, "        Ok(candidate)\n    }}").expect("String writing is infallible");
+        writeln!(out, "        conduit_form::rust_binding::validate_native_contracts(&structured, &Self::value_contracts())?;")
+            .expect("String writing is infallible");
+        writeln!(out, "        Ok(candidate)\n    }}").expect("String writing is infallible");
+    }
     for field in fields {
         let name = rust_snake_identifier(field.name())?;
         let value_type = rust_type(field.value_type(), names)?;

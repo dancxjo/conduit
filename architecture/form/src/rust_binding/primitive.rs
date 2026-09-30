@@ -72,6 +72,16 @@ impl NativePrimitive for InfoBool {
     }
 }
 
+impl NativePrimitive for bool {
+    fn encode_primitive(&self) -> Vec<u8> {
+        InfoBool::new(*self).encode().to_vec()
+    }
+
+    fn decode_primitive(canonical: &[u8]) -> Option<Self> {
+        InfoBool::decode(canonical).ok().map(InfoBool::get)
+    }
+}
+
 impl NativePrimitive for Scalar {
     fn encode_primitive(&self) -> Vec<u8> {
         (*self).encode().to_vec()

@@ -196,7 +196,7 @@ impl RemoteSignalKernel {
                         .map_err(UsbLinkError::Kernel)?,
                 )
                 .map_err(|_| UsbLinkError::InvalidSignal)?;
-                if signal.sequence != expected_sequence
+                if *signal.sequence() != expected_sequence
                     || self.presented as u64 != expected_sequence
                 {
                     return Err(UsbLinkError::InvalidSignal);
@@ -205,8 +205,8 @@ impl RemoteSignalKernel {
                     .identity
                     .presentation(self.presented)
                     .ok_or(UsbLinkError::InvalidGeneratedEndpoint)?;
-                control.gpio_set(0, signal.level).await;
-                sign.write_receipt(signal.sequence, signal.level, identity, runtime)
+                control.gpio_set(0, *signal.level()).await;
+                sign.write_receipt(*signal.sequence(), *signal.level(), identity, runtime)
                     .await?;
                 self.scheduler
                     .complete_host_call(
