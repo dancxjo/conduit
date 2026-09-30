@@ -293,6 +293,16 @@ fn emit_payload_struct(
         )
         .expect("String writing is infallible");
     }
+    writeln!(out, "}}\n\nimpl {name} {{").expect("String writing is infallible");
+    for field in fields {
+        let field_name = rust_snake_identifier(field.name())?;
+        let field_type = rust_type(field.value_type(), names)?;
+        writeln!(
+            out,
+            "    pub fn {field_name}(&self) -> &{field_type} {{ &self.{field_name} }}"
+        )
+        .expect("String writing is infallible");
+    }
     writeln!(out, "}}\n").expect("String writing is infallible");
     Ok(())
 }

@@ -13,8 +13,9 @@ pub use generated::{
     HouseContextProvenanceClass, InterpretationDisposition, InterpretationProvenance,
     LlmDeterminismProfile, LlmImplementationControl, LlmTerminalOutcome, ModelFailure,
     ModelOperation, ModelPortPresence, ModelRefusal, ModelResultProvenance, RerankingProofClass,
-    RetrievalMechanism, SelectedContextRationale, SimilarityMetric, SourceSpanUnit, TemporalSource,
-    TemporalValidity, TemporalWindowRelation, TransitionDirection,
+    RerankingStrategy, RerankingStrategyObservedScores, RetrievalMechanism,
+    SelectedContextRationale, SimilarityMetric, SourceSpanUnit, TemporalSource, TemporalValidity,
+    TemporalWindowRelation, TransitionDirection,
 };
 
 mod bases;

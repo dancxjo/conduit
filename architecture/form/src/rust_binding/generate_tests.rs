@@ -182,6 +182,9 @@ mod generated_round_trip {
         let mut pitches = BoundedSequence::<Note, 16>::new();
         pitches.push(note).unwrap();
         let event = MusicEvent::note(pitches, 100).unwrap();
+        let MusicEvent::Note(payload) = &event else { panic!("note payload") };
+        assert_eq!(payload.pitches().len(), 1);
+        assert_eq!(*payload.velocity(), 100);
         let encoded = event.clone().encode().unwrap();
         assert_eq!(MusicEvent::decode(&encoded).unwrap(), event);
 
