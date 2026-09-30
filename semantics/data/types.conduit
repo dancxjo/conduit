@@ -29,6 +29,18 @@ type TensorElement =
     | f32
     | f64
 
+type TensorAxisRole =
+    batch
+    | time
+    | feature
+    | sensor
+    | spatial_coordinate
+    | frequency
+    | channel
+    | other {
+        identity: Text <= 64B not in [""]
+    }
+
 type SampledSignalRefusal =
     invalid_clock
     | invalid_start

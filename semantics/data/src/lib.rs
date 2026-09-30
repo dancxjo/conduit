@@ -10,7 +10,8 @@ mod generated {
 pub use generated::{
     DataLoadTextTerminal, DataLoadTextTerminalRepresentation, DataSaveTextTerminal,
     DataSaveTextTerminalRepresentation, FullWindowPolicy, MeasurementPlotOverflowPolicy,
-    MeasurementThresholdState, MeasurementThresholdTransition, SampledSignalRefusal, TensorElement,
+    MeasurementThresholdState, MeasurementThresholdTransition, SampledSignalRefusal,
+    TensorAxisRole, TensorAxisRoleOther, TensorElement,
 };
 
 mod data_catalog;

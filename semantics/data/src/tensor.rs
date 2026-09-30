@@ -3,7 +3,7 @@
 use alloc::{string::String, vec::Vec};
 use conduit_core::{semantic_digest, BoundedResourceRef, QuantityUnit};
 
-use crate::TensorElement;
+use crate::{TensorAxisRole, TensorElement};
 
 pub const TENSOR_INFO_ID: &str = "data/tensor@1";
 pub const TENSOR_ENCODING_VERSION: u8 = 1;
@@ -38,18 +38,6 @@ impl TensorElement {
             Self::F64 => "number/ieee754-f64-le",
         }
     }
-}
-
-#[derive(Debug, Clone, PartialEq, Eq)]
-pub enum TensorAxisRole {
-    Batch,
-    Time,
-    Feature,
-    Sensor,
-    SpatialCoordinate,
-    Frequency,
-    Channel,
-    Other(String),
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -115,9 +103,6 @@ impl TensorValue {
         }
         for axis in &self.axes {
             validate_axis_identity(axis.identity.as_deref())?;
-            if let TensorAxisRole::Other(role) = &axis.role {
-                validate_axis_identity(Some(role))?;
-            }
         }
         match &self.backing {
             TensorBacking::Inline(payload) => {

@@ -148,13 +148,6 @@ fn validate_tensor(port: &ModelPortConstraint) -> Result<(), ModelSignatureRefus
                 minimum == 0 || minimum > maximum
             }
         })
-        || tensor.axes.iter().any(|axis| {
-            matches!(
-                &axis.role,
-                TensorAxisRole::Other(value)
-                    if value.is_empty() || value.len() > MAXIMUM_MODEL_IDENTITY_BYTES
-            )
-        })
     {
         return Err(ModelSignatureRefusal::InvalidTensorConstraint);
     }
@@ -245,7 +238,7 @@ fn encode_axis_role(output: &mut Vec<u8>, role: &TensorAxisRole) {
         TensorAxisRole::Channel => output.push(6),
         TensorAxisRole::Other(value) => {
             output.push(7);
-            push_text(output, value);
+            push_text(output, value.identity());
         }
     }
 }
