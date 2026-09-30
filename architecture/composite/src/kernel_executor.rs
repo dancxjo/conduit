@@ -1,11 +1,12 @@
 use crate::child::{BoundaryEndpoint, BoundaryTerminal, ChildKernel};
 use crate::{KernelCompositeDefinition, KernelOperationRegistry};
 use conduit_core::{
-    bind_active_play, ActivePlayId, ConnectionId, HostId, Plan, PortDirection, PortId, ValuePayload,
+    bind_active_play, semantic_digest, ActivePlayId, ConnectionId, HostId, Plan, PortDirection,
+    PortId, ValuePayload,
 };
 use conduit_kernel::scheduler::{HostCallRequest, RemoteIngressOutcome, SchedulerStatus};
 use conduit_kernel::RemoteTerminalDisposition;
-use conduit_kernel::{HostCallOutcome, KernelEvent, RemoteEndpointId};
+use conduit_kernel::{HostCallId, HostCallOutcome, KernelEvent, NodeId, RemoteEndpointId};
 use conduit_plan_lowering::lowering::{
     lower_plan_fragment, LoweredPlanFragment, LoweringError, RemoteCordDirection,
 };
@@ -94,6 +95,9 @@ struct InternalLink {
 pub struct KernelCompositeHostRequest {
     pub child: HostId,
     pub request: HostCallRequest,
+    /// Commitment to the selected fragment, placement, call and Host Call
+    /// contract. Completion must return this exact sealed obligation identity.
+    pub obligation_identity: [u8; 32],
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -117,6 +121,7 @@ pub struct KernelCompositeHost {
     active_plays: BTreeMap<HostId, ActivePlayId>,
     started: bool,
     cancelled: bool,
+    host_call_obligations: BTreeMap<(HostId, NodeId, HostCallId), [u8; 32]>,
 }
 
 impl KernelCompositeHost {
@@ -188,6 +193,24 @@ impl KernelCompositeHost {
         }
 
         let links = internal_links(&preparation)?;
+        let mut host_call_obligations = BTreeMap::new();
+        for (child, lowered) in preparation.children() {
+            for (node, call, contract) in &lowered.identity.host_calls {
+                let placement = lowered.identity.placement_for_node(*node).ok_or_else(|| {
+                    KernelCompositeError::InvalidBoundary("Host Call owner is absent".into())
+                })?;
+                host_call_obligations.insert(
+                    (child.clone(), *node, *call),
+                    host_call_obligation_identity(
+                        lowered.identity.plan_id.as_str(),
+                        lowered.identity.fragment_id.as_str(),
+                        placement.as_str(),
+                        *call,
+                        contract.as_str(),
+                    ),
+                );
+            }
+        }
         let mut children = BTreeMap::new();
         for fragment in &definition.internal_plan.fragments {
             let child = fragment.host_id.clone();
@@ -215,6 +238,7 @@ impl KernelCompositeHost {
             active_plays: BTreeMap::new(),
             started: false,
             cancelled: false,
+            host_call_obligations,
         })
     }
 
@@ -355,6 +379,11 @@ impl KernelCompositeHost {
                 .next_host_request()
                 .map(|request| KernelCompositeHostRequest {
                     child: child.clone(),
+                    obligation_identity: self
+                        .host_call_obligations
+                        .get(&(child.clone(), request.node, request.call))
+                        .copied()
+                        .expect("lowered Host Call has a sealed obligation"),
                     request,
                 })
         })
@@ -366,6 +395,7 @@ impl KernelCompositeHost {
         outcome: HostCallOutcome,
     ) -> Result<(), KernelCompositeError> {
         self.require_started()?;
+        self.verify_host_call_obligation(request)?;
         self.children
             .get_mut(&request.child)
             .ok_or_else(|| KernelCompositeError::StaleChild(request.child.clone()))?
@@ -391,6 +421,8 @@ impl KernelCompositeHost {
         request: &KernelCompositeHostRequest,
         bytes: &[u8],
     ) -> Result<(), KernelCompositeError> {
+        self.require_started()?;
+        self.verify_host_call_obligation(request)?;
         let child = self
             .children
             .get_mut(&request.child)
@@ -411,6 +443,24 @@ impl KernelCompositeHost {
                 },
             )
             .map_err(|reason| execution(&request.child, reason))
+    }
+
+    fn verify_host_call_obligation(
+        &self,
+        request: &KernelCompositeHostRequest,
+    ) -> Result<(), KernelCompositeError> {
+        let expected = self.host_call_obligations.get(&(
+            request.child.clone(),
+            request.request.node,
+            request.request.call,
+        ));
+        if expected == Some(&request.obligation_identity) {
+            Ok(())
+        } else {
+            Err(KernelCompositeError::InvalidBoundary(
+                "Host Call completion differs from its sealed child obligation".into(),
+            ))
+        }
     }
 
     pub fn step(&mut self) -> Result<KernelCompositeStatus, KernelCompositeError> {
@@ -544,6 +594,26 @@ impl KernelCompositeHost {
     }
 }
 
+fn host_call_obligation_identity(
+    plan: &str,
+    fragment: &str,
+    placement: &str,
+    call: HostCallId,
+    contract: &str,
+) -> [u8; 32] {
+    let mut exact =
+        Vec::with_capacity(plan.len() + fragment.len() + placement.len() + contract.len() + 5);
+    exact.extend_from_slice(plan.as_bytes());
+    exact.push(0);
+    exact.extend_from_slice(fragment.as_bytes());
+    exact.push(0);
+    exact.extend_from_slice(placement.as_bytes());
+    exact.push(0);
+    exact.extend_from_slice(&call.0.to_le_bytes());
+    exact.extend_from_slice(contract.as_bytes());
+    semantic_digest("conduit/planned-activation-host-call-obligation@1", &exact)
+}
+
 fn internal_links(
     preparation: &KernelCompositePreparation,
 ) -> Result<Vec<InternalLink>, KernelCompositeError> {
@@ -619,5 +689,37 @@ mod tests {
             KernelCompositePreparation::prepare(plan),
             Err(KernelCompositeError::Empty)
         );
+    }
+
+    #[test]
+    fn host_call_obligation_commits_every_routing_identity() {
+        let exact = host_call_obligation_identity(
+            "plan",
+            "fragment",
+            "placement",
+            HostCallId(0),
+            "contract",
+        );
+        for drifted in [
+            host_call_obligation_identity(
+                "other",
+                "fragment",
+                "placement",
+                HostCallId(0),
+                "contract",
+            ),
+            host_call_obligation_identity("plan", "other", "placement", HostCallId(0), "contract"),
+            host_call_obligation_identity("plan", "fragment", "other", HostCallId(0), "contract"),
+            host_call_obligation_identity(
+                "plan",
+                "fragment",
+                "placement",
+                HostCallId(1),
+                "contract",
+            ),
+            host_call_obligation_identity("plan", "fragment", "placement", HostCallId(0), "other"),
+        ] {
+            assert_ne!(drifted, exact);
+        }
     }
 }
