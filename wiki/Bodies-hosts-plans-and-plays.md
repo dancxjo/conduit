@@ -1,5 +1,3 @@
-# Bodies, hosts, plans and plays
-
 These words answer different questions.
 
 | noun | question |
@@ -12,6 +10,16 @@ These words answer different questions.
 | **play** | which active execution of that plan is happening now? |
 
 Collapsing any two of them makes recovery and distributed execution dishonest.
+
+## Continuity is an authored architectural fact
+
+Traditional software often borrows identity from whatever process, VM, container, or machine happens to be alive. That is convenient until the mechanism changes.
+
+Conduit instead gives continuity its own noun: **body**.
+
+A body is the thing that is allowed to remain “the same computer” while hosts reboot, hosts disappear, plans are replaced, and plays begin and end. This does not mean the body is metaphysically immortal; it means continuity is represented explicitly rather than guessed from process lifetime.
+
+That is why the nouns below are intentionally not synonyms.
 
 ## A body can outlive a host
 
@@ -37,7 +45,7 @@ birth
  -> new or reused planning truth
 ```
 
-A body can begin with zero, one, or many forms. No initial form remains permanently privileged.
+A body can begin with zero, one, or many plots. No initial plot remains permanently privileged.
 
 ## Host source constructs machinery
 
@@ -122,9 +130,17 @@ See [bodies/pete/profiles/pete-r1.body.conduit](https://github.com/dancxjo/condu
 
 This is construction intent. Current membership, presence, offers, lines, plans, and plays remain runtime truth.
 
+## Plots belong to the body; realizations belong to plans
+
+A resident **plot** is authored intent. It may survive changes in the machinery that currently realizes it.
+
+When a host disappears, Conduit does not need to rewrite the plot into a new machine-specific program. It can ask a narrower question: **given the same plot and the new current truth, is there another admissible plan?**
+
+That separation is the architectural basis for recovery without semantic drift.
+
 ## Planning is where meaning meets reality
 
-The planner starts from a checked form and current realization truth.
+The planner starts from a checked plot and current realization truth.
 
 ```text
 checked semantic requirement
