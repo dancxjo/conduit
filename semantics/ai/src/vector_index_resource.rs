@@ -7,7 +7,7 @@ use conduit_core::{
 };
 use serde::{Deserialize, Serialize};
 
-use crate::{EmbeddingProfile, VectorRefusal, MAXIMUM_SIMILARITY_TOP_K};
+use crate::{EmbeddingProfile, VectorIndexHealth, VectorRefusal, MAXIMUM_SIMILARITY_TOP_K};
 
 pub const VECTOR_INDEX_RESOURCE_CLASS: &str = "resource/vector-index@1";
 pub const MAXIMUM_VECTOR_INDEX_MEMBERS: u32 = 4_096;
@@ -55,12 +55,6 @@ pub struct VectorIndexHandle {
 pub struct VectorIndexAuthorization {
     pub authority_identity: String,
     pub authority: VectorIndexAuthority,
-}
-
-#[derive(Debug, Copy, Clone, PartialEq, Eq, Serialize, Deserialize)]
-pub enum VectorIndexHealth {
-    Ready,
-    Unavailable,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]

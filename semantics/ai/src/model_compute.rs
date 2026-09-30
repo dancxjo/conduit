@@ -4,30 +4,11 @@ use alloc::{string::String, vec::Vec};
 use conduit_core::ComputeServiceGuarantee;
 use conduit_data::TensorElement;
 
+use crate::{ModelComputeOperation, PortableComputeClass};
+
 pub const MAXIMUM_MODEL_COMPUTE_PROFILES: usize = 16;
 pub const MAXIMUM_MODEL_COMPUTE_FORMATS: usize = 16;
 pub const MAXIMUM_MODEL_COMPUTE_DTYPES: usize = 16;
-
-#[derive(Debug, Copy, Clone, PartialEq, Eq)]
-pub enum ModelComputeOperation {
-    Inference,
-    Encode,
-    Decode,
-    Sample,
-    Score,
-    TrainStep,
-    Evaluate,
-    Checkpoint,
-    IntegrateDynamics,
-    RelationQuery,
-}
-
-#[derive(Debug, Copy, Clone, PartialEq, Eq)]
-pub enum PortableComputeClass {
-    GeneralCpu,
-    VectorCompute,
-    Accelerator,
-}
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
 pub enum ModelCachePolicy {

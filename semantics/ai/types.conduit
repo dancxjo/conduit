@@ -390,3 +390,28 @@ type ObjectiveParticipation =
 type BatchOrder =
     stable
     | shuffled
+
+type ModelComputeOperation =
+    inference
+    | encode
+    | decode
+    | sample
+    | score
+    | train_step
+    | evaluate
+    | checkpoint
+    | integrate_dynamics
+    | relation_query
+
+type PortableComputeClass =
+    general_cpu
+    | vector_compute
+    | accelerator
+
+type VectorIndexHealth =
+    ready
+    | unavailable
+
+type VectorIndexMaintenanceKind =
+    rebuild
+    | compaction
