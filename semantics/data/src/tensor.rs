@@ -3,7 +3,7 @@
 use alloc::{string::String, vec::Vec};
 use conduit_core::{semantic_digest, BoundedResourceRef, QuantityUnit};
 
-use crate::{TensorAxisRole, TensorElement};
+use crate::{TensorAxisRole, TensorElement, TensorRefusal};
 
 pub const TENSOR_INFO_ID: &str = "data/tensor@1";
 pub const TENSOR_ENCODING_VERSION: u8 = 1;
@@ -72,27 +72,6 @@ pub struct TensorSummary {
     pub elements: u64,
     pub bytes: u64,
     pub resource_identity: Option<[u8; 32]>,
-}
-
-#[derive(Debug, Clone, PartialEq, Eq)]
-pub enum TensorRefusal {
-    RankOutOfBounds,
-    ZeroDimension,
-    AxisCountMismatch,
-    AxisIdentityInvalid,
-    ShapeOverflow,
-    ByteBoundExceeded,
-    InlinePayloadTooLarge,
-    PayloadLengthMismatch,
-    ResourceProfileMismatch,
-    ResourceExtentMismatch,
-    ContentIdentityMismatch,
-    InvalidResource,
-    UnsupportedEncodingVersion,
-    UnsupportedElement,
-    UnsupportedAxisRole,
-    UnsupportedUnit,
-    MalformedEncoding,
 }
 
 impl TensorValue {

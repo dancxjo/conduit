@@ -8,12 +8,13 @@ mod generated {
 }
 
 pub use generated::{
-    ClockRelationQuality, ClockRelationQualityEstimated, DataLoadTextTerminal,
-    DataLoadTextTerminalRepresentation, DataSaveTextTerminal, DataSaveTextTerminalRepresentation,
-    FullWindowPolicy, MeasurementPlotOverflowPolicy, MeasurementPlotRefusal,
-    MeasurementSummaryRefusal, MeasurementThresholdRefusal, MeasurementThresholdState,
-    MeasurementThresholdTransition, MeasurementWindowRefusal, SampledSignalRefusal, TensorAxisRole,
-    TensorAxisRoleOther, TensorElement,
+    ClockRelationQuality, ClockRelationQualityEstimated, DataGenerationNamespaceRefusal,
+    DataLoadTextTerminal, DataLoadTextTerminalRepresentation, DataReferenceRefusal,
+    DataSaveTextTerminal, DataSaveTextTerminalRepresentation, FullWindowPolicy,
+    MeasurementPlotOverflowPolicy, MeasurementPlotRefusal, MeasurementSummaryRefusal,
+    MeasurementThresholdRefusal, MeasurementThresholdState, MeasurementThresholdTransition,
+    MeasurementWindowRefusal, SampledSignalRefusal, ScientificObservationRefusal, TensorAxisRole,
+    TensorAxisRoleOther, TensorElement, TensorRefusal,
 };
 
 mod data_catalog;

@@ -7,6 +7,8 @@ use conduit_core::{
     RESOURCE_REFERENCE_DIGEST_BYTES,
 };
 
+use crate::DataReferenceRefusal;
+
 pub const DATA_GENERATION_ACCESS_CLASS: &str = "data/immutable-generation@1";
 /// Fixed fields in an immutable, non-expiring data reference, excluding the
 /// content-Kind and access-class identity bytes themselves.
@@ -32,16 +34,6 @@ pub const fn maximum_data_reference_encoded_bytes(content_kind: &str) -> Option<
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct DataReference {
     reference: BoundedResourceRef,
-}
-
-#[derive(Debug, Copy, Clone, PartialEq, Eq)]
-pub enum DataReferenceRefusal {
-    Malformed,
-    WrongReferenceKind,
-    WrongContentKind,
-    WrongAccessClass,
-    ExpiringGeneration,
-    ItemExtent,
 }
 
 impl DataReference {

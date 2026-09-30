@@ -7,7 +7,8 @@ use conduit_core::{
 };
 
 use crate::{
-    data_access_class, maximum_data_reference_encoded_bytes, DataReference, DataReferenceRefusal,
+    data_access_class, maximum_data_reference_encoded_bytes, DataGenerationNamespaceRefusal,
+    DataReference, DataReferenceRefusal,
 };
 
 const DATA_VERSION_DIGEST_DOMAIN: &str = "data/immutable-generation-version@1";
@@ -16,12 +17,6 @@ pub const MAXIMUM_DATA_GENERATION_NAMESPACE_BYTES: usize = 128;
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
 pub struct DataGenerationNamespace([u8; 32]);
-
-#[derive(Debug, Copy, Clone, PartialEq, Eq)]
-pub enum DataGenerationNamespaceRefusal {
-    Empty,
-    TooLarge,
-}
 
 impl DataGenerationNamespace {
     /// Names one semantic publication scope. This identity is deliberately
