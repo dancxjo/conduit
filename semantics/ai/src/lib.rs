@@ -6,7 +6,7 @@ extern crate alloc;
 mod generated {
     include!(concat!(env!("OUT_DIR"), "/semantic_types.rs"));
 }
-pub use generated::GeneratedTextFlowTerminal;
+pub use generated::{GeneratedTextFlowTerminal, ModelOperation, ModelPortPresence};
 
 mod bases;
 pub use bases::*;
