@@ -145,6 +145,7 @@ are satisfied.
 | Morse key transition record | `semantics/text/types.conduit` | generated at build time | yes | yes | exact native record round trip plus interpreter and ESP32 tooling suites |
 | Address-detection typed terminal | `semantics/text/types.conduit` | generated at build time | yes | yes | exact native round trip plus address-detection behavior suite |
 | Measurement window/plot policies and threshold state/transitions | `semantics/data/types.conduit` | generated at build time | yes | yes | exact native round trips plus data and wire suites |
+| Measurement window, plot, summary and threshold refusal vocabularies | `semantics/data/types.conduit` | generated at build time | yes | yes | exact native round trips plus measurement behavior suites |
 | Sampled-signal typed terminal | `semantics/data/types.conduit` | generated at build time | yes | yes | exact native round trip plus sampled-signal behavior suite |
 | Data text save/load typed terminals | `semantics/data/types.conduit` | generated at build time | yes | yes | exact native round trips plus one-byte codec and data behavior suites |
 | Tensor element and axis-role vocabularies | `semantics/data/types.conduit` | generated at build time | yes | yes | exact native round trips and bounds plus canonical tensor codec and behavior suites |

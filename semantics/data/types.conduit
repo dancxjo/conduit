@@ -8,6 +8,39 @@ type MeasurementPlotOverflowPolicy =
     reject
     | evenly_spaced
 
+type MeasurementWindowRefusal =
+    capacity_out_of_bounds
+    | invalid_clock_profile
+    | invalid_range
+    | invalid_timestamp
+    | unit_mismatch
+    | uncertainty_unit_mismatch
+    | negative_uncertainty
+    | clock_mismatch
+    | timestamp_regression
+    | out_of_range
+    | full
+    | discard_count_overflow
+
+type MeasurementPlotRefusal =
+    invalid_point_capacity
+    | empty_window
+    | full
+    | degenerate_value_range
+    | arithmetic_overflow
+    | invalid_projection
+
+type MeasurementSummaryRefusal =
+    empty_window
+    | unit_mismatch
+    | arithmetic_overflow
+    | inexact_mean
+
+type MeasurementThresholdRefusal =
+    policy_unit_mismatch
+    | invalid_policy_order
+    | summary_unit_mismatch
+
 type MeasurementThresholdState =
     below
     | above

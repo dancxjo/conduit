@@ -5,7 +5,7 @@ use conduit_core::{
     Quantity, QuantityUnit, TemporalInstant, TemporalRelation, TemporalRelationError,
 };
 
-use crate::FullWindowPolicy;
+use crate::{FullWindowPolicy, MeasurementWindowRefusal};
 
 pub const MEASUREMENT_SAMPLE_INFO_ID: &str = "data/measurement-sample@1";
 pub const MEASUREMENT_WINDOW_PROFILE_INFO_ID: &str = "data/measurement-window-profile@1";
@@ -39,22 +39,6 @@ pub struct BoundedMeasurementWindow {
     profile: MeasurementWindowProfile,
     samples: Vec<MeasurementSample>,
     discarded_samples: u64,
-}
-
-#[derive(Debug, Copy, Clone, PartialEq, Eq)]
-pub enum MeasurementWindowRefusal {
-    CapacityOutOfBounds,
-    InvalidClockProfile,
-    InvalidRange,
-    InvalidTimestamp,
-    UnitMismatch,
-    UncertaintyUnitMismatch,
-    NegativeUncertainty,
-    ClockMismatch,
-    TimestampRegression,
-    OutOfRange,
-    Full,
-    DiscardCountOverflow,
 }
 
 impl MeasurementWindowProfile {

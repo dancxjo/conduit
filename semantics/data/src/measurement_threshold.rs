@@ -2,7 +2,10 @@
 
 use conduit_core::{Quantity, TemporalInstant};
 
-use crate::{MeasurementSummary, MeasurementThresholdState, MeasurementThresholdTransition};
+use crate::{
+    MeasurementSummary, MeasurementThresholdRefusal, MeasurementThresholdState,
+    MeasurementThresholdTransition,
+};
 
 pub const MEASUREMENT_THRESHOLD_POLICY_INFO_ID: &str = "data/measurement-threshold-policy@1";
 pub const MEASUREMENT_HYSTERESIS_PROFILE_INFO_ID: &str = "data/measurement-hysteresis-profile@1";
@@ -27,13 +30,6 @@ pub struct MeasurementThresholdDecision {
     pub evaluated_value: Quantity,
     pub first_observed_at: TemporalInstant,
     pub last_observed_at: TemporalInstant,
-}
-
-#[derive(Debug, Copy, Clone, PartialEq, Eq)]
-pub enum MeasurementThresholdRefusal {
-    PolicyUnitMismatch,
-    InvalidPolicyOrder,
-    SummaryUnitMismatch,
 }
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]

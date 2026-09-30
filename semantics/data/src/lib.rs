@@ -10,9 +10,10 @@ mod generated {
 pub use generated::{
     ClockRelationQuality, ClockRelationQualityEstimated, DataLoadTextTerminal,
     DataLoadTextTerminalRepresentation, DataSaveTextTerminal, DataSaveTextTerminalRepresentation,
-    FullWindowPolicy, MeasurementPlotOverflowPolicy, MeasurementThresholdState,
-    MeasurementThresholdTransition, SampledSignalRefusal, TensorAxisRole, TensorAxisRoleOther,
-    TensorElement,
+    FullWindowPolicy, MeasurementPlotOverflowPolicy, MeasurementPlotRefusal,
+    MeasurementSummaryRefusal, MeasurementThresholdRefusal, MeasurementThresholdState,
+    MeasurementThresholdTransition, MeasurementWindowRefusal, SampledSignalRefusal, TensorAxisRole,
+    TensorAxisRoleOther, TensorElement,
 };
 
 mod data_catalog;

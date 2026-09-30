@@ -2,7 +2,7 @@
 
 use conduit_core::{Quantity, QuantityUnit, TemporalInstant};
 
-use crate::BoundedMeasurementWindow;
+use crate::{BoundedMeasurementWindow, MeasurementSummaryRefusal};
 
 pub const MEASUREMENT_SUMMARY_INFO_ID: &str = "data/measurement-summary@1";
 
@@ -16,14 +16,6 @@ pub struct MeasurementSummary {
     pub maximum: Quantity,
     pub range: Quantity,
     pub mean: Quantity,
-}
-
-#[derive(Debug, Copy, Clone, PartialEq, Eq)]
-pub enum MeasurementSummaryRefusal {
-    EmptyWindow,
-    UnitMismatch,
-    ArithmeticOverflow,
-    InexactMean,
 }
 
 pub fn summarize_measurement_window(
