@@ -1,5 +1,3 @@
-# Start here
-
 You can meet Conduit at three levels: **look at it**, **run it hosted**, or **boot ConduitOS**.
 
 ## 1. Look before building
