@@ -1,4 +1,4 @@
-use conduit_audio::{audio_tone_terminal_kind_id, AudioToneTerminal};
+use conduit_audio::{audio_tone_terminal_kind_id, AudioToneTerminal, Gate, ModulationDestination};
 use conduit_core::StructuredInfoTypeShape;
 use conduit_form::rust_binding::NativeRustBinding;
 
@@ -21,4 +21,23 @@ fn native_tone_terminal_owns_semantic_identity_while_wire_codec_stays_explicit()
         AudioToneTerminal::decode(&[0]).unwrap(),
         AudioToneTerminal::Cancelled
     );
+}
+
+#[test]
+fn musical_unit_variants_have_native_semantic_identity_and_exact_round_trips() {
+    for gate in [Gate::On, Gate::Off] {
+        let structured = gate.into_structured().unwrap();
+        assert_eq!(Gate::from_structured(structured).unwrap(), gate);
+    }
+    for destination in [
+        ModulationDestination::Pitch,
+        ModulationDestination::FilterCutoff,
+        ModulationDestination::Amplitude,
+    ] {
+        let structured = destination.into_structured().unwrap();
+        assert_eq!(
+            ModulationDestination::from_structured(structured).unwrap(),
+            destination
+        );
+    }
 }
