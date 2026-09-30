@@ -1,5 +1,15 @@
 //! Bounded brownfield adaptation of one exact Tongues starter.
 
+#[allow(dead_code)]
+mod generated {
+    include!(concat!(env!("OUT_DIR"), "/semantic_types.rs"));
+}
+
+pub use generated::{
+    RecognitionTextRefusal, SpeechCommitReason, SpeechCommitRefusal, SpeechRecognitionDisposition,
+    SpeechRecognitionRefusal, SpeechRecognitionValueError, StreamingRecognitionRefusal,
+};
+
 mod analysis;
 mod analysis_math;
 mod contract;

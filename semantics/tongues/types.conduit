@@ -1,0 +1,41 @@
+# Authoritative portable speech meaning. Rust consumes generated bindings.
+
+type SpeechCommitReason =
+    tongues_boundary
+    | final_flush
+
+type SpeechCommitRefusal =
+    empty_stream_identity
+    | empty_delta
+    | pending_bound_exceeded
+    | segment_bound_exceeded
+    | segment_queue_full
+    | already_closed
+
+type SpeechRecognitionDisposition =
+    recognized
+    | no_speech
+
+type SpeechRecognitionRefusal =
+    empty_fixtures
+    | too_many_fixtures
+    | empty_transcript
+    | transcript_too_large
+    | duplicate_audio
+    | audio_too_large
+    | invalid_pcm
+    | unsupported_pcm_profile
+
+type SpeechRecognitionValueError =
+    bound_exceeded
+    | malformed
+    | non_canonical
+    | invalid_value
+
+type RecognitionTextRefusal =
+    invalid_result
+    | not_recognized
+
+type StreamingRecognitionRefusal =
+    bound_exceeded
+    | invalid_event
