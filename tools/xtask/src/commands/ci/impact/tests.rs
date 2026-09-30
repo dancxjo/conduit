@@ -709,7 +709,7 @@ fn acceptance_diff_classes_keep_exact_obligation_boundaries() {
         &root,
         vec![
             ".github/workflows/check.yml".to_owned(),
-            "products/tour/assets/tour.css".to_owned(),
+            "products/creche/browser/creche.css".to_owned(),
         ],
         &packages,
     )
