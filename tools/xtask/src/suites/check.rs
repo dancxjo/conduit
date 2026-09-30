@@ -1,5 +1,9 @@
 use crate::{process::Step, proof::ProofClass};
 
+#[path = "browser_check.rs"]
+mod browser_check;
+pub use browser_check::BROWSER_CHECK_STEPS;
+
 /// Authoritative definition of the normal Rust workspace check gate.
 pub const WORKSPACE_STEPS: &[Step] = &[
     Step::new(
@@ -669,62 +673,6 @@ pub const FORM_S3_STEPS: &[Step] = &[
     Step::new("check.form.composite-terminal-failure", "test named_front_delivery_failure_and_cancellation_are_parent_terminal_without_topology_leaks", "cargo", &["test", "-p", "conduit-composite", "named_front_delivery_failure_and_cancellation_are_parent_terminal_without_topology_leaks"]),
     Step::new("check.form.execution-identity-chain", "test execution_identity_chain_keeps_plan_play_sign_and_presentation_distinct", "cargo", &["test", "-p", "conduit-core", "execution_identity_chain_keeps_plan_play_sign_and_presentation_distinct"]),
     Step::new("check.form.observatory-current-plan", "test projects exact current plan truth", "cargo", &["test", "-p", "conduit-observatory", "projects_exact_std_pico_usb_arrangement_without_promoting_physical_proof"]),
-];
-
-pub const BROWSER_CHECK_STEPS: &[Step] = &[
-    Step::new(
-        "check.browser.browser-runtime",
-        "test conduit-browser-runtime",
-        "cargo",
-        &["test", "-p", "conduit-browser-runtime"],
-    ),
-    Step::new(
-        "check.browser.host-calls",
-        "Prove finite generic browser Host Calls and negative outcomes",
-        "node",
-        &["--test", "proof/browser/browser-host-calls.test.mjs"],
-    ),
-    Step::new(
-        "check.browser.creche-rendezvous",
-        "Prove bounded one-use Crèche running-Host rendezvous codes",
-        "node",
-        &["--test", "proof/browser/creche-rendezvous.test.mjs"],
-    ),
-    Step::new(
-        "check.browser.sdk-contracts",
-        "Prove the public Browser SDK, events, Forms, and exact package closure",
-        "node",
-        &[
-            "--test",
-            "targets/browser/sdk/browser-sdk-errors.test.mjs",
-            "targets/browser/sdk/browser-sdk-events.test.mjs",
-            "targets/browser/sdk/browser-sdk-forms.test.mjs",
-            "targets/browser/sdk/package-browser-bundle.test.mjs",
-        ],
-    ),
-    Step::typed(
-        "check.browser.wasm-build",
-        "Build conduit-browser-runtime WASM",
-        "cargo",
-        &[
-            "build",
-            "-p",
-            "conduit-browser-runtime",
-            "--target",
-            "wasm32-unknown-unknown",
-            "--release",
-        ],
-        None,
-        Some("wasm32-unknown-unknown"),
-        Some(ProofClass::ContractCompile),
-        &[],
-    ),
-    Step::new(
-        "check.browser.host-entrance-build",
-        "Build the standalone browser Host entrance",
-        "cargo",
-        &["build", "-p", "conduit-browser-host"],
-    ),
 ];
 
 pub const OBSERVATORY_READINESS_STEPS: &[Step] = &[
