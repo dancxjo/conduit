@@ -5,6 +5,8 @@ use conduit_core::{
 };
 use serde::{Deserialize, Serialize};
 
+use crate::{LlmDeterminismProfile, LlmImplementationControl, LlmTerminalOutcome};
+
 pub const LLM_GENERATE_KIND: &str = "llm/generate";
 pub const LLM_STREAM_GENERATE_KIND: &str = "llm/generate-stream";
 pub const LLM_GENERATE_FLOW_KIND: &str = "llm/generate-flow";
@@ -46,41 +48,10 @@ pub const GENERATIVE_PRESENTER_INPUT_VALUE_KIND: &str =
 pub const GENERATED_MANIFESTATION_VALUE_KIND: &str =
     "conduit.presentation/generated-manifestation-candidate@2";
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
-pub enum LlmDeterminismProfile {
-    /// Exact output equality is valid only for the catalog's pure validation fixtures.
-    DeterministicValidationFixture,
-    /// A seed is implementation input and does not establish universal equality.
-    SeededImplementationBestEffort,
-    StochasticInference,
-    ProviderNondeterministic,
-}
-
 impl LlmDeterminismProfile {
     pub const fn permits_semantic_output_equality_claim(self) -> bool {
         matches!(self, Self::DeterministicValidationFixture)
     }
-}
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
-pub enum LlmTerminalOutcome {
-    Produced,
-    Truncated,
-    Refused,
-    Failed,
-    Cancelled,
-    ProviderLost,
-}
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
-pub enum LlmImplementationControl {
-    Temperature,
-    Seed,
-    Sampler,
-    Quantization,
-    PromptTemplate,
-    ChatRoleEncoding,
-    ProviderFunctionJson,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]

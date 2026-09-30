@@ -7,3 +7,26 @@ type GeneratedTextFlowTerminal =
     | cancelled
     | provider_lost
     | non_monotonic
+
+type LlmDeterminismProfile =
+    deterministic_validation_fixture
+    | seeded_implementation_best_effort
+    | stochastic_inference
+    | provider_nondeterministic
+
+type LlmTerminalOutcome =
+    produced
+    | truncated
+    | refused
+    | failed
+    | cancelled
+    | provider_lost
+
+type LlmImplementationControl =
+    temperature
+    | seed
+    | sampler
+    | quantization
+    | prompt_template
+    | chat_role_encoding
+    | provider_function_json
