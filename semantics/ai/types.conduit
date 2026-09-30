@@ -30,3 +30,16 @@ type LlmImplementationControl =
     | prompt_template
     | chat_role_encoding
     | provider_function_json
+
+type ModelOperation =
+    infer
+    | encode
+    | decode
+    | sample
+    | log_probability
+    | evaluate
+    | train
+
+type ModelPortPresence =
+    required
+    | optional

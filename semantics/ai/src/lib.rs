@@ -8,6 +8,7 @@ mod generated {
 }
 pub use generated::{
     GeneratedTextFlowTerminal, LlmDeterminismProfile, LlmImplementationControl, LlmTerminalOutcome,
+    ModelOperation, ModelPortPresence,
 };
 
 mod bases;

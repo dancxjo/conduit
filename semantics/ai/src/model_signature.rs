@@ -4,29 +4,14 @@ use alloc::{string::String, vec::Vec};
 use conduit_core::semantic_digest;
 use conduit_data::{TensorAxisRole, TensorElement};
 
+use crate::{ModelOperation, ModelPortPresence};
+
 pub const MODEL_SIGNATURE_INFO_ID: &str = "model/signature@1";
 pub const MAXIMUM_MODEL_PORTS: usize = 32;
 pub const MAXIMUM_MODEL_OPERATIONS: usize = 8;
 pub const MAXIMUM_MODEL_ELEMENTS: usize = 8;
 pub const MAXIMUM_MODEL_RANK: usize = 8;
 pub const MAXIMUM_MODEL_IDENTITY_BYTES: usize = 128;
-
-#[derive(Debug, Copy, Clone, PartialEq, Eq)]
-pub enum ModelOperation {
-    Infer,
-    Encode,
-    Decode,
-    Sample,
-    LogProbability,
-    Evaluate,
-    Train,
-}
-
-#[derive(Debug, Copy, Clone, PartialEq, Eq)]
-pub enum ModelPortPresence {
-    Required,
-    Optional,
-}
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
 pub enum ModelDimensionConstraint {

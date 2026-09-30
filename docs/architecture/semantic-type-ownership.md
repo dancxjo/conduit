@@ -141,6 +141,7 @@ are satisfied.
 | Sampled-signal typed terminal | `semantics/data/types.conduit` | generated at build time | yes | yes | exact native round trip plus sampled-signal behavior suite |
 | Data text save/load typed terminals | `semantics/data/types.conduit` | generated at build time | yes | yes | exact native round trips plus one-byte codec and data behavior suites |
 | LLM determinism, terminal-outcome, and implementation-control vocabularies | `semantics/ai/types.conduit` | generated at build time | yes | yes | exact native round trips plus AI semantic-contract suite |
+| Model operation and port-presence vocabularies | `semantics/ai/types.conduit` | generated at build time | yes | yes | exact native round trips plus AI model-signature suite |
 | System-continuity reboot denial | `semantics/system-continuity/types.conduit` | generated at build time | yes | yes | exact native round trip plus continuity and no-std suites |
 | Remaining P families in `semantics/**` | family-owned `.conduit` source required | binding machinery available | in progress | in progress | exact std/browser/ConduitOS/embedded applicability per family |
 
