@@ -173,3 +173,10 @@ type RetrievalMechanism =
 type RerankingProofClass =
     deterministic_conformance
     | model_derived
+
+type RerankingStrategy =
+    preserve_hybrid_fusion
+    | observed_scores {
+        proof_class: RerankingProofClass
+        scoring_run_identity: Text <= 256B not in [""]
+    }

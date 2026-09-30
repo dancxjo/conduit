@@ -3,20 +3,11 @@
 use alloc::{string::String, vec::Vec};
 
 use crate::{
-    ChunkIdentity, ExtractedSourceValue, HybridCandidate, RerankingProofClass,
+    ChunkIdentity, ExtractedSourceValue, HybridCandidate, RerankingProofClass, RerankingStrategy,
     MAXIMUM_HYBRID_OUTPUT_CANDIDATES, MAXIMUM_RAG_IDENTITY_BYTES,
 };
 
 pub const MAXIMUM_RERANKING_WORK_UNITS: u32 = 1_048_576;
-
-#[derive(Debug, Clone, PartialEq, Eq)]
-pub enum RerankingStrategy {
-    PreserveHybridFusion,
-    ObservedScores {
-        proof_class: RerankingProofClass,
-        scoring_run_identity: String,
-    },
-}
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct RerankingPolicy {
@@ -92,21 +83,17 @@ impl RerankingPolicy {
                 }
                 (RerankingProofClass::DeterministicConformance, 0)
             }
-            RerankingStrategy::ObservedScores {
-                proof_class,
-                scoring_run_identity,
-            } => {
-                if *proof_class != RerankingProofClass::ModelDerived {
+            RerankingStrategy::ObservedScores(observed) => {
+                if *observed.proof_class() != RerankingProofClass::ModelDerived {
                     return Err(RerankingRefusal::InvalidProofClass);
                 }
-                validate_identity(scoring_run_identity)?;
                 validate_observations(candidates, observations)?;
                 let work = observations.iter().try_fold(0_u32, |total, observation| {
                     total
                         .checked_add(observation.work_units)
                         .ok_or(RerankingRefusal::ArithmeticOverflow)
                 })?;
-                (*proof_class, work)
+                (*observed.proof_class(), work)
             }
         };
         work_units = work_units
@@ -120,11 +107,11 @@ impl RerankingPolicy {
         }
         let mut reranked = Vec::with_capacity(candidates.len());
         for candidate in candidates {
-            let score = match self.strategy {
+            let score = match &self.strategy {
                 RerankingStrategy::PreserveHybridFusion => {
                     RerankScore::HybridFusion(candidate.fusion_score_micros)
                 }
-                RerankingStrategy::ObservedScores { .. } => RerankScore::ModelDerived(
+                RerankingStrategy::ObservedScores(_) => RerankScore::ModelDerived(
                     observations
                         .iter()
                         .find(|item| item.chunk_identity == candidate.chunk.identity)
