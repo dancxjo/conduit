@@ -23,10 +23,7 @@ fn context(provenance: HouseContextProvenanceClass) -> WiredHouseContextItem {
 
 #[test]
 fn runtime_port_values_are_canonical_bounded_and_provider_neutral() {
-    let detection = AddressDetection::Addressed {
-        matched_name_index: 0,
-        utterance: "status upstairs?".into(),
-    };
+    let detection = AddressDetection::addressed(0, "status upstairs?".into()).unwrap();
     let detection_bytes = encode_address_detection(&detection).unwrap();
     assert_eq!(decode_address_detection(&detection_bytes), Ok(detection));
     let context = vec![context(HouseContextProvenanceClass::ObservedSign)];
@@ -50,13 +47,9 @@ fn malformed_noncanonical_and_invalid_port_values_refuse() {
         decode_address_detection(b"not-json"),
         Err(HouseConversationValueError::Malformed)
     );
-    let invalid = AddressDetection::Addressed {
-        matched_name_index: conduit_text::MAX_ADDRESS_NAMES as u8,
-        utterance: "status".into(),
-    };
-    assert_eq!(
-        encode_address_detection(&invalid),
-        Err(HouseConversationValueError::InvalidValue)
+    assert!(
+        AddressDetection::addressed(conduit_text::MAX_ADDRESS_NAMES as u8, "status".into(),)
+            .is_err()
     );
     assert_eq!(
         decode_wired_house_context(br#"{"schema":"wrong","items":[]}"#),
@@ -67,10 +60,7 @@ fn malformed_noncanonical_and_invalid_port_values_refuse() {
 #[test]
 fn addressed_house_context_becomes_bounded_provider_neutral_model_input() {
     let request = prepare_house_generation_request(
-        &AddressDetection::Addressed {
-            matched_name_index: 0,
-            utterance: "what is the temperature upstairs?".into(),
-        },
+        &AddressDetection::addressed(0, "what is the temperature upstairs?".into()).unwrap(),
         &[context(HouseContextProvenanceClass::ObservedSign)],
         1024,
     )

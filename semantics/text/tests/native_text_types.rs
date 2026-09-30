@@ -1,5 +1,5 @@
 use conduit_form::rust_binding::NativeRustBinding;
-use conduit_text::{AddressDetectionRefusal, MorseKeyPhase, MorseKeyTransition};
+use conduit_text::{AddressDetection, AddressDetectionRefusal, MorseKeyPhase, MorseKeyTransition};
 
 #[test]
 fn morse_key_phase_round_trips_through_its_exact_native_type() {
@@ -46,4 +46,25 @@ fn address_detection_terminal_round_trips_through_its_exact_native_type() {
         AddressDetectionRefusal::from_structured(structured).unwrap(),
         refusal
     );
+}
+
+#[test]
+fn address_detection_value_round_trips_and_owns_its_bounds() {
+    for detection in [
+        AddressDetection::NotAddressed,
+        AddressDetection::addressed(7, "status".into()).unwrap(),
+    ] {
+        let structured = detection.clone().into_structured().unwrap();
+        assert_eq!(
+            structured.value_type(),
+            &AddressDetection::semantic_type().unwrap()
+        );
+        assert_eq!(
+            AddressDetection::from_structured(structured).unwrap(),
+            detection
+        );
+    }
+
+    assert!(AddressDetection::addressed(8, "status".into()).is_err());
+    assert!(AddressDetection::addressed(0, "x".repeat(257)).is_err());
 }

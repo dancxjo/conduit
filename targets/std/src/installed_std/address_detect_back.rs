@@ -269,10 +269,7 @@ mod tests {
             };
             assert_eq!(
                 conduit_text::decode_address_detection(output).unwrap(),
-                conduit_text::AddressDetection::Addressed {
-                    matched_name_index: 0,
-                    utterance: "status".into(),
-                }
+                conduit_text::AddressDetection::addressed(0, "status".into()).unwrap()
             );
         }
     }
