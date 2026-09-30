@@ -1,6 +1,7 @@
 use conduit_form::rust_binding::NativeRustBinding;
 use conduit_net::{
     ApplicationNetworkRefusal, DnsRecordKind, DnsTtl, NetworkTransport, RecordTranscriptDirection,
+    RecordTranscriptTerminal,
 };
 
 fn round_trip<T>(value: T)
@@ -49,4 +50,15 @@ fn application_network_vocabularies_are_native_semantic_types() {
 
     round_trip_owned(DnsTtl::known_seconds(30).unwrap());
     round_trip_owned(DnsTtl::Unavailable);
+    for value in [
+        RecordTranscriptTerminal::Completed,
+        RecordTranscriptTerminal::Cancelled,
+        RecordTranscriptTerminal::TransportUnavailable,
+        RecordTranscriptTerminal::Disconnected,
+        RecordTranscriptTerminal::TimedOut,
+        RecordTranscriptTerminal::refused(17).unwrap(),
+        RecordTranscriptTerminal::failed(23).unwrap(),
+    ] {
+        round_trip_owned(value);
+    }
 }

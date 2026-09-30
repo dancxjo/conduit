@@ -144,7 +144,7 @@ are satisfied.
 | HTTP contract refusal vocabulary | `semantics/web/types.conduit` | generated at build time | yes | yes | exact native round trips plus HTTP codec and hosted-HTTP suites |
 | Body Chat role, bounded message and history record | `semantics/chat/types.conduit` | generated at build time | yes | yes | exact native round trip plus Chat, prompt and std Host suites |
 | Chat presentation-state and Body Chat refusal vocabularies | `semantics/chat/types.conduit` | generated at build time | yes | yes | exact native round trips plus presentation, prompt and codec suites |
-| Network transport, DNS record/TTL, application refusal and transcript direction | `semantics/net/types.conduit` | generated at build time | yes | yes | exact native round trips plus network and std Host suites |
+| Network transport, DNS record/TTL, application refusal, transcript direction and terminal facts | `semantics/net/types.conduit` | generated at build time | yes | yes | exact native round trips plus explicit terminal compatibility codec, network, browser and std Host suites |
 | Morse key phase | `semantics/text/types.conduit` | generated at build time | yes | yes | exact native round trip plus text suites |
 | Morse key transition record | `semantics/text/types.conduit` | generated at build time | yes | yes | exact native record round trip plus interpreter and ESP32 tooling suites |
 | Address configuration/value and Morse pattern/key refusal vocabularies | `semantics/text/types.conduit` | generated at build time | yes | yes | exact native round trips plus address and Morse behavior suites |

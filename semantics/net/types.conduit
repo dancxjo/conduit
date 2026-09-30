@@ -25,3 +25,16 @@ type ApplicationNetworkRefusal =
 type RecordTranscriptDirection =
     sent
     | received
+
+type RecordTranscriptTerminal =
+    completed
+    | cancelled
+    | transport-unavailable
+    | disconnected
+    | timed-out
+    | refused {
+        code: U16
+    }
+    | failed {
+        code: U16
+    }

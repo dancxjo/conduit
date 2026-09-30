@@ -141,10 +141,10 @@ fn terminal_events_have_exact_distinct_fixed_wire_encodings() {
         RecordTranscriptTerminal::TransportUnavailable,
         RecordTranscriptTerminal::Disconnected,
         RecordTranscriptTerminal::TimedOut,
-        RecordTranscriptTerminal::Refused(17),
-        RecordTranscriptTerminal::Failed(23),
+        RecordTranscriptTerminal::refused(17).unwrap(),
+        RecordTranscriptTerminal::failed(23).unwrap(),
     ] {
-        let wire = encode_record_transcript_terminal(terminal);
+        let wire = encode_record_transcript_terminal(terminal.clone());
         assert_eq!(decode_record_transcript_terminal(&wire), Ok(terminal));
     }
     assert_eq!(
