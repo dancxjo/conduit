@@ -8,3 +8,20 @@ type DnsRecordKind =
     a
     | aaaa
     | address
+
+type DnsTtl =
+    known-seconds {
+        seconds: U32
+    }
+    | unavailable
+
+type ApplicationNetworkRefusal =
+    empty-name
+    | name-too-large
+    | invalid-port
+    | too-many-candidates
+    | candidate-transport-mismatch
+
+type RecordTranscriptDirection =
+    sent
+    | received

@@ -1,6 +1,6 @@
 //! Portable application-network Info below HTTP and separate from Conduit Lines.
 
-use crate::{DnsRecordKind, NetworkTransport};
+use crate::{ApplicationNetworkRefusal, DnsRecordKind, DnsTtl, NetworkTransport};
 use alloc::{string::String, vec, vec::Vec};
 use conduit_core::{kind_id, StructuredFieldType, StructuredInfoType, StructuredVariantCase};
 
@@ -31,12 +31,6 @@ pub struct DnsQuery {
     pub port: u16,
     pub record_kind: DnsRecordKind,
     pub transport: NetworkTransport,
-}
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum DnsTtl {
-    KnownSeconds(u32),
-    Unavailable,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -86,15 +80,6 @@ pub enum NetworkConnectionState {
         reason: String,
     },
     Closed,
-}
-
-#[derive(Debug, Clone, PartialEq, Eq)]
-pub enum ApplicationNetworkRefusal {
-    EmptyName,
-    NameTooLarge,
-    InvalidPort,
-    TooManyCandidates,
-    CandidateTransportMismatch,
 }
 
 impl DnsQuery {
@@ -332,7 +317,7 @@ pub fn deterministic_network_fixture() -> (DnsQuery, DnsResult, NetworkEndpoint)
     let resolution = DnsResolution {
         canonical_name: "fixture.local".into(),
         candidates: vec![endpoint.clone()],
-        ttl: DnsTtl::KnownSeconds(30),
+        ttl: DnsTtl::known_seconds(30).expect("fixture TTL is valid"),
     };
     (
         DnsQuery {
