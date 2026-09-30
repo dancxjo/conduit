@@ -471,6 +471,13 @@ type ModelCompatibilityRefusal =
     | runtime_loaded_different_artifact
     | runtime_loaded_different_checkpoint
 
+type ModelInvocationTerminal =
+    produced
+    | refused ModelCompatibilityRefusal
+    | failed
+    | cancelled
+    | runtime_lost
+
 type ModelTextRefusal =
     envelope_bound_exceeded
     | malformed_envelope
