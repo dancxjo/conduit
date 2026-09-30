@@ -37,7 +37,7 @@ pub(super) fn emit_value_impl(
             )?
         }
         StructuredInfoTypeShape::Variant { cases, .. } => {
-            emit_variant_constructors(out, rust_name, cases, names)?;
+            emit_variant_constructors(out, rust_name, cases, names, &value_type.value_contracts)?;
             super::generate_conversion::emit_variant_binding(
                 out, rust_name, constant, cases, names,
             )?
@@ -202,6 +202,7 @@ fn emit_variant_constructors(
     rust_name: &str,
     cases: &[conduit_core::StructuredVariantCase],
     names: &BTreeMap<String, String>,
+    contracts: &[NativeTypeValueContract],
 ) -> Result<(), RustBindingGenerationError> {
     writeln!(out, "impl {rust_name} {{").expect("String writing is infallible");
     for case in cases {
@@ -212,6 +213,11 @@ fn emit_variant_constructors(
                 .expect("String writing is infallible");
         } else {
             let payload = format!("{rust_name}{variant}");
+            let contract_prefix = format!("|{}.", case.tag());
+            let is_unconstrained = contracts.iter().all(|contract| {
+                !contract.representation_path.is_empty()
+                    && !contract.representation_path.starts_with(&contract_prefix)
+            });
             let StructuredInfoTypeShape::Record { fields, .. } = case.payload_type().shape() else {
                 return Err(RustBindingGenerationError::InvalidSemanticType);
             };
@@ -228,14 +234,25 @@ fn emit_variant_constructors(
                 )
                 .expect("String writing is infallible");
             }
-            write!(out, ") -> Result<Self, NativeBindingRefusal> {{ let candidate = Self::{variant}({payload} {{ ")
-            .expect("String writing is infallible");
+            write!(out, ") -> Result<Self, NativeBindingRefusal> {{ ")
+                .expect("String writing is infallible");
+            if is_unconstrained {
+                write!(out, "Ok(Self::{variant}({payload} {{ ")
+                    .expect("String writing is infallible");
+            } else {
+                write!(out, "let candidate = Self::{variant}({payload} {{ ")
+                    .expect("String writing is infallible");
+            }
             for field in fields {
                 write!(out, "{}, ", rust_snake_identifier(field.name())?)
                     .expect("String writing is infallible");
             }
-            writeln!(out, "}}); let structured = candidate.clone().into_structured()?; conduit_form::rust_binding::validate_native_contracts(&structured, &Self::value_contracts())?; Ok(candidate) }}")
-                .expect("String writing is infallible");
+            if is_unconstrained {
+                writeln!(out, "}})) }}").expect("String writing is infallible");
+            } else {
+                writeln!(out, "}}); let structured = candidate.clone().into_structured()?; conduit_form::rust_binding::validate_native_contracts(&structured, &Self::value_contracts())?; Ok(candidate) }}")
+                    .expect("String writing is infallible");
+            }
         }
     }
     writeln!(out, "}}\n").expect("String writing is infallible");
