@@ -3,9 +3,9 @@
 use alloc::{string::String, vec::Vec};
 
 use crate::{
-    Chunk, MechanismScore, RagSemanticRefusal, RetrievalMechanism, TemporalEvidenceBatch,
-    TemporalEvidenceSelection, TemporalEvidenceSelectionRefusal, TemporalRetrievalIntent,
-    MAXIMUM_RAG_IDENTITY_BYTES,
+    Chunk, FusionStrategy, MechanismScore, RagSemanticRefusal, RetrievalMechanism,
+    TemporalEvidenceBatch, TemporalEvidenceSelection, TemporalEvidenceSelectionRefusal,
+    TemporalRetrievalIntent, MAXIMUM_RAG_IDENTITY_BYTES,
 };
 
 pub const MAXIMUM_HYBRID_RETRIEVERS: usize = 8;
@@ -38,16 +38,11 @@ pub struct RetrievalStage<T> {
     pub work_units: u32,
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum FusionStrategy {
-    /// Adds `scale / (rank_constant + stage_rank)` per contributing retriever.
-    /// Provider scores remain inspection-only and incomparable.
-    ReciprocalRank { rank_constant: u16 },
-}
-
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct HybridFusionPolicy {
     pub identity: String,
+    /// Adds the fixed fusion scale divided by the rank constant plus stage rank.
+    /// Provider scores remain inspection-only and incomparable.
     pub strategy: FusionStrategy,
     pub required_mechanisms: Vec<RetrievalMechanism>,
     pub temporal_hard_filter: Option<TemporalRetrievalIntent>,
@@ -208,11 +203,11 @@ impl HybridFusionPolicy {
         {
             return Err(HybridRetrievalRefusal::InvalidPolicyBound);
         }
-        match self.strategy {
-            FusionStrategy::ReciprocalRank { rank_constant: 0 } => {
+        match &self.strategy {
+            FusionStrategy::ReciprocalRank(value) if *value.rank_constant() == 0 => {
                 return Err(HybridRetrievalRefusal::InvalidPolicyBound)
             }
-            FusionStrategy::ReciprocalRank { .. } => {}
+            FusionStrategy::ReciprocalRank(_) => {}
         }
         if let Some(intent) = &self.temporal_hard_filter {
             intent
@@ -290,9 +285,9 @@ impl HybridFusionPolicy {
     }
 
     fn score(&self, rank: u16) -> Result<u64, HybridRetrievalRefusal> {
-        match self.strategy {
-            FusionStrategy::ReciprocalRank { rank_constant } => {
-                let denominator = u64::from(rank_constant)
+        match &self.strategy {
+            FusionStrategy::ReciprocalRank(value) => {
+                let denominator = u64::from(*value.rank_constant())
                     .checked_add(u64::from(rank))
                     .ok_or(HybridRetrievalRefusal::ArithmeticOverflow)?;
                 Ok(FUSION_SCORE_SCALE / denominator)
