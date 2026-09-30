@@ -96,6 +96,14 @@ pub enum BoundedActivationError {
     NotValueInput(PortId),
     NotValueOutput(PortId),
     Refused(KernelCompositeError),
+    InputTerminalKindMismatch {
+        expected: Option<KindId>,
+        actual: KindId,
+    },
+    OutputCannotPropagateInputTerminal {
+        input: KindId,
+        output: Option<KindId>,
+    },
     InvalidLifecycle,
 }
 
@@ -116,6 +124,10 @@ pub enum BoundedActivationState {
     },
     Abnormal {
         sequence: u64,
+        terminal: ValuePayload,
+    },
+    Drained,
+    InputAbnormal {
         terminal: ValuePayload,
     },
     Faulted {
@@ -148,6 +160,7 @@ pub struct BoundedActivationHost {
     active: Option<KernelCompositeHost>,
     input_close_pending: bool,
     output_completed: bool,
+    pending_input_terminal: Option<KernelCompositeTerminal>,
     state: BoundedActivationState,
     last_signs: BTreeMap<conduit_core::HostId, Vec<KernelEvent>>,
 }
@@ -173,6 +186,7 @@ impl BoundedActivationHost {
             active: None,
             input_close_pending: false,
             output_completed: false,
+            pending_input_terminal: None,
             state: BoundedActivationState::Idle,
             last_signs: BTreeMap::new(),
         })
@@ -191,11 +205,18 @@ impl BoundedActivationHost {
         sequence: u64,
         value: &ValuePayload,
     ) -> Result<BoundedActivationAdmission, BoundedActivationError> {
+        if self.pending_input_terminal.is_some()
+            || matches!(
+                self.state,
+                BoundedActivationState::Cancelled { .. }
+                    | BoundedActivationState::Drained
+                    | BoundedActivationState::InputAbnormal { .. }
+            )
+        {
+            return Err(BoundedActivationError::InvalidLifecycle);
+        }
         if self.active.is_some() {
             return Ok(BoundedActivationAdmission::Full { sequence });
-        }
-        if matches!(self.state, BoundedActivationState::Cancelled { .. }) {
-            return Err(BoundedActivationError::InvalidLifecycle);
         }
         let mut activation = match self.ready.take() {
             Some(ready) => ready,
@@ -249,6 +270,10 @@ impl BoundedActivationHost {
     }
 
     pub fn step(&mut self) -> Result<&BoundedActivationState, BoundedActivationError> {
+        if self.active.is_none() && self.pending_input_terminal.is_some() {
+            self.state = self.settle_pending_input_terminal()?;
+            return Ok(&self.state);
+        }
         let sequence = match self.state {
             BoundedActivationState::Active { sequence } => sequence,
             _ => return Err(BoundedActivationError::InvalidLifecycle),
@@ -286,6 +311,9 @@ impl BoundedActivationHost {
                     self.contract.output_abnormal_kind.as_ref(),
                     self.output_completed,
                 );
+                if !matches!(self.state, BoundedActivationState::Succeeded { .. }) {
+                    self.pending_input_terminal = None;
+                }
             }
             Ok(KernelCompositeStatus::Cancelled) => {
                 self.last_signs = activation.signs();
@@ -321,6 +349,7 @@ impl BoundedActivationHost {
         self.active = None;
         self.input_close_pending = false;
         self.output_completed = false;
+        self.pending_input_terminal = None;
         self.state = BoundedActivationState::Cancelled { sequence };
         Ok(())
     }
@@ -345,6 +374,64 @@ impl BoundedActivationHost {
         self.active
             .as_ref()
             .map_or_else(|| self.last_signs.clone(), KernelCompositeHost::signs)
+    }
+
+    /// Admit normal closure of the lifted input flow. If one activation is
+    /// active, closure remains one finite owed terminal until that activation
+    /// succeeds; no later value can be admitted.
+    pub fn close_input(&mut self) -> Result<(), BoundedActivationError> {
+        self.admit_input_terminal(KernelCompositeTerminal::Normal)
+    }
+
+    /// Admit one exact typed abnormal input terminal for propagation after the
+    /// current activation drains. The input and output promises must name the
+    /// same semantic terminal kind; mapping belongs to a reviewed combinator,
+    /// not this generic activation primitive.
+    pub fn terminate_input(
+        &mut self,
+        terminal: ValuePayload,
+    ) -> Result<(), BoundedActivationError> {
+        validate_propagated_input_terminal(
+            self.contract.input_abnormal_kind.as_ref(),
+            self.contract.output_abnormal_kind.as_ref(),
+            &terminal.value_kind,
+        )?;
+        self.admit_input_terminal(KernelCompositeTerminal::Abnormal(terminal))
+    }
+
+    fn admit_input_terminal(
+        &mut self,
+        terminal: KernelCompositeTerminal,
+    ) -> Result<(), BoundedActivationError> {
+        if self.pending_input_terminal.is_some()
+            || matches!(
+                self.state,
+                BoundedActivationState::Faulted { .. }
+                    | BoundedActivationState::Abnormal { .. }
+                    | BoundedActivationState::Cancelled { .. }
+                    | BoundedActivationState::Drained
+                    | BoundedActivationState::InputAbnormal { .. }
+            )
+        {
+            return Err(BoundedActivationError::InvalidLifecycle);
+        }
+        self.pending_input_terminal = Some(terminal);
+        Ok(())
+    }
+
+    fn settle_pending_input_terminal(
+        &mut self,
+    ) -> Result<BoundedActivationState, BoundedActivationError> {
+        match self
+            .pending_input_terminal
+            .take()
+            .ok_or(BoundedActivationError::InvalidLifecycle)?
+        {
+            KernelCompositeTerminal::Normal => Ok(BoundedActivationState::Drained),
+            KernelCompositeTerminal::Abnormal(terminal) => {
+                Ok(BoundedActivationState::InputAbnormal { terminal })
+            }
+        }
     }
 }
 
@@ -390,6 +477,26 @@ fn activation_terminal_state(
             fault: BoundedActivationFault::MissingOutput,
         },
     }
+}
+
+fn validate_propagated_input_terminal(
+    expected_input: Option<&KindId>,
+    promised_output: Option<&KindId>,
+    actual: &KindId,
+) -> Result<(), BoundedActivationError> {
+    if expected_input != Some(actual) {
+        return Err(BoundedActivationError::InputTerminalKindMismatch {
+            expected: expected_input.cloned(),
+            actual: actual.clone(),
+        });
+    }
+    if promised_output != Some(actual) {
+        return Err(BoundedActivationError::OutputCannotPropagateInputTerminal {
+            input: actual.clone(),
+            output: promised_output.cloned(),
+        });
+    }
+    Ok(())
 }
 
 #[cfg(test)]
@@ -439,5 +546,28 @@ mod tests {
                 }
             );
         }
+    }
+
+    #[test]
+    fn input_abnormal_propagation_requires_exact_matching_promises() {
+        let terminal = kind_id("test/input-terminal");
+        assert_eq!(
+            validate_propagated_input_terminal(Some(&terminal), Some(&terminal), &terminal),
+            Ok(())
+        );
+        assert_eq!(
+            validate_propagated_input_terminal(None, Some(&terminal), &terminal),
+            Err(BoundedActivationError::InputTerminalKindMismatch {
+                expected: None,
+                actual: terminal.clone(),
+            })
+        );
+        assert_eq!(
+            validate_propagated_input_terminal(Some(&terminal), None, &terminal),
+            Err(BoundedActivationError::OutputCannotPropagateInputTerminal {
+                input: terminal,
+                output: None,
+            })
+        );
     }
 }
