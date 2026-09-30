@@ -118,7 +118,7 @@ fn lifecycle_timing_outcomes_remain_finite_and_distinct() {
             two,
             zero,
         ),
-        Ok(WorkflowTimingOutcome::Late { lateness: two })
+        Ok(WorkflowTimingOutcome::late(two).unwrap())
     );
     assert_eq!(
         assess_workflow_timing(
@@ -154,7 +154,7 @@ fn lifecycle_timing_outcomes_remain_finite_and_distinct() {
             zero,
             two,
         ),
-        Ok(WorkflowTimingOutcome::ClockUncertain { uncertainty: two })
+        Ok(WorkflowTimingOutcome::clock_uncertain(two).unwrap())
     );
     assert_eq!(
         assess_workflow_timing(

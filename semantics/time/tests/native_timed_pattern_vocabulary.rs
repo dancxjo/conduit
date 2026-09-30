@@ -1,6 +1,8 @@
+use conduit_core::{Quantity, QuantityUnit};
 use conduit_form::rust_binding::NativeRustBinding;
 use conduit_time::{
     ScheduleRefusal, TemporalWindowPosition, TimedPatternRefusal, WorkflowLifecycle,
+    WorkflowTimingOutcome,
 };
 
 #[test]
@@ -59,6 +61,27 @@ fn schedule_vocabulary_uses_exact_native_types() {
         assert_eq!(
             TemporalWindowPosition::from_structured(structured).unwrap(),
             position
+        );
+    }
+}
+
+#[test]
+fn workflow_timing_outcomes_keep_duration_payloads_in_the_native_type() {
+    let duration = Quantity::new(2, QuantityUnit::Second);
+    for outcome in [
+        WorkflowTimingOutcome::Awaiting,
+        WorkflowTimingOutcome::OnTime,
+        WorkflowTimingOutcome::late(duration).unwrap(),
+        WorkflowTimingOutcome::MissedWindow,
+        WorkflowTimingOutcome::clock_uncertain(duration).unwrap(),
+        WorkflowTimingOutcome::Failed,
+        WorkflowTimingOutcome::Cancelled,
+        WorkflowTimingOutcome::Expired,
+    ] {
+        let structured = outcome.clone().into_structured().unwrap();
+        assert_eq!(
+            WorkflowTimingOutcome::from_structured(structured).unwrap(),
+            outcome
         );
     }
 }

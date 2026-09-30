@@ -12,6 +12,7 @@ pub use generated::{
     MeetingProposalRefusal, ParticipantRole, RecurrenceRefusal, ReplayPolicy, ReplayPolicyRate,
     ScheduleRefusal, ScheduledIntentRefusal, SuspendBehavior, TemporalBoundary,
     TemporalWindowPosition, TemporalWindowRefusal, TimedPatternRefusal, WorkflowLifecycle,
+    WorkflowTimingOutcome, WorkflowTimingOutcomeClockUncertain, WorkflowTimingOutcomeLate,
 };
 
 mod timed_pattern_refusal;

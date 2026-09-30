@@ -141,3 +141,17 @@ type ScheduleRefusal =
     non-temporal-quantity
     | negative-quantity
     | inconsistent-lifecycle
+
+type WorkflowTimingOutcome =
+    awaiting
+    | on-time
+    | late {
+        lateness: Duration
+    }
+    | missed-window
+    | clock-uncertain {
+        uncertainty: Duration
+    }
+    | failed
+    | cancelled
+    | expired
