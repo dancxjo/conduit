@@ -133,6 +133,7 @@ fn attach_activations(
             maximum_active: 1,
             maximum_queue_items: 1,
             maximum_queue_bytes: owner.limits.max_queue_bytes,
+            maximum_items: activation.mode.maximum_items(),
         };
         if matches!(activation.mode, conduit_form::ActivationSyntax::Fold { .. }) {
             let accumulator = activation.accumulator_input.as_ref().ok_or_else(|| {
@@ -164,6 +165,7 @@ fn attach_activations(
             if law.initial_accumulator != initial
                 || law.item.value_kind != item.value_kind
                 || law.accumulator.value_kind != accumulator.value_kind
+                || law.maximum_items != limits.maximum_items
             {
                 return Err(PlannerError::InvalidFormIdentity(
                     "fold activation differs from its selected coordinator law".into(),
@@ -193,6 +195,27 @@ fn attach_activations(
                 per_activation_sign_budget: sign_budget,
             }));
             continue;
+        }
+        let offered_maximum =
+            owner
+                .semantic_contract
+                .laws
+                .iter()
+                .find_map(|law| match (&activation.mode, law) {
+                    (
+                        conduit_form::ActivationSyntax::Each { .. },
+                        conduit_core::KindSemanticLaw::FlowEach(law),
+                    ) => Some(law.maximum_items),
+                    (
+                        conduit_form::ActivationSyntax::Select { .. },
+                        conduit_core::KindSemanticLaw::FlowSelect(law),
+                    ) => Some(law.maximum_items),
+                    _ => None,
+                });
+        if offered_maximum != Some(limits.maximum_items) {
+            return Err(PlannerError::InvalidFormIdentity(
+                "activation maximum-items differs from its coordinator law".into(),
+            ));
         }
         planned.push(PlannedActivationEntry::Unary(PlannedActivation {
             activation_id: activation.activation_id.clone(),

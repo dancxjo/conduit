@@ -4,11 +4,11 @@
 //! executes or mutates Plans.
 
 use crate::{
-    characteristic, execution_fusion, hash_bytes, plan_realization, push_resource_binding,
-    push_string, push_u32, push_u64, AdmittedLine, BoundLink, CancellationPolicy, CheckedFront,
-    ConfigurationValue, ExpectedSign, ExpectedTerminal, FormBack, FormIdentity, FragmentCommitment,
-    FragmentId, LinkAuthorityReference, LinkCredentialReference, PlanFragment, PlanId,
-    PlannedActivationEntry, PortDescriptor, PortDirection, PortTemporal, TerminalPolicy,
+    AdmittedLine, BoundLink, CancellationPolicy, CheckedFront, ConfigurationValue, ExpectedSign,
+    ExpectedTerminal, FormBack, FormIdentity, FragmentCommitment, FragmentId,
+    LinkAuthorityReference, LinkCredentialReference, PlanFragment, PlanId, PlannedActivationEntry,
+    PortDescriptor, PortDirection, PortTemporal, TerminalPolicy, characteristic, execution_fusion,
+    hash_bytes, plan_realization, push_resource_binding, push_string, push_u32, push_u64,
 };
 use alloc::string::String;
 use alloc::vec::Vec;
@@ -619,13 +619,14 @@ fn push_semantic_contract(canonical: &mut Vec<u8>, contract: &crate::KindSemanti
                 push_string(canonical, select.predicate_output_kind.as_str());
                 canonical.extend_from_slice(&select.maximum_active.to_le_bytes());
                 canonical.extend_from_slice(&select.maximum_queued.to_le_bytes());
+                canonical.extend_from_slice(&select.maximum_items.to_le_bytes());
                 canonical.push(select.invocation as u8);
                 canonical.push(select.retained_input as u8);
                 canonical.push(select.true_disposition as u8);
                 canonical.push(select.false_disposition as u8);
             }
             Law::FlowFold(fold) => {
-                canonical.push(14);
+                canonical.push(15);
                 push_string(canonical, fold.input_port_id.as_str());
                 push_string(canonical, fold.output_port_id.as_str());
                 push_value_contract(canonical, &fold.item);
@@ -637,10 +638,17 @@ fn push_semantic_contract(canonical: &mut Vec<u8>, contract: &crate::KindSemanti
                 push_string(canonical, fold.combine_output_port_id.as_str());
                 canonical.extend_from_slice(&fold.maximum_active.to_le_bytes());
                 canonical.extend_from_slice(&fold.maximum_queued.to_le_bytes());
+                canonical.extend_from_slice(&fold.maximum_items.to_le_bytes());
                 canonical.push(fold.invocation as u8);
                 canonical.push(fold.close as u8);
                 canonical.push(fold.abnormal as u8);
                 canonical.push(fold.cancellation as u8);
+            }
+            Law::FlowEach(each) => {
+                canonical.push(16);
+                push_string(canonical, each.input_port_id.as_str());
+                push_string(canonical, each.output_port_id.as_str());
+                canonical.extend_from_slice(&each.maximum_items.to_le_bytes());
             }
         }
     }
@@ -873,6 +881,7 @@ pub(crate) fn compute_plan_id(
                     canonical
                         .extend_from_slice(&activation.limits.maximum_queue_items.to_le_bytes());
                     push_u32(&mut canonical, activation.limits.maximum_queue_bytes);
+                    canonical.extend_from_slice(&activation.limits.maximum_items.to_le_bytes());
                     canonical.push(activation.terminal_policy as u8);
                     canonical.push(activation.cancellation_policy as u8);
                     canonical.push(activation.effect_multiplicity as u8);
@@ -903,6 +912,7 @@ pub(crate) fn compute_plan_id(
                     canonical
                         .extend_from_slice(&activation.limits.maximum_queue_items.to_le_bytes());
                     push_u32(&mut canonical, activation.limits.maximum_queue_bytes);
+                    canonical.extend_from_slice(&activation.limits.maximum_items.to_le_bytes());
                     canonical.push(activation.terminal_policy as u8);
                     canonical.push(activation.abnormal_policy as u8);
                     canonical.push(activation.cancellation_policy as u8);

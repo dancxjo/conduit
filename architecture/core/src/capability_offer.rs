@@ -139,6 +139,7 @@ impl Kind {
         let mut bounded_collect = None;
         let mut flow_select = None;
         let mut flow_fold = None;
+        let mut flow_each = None;
         for law in &self.semantic_laws {
             match law {
                 KindSemanticLaw::TerminalTransduction(profile) => {
@@ -222,7 +223,8 @@ impl Kind {
                             && input.value_kind == contract.predicate_input_kind
                             && contract.predicate_output_kind.as_str() == crate::BOOL_INFO_ID
                             && contract.maximum_active == 1
-                            && contract.maximum_queued == 1)
+                            && contract.maximum_queued == 1
+                            && contract.maximum_items > 0)
                     {
                         return Err(KindValidationError::InvalidFlowSelect);
                     }
@@ -251,9 +253,27 @@ impl Kind {
                             && contract.combine_item_port_id.as_str() == "item"
                             && contract.combine_output_port_id.as_str() == "combined"
                             && contract.maximum_active == 1
-                            && contract.maximum_queued == 1)
+                            && contract.maximum_queued == 1
+                            && contract.maximum_items > 0)
                     {
                         return Err(KindValidationError::InvalidFlowFold);
+                    }
+                }
+                KindSemanticLaw::FlowEach(contract) => {
+                    if flow_each.replace(contract).is_some() || contract.maximum_items == 0 {
+                        return Err(KindValidationError::InvalidFlowEach);
+                    }
+                    let input = self
+                        .inputs
+                        .iter()
+                        .find(|port| port.port_id == contract.input_port_id);
+                    let output = self
+                        .outputs
+                        .iter()
+                        .find(|port| port.port_id == contract.output_port_id);
+                    if !matches!((input, output), (Some(input), Some(output)) if input.temporal == crate::PortTemporal::Flow { closes: true } && output.temporal == crate::PortTemporal::Flow { closes: true })
+                    {
+                        return Err(KindValidationError::InvalidFlowEach);
                     }
                 }
                 _ => {}
@@ -520,6 +540,7 @@ pub enum KindValidationError {
     InvalidFlowSelect,
     DuplicateFlowFold,
     InvalidFlowFold,
+    InvalidFlowEach,
     InvalidValueBound,
     UnknownValueBoundLocation,
 }
@@ -706,7 +727,7 @@ pub enum StateRetentionSupportError {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::{kind_id, port_id, PortDirection, PortTemporal};
+    use crate::{PortDirection, PortTemporal, kind_id, port_id};
     use alloc::{format, string::ToString, vec};
 
     fn contract() -> Kind {
@@ -1197,10 +1218,12 @@ mod tests {
             ordinary.clone().with_state_retention(support),
             Err(StateRetentionSupportError::WrongSemanticKind)
         );
-        assert!(serde_json::to_value(&ordinary)
-            .unwrap()
-            .get("state_retention")
-            .is_none());
+        assert!(
+            serde_json::to_value(&ordinary)
+                .unwrap()
+                .get("state_retention")
+                .is_none()
+        );
 
         let mut state_contract = contract();
         state_contract.kind_id = crate::kind_id(crate::STATE_VALUE_KIND);

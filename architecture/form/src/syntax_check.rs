@@ -23,7 +23,7 @@ mod resolution;
 mod shared_pool;
 mod specialization;
 mod structured_selector;
-use resolution::{is_atomic_literal, Resolver};
+use resolution::{Resolver, is_atomic_literal};
 use shared_pool::{check_pool_declarations, checked_pool};
 use specialization::specialize_named_type_parameters;
 
@@ -399,7 +399,7 @@ fn resolve_stage_aliases(
                                         "glyph '{}' requires the exact checked Fore for '{}'",
                                         glyph.text, canonical
                                     ),
-                                ))
+                                ));
                             }
                             Err(message) => return Err(use_diagnostic(glyph.span, message)),
                         }
@@ -1403,7 +1403,7 @@ fn checked_activation(
             span: invocation.span,
             message: "activate requires one exact checked source Form".into(),
         })?;
-    if let crate::ActivationSyntax::Fold { initial } = &mode {
+    if let crate::ActivationSyntax::Fold { initial, .. } = &mode {
         let accumulator = front
             .inputs()
             .iter()
@@ -1476,7 +1476,7 @@ fn checked_activation(
             message: "activate requires startup-free Value fronts with one exact propagated abnormal terminal".into(),
         });
     }
-    if mode == crate::ActivationSyntax::Select
+    if matches!(mode, crate::ActivationSyntax::Select { .. })
         && output.value_kind.as_str() != conduit_core::BOOL_INFO_ID
     {
         return Err(SyntaxCheckDiagnostic {
@@ -1587,7 +1587,7 @@ fn resolve_bound_value(
             Err(conduit_core::QuantityLiteralRefusal::NonCanonicalUnit { canonical }) => {
                 return Err(SyntaxCheckError::QuantityLiteral(format!(
                     "non-canonical quantity unit in '{default}'; use '{canonical}'"
-                )))
+                )));
             }
             Err(_) => CanonicalStartupValue::Literal(default.to_string()),
         }

@@ -1,7 +1,7 @@
 use alloc::{string::String, vec::Vec};
-use serde::{de::Error as _, Deserialize, Deserializer, Serialize};
+use serde::{Deserialize, Deserializer, Serialize, de::Error as _};
 
-use crate::{KindId, PortId, StructuredInfoValue, MAXIMUM_STRUCTURED_CANONICAL_BYTES};
+use crate::{KindId, MAXIMUM_STRUCTURED_CANONICAL_BYTES, PortId, StructuredInfoValue};
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize)]
 pub struct StructuredConfigurationValue {
@@ -178,7 +178,7 @@ mod human_u64 {
         format,
         string::{String, ToString},
     };
-    use serde::{de::Error as _, Deserialize, Deserializer, Serializer};
+    use serde::{Deserialize, Deserializer, Serializer, de::Error as _};
 
     use super::MAXIMUM_EXACT_JAVASCRIPT_INTEGER;
 
@@ -223,7 +223,7 @@ mod human_i64 {
         format,
         string::{String, ToString},
     };
-    use serde::{de::Error as _, Deserialize, Deserializer, Serializer};
+    use serde::{Deserialize, Deserializer, Serializer, de::Error as _};
 
     use super::MAXIMUM_EXACT_JAVASCRIPT_INTEGER;
 
@@ -259,8 +259,7 @@ mod human_i64 {
         }
         match HumanInteger::deserialize(deserializer)? {
             HumanInteger::Number(value)
-                if (MINIMUM_EXACT_JAVASCRIPT_INTEGER
-                    ..=MAXIMUM_EXACT_JAVASCRIPT_SIGNED_INTEGER)
+                if (MINIMUM_EXACT_JAVASCRIPT_INTEGER..=MAXIMUM_EXACT_JAVASCRIPT_SIGNED_INTEGER)
                     .contains(&value) =>
             {
                 Ok(value)
@@ -299,6 +298,8 @@ pub enum KindSemanticLaw {
     KeyedJoin(KeyedJoinSemanticLaw),
     /// Finite collection of one closing Flow into exactly one sequence Value.
     BoundedCollect(BoundedCollectSemanticLaw),
+    /// Exact bounded lifting of one Value transform over a closing Flow.
+    FlowEach(FlowEachSemanticLaw),
     /// Exact bounded lifting of one Value-to-Boolean predicate over a closing Flow.
     FlowSelect(FlowSelectSemanticLaw),
     /// Exact bounded left fold of one closing Flow through a reviewed combine Form.
@@ -318,10 +319,18 @@ pub struct FlowFoldSemanticLaw {
     pub combine_output_port_id: PortId,
     pub maximum_active: u16,
     pub maximum_queued: u16,
+    pub maximum_items: u16,
     pub invocation: FlowFoldInvocation,
     pub close: FlowFoldCloseDisposition,
     pub abnormal: FlowFoldAbnormalDisposition,
     pub cancellation: FlowFoldCancellationDisposition,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct FlowEachSemanticLaw {
+    pub input_port_id: PortId,
+    pub output_port_id: PortId,
+    pub maximum_items: u16,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
@@ -367,6 +376,7 @@ pub struct FlowSelectSemanticLaw {
     pub predicate_output_kind: KindId,
     pub maximum_active: u16,
     pub maximum_queued: u16,
+    pub maximum_items: u16,
     pub invocation: FlowSelectInvocation,
     pub retained_input: FlowSelectRetainedInput,
     pub true_disposition: FlowSelectTrueDisposition,
@@ -569,7 +579,7 @@ pub enum KindTerminalBehavior {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::{encode_count, kind_id, StructuredInfoType, StructuredInfoValue};
+    use crate::{StructuredInfoType, StructuredInfoValue, encode_count, kind_id};
     use alloc::vec;
 
     #[test]
@@ -585,10 +595,12 @@ mod tests {
             StructuredConfigurationValue::new(kind_id("structured-info/wrong@1"), canonical)
                 .is_none()
         );
-        assert!(StructuredConfigurationValue::new(
-            value_type.profile().unwrap().value_kind().clone(),
-            vec![0xff],
-        )
-        .is_none());
+        assert!(
+            StructuredConfigurationValue::new(
+                value_type.profile().unwrap().value_kind().clone(),
+                vec![0xff],
+            )
+            .is_none()
+        );
     }
 }

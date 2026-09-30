@@ -1,15 +1,15 @@
 use conduit_core::{
-    kind_id, port_id, verify_plan, ArtifactId, BaseImplementationId, BootId, CapabilityId,
-    CapabilityLimits, ExecutionProfileId, HostAdvertisement, HostId, HostProfileId,
-    ImplementationId, KindIdentity, OfferGeneration, PortDescriptor, PortDirection, PortTemporal,
-    BOOL_INFO_ID, PROTOCOL_VERSION,
+    ArtifactId, BOOL_INFO_ID, BaseImplementationId, BootId, CapabilityId, CapabilityLimits,
+    ExecutionProfileId, HostAdvertisement, HostId, HostProfileId, ImplementationId, KindIdentity,
+    OfferGeneration, PROTOCOL_VERSION, PortDescriptor, PortDirection, PortTemporal, kind_id,
+    port_id, verify_plan,
 };
 use conduit_form::{
-    check_syntax_document, expand_canonical_form_for_authoring, parse_syntax_document,
     CanonicalBackCatalog, KindProjection, KindSignature, ProfileCatalog, StartupCatalog,
+    check_syntax_document, expand_canonical_form_for_authoring, parse_syntax_document,
 };
 use conduit_planner::{
-    default_expanded_placements, plan_expanded_canonical_with_activations, PlanningOptions,
+    PlanningOptions, default_expanded_placements, plan_expanded_canonical_with_activations,
 };
 use std::collections::BTreeMap;
 
@@ -32,7 +32,7 @@ form flow/select (
  >> values: item...|
  selected: item...| >>
 ) {
- selection: select predicate()
+ selection: select(maximum-items = 4) predicate()
  values >> selection.value
  selection.selected >> selected
 }
@@ -206,10 +206,12 @@ fn authored_select_seals_the_exact_value_to_boolean_predicate_plan() {
     assert_eq!(activation.output.value_kind.as_str(), BOOL_INFO_ID);
     assert_eq!(activation.limits.maximum_active, 1);
     assert_eq!(activation.limits.maximum_queue_items, 1);
-    assert!(activation
-        .selected_plan
-        .fragments
-        .iter()
-        .flat_map(|fragment| &fragment.placements)
-        .any(|placement| placement.kind_id == kind_id("test/predicate")));
+    assert!(
+        activation
+            .selected_plan
+            .fragments
+            .iter()
+            .flat_map(|fragment| &fragment.placements)
+            .any(|placement| placement.kind_id == kind_id("test/predicate"))
+    );
 }

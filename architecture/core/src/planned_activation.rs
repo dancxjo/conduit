@@ -1,6 +1,6 @@
 use crate::{
-    verify_plan_at_depth, KindId, PlacementId, Plan, PortDirection, PortId, PortTemporal,
-    SignStorageBudget,
+    KindId, PlacementId, Plan, PortDirection, PortId, PortTemporal, SignStorageBudget,
+    verify_plan_at_depth,
 };
 use alloc::{boxed::Box, string::String, vec::Vec};
 use serde::{Deserialize, Serialize};
@@ -20,6 +20,7 @@ pub struct PlannedActivationLimits {
     pub maximum_active: u16,
     pub maximum_queue_items: u16,
     pub maximum_queue_bytes: u32,
+    pub maximum_items: u16,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
@@ -179,6 +180,7 @@ fn verify_fold(
         && activation.retained_item_bytes > 0
         && activation.limits.maximum_active == 1
         && activation.limits.maximum_queue_items == 1
+        && activation.limits.maximum_items > 0
         && activation
             .retained_accumulator_bytes
             .checked_mul(2)
@@ -214,7 +216,8 @@ fn fronts_are_exact(activation: &PlannedActivation) -> bool {
         &activation.output,
         PortDirection::Output,
     );
-    matches!((input, output), (Some(input), Some(output))
+    activation.limits.maximum_items > 0
+        && matches!((input, output), (Some(input), Some(output))
         if activation.limits.maximum_queue_bytes >= input.byte_capacity
             && activation.limits.maximum_queue_bytes >= output.byte_capacity)
 }

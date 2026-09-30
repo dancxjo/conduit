@@ -1,6 +1,6 @@
 use crate::{
-    check_syntax_document, expand_canonical_form_for_authoring, parse_syntax_document,
-    ProfileCatalog, StartupCatalog,
+    ProfileCatalog, StartupCatalog, check_syntax_document, expand_canonical_form_for_authoring,
+    parse_syntax_document,
 };
 
 const SOURCE: &str = "
@@ -21,7 +21,7 @@ form flow/each (
  >> values: item...|
  mapped: result...| >>
 ) {
- each: activate transform()
+ each: activate(maximum-items = 4) transform()
  values >> each.value
  each.mapped >> mapped
 }
@@ -47,7 +47,7 @@ form flow/select (
  >> values: item...|
  selected: item...| >>
 ) {
- selection: select predicate()
+ selection: select(maximum-items = 4) predicate()
  values >> selection.value
  selection.selected >> selected
 }
@@ -70,7 +70,7 @@ form flow/fold-integers (
  >> items: U64...|
  result: U64 >>
 ) {
- folder: fold(initial) integer/add()
+ folder: fold(initial, maximum-items = 4) integer/add()
  items >> folder.item
  folder.combined >> result
 }
@@ -104,7 +104,7 @@ fn specialization_retains_one_exact_checked_activation() {
 #[test]
 fn activation_law_participates_in_checked_identity() {
     let activated = checked();
-    let ordinary_source = SOURCE.replace("activate transform()", "transform()");
+    let ordinary_source = SOURCE.replace("activate(maximum-items = 4) transform()", "transform()");
     let ordinary = check_syntax_document(
         &parse_syntax_document(&ordinary_source),
         &StartupCatalog::new(),
@@ -178,7 +178,10 @@ fn select_specialization_keeps_the_exact_predicate_but_outputs_the_retained_item
         .find(|form| form.name.starts_with("flow/select["))
         .unwrap();
     let activation = select.gears[0].activation.as_ref().unwrap();
-    assert_eq!(activation.mode, crate::ActivationSyntax::Select);
+    assert_eq!(
+        activation.mode,
+        crate::ActivationSyntax::Select { maximum_items: 4 }
+    );
     assert_eq!(
         activation.input.value_kind.as_str(),
         conduit_core::TEXT_INFO_ID

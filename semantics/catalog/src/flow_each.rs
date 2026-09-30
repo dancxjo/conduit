@@ -4,10 +4,10 @@
 use alloc::string::ToString;
 use alloc::{vec, vec::Vec};
 use conduit_core::{
-    kind_id, port_id, AbnormalTerminalTransduction, CancellationTransduction, CapabilityLimits,
-    CheckedValueContract, FiniteTerminalEmission, FrontValueContract, FrontValueLocation, Kind,
+    AbnormalTerminalTransduction, CancellationTransduction, CapabilityLimits, CheckedValueContract,
+    FiniteTerminalEmission, FlowEachSemanticLaw, FrontValueContract, FrontValueLocation, Kind,
     KindIdentity, KindSemanticLaw, NormalCloseTransduction, PortDescriptor, PortDirection,
-    PortTemporal, TerminalTransductionProfile,
+    PortTemporal, TerminalTransductionProfile, kind_id, port_id,
 };
 
 pub const FLOW_EACH_KIND: &str = "flow/each";
@@ -26,7 +26,11 @@ pub fn flow_each_semantic_contract(
     input: &CheckedValueContract,
     output: &CheckedValueContract,
     abnormal: Option<&CheckedValueContract>,
+    maximum_items: u16,
 ) -> Result<Kind, &'static str> {
+    if maximum_items == 0 {
+        return Err("flow/each maximum-items must be positive");
+    }
     require_finite_envelope(input, "input")?;
     require_finite_envelope(output, "output")?;
     if let Some(abnormal) = abnormal {
@@ -82,6 +86,11 @@ pub fn flow_each_semantic_contract(
         configuration: Vec::new(),
         semantic_laws: vec![
             KindSemanticLaw::ValueContracts(value_contracts),
+            KindSemanticLaw::FlowEach(FlowEachSemanticLaw {
+                input_port_id: port_id(FLOW_EACH_INPUT_PORT),
+                output_port_id: port_id(FLOW_EACH_OUTPUT_PORT),
+                maximum_items,
+            }),
             KindSemanticLaw::TerminalTransduction(TerminalTransductionProfile {
                 input_port_id: port_id(FLOW_EACH_INPUT_PORT),
                 output_port_id: port_id(FLOW_EACH_OUTPUT_PORT),
@@ -128,6 +137,7 @@ pub fn install_flow_each_kind(
     input: &CheckedValueContract,
     output: &CheckedValueContract,
     abnormal: Option<&CheckedValueContract>,
+    maximum_items: u16,
     startup: &mut conduit_form::StartupCatalog,
     profile: &mut conduit_form::ProfileCatalog,
 ) -> Result<(), alloc::string::String> {
@@ -136,7 +146,10 @@ pub fn install_flow_each_kind(
         startup_parameters: Vec::new(),
     })?;
     profile
-        .insert_kind(flow_each_semantic_contract(input, output, abnormal).map_err(str::to_string)?)
+        .insert_kind(
+            flow_each_semantic_contract(input, output, abnormal, maximum_items)
+                .map_err(str::to_string)?,
+        )
         .map_err(|error| error.to_string())
 }
 
@@ -153,7 +166,7 @@ mod tests {
         let input = value("value/source", 32);
         let output = value("value/mapped", 48);
         let abnormal = value("terminal/transform", 12);
-        let contract = flow_each_semantic_contract(&input, &output, Some(&abnormal)).unwrap();
+        let contract = flow_each_semantic_contract(&input, &output, Some(&abnormal), 4).unwrap();
 
         assert_eq!(contract.inputs.len(), 1);
         assert_eq!(contract.outputs.len(), 1);
@@ -183,6 +196,7 @@ mod tests {
             &value("value/source", 32),
             &value("value/mapped", 48),
             Some(&value("terminal/transform", 12)),
+            4,
         )
         .unwrap();
 
@@ -211,9 +225,9 @@ mod tests {
     fn specialization_rejects_nonfinite_front_envelopes() {
         let unbounded = value("value/unbounded", 0);
         let finite = value("value/finite", 8);
-        assert!(flow_each_semantic_contract(&unbounded, &finite, None).is_err());
-        assert!(flow_each_semantic_contract(&finite, &unbounded, None).is_err());
-        assert!(flow_each_semantic_contract(&finite, &finite, Some(&unbounded)).is_err());
+        assert!(flow_each_semantic_contract(&unbounded, &finite, None, 4).is_err());
+        assert!(flow_each_semantic_contract(&finite, &unbounded, None, 4).is_err());
+        assert!(flow_each_semantic_contract(&finite, &finite, Some(&unbounded), 4).is_err());
     }
 
     #[test]
@@ -222,6 +236,7 @@ mod tests {
             &value("value/source", 32),
             &value("value/mapped", 48),
             None,
+            4,
         )
         .unwrap();
 
