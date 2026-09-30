@@ -168,3 +168,12 @@ type WorkflowTimingOutcome =
     | failed
     | cancelled
     | expired
+
+type TemplateCollectionRefusal =
+    malformed
+    | name-empty
+    | name-too-long
+    | duplicate-name
+    | collection-full
+    | not-found
+    | corrupt-template
