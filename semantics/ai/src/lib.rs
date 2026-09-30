@@ -7,8 +7,9 @@ mod generated {
     include!(concat!(env!("OUT_DIR"), "/semantic_types.rs"));
 }
 pub use generated::{
-    GeneratedTextFlowTerminal, LlmDeterminismProfile, LlmImplementationControl, LlmTerminalOutcome,
-    ModelOperation, ModelPortPresence,
+    EmbeddingNormalization, GeneratedTextFlowTerminal, LlmDeterminismProfile,
+    LlmImplementationControl, LlmTerminalOutcome, ModelOperation, ModelPortPresence,
+    SimilarityMetric,
 };
 
 mod bases;

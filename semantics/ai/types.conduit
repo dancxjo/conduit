@@ -43,3 +43,12 @@ type ModelOperation =
 type ModelPortPresence =
     required
     | optional
+
+type SimilarityMetric =
+    cosine_similarity
+    | dot_product_similarity
+    | squared_euclidean_distance
+
+type EmbeddingNormalization =
+    none
+    | unit_length
