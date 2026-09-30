@@ -1,6 +1,6 @@
 //! Finite, host-neutral `conduit-intl` keyboard text semantics.
 
-use crate::{KeyEvent, KeyModifiers, KeyTransition};
+use crate::{KeyEvent, KeyModifiers, KeyTransition, KeymapRefusal};
 
 pub const CONDUIT_INTL_LAYOUT: &str = "conduit-intl";
 pub const KEYMAP_MAXIMUM_HEX_DIGITS: u8 = 6;
@@ -25,14 +25,6 @@ impl TextFragment {
     pub fn as_bytes(&self) -> &[u8] {
         &self.bytes[..usize::from(self.len)]
     }
-}
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum KeymapRefusal {
-    UnknownComposeSequence,
-    EmptyUnicodeEntry,
-    UnicodeEntryOverflow,
-    InvalidUnicodeScalar,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
