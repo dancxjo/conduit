@@ -12,7 +12,8 @@ mod generated {
 }
 
 pub use generated::{
-    BodyChatHistoryItem, BodyChatMessage, BodyChatRole, ChatConnectionState, PresenceState,
+    BodyChatHistoryItem, BodyChatMessage, BodyChatRefusal, BodyChatRole, ChatConnectionState,
+    ChatStateRefusal, PresenceState,
 };
 
 mod body_chat;
@@ -40,7 +41,8 @@ pub use messaging_catalog::*;
 #[cfg(test)]
 mod native_type_tests {
     use super::{
-        BodyChatHistoryItem, BodyChatMessage, BodyChatRole, ChatConnectionState, PresenceState,
+        BodyChatHistoryItem, BodyChatMessage, BodyChatRefusal, BodyChatRole, ChatConnectionState,
+        ChatStateRefusal, PresenceState,
     };
     use conduit_form::rust_binding::NativeRustBinding;
 
@@ -63,6 +65,32 @@ mod native_type_tests {
     fn chat_connection_and_presence_are_native_semantic_types() {
         assert_round_trip(ChatConnectionState::Connected);
         assert_round_trip(PresenceState::Away);
+    }
+
+    #[test]
+    fn chat_refusals_are_native_semantic_types() {
+        for refusal in [
+            ChatStateRefusal::InvalidConfiguration,
+            ChatStateRefusal::EmptyMessage,
+            ChatStateRefusal::OversizeMessage,
+            ChatStateRefusal::MalformedMessage,
+            ChatStateRefusal::SequenceExhausted,
+            ChatStateRefusal::InvalidPresentation,
+        ] {
+            assert_round_trip(refusal);
+        }
+        for refusal in [
+            BodyChatRefusal::EmptyMessage,
+            BodyChatRefusal::MessageBoundExceeded,
+            BodyChatRefusal::ContextBoundExceeded,
+            BodyChatRefusal::MalformedContext,
+            BodyChatRefusal::WrongContextSchema,
+            BodyChatRefusal::HistoryBoundExceeded,
+            BodyChatRefusal::PromptBoundExceeded,
+            BodyChatRefusal::Encoding,
+        ] {
+            assert_round_trip(refusal);
+        }
     }
 
     #[test]

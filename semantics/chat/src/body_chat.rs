@@ -15,7 +15,7 @@ use conduit_form::{KindProjection, KindSignature, ProfileCatalog, StartupCatalog
 use serde::{ser::SerializeStruct, Deserialize, Serialize};
 use sha2::{Digest, Sha256};
 
-use crate::{BodyChatHistoryItem, BodyChatMessage, BodyChatRole};
+use crate::{BodyChatHistoryItem, BodyChatMessage, BodyChatRefusal, BodyChatRole};
 
 pub const BODY_CHAT_PROMPT_KIND: &str = "body/chat-prompt";
 pub const BODY_CONVERSATION_CONTEXT_KIND: &str = "body/conversation-context";
@@ -142,18 +142,6 @@ pub struct BodyChatGenerationRequest {
     pub context_basis: conduit_body::BodyConversationContextBasis,
     pub model_context_sha256: [u8; 32],
     pub encoded_request: Vec<u8>,
-}
-
-#[derive(Clone, Copy, Debug, Eq, PartialEq)]
-pub enum BodyChatRefusal {
-    EmptyMessage,
-    MessageBoundExceeded,
-    ContextBoundExceeded,
-    MalformedContext,
-    WrongContextSchema,
-    HistoryBoundExceeded,
-    PromptBoundExceeded,
-    Encoding,
 }
 
 pub fn encode_body_conversation_context(
