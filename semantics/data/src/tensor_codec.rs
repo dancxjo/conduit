@@ -3,7 +3,7 @@
 use alloc::{string::ToString, vec, vec::Vec};
 use conduit_core::{semantic_digest, BoundedResourceRef, QuantityUnit};
 
-use crate::tensor::*;
+use crate::{tensor::*, TensorElement};
 
 impl TensorValue {
     pub fn encode(&self) -> Result<Vec<u8>, TensorRefusal> {
