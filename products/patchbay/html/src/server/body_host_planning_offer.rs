@@ -22,11 +22,11 @@ impl PatchbayHtmlServer {
             .evidence()
             .body
             .workset;
+        let forms = planning_forms(workset, &self.body_planning_forms)?;
         let requirements =
-            patchbay_model::body_planning_requirements(workset, &self.body_planning_forms)
-                .map_err(|error| {
-                    ServerError::Interaction(format!("Body planning requirements: {error:?}"))
-                })?;
+            conduit_body_make::body_planning_requirements(workset, &forms).map_err(|error| {
+                ServerError::Interaction(format!("Body planning requirements: {error:?}"))
+            })?;
         let body = serde_json::to_vec(&requirements)
             .map_err(|error| ServerError::Interaction(error.to_string()))?;
         super::write_response(stream, "200 OK", "application/json; charset=utf-8", &body)
@@ -97,9 +97,10 @@ impl PatchbayHtmlServer {
         }
         let advertisement = advertisement(&evidence)?;
         let workset = &biography.body.workset;
-        let forms = patchbay_model::plan_body_workset_on_host(
+        let candidates = planning_forms(workset, &self.body_planning_forms)?;
+        let forms = conduit_body_make::plan_body_workset_on_host(
             workset,
-            &self.body_planning_forms,
+            &candidates,
             &advertisement,
             &[BaseImplementationId::from("conduit.base/local@1")],
         )
@@ -124,7 +125,7 @@ impl PatchbayHtmlServer {
             }
             next
         } else {
-            patchbay_model::BodyPlanningSession::prepare(
+            conduit_body::BodyPlanningSession::prepare(
                 &biography.body,
                 sequence,
                 sign("wake"),
@@ -166,6 +167,29 @@ impl PatchbayHtmlServer {
         self.encoded_snapshot = encoded;
         Ok(self.encoded_snapshot.clone())
     }
+}
+
+pub(super) fn planning_forms(
+    workset: &conduit_body::BodyWorkset,
+    candidates: &[patchbay_model::FormCandidate],
+) -> Result<Vec<conduit_body_make::BodyPlanningForm>, ServerError> {
+    workset
+        .forms()
+        .iter()
+        .map(|resident| {
+            candidates
+                .iter()
+                .find(|candidate| {
+                    candidate.source_document_id == resident.source_document_id
+                        && candidate.checked_form_id == resident.checked_form_id
+                })
+                .ok_or_else(|| ServerError::Interaction("Body planning forms: MissingForm".into()))?
+                .body_planning_form()
+                .map_err(|error| {
+                    ServerError::Interaction(format!("Body planning forms: {error:?}"))
+                })
+        })
+        .collect::<Result<Vec<_>, _>>()
 }
 
 fn advertisement(evidence: &HostOfferProjection) -> Result<HostAdvertisement, ServerError> {
@@ -292,17 +316,15 @@ mod tests {
             conduit_core::INPUT_RESOURCE_CLASS,
             1,
         ));
-        let requirements = patchbay_model::body_planning_requirements(
-            &server
-                .body_workload
-                .as_ref()
-                .unwrap()
-                .evidence()
-                .body
-                .workset,
-            &server.body_planning_forms,
-        )
-        .unwrap();
+        let workset = &server
+            .body_workload
+            .as_ref()
+            .unwrap()
+            .evidence()
+            .body
+            .workset;
+        let forms = planning_forms(workset, &server.body_planning_forms).unwrap();
+        let requirements = conduit_body_make::body_planning_requirements(workset, &forms).unwrap();
         let mut offers = requirements
             .kind_ids
             .iter()

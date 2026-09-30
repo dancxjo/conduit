@@ -1,5 +1,6 @@
 use crate::{server::ServerError, RendererSnapshot};
-use patchbay_model::{BodyPlanningSession, PatchbayBodyWorkloadSession};
+use conduit_body::BodyPlanningSession;
+use patchbay_model::PatchbayBodyWorkloadSession;
 
 /// Build a candidate projection from the same retained lifecycle as planning.
 /// Nothing is committed until the caller has encoded its whole next snapshot.
