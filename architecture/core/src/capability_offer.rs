@@ -67,6 +67,13 @@ impl Kind {
         })
     }
 
+    pub fn bounded_collect(&self) -> Option<&crate::BoundedCollectSemanticLaw> {
+        self.semantic_laws.iter().find_map(|law| match law {
+            KindSemanticLaw::BoundedCollect(contract) => Some(contract),
+            _ => None,
+        })
+    }
+
     pub fn checked_front(&self) -> CheckedFront {
         CheckedFront::new(
             self.startup_parameters.clone(),
@@ -129,6 +136,7 @@ impl Kind {
         let mut resource_ports = None;
         let mut value_contracts = None;
         let mut keyed_join = None;
+        let mut bounded_collect = None;
         for law in &self.semantic_laws {
             match law {
                 KindSemanticLaw::TerminalTransduction(profile) => {
@@ -187,11 +195,88 @@ impl Kind {
                         return Err(KindValidationError::InvalidKeyedJoin);
                     }
                 }
+                KindSemanticLaw::BoundedCollect(contract) => {
+                    if bounded_collect.replace(contract).is_some() {
+                        return Err(KindValidationError::DuplicateBoundedCollect);
+                    }
+                    validate_bounded_collect(self, contract)?;
+                }
                 _ => {}
             }
         }
         Ok(())
     }
+}
+
+fn validate_bounded_collect(
+    kind: &Kind,
+    contract: &crate::BoundedCollectSemanticLaw,
+) -> Result<(), KindValidationError> {
+    let input = kind
+        .inputs
+        .iter()
+        .find(|port| port.port_id == contract.input_port_id)
+        .ok_or(KindValidationError::InvalidBoundedCollect)?;
+    let output = kind
+        .outputs
+        .iter()
+        .find(|port| port.port_id == contract.output_port_id)
+        .ok_or(KindValidationError::InvalidBoundedCollect)?;
+    if contract.maximum_items == 0
+        || contract.element.validate_definition().is_err()
+        || contract.collection.validate_definition().is_err()
+        || contract.overflow_disposition.validate_definition().is_err()
+        || input.direction != crate::PortDirection::Input
+        || input.temporal != (crate::PortTemporal::Flow { closes: true })
+        || input.value_kind != contract.element.value_kind
+        || input.abnormal_kind.is_some()
+        || output.direction != crate::PortDirection::Output
+        || output.temporal != crate::PortTemporal::Value
+        || output.value_kind != contract.collection.value_kind
+        || output.abnormal_kind.as_ref() != Some(&contract.overflow_disposition.value_kind)
+    {
+        return Err(KindValidationError::InvalidBoundedCollect);
+    }
+    let encoder = crate::PreparedLeafSequenceEncoder::new(
+        contract.element.value_kind.clone(),
+        contract.element.maximum_bytes,
+        contract.maximum_items,
+    )
+    .map_err(|_| KindValidationError::InvalidBoundedCollect)?;
+    let value_type = encoder
+        .value_type()
+        .map_err(|_| KindValidationError::InvalidBoundedCollect)?;
+    let profile = value_type
+        .profile()
+        .map_err(|_| KindValidationError::InvalidBoundedCollect)?;
+    if profile.value_kind() != &contract.collection.value_kind
+        || encoder.maximum_bytes() != contract.collection.maximum_bytes
+    {
+        return Err(KindValidationError::InvalidBoundedCollect);
+    }
+    let required = [
+        (
+            crate::FrontValueLocation::Input(contract.input_port_id.clone()),
+            &contract.element,
+        ),
+        (
+            crate::FrontValueLocation::Output(contract.output_port_id.clone()),
+            &contract.collection,
+        ),
+        (
+            crate::FrontValueLocation::OutputAbnormal(contract.output_port_id.clone()),
+            &contract.overflow_disposition,
+        ),
+    ];
+    if required.iter().any(|(location, expected)| {
+        !kind
+            .value_contracts()
+            .iter()
+            .any(|actual| actual.location == *location && actual.contract == **expected)
+    }) {
+        return Err(KindValidationError::InvalidBoundedCollect);
+    }
+    Ok(())
 }
 
 fn validate_value_contracts(
@@ -374,6 +459,8 @@ pub enum KindValidationError {
     DuplicateValueBounds,
     DuplicateKeyedJoin,
     InvalidKeyedJoin,
+    DuplicateBoundedCollect,
+    InvalidBoundedCollect,
     InvalidValueBound,
     UnknownValueBoundLocation,
 }
