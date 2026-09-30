@@ -357,15 +357,7 @@ pub fn finance_transaction_events_type() -> StructuredInfoType {
 }
 
 pub fn finance_money_comparison_type() -> StructuredInfoType {
-    StructuredInfoType::variant(
-        kind_id("finance/money-comparison@1"),
-        vec![
-            case("equal", unit_type()),
-            case("greater", unit_type()),
-            case("less", unit_type()),
-        ],
-    )
-    .expect("reviewed money comparison")
+    crate::FinanceMoneyComparison::semantic_type().expect("checked native finance comparison Type")
 }
 
 pub(crate) fn finance_unit_type() -> StructuredInfoType {

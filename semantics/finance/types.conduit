@@ -4,3 +4,8 @@ type FinanceCurrency =
     eur
     | gbp
     | usd
+
+type FinanceMoneyComparison =
+    equal
+    | greater
+    | less
