@@ -1,6 +1,6 @@
 use crate::{
-    ProfileCatalog, StartupCatalog, check_syntax_document, expand_canonical_form_for_authoring,
-    parse_syntax_document,
+    check_syntax_document, expand_canonical_form_for_authoring, parse_syntax_document,
+    ProfileCatalog, StartupCatalog,
 };
 
 const SOURCE: &str = "

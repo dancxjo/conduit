@@ -72,6 +72,7 @@ pub(crate) fn canonical_default_bound(value_type: &str) -> Option<u64> {
     match value_type {
         "Text" | "value/text" => Some(256),
         "Bytes" | "value/bytes" => Some(65_536),
+        "Boolean" | conduit_core::BOOL_INFO_ID => Some(1),
         _ => None,
     }
 }

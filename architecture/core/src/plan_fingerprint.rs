@@ -4,11 +4,11 @@
 //! executes or mutates Plans.
 
 use crate::{
-    AdmittedLine, BoundLink, CancellationPolicy, CheckedFront, ConfigurationValue, ExpectedSign,
-    ExpectedTerminal, FormBack, FormIdentity, FragmentCommitment, FragmentId,
-    LinkAuthorityReference, LinkCredentialReference, PlanFragment, PlanId, PlannedActivationEntry,
-    PortDescriptor, PortDirection, PortTemporal, TerminalPolicy, characteristic, execution_fusion,
-    hash_bytes, plan_realization, push_resource_binding, push_string, push_u32, push_u64,
+    characteristic, execution_fusion, hash_bytes, plan_realization, push_resource_binding,
+    push_string, push_u32, push_u64, AdmittedLine, BoundLink, CancellationPolicy, CheckedFront,
+    ConfigurationValue, ExpectedSign, ExpectedTerminal, FormBack, FormIdentity, FragmentCommitment,
+    FragmentId, LinkAuthorityReference, LinkCredentialReference, PlanFragment, PlanId,
+    PlannedActivationEntry, PortDescriptor, PortDirection, PortTemporal, TerminalPolicy,
 };
 use alloc::string::String;
 use alloc::vec::Vec;

@@ -1,7 +1,7 @@
 use crate::prelude::*;
 use crate::{
-    CanonicalStartupValue, CheckedCanonicalCord, CheckedCanonicalGear, CheckedCordStage,
-    CheckedStartupParameter, FormCompletionPolicy, hash_string,
+    hash_string, CanonicalStartupValue, CheckedCanonicalCord, CheckedCanonicalGear,
+    CheckedCordStage, CheckedStartupParameter, FormCompletionPolicy,
 };
 use conduit_core::CheckedFormId;
 

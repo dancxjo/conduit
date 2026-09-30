@@ -1,7 +1,7 @@
 use alloc::{string::String, vec::Vec};
-use serde::{Deserialize, Deserializer, Serialize, de::Error as _};
+use serde::{de::Error as _, Deserialize, Deserializer, Serialize};
 
-use crate::{KindId, MAXIMUM_STRUCTURED_CANONICAL_BYTES, PortId, StructuredInfoValue};
+use crate::{KindId, PortId, StructuredInfoValue, MAXIMUM_STRUCTURED_CANONICAL_BYTES};
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize)]
 pub struct StructuredConfigurationValue {
@@ -178,7 +178,7 @@ mod human_u64 {
         format,
         string::{String, ToString},
     };
-    use serde::{Deserialize, Deserializer, Serializer, de::Error as _};
+    use serde::{de::Error as _, Deserialize, Deserializer, Serializer};
 
     use super::MAXIMUM_EXACT_JAVASCRIPT_INTEGER;
 
@@ -223,7 +223,7 @@ mod human_i64 {
         format,
         string::{String, ToString},
     };
-    use serde::{Deserialize, Deserializer, Serializer, de::Error as _};
+    use serde::{de::Error as _, Deserialize, Deserializer, Serializer};
 
     use super::MAXIMUM_EXACT_JAVASCRIPT_INTEGER;
 
@@ -579,7 +579,7 @@ pub enum KindTerminalBehavior {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::{StructuredInfoType, StructuredInfoValue, encode_count, kind_id};
+    use crate::{encode_count, kind_id, StructuredInfoType, StructuredInfoValue};
     use alloc::vec;
 
     #[test]
@@ -595,12 +595,10 @@ mod tests {
             StructuredConfigurationValue::new(kind_id("structured-info/wrong@1"), canonical)
                 .is_none()
         );
-        assert!(
-            StructuredConfigurationValue::new(
-                value_type.profile().unwrap().value_kind().clone(),
-                vec![0xff],
-            )
-            .is_none()
-        );
+        assert!(StructuredConfigurationValue::new(
+            value_type.profile().unwrap().value_kind().clone(),
+            vec![0xff],
+        )
+        .is_none());
     }
 }

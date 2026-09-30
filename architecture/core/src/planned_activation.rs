@@ -1,6 +1,6 @@
 use crate::{
-    KindId, PlacementId, Plan, PortDirection, PortId, PortTemporal, SignStorageBudget,
-    verify_plan_at_depth,
+    verify_plan_at_depth, KindId, PlacementId, Plan, PortDirection, PortId, PortTemporal,
+    SignStorageBudget,
 };
 use alloc::{boxed::Box, string::String, vec::Vec};
 use serde::{Deserialize, Serialize};
