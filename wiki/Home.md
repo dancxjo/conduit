@@ -1,35 +1,74 @@
-# Conduitese canon
+# Conduit
 
-> **Canonical reference.** These pages were migrated from issue [#4109](https://github.com/dancxjo/conduit/issues/4109) on 2026-09-29. The wiki is now the readable language reference; implementation tickets remain evidence of conformance and provenance.
+**One continuing computer, made from the computers you have.**
 
-This issue is the **authoritative current specification for Conduitese source and its core checked-language laws**.
+Conduit is a programming system for describing **what work means** separately from **which machine happens to perform it**.
 
-Until an explicit successor canon issue replaces or amends a rule here:
+A Conduit **body** can live on one computer or span a laptop, browser, server, microcontroller, robot, and other hosts. You write portable semantic work. Conduit checks it, looks at the machinery that is actually available, chooses an exact realization, and runs that realization through one execution model.
 
-1. **This issue wins over current parser behavior, old examples, stale fixtures, and closed design tickets.**
-2. The current implementation is evidence of implementation status, **not** the definition of the language.
-3. Closed issues linked below are design provenance. They are not parallel authorities.
-4. If canonical syntax is not implemented, that is an **implementation gap**. Do not silently use legacy syntax.
-5. If a semantic law is canonical but its surface spelling is marked **UNFROZEN**, do not invent a spelling in production source or a test-local fake catalog.
-6. A test may construct narrow fixtures, but it may not manufacture missing production semantics and then claim the language supports them.
+```conduit
+form hello {
+    upper: text/upper
+    show: presentation/text
 
-> **Canonical-but-unimplemented means “fix the implementation or expose the blocker,” never “fall back to whatever parses.”**
+    "Hello, world." >> upper >> show
+}.
+```
 
-This issue is intentionally kept open as the living language contract. Ordinary language implementation work should be small child/micro tickets referenced from the current vertical that needs it.
+That form asks for uppercase text and presentation. It does **not** say Linux, browser, framebuffer, stdout, WebSocket, process, device path, or CPU. Those are realization facts.
 
-## Read the canon
+The compact rule is:
 
-- [[Current language surface|Current-language-surface]] — frozen authored spellings and the latest surface settlement.
-- [[Architecture]] — vocabulary, semantic paths, fore/back boundaries, and architectural altitude.
-- [[Forms and flow|Forms-and-flow]] — forms, completion, cords, expressions, routing, filters, and source gears.
-- [[Types and state|Types-and-state]] — finite bounds, type identity, temporal values, keep/data, structures, quantities, variants, and resources.
-- [[Terminals and concurrency|Terminals-and-concurrency]] — close, abnormal terminals, cancellation, multi-input timing, fan-out, and pressure.
-- [[Effects and realization|Effects-and-realization]] — inferred effects, realization invariance, replay, movement, fusion, and memoization.
-- [[Packs, hosts and bodies|Packs-hosts-and-bodies]] — the shared source language, generics, packs/imports, host construction, and body construction.
-- [[Canon governance|Canon-governance]] — implementation status, review law, conformance gates, amendment rules, and provenance.
+> **Meaning stays portable. Realization stays exact.**
 
-## How to read this wiki
+## The five-minute mental model
 
-The wiki defines language meaning. Parser behavior, fixtures, examples, and closed design tickets are evidence of implementation history, not competing authorities.
+| idea | what it means |
+|---|---|
+| **form** | portable semantic work |
+| **kind / fore / gear** | what an operation means, how it is called, and one configured occurrence |
+| **host / back / base** | current machinery and concrete realizations |
+| **plan / play** | one exact immutable realization, then one active execution of it |
+| **body** | the durable computer that can continue while hosts, boots, plans, and plays change |
 
-When a canonical rule is not implemented, treat it as an implementation gap. Do not silently substitute legacy syntax.
+Start with [[Architecture tour|Architecture-tour]] if those nouns are new.
+
+## What is Conduitese?
+
+**Conduitese is Conduit's human-authored source language.** It is the language in `.conduit` files.
+
+It is declarative, typed, finite by construction, graph-oriented, and designed to keep semantic meaning visible. A form says how typed information moves through semantic work. Conduitese also has source roles for host construction, body construction, packs, and increasingly the semantic types themselves.
+
+Conduitese is **not** a second operating system kernel, a shell language, a replacement for Rust, or a place to smuggle host APIs into portable programs. Rust still implements the checker, planner, kernel, host adapters, mechanisms, and many realizations. Conduitese owns the portable authored meaning that those layers consume.
+
+Read [[Conduitese]] for the language model, then [[Conduitese by example|Conduitese-by-example]] for a tour through real `.conduit` programs.
+
+## Explore
+
+- [[Start here|Start-here]] — run Hello, Tour, Patchbay, or ConduitOS.
+- [[Conduitese]] — what the language is and why it looks the way it does.
+- [[Conduitese by example|Conduitese-by-example]] — many annotated source examples.
+- [[Architecture tour|Architecture-tour]] — forms, hosts, planning, execution, bodies, lines, and evidence.
+- [[Bodies, hosts, plans and plays|Bodies-hosts-plans-and-plays]] — the realization/lifecycle model.
+- [[State, time and data|State-time-and-data]] — keep, Current, flows, completion, sampling, save/load.
+- [[Face, Mask and Show|Face-Mask-and-Show]] — Conduit's human-interface architecture.
+- [[Lines, networking and replanning|Lines-networking-and-replanning]] — distributed execution without hiding transport truth.
+- [[ConduitOS and real machines|ConduitOS-and-real-machines]] — freestanding Conduit and hardware boundaries.
+- [[Evidence and proof|Evidence-and-proof]] — what different demonstrations actually establish.
+- [[Project status and roadmap|Project-status-and-roadmap]] — current capabilities and live verticals.
+- [[Glossary]] — one-page vocabulary map.
+
+## Exact reference
+
+The learning pages explain. The reference pages define.
+
+- [[Current language surface|Current-language-surface]]
+- [[Architecture reference|Architecture]]
+- [[Forms and flow reference|Forms-and-flow]]
+- [[Types and state reference|Types-and-state]]
+- [[Terminals and concurrency reference|Terminals-and-concurrency]]
+- [[Effects and realization reference|Effects-and-realization]]
+- [[Packs, hosts and bodies reference|Packs-hosts-and-bodies]]
+- [[Canon governance|Canon-governance]]
+
+Conduit is experimental software. The development tree is substantial, but emulator proof, browser proof, physical hardware proof, human enactment, and released-product proof are intentionally different claims.
