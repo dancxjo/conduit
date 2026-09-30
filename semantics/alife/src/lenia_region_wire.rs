@@ -1,6 +1,8 @@
 //! Fixed bounded Lenia region chunks carried as ordinary session payloads.
 
-use crate::{LeniaFieldId, LeniaRegion, LeniaRegionId};
+use crate::{
+    LeniaFieldId, LeniaRegion, LeniaRegionChunkKind, LeniaRegionChunkKindCode, LeniaRegionId,
+};
 
 pub const LENIA_REGION_CHUNK_MAX_BYTES: usize = 1_024;
 pub const LENIA_REGION_CHUNK_HEADER_BYTES: usize = 52;
@@ -9,13 +11,6 @@ pub const LENIA_REGION_CHUNK_MAX_CELLS: usize =
 
 const MAGIC: [u8; 4] = *b"LNR1";
 const VERSION: u8 = 1;
-
-#[derive(Debug, Copy, Clone, PartialEq, Eq)]
-#[repr(u8)]
-pub enum LeniaRegionChunkKind {
-    Work = 1,
-    Result = 2,
-}
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
 pub struct LeniaRegionChunkHeader {
@@ -112,7 +107,7 @@ impl LeniaRegionChunkHeader {
         output[..length].fill(0);
         output[0..4].copy_from_slice(&MAGIC);
         output[4] = VERSION;
-        output[5] = self.kind as u8;
+        output[5] = LeniaRegionChunkKindCode::encode(self.kind)[0];
         output[6] = self.region.id.0;
         output[8..24].copy_from_slice(&self.field_id.0);
         output[24..32].copy_from_slice(&self.generation.to_le_bytes());
@@ -234,11 +229,8 @@ impl<'a> LeniaRegionChunkView<'a> {
         if encoded[4] != VERSION || encoded[7] != 0 {
             return Err(LeniaRegionChunkRefusal::WrongVersion);
         }
-        let kind = match encoded[5] {
-            1 => LeniaRegionChunkKind::Work,
-            2 => LeniaRegionChunkKind::Result,
-            _ => return Err(LeniaRegionChunkRefusal::WrongKind),
-        };
+        let kind = LeniaRegionChunkKindCode::decode(&encoded[5..6])
+            .map_err(|_| LeniaRegionChunkRefusal::WrongKind)?;
         let header = LeniaRegionChunkHeader {
             kind,
             field_id: LeniaFieldId(read_array(encoded, 8)?),

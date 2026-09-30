@@ -3,7 +3,10 @@
 use alloc::{string::String, vec::Vec};
 use conduit_core::{semantic_digest, BoundedResourceRef};
 
-use crate::{ModelOperation, ModelSignature, ModelSignatureRefusal, MAXIMUM_MODEL_IDENTITY_BYTES};
+use crate::{
+    ModelCompatibilityRefusal, ModelEvidenceRefusal, ModelInvocationTerminal, ModelOperation,
+    ModelSignature, ModelSignatureRefusal, MAXIMUM_MODEL_IDENTITY_BYTES,
+};
 
 pub const MODEL_ARTIFACT_INFO_ID: &str = "model/artifact@1";
 pub const MODEL_CHECKPOINT_INFO_ID: &str = "model/checkpoint@1";
@@ -67,45 +70,6 @@ pub struct ModelInvocationEvidence {
     pub stochastic_seed: Option<u64>,
     pub admitted_work_units: u64,
     pub terminal: ModelInvocationTerminal,
-}
-
-#[derive(Debug, Copy, Clone, PartialEq, Eq)]
-pub enum ModelInvocationTerminal {
-    Produced,
-    Refused(ModelCompatibilityRefusal),
-    Failed,
-    Cancelled,
-    RuntimeLost,
-}
-
-#[derive(Debug, Copy, Clone, PartialEq, Eq)]
-pub enum ModelEvidenceRefusal {
-    MissingArtifactIdentity,
-    MissingCheckpointIdentity,
-    MissingSignatureIdentity,
-    InvalidRuntimeIdentity,
-    InvalidPrecisionProfile,
-    MissingInputIdentity,
-    TooManyInputIdentities,
-    WorkNotAdmitted,
-}
-
-#[derive(Debug, Copy, Clone, PartialEq, Eq)]
-pub enum ModelCompatibilityRefusal {
-    InvalidArtifact,
-    InvalidSignature,
-    SignatureMismatch,
-    InvalidState,
-    InvalidCheckpoint,
-    ArtifactMismatch,
-    ArchitectureMismatch,
-    StateSchemaMismatch,
-    CorruptContentIdentity,
-    InvalidRuntime,
-    UnsupportedFormat,
-    UnsupportedPrecision,
-    RuntimeLoadedDifferentArtifact,
-    RuntimeLoadedDifferentCheckpoint,
 }
 
 impl ModelArtifact {

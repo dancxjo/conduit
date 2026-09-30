@@ -4,9 +4,9 @@ use alloc::{string::String, vec::Vec};
 use conduit_core::{Quantity, TemporalInstant, TemporalScale};
 
 use crate::{
-    BoundedMeasurementWindow, FullWindowPolicyRepresentation, MeasurementPlotPoint,
-    MeasurementPlotSeries, MeasurementRange, MeasurementSample, MeasurementSummary,
-    MeasurementWindowProfile, MAXIMUM_MEASUREMENT_PLOT_POINTS, MAXIMUM_MEASUREMENT_WINDOW_SAMPLES,
+    BoundedMeasurementWindow, FullWindowPolicyCode, MeasurementPlotPoint, MeasurementPlotSeries,
+    MeasurementRange, MeasurementSample, MeasurementSummary, MeasurementWindowProfile,
+    MAXIMUM_MEASUREMENT_PLOT_POINTS, MAXIMUM_MEASUREMENT_WINDOW_SAMPLES,
 };
 
 pub const MAXIMUM_MEASUREMENT_WINDOW_BYTES: usize = 32_768;
@@ -30,7 +30,7 @@ pub fn encode_measurement_window(
     bytes.push(
         u8::try_from(profile.capacity).map_err(|_| MeasurementWireRefusal::CapacityExceeded)?,
     );
-    bytes.extend_from_slice(&FullWindowPolicyRepresentation::encode(profile.full_policy));
+    bytes.extend_from_slice(&FullWindowPolicyCode::encode(profile.full_policy));
     bytes.extend_from_slice(&profile.range.minimum.encode());
     bytes.extend_from_slice(&profile.range.maximum.encode());
     put_text(&mut bytes, &profile.clock_basis)?;
@@ -70,7 +70,7 @@ pub fn decode_measurement_window(
     if capacity == 0 || capacity > MAXIMUM_MEASUREMENT_WINDOW_SAMPLES {
         return Err(MeasurementWireRefusal::CapacityExceeded);
     }
-    let full_policy = FullWindowPolicyRepresentation::decode(&[input.u8()?])
+    let full_policy = FullWindowPolicyCode::decode(&[input.u8()?])
         .map_err(|_| MeasurementWireRefusal::Malformed)?;
     let minimum = input.quantity()?;
     let maximum = input.quantity()?;

@@ -2,6 +2,7 @@ use crate::{
     parse_syntax_document, Argument, BackStatement, BinaryOperator, ConstructionRole, CordStage,
     CstTokenKind, Expression, ExpressionProjection, ExpressionSyntax, FormCompletionPolicy,
     RuntimePortDirection, RuntimePortTemporal, TypeDefinitionSyntax, TypeExpressionSyntax,
+    TypeVariantPayloadSyntax,
 };
 use alloc::vec::Vec;
 
@@ -237,7 +238,10 @@ fn native_semantic_types_are_lossless_finite_syntax_not_rust_shapes() {
     assert_eq!(cases[0].tag.text, "note");
     assert_eq!(cases[1].tag.text, "rest");
     assert!(matches!(
-        &cases[0].fields[1].value_type,
+        &match &cases[0].payload {
+            TypeVariantPayloadSyntax::Record(fields) => &fields[1].value_type,
+            _ => panic!("expected record payload"),
+        },
         TypeExpressionSyntax::Sequence {
             minimum_items: 0,
             maximum_items: 16,
@@ -248,6 +252,22 @@ fn native_semantic_types_are_lossless_finite_syntax_not_rust_shapes() {
         document.forms[0].front.runtime_ports[0].value_type.text,
         "MusicEvent"
     );
+}
+
+#[test]
+fn native_variant_case_can_carry_a_type_directly() {
+    let document = parse_syntax_document(
+        "type Refusal =\n    unavailable\n\ntype Outcome =\n    completed\n    | refused Refusal\n",
+    );
+    assert!(document.diagnostics.is_empty());
+    let TypeDefinitionSyntax::Variant(cases) = &document.types[1].definition else {
+        panic!("expected variant syntax")
+    };
+    assert!(matches!(
+        &cases[1].payload,
+        TypeVariantPayloadSyntax::Type(TypeExpressionSyntax::Reference { value_type, .. })
+            if value_type.text == "Refusal"
+    ));
 }
 
 #[test]

@@ -12,7 +12,7 @@ pub struct SyntaxDocument {
     pub uses: Vec<UseDeclaration>,
     pub standard_glyphs: bool,
     pub types: Vec<TypeSyntax>,
-    pub representations: Vec<RepresentationSyntax>,
+    pub codes: Vec<CodeSyntax>,
     pub forms: Vec<FormSyntax>,
     pub constructions: Vec<ConstructionSyntax>,
     pub packages: Vec<PackageSyntax>,
@@ -22,7 +22,7 @@ pub struct SyntaxDocument {
 #[derive(Debug, Clone, Default, PartialEq, Eq)]
 pub(crate) struct SyntaxDefinitions {
     pub types: Vec<TypeSyntax>,
-    pub representations: Vec<RepresentationSyntax>,
+    pub codes: Vec<CodeSyntax>,
     pub forms: Vec<FormSyntax>,
     pub constructions: Vec<ConstructionSyntax>,
     pub packages: Vec<PackageSyntax>,
@@ -65,7 +65,7 @@ impl SyntaxDocument {
             uses,
             standard_glyphs,
             types: definitions.types,
-            representations: definitions.representations,
+            codes: definitions.codes,
             forms: definitions.forms,
             constructions: definitions.constructions,
             packages: definitions.packages,
@@ -74,26 +74,26 @@ impl SyntaxDocument {
     }
 }
 
-/// One named finite representation of a nominal semantic Type.
+/// One named finite code for carrying a nominal semantic Type.
 #[derive(Debug, Clone, PartialEq, Eq)]
-pub struct RepresentationSyntax {
+pub struct CodeSyntax {
     pub name: SpannedText,
     pub value_type: SpannedText,
-    pub storage: RepresentationStorageSyntax,
+    pub storage: CodeStorageSyntax,
     /// First iota discriminant. Defaults to zero.
     pub first_discriminant: u8,
     /// Empty means semantic variant order. Otherwise this is iota order.
-    pub mappings: Vec<RepresentationMappingSyntax>,
+    pub mappings: Vec<CodeMappingSyntax>,
     pub span: Span,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum RepresentationStorageSyntax {
+pub enum CodeStorageSyntax {
     U8,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
-pub struct RepresentationMappingSyntax {
+pub struct CodeMappingSyntax {
     pub variant: SpannedText,
     pub span: Span,
 }
@@ -123,8 +123,15 @@ pub struct TypeFieldSyntax {
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct TypeVariantCaseSyntax {
     pub tag: SpannedText,
-    pub fields: Vec<TypeFieldSyntax>,
+    pub payload: TypeVariantPayloadSyntax,
     pub span: Span,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum TypeVariantPayloadSyntax {
+    Unit,
+    Type(TypeExpressionSyntax),
+    Record(Vec<TypeFieldSyntax>),
 }
 
 /// Finite structural representation used inside one nominal Type.

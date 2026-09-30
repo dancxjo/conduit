@@ -4,7 +4,7 @@ use alloc::string::String;
 use conduit_core::{semantic_digest, BoundedResourceRef, TemporalInstant, TemporalScale};
 
 use crate::{
-    BoundedHistoricalTimeline, HistoricalEntryOrigin, HistoricalEntryOriginRepresentation,
+    BoundedHistoricalTimeline, HistoricalEntryOrigin, HistoricalEntryOriginCode,
     HistoricalTimelineEntry, HistoricalTimelineRefusal, MAXIMUM_HISTORICAL_ENTRY_IDENTITY_BYTES,
 };
 
@@ -112,7 +112,7 @@ pub fn encode_historical_timeline_command_into(
             writer.text(&event_time.clock_basis)?;
             writer.u64(event_time.resolution_ticks)?;
             writer.u64(event_time.uncertainty_ticks)?;
-            writer.u8(HistoricalEntryOriginRepresentation::encode(*origin)[0])?;
+            writer.u8(HistoricalEntryOriginCode::encode(*origin)[0])?;
             writer.length_prefixed(&resource)?;
         }
         HistoricalTimelineCommand::Remove { sequence } => {
@@ -160,7 +160,7 @@ pub fn decode_historical_timeline_command(
             event_time
                 .validate()
                 .map_err(|_| HistoricalTimelineCommandCodecRefusal::InvalidTime)?;
-            let origin = HistoricalEntryOriginRepresentation::decode(&[cursor.u8()?])
+            let origin = HistoricalEntryOriginCode::decode(&[cursor.u8()?])
                 .map_err(|_| HistoricalTimelineCommandCodecRefusal::InvalidCommand)?;
             let value = BoundedResourceRef::decode(cursor.length_prefixed()?)
                 .map_err(|_| HistoricalTimelineCommandCodecRefusal::InvalidResource)?;

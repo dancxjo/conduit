@@ -8,8 +8,8 @@ use conduit_core::{
 use core::fmt::Write;
 
 use super::generate::{
-    primitive_rust_type, rust_pascal_identifier, rust_snake_identifier, rust_type, unit_type,
-    RustBindingGenerationError,
+    copy_type, primitive_rust_type, rust_pascal_identifier, rust_snake_identifier, rust_type,
+    unit_type, RustBindingGenerationError,
 };
 
 pub(super) fn emit_value_impl(
@@ -204,6 +204,12 @@ fn emit_variant_constructors(
     names: &BTreeMap<String, String>,
     contracts: &[NativeTypeValueContract],
 ) -> Result<(), RustBindingGenerationError> {
+    let copy_payloads = cases.iter().all(|case| {
+        !matches!(
+            case.payload_type().shape(),
+            StructuredInfoTypeShape::Record { .. }
+        ) && copy_type(case.payload_type())
+    });
     writeln!(out, "impl {rust_name} {{").expect("String writing is infallible");
     for case in cases {
         let function = rust_snake_identifier(case.tag())?;
@@ -212,10 +218,18 @@ fn emit_variant_constructors(
             writeln!(out, "    pub fn {function}() -> Self {{ Self::{variant} }}")
                 .expect("String writing is infallible");
         } else {
-            let payload = format!("{rust_name}{variant}");
             let StructuredInfoTypeShape::Record { fields, .. } = case.payload_type().shape() else {
-                return Err(RustBindingGenerationError::InvalidSemanticType);
+                let payload_type = rust_type(case.payload_type(), names)?;
+                let candidate = if copy_payloads {
+                    "candidate"
+                } else {
+                    "candidate.clone()"
+                };
+                writeln!(out, "    pub fn {function}(payload: {payload_type}) -> Result<Self, NativeBindingRefusal> {{ let candidate = Self::{variant}(payload); let structured = {candidate}.into_structured()?; conduit_form::rust_binding::validate_native_contracts(&structured, &Self::value_contracts())?; Ok(candidate) }}")
+                    .expect("String writing is infallible");
+                continue;
             };
+            let payload = format!("{rust_name}{variant}");
             let contract_prefix = format!("|{}.", case.tag());
             let is_unconstrained = contracts.iter().all(|contract| {
                 !contract.representation_path.is_empty()

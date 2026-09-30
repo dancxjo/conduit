@@ -1,5 +1,5 @@
 use crate::prelude::*;
-use crate::{CheckedNativeType, CheckedRepresentation};
+use crate::{CheckedCode, CheckedNativeType};
 use alloc::collections::{BTreeMap, BTreeSet};
 use conduit_core::{PrimitiveInfoKind, StructuredInfoType, StructuredInfoTypeShape};
 use core::fmt::Write;
@@ -8,10 +8,11 @@ use core::fmt::Write;
 pub struct RustBindingOptions {
     /// A Rust-only spelling prefix. It never participates in semantic identity.
     pub type_prefix: String,
-    /// Adds representation-only Serde derives to payload-free variants.
+    /// Adds code-only Serde derives to variants whose generated Rust payloads
+    /// also support Serde.
     /// This never participates in semantic identity and requires the consuming
     /// crate to provide `serde` with derive support.
-    pub derive_serde_for_unit_variants: bool,
+    pub derive_serde_for_variants: bool,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -33,12 +34,12 @@ pub fn generate_rust_bindings(
     types: &[CheckedNativeType],
     options: &RustBindingOptions,
 ) -> Result<RustBindingModule, RustBindingGenerationError> {
-    generate_rust_bindings_with_representations(types, &[], options)
+    generate_rust_bindings_with_codes(types, &[], options)
 }
 
-pub fn generate_rust_bindings_with_representations(
+pub fn generate_rust_bindings_with_codes(
     types: &[CheckedNativeType],
-    representations: &[CheckedRepresentation],
+    codes: &[CheckedCode],
     options: &RustBindingOptions,
 ) -> Result<RustBindingModule, RustBindingGenerationError> {
     if types.is_empty() {
@@ -74,7 +75,7 @@ pub fn generate_rust_bindings_with_representations(
          // Rust names and layout are bindings, never semantic identity.\n\
          extern crate alloc;\n\
          #[allow(unused_imports)]\n\
-         use conduit_form::rust_binding::{BoundedBytes, BoundedSequence, NativeBindingRefusal, NativeRepresentationRefusal, NativeRustBinding};\n\
+         use conduit_form::rust_binding::{BoundedBytes, BoundedSequence, NativeBindingRefusal, NativeCodeRefusal, NativeRustBinding};\n\
          use conduit_form::rust_binding::semantic_core as conduit_core;\n\
          #[allow(unused_imports)]\n\
          use conduit_core::{StructuredFieldValue, StructuredInfoType, StructuredInfoValue, StructuredInfoValueShape};\n\
@@ -90,53 +91,53 @@ pub fn generate_rust_bindings_with_representations(
             options,
         )?;
     }
-    emit_representations(&mut source, representations, &names)?;
+    emit_codes(&mut source, codes, &names)?;
     Ok(RustBindingModule {
         source,
         semantic_type_bytes,
     })
 }
 
-fn emit_representations(
+fn emit_codes(
     out: &mut String,
-    representations: &[CheckedRepresentation],
+    codes: &[CheckedCode],
     names: &BTreeMap<String, String>,
 ) -> Result<(), RustBindingGenerationError> {
     let mut codec_names = BTreeSet::new();
-    for representation in representations {
+    for code in codes {
         let rust_type = names
-            .get(representation.value_type.as_str())
+            .get(code.value_type.as_str())
             .ok_or(RustBindingGenerationError::InvalidSemanticType)?;
-        let codec = format!("{rust_type}Representation");
+        let codec = format!("{rust_type}Code");
         if !codec_names.insert(codec.clone()) {
             return Err(RustBindingGenerationError::DuplicateRustIdentifier(codec));
         }
         writeln!(out, "pub struct {codec};").expect("String writing is infallible");
         writeln!(out, "impl {codec} {{").expect("String writing is infallible");
-        writeln!(out, "    pub const NAME: &str = {:?};", representation.name)
+        writeln!(out, "    pub const NAME: &str = {:?};", code.name)
             .expect("String writing is infallible");
         writeln!(
             out,
             "    pub const IDENTITY: &str = {:?};",
-            representation.compatibility_id
+            code.compatibility_id
         )
         .expect("String writing is infallible");
         writeln!(
             out,
             "    pub const EXACT_BYTES: usize = {};",
-            representation.exact_bytes
+            code.exact_bytes
         )
         .expect("String writing is infallible");
         writeln!(
             out,
             "    pub const MAXIMUM_BYTES: usize = {};",
-            representation.maximum_bytes
+            code.maximum_bytes
         )
         .expect("String writing is infallible");
         writeln!(
             out,
             "    pub const MAXIMUM_DECODE_STEPS: usize = {};",
-            representation.maximum_decode_steps
+            code.maximum_decode_steps
         )
         .expect("String writing is infallible");
         writeln!(
@@ -145,7 +146,7 @@ fn emit_representations(
         )
         .expect("String writing is infallible");
         writeln!(out, "        [match value {{").expect("String writing is infallible");
-        for mapping in &representation.mappings {
+        for mapping in &code.mappings {
             writeln!(
                 out,
                 "            {rust_type}::{} => {},",
@@ -156,12 +157,15 @@ fn emit_representations(
         }
         writeln!(out, "        }}]").expect("String writing is infallible");
         writeln!(out, "    }}").expect("String writing is infallible");
-        writeln!(out, "    pub fn decode(encoded: &[u8]) -> Result<{rust_type}, NativeRepresentationRefusal> {{")
-            .expect("String writing is infallible");
-        writeln!(out, "        let [tag] = encoded else {{ return Err(NativeRepresentationRefusal::WrongLength {{ actual: encoded.len() }}); }};")
+        writeln!(
+            out,
+            "    pub fn decode(encoded: &[u8]) -> Result<{rust_type}, NativeCodeRefusal> {{"
+        )
+        .expect("String writing is infallible");
+        writeln!(out, "        let [tag] = encoded else {{ return Err(NativeCodeRefusal::WrongLength {{ actual: encoded.len() }}); }};")
             .expect("String writing is infallible");
         writeln!(out, "        match *tag {{").expect("String writing is infallible");
-        for mapping in &representation.mappings {
+        for mapping in &code.mappings {
             writeln!(
                 out,
                 "            {} => Ok({rust_type}::{}),",
@@ -172,7 +176,7 @@ fn emit_representations(
         }
         writeln!(
             out,
-            "            actual => Err(NativeRepresentationRefusal::InvalidTag {{ actual }}),"
+            "            actual => Err(NativeCodeRefusal::InvalidTag {{ actual }}),"
         )
         .expect("String writing is infallible");
         writeln!(out, "        }}").expect("String writing is infallible");
@@ -237,16 +241,36 @@ fn emit_type(
         StructuredInfoTypeShape::Variant { cases, .. } => {
             let unit_only = cases.iter().all(|case| unit_type(case.payload_type()));
             for case in cases {
-                if unit_type(case.payload_type()) {
-                    continue;
+                if matches!(
+                    case.payload_type().shape(),
+                    StructuredInfoTypeShape::Record { .. }
+                ) {
+                    let payload = format!("{rust_name}{}", rust_pascal_identifier(case.tag())?);
+                    emit_payload_struct(
+                        out,
+                        &payload,
+                        case.payload_type(),
+                        names,
+                        options.derive_serde_for_variants,
+                    )?;
                 }
-                let payload = format!("{rust_name}{}", rust_pascal_identifier(case.tag())?);
-                emit_payload_struct(out, &payload, case.payload_type(), names)?;
             }
-            let derives = if unit_only && options.derive_serde_for_unit_variants {
+            let copy_payloads = cases.iter().all(|case| {
+                !matches!(
+                    case.payload_type().shape(),
+                    StructuredInfoTypeShape::Record { .. }
+                ) && copy_type(case.payload_type())
+            });
+            let derives = if unit_only && options.derive_serde_for_variants {
                 "Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, serde::Serialize, serde::Deserialize"
             } else if unit_only {
                 "Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash"
+            } else if copy_payloads && options.derive_serde_for_variants {
+                "Debug, Clone, Copy, PartialEq, Eq, serde::Serialize, serde::Deserialize"
+            } else if copy_payloads {
+                "Debug, Clone, Copy, PartialEq, Eq"
+            } else if options.derive_serde_for_variants {
+                "Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize"
             } else {
                 "Debug, Clone, PartialEq, Eq"
             };
@@ -256,9 +280,19 @@ fn emit_type(
                 let variant = rust_pascal_identifier(case.tag())?;
                 if unit_type(case.payload_type()) {
                     writeln!(out, "    {variant},").expect("String writing is infallible");
-                } else {
+                } else if matches!(
+                    case.payload_type().shape(),
+                    StructuredInfoTypeShape::Record { .. }
+                ) {
                     writeln!(out, "    {variant}({rust_name}{variant}),")
                         .expect("String writing is infallible");
+                } else {
+                    writeln!(
+                        out,
+                        "    {variant}({}),",
+                        rust_type(case.payload_type(), names)?
+                    )
+                    .expect("String writing is infallible");
                 }
             }
             writeln!(out, "}}\n").expect("String writing is infallible");
@@ -275,15 +309,18 @@ fn emit_payload_struct(
     name: &str,
     value_type: &StructuredInfoType,
     names: &BTreeMap<String, String>,
+    derive_serde: bool,
 ) -> Result<(), RustBindingGenerationError> {
     let StructuredInfoTypeShape::Record { fields, .. } = value_type.shape() else {
         return Err(RustBindingGenerationError::InvalidSemanticType);
     };
-    writeln!(
-        out,
-        "#[derive(Debug, Clone, PartialEq, Eq)]\npub struct {name} {{"
-    )
-    .expect("String writing is infallible");
+    let derives = if derive_serde {
+        "Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize"
+    } else {
+        "Debug, Clone, PartialEq, Eq"
+    };
+    writeln!(out, "#[derive({derives})]\npub struct {name} {{")
+        .expect("String writing is infallible");
     for field in fields {
         writeln!(
             out,
@@ -305,6 +342,25 @@ fn emit_payload_struct(
     }
     writeln!(out, "}}\n").expect("String writing is infallible");
     Ok(())
+}
+
+pub(super) fn copy_type(value_type: &StructuredInfoType) -> bool {
+    match value_type.shape() {
+        StructuredInfoTypeShape::Leaf(kind) => !matches!(
+            conduit_core::primitive_info_kind(kind.as_str()),
+            Some(PrimitiveInfoKind::Text | PrimitiveInfoKind::Bytes) | None
+        ),
+        StructuredInfoTypeShape::Nominal { representation, .. } => copy_type(representation),
+        StructuredInfoTypeShape::Record { fields, .. } => {
+            fields.iter().all(|field| copy_type(field.value_type()))
+        }
+        StructuredInfoTypeShape::Variant { cases, .. } => {
+            cases.iter().all(|case| copy_type(case.payload_type()))
+        }
+        StructuredInfoTypeShape::Sequence { .. } | StructuredInfoTypeShape::Collection { .. } => {
+            false
+        }
+    }
 }
 
 fn emit_semantic_type_impl(out: &mut String, rust_name: &str, constant: &str) {

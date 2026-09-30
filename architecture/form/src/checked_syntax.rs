@@ -368,7 +368,7 @@ pub struct CheckedCanonicalForm {
 pub struct CheckedSyntaxDocument {
     pub source_document_id: SourceDocumentId,
     pub native_types: Vec<CheckedNativeType>,
-    pub representations: Vec<CheckedRepresentation>,
+    pub codes: Vec<CheckedCode>,
     pub forms: Vec<CheckedCanonicalForm>,
     /// Authored shorthand correlated with the ordinary meaning established by
     /// this exact check. This is source inspection, not another expansion or
@@ -377,33 +377,33 @@ pub struct CheckedSyntaxDocument {
     pub(crate) structured_types: BTreeMap<conduit_core::KindId, conduit_core::StructuredInfoType>,
 }
 
-/// One checked compatibility representation, distinct from semantic Type identity.
+/// One checked compatibility code, distinct from semantic Type identity.
 #[derive(Debug, Clone, PartialEq, Eq)]
-pub struct CheckedRepresentation {
+pub struct CheckedCode {
     pub name: String,
     pub compatibility_id: String,
     pub value_type_name: String,
     pub value_type: conduit_core::KindId,
-    pub storage: CheckedRepresentationStorage,
+    pub storage: CheckedCodeStorage,
     /// Exact iota order, either derived from Type order or explicitly authored.
-    pub mappings: Vec<CheckedRepresentationMapping>,
-    pub invalid_refusal: CheckedRepresentationRefusal,
+    pub mappings: Vec<CheckedCodeMapping>,
+    pub invalid_refusal: CheckedCodeRefusal,
     pub exact_bytes: u16,
     pub maximum_bytes: u16,
     pub maximum_decode_steps: u16,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum CheckedRepresentationStorage {
+pub enum CheckedCodeStorage {
     U8,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum CheckedRepresentationRefusal {
+pub enum CheckedCodeRefusal {
     InvalidTag,
 }
 
-impl CheckedRepresentationRefusal {
+impl CheckedCodeRefusal {
     pub const fn as_str(self) -> &'static str {
         match self {
             Self::InvalidTag => "invalid_tag",
@@ -412,7 +412,7 @@ impl CheckedRepresentationRefusal {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
-pub struct CheckedRepresentationMapping {
+pub struct CheckedCodeMapping {
     pub variant: String,
     pub discriminant: u8,
 }

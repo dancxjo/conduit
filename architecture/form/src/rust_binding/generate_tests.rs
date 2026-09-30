@@ -40,6 +40,13 @@ type Timing =
         uncertainty: Duration
     }
     | exact
+
+type Refusal =
+    unavailable
+
+type Outcome =
+    completed
+    | refused Refusal
 "#;
     crate::check_syntax_document(
         &crate::parse_syntax_document(source),
@@ -50,42 +57,38 @@ type Timing =
 }
 
 #[test]
-fn checked_representation_generates_the_only_rust_discriminant_table() {
-    let source =
-        "type Outcome =\n    ready\n    | refused\n\nrepresentation test/outcome = Outcome as u8\n";
+fn checked_code_generates_the_only_rust_discriminant_table() {
+    let source = "type Outcome =\n    ready\n    | refused\n\ncode test/outcome = Outcome as u8\n";
     let checked = crate::check_syntax_document(
         &crate::parse_syntax_document(source),
         &crate::StartupCatalog::new(),
     )
     .unwrap();
-    let generated = generate_rust_bindings_with_representations(
+    let generated = generate_rust_bindings_with_codes(
         &checked.native_types,
-        &checked.representations,
+        &checked.codes,
         &RustBindingOptions::default(),
     )
     .unwrap();
-    assert!(generated
-        .source
-        .contains("pub struct OutcomeRepresentation;"));
+    assert!(generated.source.contains("pub struct OutcomeCode;"));
     assert!(generated.source.contains("Outcome::Ready => 0"));
     assert!(generated.source.contains("1 => Ok(Outcome::Refused)"));
     assert!(generated.source.contains("MAXIMUM_DECODE_STEPS: usize = 3"));
-    assert!(generated
-        .source
-        .contains("NativeRepresentationRefusal::InvalidTag"));
+    assert!(generated.source.contains("NativeCodeRefusal::InvalidTag"));
 }
 
 #[test]
-fn generated_representation_preserves_explicit_iota_origin() {
-    let source = "type Outcome =\n    ready\n    | refused\n\nrepresentation test/outcome = Outcome as u8 from 1\n";
+fn generated_code_preserves_explicit_iota_origin() {
+    let source =
+        "type Outcome =\n    ready\n    | refused\n\ncode test/outcome = Outcome as u8 from 1\n";
     let checked = crate::check_syntax_document(
         &crate::parse_syntax_document(source),
         &crate::StartupCatalog::new(),
     )
     .unwrap();
-    let generated = generate_rust_bindings_with_representations(
+    let generated = generate_rust_bindings_with_codes(
         &checked.native_types,
-        &checked.representations,
+        &checked.codes,
         &RustBindingOptions::default(),
     )
     .unwrap();
@@ -129,7 +132,7 @@ fn generation_is_deterministic_and_keeps_rust_spelling_out_of_identity() {
     let serde_unit_variants = generate_rust_bindings(
         &types,
         &RustBindingOptions {
-            derive_serde_for_unit_variants: true,
+            derive_serde_for_variants: true,
             ..RustBindingOptions::default()
         },
     )
@@ -160,6 +163,14 @@ fn generation_is_deterministic_and_keeps_rust_spelling_out_of_identity() {
     assert!(plain.source.contains(
         "pub fn estimated(uncertainty: conduit_core::Quantity) -> Result<Self, NativeBindingRefusal> { let candidate = Self::Estimated"
     ));
+    assert!(plain.source.contains("Refused(Refusal),"));
+    assert!(plain
+        .source
+        .contains("#[derive(Debug, Clone, Copy, PartialEq, Eq)]\npub enum Outcome"));
+    assert!(plain
+        .source
+        .contains("pub fn refused(payload: Refusal) -> Result<Self, NativeBindingRefusal>"));
+    assert!(!plain.source.contains("struct OutcomeRefused"));
     assert!(plain.source.contains(
         "#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]\npub enum Direction"
     ));
@@ -167,6 +178,9 @@ fn generation_is_deterministic_and_keeps_rust_spelling_out_of_identity() {
     assert!(serde_unit_variants
         .source
         .contains("Hash, serde::Serialize, serde::Deserialize)]\npub enum Direction"));
+    assert!(serde_unit_variants.source.contains(
+        "#[derive(Debug, Clone, Copy, PartialEq, Eq, serde::Serialize, serde::Deserialize)]\npub enum Outcome"
+    ));
     assert!(!serde_unit_variants
         .source
         .contains("serde::Serialize)]\npub struct Position"));

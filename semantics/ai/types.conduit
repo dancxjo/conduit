@@ -130,9 +130,13 @@ type ModelOperation =
     | evaluate
     | train
 
+code ai/model-operation = ModelOperation as u8
+
 type ModelPortPresence =
     required
     | optional
+
+code ai/model-port-presence = ModelPortPresence as u8
 
 type SimilarityMetric =
     cosine_similarity
@@ -260,7 +264,7 @@ type RetrievalMechanism =
     | temporal
     | domain_exact
 
-representation ai/retrieval-mechanism = RetrievalMechanism as u8
+code ai/retrieval-mechanism = RetrievalMechanism as u8
 
 type RerankingProofClass =
     deterministic_conformance
@@ -331,6 +335,38 @@ type ModelResultInvalidity =
     | terminal_payload_present
     | produced_payload_missing
 
+type ModelResultDisposition =
+    produced
+    | truncated
+    | refused ModelRefusal
+    | failed ModelFailure
+    | cancelled
+    | provider_lost
+
+type GroundedAnswerRefusal =
+    empty_identity
+    | identity_too_large
+    | invalid_bound
+    | invalid_retrieval_intent
+    | invalid_context
+    | duplicate_context_item
+    | context_accounting_mismatch
+    | invalid_model_result ModelResultInvalidity
+    | model_request_mismatch
+    | model_did_not_produce ModelResultDisposition
+    | output_bound_exceeded
+    | work_bound_exceeded
+    | empty_claims
+    | claim_limit_exceeded
+    | citation_limit_exceeded
+    | invalid_answer_span
+    | citation_not_in_context
+    | duplicate_citation
+    | empty_citation_set
+    | empty_limitation
+    | limitation_too_large
+    | arithmetic_overflow
+
 type StructuredResultInvalidity =
     empty
     | too_many_members
@@ -378,3 +414,459 @@ type VectorSearchExecutionProofClass =
 
 type VectorSearchProofClass =
     deterministic_exact_oracle
+
+type ObjectiveParticipation =
+    optimize
+    | observe_only
+
+type BatchOrder =
+    stable
+    | shuffled
+
+type ModelComputeOperation =
+    inference
+    | encode
+    | decode
+    | sample
+    | score
+    | train_step
+    | evaluate
+    | checkpoint
+    | integrate_dynamics
+    | relation_query
+
+type ModelComputeLifecycle =
+    discovered
+    | loading
+    | warming
+    | ready
+    | active ModelComputeOperation
+    | unloading
+    | lost
+    | failed
+    | shutdown
+
+type PortableComputeClass =
+    general_cpu
+    | vector_compute
+    | accelerator
+
+type VectorIndexHealth =
+    ready
+    | unavailable
+
+type VectorIndexMaintenanceKind =
+    rebuild
+    | compaction
+
+type ModelComputeRefusal =
+    invalid_offer
+    | missing_identity
+    | unsupported_operation
+    | unsupported_format
+    | unsupported_element
+    | unsupported_shape
+    | unsupported_compute_class
+    | unsupported_solver
+    | unsupported_determinism
+    | unsupported_checkpoint
+    | resource_bound_exceeded
+    | queue_full
+    | cancellation_unsupported
+    | invalid_lifecycle_transition
+    | provider_unavailable
+
+type ModelSignatureRefusal =
+    invalid_identity
+    | invalid_compatibility_version
+    | missing_operation
+    | too_many_operations
+    | duplicate_operation
+    | missing_port
+    | too_many_ports
+    | duplicate_port
+    | invalid_tensor_constraint
+    | invalid_signal_constraint
+
+type ModelEvidenceRefusal =
+    missing_artifact_identity
+    | missing_checkpoint_identity
+    | missing_signature_identity
+    | invalid_runtime_identity
+    | invalid_precision_profile
+    | missing_input_identity
+    | too_many_input_identities
+    | work_not_admitted
+
+type ModelCompatibilityRefusal =
+    invalid_artifact
+    | invalid_signature
+    | signature_mismatch
+    | invalid_state
+    | invalid_checkpoint
+    | artifact_mismatch
+    | architecture_mismatch
+    | state_schema_mismatch
+    | corrupt_content_identity
+    | invalid_runtime
+    | unsupported_format
+    | unsupported_precision
+    | runtime_loaded_different_artifact
+    | runtime_loaded_different_checkpoint
+
+type ModelInvocationTerminal =
+    produced
+    | refused ModelCompatibilityRefusal
+    | failed
+    | cancelled
+    | runtime_lost
+
+type ModelTextRefusal =
+    envelope_bound_exceeded
+    | malformed_envelope
+    | non_canonical_envelope
+    | invalid_generation_result
+    | not_produced
+    | invalid_utf8
+    | empty_text
+    | text_bound_exceeded
+
+type LocalModelKindProfile =
+    generate
+    | stream_generate
+    | generate_flow
+    | classify_finite_labels
+    | extract_validated_info
+    | embed_finite_vector
+    | interpret_sign_evidence
+    | present_semantic_front
+
+type LocalModelCachePolicy =
+    one_loaded_model_until_shutdown
+
+type LocalModelLifecycleState =
+    discovered
+    | loading
+    | warming
+    | ready
+    | inference
+    | unloading
+    | shutdown
+    | lost
+
+type LocalModelRefusal =
+    not_initialized
+    | unsupported_kind
+    | unsupported_profile
+    | input_overflow
+    | context_overflow
+    | output_overflow
+    | queue_full
+    | memory_ceiling
+
+type LocalModelFailure =
+    load
+    | warmup
+    | malformed_request
+    | malformed_result
+    | inference
+    | resource_exhausted
+    | shutdown
+
+type LocalModelTerminal =
+    produced
+    | truncated
+    | refused LocalModelRefusal
+    | failed LocalModelFailure
+    | cancelled
+    | provider_lost
+
+type LocalModelOfferInvalidity =
+    missing_identity
+    | identity_overflow
+    | invalid_limits
+    | model_exceeds_memory_ceiling
+    | invalid_concurrency
+    | invalid_queue
+    | missing_profile
+    | duplicate_profile
+    | not_ready
+    | deterministic_claim
+
+type TemporalEvidenceSelectionRefusal =
+    empty_candidates
+    | too_many_candidates
+    | empty_identity
+    | identity_too_large
+    | duplicate_identity
+    | invalid_reference
+    | invalid_intent
+    | invalid_provenance
+    | reference_mismatch
+    | missing_source_time
+
+type TemporalInterpretationRefusal =
+    invalid_request
+    | invalid_model_envelope
+    | invalid_proposal
+    | malformed_duration
+    | over_broad_recurrence
+    | unknown_participant
+    | unresolved_ambiguity
+    | hallucinated_existing_event
+    | reference_resolution_mismatch
+    | missing_civil_resolution
+    | ambiguous_civil_time
+    | nonexistent_civil_time
+    | arithmetic_overflow
+
+type InterpretationInvalidity =
+    empty_evidence
+    | too_much_evidence
+    | empty_sign_identity
+    | duplicate_sign_identity
+    | text_bound_exceeded
+    | missing_hypothesis
+    | too_many_implications
+    | invalid_confidence
+    | fabricated_evidence_reference
+    | resolved_evidence_marked_unresolved
+    | invalid_temporal_context
+
+type ContextSelectionRefusal =
+    empty_identity
+    | identity_too_large
+    | empty_candidates
+    | candidate_limit_exceeded
+    | invalid_bound
+    | invalid_candidate
+    | duplicate_candidate
+    | arithmetic_overflow
+    | invalid_temporal_evidence
+    | temporal_evidence_not_contributed
+    | missing_temporal_evidence
+    | missing_redundancy_group
+    | empty_token_cost
+    | no_selected_context
+
+type RerankingRefusal =
+    empty_identity
+    | identity_too_large
+    | empty_candidates
+    | candidate_limit_exceeded
+    | invalid_bound
+    | invalid_proof_class
+    | invalid_candidate
+    | duplicate_candidate
+    | missing_observation
+    | duplicate_observation
+    | unexpected_observation
+    | zero_observation_work
+    | work_bound_exceeded
+    | arithmetic_overflow
+
+type HouseContextRefusal =
+    empty_utterance
+    | utterance_bound_exceeded
+    | empty_context
+    | context_item_limit_exceeded
+    | context_byte_limit_exceeded
+    | missing_identity
+    | identity_bound_exceeded
+    | empty_value
+    | duplicate_item
+    | invalid_output_bound
+
+type GeneratedTextFlowRefusal =
+    wrong_sequence
+    | empty_chunk
+    | chunk_overflow
+    | chunk_count_overflow
+    | output_overflow
+    | already_terminal
+
+type DynamicsRefusal =
+    missing_identity
+    | invalid_time
+    | invalid_sampling
+    | unsupported_stochastic_profile
+    | invalid_accuracy
+    | invalid_resources
+    | invalid_state
+    | stale_state
+    | invalid_context
+    | resource_bound_exceeded
+    | invalid_trajectory
+    | invalid_final_state
+    | work_bound_exceeded
+    | invalid_realization
+
+type RelationQueryMode =
+    infer_posterior
+    | sample_conditional
+    | reconstruct
+    | encode_latent
+    | decode_generate
+    | log_probability
+
+type RelationRefusal =
+    missing_identity
+    | invalid_signature
+    | too_many_variables
+    | duplicate_variable
+    | invalid_pattern
+    | too_many_patterns
+    | duplicate_pattern
+    | artifact_mismatch
+    | unknown_variable
+    | duplicate_evidence
+    | duplicate_target
+    | unsupported_query
+    | invalid_value
+    | shape_mismatch
+    | determinism_mismatch
+    | invalid_randomness
+    | work_bound_exceeded
+    | output_bound_exceeded
+    | invalid_result
+    | invalid_realization
+
+type TrainingRefusal =
+    invalid_identity
+    | invalid_artifact
+    | invalid_session
+    | invalid_objective
+    | too_many_objectives
+    | no_optimization_objective
+    | invalid_resource_envelope
+    | invalid_policy
+    | invalid_split
+    | invalid_batch
+    | batch_bound_exceeded
+    | missing_required_modality
+    | unexpected_seed
+    | step_bound_exceeded
+    | stale_state
+    | invalid_candidate
+    | work_bound_exceeded
+    | invalid_metric
+    | duplicate_metric
+    | invalid_realization
+    | checkpoint_bound_exceeded
+    | checkpoint_not_scheduled
+    | evaluation_not_scheduled
+    | invalid_lifecycle_transition
+
+type VectorRefusal =
+    empty_identity
+    | identity_too_large
+    | zero_dimensions
+    | dimension_limit_exceeded
+    | no_compatible_metric
+    | invalid_embedding
+    | normalization_mismatch
+    | profile_identity_mismatch
+    | semantic_space_mismatch
+    | model_mismatch
+    | provider_mismatch
+    | dimension_mismatch
+    | metric_not_compatible
+    | zero_vector
+    | non_finite_score
+    | top_k_zero
+    | top_k_too_large
+    | too_many_metadata
+    | too_many_filters
+    | invalid_metadata
+    | duplicate_metadata
+    | threshold_metric_mismatch
+    | invalid_threshold
+    | threshold_not_met
+    | invalid_temporal_intent
+    | invalid_temporal_provenance
+    | rank_zero
+    | rank_exceeds_top_k
+
+type VectorIndexResourceRefusal =
+    invalid_identity
+    | invalid_embedding_profile
+    | invalid_resource_class
+    | invalid_bounds
+    | wrong_index
+    | unknown_authority
+    | stale_generation
+    | generation_exhausted
+    | resource_unavailable
+    | query_not_authorized
+    | insert_not_authorized
+    | upsert_not_authorized
+    | delete_not_authorized
+    | maintenance_not_authorized
+    | resource_busy
+    | wrong_maintenance_operation
+    | source_set_mismatch
+    | source_already_present
+    | source_not_present
+    | item_limit_exceeded
+    | storage_limit_exceeded
+    | storage_accounting_overflow
+    | query_work_limit_exceeded
+    | result_limit_exceeded
+    | query_concurrency_exceeded
+    | invalid_resource_binding
+
+type ExactVectorSearchRefusal =
+    vector VectorRefusal
+    | resource VectorIndexResourceRefusal
+    | temporal TemporalEvidenceSelectionRefusal
+    | too_many_candidates
+    | index_membership_mismatch
+    | work_accounting_overflow
+    | temporal_provenance_required
+    | earlier_history_required
+    | temporal_boundary_unavailable
+
+type RelationTerminal =
+    cancelled
+    | resource_exhausted
+    | provider_lost
+    | failed
+
+type TrainStepFailure =
+    cancelled
+    | resource_exhausted
+    | provider_lost
+    | failed
+
+type IntegrationTerminal =
+    work_limit_exhausted
+    | cancelled
+    | discontinuity
+    | provider_lost
+    | failed
+
+type EmbodimentStage =
+    perception_only
+    | expressive
+    | authorized_effect
+
+type RerankScore =
+    hybrid_fusion U64
+    | model_derived I64
+
+type MechanismScore =
+    similarity_micros I64
+    | lexical_score U32
+    | metadata_match
+    | temporal_boundary
+    | exact_match
+
+type CheckpointPolicy =
+    none
+    | every_steps U64
+    | at_completion
+
+type EvaluationPolicy =
+    none
+    | every_steps U64
+    | at_completion

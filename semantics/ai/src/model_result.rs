@@ -2,22 +2,12 @@ use alloc::{string::String, vec::Vec};
 use serde::{Deserialize, Serialize};
 
 use crate::{
-    LlmDeterminismProfile, LlmSemanticContract, LlmTerminalOutcome, ModelFailure, ModelRefusal,
+    LlmDeterminismProfile, LlmSemanticContract, LlmTerminalOutcome, ModelResultDisposition,
     ModelResultInvalidity, ModelResultProvenance,
 };
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 pub struct ConfidencePermille(pub u16);
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
-pub enum ModelResultDisposition {
-    Produced,
-    Truncated,
-    Refused(ModelRefusal),
-    Failed(ModelFailure),
-    Cancelled,
-    ProviderLost,
-}
 
 impl ModelResultDisposition {
     pub const fn terminal_outcome(self) -> LlmTerminalOutcome {

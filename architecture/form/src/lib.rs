@@ -23,6 +23,7 @@ use sha2::{Digest, Sha256};
 mod back_catalog;
 mod canonical_expansion;
 mod checked_syntax;
+mod code;
 mod diagnostic;
 mod ecmascript_binding;
 mod expression_check;
@@ -46,7 +47,6 @@ mod package_resolution;
 #[cfg(test)]
 mod package_resolution_tests;
 mod pure_expression;
-mod representation;
 pub mod rust_binding;
 mod structured_expression;
 mod structured_selector;

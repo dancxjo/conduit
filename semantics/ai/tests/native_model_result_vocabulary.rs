@@ -1,6 +1,6 @@
 use conduit_ai::{
-    InterpretationDisposition, InterpretationProvenance, ModelFailure, ModelRefusal,
-    ModelResultProvenance,
+    GroundedAnswerRefusal, InterpretationDisposition, InterpretationProvenance, ModelFailure,
+    ModelRefusal, ModelResultDisposition, ModelResultInvalidity, ModelResultProvenance,
 };
 use conduit_form::rust_binding::NativeRustBinding;
 
@@ -38,5 +38,20 @@ fn model_result_vocabularies_round_trip_through_their_native_types() {
         ModelFailure::OutputBoundExceeded,
     ] {
         assert_round_trip(failure);
+    }
+    for disposition in [
+        ModelResultDisposition::Produced,
+        ModelResultDisposition::Refused(ModelRefusal::PolicyDenied),
+        ModelResultDisposition::Failed(ModelFailure::ImplementationFailure),
+        ModelResultDisposition::ProviderLost,
+    ] {
+        assert_round_trip(disposition);
+    }
+    for refusal in [
+        GroundedAnswerRefusal::InvalidModelResult(ModelResultInvalidity::InvalidConfidence),
+        GroundedAnswerRefusal::ModelDidNotProduce(ModelResultDisposition::Cancelled),
+        GroundedAnswerRefusal::CitationNotInContext,
+    ] {
+        assert_round_trip(refusal);
     }
 }

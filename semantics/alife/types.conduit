@@ -3,13 +3,19 @@
 type LeniaBoundary =
     wrap
 
+type LeniaRegionChunkKind =
+    work
+    | result
+
+code alife/lenia-region-chunk-kind = LeniaRegionChunkKind as u8 from 1
+
 type ReactionDiffusionBoundaryEdge =
     north
     | south
     | west
     | east
 
-representation alife/reaction-diffusion-boundary-edge = ReactionDiffusionBoundaryEdge as u8
+code alife/reaction-diffusion-boundary-edge = ReactionDiffusionBoundaryEdge as u8
 
 type FieldBitmapRefusal =
     invalid-field

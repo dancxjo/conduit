@@ -10,9 +10,9 @@ const SUPPORT: &str = "form helper (\n input: Text >> output: Text\n) {\n input 
 const PUBLIC_WITH_GLYPH: &str = "sans glyphs\nwith ./support/helper as ^^\nform public (\n input: Text >> output: Text\n) {\n input ^^ output\n}\n";
 
 #[test]
-fn package_check_retains_checked_representations() {
+fn package_check_retains_checked_codes() {
     let (manifest_source, manifest) = manifest();
-    let source = "type Outcome =\n    ready\n    | refused\nrepresentation example/outcome = Outcome as u8\nform public {\n}\n";
+    let source = "type Outcome =\n    ready\n    | refused\ncode example/outcome = Outcome as u8\nform public {\n}\n";
     let sources = [PackageMemberSource {
         path: "main",
         source,
@@ -26,8 +26,8 @@ fn package_check_retains_checked_representations() {
         &StartupCatalog::new(),
     )
     .unwrap();
-    assert_eq!(checked.representations.len(), 1);
-    assert_eq!(checked.representations[0].name, "example/outcome");
+    assert_eq!(checked.codes.len(), 1);
+    assert_eq!(checked.codes[0].name, "example/outcome");
 }
 
 #[test]

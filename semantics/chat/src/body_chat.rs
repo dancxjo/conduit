@@ -16,7 +16,7 @@ use serde::{ser::SerializeStruct, Deserialize, Serialize};
 use sha2::{Digest, Sha256};
 
 use crate::{
-    BodyChatHistoryItem, BodyChatMessage, BodyChatRefusal, BodyChatRole, BodyChatRoleRepresentation,
+    BodyChatHistoryItem, BodyChatMessage, BodyChatRefusal, BodyChatRole, BodyChatRoleCode,
 };
 
 pub const BODY_CHAT_PROMPT_KIND: &str = "body/chat-prompt";
@@ -284,7 +284,7 @@ impl BodyChatPromptState {
             digest.update(model_context_sha256);
             digest.update(message.get().as_bytes());
             for item in &recent_history {
-                digest.update(BodyChatRoleRepresentation::encode(*item.role()));
+                digest.update(BodyChatRoleCode::encode(*item.role()));
                 digest.update(item.text().get().as_bytes());
             }
             let request_identity = format!("body-chat-request/{:x}", digest.finalize());

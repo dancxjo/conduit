@@ -1,32 +1,31 @@
 //! Exact bounded abnormal-terminal information for Text data operations.
 
 use crate::{
-    DataLoadTextTerminal, DataLoadTextTerminalRepresentation, DataSaveTextTerminal,
-    DataSaveTextTerminalRepresentation,
+    DataLoadTextTerminal, DataLoadTextTerminalCode, DataSaveTextTerminal, DataSaveTextTerminalCode,
 };
 
-pub const DATA_SAVE_TEXT_TERMINAL_INFO_ID: &str = DataSaveTextTerminalRepresentation::IDENTITY;
-pub const DATA_LOAD_TEXT_TERMINAL_INFO_ID: &str = DataLoadTextTerminalRepresentation::IDENTITY;
-pub const DATA_TEXT_TERMINAL_ENCODED_LEN: usize = DataSaveTextTerminalRepresentation::EXACT_BYTES;
-pub use conduit_form::rust_binding::NativeRepresentationRefusal as DataTerminalCodecRefusal;
+pub const DATA_SAVE_TEXT_TERMINAL_INFO_ID: &str = DataSaveTextTerminalCode::IDENTITY;
+pub const DATA_LOAD_TEXT_TERMINAL_INFO_ID: &str = DataLoadTextTerminalCode::IDENTITY;
+pub const DATA_TEXT_TERMINAL_ENCODED_LEN: usize = DataSaveTextTerminalCode::EXACT_BYTES;
+pub use conduit_form::rust_binding::NativeCodeRefusal as DataTerminalCodecRefusal;
 
 impl DataSaveTextTerminal {
     pub const fn encode(self) -> [u8; DATA_TEXT_TERMINAL_ENCODED_LEN] {
-        DataSaveTextTerminalRepresentation::encode(self)
+        DataSaveTextTerminalCode::encode(self)
     }
 
     pub fn decode(encoded: &[u8]) -> Result<Self, DataTerminalCodecRefusal> {
-        DataSaveTextTerminalRepresentation::decode(encoded)
+        DataSaveTextTerminalCode::decode(encoded)
     }
 }
 
 impl DataLoadTextTerminal {
     pub const fn encode(self) -> [u8; DATA_TEXT_TERMINAL_ENCODED_LEN] {
-        DataLoadTextTerminalRepresentation::encode(self)
+        DataLoadTextTerminalCode::encode(self)
     }
 
     pub fn decode(encoded: &[u8]) -> Result<Self, DataTerminalCodecRefusal> {
-        DataLoadTextTerminalRepresentation::decode(encoded)
+        DataLoadTextTerminalCode::decode(encoded)
     }
 }
 

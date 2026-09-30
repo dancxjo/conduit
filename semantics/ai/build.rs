@@ -1,4 +1,4 @@
-use conduit_form::rust_binding::{generate_rust_bindings_with_representations, RustBindingOptions};
+use conduit_form::rust_binding::{generate_rust_bindings_with_codes, RustBindingOptions};
 use conduit_form::{check_syntax_document, parse_syntax_document, StartupCatalog};
 use std::{env, fs, path::PathBuf};
 
@@ -9,15 +9,15 @@ fn main() {
         &StartupCatalog::new(),
     )
     .expect("AI semantic Types must check");
-    let generated = generate_rust_bindings_with_representations(
+    let generated = generate_rust_bindings_with_codes(
         &checked.native_types,
-        &checked.representations,
+        &checked.codes,
         &RustBindingOptions {
-            derive_serde_for_unit_variants: true,
+            derive_serde_for_variants: true,
             ..RustBindingOptions::default()
         },
     )
-    .expect("AI semantic Types and representations must generate exact Rust bindings");
+    .expect("AI semantic Types and codes must generate exact Rust bindings");
     let output = PathBuf::from(env::var_os("OUT_DIR").expect("Cargo supplies OUT_DIR"))
         .join("semantic_types.rs");
     fs::write(output, generated.source).expect("write generated AI bindings");

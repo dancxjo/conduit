@@ -1,5 +1,63 @@
 # Authoritative portable presentation meaning. Rust consumes generated bindings.
 
+type GraphicsCommandKind =
+    rect
+    | text
+    | icon
+    | orthogonal_path
+
+code presentation/graphics-command-kind = GraphicsCommandKind as u8 from 1
+
+type GraphicsPaintRole =
+    background
+    | foreground
+    | accent
+    | status
+    | muted
+    | success
+    | warning
+    | danger
+    | focus
+    | hovered
+    | selected
+
+code presentation/graphics-paint-role = GraphicsPaintRole as u8 from 1
+
+type GraphicsShapeStyle =
+    fill
+    | stroke
+    | rounded_fill
+    | rounded_stroke
+
+code presentation/graphics-shape-style = GraphicsShapeStyle as u8 from 1
+
+type GraphicsTextRole =
+    body
+    | title
+    | heading
+    | label
+    | code
+    | status
+    | warning
+    | action
+    | muted
+
+code presentation/graphics-text-role = GraphicsTextRole as u8 from 1
+
+type CompositionItemKind =
+    icon
+    | frame
+    | badge
+
+code presentation/composition-item-kind = CompositionItemKind as u8 from 1
+
+type CompositionRole =
+    image
+    | group
+    | status
+
+code presentation/composition-role = CompositionRole as u8 from 1
+
 type PresentationMechanismKind =
     shell
     | workbench

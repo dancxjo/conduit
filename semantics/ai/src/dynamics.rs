@@ -7,7 +7,7 @@ use conduit_data::{
     TensorValue,
 };
 
-use crate::RandomnessProfile;
+use crate::{DynamicsRefusal, IntegrationTerminal, RandomnessProfile};
 
 pub const MAXIMUM_DYNAMICS_CONTEXTS: usize = 32;
 pub const MAXIMUM_DYNAMICS_SAMPLES: usize = 65_536;
@@ -102,15 +102,6 @@ pub struct IntegrationCandidate {
     pub realization: SolverRealization,
 }
 
-#[derive(Debug, Copy, Clone, PartialEq, Eq)]
-pub enum IntegrationTerminal {
-    WorkLimitExhausted,
-    Cancelled,
-    Discontinuity,
-    ProviderLost,
-    Failed,
-}
-
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum HostIntegrationTerminal {
     Candidate(Box<IntegrationCandidate>),
@@ -147,24 +138,6 @@ pub enum IntegrationOutcome {
         terminal: IntegrationTerminal,
         retained_generation: u64,
     },
-}
-
-#[derive(Debug, Copy, Clone, PartialEq, Eq)]
-pub enum DynamicsRefusal {
-    MissingIdentity,
-    InvalidTime,
-    InvalidSampling,
-    UnsupportedStochasticProfile,
-    InvalidAccuracy,
-    InvalidResources,
-    InvalidState,
-    StaleState,
-    InvalidContext,
-    ResourceBoundExceeded,
-    InvalidTrajectory,
-    InvalidFinalState,
-    WorkBoundExceeded,
-    InvalidRealization,
 }
 
 impl IntegrateContract {

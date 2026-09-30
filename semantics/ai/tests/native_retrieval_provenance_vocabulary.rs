@@ -1,4 +1,7 @@
-use conduit_ai::{HouseContextProvenanceClass, RerankingProofClass, RetrievalMechanism};
+use conduit_ai::{
+    HouseContextProvenanceClass, MechanismScore, RerankScore, RerankingProofClass,
+    RetrievalMechanism,
+};
 use conduit_form::rust_binding::NativeRustBinding;
 
 fn assert_round_trip<T>(value: T)
@@ -32,5 +35,15 @@ fn retrieval_provenance_vocabularies_round_trip_through_their_native_types() {
         RerankingProofClass::ModelDerived,
     ] {
         assert_round_trip(proof);
+    }
+    for score in [
+        MechanismScore::SimilarityMicros(-9),
+        MechanismScore::LexicalScore(4),
+        MechanismScore::ExactMatch,
+    ] {
+        assert_round_trip(score);
+    }
+    for score in [RerankScore::HybridFusion(17), RerankScore::ModelDerived(-3)] {
+        assert_round_trip(score);
     }
 }

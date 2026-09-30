@@ -5,10 +5,7 @@
 
 use conduit_core::{semantic_digest, Quantity, QuantityConversionRefusal, QuantityUnit};
 
-use crate::{
-    Gate, GateRepresentation, ModulationDestination, ModulationDestinationRepresentation,
-    MusicalControl,
-};
+use crate::{Gate, GateCode, ModulationDestination, ModulationDestinationCode, MusicalControl};
 
 pub const SOUND_TONE_INFO_ID: &str = "sound/tone-intent@1";
 pub const MUSIC_NOTE_INFO_ID: &str = "music/note-event@1";
@@ -206,7 +203,7 @@ impl MusicalNoteEvent {
         let mut out = [0; NOTE_EVENT_ENCODED_LEN];
         out[0..8].copy_from_slice(&self.occurrence.0.to_le_bytes());
         out[8..28].copy_from_slice(&self.pitch.encode());
-        out[28] = GateRepresentation::encode(self.gate)[0];
+        out[28] = GateCode::encode(self.gate)[0];
         out[29..31].copy_from_slice(&self.velocity.to_le_bytes());
         out[31..39].copy_from_slice(&self.event_time_micros.to_le_bytes());
         out[39..43].copy_from_slice(&self.order.to_le_bytes());
@@ -229,7 +226,7 @@ impl MusicalNoteEvent {
 
 impl Gate {
     fn decode(value: u8) -> Result<Self, SoundInfoError> {
-        GateRepresentation::decode(&[value]).map_err(|_| SoundInfoError::InvalidTag {
+        GateCode::decode(&[value]).map_err(|_| SoundInfoError::InvalidTag {
             field: "gate",
             actual: value,
         })
@@ -274,7 +271,7 @@ impl MusicalControlEvent {
             MusicalControl::Modulation(payload) => {
                 out[0] = 2;
                 out[1..5].copy_from_slice(&payload.amount_millionths().to_le_bytes());
-                out[9] = ModulationDestinationRepresentation::encode(*payload.destination())[0];
+                out[9] = ModulationDestinationCode::encode(*payload.destination())[0];
             }
         }
         out[10..18].copy_from_slice(&self.event_time_micros.to_le_bytes());
@@ -335,11 +332,9 @@ impl MusicalControlEvent {
 
 impl ModulationDestination {
     fn decode(actual: u8) -> Result<Self, SoundInfoError> {
-        ModulationDestinationRepresentation::decode(&[actual]).map_err(|_| {
-            SoundInfoError::InvalidTag {
-                field: "modulation-destination",
-                actual,
-            }
+        ModulationDestinationCode::decode(&[actual]).map_err(|_| SoundInfoError::InvalidTag {
+            field: "modulation-destination",
+            actual,
         })
     }
 }
@@ -380,7 +375,7 @@ impl ToneIntent {
         let mut out = [0; TONE_INTENT_ENCODED_LEN];
         out[0..8].copy_from_slice(&self.correlation.to_le_bytes());
         out[8..28].copy_from_slice(&self.pitch.encode());
-        out[28] = GateRepresentation::encode(self.gate)[0];
+        out[28] = GateCode::encode(self.gate)[0];
         out[29..37].copy_from_slice(&self.event_time_micros.to_le_bytes());
         out[37..41].copy_from_slice(&self.order.to_le_bytes());
         out

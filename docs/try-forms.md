@@ -60,12 +60,26 @@ still names both ends. The fully open spelling `in ..` is rejected because it
 adds no meaning beyond the unrefined primitive Type.
 
 Open meaning does not reserve infinite memory. The checked contract separately
-records the finite maximum encoding accepted by the current representation.
+records the finite maximum encoding accepted by the selected code.
 Fixed-width values therefore cost their fixed extent. A semantically valid
-value outside a selected representation refuses during lowering or admission.
-Any future arbitrary-precision representation must admit and charge its actual
+value outside a selected code refuses during lowering or admission.
+Any future arbitrary-precision code must admit and charge its actual
 encoded extent. Sequence cardinality, stream backlog, and retained state remain
 explicitly bounded or governed independently of the element domain.
+
+Variants may carry another semantic Type directly:
+
+```conduit
+type LocalModelTerminal =
+    produced
+    | refused LocalModelRefusal
+    | failed LocalModelFailure
+    | cancelled
+```
+
+The payload remains the named Type; Conduitese does not invent an anonymous
+record or make Rust own the relationship. Use `{ ... }` only when the variant
+itself owns a record payload.
 
 For an interactive authoring surface, open the native Text Lab:
 

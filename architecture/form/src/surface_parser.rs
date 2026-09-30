@@ -5,27 +5,27 @@ use crate::surface_lex::{
     SourceLine,
 };
 use crate::syntax::{
-    Argument, BackStatement, ConstructionRole, ConstructionSyntax, Cord, CordStage, Expression,
-    FormCompletionPolicy, FormFront, FormSyntax, Invocation, LocalValue, MatchedRoute,
-    MatchedRouteArm, MatchedRoutePattern, NamedGear, RepresentationSyntax, RetainedDuration,
-    RetainedValue, RuntimePortDirection, RuntimePortTemporal, SpannedText, SyntaxDefinitions,
-    SyntaxDocument, TypeSyntax, UseDeclaration,
+    Argument, BackStatement, CodeSyntax, ConstructionRole, ConstructionSyntax, Cord, CordStage,
+    Expression, FormCompletionPolicy, FormFront, FormSyntax, Invocation, LocalValue, MatchedRoute,
+    MatchedRouteArm, MatchedRoutePattern, NamedGear, RetainedDuration, RetainedValue,
+    RuntimePortDirection, RuntimePortTemporal, SpannedText, SyntaxDefinitions, SyntaxDocument,
+    TypeSyntax, UseDeclaration,
 };
 use crate::{
     diagnostic, eof_span, tokenize_losslessly, FormError, Span, MAXIMUM_FORM_SOURCE_BYTES,
     MAXIMUM_USE_DECLARATIONS,
 };
 
+mod code_declaration;
 mod construction;
 pub(crate) mod front;
 mod pack;
-mod representation_declaration;
 mod shared_pool;
 mod type_declaration;
+use code_declaration::parse_code;
 use construction::parse_construction;
 use front::{canonical_default_bound, parse_finite_bound, parse_port_type};
 use pack::parse_pack;
-use representation_declaration::parse_representation;
 use shared_pool::parse_pool_declaration;
 
 pub(crate) fn parse_surface(source: &str) -> SyntaxDocument {
@@ -63,7 +63,7 @@ pub(crate) fn parse_surface(source: &str) -> SyntaxDocument {
             parsed.standard_glyphs,
             SyntaxDefinitions {
                 types: parsed.types,
-                representations: parsed.representations,
+                codes: parsed.codes,
                 forms: parsed.forms,
                 constructions: parsed.constructions,
                 packages: parsed.packages,
@@ -91,7 +91,7 @@ struct ParsedSurface {
     uses: Vec<UseDeclaration>,
     standard_glyphs: bool,
     types: Vec<TypeSyntax>,
-    representations: Vec<RepresentationSyntax>,
+    codes: Vec<CodeSyntax>,
     forms: Vec<FormSyntax>,
     constructions: Vec<ConstructionSyntax>,
     packages: Vec<crate::syntax::PackageSyntax>,
@@ -126,7 +126,7 @@ impl<'a> Parser<'a> {
         let mut uses = Vec::new();
         let mut standard_glyphs = true;
         let mut types = Vec::new();
-        let mut representations = Vec::new();
+        let mut codes = Vec::new();
         let mut forms = Vec::new();
         let mut constructions = Vec::new();
         let mut packages = Vec::new();
@@ -164,8 +164,8 @@ impl<'a> Parser<'a> {
             let (text, _) = self.lines[self.index].statement();
             if text.starts_with("type ") {
                 types.push(self.parse_type_declaration()?);
-            } else if text.starts_with("representation ") {
-                representations.push(parse_representation(&mut self)?);
+            } else if text.starts_with("code ") {
+                codes.push(parse_code(&mut self)?);
             } else if text.starts_with("form ") {
                 forms.push(self.parse_form()?);
             } else if text.starts_with("host ") {
@@ -185,7 +185,7 @@ impl<'a> Parser<'a> {
             } else {
                 return Err((
                     FormError::InvalidSyntax(
-                        "expected 'type NAME', 'representation ID', 'form NAME', 'host NAME', 'body NAME', or 'pack PATH' definition"
+                        "expected 'type NAME', 'code ID', 'form NAME', 'host NAME', 'body NAME', or 'pack PATH' definition"
                             .into(),
                     ),
                     self.line_span(self.lines[self.index]),
@@ -194,7 +194,7 @@ impl<'a> Parser<'a> {
             self.skip_empty();
         }
         if types.is_empty()
-            && representations.is_empty()
+            && codes.is_empty()
             && forms.is_empty()
             && constructions.is_empty()
             && packages.is_empty()
@@ -203,7 +203,7 @@ impl<'a> Parser<'a> {
         }
         if !packages.is_empty()
             && (!types.is_empty()
-                || !representations.is_empty()
+                || !codes.is_empty()
                 || !forms.is_empty()
                 || !constructions.is_empty()
                 || !uses.is_empty()
@@ -211,7 +211,7 @@ impl<'a> Parser<'a> {
         {
             return Err((
                 FormError::InvalidSyntax(
-                    "pack.conduit contains exactly one pack declaration and no type, representation, form, host, body, or with declarations".into(),
+                    "pack.conduit contains exactly one pack declaration and no type, code, form, host, body, or with declarations".into(),
                 ),
                 packages[0].span,
             ));
@@ -220,7 +220,7 @@ impl<'a> Parser<'a> {
             uses,
             standard_glyphs,
             types,
-            representations,
+            codes,
             forms,
             constructions,
             packages,

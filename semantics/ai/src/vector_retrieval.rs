@@ -3,7 +3,7 @@ use serde::{Deserialize, Serialize};
 
 use crate::{
     EmbeddingNormalization, FiniteEmbedding, SimilarityMetric, StructuredResultInvalidity,
-    TemporalProvenance, TemporalRetrievalIntent, MAXIMUM_EMBEDDING_DIMENSIONS,
+    TemporalProvenance, TemporalRetrievalIntent, VectorRefusal, MAXIMUM_EMBEDDING_DIMENSIONS,
 };
 
 pub const MAXIMUM_VECTOR_IDENTITY_BYTES: usize = 256;
@@ -89,38 +89,6 @@ pub struct SimilarityHit<T> {
     pub source_identity: String,
     pub resource_identity: String,
     pub temporal_provenance: Option<TemporalProvenance>,
-}
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
-pub enum VectorRefusal {
-    EmptyIdentity,
-    IdentityTooLarge,
-    ZeroDimensions,
-    DimensionLimitExceeded,
-    NoCompatibleMetric,
-    InvalidEmbedding,
-    NormalizationMismatch,
-    ProfileIdentityMismatch,
-    SemanticSpaceMismatch,
-    ModelMismatch,
-    ProviderMismatch,
-    DimensionMismatch,
-    MetricNotCompatible,
-    ZeroVector,
-    NonFiniteScore,
-    TopKZero,
-    TopKTooLarge,
-    TooManyMetadata,
-    TooManyFilters,
-    InvalidMetadata,
-    DuplicateMetadata,
-    ThresholdMetricMismatch,
-    InvalidThreshold,
-    ThresholdNotMet,
-    InvalidTemporalIntent,
-    InvalidTemporalProvenance,
-    RankZero,
-    RankExceedsTopK,
 }
 
 impl CompatibleMetrics {

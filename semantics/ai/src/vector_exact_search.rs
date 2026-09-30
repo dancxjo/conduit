@@ -5,12 +5,11 @@ use conduit_core::ResourceBinding;
 use serde::{Deserialize, Serialize};
 
 use crate::{
-    canonical_hit_order, EntityBoundary, MetadataFilter, SimilarityHit, SimilarityQuery,
-    TemporalEvidenceBatch, TemporalEvidenceCandidate, TemporalEvidenceSelection,
-    TemporalEvidenceSelectionRefusal, TemporalReference, TemporalSource, TemporalValidity,
-    TransitionDirection, VectorIndexHandle, VectorIndexQueryAdmission, VectorIndexResourceRefusal,
-    VectorIndexState, VectorRecord, VectorRefusal, VectorSearchProofClass,
-    MAXIMUM_VECTOR_INDEX_MEMBERS,
+    canonical_hit_order, EntityBoundary, ExactVectorSearchRefusal, MetadataFilter, SimilarityHit,
+    SimilarityQuery, TemporalEvidenceBatch, TemporalEvidenceCandidate, TemporalEvidenceSelection,
+    TemporalReference, TemporalSource, TemporalValidity, TransitionDirection, VectorIndexHandle,
+    VectorIndexQueryAdmission, VectorIndexResourceRefusal, VectorIndexState, VectorRecord,
+    VectorSearchProofClass, MAXIMUM_VECTOR_INDEX_MEMBERS,
 };
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
@@ -29,19 +28,6 @@ pub struct ExactVectorSearchResult<T> {
     pub admitted_work_units: u32,
     pub candidate_count: u32,
     pub hits: Vec<SimilarityHit<T>>,
-}
-
-#[derive(Debug, Clone, PartialEq, Eq)]
-pub enum ExactVectorSearchRefusal {
-    Vector(VectorRefusal),
-    Resource(VectorIndexResourceRefusal),
-    Temporal(TemporalEvidenceSelectionRefusal),
-    TooManyCandidates,
-    IndexMembershipMismatch,
-    WorkAccountingOverflow,
-    TemporalProvenanceRequired,
-    EarlierHistoryRequired,
-    TemporalBoundaryUnavailable,
 }
 
 /// Search a caller-supplied finite fixture exactly after ordinary V1 query admission.

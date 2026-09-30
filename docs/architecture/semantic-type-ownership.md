@@ -24,7 +24,7 @@ moving a type across a boundary requires reviewing its classification.
 | **C — checker/compiler representation** | Parser, checked syntax, semantic-contract model, catalog construction, or lowering machinery | Remains handwritten Rust; may refer to native Type identities but does not become source info |
 | **R — runtime identity or evidence** | Host, Boot, Body, Plan, Play, line, sign, admission, reservation, lifecycle, or execution truth | Remains architectural Rust unless an exact Fore deliberately carries a separate portable projection |
 | **M — Host/Back/Base mechanism** | Provider state, prepared executor, device driver, adapter, renderer, or platform implementation | Remains handwritten Rust behind the Host boundary |
-| **W — external wire/ABI/storage representation** | Bytes owned by a named external protocol, provider schema, firmware ABI, or transport frame | Remains an adapter at that boundary; Conduit-owned compatibility mappings are native `representation` declarations |
+| **W — external wire/ABI/storage representation** | Bytes owned by a named external protocol, provider schema, firmware ABI, or transport frame | Remains an adapter at that boundary; Conduit-owned compatibility mappings are native `code` declarations |
 | **G — generated binding** | Rust mirror generated from an authoritative native Type | Generated deterministically under #4381; never an independent semantic owner |
 
 Fixtures, test oracles, builders, errors about Rust API misuse, and prepared
@@ -32,15 +32,14 @@ allocation objects inherit the class of the machinery they exercise. A typed
 failure that actually crosses a Fore is **P**, even when its Rust name ends in
 `Error` or `Refusal`.
 
-## Type, representation, binding, and adapter
+## Type, code, binding, and adapter
 
-A semantic `type` states what a value means. A named `representation` states
-one portable compatibility contract for realizing that value. Changing a
-representation does not change Type identity, and a Type may have several
-representations.
+A semantic `type` states what a value means. A named `code` states one portable
+compatibility contract for carrying or storing that value. Changing a code
+does not change Type identity, and a Type may have several codes.
 
 A generated binding is target-language machinery derived from checked Types
-and representations. It may choose a native target type, a checked wrapper, or
+and codes. It may choose a native target type, a checked wrapper, or
 a dynamic carrier, but it never contributes meaning. An external adapter owns
 only translation to a separately governed protocol or mechanism. “The mapping
 is small” and “Rust already serializes it” do not establish an external
@@ -53,17 +52,17 @@ type SaveRefusal =
     value_too_large
     | wrong_content_kind
 
-representation data/save-refusal = SaveRefusal as u8
+code data/save-refusal = SaveRefusal as u8
 ```
 
-The checked representation records `0` and `1`, bounded invalid-tag refusal,
+The checked code records `0` and `1`, bounded invalid-tag refusal,
 and a compatibility fingerprint. Authors write no tag table or version bump.
 When an established contract needs a different order, an indented list states
 only that order; the checker still proves it exhaustive and unique. A nonzero
 iota origin stays terse and equally checked:
 
 ```conduit
-representation presentation/role = PresentationRole as u8 from 1
+code presentation/role = PresentationRole as u8 from 1
 ```
 
 That records `1`, `2`, and onward in authored variant order. The checker
@@ -94,17 +93,17 @@ families are explicit exceptions.
 | Scope | P payloads to migrate | Non-P exceptions and class | Current blocker |
 |---|---|---|---|
 | `semantics/audio/**` | pitch, note/control events, tone intent, PCM semantic profile/frame/clip, channel layout, gate and terminal meaning | prepared renderers and implementation state are M; codec-only errors are W | remaining payload records and bounded PCM shapes |
-| `semantics/chat/**` | chat roles, messages/history, prompt/summary, delivery and presentation state | browser-family installers and state machines are M; fixtures are C | payload-bearing variants, bounded records and terminal review |
+| `semantics/chat/**` | chat roles, messages/history, prompt/summary, delivery and presentation state | browser-family installers and state machines are M; fixtures are C | bounded records and terminal review |
 | `semantics/data/**` | observations, provenance, measurements, windows, thresholds, plots, tensors, datasets, cadence/continuity, quantity-mapping policy and data-reference domain values | stores/prepared stores and operators are M; wire/codec refusals are W; corpus fixtures are C | remaining payload records, bounded collections and references |
 | `semantics/finance/**` | currency, fixed decimal, money, rates | fixtures are C | rates and remaining typed terminal families |
-| `semantics/human/**` | input events, modifiers, regions, visual/text/object/motion observations, experience and interaction values | acquisition offers/plans/reservations and active instances are R; initialized implementations are M; codecs are W; conformance vectors are C | bounded strings/collections and payload-bearing variants |
+| `semantics/human/**` | input events, modifiers, regions, visual/text/object/motion observations, experience and interaction values | acquisition offers/plans/reservations and active instances are R; initialized implementations are M; codecs are W; conformance vectors are C | bounded strings/collections and remaining payload migration |
 | `semantics/language/**` | typed linguistic terminal payloads | parser/recognizer machinery is M | remaining typed terminal payload review |
-| `semantics/net/**` | addresses, endpoints, DNS, attachment info, record-delivery observations and transcript entries | sockets/connections/queues/trackers are M; protocol frames and typed-record codecs are W | payload-bearing variants, records and bounded network values |
+| `semantics/net/**` | addresses, endpoints, DNS, attachment info, record-delivery observations and transcript entries | sockets/connections/queues/trackers are M; protocol frames and typed-record codecs are W | records and bounded network values |
 | `semantics/presentation/**` | Face subjects, roles, relationships, properties, content, actions, interaction arguments, navigation, composition, temporal facts, graphics commands and Show-visible semantic values | mask plans/admission/lifecycle/sign correlation are R; renderers, queues, ledgers and generators are M; bitmap/graphics encodings are W; migration-era `ApplicationView` scaffolding is C until removed | staged Face-family grammar and migration |
 | `semantics/robotics/**` | acceleration, battery, beacon, button, charging, cliff, contact, odometry, orientation, proximity, range and wheel-drop observations | fixture/catalog builders are C | observation records and bounded payloads |
 | `semantics/signal/**` | Signal, Trigger and finite pulse/toggle/trigger configurations | encoders are M/W according to the exact carrier | record bindings compatible with fixed no-std carriers |
 | `semantics/text/**` | addresses, Morse patterns/segments/transitions and text configuration values | interpreters are M; Kind contracts are C; provider errors remain M unless exported as a typed terminal | bounded text records, payload variants and terminal review |
-| `semantics/time/**` | instants, intervals, civil recurrence, calendar/reminder/meeting values, replay commands/results, temporal windows and policies | stores/controllers and `*Back` executors are M; codec forms are W; Kind configuration/checker contracts are C | payload-bearing recurrence, calendar and replay families |
+| `semantics/time/**` | instants, intervals, civil recurrence, calendar/reminder/meeting values, replay commands/results, temporal windows and policies | stores/controllers and `*Back` executors are M; codec forms are W; Kind configuration/checker contracts are C | recurrence, calendar and replay family migration |
 | `semantics/tongues/**` | acoustic/utterance/speech values, recognition results, language evidence and finite research result values when they cross reviewed Fores | recognizers, committers and training machinery are M; dataset/model file representations are W; research harness reports are C unless intentionally exported | Fore-by-Fore ownership review and bounded payload generation |
 | `semantics/web/**` | HTTP method/target/header/request/response/body and bounded JSON meaning | server transaction machinery is M; HTTP/JSON byte codecs are W; Kind contracts are C | request/response/body records and JSON payloads |
 
@@ -115,10 +114,32 @@ stated separately rather than treating the entire crate as portable data.
 
 | Scope | Classification |
 |---|---|
-| `semantics/ai/**` | Request/result, finite probability, retrieval, grounding, model-description, training-description, relation, citation and typed terminal families that cross Fores are P. Provider sessions, caches, mutable model state, compute offers/runtime identities, vector-index handles/authority, prepared search, lifecycle controllers and host integration are M or R. Provider protocol payloads and model artifact formats are W. Candidate-Form/checker records and fixtures are C. Remaining work is Fore-by-Fore classification plus bounded payload generation; no language or binding prerequisite remains. |
+| `semantics/ai/**` | Request/result, finite probability, retrieval, grounding, model-description, training-description, relation, citation and typed terminal families that cross Fores are P. Provider sessions, caches, mutable model state, compute offers/runtime identities, vector-index handles/authority, prepared search, lifecycle controllers and host integration are M or R. Provider protocol payloads and model artifact formats are W. Candidate-Form/checker records and fixtures are C. Remaining portable families and their exact blockers are enumerated below; no unclassified AI family remains. |
 | `semantics/alife/**` | Field/cell/parameter/boundary/partition/work/result values are P. Engines, workers, assemblers and distributed realization state are M. Chunk/line transfer frames are W. Remaining migration depends on bounded-array generation and exact payload review. |
 | `semantics/catalog/**` | Catalog installers, `*KindContract`, `*Back`, `Prepared*`, fixtures and conformance helpers are C or M. Domain values currently declared here—navigation goals/poses/routes/trajectories, image/text records, jobs, education/schedule/vision values, garden observations/state, button attempts, palette/pixel regions and typed terminal outcomes—are P and must move to domain-owned `.conduit` source. |
 | `semantics/system-continuity/**` | Reboot request/decision/denial and transition causes exposed through reviewed Fores are P. Host instances, assignments, grants, replacement observations, progress state and acceptance receipts are R. Persistence/wire records are W. |
+
+### AI ownership completion
+
+Every remaining public AI family has a named owner. Portable families remain
+eligible for migration; the blocker column names the missing source construct
+or upstream semantic dependency rather than treating handwritten Rust as
+authority.
+
+| Remaining family | Class | Exact blocker or retained owner |
+|---|---|---|
+| Context selection, grounding, interpretation, probability, RAG, relation, reranking, structured-result, temporal and vector request/result records | P | bounded collection fields and fixed digest/byte-array Types must be expressible without weakening their current maxima or exact lengths |
+| Generic retrieval and vector families (`StageCandidate<T>`, `RetrievalStage<T>`, `HybridCandidate<T>`, `HybridRetrievalOutcome<T>`, `VectorRecord<T>`, `SimilarityHit<T>`, `VectorSearchValue<T>`) | P | authored generic native Types and generated generic bindings |
+| Tensor, sampled-signal, dataset, temporal-zone and scheduled-intent payloads | P with external P dependencies | exact native imports for the owning data/time Types; AI must not counterfeit them locally |
+| Float-bearing probability, vector and dynamics values | P | explicit finite/non-finite scalar law and generated equality behavior matching the current semantic contract |
+| Boxed relation, training and dynamics outcome trees | P/R boundary | reviewed finite indirection for portable payloads; Host candidates, receipts and realization facts remain R/M |
+| Source-extraction receipt proof text | R evidence | current `&'static str` proof-class representation must become a bounded semantic vocabulary before any portable projection |
+| Local-model and model-compute offers, sessions, runtime identities and cache policy | M/R | Host offer, admission and active realization truth |
+| Vector-index handles, authorization, mutable state, mutations and maintenance receipts | R | resource authority, generation and execution evidence |
+| Cross-host lifecycle, training lifecycle, Host step/candidate/receipt, integration realization and proposal-gate authority families | R/M | Plan, play, authority, active-instance or Host execution truth |
+| Form composition candidate and refusal families | C | contain checked/expanded Form compiler representations |
+| Provider HTTP/evidence/failure families and explicit codec modules | M/W | provider realization or named byte-protocol ownership |
+| Kind/Fore contract descriptor modules and conformance fixtures | C | compiler/catalog declarations and proof fixtures, not carried Info |
 
 ## Mechanisms, products, and targets
 
@@ -183,6 +204,15 @@ are satisfied.
 | Normalized-quantity refusal vocabulary extracted from the catalog | `semantics/data/types.conduit` | generated at build time | yes | yes | exact native round trips plus normalized-quantity catalog and browser consumer suites |
 | Sequence-normalization and pattern-comparison refusal vocabularies extracted from the catalog | `semantics/time/types.conduit` | generated at build time | yes | yes | exact native round trips plus catalog and std/browser consumer suites |
 | LLM determinism, terminal-outcome, and implementation-control vocabularies | `semantics/ai/types.conduit` | generated at build time | yes | yes | exact native round trips plus AI semantic-contract suite |
+| Training objective participation, batch order, checkpoint/evaluation policies, model-compute operation/lifecycle/class/refusal, model signature/evidence/compatibility/text refusals, and vector-index health/maintenance vocabularies | `semantics/ai/types.conduit` | generated at build time | yes | yes | exact native round trips plus training, model artifact/text/compute/signature and vector-index lifecycle suites |
+| Local-model profile, cache, lifecycle, refusal, failure and offer-validity vocabularies | `semantics/ai/types.conduit` | generated at build time | yes | yes | exact native round trips plus local-model offer and hosted-adapter suites |
+| Local-model and model-invocation payload-bearing terminals | `semantics/ai/types.conduit` | generated at build time with direct Type payloads | yes | yes | exact native payload round trips, Serde generation and model lifecycle suites |
+| Interpretation invalidity and temporal interpretation/evidence-selection refusals | `semantics/ai/types.conduit` | generated at build time | yes | yes | exact native round trips plus interpretation and temporal-context suites |
+| Context-selection, reranking and wired-house-context refusals | `semantics/ai/types.conduit` | generated at build time | yes | yes | exact native round trips plus selection, reranking and house-context suites |
+| Generated-text-flow and continuous-dynamics refusals | `semantics/ai/types.conduit` | generated at build time | yes | yes | exact native round trips plus streaming-generation and dynamics suites |
+| Relation, training-step and integration terminal failures plus embodiment stages | `semantics/ai/types.conduit` | generated at build time | yes | yes | exact native round trips plus relation, training, dynamics and embodiment suites |
+| Relation query/refusal, training refusal and vector/index-resource refusal vocabularies | `semantics/ai/types.conduit` | generated at build time | yes | yes | exact native round trips plus relation, training and vector-resource behavior suites |
+| Exact-vector-search payload-bearing refusal | `semantics/ai/types.conduit` | generated at build time with direct Type payloads | yes | yes | exact native round trips plus bounded exact-search behavior suite |
 | AI planning, interruption, candidate and training lifecycle vocabularies | `semantics/ai/types.conduit` | generated at build time | yes | yes | exact native round trips plus cross-host, composition and training lifecycle suites |
 | Reranking strategy and its bounded observed-score payload | `semantics/ai/types.conduit` | generated at build time | yes | yes | exact native payload round trip plus retrieval and context-selection suites |
 | Model operation and port-presence vocabularies | `semantics/ai/types.conduit` | generated at build time | yes | yes | exact native round trips plus AI model-signature suite |
@@ -191,7 +221,9 @@ are satisfied.
 | Context selection redundancy, ordering, rationale, and omission vocabularies | `semantics/ai/types.conduit` | generated at build time | yes | yes | exact native round trips plus context selection and planning suites |
 | RAG span, selection, truncation, and grounding vocabularies | `semantics/ai/types.conduit` | generated at build time | yes | yes | exact native round trips plus RAG semantics and grounded-answer suites |
 | Model interpretation and result provenance, disposition, refusal, and failure vocabularies | `semantics/ai/types.conduit` | generated at build time | yes | yes | exact native round trips plus interpretation and model-result suites |
+| Model-result disposition and grounded-answer payload-bearing refusal | `semantics/ai/types.conduit` | generated at build time with direct Type payloads | yes | yes | exact native round trips plus model-result and grounded-answer suites |
 | House-context and retrieval provenance/proof vocabularies | `semantics/ai/types.conduit` | generated at build time | yes | yes | exact native round trips plus house-context, hybrid-retrieval, and reranking suites |
+| Hybrid-retrieval mechanism and reranking score payloads | `semantics/ai/types.conduit` | generated at build time with direct scalar payloads | yes | yes | exact native round trips plus hybrid-retrieval and reranking suites |
 | AI result, contract-offer, temporal-context and vector-proof validation vocabularies | `semantics/ai/types.conduit` | generated at build time | yes | yes | exact native round trips plus AI behavior and contract suites |
 | Form Library availability and refusal vocabularies | `semantics/form-library/types.conduit` | generated at build time | yes | yes | exact native round trips and capability-reason bounds plus library behavior suite |
 | Body invitation presentation refusal | `semantics/body-invitation/types.conduit` | generated at build time | yes | yes | exact native round trips plus invitation presentation and Body lifecycle suites |

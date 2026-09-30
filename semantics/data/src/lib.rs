@@ -9,11 +9,10 @@ mod generated {
 
 pub use generated::{
     ClockRelationQuality, ClockRelationQualityEstimated, DataGenerationNamespaceRefusal,
-    DataLoadTextTerminal, DataLoadTextTerminalRepresentation, DataReferenceRefusal,
-    DataSaveTextTerminal, DataSaveTextTerminalRepresentation, FullWindowPolicy,
-    FullWindowPolicyRepresentation, MathScalarRefusal, MeasurementPlotOverflowPolicy,
-    MeasurementPlotRefusal, MeasurementSummaryRefusal, MeasurementThresholdRefusal,
-    MeasurementThresholdState, MeasurementThresholdStateRepresentation,
+    DataLoadTextTerminal, DataLoadTextTerminalCode, DataReferenceRefusal, DataSaveTextTerminal,
+    DataSaveTextTerminalCode, FullWindowPolicy, FullWindowPolicyCode, MathScalarRefusal,
+    MeasurementPlotOverflowPolicy, MeasurementPlotRefusal, MeasurementSummaryRefusal,
+    MeasurementThresholdRefusal, MeasurementThresholdState, MeasurementThresholdStateCode,
     MeasurementThresholdTransition, MeasurementWindowRefusal, NormalizedQuantityRefusal,
     QuantityMappingRefusal, QuantizationPolicy, RangePolicy, SampledSignalRefusal,
     ScalarComparison, ScientificObservationRefusal, SignalContinuity, SignalContinuityClockReset,

@@ -2,6 +2,7 @@ use crate::prelude::*;
 use crate::{
     CheckedNativeType, NativeTypeValueContract, StartupCatalog, SyntaxCheckDiagnostic,
     TypeDefinitionSyntax, TypeExpressionSyntax, TypeFieldSyntax, TypeSyntax,
+    TypeVariantPayloadSyntax,
 };
 use alloc::collections::BTreeSet;
 use conduit_core::{
@@ -118,8 +119,16 @@ fn definition_references<'a>(definition: &'a TypeDefinitionSyntax, out: &mut Vec
         }
         TypeDefinitionSyntax::Variant(cases) => {
             for case in cases {
-                for field in &case.fields {
-                    expression_references(&field.value_type, out);
+                match &case.payload {
+                    TypeVariantPayloadSyntax::Unit => {}
+                    TypeVariantPayloadSyntax::Type(expression) => {
+                        expression_references(expression, out);
+                    }
+                    TypeVariantPayloadSyntax::Record(fields) => {
+                        for field in fields {
+                            expression_references(&field.value_type, out);
+                        }
+                    }
                 }
             }
         }
@@ -148,19 +157,21 @@ fn compile_definition(
             let mut compiled_cases = Vec::with_capacity(cases.len());
             let mut contracts = Vec::new();
             for case in cases {
-                let payload = if case.fields.is_empty() {
-                    CompiledRepresentation {
+                let payload = match &case.payload {
+                    TypeVariantPayloadSyntax::Unit => CompiledRepresentation {
                         value_type: StructuredInfoType::leaf(kind_id("value/unit"))
                             .map_err(|error| bounded(case.span, error))?,
                         contracts: Vec::new(),
+                    },
+                    TypeVariantPayloadSyntax::Type(expression) => {
+                        compile_expression(expression, catalog)?
                     }
-                } else {
-                    compile_record(
+                    TypeVariantPayloadSyntax::Record(fields) => compile_record(
                         &alloc::format!("{}/{}", declaration.name.text, case.tag.text),
-                        &case.fields,
+                        fields,
                         catalog,
                         case.span,
-                    )?
+                    )?,
                 };
                 contracts.extend(prefix_contracts(
                     payload.contracts,

@@ -7,9 +7,10 @@ mod generated {
     include!(concat!(env!("OUT_DIR"), "/semantic_types.rs"));
 }
 pub use generated::{
-    ExperienceAvailability, ExperienceCertainty, ExperienceDomain, ExperienceOrigin,
-    ExperienceRelationKind, ExperienceTemporalRole, KeyTransition, KeyTransitionRepresentation,
-    SourceAvailability, VisualEvidenceClass, VisualExperienceRelationKind,
+    ChordPhase, ChordPhaseCode, CoreChordId, CoreChordIdCode, ExperienceAvailability,
+    ExperienceCertainty, ExperienceDomain, ExperienceOrigin, ExperienceRelationKind,
+    ExperienceTemporalRole, KeyTransition, KeyTransitionCode, SourceAvailability,
+    VisualEvidenceClass, VisualExperienceRelationKind,
 };
 
 mod current_experience;

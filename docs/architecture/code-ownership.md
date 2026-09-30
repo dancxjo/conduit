@@ -1,13 +1,13 @@
-# Representation ownership audit
+# Code ownership audit
 
 **Owner:** [#4428](https://github.com/dancxjo/conduit/issues/4428)
 
 This audit classifies handwritten encoding surfaces by ownership. It is a
 migration inventory, not a claim that every candidate has already moved.
 
-1. **Generated:** a checked Conduitese `representation` is authoritative and
+1. **Generated:** a checked Conduitese `code` is authoritative and
    target bindings contain no independent mapping.
-2. **Generic:** machinery interprets arbitrary checked Type or representation
+2. **Generic:** machinery interprets arbitrary checked Type or code
    graphs without owning a domain mapping.
 3. **External:** an explicitly named protocol, provider, device, firmware ABI,
    or transport owns the mapping and a handwritten adapter is appropriate.
@@ -18,16 +18,16 @@ There is no “small stable handwritten mapping” category.
 
 | Surface | Class | Evidence |
 |---|---:|---|
-| Data save/load Text terminals | 1 | `semantics/data/types.conduit` selects compact `u8` representation; authored Type order supplies iota tags, while checked language law supplies bounded invalid-tag refusal. Generated Rust and ECMAScript consume those same facts. |
-| Audio tone terminal, PCM, gate and modulation discriminants | 1 | `semantics/audio/types.conduit` selects their exact one-byte representations; generated bindings own the iota mappings, compatibility identities, bounds and invalid-input refusal. Gate uses an explicit exhaustive order to preserve its established compatibility independently of Type order. |
-| Native Rust Type/value bindings | 2 | `architecture/form/src/rust_binding/**` lowers checked Types and representations without domain tables. |
+| Data save/load Text terminals | 1 | `semantics/data/types.conduit` selects a compact `u8` code; authored Type order supplies iota tags, while checked language law supplies bounded invalid-tag refusal. Generated Rust and ECMAScript consume those same facts. |
+| Audio tone terminal, PCM, gate and modulation discriminants | 1 | `semantics/audio/types.conduit` selects their exact one-byte codes; generated bindings own the iota mappings, compatibility identities, bounds and invalid-input refusal. Gate uses an explicit exhaustive order to preserve its established compatibility independently of Type order. |
+| Native Rust Type/value bindings | 2 | `architecture/form/src/rust_binding/**` lowers checked Types and codes without domain tables. |
 | Canonical structured Info | 2 | `architecture/core/src/structured_info/**` encodes the generic checked value graph, not a domain schema. |
 
 ## Conduit-owned candidates to migrate
 
 These paths contain domain-specific tags, field order, widths, bounds, or
 malformed-input rules. Each needs a focused review and either a native
-representation migration or a more precise external-boundary justification.
+code migration or a more precise external-boundary justification.
 
 | Domain | Candidate surfaces |
 |---|---|
@@ -55,7 +55,7 @@ codec, delete the Rust duplicate, and retain exact compatibility proof.
 | Device packages under `mechanisms/devices/**` | Physical device protocols own registers and frames. |
 | `semantics/web/src/http/codec.rs` | HTTP syntax is externally standardized; native request/response meaning remains separate. |
 | Provider adapters under `targets/std/src/hosted_*` | Provider HTTP/JSON schemas are owned by those external services. |
-| Browser, firmware, and distributed ABI modules under `targets/**` | Exact target or cross-process ABI contracts remain adapters; domain mappings inside them must still refer to native Types or representations. |
+| Browser, firmware, and distributed ABI modules under `targets/**` | Exact target or cross-process ABI contracts remain adapters; domain mappings inside them must still refer to native Types or codes. |
 
 External classification is not hereditary. A file at one of these boundaries
 must not hide a Conduit-owned domain enum table merely because it also handles

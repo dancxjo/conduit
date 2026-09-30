@@ -1,6 +1,6 @@
 //! Bounded evidence that typed wiring, not prose, defines a model's situation.
 
-use crate::{EffectAuthority, ProposalDecisionOutcome, ProposalRefusal};
+use crate::{EffectAuthority, EmbodimentStage, ProposalDecisionOutcome, ProposalRefusal};
 use alloc::{collections::BTreeSet, string::String, vec::Vec};
 use conduit_core::{
     verify_plan, ActivePlayId, CheckedFormId, ExpandedFormId, KindId, PlacementId, Plan, PlanId,
@@ -10,13 +10,6 @@ use serde::{Deserialize, Serialize};
 
 pub const MAXIMUM_EMBODIMENT_PORTS: usize = 16;
 pub const MAXIMUM_EMBODIMENT_SIGNS: usize = 16;
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
-pub enum EmbodimentStage {
-    PerceptionOnly,
-    Expressive,
-    AuthorizedEffect,
-}
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct EmbodiedModelView {

@@ -37,10 +37,10 @@ present limitation.
 These source-level capabilities are present in the reviewed development tree.
 Their presence is not an additional physical or release acceptance claim:
 
-- **Native semantic Types and compact representations (#4382, #4428):**
+- **Native semantic Types and compact codes (#4382, #4428):**
   Conduitese owns nominal scalar, record, variant, optional, data-reference,
   bounded-sequence, and refined primitive meaning. Rust bindings are generated
-  from the checked graph. A named compact `u8` representation derives iota
+  from the checked graph. A named compact `u8` code derives iota
   tags from authored variant order, typed malformed-input refusal, finite
   extent/work bounds, and a mechanical compatibility identity. The Data Text
   terminal family has no handwritten Rust tag table, and generated Rust plus

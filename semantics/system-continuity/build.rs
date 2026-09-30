@@ -12,7 +12,7 @@ fn main() {
     let generated = generate_rust_bindings(
         &checked.native_types,
         &RustBindingOptions {
-            derive_serde_for_unit_variants: true,
+            derive_serde_for_variants: true,
             ..RustBindingOptions::default()
         },
     )

@@ -12,8 +12,8 @@ mod generated {
 }
 
 pub use generated::{
-    BodyChatHistoryItem, BodyChatMessage, BodyChatRefusal, BodyChatRole,
-    BodyChatRoleRepresentation, ChatConnectionState, ChatStateRefusal, PresenceState,
+    BodyChatHistoryItem, BodyChatMessage, BodyChatRefusal, BodyChatRole, BodyChatRoleCode,
+    ChatConnectionState, ChatStateRefusal, PresenceState,
 };
 
 mod body_chat;

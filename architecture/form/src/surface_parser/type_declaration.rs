@@ -6,6 +6,7 @@ use crate::surface_lex::{is_name, split_declaration};
 use crate::surface_parser::front::{canonical_default_bound, split_type_bound};
 use crate::syntax::{
     TypeDefinitionSyntax, TypeExpressionSyntax, TypeFieldSyntax, TypeSyntax, TypeVariantCaseSyntax,
+    TypeVariantPayloadSyntax,
 };
 use crate::{FormError, Span};
 
@@ -101,24 +102,30 @@ impl Parser<'_> {
                 ));
             }
             let case = text.strip_prefix('|').map(str::trim).unwrap_or(text);
-            let (tag, has_fields) = case
-                .strip_suffix('{')
-                .map_or((case.trim(), false), |tag| (tag.trim(), true));
+            let (tag, payload_source, has_fields) = if let Some(tag) = case.strip_suffix('{') {
+                (tag.trim(), None, true)
+            } else if let Some((tag, payload)) = case.split_once(char::is_whitespace) {
+                (tag.trim(), Some(payload.trim()), false)
+            } else {
+                (case.trim(), None, false)
+            };
             if !is_name(tag) {
                 return Err(self.invalid_statement(text, start));
             }
             let case_start = start;
             let tag = self.spanned_at(tag, text, start);
             self.index += 1;
-            let fields = if has_fields {
-                self.parse_type_fields()?
+            let payload = if has_fields {
+                TypeVariantPayloadSyntax::Record(self.parse_type_fields()?)
+            } else if let Some(payload) = payload_source {
+                TypeVariantPayloadSyntax::Type(self.parse_type_expression(payload, text, start)?)
             } else {
-                Vec::new()
+                TypeVariantPayloadSyntax::Unit
             };
             let end = self.lines[self.index.saturating_sub(1)];
             cases.push(TypeVariantCaseSyntax {
                 tag,
-                fields,
+                payload,
                 span: self.span(case_start, end.start + end.text.len()),
             });
         }
