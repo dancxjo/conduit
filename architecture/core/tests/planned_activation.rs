@@ -97,7 +97,10 @@ fn selected_plan_is_recursive_plan_truth_and_changes_outer_identity() {
     assert_ne!(first.plan_id, second.plan_id);
 
     let mut stale = first.clone();
-    stale.activations[0].selected_plan.fragments[0]
+    let PlannedActivationEntry::Unary(activation) = &mut stale.activations[0] else {
+        panic!()
+    };
+    activation.selected_plan.fragments[0]
         .sign_storage_budget
         .byte_capacity += 1;
     assert!(!verify_plan(&stale));
@@ -116,7 +119,86 @@ fn activation_refuses_inexact_ownership_fronts_limits_and_sign_accounting() {
 
     for change in changes {
         let mut altered = plan.clone();
-        change(&mut altered.activations[0]);
+        let PlannedActivationEntry::Unary(activation) = &mut altered.activations[0] else {
+            panic!()
+        };
+        change(activation);
         assert!(!verify_plan(&altered));
     }
+}
+
+#[test]
+fn fold_activation_seals_two_inputs_initial_storage_and_child_plan() {
+    let mut child = selected_plan("fold");
+    let fragment = &mut child.fragments[0];
+    fragment.fore_ports[0].front_port_id = port_id("accumulator");
+    let mut item = fragment.fore_ports[0].clone();
+    item.front_port_id = port_id("item");
+    fragment.fore_ports.push(item);
+    fragment.fore_ports[1].front_port_id = port_id("combined");
+    child = seal_plan_with_completion(
+        FormIdentity {
+            source_document_id: child.source_document_id,
+            checked_form_id: child.checked_form_id,
+            expanded_form_id: child.expanded_form_id,
+        },
+        child.completion_policy,
+        child.fragments,
+    );
+    let outer = common::fragment();
+    let fold = PlannedFoldActivation {
+        activation_id: "flow-fold/combine".into(),
+        owner_placement_id: PlacementId::from("placement"),
+        selected_plan_id: child.plan_id.clone(),
+        selected_plan: Box::new(child),
+        accumulator_input: PlannedActivationFront {
+            front_port_id: port_id("accumulator"),
+            value_kind: kind_id("fixture/byte@1"),
+            abnormal_kind: None,
+        },
+        item_input: PlannedActivationFront {
+            front_port_id: port_id("item"),
+            value_kind: kind_id("fixture/byte@1"),
+            abnormal_kind: None,
+        },
+        output: PlannedActivationFront {
+            front_port_id: port_id("combined"),
+            value_kind: kind_id("fixture/byte@1"),
+            abnormal_kind: None,
+        },
+        initial_accumulator: vec![0],
+        retained_accumulator_bytes: 1,
+        retained_item_bytes: 1,
+        limits: PlannedActivationLimits {
+            maximum_active: 1,
+            maximum_queue_items: 1,
+            maximum_queue_bytes: 4,
+        },
+        terminal_policy: PlannedFoldTerminalPolicy::DrainThenEmitAccumulatorExactlyOnce,
+        abnormal_policy: PlannedFoldAbnormalPolicy::DiscardAccumulatorAndPropagateExact,
+        cancellation_policy: PlannedFoldCancellationPolicy::DiscardAccumulatorWithoutEmission,
+        effect_multiplicity: PlannedActivationEffectMultiplicity::OncePerAcceptedInput,
+        per_activation_sign_budget: SignStorageBudget {
+            item_capacity: 2,
+            byte_capacity: 64,
+        },
+    };
+    let plan = seal_plan_with_activation_entries(
+        FormIdentity {
+            source_document_id: outer.source_document_id.clone(),
+            checked_form_id: outer.checked_form_id.clone(),
+            expanded_form_id: outer.expanded_form_id.clone(),
+        },
+        PlanCompletionPolicy::Live,
+        vec![],
+        vec![PlannedActivationEntry::Fold(fold)],
+        vec![outer],
+    );
+    assert!(verify_plan(&plan));
+    let mut stale = plan.clone();
+    let PlannedActivationEntry::Fold(fold) = &mut stale.activations[0] else {
+        panic!()
+    };
+    fold.initial_accumulator.push(1);
+    assert!(!verify_plan(&stale));
 }

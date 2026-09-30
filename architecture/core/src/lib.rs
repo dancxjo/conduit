@@ -812,7 +812,7 @@ pub struct Plan {
     #[serde(default)]
     pub realization_backs: Vec<FormBack>,
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
-    pub activations: Vec<PlannedActivation>,
+    pub activations: Vec<PlannedActivationEntry>,
     pub fragments: Vec<PlanFragment>,
 }
 
@@ -864,8 +864,27 @@ pub fn seal_plan_with_realization_backs_and_completion(
 pub fn seal_plan_with_activations(
     form_identity: FormIdentity,
     completion_policy: PlanCompletionPolicy,
-    mut realization_backs: Vec<FormBack>,
+    realization_backs: Vec<FormBack>,
     activations: Vec<PlannedActivation>,
+    fragments: Vec<PlanFragment>,
+) -> Plan {
+    seal_plan_with_activation_entries(
+        form_identity,
+        completion_policy,
+        realization_backs,
+        activations
+            .into_iter()
+            .map(PlannedActivationEntry::Unary)
+            .collect(),
+        fragments,
+    )
+}
+
+pub fn seal_plan_with_activation_entries(
+    form_identity: FormIdentity,
+    completion_policy: PlanCompletionPolicy,
+    mut realization_backs: Vec<FormBack>,
+    activations: Vec<PlannedActivationEntry>,
     mut fragments: Vec<PlanFragment>,
 ) -> Plan {
     realization_backs.sort();

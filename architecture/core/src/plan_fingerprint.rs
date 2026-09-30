@@ -8,7 +8,7 @@ use crate::{
     push_string, push_u32, push_u64, AdmittedLine, BoundLink, CancellationPolicy, CheckedFront,
     ConfigurationValue, ExpectedSign, ExpectedTerminal, FormBack, FormIdentity, FragmentCommitment,
     FragmentId, LinkAuthorityReference, LinkCredentialReference, PlanFragment, PlanId,
-    PlannedActivation, PortDescriptor, PortDirection, PortTemporal, TerminalPolicy,
+    PlannedActivationEntry, PortDescriptor, PortDirection, PortTemporal, TerminalPolicy,
 };
 use alloc::string::String;
 use alloc::vec::Vec;
@@ -839,7 +839,7 @@ fn push_admitted_line(canonical: &mut Vec<u8>, line: &AdmittedLine) {
 pub(crate) fn compute_plan_id(
     form_identity: &FormIdentity,
     realization_backs: &[FormBack],
-    activations: &[PlannedActivation],
+    activations: &[PlannedActivationEntry],
     commitments: &[FragmentCommitment],
 ) -> PlanId {
     let mut canonical = Vec::new();
@@ -851,29 +851,65 @@ pub(crate) fn compute_plan_id(
     }
     if !activations.is_empty() {
         push_u32(&mut canonical, activations.len() as u32);
-        for activation in activations {
-            push_string(&mut canonical, "planned-activation@1");
-            push_string(&mut canonical, &activation.activation_id);
-            push_string(&mut canonical, activation.owner_placement_id.as_str());
-            push_string(&mut canonical, activation.selected_plan_id.as_str());
-            push_activation_front(&mut canonical, &activation.input);
-            push_activation_front(&mut canonical, &activation.output);
-            canonical.extend_from_slice(&activation.limits.maximum_active.to_le_bytes());
-            canonical.extend_from_slice(&activation.limits.maximum_queue_items.to_le_bytes());
-            push_u32(&mut canonical, activation.limits.maximum_queue_bytes);
-            canonical.push(activation.terminal_policy as u8);
-            canonical.push(activation.cancellation_policy as u8);
-            canonical.push(activation.effect_multiplicity as u8);
-            canonical.extend_from_slice(
-                &activation
-                    .per_activation_sign_budget
-                    .item_capacity
-                    .to_le_bytes(),
-            );
-            push_u32(
-                &mut canonical,
-                activation.per_activation_sign_budget.byte_capacity,
-            );
+        for entry in activations {
+            match entry {
+                PlannedActivationEntry::Unary(activation) => {
+                    push_string(&mut canonical, "planned-activation@1");
+                    push_string(&mut canonical, &activation.activation_id);
+                    push_string(&mut canonical, activation.owner_placement_id.as_str());
+                    push_string(&mut canonical, activation.selected_plan_id.as_str());
+                    push_activation_front(&mut canonical, &activation.input);
+                    push_activation_front(&mut canonical, &activation.output);
+                    canonical.extend_from_slice(&activation.limits.maximum_active.to_le_bytes());
+                    canonical
+                        .extend_from_slice(&activation.limits.maximum_queue_items.to_le_bytes());
+                    push_u32(&mut canonical, activation.limits.maximum_queue_bytes);
+                    canonical.push(activation.terminal_policy as u8);
+                    canonical.push(activation.cancellation_policy as u8);
+                    canonical.push(activation.effect_multiplicity as u8);
+                    canonical.extend_from_slice(
+                        &activation
+                            .per_activation_sign_budget
+                            .item_capacity
+                            .to_le_bytes(),
+                    );
+                    push_u32(
+                        &mut canonical,
+                        activation.per_activation_sign_budget.byte_capacity,
+                    );
+                }
+                PlannedActivationEntry::Fold(activation) => {
+                    push_string(&mut canonical, "planned-fold-activation@1");
+                    push_string(&mut canonical, &activation.activation_id);
+                    push_string(&mut canonical, activation.owner_placement_id.as_str());
+                    push_string(&mut canonical, activation.selected_plan_id.as_str());
+                    push_activation_front(&mut canonical, &activation.accumulator_input);
+                    push_activation_front(&mut canonical, &activation.item_input);
+                    push_activation_front(&mut canonical, &activation.output);
+                    push_u32(&mut canonical, activation.initial_accumulator.len() as u32);
+                    canonical.extend_from_slice(&activation.initial_accumulator);
+                    push_u32(&mut canonical, activation.retained_accumulator_bytes);
+                    push_u32(&mut canonical, activation.retained_item_bytes);
+                    canonical.extend_from_slice(&activation.limits.maximum_active.to_le_bytes());
+                    canonical
+                        .extend_from_slice(&activation.limits.maximum_queue_items.to_le_bytes());
+                    push_u32(&mut canonical, activation.limits.maximum_queue_bytes);
+                    canonical.push(activation.terminal_policy as u8);
+                    canonical.push(activation.abnormal_policy as u8);
+                    canonical.push(activation.cancellation_policy as u8);
+                    canonical.push(activation.effect_multiplicity as u8);
+                    canonical.extend_from_slice(
+                        &activation
+                            .per_activation_sign_budget
+                            .item_capacity
+                            .to_le_bytes(),
+                    );
+                    push_u32(
+                        &mut canonical,
+                        activation.per_activation_sign_budget.byte_capacity,
+                    );
+                }
+            }
         }
     }
     push_u32(&mut canonical, commitments.len() as u32);
