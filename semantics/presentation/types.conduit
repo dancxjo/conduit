@@ -1,0 +1,73 @@
+# Authoritative portable presentation meaning. Rust consumes generated bindings.
+
+type PresentationMechanismKind =
+    shell
+    | workbench
+    | panel
+    | heading
+    | separator
+    | grid
+    | action_group
+    | action
+    | status
+    | disclosure
+    | evidence
+    | definition_table
+    | definition
+    | code_block
+    | form_field
+    | choice_group
+    | navigation
+    | navigation_link
+    | link
+    | stepper
+    | progress
+    | artifact
+    | download
+    | device_choice
+    | patchbay_canvas
+
+type StatusKind =
+    ordinary
+    | warning
+    | failure
+    | success
+
+type EvidenceDisposition =
+    missing
+    | stale
+    | refused
+    | failed
+    | succeeded
+
+type ChoiceMultiplicity =
+    independent
+    | exclusive
+
+type AdmittedNavigationDestination =
+    home
+    | tour
+    | creche
+    | patchbay
+    | source
+
+type FaceUtteranceClauseKind =
+    subject
+    | relationship
+    | property
+    | composition
+    | text
+    | action
+    | action_argument
+
+type PresentationDisclosureLevel =
+    primary
+    | current_action
+    | context
+    | selected_detail
+    | exact_provenance
+
+type PresentationTemporalRole =
+    event
+    | observation
+    | ingestion

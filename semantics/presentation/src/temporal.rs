@@ -12,7 +12,7 @@ use crate::presentation::validate_id;
 use crate::{
     Presentation, PresentationAction, PresentationBasis, PresentationContentId,
     PresentationDisclosure, PresentationError, PresentationProperty, PresentationRelationship,
-    PresentationSubject, PresentationText,
+    PresentationSubject, PresentationTemporalRole, PresentationText,
 };
 
 pub const MAX_TEMPORAL_REFERENCES: usize = 256;
@@ -22,13 +22,6 @@ pub const MAX_PRESENTATION_TEMPORAL_FACTS: usize = 1_024;
 pub struct TemporalReference {
     pub identity: String,
     pub instant: TemporalInstant,
-}
-
-#[derive(Debug, Copy, Clone, PartialEq, Eq, Serialize, Deserialize)]
-pub enum PresentationTemporalRole {
-    Event,
-    Observation,
-    Ingestion,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
