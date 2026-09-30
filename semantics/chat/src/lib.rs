@@ -11,7 +11,9 @@ mod generated {
     include!(concat!(env!("OUT_DIR"), "/semantic_types.rs"));
 }
 
-pub use generated::{ChatConnectionState, PresenceState};
+pub use generated::{
+    BodyChatHistoryItem, BodyChatMessage, BodyChatRole, ChatConnectionState, PresenceState,
+};
 
 mod body_chat;
 pub use body_chat::*;
@@ -37,7 +39,9 @@ pub use messaging_catalog::*;
 
 #[cfg(test)]
 mod native_type_tests {
-    use super::{ChatConnectionState, PresenceState};
+    use super::{
+        BodyChatHistoryItem, BodyChatMessage, BodyChatRole, ChatConnectionState, PresenceState,
+    };
     use conduit_form::rust_binding::NativeRustBinding;
 
     fn assert_round_trip<T>(value: T)
@@ -59,5 +63,18 @@ mod native_type_tests {
     fn chat_connection_and_presence_are_native_semantic_types() {
         assert_round_trip(ChatConnectionState::Connected);
         assert_round_trip(PresenceState::Away);
+    }
+
+    #[test]
+    fn body_chat_history_is_one_bounded_native_record() {
+        let message = BodyChatMessage::new("hello".into()).unwrap();
+        let item = BodyChatHistoryItem::new(BodyChatRole::Human, message).unwrap();
+        let structured = item.clone().into_structured().unwrap();
+        assert_eq!(
+            BodyChatHistoryItem::from_structured(structured).unwrap(),
+            item
+        );
+        assert!(BodyChatMessage::new(alloc::string::String::new()).is_err());
+        assert!(BodyChatMessage::new("x".repeat(4_097)).is_err());
     }
 }

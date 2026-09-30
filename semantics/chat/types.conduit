@@ -10,3 +10,14 @@ type PresenceState =
     | away
     | offline
     | unknown
+
+type BodyChatRole =
+    human
+    | body
+
+type BodyChatMessage = Text <= 4096B not in [""]
+
+type BodyChatHistoryItem = {
+    role: BodyChatRole
+    text: BodyChatMessage
+}

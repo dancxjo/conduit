@@ -9,8 +9,14 @@ fn main() {
         &StartupCatalog::new(),
     )
     .expect("chat semantic Types must check");
-    let generated = generate_rust_bindings(&checked.native_types, &RustBindingOptions::default())
-        .expect("chat semantic Types must generate exact Rust bindings");
+    let generated = generate_rust_bindings(
+        &checked.native_types,
+        &RustBindingOptions {
+            derive_serde_for_unit_variants: true,
+            ..RustBindingOptions::default()
+        },
+    )
+    .expect("chat semantic Types must generate exact Rust bindings");
     let output = PathBuf::from(env::var_os("OUT_DIR").expect("Cargo supplies OUT_DIR"))
         .join("semantic_types.rs");
     fs::write(output, generated.source).expect("write generated chat bindings");

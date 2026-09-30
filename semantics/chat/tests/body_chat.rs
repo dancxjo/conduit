@@ -77,7 +77,7 @@ fn prompt_uses_bounded_owned_history_and_current_body_truth() {
     }
     assert_eq!(state.history().len(), 4);
     assert!(matches!(
-        state.history().back().unwrap().role,
+        state.history().back().unwrap().role(),
         BodyChatRole::Human
     ));
 }
@@ -190,7 +190,7 @@ fn each_request_binds_the_context_basis_it_consumed_without_erasing_history() {
     assert!(state
         .history()
         .iter()
-        .any(|item| item.text == "Earlier response"));
+        .any(|item| item.text().get() == "Earlier response"));
 }
 
 #[test]

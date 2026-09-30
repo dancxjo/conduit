@@ -290,7 +290,7 @@ mod tests {
         assert!(chat
             .history()
             .iter()
-            .any(|item| item.text == "retained history"));
+            .any(|item| item.text().get() == "retained history"));
     }
 
     #[test]

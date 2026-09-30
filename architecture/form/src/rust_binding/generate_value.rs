@@ -43,6 +43,17 @@ pub(super) fn emit_value_impl(
 
 fn emit_contracts(out: &mut String, rust_name: &str, contracts: &[NativeTypeValueContract]) {
     writeln!(out, "impl {rust_name} {{").expect("String writing is infallible");
+    if let Some(root) = contracts
+        .iter()
+        .find(|contract| contract.representation_path.is_empty())
+    {
+        writeln!(
+            out,
+            "    pub const MAXIMUM_BYTES: usize = {};",
+            root.contract.maximum_bytes
+        )
+        .expect("String writing is infallible");
+    }
     writeln!(
         out,
         "    fn value_contracts() -> Vec<conduit_form::NativeTypeValueContract> {{"
