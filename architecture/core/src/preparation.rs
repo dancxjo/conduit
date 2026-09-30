@@ -390,10 +390,16 @@ pub fn prepare_plan_on_hosts(
                     subordinate_receipts.push((binding.activation_id.clone(), receipt))
                 }
                 Ok(receipt) => {
-                    let _ = hosts[*host_index].release_fragment(&receipt);
+                    let mut rollback_failures = Vec::new();
+                    if let Err(reason) = hosts[*host_index].release_fragment(&receipt) {
+                        rollback_failures.push(PreparationRollbackFailure {
+                            fragment_id: child.fragment_id.clone(),
+                            reason,
+                        });
+                    }
                     let mut all = receipts.clone();
                     all.extend(subordinate_receipts.iter().map(|(_, r)| r.clone()));
-                    let rollback_failures = rollback_receipts(&mut all, hosts);
+                    rollback_failures.extend(rollback_receipts(&mut all, hosts));
                     return Err(PlanPreparationError::InvalidReceipt {
                         fragment_id: child.fragment_id.clone(),
                         rollback_failures,
@@ -431,19 +437,35 @@ pub fn start_prepared_plan(
     for (_, receipt) in &prepared.subordinate_receipts {
         let matching = hosts
             .iter()
-            .filter(|host| host.preparation_identity().host_id == receipt.host().host_id)
+            .enumerate()
+            .filter(|(_, host)| host.preparation_identity().host_id == receipt.host().host_id)
+            .map(|(index, _)| index)
             .collect::<Vec<_>>();
-        let [host] = matching.as_slice() else {
+        let [index] = matching.as_slice() else {
             return Err(PlanPreparationError::StartRefused {
                 fragment_id: receipt.fragment_id().clone(),
                 reason: HostPreparationRefusal::PreparedBindingMismatch,
             });
         };
-        host.validate_start(receipt)
-            .map_err(|reason| PlanPreparationError::StartRefused {
+        let identity = hosts[*index].preparation_identity();
+        if identity.boot_id != receipt.host().boot_id {
+            return Err(PlanPreparationError::StartRefused {
+                fragment_id: receipt.fragment_id().clone(),
+                reason: HostPreparationRefusal::StaleBoot,
+            });
+        }
+        if identity.offer_generation != receipt.host().offer_generation {
+            return Err(PlanPreparationError::StartRefused {
+                fragment_id: receipt.fragment_id().clone(),
+                reason: HostPreparationRefusal::StaleOffer,
+            });
+        }
+        hosts[*index].validate_start(receipt).map_err(|reason| {
+            PlanPreparationError::StartRefused {
                 fragment_id: receipt.fragment_id().clone(),
                 reason,
-            })?;
+            }
+        })?;
     }
     for receipt in &prepared.receipts {
         let matching = hosts

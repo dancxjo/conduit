@@ -18,6 +18,7 @@ struct MultiHost {
     stale_on: Option<usize>,
     preparations: usize,
     releases: usize,
+    release_failure: Option<HostPreparationRefusal>,
 }
 
 impl MultiHost {
@@ -33,6 +34,7 @@ impl MultiHost {
             stale_on: None,
             preparations: 0,
             releases: 0,
+            release_failure: None,
         }
     }
 }
@@ -63,6 +65,9 @@ impl PlanPreparationHost for MultiHost {
         &mut self,
         receipt: &PreparedFragmentReceipt,
     ) -> Result<(), HostPreparationRefusal> {
+        if let Some(reason) = self.release_failure {
+            return Err(reason);
+        }
         let index = self
             .prepared
             .iter()
@@ -191,6 +196,54 @@ fn subordinate_fragments_are_prepared_and_rollback_atomically() {
     ));
     assert!(stale.prepared.is_empty());
     assert_eq!(stale.releases, 2);
+}
+
+#[test]
+fn subordinate_start_refuses_stale_boot_and_offer_before_any_play() {
+    let plan = activation_plan();
+    let mut stale_boot = MultiHost::new();
+    let prepared = prepare_plan_on_hosts(&plan, &mut [&mut stale_boot]).unwrap();
+    let child = prepared.subordinate_receipts()[0].1.fragment_id().clone();
+    stale_boot.identity.boot_id = BootId::from("new-boot");
+    assert!(matches!(
+        start_prepared_plan(prepared, &mut [&mut stale_boot]),
+        Err(PlanPreparationError::StartRefused {
+            fragment_id,
+            reason: HostPreparationRefusal::StaleBoot,
+        }) if fragment_id == child
+    ));
+
+    let mut stale_offer = MultiHost::new();
+    let prepared = prepare_plan_on_hosts(&plan, &mut [&mut stale_offer]).unwrap();
+    let child = prepared.subordinate_receipts()[0].1.fragment_id().clone();
+    stale_offer.identity.offer_generation = OfferGeneration(2);
+    assert!(matches!(
+        start_prepared_plan(prepared, &mut [&mut stale_offer]),
+        Err(PlanPreparationError::StartRefused {
+            fragment_id,
+            reason: HostPreparationRefusal::StaleOffer,
+        }) if fragment_id == child
+    ));
+}
+
+#[test]
+fn invalid_subordinate_receipt_preserves_its_release_refusal() {
+    let plan = activation_plan();
+    let mut host = MultiHost::new();
+    host.stale_on = Some(2);
+    host.release_failure = Some(HostPreparationRefusal::LocalFailure(
+        conduit_core::FailureReason::ResourceCapacityExceeded,
+    ));
+    assert!(matches!(
+        prepare_plan_on_hosts(&plan, &mut [&mut host]),
+        Err(PlanPreparationError::InvalidReceipt {
+            rollback_failures,
+            ..
+        }) if rollback_failures.iter().any(|failure| failure.reason
+            == HostPreparationRefusal::LocalFailure(
+                conduit_core::FailureReason::ResourceCapacityExceeded
+            ))
+    ));
 }
 
 #[test]
