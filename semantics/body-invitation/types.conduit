@@ -1,0 +1,5 @@
+# Portable Body invitation presentation meaning. Rust consumes generated bindings.
+
+type InvitationPresentationRefusal =
+    invalid-invitation
+    | presentation
