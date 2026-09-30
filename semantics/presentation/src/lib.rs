@@ -11,6 +11,16 @@
 
 extern crate alloc;
 
+#[allow(dead_code)]
+mod generated {
+    include!(concat!(env!("OUT_DIR"), "/semantic_types.rs"));
+}
+pub use generated::{
+    AdmittedNavigationDestination, ChoiceMultiplicity, EvidenceDisposition,
+    FaceUtteranceClauseKind, PresentationDisclosureLevel, PresentationMechanismKind,
+    PresentationTemporalRole, StatusKind,
+};
+
 mod application_event;
 mod application_theme;
 mod application_view;

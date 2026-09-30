@@ -5,8 +5,9 @@
 //! concrete manifestation of the resulting finite `ApplicationView`.
 
 use crate::{
-    ApplicationAction, ApplicationComponent, ApplicationEventKind, ApplicationNodeState,
-    ApplicationView, ApplicationViewNode, ApplicationViewRefusal,
+    AdmittedNavigationDestination, ApplicationAction, ApplicationComponent, ApplicationEventKind,
+    ApplicationNodeState, ApplicationView, ApplicationViewNode, ApplicationViewRefusal,
+    ChoiceMultiplicity, EvidenceDisposition, PresentationMechanismKind, StatusKind,
 };
 use alloc::{string::String, vec::Vec};
 
@@ -23,36 +24,6 @@ use evidence_lowering::{
 use form_lowering::{lower_form_field, progress_node};
 use mechanism_lowering::{action_node, titled};
 use structure_lowering::structural_node;
-
-/// Stable identities for the shared application-presentation vocabulary.
-#[derive(Clone, Copy, Debug, Eq, PartialEq)]
-pub enum PresentationMechanismKind {
-    Shell,
-    Workbench,
-    Panel,
-    Heading,
-    Separator,
-    Grid,
-    ActionGroup,
-    Action,
-    Status,
-    Disclosure,
-    Evidence,
-    DefinitionTable,
-    Definition,
-    CodeBlock,
-    FormField,
-    ChoiceGroup,
-    Navigation,
-    NavigationLink,
-    Link,
-    Stepper,
-    Progress,
-    Artifact,
-    Download,
-    DeviceChoice,
-    PatchbayCanvas,
-}
 
 impl PresentationMechanismKind {
     pub const fn identity(self) -> &'static str {
@@ -84,23 +55,6 @@ impl PresentationMechanismKind {
             Self::PatchbayCanvas => "conduit.presentation/patchbay-canvas@1",
         }
     }
-}
-
-#[derive(Clone, Copy, Debug, Eq, PartialEq)]
-pub enum StatusKind {
-    Ordinary,
-    Warning,
-    Failure,
-    Success,
-}
-
-#[derive(Clone, Copy, Debug, Eq, PartialEq)]
-pub enum EvidenceDisposition {
-    Missing,
-    Stale,
-    Refused,
-    Failed,
-    Succeeded,
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -139,27 +93,12 @@ pub struct SemanticAction {
 mod form_field;
 pub use form_field::{FieldKind, FormField, SelectOption};
 
-#[derive(Clone, Copy, Debug, Eq, PartialEq)]
-pub enum ChoiceMultiplicity {
-    Independent,
-    Exclusive,
-}
-
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct ChoiceOption {
     pub identity: String,
     pub label: String,
     pub selected: bool,
     pub change_action: SemanticAction,
-}
-
-#[derive(Clone, Copy, Debug, Eq, PartialEq)]
-pub enum AdmittedNavigationDestination {
-    Home,
-    Tour,
-    Creche,
-    Patchbay,
-    Source,
 }
 
 impl AdmittedNavigationDestination {

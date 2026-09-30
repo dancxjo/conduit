@@ -16,6 +16,9 @@ conduit-form = { path = "../../architecture/form" }
 conduit-planner = { path = "../../architecture/planner" }
 serde_json = "1"
 
+[build-dependencies]
+conduit-form = { path = "../../architecture/form" }
+
 [features]
 default = ["form-catalog"]
 form-catalog = ["dep:conduit-form"]
