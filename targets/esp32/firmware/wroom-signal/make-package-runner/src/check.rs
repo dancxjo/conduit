@@ -5,7 +5,7 @@ use std::{
 };
 
 use conduit_host_esp32_make::Esp32MakePackage;
-use conduit_host_make::{MakeContribution, HostMakePackage};
+use conduit_host_make::{HostMakePackage, MakeContribution};
 use serde::Serialize;
 
 use crate::{
@@ -127,10 +127,7 @@ pub fn run(args: Args) -> Result<(), Box<dyn std::error::Error>> {
     if args.json {
         println!("{}", serde_json::to_string(&receipt)?);
     } else if !args.quiet {
-        println!(
-            "ESP32 MAKE PACKAGE CHECKED: {}",
-            args.receipt.display()
-        );
+        println!("ESP32 MAKE PACKAGE CHECKED: {}", args.receipt.display());
     }
     Ok(())
 }

@@ -4,8 +4,7 @@ use serde::{Deserialize, Serialize};
 
 use crate::selection::{base_labels, FeatureProjection};
 
-pub const DESCRIPTOR_RELATIVE_PATH: &str =
-    "targets/esp32/firmware/wroom-signal/make-package.json";
+pub const DESCRIPTOR_RELATIVE_PATH: &str = "targets/esp32/firmware/wroom-signal/make-package.json";
 pub const PACKAGE_RELATIVE_PATH: &str = "targets/esp32/firmware/wroom-signal";
 
 #[derive(Debug, Clone, Deserialize, Serialize)]
