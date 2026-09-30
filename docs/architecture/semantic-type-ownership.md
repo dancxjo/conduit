@@ -114,10 +114,32 @@ stated separately rather than treating the entire crate as portable data.
 
 | Scope | Classification |
 |---|---|
-| `semantics/ai/**` | Request/result, finite probability, retrieval, grounding, model-description, training-description, relation, citation and typed terminal families that cross Fores are P. Provider sessions, caches, mutable model state, compute offers/runtime identities, vector-index handles/authority, prepared search, lifecycle controllers and host integration are M or R. Provider protocol payloads and model artifact formats are W. Candidate-Form/checker records and fixtures are C. Remaining work is Fore-by-Fore classification plus bounded payload generation; no language or binding prerequisite remains. |
+| `semantics/ai/**` | Request/result, finite probability, retrieval, grounding, model-description, training-description, relation, citation and typed terminal families that cross Fores are P. Provider sessions, caches, mutable model state, compute offers/runtime identities, vector-index handles/authority, prepared search, lifecycle controllers and host integration are M or R. Provider protocol payloads and model artifact formats are W. Candidate-Form/checker records and fixtures are C. Remaining portable families and their exact blockers are enumerated below; no unclassified AI family remains. |
 | `semantics/alife/**` | Field/cell/parameter/boundary/partition/work/result values are P. Engines, workers, assemblers and distributed realization state are M. Chunk/line transfer frames are W. Remaining migration depends on bounded-array generation and exact payload review. |
 | `semantics/catalog/**` | Catalog installers, `*KindContract`, `*Back`, `Prepared*`, fixtures and conformance helpers are C or M. Domain values currently declared here—navigation goals/poses/routes/trajectories, image/text records, jobs, education/schedule/vision values, garden observations/state, button attempts, palette/pixel regions and typed terminal outcomes—are P and must move to domain-owned `.conduit` source. |
 | `semantics/system-continuity/**` | Reboot request/decision/denial and transition causes exposed through reviewed Fores are P. Host instances, assignments, grants, replacement observations, progress state and acceptance receipts are R. Persistence/wire records are W. |
+
+### AI ownership completion
+
+Every remaining public AI family has a named owner. Portable families remain
+eligible for migration; the blocker column names the missing source construct
+or upstream semantic dependency rather than treating handwritten Rust as
+authority.
+
+| Remaining family | Class | Exact blocker or retained owner |
+|---|---|---|
+| Context selection, grounding, interpretation, probability, RAG, relation, reranking, structured-result, temporal and vector request/result records | P | bounded collection fields and fixed digest/byte-array Types must be expressible without weakening their current maxima or exact lengths |
+| Generic retrieval and vector families (`StageCandidate<T>`, `RetrievalStage<T>`, `HybridCandidate<T>`, `HybridRetrievalOutcome<T>`, `VectorRecord<T>`, `SimilarityHit<T>`, `VectorSearchValue<T>`) | P | authored generic native Types and generated generic bindings |
+| Tensor, sampled-signal, dataset, temporal-zone and scheduled-intent payloads | P with external P dependencies | exact native imports for the owning data/time Types; AI must not counterfeit them locally |
+| Float-bearing probability, vector and dynamics values | P | explicit finite/non-finite scalar law and generated equality behavior matching the current semantic contract |
+| Boxed relation, training and dynamics outcome trees | P/R boundary | reviewed finite indirection for portable payloads; Host candidates, receipts and realization facts remain R/M |
+| Source-extraction receipt proof text | R evidence | current `&'static str` proof-class representation must become a bounded semantic vocabulary before any portable projection |
+| Local-model and model-compute offers, sessions, runtime identities and cache policy | M/R | Host offer, admission and active realization truth |
+| Vector-index handles, authorization, mutable state, mutations and maintenance receipts | R | resource authority, generation and execution evidence |
+| Cross-host lifecycle, training lifecycle, Host step/candidate/receipt, integration realization and proposal-gate authority families | R/M | Plan, play, authority, active-instance or Host execution truth |
+| Form composition candidate and refusal families | C | contain checked/expanded Form compiler representations |
+| Provider HTTP/evidence/failure families and explicit codec modules | M/W | provider realization or named byte-protocol ownership |
+| Kind/Fore contract descriptor modules and conformance fixtures | C | compiler/catalog declarations and proof fixtures, not carried Info |
 
 ## Mechanisms, products, and targets
 
