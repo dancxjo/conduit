@@ -35,13 +35,13 @@ pub fn body_chat_prompt_std_offer() -> CapabilityOffer {
             host_calls: vec![
                 operation(
                     BODY_CHAT_MESSAGE_OPERATION,
-                    conduit_chat::MAXIMUM_BODY_CHAT_MESSAGE_BYTES as u32,
+                    conduit_chat::BodyChatMessage::MAXIMUM_BYTES as u32,
                     conduit_chat::MAXIMUM_BODY_CHAT_PROMPT_BYTES as u32,
                 ),
                 operation(
                     BODY_CHAT_RESPONSE_OPERATION,
-                    conduit_chat::MAXIMUM_BODY_CHAT_MESSAGE_BYTES as u32,
-                    conduit_chat::MAXIMUM_BODY_CHAT_MESSAGE_BYTES as u32,
+                    conduit_chat::BodyChatMessage::MAXIMUM_BYTES as u32,
+                    conduit_chat::BodyChatMessage::MAXIMUM_BYTES as u32,
                 ),
                 operation(
                     BODY_CHAT_CONTEXT_OPERATION,

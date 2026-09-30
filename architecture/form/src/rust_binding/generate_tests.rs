@@ -89,6 +89,7 @@ fn generation_is_deterministic_and_keeps_rust_spelling_out_of_identity() {
         serde_unit_variants.semantic_type_bytes
     );
     assert!(plain.source.contains("pub struct Note(u8);"));
+    assert!(plain.source.contains("pub const MAXIMUM_BYTES: usize = 1;"));
     assert!(plain.source.contains("pub struct Position {"));
     assert!(plain.source.contains("pub struct Observation {"));
     assert!(plain.source.contains("pub enum MusicEvent {"));

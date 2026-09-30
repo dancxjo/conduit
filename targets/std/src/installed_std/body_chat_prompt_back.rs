@@ -73,7 +73,7 @@ impl<const PORTS: usize> StepBack<PORTS> for BodyChatPromptBack {
             let maximum = if port == 2 {
                 conduit_chat::MAXIMUM_BODY_CHAT_CONTEXT_BYTES
             } else {
-                conduit_chat::MAXIMUM_BODY_CHAT_MESSAGE_BYTES
+                conduit_chat::BodyChatMessage::MAXIMUM_BYTES
             } as u32;
             let Ok(input) = BoundedValueRef::new(value, maximum) else {
                 return step_fail(FailureCode::InvalidInput, 1);
@@ -221,7 +221,7 @@ fn budget(placement: &PlannedGear) -> Result<BackBudget, String> {
     Ok(BackBudget {
         value_items: 2,
         value_bytes: (conduit_chat::MAXIMUM_BODY_CHAT_PROMPT_BYTES
-            + conduit_chat::MAXIMUM_BODY_CHAT_MESSAGE_BYTES) as u32,
+            + conduit_chat::BodyChatMessage::MAXIMUM_BYTES) as u32,
         host_requests: 3,
         sign_items: 32,
         maximum_value_bytes: conduit_chat::MAXIMUM_BODY_CHAT_CONTEXT_BYTES as u32,
