@@ -180,16 +180,7 @@ impl WheelDropObservation {
     }
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
-#[repr(u8)]
-pub enum ChargingState {
-    NotCharging = 0,
-    Reconditioning = 1,
-    Full = 2,
-    Trickle = 3,
-    Waiting = 4,
-    Fault = 5,
-}
+use crate::ChargingState;
 
 impl TryFrom<u8> for ChargingState {
     type Error = InfoDecodeError;
@@ -203,6 +194,19 @@ impl TryFrom<u8> for ChargingState {
             4 => Ok(Self::Waiting),
             5 => Ok(Self::Fault),
             other => Err(InfoDecodeError::NonCanonicalEnum(other)),
+        }
+    }
+}
+
+impl ChargingState {
+    pub const fn wire_tag(self) -> u8 {
+        match self {
+            Self::NotCharging => 0,
+            Self::Reconditioning => 1,
+            Self::Full => 2,
+            Self::Trickle => 3,
+            Self::Waiting => 4,
+            Self::Fault => 5,
         }
     }
 }
@@ -244,7 +248,7 @@ impl ChargingObservation {
         let charge = self.charge_mah.to_le_bytes();
         let capacity = self.capacity_mah.to_le_bytes();
         [
-            self.state as u8,
+            self.state.wire_tag(),
             self.sources,
             voltage[0],
             voltage[1],

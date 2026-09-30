@@ -2,6 +2,13 @@
 
 extern crate alloc;
 
+#[allow(dead_code)]
+mod generated {
+    include!(concat!(env!("OUT_DIR"), "/semantic_types.rs"));
+}
+
+pub use generated::{BeaconKind, ChargingState};
+
 mod hazard_info;
 mod info;
 mod input_info;
