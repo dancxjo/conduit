@@ -154,17 +154,21 @@ pub fn provider_http_request(
     json: &[u8],
 ) -> Result<HttpRequest, ProviderFailure> {
     let request = HttpRequest {
-        transaction_id: HttpTransactionId(transaction_id),
+        transaction_id: HttpTransactionId::new(transaction_id)
+            .map_err(|_| ProviderFailure::ProviderProtocol)?,
         method: HttpMethod::Post,
-        target: HttpTarget {
-            scheme: "https".into(),
-            authority: authority.into(),
-            path_and_query: path_and_query.into(),
-        },
-        headers: vec![HttpHeader {
-            name: "content-type".into(),
-            value: b"application/json".to_vec(),
-        }],
+        target: HttpTarget::new(
+            authority.into(),
+            path_and_query.into(),
+            conduit_web::HttpScheme::Https,
+        )
+        .map_err(|_| ProviderFailure::ProviderProtocol)?,
+        headers: vec![HttpHeader::new(
+            "content-type".into(),
+            conduit_form::rust_binding::BoundedBytes::new(b"application/json")
+                .ok_or(ProviderFailure::ProviderProtocol)?,
+        )
+        .map_err(|_| ProviderFailure::ProviderProtocol)?],
         body: conduit_web::HttpBody::inline(json.to_vec()),
     };
     request

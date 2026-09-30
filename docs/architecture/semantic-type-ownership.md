@@ -98,7 +98,7 @@ families are explicit exceptions.
 | `semantics/text/**` | addresses, Morse patterns/segments/transitions and text configuration values | interpreters are M; Kind contracts are C; provider errors remain M unless exported as a typed terminal | bounded text records, payload variants and terminal review |
 | `semantics/time/**` | instants, intervals, civil recurrence, calendar/reminder/meeting values, replay commands/results, temporal windows and policies | stores/controllers and `*Back` executors are M; codec forms are W; Kind configuration/checker contracts are C | payload-bearing recurrence, calendar and replay families |
 | `semantics/tongues/**` | acoustic/utterance/speech values, recognition results, language evidence and finite research result values when they cross reviewed Fores | recognizers, committers and training machinery are M; dataset/model file representations are W; research harness reports are C unless intentionally exported | Fore-by-Fore ownership review and bounded payload generation |
-| `semantics/web/**` | HTTP method/target/header/request/response/body and bounded JSON meaning | server transaction machinery is M; HTTP/JSON byte codecs are W; Kind contracts are C | bounded headers/bodies, request/response records and JSON payloads |
+| `semantics/web/**` | HTTP method/target/header/request/response/body and bounded JSON meaning | server transaction machinery is M; HTTP/JSON byte codecs are W; Kind contracts are C | request/response/body records and JSON payloads |
 
 ### Mixed research and catalog crates
 
@@ -143,6 +143,7 @@ are satisfied.
 | AI randomness, draw relationship, probability disposition, log-score and refusal vocabularies | `semantics/ai/types.conduit` | generated at build time | yes | yes | exact native round trips plus probability, relation, dynamics and training suites |
 | Robotics beacon/charging, chat connection/presence, HTTP method/failures | domain `types.conduit` sources | generated at build time | yes | yes | exact native round trips plus std/no-std domain suites |
 | HTTP contract refusal vocabulary | `semantics/web/types.conduit` | generated at build time | yes | yes | exact native round trips plus HTTP codec and hosted-HTTP suites |
+| HTTP scheme, transaction identity, bounded target and bounded header | `semantics/web/types.conduit` | generated at build time | yes | yes | exact native round trips plus HTTP codec, AI provider, hosted, isolated and ConduitOS consumer suites |
 | Body Chat role, bounded message and history record | `semantics/chat/types.conduit` | generated at build time | yes | yes | exact native round trip plus Chat, prompt and std Host suites |
 | Chat presentation-state and Body Chat refusal vocabularies | `semantics/chat/types.conduit` | generated at build time | yes | yes | exact native round trips plus presentation, prompt and codec suites |
 | Network transport, DNS record/TTL, application refusal, transcript direction and terminal facts | `semantics/net/types.conduit` | generated at build time | yes | yes | exact native round trips plus explicit terminal compatibility codec, network, browser and std Host suites |

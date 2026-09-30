@@ -49,7 +49,12 @@ pub fn run_adversarial_http_proof(
         capability(fragment, placement, play.identity(), &replacement).is_err();
 
     let mut wrong_request = exact_request.clone();
-    wrong_request.target.authority = sibling_authority.into();
+    wrong_request.target = conduit_web::HttpTarget::new(
+        sibling_authority.into(),
+        wrong_request.target.path_and_query().clone(),
+        *wrong_request.target.scheme(),
+    )
+    .map_err(|error| format!("construct adversarial HTTP target: {error:?}"))?;
     let (endpoint_issue, endpoint_claim) =
         capability(fragment, placement, play.identity(), config)?;
     let wrong_authority_refused_at_provider =

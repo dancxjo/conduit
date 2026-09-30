@@ -47,6 +47,9 @@ Their presence is not an additional physical or release acceptance claim:
   ECMAScript consume the same checked declaration. Broader semantic algebra
   and migration of the audited handwritten domain codecs remain open under
   #4431 and #4382.
+  HTTP scheme, transaction identity, target and header meaning are likewise
+  native declarations; hosted and ConduitOS HTTP code consumes generated
+  bindings while its HTTP/1.1 bytes remain an external adapter contract.
 
 - **Conduitese terminal contracts (#4109):** a Fore port retains its ordinary
   value kind, temporal modality, and optional exact abnormal-terminal kind as

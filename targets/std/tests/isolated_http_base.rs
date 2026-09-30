@@ -237,13 +237,10 @@ fn plan(
 
 fn request(authority: &str, path: &str) -> HttpRequest {
     HttpRequest {
-        transaction_id: HttpTransactionId(7),
+        transaction_id: HttpTransactionId::new(7).unwrap(),
         method: HttpMethod::Get,
-        target: HttpTarget {
-            scheme: "http".into(),
-            authority: authority.into(),
-            path_and_query: path.into(),
-        },
+        target: HttpTarget::new(authority.into(), path.into(), conduit_web::HttpScheme::Http)
+            .unwrap(),
         headers: Vec::new(),
         body: HttpBody::inline(Vec::new()),
     }

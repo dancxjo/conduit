@@ -40,7 +40,7 @@ impl HostedHttpClient {
         if self.active == self.maximum_in_flight {
             return Err(HttpExchangeFailure::Capacity);
         }
-        if request.target.scheme != "http" {
+        if request.target.scheme() != &conduit_web::HttpScheme::Http {
             return Err(HttpExchangeFailure::Tls);
         }
         self.active += 1;
@@ -51,7 +51,7 @@ impl HostedHttpClient {
 }
 
 fn exchange(request: &HttpRequest) -> Result<HttpResponse, HttpExchangeFailure> {
-    let address = resolve_authority(&request.target.authority)?;
+    let address = resolve_authority(request.target.authority())?;
     let mut stream = TcpStream::connect_timeout(&address, IO_TIMEOUT)
         .map_err(|_| HttpExchangeFailure::Connect)?;
     stream
@@ -65,7 +65,7 @@ fn exchange(request: &HttpRequest) -> Result<HttpResponse, HttpExchangeFailure> 
     stream
         .flush()
         .map_err(|_| HttpExchangeFailure::ProviderLost)?;
-    wire::read_response(&mut stream, request.transaction_id)
+    wire::read_response(&mut stream, request.transaction_id.clone())
 }
 
 fn resolve_authority(authority: &str) -> Result<SocketAddr, HttpExchangeFailure> {
@@ -120,14 +120,15 @@ impl HostedHttpListener {
             .set_read_timeout(Some(IO_TIMEOUT))
             .and_then(|()| stream.set_write_timeout(Some(IO_TIMEOUT)))
             .map_err(|_| HttpServerResponseRefusal::ListenerLost)?;
-        let transaction_id = HttpTransactionId(self.next_transaction);
+        let transaction_id = HttpTransactionId::new(self.next_transaction)
+            .map_err(|_| HttpServerResponseRefusal::Capacity)?;
         self.next_transaction = self
             .next_transaction
             .checked_add(1)
             .ok_or(HttpServerResponseRefusal::Capacity)?;
-        let request =
-            wire::read_request(&mut stream, transaction_id).map_err(map_server_wire_failure)?;
-        self.transactions.admit_request(transaction_id)?;
+        let request = wire::read_request(&mut stream, transaction_id.clone())
+            .map_err(map_server_wire_failure)?;
+        self.transactions.admit_request(transaction_id.clone())?;
         self.pending.push(PendingConnection {
             transaction_id,
             stream,
@@ -145,7 +146,8 @@ impl HostedHttpListener {
             }
             _ => HttpServerResponseRefusal::ResponseHeaderOverflow,
         })?;
-        self.transactions.accept_response(response.transaction_id)?;
+        self.transactions
+            .accept_response(response.transaction_id.clone())?;
         let index = self
             .pending
             .iter()
@@ -164,7 +166,7 @@ impl HostedHttpListener {
         &mut self,
         transaction_id: HttpTransactionId,
     ) -> Result<(), HttpServerResponseRefusal> {
-        self.transactions.cancel(transaction_id)?;
+        self.transactions.cancel(transaction_id.clone())?;
         if let Some(index) = self
             .pending
             .iter()
@@ -208,10 +210,11 @@ mod tests {
                 .send_response(&HttpResponse {
                     transaction_id: request.transaction_id,
                     status: 503,
-                    headers: vec![HttpHeader {
-                        name: "content-type".into(),
-                        value: b"text/plain".to_vec(),
-                    }],
+                    headers: vec![HttpHeader::new(
+                        "content-type".into(),
+                        conduit_form::rust_binding::BoundedBytes::new(b"text/plain").unwrap(),
+                    )
+                    .unwrap()],
                     body: conduit_web::HttpBody::inline(b"still HTTP data".to_vec()),
                 })
                 .unwrap();
@@ -219,19 +222,20 @@ mod tests {
         let mut client = HostedHttpClient::new(1).unwrap();
         let response = client
             .exchange(&HttpRequest {
-                transaction_id: HttpTransactionId(77),
+                transaction_id: HttpTransactionId::new(77).unwrap(),
                 method: HttpMethod::Post,
-                target: HttpTarget {
-                    scheme: "http".into(),
-                    authority: address.to_string(),
-                    path_and_query: "/fixture".into(),
-                },
+                target: HttpTarget::new(
+                    address.to_string(),
+                    "/fixture".into(),
+                    conduit_web::HttpScheme::Http,
+                )
+                .unwrap(),
                 headers: Vec::new(),
                 body: conduit_web::HttpBody::inline(b"bounded".to_vec()),
             })
             .unwrap();
         server.join().unwrap();
-        assert_eq!(response.transaction_id, HttpTransactionId(77));
+        assert_eq!(response.transaction_id, HttpTransactionId::new(77).unwrap());
         assert_eq!(response.status, 503);
         assert_eq!(
             response.body.as_inline(),
@@ -242,30 +246,32 @@ mod tests {
     #[test]
     fn unsupported_tls_and_unreachable_provider_are_distinct() {
         let mut client = HostedHttpClient::new(1).unwrap();
-        let request = |scheme: &str, authority: String| HttpRequest {
-            transaction_id: HttpTransactionId(1),
+        let request = |scheme: conduit_web::HttpScheme, authority: String| HttpRequest {
+            transaction_id: HttpTransactionId::new(1).unwrap(),
             method: HttpMethod::Get,
-            target: HttpTarget {
-                scheme: scheme.into(),
-                authority,
-                path_and_query: "/".into(),
-            },
+            target: HttpTarget::new(authority, "/".into(), scheme).unwrap(),
             headers: Vec::new(),
             body: conduit_web::HttpBody::inline(Vec::new()),
         };
         assert_eq!(
-            client.exchange(&request("https", "example.test:443".into())),
+            client.exchange(&request(
+                conduit_web::HttpScheme::Https,
+                "example.test:443".into()
+            )),
             Err(HttpExchangeFailure::Tls)
         );
         let unavailable = TcpListener::bind((std::net::Ipv4Addr::LOCALHOST, 0)).unwrap();
         let authority = unavailable.local_addr().unwrap().to_string();
         drop(unavailable);
         assert_eq!(
-            client.exchange(&request("http", authority)),
+            client.exchange(&request(conduit_web::HttpScheme::Http, authority)),
             Err(HttpExchangeFailure::Connect)
         );
         assert_eq!(
-            client.exchange(&request("http", "not a socket authority".into())),
+            client.exchange(&request(
+                conduit_web::HttpScheme::Http,
+                "not a socket authority".into()
+            )),
             Err(HttpExchangeFailure::NameResolution)
         );
     }
