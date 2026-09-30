@@ -90,6 +90,25 @@ fn representation_is_named_bounded_and_distinct_from_type_identity() {
 }
 
 #[test]
+fn representation_iota_may_start_at_an_explicit_u8_value() {
+    let checked = check(
+        "type Outcome =\n    ready\n    | refused\n\nrepresentation test/outcome = Outcome as u8 from 1\n",
+    );
+    let mappings = &checked.representations[0].mappings;
+    assert_eq!(mappings[0].discriminant, 1);
+    assert_eq!(mappings[1].discriminant, 2);
+}
+
+#[test]
+fn representation_iota_refuses_u8_overflow() {
+    let parsed = parse_syntax_document(
+        "type Outcome =\n    ready\n    | refused\n\nrepresentation test/outcome = Outcome as u8 from 255\n",
+    );
+    let error = check_syntax_document(&parsed, &catalog()).unwrap_err();
+    assert!(error.message.contains("iota exceeds 255"));
+}
+
+#[test]
 fn representation_mapping_changes_compatibility_not_semantic_type_identity() {
     let first = check(REPRESENTED_OUTCOME);
     let second = check("type Outcome =\n    ready\n    | refused\n\nrepresentation test/outcome = Outcome as u8\n    refused\n    ready\n");
