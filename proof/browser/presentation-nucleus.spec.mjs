@@ -178,7 +178,7 @@ test("semantic product and same-site links retain exact bounded destinations wit
   await expect(link).toHaveAttribute("href", "/conduit/workspace/");
   await expect(link).toHaveAttribute("aria-current", "page");
   const handoff = page.locator('#same-site-link-proof [data-application-key="handoff"]');
-  await expect(handoff).toHaveAttribute("href", /\/conduit\/creche\/\?form=memory_lantern$/u);
+  await expect(handoff).toHaveAttribute("href", /\/conduit\/workspace\/\?form=memory_lantern$/u);
   expect(await handoff.evaluate((element) => element.onclick)).toBeNull();
   expect(await page.evaluate(() => globalThis.__sameSiteLinkRefusal)).toBe("invalid-control-value");
 });
