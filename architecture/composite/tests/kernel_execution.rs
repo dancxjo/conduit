@@ -1,8 +1,8 @@
 use conduit_composite::{
     BoundedActivationAdmission, BoundedActivationHost, BoundedActivationState,
-    BoundedFoldActivationHost, BoundedFoldState, KernelCompositeDefinition, KernelCompositeError,
-    KernelCompositeHost, KernelCompositeStatus, KernelOperationBudget, KernelOperationFactory,
-    KernelOperationRegistry,
+    BoundedFoldActivationHost, BoundedFoldState, BoundedScanActivationHost, BoundedScanAdmission,
+    BoundedScanState, KernelCompositeDefinition, KernelCompositeError, KernelCompositeHost,
+    KernelCompositeStatus, KernelOperationBudget, KernelOperationFactory, KernelOperationRegistry,
 };
 use conduit_core::{
     kind_id, process_owned_line_offer, ArtifactId, BaseImplementationId, BootId, CapabilityId,
@@ -10,8 +10,10 @@ use conduit_core::{
     ImplementationId, KindIdentity, OfferGeneration, PlacementId, PlannedActivation,
     PlannedActivationCancellationPolicy, PlannedActivationFront, PlannedActivationLimits,
     PlannedActivationTerminalPolicy, PlannedFoldAbnormalPolicy, PlannedFoldActivation,
-    PlannedFoldCancellationPolicy, PlannedFoldTerminalPolicy, PlannedGear, PortDescriptor,
-    PortDirection, SignStorageBudget, ValuePayload, PROTOCOL_VERSION,
+    PlannedFoldCancellationPolicy, PlannedFoldTerminalPolicy, PlannedGear,
+    PlannedScanAbnormalPolicy, PlannedScanActivation, PlannedScanCancellationPolicy,
+    PlannedScanTerminalPolicy, PortDescriptor, PortDirection, SignStorageBudget, ValuePayload,
+    PROTOCOL_VERSION,
 };
 use conduit_form::{parse, KindProjection, ProfileCatalog};
 use conduit_kernel::scheduler::{StepBack, StepInputBytes, StepIo, StepOutcome};
@@ -564,6 +566,145 @@ fn bounded_fold_abnormal_and_cancel_discard_without_partial_value() {
     host.terminate_input(terminal.clone()).unwrap();
     assert_eq!(*host.step().unwrap(), BoundedFoldState::Abnormal(terminal));
     assert_eq!(host.final_value().unwrap(), None);
+}
+
+fn planned_scan(
+    definition: &KernelCompositeDefinition,
+    maximum_items: u16,
+) -> PlannedScanActivation {
+    let fold = planned_fold(definition);
+    PlannedScanActivation {
+        activation_id: "flow/scan-combine".into(),
+        owner_placement_id: PlacementId::from("flow/scan"),
+        selected_plan_id: fold.selected_plan_id,
+        selected_plan: fold.selected_plan,
+        accumulator_input: fold.accumulator_input,
+        item_input: fold.item_input,
+        output: fold.output,
+        initial_accumulator: fold.initial_accumulator,
+        retained_accumulator_bytes: fold.retained_accumulator_bytes,
+        retained_item_bytes: fold.retained_item_bytes,
+        limits: PlannedActivationLimits {
+            maximum_items,
+            ..fold.limits
+        },
+        terminal_policy: PlannedScanTerminalPolicy::DrainThenCloseWithoutExtraEmission,
+        abnormal_policy: PlannedScanAbnormalPolicy::DiscardAccumulatorAndPropagateExact,
+        cancellation_policy: PlannedScanCancellationPolicy::DiscardAccumulatorWithoutEmission,
+        effect_multiplicity: fold.effect_multiplicity,
+        per_activation_sign_budget: fold.per_activation_sign_budget,
+    }
+}
+
+fn drain_scan_output(host: &mut BoundedScanActivationHost) -> ValuePayload {
+    for _ in 0..128 {
+        if *host.step().unwrap() == BoundedScanState::OutputReady {
+            break;
+        }
+    }
+    let mut output = ValuePayload {
+        value_kind: kind_id(VALUE_KIND),
+        encoded: Vec::with_capacity(16),
+    };
+    assert!(host.output_into(&mut output).unwrap());
+    host.complete_output().unwrap();
+    output
+}
+
+#[test]
+fn bounded_scan_repeated_n_emits_each_progression_without_growth_or_extra_values() {
+    let definition = fold_definition();
+    let mut host = BoundedScanActivationHost::prepare(
+        &planned_scan(&definition, 2),
+        definition,
+        &fold_registry(),
+    )
+    .unwrap();
+    let pools = host.allocation_capacities();
+    let storage = host.storage_capacities();
+    assert!(!host.output_into(&mut value(b"")).unwrap());
+    assert_eq!(
+        host.admit(&value(b"1")).unwrap(),
+        BoundedScanAdmission::Accepted
+    );
+    assert_eq!(drain_scan_output(&mut host), value(b"1"));
+    assert_eq!(
+        host.admit(&value(b"2")).unwrap(),
+        BoundedScanAdmission::Accepted
+    );
+    assert_eq!(drain_scan_output(&mut host), value(b"2"));
+    assert_eq!(host.allocation_capacities(), pools);
+    assert_eq!(host.storage_capacities(), storage);
+    assert_eq!(
+        host.admit(&value(b"3")).unwrap(),
+        BoundedScanAdmission::MaximumItemsExceeded { maximum_items: 2 }
+    );
+    host.close_input().unwrap();
+    assert_eq!(*host.step().unwrap(), BoundedScanState::Complete);
+    assert!(!host.output_into(&mut value(b"")).unwrap());
+}
+
+#[test]
+fn bounded_scan_distinguishes_pressure_from_n_plus_one() {
+    let definition = fold_definition();
+    let mut host = BoundedScanActivationHost::prepare(
+        &planned_scan(&definition, 3),
+        definition,
+        &fold_registry(),
+    )
+    .unwrap();
+    assert_eq!(
+        host.admit(&value(b"1")).unwrap(),
+        BoundedScanAdmission::Accepted
+    );
+    assert_eq!(
+        host.admit(&value(b"2")).unwrap(),
+        BoundedScanAdmission::Accepted
+    );
+    assert_eq!(
+        host.admit(&value(b"3")).unwrap(),
+        BoundedScanAdmission::Full
+    );
+    assert_eq!(drain_scan_output(&mut host), value(b"1"));
+    assert_eq!(drain_scan_output(&mut host), value(b"2"));
+    assert_eq!(
+        host.admit(&value(b"3")).unwrap(),
+        BoundedScanAdmission::Accepted
+    );
+    assert_eq!(drain_scan_output(&mut host), value(b"3"));
+    assert_eq!(
+        host.admit(&value(b"4")).unwrap(),
+        BoundedScanAdmission::MaximumItemsExceeded { maximum_items: 3 }
+    );
+}
+
+#[test]
+fn bounded_scan_abnormal_and_cancel_discard_pending_output() {
+    let abnormal = kind_id("failure/fold");
+    let definition = fold_definition_with_abnormal(Some(abnormal.clone()));
+    let mut planned = planned_scan(&definition, 2);
+    planned.accumulator_input.abnormal_kind = Some(abnormal.clone());
+    planned.item_input.abnormal_kind = Some(abnormal.clone());
+    planned.output.abnormal_kind = Some(abnormal.clone());
+    let mut cancelled =
+        BoundedScanActivationHost::prepare(&planned, definition.clone(), &fold_registry()).unwrap();
+    cancelled.admit(&value(b"1")).unwrap();
+    cancelled.cancel().unwrap();
+    assert_eq!(*cancelled.step().unwrap(), BoundedScanState::Cancelled);
+    assert!(!cancelled.output_into(&mut value(b"")).unwrap());
+    let mut failed =
+        BoundedScanActivationHost::prepare(&planned, definition, &fold_registry()).unwrap();
+    failed.admit(&value(b"1")).unwrap();
+    let terminal = ValuePayload {
+        value_kind: abnormal,
+        encoded: b"exact".to_vec(),
+    };
+    failed.terminate_input(terminal.clone()).unwrap();
+    assert_eq!(
+        *failed.step().unwrap(),
+        BoundedScanState::Abnormal(terminal)
+    );
+    assert!(!failed.output_into(&mut value(b"")).unwrap());
 }
 
 fn run_until_output(host: &mut KernelCompositeHost) -> (u64, ValuePayload) {

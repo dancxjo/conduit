@@ -93,7 +93,7 @@ form flow/scan-integers (
  >> items: U64...|
  accumulators: U64...| >>
 ) {
- scanner: scan(initial) integer/add()
+ scanner: scan(initial, maximum-items = 4) integer/add()
  items >> scanner.item
  scanner.combined >> accumulators
 }
