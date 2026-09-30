@@ -119,13 +119,13 @@ impl TriplePhysicalRunner {
                 self.pico_sign.verify_receipt(
                     &receipt_line,
                     &runtime,
-                    signal.sequence,
-                    signal.level,
+                    *signal.sequence(),
+                    *signal.level(),
                 )?;
                 self.await_pico_delivery(&mut pico, offer.sequence)?;
 
                 let stdout = self.source.manifest_stdout(offer.sequence)?;
-                if stdout.sequence != signal.sequence || stdout.level != signal.level {
+                if stdout.sequence != *signal.sequence() || stdout.level != *signal.level() {
                     return Err("stdout receipt disagrees with remote Signal value".to_owned());
                 }
                 writeln!(

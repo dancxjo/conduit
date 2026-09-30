@@ -360,7 +360,7 @@ pub(super) fn rust_type(
 pub(super) fn primitive_rust_type(identity: &str) -> Result<String, RustBindingGenerationError> {
     let value = match conduit_core::primitive_info_kind(identity) {
         Some(PrimitiveInfoKind::Unit | PrimitiveInfoKind::CancellationRequest) => "()",
-        Some(PrimitiveInfoKind::Bool) => "conduit_core::InfoBool",
+        Some(PrimitiveInfoKind::Bool) => "bool",
         Some(PrimitiveInfoKind::Count) => "u64",
         Some(PrimitiveInfoKind::Scalar) => "conduit_core::Scalar",
         Some(PrimitiveInfoKind::Text) => "String",

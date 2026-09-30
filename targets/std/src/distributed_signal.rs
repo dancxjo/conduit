@@ -20,7 +20,9 @@ use conduit_plan_lowering::lowering::{
 use conduit_planner::{plan_with_line_offers, PlacementChoice, PlacementChoices};
 #[cfg(test)]
 use conduit_signal::signal_profile_catalog;
-use conduit_signal::{encode_signal, parse_pulse_configuration, Signal, SIGNAL_ENCODED_LEN};
+use conduit_signal::{
+    encode_signal, parse_pulse_configuration, signal_level_for_sequence, Signal, SIGNAL_ENCODED_LEN,
+};
 #[cfg(test)]
 use conduit_signal_conformance::{
     distributed_browser_sink_advertisement, distributed_std_source_advertisement,
@@ -243,7 +245,7 @@ impl DistributedSource {
         .map_err(|error| format!("{error:?}"))?;
         let configuration = parse_pulse_configuration(&fragment.placements[0].configuration)
             .map_err(|error| error.to_string())?;
-        if configuration.count != MAXIMUM_VALUES as u64 || configuration.period_ms != 250 {
+        if *configuration.count() != MAXIMUM_VALUES as u64 || *configuration.period_ms() != 250 {
             return Err("unchanged Signal form configuration is not the S4 vector".to_string());
         }
 
@@ -254,15 +256,11 @@ impl DistributedSource {
         )
         .map_err(|error| format!("{error:?}"))?;
         let mut signal_values = Vec::with_capacity(MAXIMUM_VALUES);
-        for sequence in 0..configuration.count {
-            let payload = encode_signal(&Signal {
-                sequence,
-                level: if sequence.is_multiple_of(2) {
-                    configuration.initial_level
-                } else {
-                    !configuration.initial_level
-                },
-            });
+        for sequence in 0..*configuration.count() {
+            let level = signal_level_for_sequence(sequence, *configuration.initial_level());
+            let payload = encode_signal(
+                &Signal::new(level, sequence).expect("planned Signal fields are valid"),
+            );
             signal_values.push(
                 values
                     .store(&payload.encoded)
@@ -273,7 +271,7 @@ impl DistributedSource {
         for _ in 0..MAXIMUM_WAITS {
             waits.push(
                 values
-                    .store(&configuration.period_ms.to_le_bytes())
+                    .store(&configuration.period_ms().to_le_bytes())
                     .map_err(|error| format!("{error:?}"))?,
             );
         }

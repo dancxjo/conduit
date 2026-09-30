@@ -30,21 +30,19 @@ impl TripleSource {
             &fragment.placements[usize::from(pulse_node.0)].configuration,
         )
         .map_err(|error| error.to_string())?;
-        if configuration.count != VALUES as u64 || configuration.period_ms != 250 {
+        if *configuration.count() != VALUES as u64 || *configuration.period_ms() != 250 {
             return Err("triple form is not the accepted sixteen-value Signal vector".to_owned());
         }
 
         let mut values = HostedValueStore::new(STORED_ITEMS, SIGNAL_ENCODED_LEN, STORED_BYTES)
             .map_err(|error| format!("{error:?}"))?;
         let mut signals = Vec::with_capacity(VALUES);
-        for sequence in 0..configuration.count {
-            let signal = Signal {
+        for sequence in 0..*configuration.count() {
+            let signal = Signal::new(
+                conduit_signal::signal_level_for_sequence(sequence, *configuration.initial_level()),
                 sequence,
-                level: conduit_signal::signal_level_for_sequence(
-                    sequence,
-                    configuration.initial_level,
-                ),
-            };
+            )
+            .expect("planned Signal fields are valid");
             signals.push(
                 values
                     .store(&encode_signal(&signal).encoded)
@@ -55,7 +53,7 @@ impl TripleSource {
         for _ in 0..WAITS {
             waits.push(
                 values
-                    .store(&configuration.period_ms.to_le_bytes())
+                    .store(&configuration.period_ms().to_le_bytes())
                     .map_err(|error| format!("{error:?}"))?,
             );
         }

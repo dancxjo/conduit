@@ -72,10 +72,11 @@ pub async fn run_signal_demo(
         .enumerate()
         .take(layout.configuration.count)
     {
-        let signal = Signal {
-            sequence: sequence as u64,
-            level: signal_level_for_sequence(sequence as u64, layout.configuration.initial_level),
-        };
+        let signal = Signal::new(
+            signal_level_for_sequence(sequence as u64, layout.configuration.initial_level),
+            sequence as u64,
+        )
+        .expect("fabricated Signal fields are valid");
         *slot = values
             .store(&encode_signal_fixed(&signal))
             .expect("signal fits in generated store");
@@ -168,16 +169,16 @@ pub async fn run_signal_demo(
                         error = true;
                         break;
                     };
-                    let Some(identity) = presentation_identity(signal.sequence as usize) else {
+                    let Some(identity) = presentation_identity(*signal.sequence() as usize) else {
                         fail_host_request(&mut scheduler, req.node, req.request);
                         error = true;
                         break;
                     };
-                    control.gpio_set(0, signal.level).await;
+                    control.gpio_set(0, *signal.level()).await;
                     if cdc
                         .write_receipt(
-                            signal.sequence,
-                            signal.level,
+                            *signal.sequence(),
+                            *signal.level(),
                             presentation_receipt_identity(identity),
                             runtime,
                         )

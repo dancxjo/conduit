@@ -357,13 +357,16 @@ impl TripleSource {
             thread::sleep(Duration::from_millis(duration));
         } else if request.node == self.show_node {
             let signal = decode_signal_bytes(input).map_err(|error| error.to_string())?;
-            let presentation =
-                bind_presentation(&self.active_play_id, &self.show_placement, signal.sequence);
+            let presentation = bind_presentation(
+                &self.active_play_id,
+                &self.show_placement,
+                *signal.sequence(),
+            );
             let sign = bind_sign(
                 &self.fragment.host_id,
                 &self.fragment.boot_id,
                 Some(&self.active_play_id),
-                signal.sequence,
+                *signal.sequence(),
             );
             self.identity
                 .bind_presentation(
@@ -388,8 +391,8 @@ impl TripleSource {
                 placement_id: self.show_placement.clone(),
                 presentation_id: presentation.presentation_id,
                 sign_id: sign.sign_id,
-                sequence: signal.sequence,
-                level: signal.level,
+                sequence: *signal.sequence(),
+                level: *signal.level(),
             });
         } else {
             return Err("host request came from an uninstalled triple node".to_owned());

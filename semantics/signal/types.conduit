@@ -1,0 +1,24 @@
+# Authoritative portable signal values and finite configurations.
+
+type Signal = {
+    sequence: U64
+    level: Boolean
+}
+
+type PulseConfiguration = {
+    count: U64 in 0..=4096
+    period-ms: U64
+    initial-level: Boolean
+}
+
+type Trigger = {
+    sequence: U64
+}
+
+type TriggerConfiguration = {
+    count: U64 in 0..=4096
+}
+
+type ToggleConfiguration = {
+    initial: Boolean
+}

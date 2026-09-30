@@ -170,15 +170,15 @@ impl Esp32RemoteSignalKernel {
                         .map_err(|_| "kernel-host-value")?,
                 )
                 .map_err(|_| "kernel-signal")?;
-                if signal.sequence != expected_sequence
+                if *signal.sequence() != expected_sequence
                     || self.presented as u64 != expected_sequence
                 {
                     return Err("kernel-sequence");
                 }
                 esp_println::println!(
                     "CONDUIT_ESP32_PRESENT sequence={} level={}",
-                    signal.sequence,
-                    signal.level
+                    signal.sequence(),
+                    signal.level()
                 );
                 self.scheduler
                     .complete_host_call(

@@ -285,7 +285,9 @@ pub fn run_prove_std_pico_usb(
                 let signal = decode_signal_bytes(&payload).map_err(|error| error.to_string())?;
                 println!(
                     "  [KEY 0x{:02x}] releasing planned kernel Signal seq {} (level: {})",
-                    key, sequence, signal.level
+                    key,
+                    sequence,
+                    signal.level()
                 );
                 send_and_verify_item(
                     &mut source,
@@ -298,7 +300,7 @@ pub fn run_prove_std_pico_usb(
                     },
                     sequence,
                     &payload,
-                    signal.level,
+                    signal.level(),
                 )?;
             }
             let final_sequence = source.finish_kernel()?;
@@ -322,7 +324,7 @@ pub fn run_prove_std_pico_usb(
                 return Err(format!("std kernel emitted out-of-order sequence {sequence}").into());
             }
             let signal = decode_signal_bytes(&payload).map_err(|error| error.to_string())?;
-            if signal.sequence != sequence {
+            if *signal.sequence() != sequence {
                 return Err(
                     "std kernel Signal payload sequence disagrees with remote offer".into(),
                 );
@@ -362,7 +364,7 @@ pub fn run_prove_std_pico_usb(
                 },
                 sequence,
                 &payload,
-                signal.level,
+                signal.level(),
             )?;
             observed += 1;
         }

@@ -24,6 +24,10 @@ type MusicEvent =
 type Direction =
     north
     | south
+
+type Toggle = {
+    enabled: Boolean
+}
 "#;
     crate::check_syntax_document(
         &crate::parse_syntax_document(source),
@@ -91,8 +95,12 @@ fn generation_is_deterministic_and_keeps_rust_spelling_out_of_identity() {
     assert!(plain.source.contains("pub struct Note(u8);"));
     assert!(plain.source.contains("pub const MAXIMUM_BYTES: usize = 1;"));
     assert!(plain.source.contains("pub struct Position {"));
+    assert!(plain.source.contains(
+        "pub fn new(x: conduit_core::Quantity, y: conduit_core::Quantity) -> Result<Self, NativeBindingRefusal> {\n        Ok(Self { x, y, })"
+    ));
     assert!(plain.source.contains("pub struct Observation {"));
     assert!(plain.source.contains("pub enum MusicEvent {"));
+    assert!(plain.source.contains("enabled: bool"));
     assert!(plain.source.contains("pitches: BoundedSequence<Note, 16>"));
     assert!(plain.source.contains("Note(MusicEventNote)"));
     assert!(plain.source.contains("Rest,"));
