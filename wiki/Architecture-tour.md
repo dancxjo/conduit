@@ -31,7 +31,7 @@ Inside the plot, each named **gear** is one occurrence of a semantic **kind**.
 literal → text/upper → presentation/text
 ```
 
-A kind says what reusable work means. Its **fore** is its checked outward boundary. Typed **ports** appear on that boundary. **Cords** connect compatible ports.
+A kind says what reusable work means. Its **fore** is the function-like signature presented to authors: startup parameters and typed runtime ports, including their direction, value type, and temporal shape. **Cords** connect compatible ports named by those fores.
 
 At this altitude, the graph says nothing about where the gears will run.
 
@@ -51,7 +51,7 @@ presentation/text
   ↳ deterministic linear-text back
 ```
 
-These backs are not interchangeable because machines are magically equivalent. They are candidates because each one truthfully claims compatibility with the same semantic obligation and exact fore contract.
+These backs are not interchangeable because machines are magically equivalent. They are candidates because each one truthfully claims compatibility with the same semantic obligation and exact fore signature.
 
 The planner may then consider:
 
