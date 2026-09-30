@@ -80,7 +80,7 @@ jobs:
       - name: Receive the exact Crèche-exported ConduitOS spore
         uses: ./.github/actions/download-artifact-retry
         with:
-          name: conduit-creche-conduitos-spore-${{ github.event.pull_request.head.sha }}
+          name: conduit-workspace-conduitos-spore-${{ github.event.pull_request.head.sha }}
           path: target/conduitos/x86_64
       - name: Receive the exact ConduitOS tool bundle
         uses: ./.github/actions/download-artifact-retry

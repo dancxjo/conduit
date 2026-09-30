@@ -1,4 +1,3 @@
-import { stageLegacyCrecheRoute } from "../../products/creche/tools/stage-legacy-routes.mjs";
 import { cp, mkdir, rm } from "node:fs/promises";
 import { expect, test } from "@playwright/test";
 import { startStaticProduct } from "./static-product-server.mjs";
@@ -10,10 +9,8 @@ async function assemblePagesCarrier() {
   await rm(pagesRoot, { recursive: true, force: true });
   await mkdir(pagesRoot, { recursive: true });
   await cp("target/pages-root", pagesRoot, { recursive: true });
-  await cp("target/creche-product", `${pagesRoot}/creche`, { recursive: true });
   await cp("target/workspace-product", `${pagesRoot}/workspace`, { recursive: true });
   await cp("target/patchbay-product", `${pagesRoot}/patchbay`, { recursive: true });
-  await stageLegacyCrecheRoute(pagesRoot);
 }
 
 test.beforeAll(async () => {
@@ -47,15 +44,15 @@ test("the main site exposes exact reviewed host and ConduitOS releases", async (
   await expect(page.getByRole("heading", { name: "Run it here. Or boot the whole machine." })).toBeVisible();
 
   const expected = new Map([
-    ["Linux x86_64 executable Download", "/conduit/creche/artifacts/conduit-linux-x86_64"],
-    ["Windows x86_64 executable Download", "/conduit/creche/artifacts/conduit-windows-x86_64.exe"],
-    ["macOS Apple silicon executable Download", "/conduit/creche/artifacts/conduit-macos-aarch64"],
-    ["Browser WASM host page Open", "/conduit/creche/artifacts/index.html"],
-    ["PC · x86_64 Q35 · UEFI ISO", "/conduit/creche/artifacts/conduitos-x86_64-pc.iso"],
-    ["PC · IA-32 Legacy PC profile ISO", "/conduit/creche/artifacts/conduitos-ia32-pc.iso"],
-    ["AArch64 QEMU virt · UEFI ISO", "/conduit/creche/artifacts/conduitos-aarch64-virt.iso"],
-    ["RISC-V 64 QEMU virt · UEFI ISO", "/conduit/creche/artifacts/conduitos-riscv64-virt.iso"],
-    ["LoongArch64 QEMU virt · UEFI ISO", "/conduit/creche/artifacts/conduitos-loongarch64-virt.iso"],
+    ["Linux x86_64 executable Download", "/conduit/workspace/artifacts/conduit-linux-x86_64"],
+    ["Windows x86_64 executable Download", "/conduit/workspace/artifacts/conduit-windows-x86_64.exe"],
+    ["macOS Apple silicon executable Download", "/conduit/workspace/artifacts/conduit-macos-aarch64"],
+    ["Browser WASM host page Open", "/conduit/workspace/artifacts/index.html"],
+    ["PC · x86_64 Q35 · UEFI ISO", "/conduit/workspace/artifacts/conduitos-x86_64-pc.iso"],
+    ["PC · IA-32 Legacy PC profile ISO", "/conduit/workspace/artifacts/conduitos-ia32-pc.iso"],
+    ["AArch64 QEMU virt · UEFI ISO", "/conduit/workspace/artifacts/conduitos-aarch64-virt.iso"],
+    ["RISC-V 64 QEMU virt · UEFI ISO", "/conduit/workspace/artifacts/conduitos-riscv64-virt.iso"],
+    ["LoongArch64 QEMU virt · UEFI ISO", "/conduit/workspace/artifacts/conduitos-loongarch64-virt.iso"],
   ]);
   for (const [name, href] of expected) {
     await expect(page.getByRole("link", { name, exact: true })).toHaveAttribute("href", href);

@@ -176,6 +176,7 @@ pub fn run(args: &WorkspaceArgs, opts: &GlobalOpts) -> Result<(), Box<dyn std::e
                     "workspace-membership.spec.mjs",
                     "workspace-library.spec.mjs",
                     "workspace-resident-applications.spec.mjs",
+                    "workspace-continuity.spec.mjs",
                 ],
             ),
             &root,

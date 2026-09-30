@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { boundedRendezvousCandidates } from "../../products/creche/browser/creche-rendezvous-candidates.mjs";
-import { createBodyBoundZip, readBodyBoundZip } from "../../products/creche/browser/creche-native-zip.mjs";
+import { boundedRendezvousCandidates } from "../../products/workspace/browser/creche-rendezvous-candidates.mjs";
+import { createBodyBoundZip, readBodyBoundZip } from "../../products/workspace/browser/creche-native-zip.mjs";
 
 const expiry = 2_000_000_000_000;
 const candidate = Object.freeze({

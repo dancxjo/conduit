@@ -1,5 +1,5 @@
 import { createExistingComputerAdapter, EXISTING_COMPUTER_BOUNDS, EXISTING_COMPUTER_MODES } from "../../../creche-existing-computer.mjs";
-import { createBrowserConfigurationOutfitter, prepareCheckedBrowserSpore } from "../../../creche-browser-configuration.mjs";
+import { createBrowserConfigurationOutfitter, prepareCheckedBrowserSpore } from "../../../browser-host-configuration.mjs";
 import { acquireHostRelease } from "../../../creche-release-bundle.mjs";
 import { buildBrowserBundleImage } from "./browser-bundle.mjs";
 

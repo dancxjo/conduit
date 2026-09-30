@@ -38,7 +38,7 @@ const CONDUITOS_X86_PROOFS: [&str; 9] = [
     "emergency-halt",
 ];
 const CONDUITOS_ARCHITECTURES: [&str; 4] = ["aarch64", "ia32", "riscv64", "loongarch64"];
-const BROWSER_ADMISSION_SHARDS: [&str; 3] = ["browser-host", "creche-workspace", "pages"];
+const BROWSER_ADMISSION_SHARDS: [&str; 3] = ["browser-host", "workspace", "pages"];
 const GLOBAL_PREFIXES: [&str; 5] = [
     ".github/",
     ".cargo/",
@@ -193,7 +193,7 @@ const PI_ZERO_CRECHE_SLICE: [&str; 12] = [
     ".github/workflows/product-carrier.yml",
     "make/workspace/tests/family_contracts.rs",
     "proof/browser/creche-raspberry-pi.spec.mjs",
-    "products/creche/tools/stage-creche-product.sh",
+    "products/workspace/tools/stage-workspace-product.sh",
     "targets/browser/runtime/src/creche/spore_target.rs",
     "targets/raspberry-pi/deployment/browser/creche-adapter.mjs",
     "targets/raspberry-pi/deployment/browser/image.mjs",
@@ -220,11 +220,11 @@ fn is_tongues_analysis_path(path: &str) -> bool {
 
 fn is_creche_presentation_path(path: &str) -> bool {
     path == "proof/browser/creche-browser-configuration.spec.mjs"
-        || path == "products/creche/tools/stage-creche-product.sh"
+        || path == "products/workspace/tools/stage-workspace-product.sh"
         || path == "targets/browser/host/src/server.rs"
         || path == "targets/browser/host/src/server/tests.rs"
         || path == "targets/browser/host/assets/application-presentation.mjs"
-        || path.starts_with("products/creche/browser/creche")
+        || path.starts_with("products/workspace/browser/creche")
 }
 
 fn is_repository_tool_test(path: &str) -> bool {
@@ -530,7 +530,7 @@ fn plan_for_paths(
         && [
             ".github/workflows/product-carrier.yml",
             "proof/browser/creche-raspberry-pi.spec.mjs",
-            "products/creche/tools/stage-creche-product.sh",
+            "products/workspace/tools/stage-workspace-product.sh",
             "targets/browser/runtime/src/creche/spore_target.rs",
             "targets/raspberry-pi/make/src/lib.rs",
         ]
@@ -541,7 +541,7 @@ fn plan_for_paths(
         .all(|path| is_creche_presentation_path(path))
         && substantive
             .iter()
-            .any(|path| path.starts_with("products/creche/browser/creche"))
+            .any(|path| path.starts_with("products/workspace/browser/creche"))
         && substantive
             .iter()
             .any(|path| path.as_str() == "proof/browser/creche-browser-configuration.spec.mjs");
@@ -1041,16 +1041,15 @@ fn browser_admission_shards(
 
     let mut shards = vec!["browser-host"];
     if paths.iter().any(|path| {
-        path.starts_with("products/creche/")
-            || path.starts_with("products/workspace/")
+        path.starts_with("products/workspace/")
             || path.starts_with("make/workspace/")
             || path.starts_with("targets/browser/runtime/src/creche/")
             || path.starts_with("proof/browser/workspace-")
-            || path == "proof/browser/creche-workspace-continuity.spec.mjs"
+            || path == "proof/browser/workspace-continuity.spec.mjs"
             || path == "proof/browser/browser-body-input.test.mjs"
             || path == "proof/browser/browser-body-host.test.mjs"
     }) {
-        shards.push("creche-workspace");
+        shards.push("workspace");
     }
     if paths.iter().any(|path| {
         path.starts_with("site/")
