@@ -425,6 +425,13 @@ fn bounded_activation_owes_one_fresh_exact_execution_per_accepted_value() {
     .unwrap();
     assert_eq!(activations.contract().maximum_active, 1);
     assert_eq!(activations.contract().maximum_queue_items, 1);
+    assert_eq!(activations.contract().input_value_kind, kind_id(VALUE_KIND));
+    assert_eq!(activations.contract().input_abnormal_kind, None);
+    assert_eq!(
+        activations.contract().output_value_kind,
+        kind_id(VALUE_KIND)
+    );
+    assert_eq!(activations.contract().output_abnormal_kind, None);
 
     assert_eq!(
         activations.activate(7, &value(b"first")).unwrap(),
