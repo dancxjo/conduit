@@ -7,7 +7,7 @@ test("affected product proof begins after cheap PR entry while promotion stays p
   const candidateWorkflow = readFileSync(".github/workflows/candidate.yml", "utf8");
   const integrationWorkflow = readFileSync(".github/workflows/dev-integration.yml", "utf8");
   assert.match(candidateWorkflow, /^  pull_request:\s*$/m);
-  assert.match(candidateWorkflow, /products:\n    needs: admission\n    uses: \.\/\.github\/workflows\/tour-products\.yml/);
+  assert.match(candidateWorkflow, /products:\n    needs: admission\n    if: github\.event\.pull_request\.draft == false\n    uses: \.\/\.github\/workflows\/tour-products\.yml/);
   assert.match(candidateWorkflow, /development_admission: true/);
   assert.match(integrationWorkflow, /uses: \.\/\.github\/workflows\/tour-products\.yml/);
   assert.doesNotMatch(productWorkflow, /^  pull_request:\s*$/m);
