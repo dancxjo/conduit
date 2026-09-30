@@ -275,8 +275,37 @@ fn main() {
                 Some(cli::BodyCommand::Invite {
                     state_dir,
                     ttl_seconds,
+                    route_bind,
+                    route_url,
+                    route_tls_cert,
+                    route_tls_key,
+                    authorize_route,
                 }),
-        }) => durable_host::issue_body_invitation(&state_dir, ttl_seconds),
+        }) => match (route_bind, route_url, route_tls_cert, route_tls_key) {
+            (None, None, None, None) if !authorize_route => {
+                durable_host::issue_body_invitation(&state_dir, ttl_seconds)
+            }
+            (Some(bind), Some(url), Some(certificate), Some(private_key)) => {
+                durable_host::serve_body_invitation_route(
+                    &state_dir,
+                    ttl_seconds,
+                    bind,
+                    &url,
+                    &certificate,
+                    &private_key,
+                    authorize_route,
+                )
+            }
+            _ => Err("a routed invitation requires --route-bind, --route-url, --route-tls-cert, --route-tls-key, and --authorize-route together".into()),
+        },
+        Some(cli::Command::Body {
+            command:
+                Some(cli::BodyCommand::Join {
+                    invitation,
+                    state_dir,
+                    authorize_join,
+                }),
+        }) => durable_host::join_body_over_route(&invitation, &state_dir, authorize_join),
         Some(cli::Command::Body {
             command:
                 Some(cli::BodyCommand::Accept {

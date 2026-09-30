@@ -299,6 +299,32 @@ pub(crate) enum BodyCommand {
         /// Invitation lifetime; never exceeds the architectural maximum.
         #[arg(long, default_value_t = 600, value_parser = clap::value_parser!(u64).range(1..=600))]
         ttl_seconds: u64,
+        /// Exact network socket for one finite authenticated owner route.
+        #[arg(long)]
+        route_bind: Option<std::net::SocketAddr>,
+        /// Public `wss://` URL carried by the routed invitation.
+        #[arg(long)]
+        route_url: Option<String>,
+        /// TLS certificate whose exact leaf digest authenticates the owner endpoint.
+        #[arg(long)]
+        route_tls_cert: Option<PathBuf>,
+        /// TLS private key for the finite owner route.
+        #[arg(long)]
+        route_tls_key: Option<PathBuf>,
+        /// Explicitly authorize exposing this one-invitation admission route.
+        #[arg(long, action = clap::ArgAction::SetTrue)]
+        authorize_route: bool,
+    },
+    /// Join the Body named by one routed portable invitation.
+    Join {
+        /// Routed invitation JSON path, or `-` to read it from standard input.
+        invitation: PathBuf,
+        /// Installed durable host state that will join the invited Body.
+        #[arg(long)]
+        state_dir: PathBuf,
+        /// Explicitly authorize this Host to request and retain Body membership.
+        #[arg(long, required = true, action = clap::ArgAction::SetTrue)]
+        authorize_join: bool,
     },
     /// Accept one bounded invitation on this installed host and emit an admission request.
     #[command(hide = true)]
@@ -384,6 +410,24 @@ mod public_surface_tests {
                 .command,
             Some(Command::Inspect { thing }) if thing == std::path::Path::new("run.json")
         ));
+    }
+
+    #[test]
+    fn body_help_exposes_joining_intent_without_protocol_phases() {
+        let mut body = Cli::command()
+            .find_subcommand("body")
+            .expect("body command")
+            .clone();
+        let help = body.render_long_help().to_string();
+        for entrance in ["birth", "invite", "join"] {
+            assert!(help.contains(entrance), "missing {entrance} in:\n{help}");
+        }
+        for phase in ["accept", "admit", "complete-join", "status"] {
+            assert!(
+                !help.contains(&format!("\n  {phase}")),
+                "hidden phase {phase} leaked in:\n{help}"
+            );
+        }
     }
 
     #[test]

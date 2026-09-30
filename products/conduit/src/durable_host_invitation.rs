@@ -14,16 +14,19 @@ use serde::{Deserialize, Serialize};
 use std::{fs, io::Read, path::Path};
 
 pub(super) const INVITATION_SCHEMA: &str = "conduit.body/spawn-invitation@1";
+pub(super) const ROUTED_INVITATION_SCHEMA: &str = "conduit.body/spawn-invitation@2";
 
-#[derive(Serialize, Deserialize)]
+#[derive(Clone, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
 pub(super) struct PortableInvitation {
     pub(super) schema: String,
     pub(super) claim: conduit_body::SpawnInvitationClaim,
     pub(super) secret: [u8; 32],
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub(super) rendezvous: Option<conduit_body::SpawnRendezvousDescriptor>,
 }
 
-#[derive(Serialize, Deserialize)]
+#[derive(Clone, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
 pub(super) struct PortableSpawnAdmissionRequest {
     pub(super) schema: String,
@@ -65,6 +68,18 @@ pub(super) struct PendingBodyJoin {
 }
 
 pub(crate) fn issue_body_invitation(state_dir: &Path, ttl_seconds: u64) -> Result<(), String> {
+    let portable = issue_body_invitation_document(state_dir, ttl_seconds, None)?;
+    let encoded = serde_json::to_string(&portable)
+        .map_err(|error| format!("encode Body invitation: {error}"))?;
+    println!("{encoded}");
+    Ok(())
+}
+
+pub(super) fn issue_body_invitation_document(
+    state_dir: &Path,
+    ttl_seconds: u64,
+    candidates: Option<Vec<conduit_body::RendezvousCandidate>>,
+) -> Result<PortableInvitation, String> {
     if !(1..=600).contains(&ttl_seconds) {
         return Err("invitation lifetime must be between 1 and 600 seconds".into());
     }
@@ -116,16 +131,30 @@ pub(crate) fn issue_body_invitation(state_dir: &Path, ttl_seconds: u64) -> Resul
         .issue_spawn_invitation(secret, nonce, now_millis, expires_at_millis)
         .map_err(|error| format!("issue Body invitation: {error:?}"))?;
     write_json_atomic(&admission_path, &manager)?;
+    let claim = invitation.claim();
+    let rendezvous = candidates.map(|candidates| conduit_body::SpawnRendezvousDescriptor {
+        protocol: conduit_body::RENDEZVOUS_DESCRIPTOR_PROTOCOL,
+        body_id: claim.body_id.as_str().into(),
+        invitation_id: claim.invitation_id.as_str().into(),
+        candidates,
+    });
+    if let Some(rendezvous) = &rendezvous {
+        rendezvous
+            .validate(now_millis)
+            .map_err(|error| format!("construct Body invitation route: {error:?}"))?;
+    }
     let portable = PortableInvitation {
-        schema: INVITATION_SCHEMA.into(),
-        claim: invitation.claim(),
+        schema: if rendezvous.is_some() {
+            ROUTED_INVITATION_SCHEMA.into()
+        } else {
+            INVITATION_SCHEMA.into()
+        },
+        claim,
         secret: invitation.secret.copy_for_target_provisioning(),
+        rendezvous,
     };
-    let encoded = serde_json::to_string(&portable)
-        .map_err(|error| format!("encode Body invitation: {error}"))?;
-    println!("{encoded}");
     secret_bytes.fill(0);
-    Ok(())
+    Ok(portable)
 }
 
 pub(crate) fn admit_body_request(
@@ -136,13 +165,6 @@ pub(crate) fn admit_body_request(
     if !authorize_admission {
         return Err("admitting a host into this body requires --authorize-admission".into());
     }
-    let mut installation = read_installation(&state_dir.join("installation.json"))?;
-    let body = installation
-        .body_state
-        .as_ref()
-        .ok_or("this installed host does not own a body")?;
-    let biography_path = std::path::PathBuf::from(&body.biography_path);
-    recover_admission_transaction(state_dir, &biography_path)?;
     let request_bytes = if request_path == Path::new("-") {
         bounded_stdin(MAXIMUM_BODY_ADMISSION_BYTES)?
     } else {
@@ -150,6 +172,23 @@ pub(crate) fn admit_body_request(
     };
     let request: PortableSpawnAdmissionRequest = serde_json::from_slice(&request_bytes)
         .map_err(|error| format!("Body admission request: {error}"))?;
+    let receipt = admit_body_request_document(request, state_dir, authorize_admission)?;
+    println!(
+        "{}",
+        serde_json::to_string(&receipt)
+            .map_err(|error| format!("encode Body admission receipt: {error}"))?
+    );
+    Ok(())
+}
+
+pub(super) fn admit_body_request_document(
+    request: PortableSpawnAdmissionRequest,
+    state_dir: &Path,
+    authorize_admission: bool,
+) -> Result<PortableAdmissionReceipt, String> {
+    if !authorize_admission {
+        return Err("admitting a host into this body requires --authorize-admission".into());
+    }
     if request.schema != "conduit.body/spawn-admission-request@1"
         || request.membership_admitted
         || request.plan_created
@@ -157,6 +196,13 @@ pub(crate) fn admit_body_request(
     {
         return Err("Body admission request has an unsupported schema or claims effects".into());
     }
+    let mut installation = read_installation(&state_dir.join("installation.json"))?;
+    let body = installation
+        .body_state
+        .as_ref()
+        .ok_or("this installed host does not own a body")?;
+    let biography_path = std::path::PathBuf::from(&body.biography_path);
+    recover_admission_transaction(state_dir, &biography_path)?;
     let biography_bytes = bounded_read(&biography_path, 2 * 1024 * 1024)?;
     if digest(&biography_bytes) != body.biography_sha256 {
         return Err("retained body biography no longer matches its exact identity".into());
@@ -261,12 +307,7 @@ pub(crate) fn admit_body_request(
         },
     )?;
     recover_admission_transaction(state_dir, &biography_path)?;
-    println!(
-        "{}",
-        serde_json::to_string(&receipt)
-            .map_err(|error| format!("encode Body admission receipt: {error}"))?
-    );
-    Ok(())
+    Ok(receipt)
 }
 
 fn recover_admission_transaction(state_dir: &Path, biography_path: &Path) -> Result<(), String> {
@@ -320,10 +361,6 @@ pub(crate) fn accept_body_invitation(
     if !authorize_join {
         return Err("accepting a body invitation requires --authorize-join".into());
     }
-    let installation = read_installation(&state_dir.join("installation.json"))?;
-    if installation.body_state.is_some() || installation.joined_body_state.is_some() {
-        return Err("this installed host already owns a body".into());
-    }
     let bytes = if invitation_path == Path::new("-") {
         bounded_stdin(64 * 1024)?
     } else {
@@ -331,14 +368,50 @@ pub(crate) fn accept_body_invitation(
     };
     let invitation: PortableInvitation =
         serde_json::from_slice(&bytes).map_err(|error| format!("Body invitation: {error}"))?;
-    if invitation.schema != INVITATION_SCHEMA {
+    let request = prepare_body_join(invitation, state_dir, authorize_join)?;
+    println!(
+        "{}",
+        serde_json::to_string(&request)
+            .map_err(|error| format!("encode Body admission request: {error}"))?
+    );
+    Ok(())
+}
+
+pub(super) fn prepare_body_join(
+    invitation: PortableInvitation,
+    state_dir: &Path,
+    authorize_join: bool,
+) -> Result<PortableSpawnAdmissionRequest, String> {
+    if !authorize_join {
+        return Err("accepting a body invitation requires --authorize-join".into());
+    }
+    let routed = invitation.schema == ROUTED_INVITATION_SCHEMA;
+    if invitation.schema != INVITATION_SCHEMA && !routed {
         return Err("Body invitation has an unsupported schema".into());
+    }
+    let installation = read_installation(&state_dir.join("installation.json"))?;
+    if installation.body_state.is_some() || installation.joined_body_state.is_some() {
+        return Err("this installed host already owns or has joined a body".into());
     }
     let now_millis = current_time_millis()?;
     invitation
         .claim
         .inspect(now_millis)
         .map_err(|error| format!("Body invitation refused: {error:?}"))?;
+    match (&invitation.rendezvous, routed) {
+        (None, false) => {}
+        (Some(rendezvous), true) => {
+            rendezvous
+                .validate(now_millis)
+                .map_err(|error| format!("Body invitation route refused: {error:?}"))?;
+            if rendezvous.body_id != invitation.claim.body_id.as_str()
+                || rendezvous.invitation_id != invitation.claim.invitation_id.as_str()
+            {
+                return Err("Body invitation route lost its exact invitation identity".into());
+            }
+        }
+        _ => return Err("Body invitation schema and route disagree".into()),
+    }
     let secret = SpawnInvitationSecret::from_csprng_bytes(invitation.secret)
         .map_err(|error| format!("Body invitation secret refused: {error:?}"))?;
     let runtime_bytes = bounded_read(&state_dir.join("runtime.json"), 64 * 1024)?;
@@ -381,18 +454,15 @@ pub(crate) fn accept_body_invitation(
     fs::create_dir_all(&body_dir)
         .map_err(|error| format!("create Body state directory: {error}"))?;
     restrict_directory(&body_dir)?;
-    let encoded = serde_json::to_string(&request)
-        .map_err(|error| format!("encode Body admission request: {error}"))?;
     write_json_atomic(
         &body_dir.join("pending-join.json"),
         &PendingBodyJoin {
             schema: "conduit.body/pending-join@1".into(),
             invitation,
-            request,
+            request: request.clone(),
         },
     )?;
-    println!("{encoded}");
-    Ok(())
+    Ok(request)
 }
 
 fn bounded_stdin(maximum: u64) -> Result<Vec<u8>, String> {
