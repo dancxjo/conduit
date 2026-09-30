@@ -2,3 +2,12 @@
 
 type AudioToneTerminal =
     cancelled
+
+type Gate =
+    on
+    | off
+
+type ModulationDestination =
+    pitch
+    | filter-cutoff
+    | amplitude

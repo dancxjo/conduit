@@ -5,6 +5,8 @@
 
 use conduit_core::{semantic_digest, Quantity, QuantityConversionRefusal, QuantityUnit};
 
+use crate::{Gate, ModulationDestination};
+
 pub const SOUND_TONE_INFO_ID: &str = "sound/tone-intent@1";
 pub const MUSIC_NOTE_INFO_ID: &str = "music/note-event@1";
 pub const MUSIC_CONTROL_INFO_ID: &str = "music/control-event@1";
@@ -156,12 +158,6 @@ impl MusicalPitch {
 }
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
-pub enum Gate {
-    On,
-    Off,
-}
-
-#[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
 pub struct NoteOccurrenceId(pub u64);
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
@@ -257,13 +253,6 @@ pub enum MusicalControl {
         amount_millionths: u32,
         destination: ModulationDestination,
     },
-}
-
-#[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
-pub enum ModulationDestination {
-    Pitch,
-    FilterCutoff,
-    Amplitude,
 }
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
