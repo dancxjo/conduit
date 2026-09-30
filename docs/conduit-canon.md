@@ -168,6 +168,16 @@ A discovered device is not automatically a host. A host on the network is not au
 
 ### Least authority and finite embodiment
 
+Semantic infinity is allowed; resource infinity is not. A Type may describe an
+open mathematical domain such as `Scalar in 0..` or `Temperature in -273.15°C..`.
+That meaning is independent of the finite representation selected by a Host.
+Every actual Info value still has a finite admitted encoding, and a value which
+belongs to the semantic domain but cannot be represented by a selected Back or
+Host is a representation/admission refusal—not permission to narrow the Type.
+Arbitrary-precision encodings are charged by their actual admitted extent.
+Collections, queues, stream backlog, retained state, and mandatory work keep
+explicit finite bounds or governed pressure regardless of their element Type.
+
 An implementation must not possess materially more effect authority than the
 exact admitted realization it executes. General-purpose computation and
 continuous lifetime grant no filesystem, network, device, subprocess,

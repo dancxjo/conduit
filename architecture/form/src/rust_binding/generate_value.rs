@@ -242,20 +242,20 @@ fn constraint_literal(constraint: &ValueConstraint) -> String {
             "conduit_core::ValueConstraint::ByteLength {{ minimum: {minimum}, maximum: {maximum} }}"
         ),
         ValueConstraint::UnsignedRange { minimum, maximum, minimum_endpoint, maximum_endpoint } => format!(
-            "conduit_core::ValueConstraint::UnsignedRange {{ minimum: {minimum}, maximum: {maximum}, minimum_endpoint: {}, maximum_endpoint: {} }}",
+            "conduit_core::ValueConstraint::UnsignedRange {{ minimum: {minimum:?}, maximum: {maximum:?}, minimum_endpoint: {}, maximum_endpoint: {} }}",
             endpoint_literal(*minimum_endpoint), endpoint_literal(*maximum_endpoint)
         ),
         ValueConstraint::SignedRange { minimum, maximum, minimum_endpoint, maximum_endpoint } => format!(
-            "conduit_core::ValueConstraint::SignedRange {{ minimum: {minimum}, maximum: {maximum}, minimum_endpoint: {}, maximum_endpoint: {} }}",
+            "conduit_core::ValueConstraint::SignedRange {{ minimum: {minimum:?}, maximum: {maximum:?}, minimum_endpoint: {}, maximum_endpoint: {} }}",
             endpoint_literal(*minimum_endpoint), endpoint_literal(*maximum_endpoint)
         ),
         ValueConstraint::FixedIntegerRange { minimum, maximum, minimum_endpoint, maximum_endpoint } => format!(
-            "conduit_core::ValueConstraint::FixedIntegerRange {{ minimum: vec!{:?}, maximum: vec!{:?}, minimum_endpoint: {}, maximum_endpoint: {} }}",
-            minimum, maximum, endpoint_literal(*minimum_endpoint), endpoint_literal(*maximum_endpoint)
+            "conduit_core::ValueConstraint::FixedIntegerRange {{ minimum: {}, maximum: {}, minimum_endpoint: {}, maximum_endpoint: {} }}",
+            optional_bytes_literal(minimum), optional_bytes_literal(maximum), endpoint_literal(*minimum_endpoint), endpoint_literal(*maximum_endpoint)
         ),
         ValueConstraint::QuantityRange { minimum, maximum, minimum_endpoint, maximum_endpoint } => format!(
-            "conduit_core::ValueConstraint::QuantityRange {{ minimum: conduit_core::Quantity::new({}, conduit_core::QuantityUnit::{:?}), maximum: conduit_core::Quantity::new({}, conduit_core::QuantityUnit::{:?}), minimum_endpoint: {}, maximum_endpoint: {} }}",
-            minimum.value(), minimum.unit(), maximum.value(), maximum.unit(), endpoint_literal(*minimum_endpoint), endpoint_literal(*maximum_endpoint)
+            "conduit_core::ValueConstraint::QuantityRange {{ minimum: {}, maximum: {}, minimum_endpoint: {}, maximum_endpoint: {} }}",
+            optional_quantity_literal(minimum), optional_quantity_literal(maximum), endpoint_literal(*minimum_endpoint), endpoint_literal(*maximum_endpoint)
         ),
         ValueConstraint::CanonicalMembership { members, negated } => {
             let members = members
@@ -272,6 +272,26 @@ fn constraint_literal(constraint: &ValueConstraint) -> String {
             pattern_literal(pattern)
         ),
     }
+}
+
+fn optional_bytes_literal(value: &Option<Vec<u8>>) -> String {
+    value
+        .as_ref()
+        .map(|value| format!("Some(vec!{value:?})"))
+        .unwrap_or_else(|| "None".into())
+}
+
+fn optional_quantity_literal(value: &Option<conduit_core::Quantity>) -> String {
+    value
+        .as_ref()
+        .map(|value| {
+            format!(
+                "Some(conduit_core::Quantity::new({}, conduit_core::QuantityUnit::{:?}))",
+                value.value(),
+                value.unit()
+            )
+        })
+        .unwrap_or_else(|| "None".into())
 }
 
 fn endpoint_literal(endpoint: conduit_core::IntervalEndpoint) -> &'static str {

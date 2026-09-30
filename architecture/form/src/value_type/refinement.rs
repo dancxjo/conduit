@@ -129,24 +129,24 @@ fn checked_range(
     };
     match value_kind.as_str() {
         conduit_core::COUNT_INFO_ID => {
-            let minimum = match minimum {
-                Some(minimum) => minimum.text.parse().map_err(|_| {
-                    invalid("range minimum is not an exact canonical Count literal".into())
-                })?,
-                None => {
-                    minimum_endpoint = IntervalEndpoint::Inclusive;
-                    u64::MIN
-                }
-            };
-            let maximum = match maximum {
-                Some(maximum) => maximum.text.parse().map_err(|_| {
-                    invalid("range maximum is not an exact canonical Count literal".into())
-                })?,
-                None => {
-                    maximum_endpoint = IntervalEndpoint::Inclusive;
-                    u64::MAX
-                }
-            };
+            let minimum = minimum
+                .as_ref()
+                .map(|minimum| {
+                    minimum.text.parse().map_err(|_| {
+                        invalid("range minimum is not an exact canonical Count literal".into())
+                    })
+                })
+                .transpose()?;
+            let maximum = maximum
+                .as_ref()
+                .map(|maximum| {
+                    maximum.text.parse().map_err(|_| {
+                        invalid("range maximum is not an exact canonical Count literal".into())
+                    })
+                })
+                .transpose()?;
+            minimum_endpoint = endpoint_or_inclusive(minimum.is_some(), minimum_endpoint);
+            maximum_endpoint = endpoint_or_inclusive(maximum.is_some(), maximum_endpoint);
             Ok(ValueConstraint::UnsignedRange {
                 minimum,
                 maximum,
@@ -155,24 +155,28 @@ fn checked_range(
             })
         }
         conduit_core::SCALAR_INFO_ID => {
-            let minimum = match minimum {
-                Some(minimum) => crate::structured_startup::parse_scalar_literal(&minimum.text)
-                    .ok_or_else(|| invalid("range minimum is not an exact Scalar literal".into()))?
-                    .raw_microunits(),
-                None => {
-                    minimum_endpoint = IntervalEndpoint::Inclusive;
-                    i64::MIN
-                }
-            };
-            let maximum = match maximum {
-                Some(maximum) => crate::structured_startup::parse_scalar_literal(&maximum.text)
-                    .ok_or_else(|| invalid("range maximum is not an exact Scalar literal".into()))?
-                    .raw_microunits(),
-                None => {
-                    maximum_endpoint = IntervalEndpoint::Inclusive;
-                    i64::MAX
-                }
-            };
+            let minimum = minimum
+                .as_ref()
+                .map(|minimum| {
+                    crate::structured_startup::parse_scalar_literal(&minimum.text)
+                        .ok_or_else(|| {
+                            invalid("range minimum is not an exact Scalar literal".into())
+                        })
+                        .map(|value| value.raw_microunits())
+                })
+                .transpose()?;
+            let maximum = maximum
+                .as_ref()
+                .map(|maximum| {
+                    crate::structured_startup::parse_scalar_literal(&maximum.text)
+                        .ok_or_else(|| {
+                            invalid("range maximum is not an exact Scalar literal".into())
+                        })
+                        .map(|value| value.raw_microunits())
+                })
+                .transpose()?;
+            minimum_endpoint = endpoint_or_inclusive(minimum.is_some(), minimum_endpoint);
+            maximum_endpoint = endpoint_or_inclusive(maximum.is_some(), maximum_endpoint);
             Ok(ValueConstraint::SignedRange {
                 minimum,
                 maximum,
@@ -197,27 +201,24 @@ fn checked_range(
         }) =>
         {
             let kind = conduit_core::primitive_info_kind(kind).expect("matched integer kind");
-            let (intrinsic_minimum, intrinsic_maximum) = fixed_integer_bounds(kind);
-            let minimum = match minimum {
-                Some(value) => checked_integer_member(kind, value_kind.as_str(), &value.text)
-                    .ok_or_else(|| {
-                        invalid("range minimum is outside its exact integer Type".into())
-                    })?,
-                None => {
-                    minimum_endpoint = IntervalEndpoint::Inclusive;
-                    intrinsic_minimum
-                }
-            };
-            let maximum = match maximum {
-                Some(value) => checked_integer_member(kind, value_kind.as_str(), &value.text)
-                    .ok_or_else(|| {
-                        invalid("range maximum is outside its exact integer Type".into())
-                    })?,
-                None => {
-                    maximum_endpoint = IntervalEndpoint::Inclusive;
-                    intrinsic_maximum
-                }
-            };
+            let minimum = minimum
+                .as_ref()
+                .map(|value| {
+                    checked_integer_member(kind, value_kind.as_str(), &value.text).ok_or_else(
+                        || invalid("range minimum is outside its exact integer Type".into()),
+                    )
+                })
+                .transpose()?;
+            let maximum = maximum
+                .as_ref()
+                .map(|value| {
+                    checked_integer_member(kind, value_kind.as_str(), &value.text).ok_or_else(
+                        || invalid("range maximum is outside its exact integer Type".into()),
+                    )
+                })
+                .transpose()?;
+            minimum_endpoint = endpoint_or_inclusive(minimum.is_some(), minimum_endpoint);
+            maximum_endpoint = endpoint_or_inclusive(maximum.is_some(), maximum_endpoint);
             Ok(ValueConstraint::FixedIntegerRange {
                 minimum,
                 maximum,
@@ -228,16 +229,24 @@ fn checked_range(
         kind if kind == conduit_core::QUANTITY_INFO_ID
             || conduit_core::quantity_info_dimension(kind).is_some() =>
         {
-            let minimum = minimum.as_ref().ok_or_else(|| {
-                invalid("an open quantity range has no canonical unit-bearing lower bound".into())
-            })?;
-            let maximum = maximum.as_ref().ok_or_else(|| {
-                invalid("an open quantity range has no canonical unit-bearing upper bound".into())
-            })?;
-            let minimum = conduit_core::Quantity::parse_form_literal(&minimum.text)
-                .map_err(|error| invalid(alloc::format!("invalid range minimum: {error:?}")))?;
-            let maximum = conduit_core::Quantity::parse_form_literal(&maximum.text)
-                .map_err(|error| invalid(alloc::format!("invalid range maximum: {error:?}")))?;
+            let minimum = minimum
+                .as_ref()
+                .map(|minimum| {
+                    conduit_core::Quantity::parse_form_literal(&minimum.text).map_err(|error| {
+                        invalid(alloc::format!("invalid range minimum: {error:?}"))
+                    })
+                })
+                .transpose()?;
+            let maximum = maximum
+                .as_ref()
+                .map(|maximum| {
+                    conduit_core::Quantity::parse_form_literal(&maximum.text).map_err(|error| {
+                        invalid(alloc::format!("invalid range maximum: {error:?}"))
+                    })
+                })
+                .transpose()?;
+            minimum_endpoint = endpoint_or_inclusive(minimum.is_some(), minimum_endpoint);
+            maximum_endpoint = endpoint_or_inclusive(maximum.is_some(), maximum_endpoint);
             Ok(ValueConstraint::QuantityRange {
                 minimum,
                 maximum,
@@ -248,6 +257,14 @@ fn checked_range(
         _ => Err(invalid(
             "a range relation requires Count, Scalar, or exact semantic Quantity info".into(),
         )),
+    }
+}
+
+fn endpoint_or_inclusive(present: bool, endpoint: IntervalEndpoint) -> IntervalEndpoint {
+    if present {
+        endpoint
+    } else {
+        IntervalEndpoint::Inclusive
     }
 }
 
@@ -340,52 +357,6 @@ fn checked_integer_member(
     };
     let (bytes, length) = value.encode();
     Some(bytes[..length].to_vec())
-}
-
-fn fixed_integer_bounds(kind: PrimitiveInfoKind) -> (Vec<u8>, Vec<u8>) {
-    let bytes = conduit_core::fixed_integer_bytes(kind);
-    let signed = matches!(
-        kind,
-        PrimitiveInfoKind::I8
-            | PrimitiveInfoKind::I16
-            | PrimitiveInfoKind::I32
-            | PrimitiveInfoKind::I64
-            | PrimitiveInfoKind::I128
-    );
-    if signed {
-        let bits = (bytes * 8) as u32;
-        let (minimum, maximum) = if bits == 128 {
-            (i128::MIN, i128::MAX)
-        } else {
-            (-(1_i128 << (bits - 1)), (1_i128 << (bits - 1)) - 1)
-        };
-        let minimum = conduit_core::FixedInteger::from_signed(kind, minimum)
-            .expect("intrinsic signed minimum");
-        let maximum = conduit_core::FixedInteger::from_signed(kind, maximum)
-            .expect("intrinsic signed maximum");
-        let (minimum, minimum_len) = minimum.encode();
-        let (maximum, maximum_len) = maximum.encode();
-        (
-            minimum[..minimum_len].to_vec(),
-            maximum[..maximum_len].to_vec(),
-        )
-    } else {
-        let maximum = if bytes == 16 {
-            u128::MAX
-        } else {
-            (1_u128 << (bytes * 8)) - 1
-        };
-        let minimum =
-            conduit_core::FixedInteger::from_unsigned(kind, 0).expect("intrinsic unsigned minimum");
-        let maximum = conduit_core::FixedInteger::from_unsigned(kind, maximum)
-            .expect("intrinsic unsigned maximum");
-        let (minimum, minimum_len) = minimum.encode();
-        let (maximum, maximum_len) = maximum.encode();
-        (
-            minimum[..minimum_len].to_vec(),
-            maximum[..maximum_len].to_vec(),
-        )
-    }
 }
 
 fn intrinsic_maximum_bytes(value_kind: &str) -> Option<u32> {

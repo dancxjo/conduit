@@ -1132,6 +1132,53 @@ form perform (
 }
 
 #[test]
+fn native_types_preserve_open_semantic_range_ends_for_every_numeric_family() {
+    let checked = check(
+        "type Positive = Count in 0..\n\
+         type AtMostOne = Scalar in ..=1.000000\n\
+         type Warm = Temperature in -273°C..\n\
+         type Small = U32 in ..=100\n",
+    );
+    let constraints = checked
+        .native_types
+        .iter()
+        .map(|value_type| &value_type.value_contracts[0].contract.constraints[0])
+        .collect::<Vec<_>>();
+    assert!(matches!(
+        constraints[0],
+        ValueConstraint::UnsignedRange {
+            minimum: Some(0),
+            maximum: None,
+            ..
+        }
+    ));
+    assert!(matches!(
+        constraints[1],
+        ValueConstraint::SignedRange {
+            minimum: None,
+            maximum: Some(1_000_000),
+            ..
+        }
+    ));
+    assert!(matches!(
+        constraints[2],
+        ValueConstraint::QuantityRange {
+            minimum: Some(_),
+            maximum: None,
+            ..
+        }
+    ));
+    assert!(matches!(
+        constraints[3],
+        ValueConstraint::FixedIntegerRange {
+            minimum: None,
+            maximum: Some(_),
+            ..
+        }
+    ));
+}
+
+#[test]
 fn native_type_identity_ignores_source_trivia_but_not_semantic_name() {
     let first = check_syntax_document(
         &parse_syntax_document("type Note = U8 in 0..=127\n"),

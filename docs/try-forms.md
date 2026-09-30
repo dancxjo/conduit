@@ -43,6 +43,30 @@ form count (
 }
 ```
 
+## Write semantic ranges
+
+A native Type may omit either end of a numeric range:
+
+```conduit
+type Positive = Scalar in 0..
+type AtMostOne = Scalar in ..=1
+type TemperatureAboveAbsoluteZero = Temperature in -273.15°C..
+type Percentage = Scalar in 0..=100
+```
+
+`0..` means “no semantic upper bound”; it does not mean “up to the largest
+integer in Rust.” Likewise, `..=1` has no semantic lower bound. A bounded range
+still names both ends. The fully open spelling `in ..` is rejected because it
+adds no meaning beyond the unrefined primitive Type.
+
+Open meaning does not reserve infinite memory. The checked contract separately
+records the finite maximum encoding accepted by the current representation.
+Fixed-width values therefore cost their fixed extent. A semantically valid
+value outside a selected representation refuses during lowering or admission.
+Any future arbitrary-precision representation must admit and charge its actual
+encoded extent. Sequence cardinality, stream backlog, and retained state remain
+explicitly bounded or governed independently of the element domain.
+
 For an interactive authoring surface, open the native Text Lab:
 
 ```bash

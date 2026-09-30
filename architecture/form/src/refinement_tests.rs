@@ -28,8 +28,8 @@ fn authored_ranges_preserve_open_and_closed_endpoints() {
     assert_eq!(
         count.constraints,
         vec![ValueConstraint::UnsignedRange {
-            minimum: 1,
-            maximum: 4,
+            minimum: Some(1),
+            maximum: Some(4),
             minimum_endpoint: IntervalEndpoint::Inclusive,
             maximum_endpoint: IntervalEndpoint::Inclusive,
         }]
@@ -41,8 +41,14 @@ fn authored_ranges_preserve_open_and_closed_endpoints() {
     assert_eq!(
         temperature.constraints,
         vec![ValueConstraint::QuantityRange {
-            minimum: conduit_core::Quantity::new(18, conduit_core::QuantityUnit::Celsius),
-            maximum: conduit_core::Quantity::new(24, conduit_core::QuantityUnit::Celsius),
+            minimum: Some(conduit_core::Quantity::new(
+                18,
+                conduit_core::QuantityUnit::Celsius
+            )),
+            maximum: Some(conduit_core::Quantity::new(
+                24,
+                conduit_core::QuantityUnit::Celsius
+            )),
             minimum_endpoint: IntervalEndpoint::Inclusive,
             maximum_endpoint: IntervalEndpoint::Exclusive,
         }]
@@ -50,15 +56,15 @@ fn authored_ranges_preserve_open_and_closed_endpoints() {
 }
 
 #[test]
-fn missing_range_ends_resolve_only_from_exact_primitive_bounds() {
+fn missing_range_ends_remain_semantically_open() {
     let checked = check(
         "form bounded (\n >> low: Count in ..=4\n >> high: Count in 4..\n >> scalar: Scalar in ..=1.000000\n) {\n}\n",
     );
     assert_eq!(
         input_contract(&checked, "low").constraints,
         vec![ValueConstraint::UnsignedRange {
-            minimum: u64::MIN,
-            maximum: 4,
+            minimum: None,
+            maximum: Some(4),
             minimum_endpoint: IntervalEndpoint::Inclusive,
             maximum_endpoint: IntervalEndpoint::Inclusive,
         }]
@@ -66,8 +72,8 @@ fn missing_range_ends_resolve_only_from_exact_primitive_bounds() {
     assert_eq!(
         input_contract(&checked, "high").constraints,
         vec![ValueConstraint::UnsignedRange {
-            minimum: 4,
-            maximum: u64::MAX,
+            minimum: Some(4),
+            maximum: None,
             minimum_endpoint: IntervalEndpoint::Inclusive,
             maximum_endpoint: IntervalEndpoint::Inclusive,
         }]
@@ -75,8 +81,8 @@ fn missing_range_ends_resolve_only_from_exact_primitive_bounds() {
     assert_eq!(
         input_contract(&checked, "scalar").constraints,
         vec![ValueConstraint::SignedRange {
-            minimum: i64::MIN,
-            maximum: 1_000_000,
+            minimum: None,
+            maximum: Some(1_000_000),
             minimum_endpoint: IntervalEndpoint::Inclusive,
             maximum_endpoint: IntervalEndpoint::Inclusive,
         }]
@@ -89,9 +95,9 @@ fn missing_range_ends_resolve_only_from_exact_primitive_bounds() {
     let explicit = check(
         "form bounded (\n >> low: Count in 0..=4\n >> high: Count in 4..=18446744073709551615\n >> scalar: Scalar in -9223372036854.775808..=1.000000\n) {\n}\n",
     );
-    assert_eq!(
+    assert_ne!(
         checked.forms[0].checked_form_id, explicit.forms[0].checked_form_id,
-        "omitted endpoints canonicalize to exact primitive bounds"
+        "semantic openness is distinct from the current carrier's extrema"
     );
 }
 
@@ -249,12 +255,13 @@ fn malformed_or_incompatible_authored_refinements_refuse_during_checking() {
         ),
         (
             "form bad (\n >> value: Temperature in ..=2m\n) {\n}\n",
-            "no canonical unit-bearing lower bound",
+            "runtime Port value contract is invalid",
         ),
         (
             "form bad (\n >> value: Text <= 8B in []\n) {\n}\n",
             "invalid",
         ),
+        ("form bad (\n >> value: Scalar in ..\n) {\n}\n", "invalid"),
     ] {
         let error = check_syntax_document(&parse_syntax_document(source), &StartupCatalog::new())
             .expect_err("invalid refinement must refuse before Plan/Play");

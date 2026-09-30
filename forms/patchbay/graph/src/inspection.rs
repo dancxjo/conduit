@@ -243,39 +243,29 @@ fn constraint_fact(constraint: &ValueConstraint) -> String {
             maximum,
             minimum_endpoint,
             maximum_endpoint,
-        } => format!(
-            "constraint unsigned-range minimum={minimum}({minimum_endpoint:?}) maximum={maximum}({maximum_endpoint:?})"
-        ),
+        } => open_range_fact("unsigned-range", minimum, maximum, *minimum_endpoint, *maximum_endpoint),
         ValueConstraint::SignedRange {
             minimum,
             maximum,
             minimum_endpoint,
             maximum_endpoint,
-        } => format!(
-            "constraint signed-range minimum={minimum}({minimum_endpoint:?}) maximum={maximum}({maximum_endpoint:?})"
-        ),
+        } => open_range_fact("signed-range", minimum, maximum, *minimum_endpoint, *maximum_endpoint),
         ValueConstraint::FixedIntegerRange {
             minimum,
             maximum,
             minimum_endpoint,
             maximum_endpoint,
         } => format!(
-            "constraint fixed-integer-range minimum=0x{}({minimum_endpoint:?}) maximum=0x{}({maximum_endpoint:?})",
-            hex_bytes(minimum),
-            hex_bytes(maximum),
+            "constraint fixed-integer-range minimum={}({minimum_endpoint:?}) maximum={}({maximum_endpoint:?})",
+            minimum.as_ref().map(|value| format!("0x{}", hex_bytes(value))).unwrap_or_else(|| "open".into()),
+            maximum.as_ref().map(|value| format!("0x{}", hex_bytes(value))).unwrap_or_else(|| "open".into()),
         ),
         ValueConstraint::QuantityRange {
             minimum,
             maximum,
             minimum_endpoint,
             maximum_endpoint,
-        } => format!(
-            "constraint quantity-range minimum={}{}({minimum_endpoint:?}) maximum={}{}({maximum_endpoint:?})",
-            minimum.value(),
-            minimum.unit().form_suffix(),
-            maximum.value(),
-            maximum.unit().form_suffix(),
-        ),
+        } => open_range_fact("quantity-range", minimum, maximum, *minimum_endpoint, *maximum_endpoint),
         ValueConstraint::CanonicalMembership { members, negated } => format!(
             "constraint canonical-membership negated={negated} values={} bytes={}",
             members.len(),
@@ -296,6 +286,24 @@ fn constraint_fact(constraint: &ValueConstraint) -> String {
     }
 }
 
+fn open_range_fact<T: core::fmt::Debug>(
+    name: &str,
+    minimum: &Option<T>,
+    maximum: &Option<T>,
+    minimum_endpoint: conduit_core::IntervalEndpoint,
+    maximum_endpoint: conduit_core::IntervalEndpoint,
+) -> String {
+    let minimum = minimum
+        .as_ref()
+        .map(|value| format!("{value:?}"))
+        .unwrap_or_else(|| "open".into());
+    let maximum = maximum
+        .as_ref()
+        .map(|value| format!("{value:?}"))
+        .unwrap_or_else(|| "open".into());
+    format!("constraint {name} minimum={minimum}({minimum_endpoint:?}) maximum={maximum}({maximum_endpoint:?})")
+}
+
 fn hex_bytes(bytes: &[u8]) -> String {
     bytes.iter().map(|byte| format!("{byte:02x}")).collect()
 }
@@ -313,8 +321,8 @@ mod tests {
             kind_id(conduit_core::COUNT_INFO_ID),
             conduit_core::COUNT_ENCODED_LEN as u32,
             vec![ValueConstraint::UnsignedRange {
-                minimum: 1,
-                maximum: 4,
+                minimum: Some(1),
+                maximum: Some(4),
                 minimum_endpoint: IntervalEndpoint::Exclusive,
                 maximum_endpoint: IntervalEndpoint::Inclusive,
             }],
@@ -356,8 +364,8 @@ mod tests {
     fn fixed_integer_range_inspection_keeps_exact_canonical_bounds() {
         assert_eq!(
             constraint_fact(&ValueConstraint::FixedIntegerRange {
-                minimum: vec![0x00],
-                maximum: vec![0x7f],
+                minimum: Some(vec![0x00]),
+                maximum: Some(vec![0x7f]),
                 minimum_endpoint: IntervalEndpoint::Inclusive,
                 maximum_endpoint: IntervalEndpoint::Inclusive,
             }),

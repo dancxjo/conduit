@@ -1474,8 +1474,8 @@ mod terminal_track_tests {
                     kind_id(conduit_core::COUNT_INFO_ID),
                     conduit_core::COUNT_ENCODED_LEN as u32,
                     alloc::vec![conduit_core::ValueConstraint::UnsignedRange {
-                        minimum: 2,
-                        maximum: 4,
+                        minimum: Some(2),
+                        maximum: Some(4),
                         minimum_endpoint: conduit_core::IntervalEndpoint::Inclusive,
                         maximum_endpoint: conduit_core::IntervalEndpoint::Inclusive,
                     }],
