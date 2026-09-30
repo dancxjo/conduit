@@ -90,12 +90,14 @@ The project succeeds by refusing to collapse concepts that are convenient to con
 ### Meaning and realization
 
 ```text
+TYPE   reusable semantic meaning for one finite family of info values
+INFO   one finite, shaped value of a type, carried through cords
+
 KIND   reusable semantic behavior such as text/upper
 FORM   authored composition of semantic work; the program Conduit runs
 GEAR   one configured occurrence of a kind in a form
 PORT   typed directional point through which info enters or leaves
 CORD   typed semantic connection between compatible ports on gears
-INFO   shaped, typed data carried through cords
 RESOURCE bounded addressable content with explicit lifecycle and sharing obligations
 SIGNAL one particular info semantic or mechanism where explicitly named
 FORE    stable callable shape of a kind or form, including startup parameters and ports
@@ -107,6 +109,19 @@ HOST   running software environment that makes truthful finite offers
 PLAN   exact immutable realization of an admitted workload
 PLAY   one active execution of a plan
 ```
+
+A type says what finite info values mean; one info value is not the type itself.
+A kind says what reusable work means; one gear is a configured occurrence of
+that kind. This is the language's semantic symmetry:
+
+```text
+type : info :: kind : gear
+```
+
+A source `form` may define a reusable kind; no redundant `kind` keyword is
+required. A type owns meaning, while a subordinate `code` may state one exact
+portable encoding for carrying or storing its values. The code does not become
+part of what the type means.
 
 A kind is not a gear, and neither is an implementation. A port is not a renderer jack, queue slot, line endpoint, or base handle. info is specifically shaped/typed data and is not automatically Signal. A fore is not its back or an exact realization. An installed implementation is not necessarily initialized. An initialized implementation is not necessarily advertised. An advertised capability offer is not selected. A selected offer is not reserved. A reservation is not an active play.
 
