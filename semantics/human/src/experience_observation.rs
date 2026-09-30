@@ -3,12 +3,7 @@
 use alloc::string::String;
 use conduit_core::{SignId, TemporalInstant};
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum SourceAvailability {
-    Present,
-    Missing,
-    Unavailable,
-}
+use crate::SourceAvailability;
 
 /// One typed observation with exact source, time, and evidence truth.
 ///

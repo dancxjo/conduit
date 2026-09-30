@@ -5,8 +5,8 @@ use conduit_core::{KindId, SignId};
 
 use crate::{
     ImageObservationReference, MotionObservation, ObjectObservation, TrackObservation,
-    VisibleTextObservation, VisualEvidenceClass, VisualImpression, VisualImpressionRefusal,
-    VisualObservationRefusal,
+    VisibleTextObservation, VisualEvidenceClass, VisualExperienceRelationKind, VisualImpression,
+    VisualImpressionRefusal, VisualObservationRefusal,
 };
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
@@ -89,13 +89,6 @@ impl VisualExperienceObservation {
                 .map_err(VisualExperienceRefusal::InvalidImpression),
         }
     }
-}
-
-#[derive(Clone, Copy, Debug, Eq, PartialEq)]
-pub enum VisualExperienceRelationKind {
-    Relates,
-    Supports,
-    Contradicts,
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
