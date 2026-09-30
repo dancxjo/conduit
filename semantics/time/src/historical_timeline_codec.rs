@@ -4,7 +4,7 @@ use alloc::{string::String, vec::Vec};
 use conduit_core::{semantic_digest, BoundedResourceRef, KindId, TemporalInstant, TemporalScale};
 
 use crate::{
-    BoundedHistoricalTimeline, HistoricalEntryOrigin, HistoricalOverflowPolicy,
+    BoundedHistoricalTimeline, HistoricalEntryOriginRepresentation, HistoricalOverflowPolicy,
     HistoricalRetentionGap, HistoricalTimelineEntry, HistoricalTimelineRefusal,
     MAXIMUM_HISTORICAL_ENTRY_IDENTITY_BYTES, MAXIMUM_HISTORICAL_TIMELINE_ENTRIES,
 };
@@ -76,10 +76,7 @@ pub fn encode_historical_timeline_into(
         writer.text(&entry.event_time.clock_basis)?;
         writer.u64(entry.event_time.resolution_ticks)?;
         writer.u64(entry.event_time.uncertainty_ticks)?;
-        writer.u8(match entry.origin {
-            HistoricalEntryOrigin::MachineObservation => 0,
-            HistoricalEntryOrigin::OperatorAuthored => 1,
-        })?;
+        writer.u8(HistoricalEntryOriginRepresentation::encode(entry.origin)[0])?;
         let resource = entry
             .value
             .encode()
@@ -154,11 +151,8 @@ pub fn decode_historical_timeline(
             resolution_ticks: cursor.u64()?,
             uncertainty_ticks: cursor.u64()?,
         };
-        let origin = match cursor.u8()? {
-            0 => HistoricalEntryOrigin::MachineObservation,
-            1 => HistoricalEntryOrigin::OperatorAuthored,
-            _ => return Err(HistoricalTimelineCodecRefusal::InvalidEnum),
-        };
+        let origin = HistoricalEntryOriginRepresentation::decode(&[cursor.u8()?])
+            .map_err(|_| HistoricalTimelineCodecRefusal::InvalidEnum)?;
         let resource = BoundedResourceRef::decode(cursor.length_prefixed()?)
             .map_err(|_| HistoricalTimelineCodecRefusal::Resource)?;
         entries.push(HistoricalTimelineEntry {

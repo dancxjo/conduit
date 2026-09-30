@@ -49,6 +49,8 @@ type HistoricalEntryOrigin =
     machine_observation
     | operator_authored
 
+representation time/historical-entry-origin = HistoricalEntryOrigin as u8
+
 type HistoricalOverflowPolicy =
     refuse
     | evict_oldest_with_gap
