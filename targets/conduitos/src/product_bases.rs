@@ -12,7 +12,16 @@ use crate::{arch::UsbDevice, identity, offer::HostOffer};
 
 const MAXIMUM_EFFECT_BASES: u16 = 5;
 const INPUT_CONTROLLER_FAMILY: &str = "conduitos.base/input-controller@1";
-pub const FRAMEBUFFER_RESOURCE_CLASS: &str = "conduitos.resource/framebuffer@1";
+pub const FRAMEBUFFER_RESOURCE_CLASS: &str = conduit_presentation::SHOW_RESOURCE_CLASS;
+
+/// Exact discovered surface provider plus issuer-private material. The key is
+/// never descriptive Base truth and is deliberately not serializable or
+/// exposed through inspection.
+#[derive(Clone)]
+pub struct NativeSurfaceProvider {
+    pub entry: BaseProviderEntry,
+    pub(crate) issuer_key: [u8; 32],
+}
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum EffectFamily {
@@ -165,6 +174,21 @@ impl NativeProductBases {
         }
         Ok(resource)
     }
+
+    pub fn framebuffer_provider(
+        &self,
+        issuer_key: [u8; 32],
+    ) -> Result<NativeSurfaceProvider, EffectBaseRefusal> {
+        if issuer_key == [0; 32] {
+            return Err(EffectBaseRefusal::InvalidProvider);
+        }
+        let entry = self.require(EffectFamily::Framebuffer)?;
+        self.require_resource(EffectFamily::Framebuffer, FRAMEBUFFER_RESOURCE_CLASS)?;
+        Ok(NativeSurfaceProvider {
+            entry: entry.clone(),
+            issuer_key,
+        })
+    }
 }
 
 fn framebuffer_resource(base_id: &str) -> ResourceOffer {
@@ -174,6 +198,24 @@ fn framebuffer_resource(base_id: &str) -> ResourceOffer {
         capacity_units: 1,
         compute: None,
         content: None,
+    }
+}
+
+#[cfg(test)]
+pub(crate) fn fixture_surface_provider() -> NativeSurfaceProvider {
+    NativeSurfaceProvider {
+        entry: BaseProviderEntry {
+            base_id: HostBaseId::from("conduitos/test/framebuffer"),
+            provider_instance_id: BaseInstanceId::from("conduitos/test/framebuffer/provider/1"),
+            provider_generation: 1,
+            implementation_id: BaseImplementationId::from("conduitos/framebuffer@1"),
+            mechanism_family: HostBaseKindId::from(family_kind(EffectFamily::Framebuffer)),
+            enforcement_class: BaseEnforcementClass::ConduitOsKernelEnforced,
+            lifecycle: BaseLifecycle::Ready,
+            capabilities: Vec::new(),
+            resources: vec![framebuffer_resource("conduitos/test/framebuffer")],
+        },
+        issuer_key: [7; 32],
     }
 }
 

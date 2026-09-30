@@ -80,6 +80,18 @@ fn native_birth_keeps_four_forms_in_one_body_plan_play_and_switches_only_foregro
     assert_eq!(started.status, JourneyStatus::QuiescentAwaitingInput);
     assert_eq!(started.gear_ids.len(), 14);
     assert_eq!(started.cord_ids.len(), 10);
+    let surface = started
+        .mask
+        .as_ref()
+        .and_then(|mask| mask.shows.first())
+        .and_then(|show| show.surface_possession.as_ref())
+        .expect("native graphical Mask moves its exact surface possession");
+    assert_eq!(surface.lifecycle, "revoked-at-play-end");
+    assert_eq!(surface.provider_generation, 1);
+    assert_eq!(
+        surface.resource_pool_id.as_str(),
+        "conduitos/test/framebuffer/surface"
+    );
     let admitted = journey.workspace_projection().unwrap();
     assert!(admitted.forms.iter().all(|form| {
         form.input.as_ref().is_some_and(|input| {
