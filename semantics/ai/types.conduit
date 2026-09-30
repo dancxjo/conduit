@@ -1,5 +1,61 @@
 # Authoritative portable AI meaning. Rust consumes generated bindings.
 
+type ShadowTerminal =
+    compared
+    | cancelled
+    | pressured
+    | candidate_provider_lost
+    | baseline_failed
+    | candidate_failed
+
+type HumanAssessmentDisposition =
+    supports_candidate
+    | supports_baseline
+    | disagrees
+    | inconclusive
+
+type EvaluationDisposition =
+    sufficient
+    | insufficient
+    | disagreement
+
+type PromotionDecision =
+    approved
+    | denied
+
+type PromotionTerminal =
+    promoted
+    | preparation_failed
+    | commit_unknown
+
+type RollbackTerminal =
+    rolled_back
+    | unavailable
+    | refused
+    | failed
+    | commit_unknown
+
+type LearnedLifecycleRefusal =
+    invalid_identity
+    | same_realization
+    | unbounded_resources
+    | effectful_shadow_route
+    | wrong_contract
+    | wrong_input
+    | wrong_realization
+    | resource_bound_exceeded
+    | invalid_evidence
+    | invalid_evaluation
+    | evidence_insufficient
+    | approval_denied
+    | grant_not_yet_valid
+    | grant_expired
+    | stale_candidate
+    | incompatible_signature
+    | invalid_plan_transition
+    | rollback_target_mismatch
+    | attempt_limit_exceeded
+
 type GeneratedTextFlowTerminal =
     completed
     | output_bound_exhausted
