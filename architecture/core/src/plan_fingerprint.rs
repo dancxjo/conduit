@@ -602,6 +602,15 @@ fn push_semantic_contract(canonical: &mut Vec<u8>, contract: &crate::KindSemanti
                 canonical.push(join.capacity as u8);
                 canonical.push(join.unmatched_on_close as u8);
             }
+            Law::BoundedCollect(collect) => {
+                canonical.push(13);
+                push_string(canonical, collect.input_port_id.as_str());
+                push_string(canonical, collect.output_port_id.as_str());
+                push_value_contract(canonical, &collect.element);
+                push_value_contract(canonical, &collect.collection);
+                canonical.extend_from_slice(&collect.maximum_items.to_le_bytes());
+                push_value_contract(canonical, &collect.overflow_disposition);
+            }
         }
     }
 }

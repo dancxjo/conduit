@@ -24,6 +24,7 @@ use super::data_text_back::{
 use super::distance_frequency_back::FACTORY as DISTANCE_FREQUENCY_FACTORY;
 use super::external_websocket::EXTERNAL_WEBSOCKET_LISTENER_FACTORY;
 use super::final_normalized_pattern_back::FACTORY as FINAL_NORMALIZED_PATTERN_FACTORY;
+use super::flow_collect_back::FACTORY as FLOW_COLLECT_FACTORY;
 use super::flow_first_back::FLOW_FIRST_FACTORY;
 use super::flow_gate_back::FLOW_GATE_SCALAR_FACTORY;
 use super::flow_join_by_key_back::FACTORY as FLOW_JOIN_BY_KEY_FACTORY;
@@ -286,6 +287,7 @@ const FACTORIES: &[&BackFactory] = &[
     &CURRENT_SAMPLE_FACTORY,
     &COMBINE_LATEST_FACTORY,
     &FLOW_ZIP_FACTORY,
+    &FLOW_COLLECT_FACTORY,
     &FLOW_JOIN_BY_KEY_FACTORY,
     &FLOW_GATE_SCALAR_FACTORY,
     &FLOW_FIRST_FACTORY,

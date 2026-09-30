@@ -122,6 +122,13 @@ impl KindSemanticContract {
             _ => None,
         })
     }
+
+    pub fn bounded_collect(&self) -> Option<&BoundedCollectSemanticLaw> {
+        self.laws.iter().find_map(|law| match law {
+            KindSemanticLaw::BoundedCollect(contract) => Some(contract),
+            _ => None,
+        })
+    }
 }
 
 /// Finite validation law for one Kind configuration field.
@@ -290,6 +297,23 @@ pub enum KindSemanticLaw {
     ValueContracts(Vec<crate::FrontValueContract>),
     /// Finite correlation semantics for a two-sided one-to-one keyed join.
     KeyedJoin(KeyedJoinSemanticLaw),
+    /// Finite collection of one closing Flow into exactly one sequence Value.
+    BoundedCollect(BoundedCollectSemanticLaw),
+}
+
+/// Exact portable law for collecting one closing Flow.
+///
+/// Normal input close owes exactly one output Value, including for an empty
+/// input. Observing more than `maximum_items` produces the exact typed
+/// abnormal disposition and never a partial collection.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct BoundedCollectSemanticLaw {
+    pub input_port_id: PortId,
+    pub output_port_id: PortId,
+    pub element: crate::CheckedValueContract,
+    pub collection: crate::CheckedValueContract,
+    pub maximum_items: u16,
+    pub overflow_disposition: crate::CheckedValueContract,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]

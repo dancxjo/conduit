@@ -90,6 +90,7 @@ use super::vector_search_back::VectorSearchBack;
 use super::vision_describe_back::VisionDescribeBack;
 use super::vision_experience_back::VisionExperienceBack;
 use super::wav_artifact_back::WavArtifactBack;
+use conduit_data::FlowCollectBack;
 
 pub(super) enum InstalledBack {
     DistanceFrequency(DistanceFrequencyBack),
@@ -142,6 +143,7 @@ pub(super) enum InstalledBack {
     CurrentSample(CurrentSampleBack),
     CombineLatest(CombineLatestBack),
     FlowZip(FlowZipBack),
+    FlowCollect(Box<FlowCollectBack>),
     FlowJoinByKey(Box<FlowJoinByKeyBack>),
     FlowGateScalar(FlowGateScalarBack),
     FlowFirst(FlowFirstBack),

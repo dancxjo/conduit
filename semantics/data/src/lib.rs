@@ -24,6 +24,8 @@ mod data_catalog;
 mod data_generation;
 mod data_reference;
 mod data_terminal;
+#[cfg(feature = "kernel-step")]
+mod flow_collect_back;
 mod measurement_observation_catalog;
 mod measurement_plot;
 mod measurement_plot_back;
@@ -54,6 +56,8 @@ pub use data_catalog::*;
 pub use data_generation::*;
 pub use data_reference::*;
 pub use data_terminal::*;
+#[cfg(feature = "kernel-step")]
+pub use flow_collect_back::{FlowCollectBack, FlowCollectPreparationError};
 pub use measurement_observation_catalog::*;
 pub use measurement_plot::*;
 pub use measurement_plot_back::*;

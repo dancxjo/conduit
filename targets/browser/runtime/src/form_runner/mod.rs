@@ -151,6 +151,8 @@ impl TourSession {
             crate::installed_browser::catalogs::offers_for_expanded_time_windows(&form)?;
         let sample_offers =
             crate::installed_browser::catalogs::offers_for_expanded_time_samples(&form)?;
+        let collect_offers =
+            crate::installed_browser::catalogs::offers_for_expanded_flow_collects(&form)?;
         let mut host = crate::installed_browser::advertisement_for_presentation(
             host_id.into(),
             boot_id.into(),
@@ -160,6 +162,7 @@ impl TourSession {
         host.capabilities.extend(expression_offers);
         host.capabilities.extend(window_offers);
         host.capabilities.extend(sample_offers);
+        host.capabilities.extend(collect_offers);
         host.capabilities
             .sort_by(|left, right| left.capability_id.cmp(&right.capability_id));
         let hosts = [host];
