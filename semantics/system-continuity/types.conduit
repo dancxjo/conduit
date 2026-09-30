@@ -1,0 +1,11 @@
+# Authoritative portable system-continuity meaning. Rust consumes generated bindings.
+
+type RebootDenial =
+    malformed-request
+    | unsupported
+    | unauthorized
+    | stale-target-boot
+    | session-mismatch
+    | replay
+    | attempt-limit-reached
+    | transaction-pending
