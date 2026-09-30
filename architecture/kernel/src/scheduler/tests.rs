@@ -3507,4 +3507,75 @@ fn quiescence_fires_once_per_wakeable_epoch() {
         panic!("quiescence sink")
     };
     assert_eq!(seen, 2);
+    scheduler.cancel().unwrap();
+    assert_eq!(scheduler.step().unwrap(), SchedulerStatus::Cancelled);
+    let Driver::QuiescenceSink { seen } = scheduler.drivers()[1] else {
+        panic!("quiescence sink")
+    };
+    assert_eq!(seen, 2);
+}
+
+#[test]
+fn terminal_outcomes_do_not_emit_quiescence() {
+    fn run(source: Driver) -> (Result<SchedulerStatus, SchedulerError>, u8) {
+        let mut routes = FixedRoutes::<2, 1>::new(PORTS as u16);
+        routes
+            .install(
+                NodeId(0),
+                PortId(0),
+                RouteRange { start: 0, len: 1 },
+                &[RouteTarget {
+                    cord: CordId(0),
+                    sink: crate::CordEndpoint::local(NodeId(1), PortId(0)),
+                }],
+            )
+            .unwrap();
+        routes.seal().unwrap();
+        let signs =
+            FixedSignLog::<16>::new((16 * core::mem::size_of::<crate::KernelEvent>()) as u32)
+                .unwrap();
+        let mut scheduler = FixedScheduler::<_, _, _, 2, 1, PORTS, 1, 2, 1>::new(
+            [node([None; PORTS]), node([Some(CordId(0)), None])],
+            [CordSpec::local(
+                CordId(0),
+                (NodeId(0), PortId(0)),
+                (NodeId(1), PortId(0)),
+                CordCapacity {
+                    slot_start: 0,
+                    item_capacity: 1,
+                    byte_capacity: 1,
+                    pressure_policy: AssignedPressurePolicy::PreserveOrder,
+                },
+            )
+            .with_track(AssignedConnectionTrack::Quiescence)],
+            routes,
+            [source, Driver::QuiescenceSink { seen: 0 }],
+            FixedValueStore::<1, 1>::new(1).unwrap(),
+            signs,
+        )
+        .unwrap();
+        let first = scheduler.step();
+        let status = match first {
+            Err(error) => Err(error),
+            Ok(_) => {
+                scheduler.step().unwrap();
+                scheduler.step()
+            }
+        };
+        let Driver::QuiescenceSink { seen } = scheduler.drivers()[1] else {
+            panic!("quiescence sink")
+        };
+        (status, seen)
+    }
+
+    let (closed, closed_events) = run(Driver::TerminalSource);
+    assert_eq!(closed, Ok(SchedulerStatus::Idle));
+    assert_eq!(closed_events, 0);
+
+    let (failed, failed_events) = run(Driver::SemanticAbnormal);
+    assert!(matches!(
+        failed,
+        Err(SchedulerError::SemanticAbnormal { .. })
+    ));
+    assert_eq!(failed_events, 0);
 }
