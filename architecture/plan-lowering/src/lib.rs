@@ -8,6 +8,7 @@
 
 extern crate alloc;
 
+pub mod activation_fragment;
 pub mod fragment_set;
 pub mod lowering;
 pub mod shared_pool_runtime;

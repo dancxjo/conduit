@@ -762,6 +762,28 @@ pub struct LoweredPlanFragment {
     pub sign_bytes: u32,
 }
 
+/// Whole-Plan entry point. The legacy fragment-only function cannot carry
+/// activation truth and therefore remains only for activation-free callers.
+pub fn lower_plan_fragment_from_plan(
+    plan: &conduit_core::Plan,
+    fragment_id: &FragmentId,
+) -> Result<
+    (
+        LoweredPlanFragment,
+        crate::activation_fragment::LoweredFragmentActivations,
+    ),
+    LoweringError,
+> {
+    let activations = crate::activation_fragment::lower_fragment_activations(plan, fragment_id)
+        .map_err(|_| LoweringError::InvalidFragment)?;
+    let fragment = plan
+        .fragments
+        .iter()
+        .find(|part| &part.fragment_id == fragment_id)
+        .ok_or(LoweringError::InvalidFragment)?;
+    Ok((lower_plan_fragment(fragment)?, activations))
+}
+
 pub fn lower_plan_fragment(fragment: &PlanFragment) -> Result<LoweredPlanFragment, LoweringError> {
     lower_plan_fragment_for_profile(fragment, FIXED_KERNEL_STORAGE_PROFILE)
 }
