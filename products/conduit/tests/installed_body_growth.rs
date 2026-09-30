@@ -4,11 +4,13 @@
 
 use conduit_body::{Body, BodyBiographyEvidence, BodyMembership};
 use conduit_core::SignId;
+use rcgen::{generate_simple_self_signed, CertifiedKey};
 use serde_json::{json, Value};
 use sha2::{Digest, Sha256};
 use std::{
     fs,
-    io::Write,
+    io::{BufRead, BufReader, Write},
+    net::{Ipv4Addr, TcpListener},
     path::{Path, PathBuf},
     process::{Child, Command, Output, Stdio},
     thread,
@@ -22,6 +24,93 @@ impl Drop for RunningHost {
         let _ = self.0.kill();
         let _ = self.0.wait();
     }
+}
+
+#[test]
+fn routed_invitation_joins_two_installed_hosts_without_manual_protocol_phases() {
+    let root = unique_root();
+    let owner = root.join("owner");
+    let joining = root.join("joining");
+    fs::create_dir_all(&owner).unwrap();
+    fs::create_dir_all(&joining).unwrap();
+    seed_installation(&owner, true);
+    seed_installation(&joining, false);
+
+    let _owner_service = start_host(&owner);
+    let _joining_service = start_host(&joining);
+    wait_for_runtime(&owner);
+    wait_for_runtime(&joining);
+
+    let CertifiedKey { cert, signing_key } =
+        generate_simple_self_signed(vec!["127.0.0.1".into()]).unwrap();
+    let certificate = root.join("owner-certificate.pem");
+    let private_key = root.join("owner-private-key.pem");
+    fs::write(&certificate, cert.pem()).unwrap();
+    fs::write(&private_key, signing_key.serialize_pem()).unwrap();
+    let reservation = TcpListener::bind((Ipv4Addr::UNSPECIFIED, 0)).unwrap();
+    let port = reservation.local_addr().unwrap().port();
+    drop(reservation);
+    let bind = format!("0.0.0.0:{port}");
+    let public_url = format!("wss://127.0.0.1:{port}/body-admission");
+    let mut owner_route = Command::new(env!("CARGO_BIN_EXE_conduit"))
+        .args([
+            "body",
+            "invite",
+            "--state-dir",
+            path(&owner),
+            "--ttl-seconds",
+            "30",
+            "--route-bind",
+            &bind,
+            "--route-url",
+            &public_url,
+            "--route-tls-cert",
+            path(&certificate),
+            "--route-tls-key",
+            path(&private_key),
+            "--authorize-route",
+        ])
+        .stdout(Stdio::piped())
+        .stderr(Stdio::piped())
+        .spawn()
+        .unwrap();
+    let mut invitation = String::new();
+    BufReader::new(owner_route.stdout.take().unwrap())
+        .read_line(&mut invitation)
+        .unwrap();
+    let invitation: Value = serde_json::from_str(&invitation).unwrap();
+    assert_eq!(invitation["schema"], "conduit.body/spawn-invitation@2");
+    assert_eq!(
+        invitation["rendezvous"]["body_id"],
+        invitation["claim"]["body_id"]
+    );
+    assert_eq!(
+        invitation["rendezvous"]["invitation_id"],
+        invitation["claim"]["invitation_id"]
+    );
+    let invitation_path = root.join("routed-invitation.json");
+    fs::write(&invitation_path, serde_json::to_vec(&invitation).unwrap()).unwrap();
+
+    let joined = product(&[
+        "body",
+        "join",
+        path(&invitation_path),
+        "--state-dir",
+        path(&joining),
+        "--authorize-join",
+    ]);
+    assert_success(&joined, "join through exact owner route");
+    assert!(owner_route.wait().unwrap().success());
+
+    let joining_status = product(&["body", "status", "--state-dir", path(&joining), "--json"]);
+    assert_success(&joining_status, "inspect retained joined membership");
+    let joining_status: Value = serde_json::from_slice(&joining_status.stdout).unwrap();
+    assert_eq!(joining_status["body_id"], invitation["claim"]["body_id"]);
+    assert_eq!(joining_status["membership"], "admitted");
+    assert_eq!(joining_status["plan_created"], false);
+    assert_eq!(joining_status["play_created"], false);
+
+    fs::remove_dir_all(root).unwrap();
 }
 
 #[test]

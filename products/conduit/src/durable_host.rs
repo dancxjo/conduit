@@ -24,8 +24,11 @@ const MAXIMUM_BODY_ADMISSION_BYTES: u64 = 512 * 1024;
 mod invitation;
 #[path = "durable_host_membership.rs"]
 mod membership;
+#[path = "durable_body_join_route.rs"]
+mod routed_join;
 pub(crate) use invitation::{accept_body_invitation, admit_body_request, issue_body_invitation};
 pub(crate) use membership::{complete_body_join, retain_rendezvous_membership};
+pub(crate) use routed_join::{join_body_over_route, serve_body_invitation_route};
 
 #[derive(Debug, Deserialize)]
 struct ReleaseManifest {
