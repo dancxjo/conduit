@@ -20,3 +20,27 @@ type PcmSampleRepresentation =
 type PcmChannelLayout =
     mono
     | stereo-left-right
+
+type PressureDisposition =
+    wait_without_consumption
+    | refuse_before_play
+
+type CancellationDisposition =
+    cancel_and_release_finite_state
+    | drain_then_complete
+
+type SoundTerminalBehavior =
+    completes_when_inputs_close
+    | drains_admitted_output_then_completes
+
+type SoundSeam =
+    tone
+    | musical_events
+    | synthesis
+    | pcm_playback
+
+type SoundStreamState =
+    open
+    | draining
+    | cancelled
+    | closed

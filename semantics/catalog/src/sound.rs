@@ -13,6 +13,7 @@ use conduit_audio::{
     audio_tone_terminal_kind_id, AUDIO_PCM_INFO_ID, AUDIO_RENDER_DEMAND_INFO_ID,
     MUSIC_CONTROL_INFO_ID, MUSIC_NOTE_INFO_ID, PCM_FRAME_HEADER_ENCODED_LEN, SOUND_TONE_INFO_ID,
 };
+pub use conduit_audio::{CancellationDisposition, PressureDisposition, SoundTerminalBehavior};
 use conduit_core::{
     kind_id, port_id, AbnormalTerminalTransduction, CancellationTransduction, CapabilityLimits,
     ConfigurationValue, Kind, KindIdentity, KindSemanticLaw, NormalCloseTransduction,
@@ -69,24 +70,6 @@ pub const MAXIMUM_MUSICAL_EVENT_BYTES: u32 = 16_384;
 pub const MAXIMUM_SIMULTANEOUS_NOTES: u16 = 64;
 pub const MAXIMUM_AUDIO_QUEUE_ITEMS: u16 = 8;
 pub const MAXIMUM_AUDIO_QUEUE_BYTES: u32 = 524_288;
-
-#[derive(Debug, Copy, Clone, PartialEq, Eq, Serialize, Deserialize)]
-pub enum PressureDisposition {
-    WaitWithoutConsumption,
-    RefuseBeforePlay,
-}
-
-#[derive(Debug, Copy, Clone, PartialEq, Eq, Serialize, Deserialize)]
-pub enum CancellationDisposition {
-    CancelAndReleaseFiniteState,
-    DrainThenComplete,
-}
-
-#[derive(Debug, Copy, Clone, PartialEq, Eq, Serialize, Deserialize)]
-pub enum SoundTerminalBehavior {
-    CompletesWhenInputsClose,
-    DrainsAdmittedOutputThenCompletes,
-}
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct StreamSemantics {

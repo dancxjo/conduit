@@ -13,7 +13,9 @@ mod generated {
 }
 
 pub use generated::{
-    AudioToneTerminal, Gate, ModulationDestination, PcmChannelLayout, PcmSampleRepresentation,
+    AudioToneTerminal, CancellationDisposition, Gate, ModulationDestination, PcmChannelLayout,
+    PcmSampleRepresentation, PressureDisposition, SoundSeam, SoundStreamState,
+    SoundTerminalBehavior,
 };
 
 mod audio_info;

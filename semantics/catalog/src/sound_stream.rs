@@ -1,14 +1,7 @@
 //! Finite admission accounting shared by portable sound stream contracts.
 
 use crate::{stream_semantics, CancellationDisposition, StreamSemantics};
-
-#[derive(Debug, Copy, Clone, PartialEq, Eq)]
-pub enum SoundStreamState {
-    Open,
-    Draining,
-    Cancelled,
-    Closed,
-}
+pub use conduit_audio::SoundStreamState;
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
 pub enum SoundStreamRefusal {

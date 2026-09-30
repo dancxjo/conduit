@@ -1,4 +1,7 @@
-use conduit_audio::{audio_tone_terminal_kind_id, AudioToneTerminal, Gate, ModulationDestination};
+use conduit_audio::{
+    audio_tone_terminal_kind_id, AudioToneTerminal, CancellationDisposition, Gate,
+    ModulationDestination, PressureDisposition, SoundSeam, SoundStreamState, SoundTerminalBehavior,
+};
 use conduit_core::StructuredInfoTypeShape;
 use conduit_form::rust_binding::NativeRustBinding;
 
@@ -62,6 +65,61 @@ fn musical_unit_variants_have_native_semantic_identity_and_exact_round_trips() {
         assert_eq!(
             ModulationDestination::from_structured(structured).unwrap(),
             destination
+        );
+    }
+}
+
+#[test]
+fn sound_stream_and_compatibility_vocabularies_have_native_identity() {
+    for value in [
+        PressureDisposition::WaitWithoutConsumption,
+        PressureDisposition::RefuseBeforePlay,
+    ] {
+        let structured = value.into_structured().unwrap();
+        assert_eq!(
+            PressureDisposition::from_structured(structured).unwrap(),
+            value
+        );
+    }
+    for value in [
+        CancellationDisposition::CancelAndReleaseFiniteState,
+        CancellationDisposition::DrainThenComplete,
+    ] {
+        let structured = value.into_structured().unwrap();
+        assert_eq!(
+            CancellationDisposition::from_structured(structured).unwrap(),
+            value
+        );
+    }
+    for value in [
+        SoundTerminalBehavior::CompletesWhenInputsClose,
+        SoundTerminalBehavior::DrainsAdmittedOutputThenCompletes,
+    ] {
+        let structured = value.into_structured().unwrap();
+        assert_eq!(
+            SoundTerminalBehavior::from_structured(structured).unwrap(),
+            value
+        );
+    }
+    for value in [
+        SoundSeam::Tone,
+        SoundSeam::MusicalEvents,
+        SoundSeam::Synthesis,
+        SoundSeam::PcmPlayback,
+    ] {
+        let structured = value.into_structured().unwrap();
+        assert_eq!(SoundSeam::from_structured(structured).unwrap(), value);
+    }
+    for value in [
+        SoundStreamState::Open,
+        SoundStreamState::Draining,
+        SoundStreamState::Cancelled,
+        SoundStreamState::Closed,
+    ] {
+        let structured = value.into_structured().unwrap();
+        assert_eq!(
+            SoundStreamState::from_structured(structured).unwrap(),
+            value
         );
     }
 }
