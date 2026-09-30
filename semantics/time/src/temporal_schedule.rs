@@ -9,8 +9,9 @@ use serde::{Deserialize, Serialize};
 
 use crate::{
     ClockChangeBehavior, MonotonicDuration, MonotonicInstant, NamedTimeZone, OccurrenceInstant,
-    RecurrenceOccurrence, SuspendBehavior, TemporalInstant, TemporalRelation, TemporalScale,
-    TemporalWindow, TemporalWindowPosition, MAXIMUM_TEMPORAL_IDENTITY_BYTES,
+    RecurrenceOccurrence, ScheduledIntentRefusal, SuspendBehavior, TemporalInstant,
+    TemporalRelation, TemporalScale, TemporalWindow, TemporalWindowPosition,
+    MAXIMUM_TEMPORAL_IDENTITY_BYTES,
 };
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
@@ -72,17 +73,6 @@ pub enum ScheduledOccurrenceDecision {
     Suspended,
     ClockChanged,
     ClockUncertain,
-}
-
-#[derive(Debug, Copy, Clone, PartialEq, Eq)]
-pub enum ScheduledIntentRefusal {
-    InvalidIdentity,
-    InvalidOccurrence,
-    TriggerOccurrenceMismatch,
-    InvalidWindow,
-    IncomparableObservation,
-    WrongObservationProfile,
-    InvalidLatePolicy,
 }
 
 impl<T> ScheduledIntent<T> {

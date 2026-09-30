@@ -133,6 +133,7 @@ are satisfied.
 | Calendar participant role, invitation state and availability state | `semantics/time/types.conduit` | generated at build time | yes | yes | exact native round trips plus calendar, AI and std Host suites |
 | Historical origin/overflow and temporal window boundary/position vocabularies | `semantics/time/types.conduit` | generated at build time | yes | yes | exact native round trips, Serde compatibility and time behavior suites |
 | Civil recurrence gap, fold and resolution-choice vocabularies | `semantics/time/types.conduit` | generated at build time | yes | yes | exact native round trips, Serde compatibility and civil recurrence suites |
+| Calendar, proposal, recurrence, schedule and temporal-window refusal vocabularies | `semantics/time/types.conduit` | generated at build time | yes | yes | exact native round trips plus temporal behavior suites |
 | Linguistic offset basis | `semantics/language/types.conduit` | generated at build time | yes | yes | native binding and linguistic suites |
 | Audio tone terminal | `semantics/audio/types.conduit` | generated at build time | yes | yes | exact terminal round trip and audio suites |
 | Audio gate, modulation destination, PCM sample representation and channel layout | `semantics/audio/types.conduit` | generated at build time | yes | yes | exact native round trips plus audio, browser, std and embedded compile suites |
