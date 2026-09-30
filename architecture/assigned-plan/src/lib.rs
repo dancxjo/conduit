@@ -47,6 +47,7 @@ pub enum AssignedConnectionTrack {
     Payload = 0,
     NormalClose = 1,
     AbnormalTerminal = 2,
+    Quiescence = 3,
 }
 
 #[derive(Clone, Copy, Debug, Default, Eq, PartialEq)]

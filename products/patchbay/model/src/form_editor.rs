@@ -574,6 +574,7 @@ fn cord_label(cord: &conduit_form::CheckedCanonicalCord) -> String {
                 match terminal {
                     conduit_form::TerminalProjection::NormalClose => "|",
                     conduit_form::TerminalProjection::Abnormal => "!",
+                    conduit_form::TerminalProjection::Quiescence => ";",
                 }
             ),
             CheckedCordStage::Cancellation { gear, .. } => format!("{gear}~"),

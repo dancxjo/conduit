@@ -206,6 +206,7 @@ pub fn compute_fragment_id(fragment: &PlanFragment) -> FragmentId {
             crate::ConnectionTrack::Payload => 0,
             crate::ConnectionTrack::NormalClose => 1,
             crate::ConnectionTrack::AbnormalTerminal => 2,
+            crate::ConnectionTrack::Quiescence => 3,
         });
         canonical.push(match connection.temporal {
             PortTemporal::Value => 0,
@@ -250,6 +251,7 @@ pub fn compute_fragment_id(fragment: &PlanFragment) -> FragmentId {
             crate::ConnectionTrack::Payload => 0,
             crate::ConnectionTrack::NormalClose => 1,
             crate::ConnectionTrack::AbnormalTerminal => 2,
+            crate::ConnectionTrack::Quiescence => 3,
         });
         canonical.push(match port.temporal {
             PortTemporal::Value => 0,

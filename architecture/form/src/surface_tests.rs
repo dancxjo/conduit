@@ -493,8 +493,8 @@ fn percentage_quantity_suffix_is_not_a_remainder_without_a_right_operand() {
 }
 
 #[test]
-fn when_terminal_and_cancellation_stages_are_not_ordinary_references() {
-    let source = "form controls {\n    temperature >> when(. > limit) >> alarm\n    items| >> finish\n    items! >> explain\n    deadline >> work~\n}\n";
+fn when_terminal_quiescence_and_cancellation_stages_are_not_ordinary_references() {
+    let source = "form controls {\n    temperature >> when(. > limit) >> alarm\n    items| >> finish\n    items! >> explain\n    items; >> resting\n    deadline >> work~\n}\n";
     let document = parse_syntax_document(source);
     assert!(
         document.diagnostics.is_empty(),
@@ -524,7 +524,14 @@ fn when_terminal_and_cancellation_stages_are_not_ordinary_references() {
             ..
         }
     ));
-    assert!(matches!(cords[3].stages[1], CordStage::Cancellation { .. }));
+    assert!(matches!(
+        cords[3].stages[0],
+        CordStage::TerminalProjection {
+            terminal: crate::TerminalProjection::Quiescence,
+            ..
+        }
+    ));
+    assert!(matches!(cords[4].stages[1], CordStage::Cancellation { .. }));
 }
 
 #[test]

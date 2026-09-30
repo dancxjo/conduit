@@ -45,6 +45,7 @@ enum Driver {
     },
     TerminalSource,
     SemanticAbnormal,
+    Failing,
     TerminalPropagator {
         observed: bool,
     },
@@ -66,6 +67,10 @@ enum Driver {
     ProjectedRecovery {
         observed_bytes: Option<usize>,
         phase: u8,
+    },
+    QuiescentRelay,
+    QuiescenceSink {
+        transitions: u8,
     },
 }
 
@@ -253,6 +258,10 @@ impl StepBack<PORTS> for Driver {
                 port: PortId(0),
                 terminal: CanonicalValue::new(&[1, 0, 0x34, 0x12]).unwrap(),
             },
+            Self::Failing => StepOutcome::Fail(Failure {
+                code: FailureCode::InvalidLifecycle,
+                detail: 17,
+            }),
             Self::TerminalPropagator { observed } => {
                 let Some(terminal) = io.input_abnormal(PortId(0)) else {
                     return StepOutcome::Await;
@@ -375,6 +384,24 @@ impl StepBack<PORTS> for Driver {
                 }
                 _ => StepOutcome::Complete,
             },
+            Self::QuiescentRelay => {
+                if io.input(PortId(0)).is_some() {
+                    io.consume(PortId(0)).unwrap();
+                    StepOutcome::Progress
+                } else {
+                    StepOutcome::Await
+                }
+            }
+            Self::QuiescenceSink { transitions } => {
+                if io.input(PortId(0)).is_some() {
+                    assert_eq!(_input_bytes.input(PortId(0)), Some([].as_slice()));
+                    io.consume(PortId(0)).unwrap();
+                    *transitions += 1;
+                    StepOutcome::Progress
+                } else {
+                    StepOutcome::Await
+                }
+            }
         }
     }
 
@@ -443,6 +470,161 @@ fn prepared_back_storage_emits_beyond_the_inline_derived_value_envelope() {
     };
     assert_eq!(observed_bytes, Some(256));
     assert_eq!(scheduler.values().used_items(), 0);
+}
+
+#[test]
+fn quiescence_track_fires_once_per_active_epoch_and_rearms_after_new_work() {
+    let ingress = RemoteEndpointId(0);
+    let mut routes = FixedRoutes::<2, 1>::new(PORTS as u16);
+    routes
+        .install(
+            NodeId(0),
+            PortId(0),
+            RouteRange { start: 0, len: 1 },
+            &[RouteTarget {
+                cord: CordId(1),
+                sink: crate::CordEndpoint::local(NodeId(1), PortId(0)),
+            }],
+        )
+        .unwrap();
+    routes.seal().unwrap();
+    let capacity = CordCapacity {
+        slot_start: 0,
+        item_capacity: 1,
+        byte_capacity: 1,
+        pressure_policy: Default::default(),
+    };
+    let mut scheduler = FixedScheduler::<_, _, _, 2, 2, PORTS, 2, 2, 1>::new(
+        [node([Some(CordId(0)), None]), node([Some(CordId(1)), None])],
+        [
+            CordSpec::remote_ingress(CordId(0), ingress, (NodeId(0), PortId(0)), capacity),
+            CordSpec::local(
+                CordId(1),
+                (NodeId(0), PortId(0)),
+                (NodeId(1), PortId(0)),
+                CordCapacity {
+                    slot_start: 1,
+                    ..capacity
+                },
+            )
+            .with_track(AssignedConnectionTrack::Quiescence),
+        ],
+        routes,
+        [
+            Driver::QuiescentRelay,
+            Driver::QuiescenceSink { transitions: 0 },
+        ],
+        FixedValueStore::<4, 4>::new(4).unwrap(),
+        FixedSignLog::<32>::new_with_remote_storage(
+            (32 * core::mem::size_of::<crate::KernelEvent>()) as u32,
+            4,
+            crate::remote_sign_storage_bytes(4).unwrap(),
+        )
+        .unwrap(),
+    )
+    .unwrap();
+
+    for _ in 0..2 {
+        assert!(matches!(
+            scheduler.step().unwrap(),
+            SchedulerStatus::Progress { .. }
+        ));
+    }
+    assert_eq!(scheduler.step().unwrap(), SchedulerStatus::Idle);
+    for (sequence, byte) in [(0, 7_u8), (1, 9_u8)] {
+        assert_eq!(
+            scheduler
+                .admit_remote_input(ingress, CordId(0), sequence, &[byte])
+                .unwrap(),
+            RemoteIngressOutcome::Accepted { sequence }
+        );
+        for _ in 0..8 {
+            if scheduler.step().unwrap() == SchedulerStatus::Idle {
+                break;
+            }
+        }
+        assert_eq!(scheduler.step().unwrap(), SchedulerStatus::Idle);
+        let Driver::QuiescenceSink { transitions } = scheduler.drivers()[1] else {
+            panic!("quiescence sink")
+        };
+        assert_eq!(transitions, (sequence + 1) as u8);
+    }
+}
+
+#[test]
+fn terminal_failure_and_cancellation_never_emit_quiescence() {
+    let make_scheduler = |driver| {
+        let mut routes = FixedRoutes::<2, 1>::new(PORTS as u16);
+        routes
+            .install(
+                NodeId(0),
+                PortId(0),
+                RouteRange { start: 0, len: 1 },
+                &[RouteTarget {
+                    cord: CordId(0),
+                    sink: crate::CordEndpoint::local(NodeId(1), PortId(0)),
+                }],
+            )
+            .unwrap();
+        routes.seal().unwrap();
+        FixedScheduler::<_, _, _, 2, 1, PORTS, 1, 2, 1>::new(
+            [node([None, None]), node([Some(CordId(0)), None])],
+            [CordSpec::local(
+                CordId(0),
+                (NodeId(0), PortId(0)),
+                (NodeId(1), PortId(0)),
+                CordCapacity {
+                    slot_start: 0,
+                    item_capacity: 1,
+                    byte_capacity: 1,
+                    pressure_policy: Default::default(),
+                },
+            )
+            .with_track(AssignedConnectionTrack::Quiescence)],
+            routes,
+            [driver, Driver::QuiescenceSink { transitions: 0 }],
+            FixedValueStore::<2, 2>::new(2).unwrap(),
+            FixedSignLog::<16>::new((16 * core::mem::size_of::<crate::KernelEvent>()) as u32)
+                .unwrap(),
+        )
+        .unwrap()
+    };
+
+    let mut closed = make_scheduler(Driver::TerminalSource);
+    for _ in 0..4 {
+        if closed.step().unwrap() == SchedulerStatus::Drained {
+            break;
+        }
+    }
+    let Driver::QuiescenceSink { transitions } = closed.drivers()[1] else {
+        panic!("quiescence sink")
+    };
+    assert_eq!(transitions, 0);
+
+    let mut abnormal = make_scheduler(Driver::SemanticAbnormal);
+    assert!(matches!(
+        abnormal.step(),
+        Err(SchedulerError::SemanticAbnormal { .. })
+    ));
+    let Driver::QuiescenceSink { transitions } = abnormal.drivers()[1] else {
+        panic!("quiescence sink")
+    };
+    assert_eq!(transitions, 0);
+
+    let mut failed = make_scheduler(Driver::Failing);
+    assert!(matches!(failed.step(), Err(SchedulerError::BackFailed(_))));
+    let Driver::QuiescenceSink { transitions } = failed.drivers()[1] else {
+        panic!("quiescence sink")
+    };
+    assert_eq!(transitions, 0);
+
+    let mut cancelled = make_scheduler(Driver::QuiescentRelay);
+    cancelled.cancel().unwrap();
+    assert_eq!(cancelled.step().unwrap(), SchedulerStatus::Cancelled);
+    let Driver::QuiescenceSink { transitions } = cancelled.drivers()[1] else {
+        panic!("quiescence sink")
+    };
+    assert_eq!(transitions, 0);
 }
 
 #[test]

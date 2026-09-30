@@ -1146,11 +1146,11 @@ fn terminal_catalogs() -> (StartupCatalog, ProfileCatalog) {
 #[test]
 fn terminal_projections_lower_to_distinct_typed_connection_tracks() {
     let (startup, profile) = terminal_catalogs();
-    let source = "form main {\n source: test/closing-source\n finish: test/unit-sink\n explain: test/fault-sink\n source| >> finish\n source! >> explain\n}\n";
+    let source = "form main {\n source: test/closing-source\n finish: test/unit-sink\n resting: test/unit-sink\n explain: test/fault-sink\n source| >> finish\n source! >> explain\n source; >> resting\n}\n";
     let checked = check_syntax_document(&parse_syntax_document(source), &startup).unwrap();
     let expanded = expand_canonical_form(&checked, "main", &profile).unwrap();
 
-    assert_eq!(expanded.connections.len(), 2);
+    assert_eq!(expanded.connections.len(), 3);
     let normal = expanded
         .connections
         .iter()
@@ -1165,7 +1165,15 @@ fn terminal_projections_lower_to_distinct_typed_connection_tracks() {
         .expect("abnormal terminal truth is an exact graph track");
     assert_eq!(abnormal.value_kind.as_str(), "test/fault");
     assert_eq!(abnormal.temporal, conduit_core::PortTemporal::Value);
+    let quiescence = expanded
+        .connections
+        .iter()
+        .find(|connection| connection.track == conduit_core::ConnectionTrack::Quiescence)
+        .expect("quiescence is an exact non-terminal graph track");
+    assert_eq!(quiescence.value_kind.as_str(), conduit_core::UNIT_INFO_ID);
+    assert_eq!(quiescence.temporal, conduit_core::PortTemporal::Value);
     assert_ne!(normal, abnormal);
+    assert_ne!(normal, quiescence);
 }
 
 #[test]

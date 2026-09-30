@@ -949,6 +949,7 @@ struct CordState {
     next_remote_sequence: u64,
     offered_remote_sequence: Option<u64>,
     remote_accepted: bool,
+    quiescence_armed: bool,
 }
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
@@ -968,6 +969,7 @@ impl CordState {
         next_remote_sequence: 0,
         offered_remote_sequence: None,
         remote_accepted: false,
+        quiescence_armed: false,
     };
 }
 
@@ -1186,6 +1188,9 @@ where
             return Err(SchedulerError::DebugSuspended);
         }
         let Some(node) = self.next_ready() else {
+            if let Some(node) = self.emit_quiescence_transitions()? {
+                return Ok(SchedulerStatus::Progress { node });
+            }
             return if self.completed[..self.active_nodes]
                 .iter()
                 .all(|value| *value)
@@ -2407,9 +2412,78 @@ where
             }
             StepOutcome::Fail(_) => unreachable!(),
         }
+        if matches!(outcome, StepOutcome::Progress | StepOutcome::Yield) {
+            self.arm_quiescence_outputs(node)?;
+        }
         self.terminal_phases[node] = terminal_phase;
         self.terminal_cancellation_pending[node] = cancellation_pending;
         Ok(())
+    }
+
+    fn arm_quiescence_outputs(&mut self, node: usize) -> Result<(), SchedulerError> {
+        let node = NodeId(as_u16(node)?);
+        for cord in 0..self.active_cords {
+            if self.cord_specs[cord].track == AssignedConnectionTrack::Quiescence
+                && self.cord_specs[cord].source_local().map(|source| source.0) == Some(node)
+            {
+                self.cords[cord].quiescence_armed = true;
+            }
+        }
+        Ok(())
+    }
+
+    /// Emit one wakeable edge for every source that became active and has now
+    /// returned the whole play to quiescence. Empty queues alone do not arm an
+    /// edge, and terminal sources are never reported as quiescent.
+    fn emit_quiescence_transitions(&mut self) -> Result<Option<NodeId>, SchedulerError> {
+        let mut count = 0_usize;
+        let mut first_source = None;
+        for cord in 0..self.active_cords {
+            let spec = self.cord_specs[cord];
+            if spec.track != AssignedConnectionTrack::Quiescence
+                || !self.cords[cord].quiescence_armed
+            {
+                continue;
+            }
+            let Some((source, _)) = spec.source_local() else {
+                continue;
+            };
+            if self.completed[usize::from(source.0)] || self.cords[cord].len != 0 {
+                continue;
+            }
+            first_source.get_or_insert(source);
+            count = count.checked_add(1).ok_or(SchedulerError::InvalidPlan)?;
+        }
+        if count == 0 {
+            return Ok(None);
+        }
+        self.ensure_sign_capacity(count)?;
+        let value = self.values.store(&[])?;
+        for _ in 1..count {
+            self.values.retain(value)?;
+        }
+        for cord in 0..self.active_cords {
+            let spec = self.cord_specs[cord];
+            if spec.track != AssignedConnectionTrack::Quiescence
+                || !self.cords[cord].quiescence_armed
+            {
+                continue;
+            }
+            let Some((source, port)) = spec.source_local() else {
+                continue;
+            };
+            if self.completed[usize::from(source.0)] || self.cords[cord].len != 0 {
+                continue;
+            }
+            self.push(cord, value)?;
+            self.cords[cord].quiescence_armed = false;
+            if let Some((sink, _)) = spec.sink_local() {
+                self.ready[usize::from(sink.0)] = true;
+            }
+            self.signs
+                .record(source, Some(port), None, KernelEventKind::ValueRouted)?;
+        }
+        Ok(first_source)
     }
 
     fn projected_recovery_for_step(

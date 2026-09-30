@@ -951,6 +951,11 @@ fn validate_export_fronts(export: &CheckedExport, gears: &[CheckedGear]) -> Resu
                     endpoint.abnormal_kind.as_ref() == Some(&front.external_port.value_kind)
                         && front.external_port.temporal == conduit_core::PortTemporal::Value
                 }
+                conduit_core::ConnectionTrack::Quiescence => {
+                    matches!(endpoint.temporal, conduit_core::PortTemporal::Flow { .. })
+                        && front.external_port.value_kind.as_str() == conduit_core::UNIT_INFO_ID
+                        && front.external_port.temporal == conduit_core::PortTemporal::Value
+                }
             };
             if !contract_matches || front.terminal != CompositeFrontTerminal::Independent {
                 return Err(FormError::InvalidExport(
