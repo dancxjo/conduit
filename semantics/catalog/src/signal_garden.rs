@@ -1,6 +1,7 @@
 //! Finite, deterministic observation-driven state for Signal Garden compositions.
 
 use alloc::{vec, vec::Vec};
+pub use conduit_alife::GardenEvolutionRefusal;
 use conduit_core::{
     kind_id, Scalar, StructuredFieldType, StructuredFieldValue, StructuredInfoRefusal,
     StructuredInfoType, StructuredInfoValue, StructuredInfoValueShape, SCALAR_INFO_ID,
@@ -49,16 +50,6 @@ pub fn deterministic_garden_observations() -> (
             intensity: Scalar::from_raw_microunits(800_000),
         },
     )
-}
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum GardenEvolutionRefusal {
-    MalformedState,
-    MalformedClockObservation,
-    MalformedContactObservation,
-    MalformedEnrichedObservation,
-    StepCapacityExceeded,
-    ArithmeticOverflow,
 }
 
 pub fn evolve_garden_minimal(
