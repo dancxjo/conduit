@@ -37,6 +37,7 @@ mod hold;
 mod identity;
 mod legacy;
 mod lifecycle;
+mod lifecycle_session;
 mod membership;
 mod offers;
 #[cfg(feature = "authenticated-admission")]
@@ -83,6 +84,7 @@ pub use identity::{
 };
 pub use legacy::*;
 pub use lifecycle::*;
+pub use lifecycle_session::*;
 pub use membership::*;
 pub use offers::*;
 #[cfg(feature = "authenticated-admission")]

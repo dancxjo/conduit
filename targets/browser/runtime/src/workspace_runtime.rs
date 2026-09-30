@@ -1,11 +1,11 @@
 //! Workspace lifecycle orchestration. The existing browser Body slot executes.
+use conduit_body::BodyLifecycleSession;
 use conduit_body::{
     AdmissionManager, BodyBiographyEvidence, BodyConversationContext, BodyConversationContextBasis,
     BodyConversationHost, BodyPlayIdentity, BodyState, CurrentHostOfferError, CurrentHostOffers,
     ResidentForm, SpawnAdmissionProof, SpawnInvitationClaim, SpawnInvitationSecret, Wake,
 };
 use conduit_core::{AuthorityGrantId, BootId, HostAdvertisement, HostId};
-use conduit_workspace_model::WorkspaceBody;
 use serde::{Deserialize, Serialize};
 use std::cell::RefCell;
 #[path = "workspace_refusal.rs"]
@@ -18,7 +18,7 @@ const CAPACITY: usize = HOST_OFFERS_BYTES + 256 * 1024;
 thread_local! {
     static INPUT: RefCell<Box<[u8]>> = RefCell::new(vec![0; CAPACITY].into_boxed_slice());
     static OUTPUT: RefCell<Vec<u8>> = RefCell::new(Vec::with_capacity(CAPACITY));
-    static BODY: RefCell<Option<WorkspaceBody>> = const { RefCell::new(None) };
+    static BODY: RefCell<Option<BodyLifecycleSession>> = const { RefCell::new(None) };
     static ADMISSIONS: RefCell<Option<AdmissionManager>> = const { RefCell::new(None) };
     static HOST_OFFERS: RefCell<CurrentHostOffers> = RefCell::new(CurrentHostOffers::new());
     static BROWSER_MASK: RefCell<Option<crate::workspace_mask::BrowserMaskRuntime>> = const { RefCell::new(None) };
@@ -206,7 +206,7 @@ enum WorksetEdit {
 struct Snapshot<'a> {
     schema: &'static str,
     evidence: &'a BodyBiographyEvidence,
-    realization: Option<&'a conduit_workspace_model::WorkspaceRealization>,
+    realization: Option<&'a conduit_body::BodyLifecycleRealization>,
     foreground: Option<&'a ResidentForm>,
     foreground_flow: String,
     current_host_offers: Vec<HostAdvertisement>,
@@ -281,7 +281,7 @@ fn dispatch(request: Request) -> Result<Vec<u8>, Refusal> {
                     return Err("Workspace already has a body".into());
                 }
                 let evidence = crate::creche::workspace_evidence()?;
-                let body = WorkspaceBody::open(evidence).map_err(debug)?;
+                let body = BodyLifecycleSession::open(evidence).map_err(debug)?;
                 let mut offers = CurrentHostOffers::new();
                 offers
                     .observe(body.evidence(), advertisement)
@@ -308,9 +308,9 @@ fn dispatch(request: Request) -> Result<Vec<u8>, Refusal> {
                 }
                 let fulfilled = matches!(evidence.body.state, BodyState::Fulfilled { .. });
                 let body = if fulfilled {
-                    WorkspaceBody::open(*evidence).map_err(debug)?
+                    BodyLifecycleSession::open(*evidence).map_err(debug)?
                 } else {
-                    WorkspaceBody::resume_here(*evidence, &host_id, &boot_id).map_err(debug)?
+                    BodyLifecycleSession::resume_here(*evidence, &host_id, &boot_id).map_err(debug)?
                 };
                 let mut offers = CurrentHostOffers::new();
                 if !fulfilled {
@@ -338,7 +338,7 @@ fn dispatch(request: Request) -> Result<Vec<u8>, Refusal> {
                 if admission.body_id != evidence.body_id {
                     return Err(Refusal::new("Admission.WrongBody", "Admission state names another body"));
                 }
-                let body = WorkspaceBody::open_admitted(*evidence, &host_id, &boot_id).map_err(debug)?;
+                let body = BodyLifecycleSession::open_admitted(*evidence, &host_id, &boot_id).map_err(debug)?;
                 let mut offers = CurrentHostOffers::new();
                 offers
                     .observe(body.evidence(), advertisement)
@@ -819,7 +819,7 @@ fn invitation_qr(transfer_uri: &str) -> Result<Vec<u8>, Refusal> {
     )
 }
 fn snapshot_value(
-    body: &WorkspaceBody,
+    body: &BodyLifecycleSession,
     offers: &[HostAdvertisement],
 ) -> Result<serde_json::Value, Refusal> {
     serde_json::to_value(Snapshot {
@@ -833,7 +833,7 @@ fn snapshot_value(
     .map_err(|error| Refusal::new("EncodingFailure", error.to_string()))
 }
 fn durable_value(
-    body: &WorkspaceBody,
+    body: &BodyLifecycleSession,
     admissions: &AdmissionManager,
 ) -> Result<serde_json::Value, Refusal> {
     serde_json::to_value(DurableSnapshot {
@@ -846,12 +846,12 @@ fn durable_value(
     .map_err(|error| Refusal::new("EncodingFailure", error.to_string()))
 }
 
-fn snapshot(body: &WorkspaceBody) -> Result<Vec<u8>, Refusal> {
+fn snapshot(body: &BodyLifecycleSession) -> Result<Vec<u8>, Refusal> {
     snapshot_with_offers(body, &current_host_offers())
 }
 
 fn snapshot_with_offers(
-    body: &WorkspaceBody,
+    body: &BodyLifecycleSession,
     offers: &[HostAdvertisement],
 ) -> Result<Vec<u8>, Refusal> {
     encode(&Snapshot {
@@ -874,11 +874,11 @@ fn encode(value: &impl Serialize) -> Result<Vec<u8>, Refusal> {
     }
     Ok(bytes)
 }
-fn debug(error: conduit_workspace_model::WorkspaceBodyError) -> Refusal {
+fn debug(error: conduit_body::BodyLifecycleSessionError) -> Refusal {
     error.into()
 }
 
-fn conversation_context(body: &WorkspaceBody) -> Result<BodyConversationContext, Refusal> {
+fn conversation_context(body: &BodyLifecycleSession) -> Result<BodyConversationContext, Refusal> {
     let evidence = body.evidence();
     let realization = body.realization().ok_or_else(|| {
         Refusal::new(

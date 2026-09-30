@@ -5,9 +5,9 @@ workbench. They own browser geometry, routing, viewport interaction and
 frontplate mechanics; they do not own the Forms, Gears, Ports, Cords, Plans,
 Plays or Signs they depict.
 
-The Patchbay and Tour browser packages stage the same modules at their local
-resource paths. Keeping the realization with the resident Patchbay workbench
-avoids making either legacy product shell the semantic owner.
+The resident Patchbay workbench owns these realization modules. No standalone
+Patchbay, Tour, Home, or Workspace HTML product is a semantic owner or an
+alternate browser entrance.
 
 `browser-sdk.js` is the deliberately small boundary for ordinary HTML. An
 application obtains the immutable Body-owned topology with
