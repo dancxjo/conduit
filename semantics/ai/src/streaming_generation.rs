@@ -1,5 +1,6 @@
 //! Portable bounded accounting for monotonic generated-text deltas.
 
+use crate::GeneratedTextFlowTerminal;
 use alloc::string::String;
 use serde::{Deserialize, Serialize};
 
@@ -16,16 +17,6 @@ pub const MAXIMUM_GENERATED_TEXT_IN_FLIGHT_ITEMS: u16 = 8;
 pub struct GeneratedTextChunk {
     pub sequence: u64,
     pub text: String,
-}
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
-pub enum GeneratedTextFlowTerminal {
-    Completed,
-    OutputBoundExhausted,
-    Backpressured,
-    Cancelled,
-    ProviderLost,
-    NonMonotonic,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
