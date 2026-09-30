@@ -57,3 +57,5 @@ type SoundStreamState =
     | draining
     | cancelled
     | closed
+
+representation audio/tone-terminal = AudioToneTerminal as u8
