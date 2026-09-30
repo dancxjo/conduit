@@ -4,5 +4,12 @@ type MorseKeyPhase =
     pressed
     | released
 
+type MorseKeyTransition = {
+    clock_basis: Text <= 96B not in [""]
+    monotonic_micros: U64
+    phase: MorseKeyPhase
+    sequence: U64
+}
+
 type AddressDetectionRefusal =
     recognized_text_too_large

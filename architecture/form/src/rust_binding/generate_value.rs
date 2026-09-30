@@ -246,10 +246,16 @@ fn constraint_literal(constraint: &ValueConstraint) -> String {
             "conduit_core::ValueConstraint::QuantityRange {{ minimum: conduit_core::Quantity::new({}, conduit_core::QuantityUnit::{:?}), maximum: conduit_core::Quantity::new({}, conduit_core::QuantityUnit::{:?}), minimum_endpoint: {}, maximum_endpoint: {} }}",
             minimum.value(), minimum.unit(), maximum.value(), maximum.unit(), endpoint_literal(*minimum_endpoint), endpoint_literal(*maximum_endpoint)
         ),
-        ValueConstraint::CanonicalMembership { members, negated } => format!(
-            "conduit_core::ValueConstraint::CanonicalMembership {{ members: vec!{:?}, negated: {negated} }}",
-            members
-        ),
+        ValueConstraint::CanonicalMembership { members, negated } => {
+            let members = members
+                .iter()
+                .map(|member| format!("vec!{member:?}"))
+                .collect::<Vec<_>>()
+                .join(", ");
+            format!(
+                "conduit_core::ValueConstraint::CanonicalMembership {{ members: vec![{members}], negated: {negated} }}"
+            )
+        }
         ValueConstraint::TextPattern { pattern, anchored_start, anchored_end, negated } => format!(
             "conduit_core::ValueConstraint::TextPattern {{ pattern: {}, anchored_start: {anchored_start}, anchored_end: {anchored_end}, negated: {negated} }}",
             pattern_literal(pattern)

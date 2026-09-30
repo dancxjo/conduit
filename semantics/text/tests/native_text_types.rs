@@ -1,5 +1,5 @@
 use conduit_form::rust_binding::NativeRustBinding;
-use conduit_text::{AddressDetectionRefusal, MorseKeyPhase};
+use conduit_text::{AddressDetectionRefusal, MorseKeyPhase, MorseKeyTransition};
 
 #[test]
 fn morse_key_phase_round_trips_through_its_exact_native_type() {
@@ -11,6 +11,27 @@ fn morse_key_phase_round_trips_through_its_exact_native_type() {
         );
         assert_eq!(MorseKeyPhase::from_structured(structured).unwrap(), phase);
     }
+}
+
+#[test]
+fn morse_key_transition_round_trips_through_its_exact_native_record() {
+    let transition = MorseKeyTransition::new(
+        "fixture/boot-monotonic-us@1".into(),
+        1_250_000,
+        MorseKeyPhase::Released,
+        7,
+    )
+    .unwrap();
+    let structured = transition.clone().into_structured().unwrap();
+    assert_eq!(
+        structured.value_type(),
+        &MorseKeyTransition::semantic_type().unwrap()
+    );
+    assert_eq!(
+        MorseKeyTransition::from_structured(structured).unwrap(),
+        transition
+    );
+    assert!(MorseKeyTransition::new("x".repeat(97), 0, MorseKeyPhase::Pressed, 0,).is_err());
 }
 
 #[test]
