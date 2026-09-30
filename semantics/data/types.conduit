@@ -199,3 +199,5 @@ type DataGenerationNamespaceRefusal =
 representation data/save-text-terminal = DataSaveTextTerminal as u8
 
 representation data/load-text-terminal = DataLoadTextTerminal as u8
+
+representation data/measurement-threshold-state = MeasurementThresholdState as u8
