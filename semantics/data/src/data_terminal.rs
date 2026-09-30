@@ -1,72 +1,32 @@
 //! Exact bounded abnormal-terminal information for Text data operations.
 
-use crate::{DataLoadTextTerminal, DataSaveTextTerminal};
+use crate::{
+    DataLoadTextTerminal, DataLoadTextTerminalRepresentation, DataSaveTextTerminal,
+    DataSaveTextTerminalRepresentation,
+};
 
-pub const DATA_SAVE_TEXT_TERMINAL_INFO_ID: &str = "data/save-text-terminal@1";
-pub const DATA_LOAD_TEXT_TERMINAL_INFO_ID: &str = "data/load-text-terminal@1";
-pub const DATA_TEXT_TERMINAL_ENCODED_LEN: usize = 1;
-
-#[derive(Debug, Copy, Clone, PartialEq, Eq)]
-pub enum DataTerminalCodecRefusal {
-    WrongLength { actual: usize },
-    InvalidTag { actual: u8 },
-}
+pub const DATA_SAVE_TEXT_TERMINAL_INFO_ID: &str = DataSaveTextTerminalRepresentation::IDENTITY;
+pub const DATA_LOAD_TEXT_TERMINAL_INFO_ID: &str = DataLoadTextTerminalRepresentation::IDENTITY;
+pub const DATA_TEXT_TERMINAL_ENCODED_LEN: usize = DataSaveTextTerminalRepresentation::EXACT_BYTES;
+pub use conduit_form::rust_binding::NativeRepresentationRefusal as DataTerminalCodecRefusal;
 
 impl DataSaveTextTerminal {
     pub const fn encode(self) -> [u8; DATA_TEXT_TERMINAL_ENCODED_LEN] {
-        [match self {
-            Self::ValueTooLarge => 0,
-            Self::GenerationCapacityExhausted => 1,
-            Self::ByteCapacityExhausted => 2,
-            Self::WrongContentKind => 3,
-        }]
+        DataSaveTextTerminalRepresentation::encode(self)
     }
 
     pub fn decode(encoded: &[u8]) -> Result<Self, DataTerminalCodecRefusal> {
-        let [tag] = encoded else {
-            return Err(DataTerminalCodecRefusal::WrongLength {
-                actual: encoded.len(),
-            });
-        };
-        match tag {
-            0 => Ok(Self::ValueTooLarge),
-            1 => Ok(Self::GenerationCapacityExhausted),
-            2 => Ok(Self::ByteCapacityExhausted),
-            3 => Ok(Self::WrongContentKind),
-            actual => Err(DataTerminalCodecRefusal::InvalidTag { actual: *actual }),
-        }
+        DataSaveTextTerminalRepresentation::decode(encoded)
     }
 }
 
 impl DataLoadTextTerminal {
     pub const fn encode(self) -> [u8; DATA_TEXT_TERMINAL_ENCODED_LEN] {
-        [match self {
-            Self::MalformedReference => 0,
-            Self::WrongContentKind => 1,
-            Self::WrongAccessClass => 2,
-            Self::ExpiringGeneration => 3,
-            Self::ItemExtent => 4,
-            Self::GenerationNotRetained => 5,
-            Self::ExtentMismatch => 6,
-        }]
+        DataLoadTextTerminalRepresentation::encode(self)
     }
 
     pub fn decode(encoded: &[u8]) -> Result<Self, DataTerminalCodecRefusal> {
-        let [tag] = encoded else {
-            return Err(DataTerminalCodecRefusal::WrongLength {
-                actual: encoded.len(),
-            });
-        };
-        match tag {
-            0 => Ok(Self::MalformedReference),
-            1 => Ok(Self::WrongContentKind),
-            2 => Ok(Self::WrongAccessClass),
-            3 => Ok(Self::ExpiringGeneration),
-            4 => Ok(Self::ItemExtent),
-            5 => Ok(Self::GenerationNotRetained),
-            6 => Ok(Self::ExtentMismatch),
-            actual => Err(DataTerminalCodecRefusal::InvalidTag { actual: *actual }),
-        }
+        DataLoadTextTerminalRepresentation::decode(encoded)
     }
 }
 

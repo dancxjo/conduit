@@ -10,6 +10,27 @@ const SUPPORT: &str = "form helper (\n input: Text >> output: Text\n) {\n input 
 const PUBLIC_WITH_GLYPH: &str = "sans glyphs\nwith ./support/helper as ^^\nform public (\n input: Text >> output: Text\n) {\n input ^^ output\n}\n";
 
 #[test]
+fn package_check_retains_checked_representations() {
+    let (manifest_source, manifest) = manifest();
+    let source = "type Outcome =\n    ready\n    | refused\nrepresentation example/outcome = Outcome as u8\nform public {\n}\n";
+    let sources = [PackageMemberSource {
+        path: "main",
+        source,
+    }];
+    let bundle = CheckedPackageBundle::from_sources(&manifest_source, &manifest, &sources).unwrap();
+    let checked = check_package_bundle(
+        &bundle,
+        &manifest_source,
+        &manifest,
+        &sources,
+        &StartupCatalog::new(),
+    )
+    .unwrap();
+    assert_eq!(checked.representations.len(), 1);
+    assert_eq!(checked.representations[0].name, "example/outcome");
+}
+
+#[test]
 fn explicit_local_glyph_import_checks_as_the_exact_ordinary_form() {
     let (manifest_source, manifest) = manifest();
     let sources = [

@@ -34,6 +34,32 @@ type Direction =
 }
 
 #[test]
+fn checked_representation_generates_the_only_rust_discriminant_table() {
+    let source =
+        "type Outcome =\n    ready\n    | refused\n\nrepresentation test/outcome = Outcome as u8\n";
+    let checked = crate::check_syntax_document(
+        &crate::parse_syntax_document(source),
+        &crate::StartupCatalog::new(),
+    )
+    .unwrap();
+    let generated = generate_rust_bindings_with_representations(
+        &checked.native_types,
+        &checked.representations,
+        &RustBindingOptions::default(),
+    )
+    .unwrap();
+    assert!(generated
+        .source
+        .contains("pub struct OutcomeRepresentation;"));
+    assert!(generated.source.contains("Outcome::Ready => 0"));
+    assert!(generated.source.contains("1 => Ok(Outcome::Refused)"));
+    assert!(generated.source.contains("MAXIMUM_DECODE_STEPS: usize = 3"));
+    assert!(generated
+        .source
+        .contains("NativeRepresentationRefusal::InvalidTag"));
+}
+
+#[test]
 fn generation_is_deterministic_and_keeps_rust_spelling_out_of_identity() {
     let types = checked_types();
     let plain = generate_rust_bindings(&types, &RustBindingOptions::default()).unwrap();

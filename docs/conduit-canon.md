@@ -289,6 +289,15 @@ geometry, DOM order, and spoken order do not silently become semantic order.
 Typed content is exact finite semantic data, never a DOM node, filesystem path,
 provider URL, framebuffer, or mask-owned cache.
 
+A semantic Type states meaning independently of any target. A named
+representation states one compatibility realization of that Type; its exact
+version is derived mechanically from checked meaning rather than maintained by
+authors. It does not alter Type identity. Rust types, CBOR schemas, browser
+values, and documentation are peer lowerings from the checked semantic graph.
+Generated bindings are machinery, while handwritten adapters are reserved for
+named external protocols and mechanisms. No target declaration or codec may be the
+only place where portable meaning or compatibility is reconstructable.
+
 Domain roles and relationships use validated extensible semantic identities.
 The universal grammar must not require a new central enum variant for every
 lesson, room, organelle, calendar event, song, robot joint, or future domain.

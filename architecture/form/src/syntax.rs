@@ -12,10 +12,20 @@ pub struct SyntaxDocument {
     pub uses: Vec<UseDeclaration>,
     pub standard_glyphs: bool,
     pub types: Vec<TypeSyntax>,
+    pub representations: Vec<RepresentationSyntax>,
     pub forms: Vec<FormSyntax>,
     pub constructions: Vec<ConstructionSyntax>,
     pub packages: Vec<PackageSyntax>,
     pub diagnostics: Vec<FormDiagnostic>,
+}
+
+#[derive(Debug, Clone, Default, PartialEq, Eq)]
+pub(crate) struct SyntaxDefinitions {
+    pub types: Vec<TypeSyntax>,
+    pub representations: Vec<RepresentationSyntax>,
+    pub forms: Vec<FormSyntax>,
+    pub constructions: Vec<ConstructionSyntax>,
+    pub packages: Vec<PackageSyntax>,
 }
 
 impl SyntaxDocument {
@@ -46,27 +56,44 @@ impl SyntaxDocument {
         tokens: Vec<CstToken>,
         uses: Vec<UseDeclaration>,
         standard_glyphs: bool,
-        definitions: (
-            Vec<TypeSyntax>,
-            Vec<FormSyntax>,
-            Vec<ConstructionSyntax>,
-            Vec<PackageSyntax>,
-        ),
+        definitions: SyntaxDefinitions,
         diagnostics: Vec<FormDiagnostic>,
     ) -> Self {
-        let (types, forms, constructions, packages) = definitions;
         Self {
             source,
             tokens,
             uses,
             standard_glyphs,
-            types,
-            forms,
-            constructions,
-            packages,
+            types: definitions.types,
+            representations: definitions.representations,
+            forms: definitions.forms,
+            constructions: definitions.constructions,
+            packages: definitions.packages,
             diagnostics,
         }
     }
+}
+
+/// One named finite representation of a nominal semantic Type.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct RepresentationSyntax {
+    pub name: SpannedText,
+    pub value_type: SpannedText,
+    pub storage: RepresentationStorageSyntax,
+    /// Empty means semantic variant order. Otherwise this is iota order.
+    pub mappings: Vec<RepresentationMappingSyntax>,
+    pub span: Span,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum RepresentationStorageSyntax {
+    U8,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct RepresentationMappingSyntax {
+    pub variant: SpannedText,
+    pub span: Span,
 }
 
 /// One authored nominal semantic Type declaration.
