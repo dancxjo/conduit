@@ -83,6 +83,11 @@ impl ExpandedCanonicalForm {
                     port.abnormal_kind.as_ref() == Some(&connection.value_kind)
                         && connection.temporal == conduit_core::PortTemporal::Value
                 }
+                conduit_core::ConnectionTrack::Quiescence => {
+                    matches!(port.temporal, conduit_core::PortTemporal::Flow { .. })
+                        && connection.value_kind.as_str() == conduit_core::UNIT_INFO_ID
+                        && connection.temporal == conduit_core::PortTemporal::Value
+                }
             });
             let sink_matches = sink.is_some_and(|port| {
                 port.value_kind == connection.value_kind

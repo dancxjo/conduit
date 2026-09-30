@@ -438,6 +438,18 @@ Values remain accounted for through offered, accepted, delivered, failed, cancel
 
 Automatic retry is a semantic promise and therefore must be planned. A base may not invent it.
 
+Conduitese projects four distinct stream outcomes or transitions at the same
+cord position: `stream|` is normal close, `stream!` is abnormal terminal truth,
+`stream~` is cancellation control, and `stream;` is the transition into
+quiescence. The semicolon is deliberately non-terminal and wakeable. It fires
+once when an active epoch becomes quiescent, and admitted work rearms it for a
+later active-to-quiescent transition. An empty queue does not itself constitute
+the transition, and close, failure, or cancellation never masquerades as `;`.
+
+For example, `samples; >> resting` handles a quiescence edge beside
+`samples| >> finished` and `samples! >> explain`; `deadline >> samples~`
+requests cancellation through the source's declared control.
+
 Abnormal terminal truth is part of the exact checked Fore, not a generic error
 side channel. A port separately declares its ordinary value kind, temporal
 modality, and—when promised—the exact bounded info kind carried by its `!`

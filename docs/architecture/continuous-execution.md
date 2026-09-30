@@ -31,6 +31,14 @@ wake but retains the body; semantic completion ends the form's work. Likewise,
 `PlanRetired` and `Replanned` describe realization lifecycle, not semantic
 completion or a new source program.
 
+Conduitese exposes the wakeable transition as `stream;`. Like `stream|` and
+`stream!`, it can feed an exact typed handler (`stream; >> resting`), but unlike
+those terminal tracks it leaves the source live. One edge is emitted per
+active-to-quiescent epoch. Later admitted work rearms the edge; merely observing
+an empty queue does not. `stream~` remains cancellation control, so normal
+close, abnormal termination, cancellation, failure, and quiescence stay
+machine-distinct.
+
 ## Finite admission and continuation
 
 Each active play admits a fixed resource envelope before it starts: retained

@@ -63,6 +63,9 @@ fn lower_connection_track(
         conduit_core::ConnectionTrack::AbnormalTerminal => {
             conduit_kernel::scheduler::AssignedConnectionTrack::AbnormalTerminal
         }
+        conduit_core::ConnectionTrack::Quiescence => {
+            conduit_kernel::scheduler::AssignedConnectionTrack::Quiescence
+        }
     }
 }
 
@@ -81,6 +84,11 @@ fn source_contract_matches(
         }
         ConnectionTrack::NormalClose => {
             descriptor.temporal == (PortTemporal::Flow { closes: true })
+                && value_kind.as_str() == conduit_core::UNIT_INFO_ID
+                && temporal == PortTemporal::Value
+        }
+        ConnectionTrack::Quiescence => {
+            matches!(descriptor.temporal, PortTemporal::Flow { .. })
                 && value_kind.as_str() == conduit_core::UNIT_INFO_ID
                 && temporal == PortTemporal::Value
         }
@@ -297,7 +305,8 @@ impl LoweredForePort {
         let value_kind = match self.track {
             conduit_core::ConnectionTrack::Payload
             | conduit_core::ConnectionTrack::AbnormalTerminal => &self.value_kind,
-            conduit_core::ConnectionTrack::NormalClose => {
+            conduit_core::ConnectionTrack::NormalClose
+            | conduit_core::ConnectionTrack::Quiescence => {
                 return Err(ForeValueRefusal::NotValueTrack);
             }
         };
@@ -967,22 +976,27 @@ pub fn lower_plan_fragment_for_profile(
             match connection.track {
                 ConnectionTrack::AbnormalTerminal => descriptor.maximum_abnormal_value_bytes,
                 ConnectionTrack::Payload => descriptor.maximum_value_bytes,
-                ConnectionTrack::NormalClose => None,
+                ConnectionTrack::NormalClose | ConnectionTrack::Quiescence => None,
             }
         });
         let sink_value_bound = sink_node.zip(sink_port).and_then(|(node, port)| {
             nodes[usize::from(node.0)].inputs[usize::from(port.0)].maximum_value_bytes
         });
-        if connection.track != ConnectionTrack::NormalClose
-            && source_value_bound
-                .zip(sink_value_bound)
-                .is_some_and(|(source, sink)| source != sink)
+        if !matches!(
+            connection.track,
+            ConnectionTrack::NormalClose | ConnectionTrack::Quiescence
+        ) && source_value_bound
+            .zip(sink_value_bound)
+            .is_some_and(|(source, sink)| source != sink)
         {
             return Err(LoweringError::ConnectionContractMismatch(
                 connection.connection_id.clone(),
             ));
         }
-        let maximum_value_bytes = if connection.track != ConnectionTrack::NormalClose {
+        let maximum_value_bytes = if !matches!(
+            connection.track,
+            ConnectionTrack::NormalClose | ConnectionTrack::Quiescence
+        ) {
             admitted_maximum_value_bytes(
                 source_value_bound
                     .or(sink_value_bound)
@@ -1125,6 +1139,11 @@ pub fn lower_plan_fragment_for_profile(
                     && planned.value_kind.as_str() == conduit_core::UNIT_INFO_ID
                     && planned.temporal == PortTemporal::Value
             }
+            ConnectionTrack::Quiescence => {
+                matches!(descriptor.temporal, PortTemporal::Flow { .. })
+                    && planned.value_kind.as_str() == conduit_core::UNIT_INFO_ID
+                    && planned.temporal == PortTemporal::Value
+            }
         };
         if !descriptor_matches {
             return Err(LoweringError::ConnectionContractMismatch(
@@ -1145,7 +1164,10 @@ pub fn lower_plan_fragment_for_profile(
         value_bytes = value_bytes
             .checked_add(planned.byte_capacity)
             .ok_or(LoweringError::CapacityOverflow)?;
-        let maximum_value_bytes = if planned.track == ConnectionTrack::NormalClose {
+        let maximum_value_bytes = if matches!(
+            planned.track,
+            ConnectionTrack::NormalClose | ConnectionTrack::Quiescence
+        ) {
             planned.byte_capacity
         } else {
             admitted_maximum_value_bytes(

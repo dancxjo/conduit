@@ -1071,6 +1071,8 @@ fn top_level_assignment(text: &str) -> Option<usize> {
 fn parse_terminal_projection(part: &str) -> Option<(&str, crate::TerminalProjection)> {
     let (endpoint, terminal) = if let Some(endpoint) = part.strip_suffix('|') {
         (endpoint, crate::TerminalProjection::NormalClose)
+    } else if let Some(endpoint) = part.strip_suffix(';') {
+        (endpoint, crate::TerminalProjection::Quiescence)
     } else {
         (part.strip_suffix('!')?, crate::TerminalProjection::Abnormal)
     };

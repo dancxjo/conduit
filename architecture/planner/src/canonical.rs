@@ -120,23 +120,27 @@ pub fn plan_expanded_authoring_with_options(
                 .ok_or_else(|| {
                     PlannerError::InvalidFormIdentity("external Fore descriptor is missing".into())
                 })?;
-            let value_contract = (binding.track != conduit_core::ConnectionTrack::NormalClose)
-                .then(|| {
-                    let location = match direction {
-                        conduit_core::PortDirection::Input => {
-                            conduit_core::FrontValueLocation::Input(binding.front_port_id.clone())
-                        }
-                        conduit_core::PortDirection::Output => {
-                            conduit_core::FrontValueLocation::Output(binding.front_port_id.clone())
-                        }
-                    };
-                    form.front
-                        .value_contracts()
-                        .iter()
-                        .find(|contract| contract.location == location)
-                        .map(|contract| contract.contract.clone())
-                })
-                .flatten();
+            let value_contract = (!matches!(
+                binding.track,
+                conduit_core::ConnectionTrack::NormalClose
+                    | conduit_core::ConnectionTrack::Quiescence
+            ))
+            .then(|| {
+                let location = match direction {
+                    conduit_core::PortDirection::Input => {
+                        conduit_core::FrontValueLocation::Input(binding.front_port_id.clone())
+                    }
+                    conduit_core::PortDirection::Output => {
+                        conduit_core::FrontValueLocation::Output(binding.front_port_id.clone())
+                    }
+                };
+                form.front
+                    .value_contracts()
+                    .iter()
+                    .find(|contract| contract.location == location)
+                    .map(|contract| contract.contract.clone())
+            })
+            .flatten();
             let fragment = plan
                 .fragments
                 .iter_mut()
@@ -180,6 +184,11 @@ pub fn plan_expanded_authoring_with_options(
                     ) && descriptor.value_kind.as_str() == conduit_core::UNIT_INFO_ID
                         && descriptor.temporal == conduit_core::PortTemporal::Value
                 }
+                conduit_core::ConnectionTrack::Quiescence => {
+                    matches!(internal.temporal, conduit_core::PortTemporal::Flow { .. })
+                        && descriptor.value_kind.as_str() == conduit_core::UNIT_INFO_ID
+                        && descriptor.temporal == conduit_core::PortTemporal::Value
+                }
             };
             if !internal_matches {
                 return Err(PlannerError::InvalidFormIdentity(format!(
@@ -187,7 +196,11 @@ pub fn plan_expanded_authoring_with_options(
                     binding.front_port_id.as_str(),
                 )));
             }
-            if binding.track != conduit_core::ConnectionTrack::NormalClose {
+            if !matches!(
+                binding.track,
+                conduit_core::ConnectionTrack::NormalClose
+                    | conduit_core::ConnectionTrack::Quiescence
+            ) {
                 let internal_front = placement.checked_port_front();
                 let internal_location = match (direction, binding.track) {
                     (
