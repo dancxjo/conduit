@@ -130,6 +130,7 @@ impl Kind {
         let mut value_contracts = None;
         let mut keyed_join = None;
         let mut flow_select = None;
+        let mut flow_fold = None;
         for law in &self.semantic_laws {
             match law {
                 KindSemanticLaw::TerminalTransduction(profile) => {
@@ -210,6 +211,35 @@ impl Kind {
                             && contract.maximum_queued == 1)
                     {
                         return Err(KindValidationError::InvalidFlowSelect);
+                    }
+                }
+                KindSemanticLaw::FlowFold(contract) => {
+                    if flow_fold.replace(contract).is_some() {
+                        return Err(KindValidationError::DuplicateFlowFold);
+                    }
+                    let input = self
+                        .inputs
+                        .iter()
+                        .find(|port| port.port_id == contract.input_port_id);
+                    let output = self
+                        .outputs
+                        .iter()
+                        .find(|port| port.port_id == contract.output_port_id);
+                    if !matches!((input, output), (Some(input), Some(output))
+                        if input.temporal == crate::PortTemporal::Flow { closes: true }
+                            && output.temporal == crate::PortTemporal::Value
+                            && input.value_kind == contract.item.value_kind
+                            && output.value_kind == contract.accumulator.value_kind
+                            && contract.item.validate_definition().is_ok()
+                            && contract.accumulator.validate_definition().is_ok()
+                            && contract.accumulator.validate(&contract.initial_accumulator).is_ok()
+                            && contract.combine_accumulator_port_id.as_str() == "accumulator"
+                            && contract.combine_item_port_id.as_str() == "item"
+                            && contract.combine_output_port_id.as_str() == "combined"
+                            && contract.maximum_active == 1
+                            && contract.maximum_queued == 1)
+                    {
+                        return Err(KindValidationError::InvalidFlowFold);
                     }
                 }
                 _ => {}
@@ -401,6 +431,8 @@ pub enum KindValidationError {
     InvalidKeyedJoin,
     DuplicateFlowSelect,
     InvalidFlowSelect,
+    DuplicateFlowFold,
+    InvalidFlowFold,
     InvalidValueBound,
     UnknownValueBoundLocation,
 }

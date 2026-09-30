@@ -747,7 +747,7 @@ fn check_form(
                     catalog,
                     form_signatures,
                     Some(form_fronts),
-                    gear.activation,
+                    gear.activation.clone(),
                     &mut resolver,
                 )?;
                 checked.retained = gear
@@ -1367,6 +1367,8 @@ fn check_invocation(
                 invocation,
                 mode,
                 form_fronts.expect("activation checking receives source Form fronts"),
+                catalog,
+                resolver,
             )
         })
         .transpose()?;
@@ -1391,6 +1393,8 @@ fn checked_activation(
     invocation: &Invocation,
     mode: crate::ActivationSyntax,
     form_fronts: &BTreeMap<String, CheckedFront>,
+    catalog: &StartupCatalog,
+    resolver: &mut Resolver<'_>,
 ) -> Result<crate::CheckedActivation, SyntaxCheckDiagnostic> {
     let front = form_fronts
         .get(&invocation.kind.text)
@@ -1399,6 +1403,60 @@ fn checked_activation(
             span: invocation.span,
             message: "activate requires one exact checked source Form".into(),
         })?;
+    if let crate::ActivationSyntax::Fold { initial } = &mode {
+        let accumulator = front
+            .inputs()
+            .iter()
+            .find(|port| port.port_id.as_str() == "accumulator");
+        let item = front
+            .inputs()
+            .iter()
+            .find(|port| port.port_id.as_str() == "item");
+        let combined = front
+            .outputs()
+            .iter()
+            .find(|port| port.port_id.as_str() == "combined");
+        let (Some(accumulator), Some(item), Some(combined)) = (accumulator, item, combined) else {
+            return Err(SyntaxCheckDiagnostic {
+                code: "CND-FRM-064",
+                span: invocation.span,
+                message: "fold requires exact Value inputs 'accumulator' and 'item' and Value output 'combined'".into(),
+            });
+        };
+        if front.inputs().len() != 2
+            || front.outputs().len() != 1
+            || accumulator.temporal != conduit_core::PortTemporal::Value
+            || item.temporal != conduit_core::PortTemporal::Value
+            || combined.temporal != conduit_core::PortTemporal::Value
+            || accumulator.value_kind != combined.value_kind
+            || accumulator.abnormal_kind != item.abnormal_kind
+            || accumulator.abnormal_kind != combined.abnormal_kind
+            || !front.startup_parameters().is_empty()
+        {
+            return Err(SyntaxCheckDiagnostic {
+                code: "CND-FRM-064",
+                span: invocation.span,
+                message: "fold combine must be startup-free and preserve one exact accumulator Value and abnormal terminal".into(),
+            });
+        }
+        let initial = resolver
+            .resolve_expression(
+                initial,
+                catalog.structured_type(accumulator.value_kind.as_str()),
+            )
+            .and_then(|value| {
+                canonicalize_integer_value(value, accumulator.value_kind.as_str(), catalog)
+            })
+            .map_err(|error| error.diagnostic(initial.span))?;
+        return Ok(crate::CheckedActivation {
+            mode,
+            selected_form: invocation.kind.text.clone(),
+            input: item.clone(),
+            accumulator_input: Some(accumulator.clone()),
+            output: combined.clone(),
+            initial_accumulator: Some(initial),
+        });
+    }
     let ([input], [output]) = (front.inputs(), front.outputs()) else {
         return Err(SyntaxCheckDiagnostic {
             code: "CND-FRM-062",
@@ -1430,7 +1488,9 @@ fn checked_activation(
         mode,
         selected_form: invocation.kind.text.clone(),
         input: input.clone(),
+        accumulator_input: None,
         output: output.clone(),
+        initial_accumulator: None,
     })
 }
 

@@ -57,6 +57,29 @@ form main {
 }
 ";
 
+const FOLD_SOURCE: &str = "
+form integer/add (
+ >> accumulator: U64
+ >> item: U64
+ combined: U64 >>
+) {
+}
+
+form flow/fold-integers (
+ initial: U64
+ >> items: U64...|
+ result: U64 >>
+) {
+ folder: fold(initial) integer/add()
+ items >> folder.item
+ folder.combined >> result
+}
+
+form main {
+ folded: flow/fold-integers(initial = 7)
+}
+";
+
 fn checked() -> crate::CheckedSyntaxDocument {
     check_syntax_document(&parse_syntax_document(SOURCE), &StartupCatalog::new()).unwrap()
 }
@@ -192,4 +215,71 @@ fn select_refuses_non_boolean_predicates_without_truthiness_coercion() {
     let error =
         check_syntax_document(&parse_syntax_document(&source), &StartupCatalog::new()).unwrap_err();
     assert_eq!(error.code, "CND-FRM-063");
+}
+
+#[test]
+fn fold_retains_exact_initial_and_two_input_combine_truth() {
+    let checked =
+        check_syntax_document(&parse_syntax_document(FOLD_SOURCE), &StartupCatalog::new()).unwrap();
+    let fold = checked
+        .forms
+        .iter()
+        .find(|form| form.name == "flow/fold-integers")
+        .unwrap();
+    let activation = fold.gears[0].activation.as_ref().unwrap();
+    assert!(matches!(
+        activation.mode,
+        crate::ActivationSyntax::Fold { .. }
+    ));
+    assert_eq!(activation.input.port_id.as_str(), "item");
+    assert_eq!(
+        activation
+            .accumulator_input
+            .as_ref()
+            .unwrap()
+            .port_id
+            .as_str(),
+        "accumulator"
+    );
+    assert_eq!(activation.output.port_id.as_str(), "combined");
+    assert_eq!(
+        activation.initial_accumulator,
+        Some(crate::CanonicalStartupValue::FormParameter(
+            "initial".into()
+        ))
+    );
+
+    let expanded = crate::expand_canonical_form(&checked, "main", &ProfileCatalog::new()).unwrap();
+    assert_eq!(expanded.gears[0].kind_id.as_str(), "flow/fold");
+    assert_eq!(
+        expanded.gears[0].inputs[0].temporal,
+        conduit_core::PortTemporal::Flow { closes: true }
+    );
+    assert_eq!(
+        expanded.gears[0].outputs[0].temporal,
+        conduit_core::PortTemporal::Value
+    );
+    assert!(expanded.activations[0].accumulator_input.is_some());
+    assert_eq!(
+        expanded.activations[0].initial_accumulator,
+        Some(crate::CanonicalStartupValue::Literal("7".into()))
+    );
+    expanded.validate_expansion().unwrap();
+
+    let mut unresolved = expanded.clone();
+    unresolved.activations[0].initial_accumulator = Some(
+        crate::CanonicalStartupValue::FormParameter("initial".into()),
+    );
+    assert!(unresolved.validate_expansion().is_err());
+}
+
+#[test]
+fn fold_refuses_a_unary_combine_form() {
+    let source = FOLD_SOURCE.replace(
+        ">> accumulator: U64\n >> item: U64\n combined: U64 >>",
+        ">> item: U64\n combined: U64 >>",
+    );
+    let error =
+        check_syntax_document(&parse_syntax_document(&source), &StartupCatalog::new()).unwrap_err();
+    assert_eq!(error.code, "CND-FRM-064");
 }
