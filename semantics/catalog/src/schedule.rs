@@ -12,6 +12,9 @@ use conduit_core::{
     kind_id, StructuredFieldType, StructuredInfoType, StructuredVariantCase, QUANTITY_INFO_ID,
 };
 use conduit_core::{Quantity, QuantityDimension};
+pub use conduit_time::{
+    ScheduleRefusal, TemporalWindowPosition as ScheduleWindowPosition, WorkflowLifecycle,
+};
 
 #[cfg(feature = "form-catalog")]
 use crate::recurrence_occurrence_instant_type;
@@ -24,24 +27,6 @@ pub const SCHEDULE_OBSERVATION_TYPE: &str = "ScheduleObservation";
 pub const SCHEDULE_ASSESSMENT_TYPE: &str = "ScheduleAssessment";
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
-pub enum WorkflowLifecycle {
-    Pending,
-    Running,
-    Completed,
-    Failed,
-    Cancelled,
-    Expired,
-}
-
-#[derive(Debug, Copy, Clone, PartialEq, Eq)]
-pub enum ScheduleWindowPosition {
-    Before,
-    Within,
-    After,
-    Indeterminate,
-}
-
-#[derive(Debug, Copy, Clone, PartialEq, Eq)]
 pub enum WorkflowTimingOutcome {
     Awaiting,
     OnTime,
@@ -51,13 +36,6 @@ pub enum WorkflowTimingOutcome {
     Failed,
     Cancelled,
     Expired,
-}
-
-#[derive(Debug, Copy, Clone, PartialEq, Eq)]
-pub enum ScheduleRefusal {
-    NonTemporalQuantity,
-    NegativeQuantity,
-    InconsistentLifecycle,
 }
 
 pub fn assess_workflow_timing(

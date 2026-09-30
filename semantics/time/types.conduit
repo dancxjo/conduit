@@ -141,3 +141,16 @@ type TimedPatternRefusal =
     | too-many-events
     | reordered-or-duplicate-event
     | interval-overflow
+
+type WorkflowLifecycle =
+    pending
+    | running
+    | completed
+    | failed
+    | cancelled
+    | expired
+
+type ScheduleRefusal =
+    non-temporal-quantity
+    | negative-quantity
+    | inconsistent-lifecycle
