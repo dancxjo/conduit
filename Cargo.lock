@@ -843,6 +843,7 @@ dependencies = [
  "conduit-time",
  "conduit-tongues",
  "conduit-tour-model",
+ "conduit-tutorial-form",
  "conduit-web",
  "conduit-wire",
  "conduit-workspace-model",
@@ -1483,6 +1484,18 @@ dependencies = [
 ]
 
 [[package]]
+name = "conduit-tutorial-form"
+version = "0.1.0"
+dependencies = [
+ "conduit-ai",
+ "conduit-body",
+ "conduit-core",
+ "conduit-form",
+ "conduit-presentation",
+ "serde",
+]
+
+[[package]]
 name = "conduit-web"
 version = "0.1.0"
 dependencies = [
@@ -1518,11 +1531,10 @@ dependencies = [
 name = "conduit-workspace-model"
 version = "0.1.0"
 dependencies = [
- "conduit-ai",
  "conduit-body",
  "conduit-core",
- "conduit-form",
  "conduit-presentation",
+ "conduit-tutorial-form",
  "serde",
  "serde_json",
 ]
@@ -6579,6 +6591,7 @@ dependencies = [
  "conduit-text",
  "conduit-time",
  "conduit-tongues",
+ "conduit-tutorial-form",
  "conduit-web",
  "conduit-wire",
  "conduit-workspace-fabrication",

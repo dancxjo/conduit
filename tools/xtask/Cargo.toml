@@ -58,6 +58,7 @@ conduit-finance = { path = "../../semantics/finance" }
 conduit-little-seismograph-fixture = { path = "../../forms/little-seismograph/fixture" }
 conduit-language = { path = "../../semantics/language" }
 conduit-tongues = { path = "../../semantics/tongues" }
+conduit-tutorial-form = { path = "../../semantics/tutorial" }
 conduit-web = { path = "../../semantics/web", default-features = false, features = ["form-catalog"] }
 conduit-pete = { path = "../../bodies/pete" }
 conduit-observatory = { path = "../../architecture/observatory" }

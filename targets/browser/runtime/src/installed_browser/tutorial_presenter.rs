@@ -33,7 +33,7 @@ pub(super) static MANIFESTATION: BrowserInstallation = BrowserInstallation {
 
 fn request_offer() -> CapabilityOffer {
     offer(
-        conduit_workspace_model::tutorial_presenter::request_contract(),
+        conduit_tutorial_form::presenter::request_contract(),
         REQUEST_IMPLEMENTATION,
         REQUEST_OPERATION,
         0,
@@ -44,7 +44,7 @@ fn request_offer() -> CapabilityOffer {
 
 fn manifestation_offer() -> CapabilityOffer {
     offer(
-        conduit_workspace_model::tutorial_presenter::manifestation_contract(),
+        conduit_tutorial_form::presenter::manifestation_contract(),
         MANIFESTATION_IMPLEMENTATION,
         MANIFESTATION_OPERATION,
         MANIFESTATION_BYTES,
@@ -127,9 +127,7 @@ pub(crate) fn install_catalogs(
     startup: &mut conduit_form::StartupCatalog,
     profile: &mut conduit_form::ProfileCatalog,
 ) -> Result<(), String> {
-    conduit_workspace_model::tutorial_presenter::install_tutorial_presenter_catalog(
-        startup, profile,
-    )
+    conduit_tutorial_form::presenter::install_tutorial_presenter_catalog(startup, profile)
 }
 
 #[cfg(test)]
@@ -158,9 +156,9 @@ mod tests {
                 .map(|gear| gear.kind_id.as_str())
                 .collect::<Vec<_>>(),
             vec![
-                conduit_workspace_model::tutorial_presenter::MANIFESTATION_KIND,
+                conduit_tutorial_form::presenter::MANIFESTATION_KIND,
                 conduit_ai::LLM_PRESENT_KIND,
-                conduit_workspace_model::tutorial_presenter::REQUEST_KIND,
+                conduit_tutorial_form::presenter::REQUEST_KIND,
             ]
         );
         assert!(conduit_planner::default_expanded_placements(
