@@ -30,14 +30,24 @@ pub enum BoundedFoldError {
     MissingOutput,
 }
 
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum BoundedFoldAdmission {
+    Accepted,
+    Full,
+    MaximumItemsExceeded { maximum_items: u16 },
+}
+
 pub struct BoundedFoldActivationHost {
     planned: PlannedFoldActivation,
-    definition: KernelCompositeDefinition,
-    registry: KernelOperationRegistry,
+    ready: Vec<KernelCompositeHost>,
+    receipts: Vec<KernelCompositeHost>,
     accumulator: ValuePayload,
-    queued: Option<ValuePayload>,
+    queued: ValuePayload,
+    queued_ready: bool,
+    admission: ValuePayload,
     active: Option<KernelCompositeHost>,
-    candidate: Option<ValuePayload>,
+    candidate: ValuePayload,
+    candidate_ready: bool,
     closing: bool,
     state: BoundedFoldState,
 }
@@ -73,26 +83,53 @@ impl BoundedFoldActivationHost {
         {
             return Err(BoundedFoldError::PlannedContractMismatch);
         }
+        let mut accumulator_bytes = Vec::with_capacity(planned.retained_accumulator_bytes as usize);
+        accumulator_bytes.extend_from_slice(&planned.initial_accumulator);
         let accumulator = ValuePayload {
             value_kind: planned.accumulator_input.value_kind.clone(),
-            encoded: planned.initial_accumulator.clone(),
+            encoded: accumulator_bytes,
         };
-        KernelCompositeHost::prepare(definition.clone(), registry)
-            .map_err(BoundedFoldError::Refused)?;
+        let candidate = ValuePayload {
+            value_kind: planned.output.value_kind.clone(),
+            encoded: Vec::with_capacity(planned.retained_accumulator_bytes as usize),
+        };
+        let queued = ValuePayload {
+            value_kind: planned.item_input.value_kind.clone(),
+            encoded: Vec::with_capacity(planned.retained_item_bytes as usize),
+        };
+        let admission = ValuePayload {
+            value_kind: planned.item_input.value_kind.clone(),
+            encoded: Vec::with_capacity(planned.retained_item_bytes as usize),
+        };
+        let maximum_items = usize::try_from(planned.limits.maximum_items)
+            .map_err(|_| BoundedFoldError::PlannedContractMismatch)?;
+        if maximum_items == 0 {
+            return Err(BoundedFoldError::PlannedContractMismatch);
+        }
+        let mut ready = Vec::with_capacity(maximum_items);
+        for _ in 0..maximum_items {
+            ready.push(
+                KernelCompositeHost::prepare(definition.clone(), registry)
+                    .map_err(BoundedFoldError::Refused)?,
+            );
+        }
         Ok(Self {
             planned: planned.clone(),
-            definition,
-            registry: registry.clone(),
+            ready,
+            receipts: Vec::with_capacity(maximum_items),
             accumulator,
-            queued: None,
+            queued,
+            queued_ready: false,
+            admission,
             active: None,
-            candidate: None,
+            candidate,
+            candidate_ready: false,
             closing: false,
             state: BoundedFoldState::Idle,
         })
     }
 
-    pub fn admit(&mut self, item: &ValuePayload) -> Result<bool, BoundedFoldError> {
+    pub fn admit(&mut self, item: &ValuePayload) -> Result<BoundedFoldAdmission, BoundedFoldError> {
         if self.closing
             || matches!(
                 self.state,
@@ -109,26 +146,39 @@ impl BoundedFoldActivationHost {
             return Err(BoundedFoldError::PlannedContractMismatch);
         }
         if self.active.is_some() {
-            if self.queued.is_some() {
-                return Ok(false);
+            if self.queued_ready {
+                return Ok(BoundedFoldAdmission::Full);
             }
-            self.queued = Some(item.clone());
-            return Ok(true);
+            if self.ready.is_empty() {
+                return Ok(BoundedFoldAdmission::MaximumItemsExceeded {
+                    maximum_items: self.planned.limits.maximum_items,
+                });
+            }
+            self.queued.encoded.clear();
+            self.queued.encoded.extend_from_slice(&item.encoded);
+            self.queued_ready = true;
+            return Ok(BoundedFoldAdmission::Accepted);
         }
-        self.start(item.clone())?;
-        Ok(true)
+        if self.ready.is_empty() {
+            return Ok(BoundedFoldAdmission::MaximumItemsExceeded {
+                maximum_items: self.planned.limits.maximum_items,
+            });
+        }
+        self.admission.encoded.clear();
+        self.admission.encoded.extend_from_slice(&item.encoded);
+        self.start()?;
+        Ok(BoundedFoldAdmission::Accepted)
     }
 
-    fn start(&mut self, item: ValuePayload) -> Result<(), BoundedFoldError> {
-        let mut child = KernelCompositeHost::prepare(self.definition.clone(), &self.registry)
-            .map_err(BoundedFoldError::Refused)?;
+    fn start(&mut self) -> Result<(), BoundedFoldError> {
+        let mut child = self.ready.pop().ok_or(BoundedFoldError::InvalidLifecycle)?;
         child.start().map_err(BoundedFoldError::Refused)?;
         for (port, value) in [
             (
                 &self.planned.accumulator_input.front_port_id,
                 &self.accumulator,
             ),
-            (&self.planned.item_input.front_port_id, &item),
+            (&self.planned.item_input.front_port_id, &self.admission),
         ] {
             if !matches!(
                 child
@@ -141,7 +191,7 @@ impl BoundedFoldActivationHost {
             child.close_input(port).map_err(BoundedFoldError::Refused)?;
         }
         self.active = Some(child);
-        self.candidate = None;
+        self.candidate_ready = false;
         self.state = BoundedFoldState::Active;
         Ok(())
     }
@@ -164,9 +214,11 @@ impl BoundedFoldActivationHost {
         if let Some(active) = &mut self.active {
             active.cancel().map_err(BoundedFoldError::Refused)?;
         }
-        self.active = None;
-        self.queued = None;
-        self.candidate = None;
+        if let Some(terminated) = self.active.take() {
+            self.receipts.push(terminated);
+        }
+        self.queued_ready = false;
+        self.candidate_ready = false;
         self.state = BoundedFoldState::Abnormal(terminal);
         Ok(())
     }
@@ -175,15 +227,16 @@ impl BoundedFoldActivationHost {
         let Some(active) = self.active.as_mut() else {
             return Ok(&self.state);
         };
-        if self.candidate.is_none() {
-            if let Some((_, value)) = active
-                .output(&self.planned.output.front_port_id)
+        if !self.candidate_ready {
+            if active
+                .output_into(&self.planned.output.front_port_id, &mut self.candidate)
                 .map_err(BoundedFoldError::Refused)?
+                .is_some()
             {
                 active
                     .complete_output(&self.planned.output.front_port_id, 0)
                     .map_err(BoundedFoldError::Refused)?;
-                self.candidate = Some(value);
+                self.candidate_ready = true;
             }
         }
         match active.step().map_err(BoundedFoldError::Refused)? {
@@ -196,28 +249,34 @@ impl BoundedFoldActivationHost {
                     if self.planned.output.abnormal_kind.as_ref() != Some(&terminal.value_kind) {
                         return Err(BoundedFoldError::PlannedContractMismatch);
                     }
-                    self.active = None;
-                    self.queued = None;
-                    self.candidate = None;
+                    let completed = self.active.take().expect("active fold child was borrowed");
+                    self.receipts.push(completed);
+                    self.queued_ready = false;
+                    self.candidate_ready = false;
                     self.state = BoundedFoldState::Abnormal(terminal);
                     return Ok(&self.state);
                 }
                 if terminal != Some(KernelCompositeTerminal::Normal) {
                     return Err(BoundedFoldError::MissingOutput);
                 }
-                let candidate = self
-                    .candidate
-                    .take()
-                    .ok_or(BoundedFoldError::MissingOutput)?;
-                if candidate.value_kind != self.planned.output.value_kind
-                    || candidate.encoded.len() > self.planned.retained_accumulator_bytes as usize
+                if !self.candidate_ready {
+                    return Err(BoundedFoldError::MissingOutput);
+                }
+                if self.candidate.value_kind != self.planned.output.value_kind
+                    || self.candidate.encoded.len()
+                        > self.planned.retained_accumulator_bytes as usize
                 {
                     return Err(BoundedFoldError::PlannedContractMismatch);
                 }
-                self.accumulator = candidate;
-                self.active = None;
-                if let Some(item) = self.queued.take() {
-                    self.start(item)?;
+                core::mem::swap(&mut self.accumulator, &mut self.candidate);
+                self.candidate.encoded.clear();
+                self.candidate_ready = false;
+                let completed = self.active.take().expect("active fold child was borrowed");
+                self.receipts.push(completed);
+                if self.queued_ready {
+                    core::mem::swap(&mut self.admission.encoded, &mut self.queued.encoded);
+                    self.queued_ready = false;
+                    self.start()?;
                 } else if self.closing {
                     self.state = BoundedFoldState::FinalReady;
                 } else {
@@ -225,8 +284,9 @@ impl BoundedFoldActivationHost {
                 }
             }
             KernelCompositeStatus::Cancelled => {
-                self.active = None;
-                self.queued = None;
+                let completed = self.active.take().expect("active fold child was borrowed");
+                self.receipts.push(completed);
+                self.queued_ready = false;
                 self.state = BoundedFoldState::Cancelled;
             }
         }
@@ -245,11 +305,16 @@ impl BoundedFoldActivationHost {
         if let Some(active) = &mut self.active {
             active.cancel().map_err(BoundedFoldError::Refused)?;
         }
-        self.active = None;
-        self.queued = None;
-        self.candidate = None;
+        if let Some(cancelled) = self.active.take() {
+            self.receipts.push(cancelled);
+        }
+        self.queued_ready = false;
+        self.candidate_ready = false;
         self.state = BoundedFoldState::Cancelled;
         Ok(())
+    }
+    pub fn allocation_capacities(&self) -> (usize, usize) {
+        (self.ready.capacity(), self.receipts.capacity())
     }
     pub fn next_host_request(&mut self) -> Option<KernelCompositeHostRequest> {
         self.active.as_mut()?.next_host_request()

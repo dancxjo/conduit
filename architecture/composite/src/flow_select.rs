@@ -10,6 +10,7 @@ use conduit_kernel::HostCallOutcome;
 pub enum FlowSelectAdmission {
     Accepted { sequence: u64 },
     Full { sequence: u64 },
+    MaximumItemsExceeded { sequence: u64, maximum_items: u16 },
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -120,7 +121,7 @@ impl FlowSelectCoordinator {
     pub fn admit(
         &mut self,
         sequence: u64,
-        item: &ValuePayload,
+        item: ValuePayload,
     ) -> Result<FlowSelectAdmission, FlowSelectError> {
         let contract = self.activation.contract();
         if item.value_kind != contract.input_value_kind {
@@ -149,12 +150,18 @@ impl FlowSelectCoordinator {
             return Err(FlowSelectError::InvalidLifecycle);
         }
         if self.active_item.is_none() {
-            return self.start(sequence, item.clone());
+            return self.start(sequence, item);
         }
         if self.queued_item.is_some() {
             return Ok(FlowSelectAdmission::Full { sequence });
         }
-        self.queued_item = Some((sequence, item.clone()));
+        if self.activation.remaining_items() == 0 {
+            return Ok(FlowSelectAdmission::MaximumItemsExceeded {
+                sequence,
+                maximum_items: self.activation.contract().maximum_items,
+            });
+        }
+        self.queued_item = Some((sequence, item));
         Ok(FlowSelectAdmission::Accepted { sequence })
     }
 
@@ -171,6 +178,12 @@ impl FlowSelectCoordinator {
                 Ok(FlowSelectAdmission::Accepted { sequence })
             }
             BoundedActivationAdmission::Full { .. } => Ok(FlowSelectAdmission::Full { sequence }),
+            BoundedActivationAdmission::MaximumItemsExceeded { maximum_items, .. } => {
+                Ok(FlowSelectAdmission::MaximumItemsExceeded {
+                    sequence,
+                    maximum_items,
+                })
+            }
         }
     }
 
@@ -203,7 +216,7 @@ impl FlowSelectCoordinator {
             if let Some((sequence, value)) = self.activation.output()? {
                 if value.value_kind.as_str() != BOOL_INFO_ID {
                     return Err(FlowSelectError::PredicateOutputIsNotCanonicalBoolean {
-                        actual: value.value_kind,
+                        actual: value.value_kind.clone(),
                     });
                 }
                 self.predicate_decision = Some(

@@ -460,6 +460,7 @@ fn planned_fold(definition: &KernelCompositeDefinition) -> PlannedFoldActivation
         retained_accumulator_bytes: 16,
         retained_item_bytes: 16,
         limits: PlannedActivationLimits {
+            maximum_items: 2,
             maximum_active: 1,
             maximum_queue_items: 1,
             maximum_queue_bytes: 64,
@@ -491,6 +492,8 @@ fn bounded_fold_empty_emits_initial_exactly_once() {
         &fold_registry(),
     )
     .unwrap();
+    let capacities = host.allocation_capacities();
+    assert_eq!(capacities, (2, 2));
     host.close_input().unwrap();
     assert_eq!(host.final_value().unwrap(), Some(value(b"0")));
     assert_eq!(host.final_value().unwrap(), None);
@@ -505,9 +508,30 @@ fn bounded_fold_orders_two_items_and_bounds_one_queued_item() {
         &fold_registry(),
     )
     .unwrap();
-    assert!(host.admit(&value(b"1")).unwrap());
-    assert!(host.admit(&value(b"2")).unwrap());
-    assert!(!host.admit(&value(b"3")).unwrap());
+    let capacities = host.allocation_capacities();
+    assert_eq!(capacities, (2, 2));
+    assert_eq!(
+        host.admit(&value(b"1")).unwrap(),
+        conduit_composite::BoundedFoldAdmission::Accepted
+    );
+    assert_eq!(
+        host.admit(&value(b"2")).unwrap(),
+        conduit_composite::BoundedFoldAdmission::Accepted
+    );
+    assert_eq!(
+        host.admit(&value(b"3")).unwrap(),
+        conduit_composite::BoundedFoldAdmission::Full
+    );
+    for _ in 0..128 {
+        if *host.step().unwrap() == BoundedFoldState::Idle {
+            break;
+        }
+    }
+    assert_eq!(host.allocation_capacities(), capacities);
+    assert_eq!(
+        host.admit(&value(b"3")).unwrap(),
+        conduit_composite::BoundedFoldAdmission::MaximumItemsExceeded { maximum_items: 2 }
+    );
     host.close_input().unwrap();
     run_fold_to_ready(&mut host);
     assert_eq!(host.final_value().unwrap(), Some(value(b"2")));
@@ -709,6 +733,7 @@ fn bounded_activation_owes_one_fresh_exact_execution_per_accepted_value() {
         &registry(),
         conduit_core::port_id("input"),
         conduit_core::port_id("output"),
+        2,
     )
     .unwrap();
     assert_eq!(activations.contract().maximum_active, 1);
@@ -720,6 +745,8 @@ fn bounded_activation_owes_one_fresh_exact_execution_per_accepted_value() {
         kind_id(VALUE_KIND)
     );
     assert_eq!(activations.contract().output_abnormal_kind, None);
+    let capacities = activations.allocation_capacities();
+    assert_eq!(capacities, (2, 2));
 
     assert_eq!(
         activations.activate(7, &value(b"first")).unwrap(),
@@ -732,7 +759,7 @@ fn bounded_activation_owes_one_fresh_exact_execution_per_accepted_value() {
     for _ in 0..64 {
         activations.step().unwrap();
         if let Some((sequence, output)) = activations.output().unwrap() {
-            assert_eq!((sequence, output), (7, value(b"first")));
+            assert_eq!((sequence, output), (7, &value(b"first")));
             activations.complete_output(sequence).unwrap();
             break;
         }
@@ -749,6 +776,31 @@ fn bounded_activation_owes_one_fresh_exact_execution_per_accepted_value() {
         activations.activate(8, &value(b"second")).unwrap(),
         BoundedActivationAdmission::Accepted { sequence: 8 }
     );
+    for _ in 0..64 {
+        activations.step().unwrap();
+        if let Some((sequence, output)) = activations.output().unwrap() {
+            assert_eq!((sequence, output), (8, &value(b"second")));
+            activations.complete_output(sequence).unwrap();
+            break;
+        }
+    }
+    for _ in 0..64 {
+        if matches!(
+            activations.step().unwrap(),
+            BoundedActivationState::Succeeded { sequence: 8 }
+        ) {
+            break;
+        }
+    }
+    assert_eq!(activations.allocation_capacities(), capacities);
+    assert_eq!(
+        activations.activate(9, &value(b"overflow")).unwrap(),
+        BoundedActivationAdmission::MaximumItemsExceeded {
+            sequence: 9,
+            maximum_items: 2,
+        }
+    );
+    assert_eq!(activations.allocation_capacities(), capacities);
 }
 
 fn planned_activation(definition: &KernelCompositeDefinition) -> PlannedActivation {
@@ -779,6 +831,7 @@ fn planned_activation(definition: &KernelCompositeDefinition) -> PlannedActivati
             abnormal_kind: None,
         },
         limits: PlannedActivationLimits {
+            maximum_items: 2,
             maximum_active: 1,
             maximum_queue_items: 1,
             maximum_queue_bytes: 16,
@@ -818,6 +871,7 @@ fn bounded_activation_fault_and_cancellation_are_not_success() {
         &failing_registry(),
         conduit_core::port_id("input"),
         conduit_core::port_id("output"),
+        2,
     )
     .unwrap();
     failed.activate(3, &value(b"fault")).unwrap();
@@ -831,6 +885,7 @@ fn bounded_activation_fault_and_cancellation_are_not_success() {
         &registry(),
         conduit_core::port_id("input"),
         conduit_core::port_id("output"),
+        2,
     )
     .unwrap();
     cancelled.activate(4, &value(b"cancel")).unwrap();
@@ -848,6 +903,7 @@ fn bounded_activation_drains_one_owed_value_before_normal_close() {
         &registry(),
         conduit_core::port_id("input"),
         conduit_core::port_id("output"),
+        2,
     )
     .unwrap();
     assert_eq!(
@@ -863,7 +919,7 @@ fn bounded_activation_drains_one_owed_value_before_normal_close() {
     for _ in 0..64 {
         each.step().unwrap();
         if let Some((sequence, output)) = each.output().unwrap() {
-            assert_eq!((sequence, output), (11, value(b"owed")));
+            assert_eq!((sequence, output), (11, &value(b"owed")));
             each.complete_output(sequence).unwrap();
             break;
         }

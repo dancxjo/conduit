@@ -299,6 +299,20 @@ impl KernelCompositeHost {
             .map_err(|reason| execution(&route.child, reason))
     }
 
+    pub fn output_into(
+        &mut self,
+        port_id: &PortId,
+        output: &mut ValuePayload,
+    ) -> Result<Option<u64>, KernelCompositeError> {
+        self.require_started()?;
+        let route = self.front(port_id, PortDirection::Output)?.clone();
+        self.children
+            .get_mut(&route.child)
+            .ok_or_else(|| KernelCompositeError::StaleChild(route.child.clone()))?
+            .boundary_output_into(port_id, output)
+            .map_err(|reason| execution(&route.child, reason))
+    }
+
     pub fn complete_output(
         &mut self,
         port_id: &PortId,
