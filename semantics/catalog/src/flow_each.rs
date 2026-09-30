@@ -26,7 +26,11 @@ pub fn flow_each_semantic_contract(
     input: &CheckedValueContract,
     output: &CheckedValueContract,
     abnormal: Option<&CheckedValueContract>,
+    maximum_items: u16,
 ) -> Result<Kind, &'static str> {
+    if maximum_items == 0 {
+        return Err("flow/each maximum-items must be positive");
+    }
     require_finite_envelope(input, "input")?;
     require_finite_envelope(output, "output")?;
     if let Some(abnormal) = abnormal {
@@ -72,6 +76,32 @@ pub fn flow_each_semantic_contract(
     }
 
     let terminal_bytes = abnormal.map_or(0, |contract| contract.maximum_bytes);
+    drop(value_contracts);
+    let mut semantic_laws = conduit_core::flow_each_activation_contract(
+        input,
+        output,
+        abnormal,
+        input_port.port_id.clone(),
+        output_port.port_id.clone(),
+        maximum_items,
+    )
+    .laws;
+    semantic_laws.push(KindSemanticLaw::TerminalTransduction(
+        TerminalTransductionProfile {
+            input_port_id: port_id(FLOW_EACH_INPUT_PORT),
+            output_port_id: port_id(FLOW_EACH_OUTPUT_PORT),
+            normal_close: NormalCloseTransduction::FlushThenPropagate(FiniteTerminalEmission {
+                maximum_items: 1,
+                maximum_bytes: output.maximum_bytes,
+            }),
+            abnormal: if abnormal.is_some() {
+                AbnormalTerminalTransduction::PropagateAfterDrain
+            } else {
+                AbnormalTerminalTransduction::NotAccepted
+            },
+            cancellation: CancellationTransduction::NotCancellable,
+        },
+    ));
     Ok(Kind {
         startup_parameters: Vec::new(),
         shorthand: None,
@@ -80,23 +110,7 @@ pub fn flow_each_semantic_contract(
         inputs: vec![input_port],
         outputs: vec![output_port],
         configuration: Vec::new(),
-        semantic_laws: vec![
-            KindSemanticLaw::ValueContracts(value_contracts),
-            KindSemanticLaw::TerminalTransduction(TerminalTransductionProfile {
-                input_port_id: port_id(FLOW_EACH_INPUT_PORT),
-                output_port_id: port_id(FLOW_EACH_OUTPUT_PORT),
-                normal_close: NormalCloseTransduction::FlushThenPropagate(FiniteTerminalEmission {
-                    maximum_items: 1,
-                    maximum_bytes: output.maximum_bytes,
-                }),
-                abnormal: if abnormal.is_some() {
-                    AbnormalTerminalTransduction::PropagateAfterDrain
-                } else {
-                    AbnormalTerminalTransduction::NotAccepted
-                },
-                cancellation: CancellationTransduction::NotCancellable,
-            }),
-        ],
+        semantic_laws,
         limits: CapabilityLimits {
             max_active_instances: 1,
             max_queue_items: 3,
@@ -128,6 +142,7 @@ pub fn install_flow_each_kind(
     input: &CheckedValueContract,
     output: &CheckedValueContract,
     abnormal: Option<&CheckedValueContract>,
+    maximum_items: u16,
     startup: &mut conduit_form::StartupCatalog,
     profile: &mut conduit_form::ProfileCatalog,
 ) -> Result<(), alloc::string::String> {
@@ -136,7 +151,10 @@ pub fn install_flow_each_kind(
         startup_parameters: Vec::new(),
     })?;
     profile
-        .insert_kind(flow_each_semantic_contract(input, output, abnormal).map_err(str::to_string)?)
+        .insert_kind(
+            flow_each_semantic_contract(input, output, abnormal, maximum_items)
+                .map_err(str::to_string)?,
+        )
         .map_err(|error| error.to_string())
 }
 
@@ -153,7 +171,7 @@ mod tests {
         let input = value("value/source", 32);
         let output = value("value/mapped", 48);
         let abnormal = value("terminal/transform", 12);
-        let contract = flow_each_semantic_contract(&input, &output, Some(&abnormal)).unwrap();
+        let contract = flow_each_semantic_contract(&input, &output, Some(&abnormal), 4).unwrap();
 
         assert_eq!(contract.inputs.len(), 1);
         assert_eq!(contract.outputs.len(), 1);
@@ -183,6 +201,7 @@ mod tests {
             &value("value/source", 32),
             &value("value/mapped", 48),
             Some(&value("terminal/transform", 12)),
+            4,
         )
         .unwrap();
 
@@ -211,9 +230,9 @@ mod tests {
     fn specialization_rejects_nonfinite_front_envelopes() {
         let unbounded = value("value/unbounded", 0);
         let finite = value("value/finite", 8);
-        assert!(flow_each_semantic_contract(&unbounded, &finite, None).is_err());
-        assert!(flow_each_semantic_contract(&finite, &unbounded, None).is_err());
-        assert!(flow_each_semantic_contract(&finite, &finite, Some(&unbounded)).is_err());
+        assert!(flow_each_semantic_contract(&unbounded, &finite, None, 4).is_err());
+        assert!(flow_each_semantic_contract(&finite, &unbounded, None, 4).is_err());
+        assert!(flow_each_semantic_contract(&finite, &finite, Some(&unbounded), 4).is_err());
     }
 
     #[test]
@@ -222,6 +241,7 @@ mod tests {
             &value("value/source", 32),
             &value("value/mapped", 48),
             None,
+            4,
         )
         .unwrap();
 

@@ -259,8 +259,7 @@ mod human_i64 {
         }
         match HumanInteger::deserialize(deserializer)? {
             HumanInteger::Number(value)
-                if (MINIMUM_EXACT_JAVASCRIPT_INTEGER
-                    ..=MAXIMUM_EXACT_JAVASCRIPT_SIGNED_INTEGER)
+                if (MINIMUM_EXACT_JAVASCRIPT_INTEGER..=MAXIMUM_EXACT_JAVASCRIPT_SIGNED_INTEGER)
                     .contains(&value) =>
             {
                 Ok(value)
@@ -299,8 +298,59 @@ pub enum KindSemanticLaw {
     KeyedJoin(KeyedJoinSemanticLaw),
     /// Finite collection of one closing Flow into exactly one sequence Value.
     BoundedCollect(BoundedCollectSemanticLaw),
+    /// Exact bounded lifting of one Value transform over a closing Flow.
+    FlowEach(FlowEachSemanticLaw),
     /// Exact bounded lifting of one Value-to-Boolean predicate over a closing Flow.
     FlowSelect(FlowSelectSemanticLaw),
+    /// Exact bounded left fold of one closing Flow through a reviewed combine Form.
+    FlowFold(FlowFoldSemanticLaw),
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct FlowFoldSemanticLaw {
+    pub input_port_id: PortId,
+    pub output_port_id: PortId,
+    pub item: crate::CheckedValueContract,
+    pub accumulator: crate::CheckedValueContract,
+    /// Exact canonical accumulator value retained before the first item.
+    pub initial_accumulator: Vec<u8>,
+    pub combine_accumulator_port_id: PortId,
+    pub combine_item_port_id: PortId,
+    pub combine_output_port_id: PortId,
+    pub maximum_active: u16,
+    pub maximum_queued: u16,
+    pub maximum_items: u16,
+    pub invocation: FlowFoldInvocation,
+    pub close: FlowFoldCloseDisposition,
+    pub abnormal: FlowFoldAbnormalDisposition,
+    pub cancellation: FlowFoldCancellationDisposition,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct FlowEachSemanticLaw {
+    pub input_port_id: PortId,
+    pub output_port_id: PortId,
+    pub maximum_items: u16,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+pub enum FlowFoldInvocation {
+    OncePerAcceptedInput,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+pub enum FlowFoldCloseDisposition {
+    DrainThenEmitAccumulatorExactlyOnce,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+pub enum FlowFoldAbnormalDisposition {
+    DiscardAccumulatorAndPropagateExact,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+pub enum FlowFoldCancellationDisposition {
+    DiscardAccumulatorWithoutEmission,
 }
 
 /// Exact portable law for collecting one closing Flow.
@@ -326,6 +376,7 @@ pub struct FlowSelectSemanticLaw {
     pub predicate_output_kind: KindId,
     pub maximum_active: u16,
     pub maximum_queued: u16,
+    pub maximum_items: u16,
     pub invocation: FlowSelectInvocation,
     pub retained_input: FlowSelectRetainedInput,
     pub true_disposition: FlowSelectTrueDisposition,

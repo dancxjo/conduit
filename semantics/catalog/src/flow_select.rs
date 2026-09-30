@@ -5,10 +5,14 @@ use alloc::string::ToString;
 use alloc::{vec, vec::Vec};
 use conduit_core::{
     kind_id, port_id, AbnormalTerminalTransduction, CancellationTransduction, CapabilityLimits,
-    CheckedValueContract, FlowSelectFalseDisposition, FlowSelectInvocation,
-    FlowSelectRetainedInput, FlowSelectSemanticLaw, FlowSelectTrueDisposition, FrontValueContract,
-    FrontValueLocation, Kind, KindIdentity, KindSemanticLaw, NormalCloseTransduction,
-    PortDescriptor, PortDirection, PortTemporal, TerminalTransductionProfile, BOOL_INFO_ID,
+    CheckedValueContract, FrontValueContract, FrontValueLocation, Kind, KindIdentity,
+    KindSemanticLaw, NormalCloseTransduction, PortDescriptor, PortDirection, PortTemporal,
+    TerminalTransductionProfile,
+};
+#[cfg(test)]
+use conduit_core::{
+    FlowSelectFalseDisposition, FlowSelectInvocation, FlowSelectRetainedInput,
+    FlowSelectTrueDisposition, BOOL_INFO_ID,
 };
 
 pub const FLOW_SELECT_KIND: &str = "flow/select";
@@ -22,7 +26,11 @@ pub const FLOW_SELECT_OUTPUT_PORT: &str = "selected";
 pub fn flow_select_semantic_contract(
     item: &CheckedValueContract,
     abnormal: Option<&CheckedValueContract>,
+    maximum_items: u16,
 ) -> Result<Kind, &'static str> {
+    if maximum_items == 0 {
+        return Err("flow/select maximum-items must be positive");
+    }
     require_finite(item, "item")?;
     if let Some(abnormal) = abnormal {
         require_finite(abnormal, "abnormal terminal")?;
@@ -65,6 +73,28 @@ pub fn flow_select_semantic_contract(
         ]);
     }
     let terminal_bytes = abnormal.map_or(0, |value| value.maximum_bytes);
+    drop(contracts);
+    let mut semantic_laws = conduit_core::flow_select_activation_contract(
+        item,
+        abnormal,
+        input.port_id.clone(),
+        output.port_id.clone(),
+        maximum_items,
+    )
+    .laws;
+    semantic_laws.push(KindSemanticLaw::TerminalTransduction(
+        TerminalTransductionProfile {
+            input_port_id: input.port_id.clone(),
+            output_port_id: output.port_id.clone(),
+            normal_close: NormalCloseTransduction::PropagateAfterDrain,
+            abnormal: if abnormal.is_some() {
+                AbnormalTerminalTransduction::PropagateAfterDrain
+            } else {
+                AbnormalTerminalTransduction::NotAccepted
+            },
+            cancellation: CancellationTransduction::NotCancellable,
+        },
+    ));
     Ok(Kind {
         startup_parameters: Vec::new(),
         shorthand: None,
@@ -73,32 +103,7 @@ pub fn flow_select_semantic_contract(
         inputs: vec![input],
         outputs: vec![output],
         configuration: Vec::new(),
-        semantic_laws: vec![
-            KindSemanticLaw::ValueContracts(contracts),
-            KindSemanticLaw::FlowSelect(FlowSelectSemanticLaw {
-                input_port_id: port_id(FLOW_SELECT_INPUT_PORT),
-                output_port_id: port_id(FLOW_SELECT_OUTPUT_PORT),
-                predicate_input_kind: item.value_kind.clone(),
-                predicate_output_kind: kind_id(BOOL_INFO_ID),
-                maximum_active: 1,
-                maximum_queued: 1,
-                invocation: FlowSelectInvocation::OncePerAcceptedInput,
-                retained_input: FlowSelectRetainedInput::UntilPredicateCompletion,
-                true_disposition: FlowSelectTrueDisposition::EmitRetainedInputExactlyOnce,
-                false_disposition: FlowSelectFalseDisposition::EmitNothing,
-            }),
-            KindSemanticLaw::TerminalTransduction(TerminalTransductionProfile {
-                input_port_id: port_id(FLOW_SELECT_INPUT_PORT),
-                output_port_id: port_id(FLOW_SELECT_OUTPUT_PORT),
-                normal_close: NormalCloseTransduction::PropagateAfterDrain,
-                abnormal: if abnormal.is_some() {
-                    AbnormalTerminalTransduction::PropagateAfterDrain
-                } else {
-                    AbnormalTerminalTransduction::NotAccepted
-                },
-                cancellation: CancellationTransduction::NotCancellable,
-            }),
-        ],
+        semantic_laws,
         limits: CapabilityLimits {
             max_active_instances: 1,
             max_queue_items: 4,
@@ -127,6 +132,7 @@ fn require_finite(value: &CheckedValueContract, role: &'static str) -> Result<()
 pub fn install_flow_select_kind(
     item: &CheckedValueContract,
     abnormal: Option<&CheckedValueContract>,
+    maximum_items: u16,
     startup: &mut conduit_form::StartupCatalog,
     profile: &mut conduit_form::ProfileCatalog,
 ) -> Result<(), alloc::string::String> {
@@ -135,7 +141,9 @@ pub fn install_flow_select_kind(
         startup_parameters: Vec::new(),
     })?;
     profile
-        .insert_kind(flow_select_semantic_contract(item, abnormal).map_err(str::to_string)?)
+        .insert_kind(
+            flow_select_semantic_contract(item, abnormal, maximum_items).map_err(str::to_string)?,
+        )
         .map_err(|error| error.to_string())
 }
 
@@ -151,7 +159,7 @@ mod tests {
     fn contract_retains_exact_item_and_uses_canonical_boolean_predicate() {
         let item = value("value/item", 32);
         let abnormal = value("terminal/predicate", 12);
-        let contract = flow_select_semantic_contract(&item, Some(&abnormal)).unwrap();
+        let contract = flow_select_semantic_contract(&item, Some(&abnormal), 4).unwrap();
         let law = contract
             .semantic_laws
             .iter()
@@ -186,6 +194,7 @@ mod tests {
         let contract = flow_select_semantic_contract(
             &value("value/item", 8),
             Some(&value("terminal/predicate", 4)),
+            4,
         )
         .unwrap();
         let terminal = contract.terminal_transductions().next().unwrap();
@@ -205,10 +214,11 @@ mod tests {
 
     #[test]
     fn nonfinite_envelopes_are_rejected() {
-        assert!(flow_select_semantic_contract(&value("value/unbounded", 0), None).is_err());
+        assert!(flow_select_semantic_contract(&value("value/unbounded", 0), None, 4).is_err());
         assert!(flow_select_semantic_contract(
             &value("value/item", 8),
-            Some(&value("terminal/unbounded", 0))
+            Some(&value("terminal/unbounded", 0)),
+            4,
         )
         .is_err());
     }

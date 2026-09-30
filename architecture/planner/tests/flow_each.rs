@@ -33,7 +33,7 @@ form flow/each (
  >> values: item...|
  mapped: result...| >>
 ) {
- each: activate transform()
+ each: activate(maximum-items = 4) transform()
  values >> each.value
  each.mapped >> mapped
 }
@@ -85,8 +85,26 @@ fn catalogs() -> (StartupCatalog, ProfileCatalog) {
 fn host() -> HostAdvertisement {
     let capability =
         |id: &str, kind: &str, revision: &str, input: PortDescriptor, output: PortDescriptor| {
+            let semantic_contract = if kind == "flow/each" {
+                let input_contract =
+                    conduit_core::CheckedValueContract::new(input.value_kind.clone(), 256, vec![])
+                        .unwrap();
+                let output_contract =
+                    conduit_core::CheckedValueContract::new(output.value_kind.clone(), 256, vec![])
+                        .unwrap();
+                conduit_core::flow_each_activation_contract(
+                    &input_contract,
+                    &output_contract,
+                    None,
+                    input.port_id.clone(),
+                    output.port_id.clone(),
+                    4,
+                )
+            } else {
+                Default::default()
+            };
             conduit_core::capability_offer_from_parts! {
-                semantic_contract: Default::default(),
+                semantic_contract: semantic_contract,
                 startup_parameters: vec![],
                 shorthand: None,
                 capability_id: CapabilityId::from(id),
@@ -178,12 +196,16 @@ fn authored_each_plans_one_exact_ordinary_child_plan() {
     assert!(verify_plan(&plan));
     assert_eq!(plan.activations.len(), 1);
     let activation = &plan.activations[0];
+    let conduit_core::PlannedActivationEntry::Unary(activation) = activation else {
+        panic!("flow/each must retain a unary activation")
+    };
     assert_eq!(
         activation.effect_multiplicity,
         PlannedActivationEffectMultiplicity::OncePerAcceptedInput
     );
     assert_eq!(activation.limits.maximum_active, 1);
     assert_eq!(activation.limits.maximum_queue_items, 1);
+    assert_eq!(activation.limits.maximum_items, 4);
     assert!(activation
         .selected_plan
         .fragments

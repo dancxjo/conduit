@@ -176,10 +176,12 @@ pub(crate) fn canonical_gear(gear: &CheckedCanonicalGear) -> String {
         push_field(
             &mut value,
             match activation.mode {
-                crate::ActivationSyntax::Each => "activate-each",
-                crate::ActivationSyntax::Select => "activate-select",
+                crate::ActivationSyntax::Each { .. } => "activate-each",
+                crate::ActivationSyntax::Select { .. } => "activate-select",
+                crate::ActivationSyntax::Fold { .. } => "activate-fold",
             },
         );
+        push_field(&mut value, &activation.mode.maximum_items().to_string());
         push_field(&mut value, &activation.selected_form);
         push_field(&mut value, activation.input.port_id.as_str());
         push_field(&mut value, activation.input.value_kind.as_str());
@@ -193,6 +195,16 @@ pub(crate) fn canonical_gear(gear: &CheckedCanonicalGear) -> String {
                 .as_ref()
                 .map_or("normal", conduit_core::KindId::as_str),
         );
+        if let Some(accumulator) = &activation.accumulator_input {
+            push_field(&mut value, accumulator.port_id.as_str());
+            push_field(&mut value, accumulator.value_kind.as_str());
+        }
+        if let Some(initial) = &activation.initial_accumulator {
+            push_field(&mut value, &canonical_value(initial));
+        }
+        if let Some(bytes) = &activation.initial_accumulator_bytes {
+            push_field(&mut value, &format!("{bytes:02x?}"));
+        }
     }
     value
 }
@@ -368,7 +380,7 @@ fn push_field(target: &mut String, value: &str) {
     target.push_str(value);
 }
 
-fn canonical_value(value: &CanonicalStartupValue) -> String {
+pub(crate) fn canonical_value(value: &CanonicalStartupValue) -> String {
     match value {
         CanonicalStartupValue::Literal(value) => format!("literal:{value}"),
         CanonicalStartupValue::Quantity(value) => {

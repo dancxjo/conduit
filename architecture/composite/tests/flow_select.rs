@@ -222,6 +222,7 @@ fn planned(definition: &KernelCompositeDefinition) -> PlannedActivation {
             abnormal_kind: None,
         },
         limits: PlannedActivationLimits {
+            maximum_items: 2,
             maximum_active: 1,
             maximum_queue_items: 1,
             maximum_queue_bytes: definition.external_capability.limits.max_queue_bytes,
@@ -249,7 +250,7 @@ fn coordinator() -> FlowSelectCoordinator {
 #[test]
 fn emits_original_once_for_true_and_nothing_for_false() {
     let mut select = coordinator();
-    select.admit(1, &value(b"true-original")).unwrap();
+    select.admit(1, value(b"true-original")).unwrap();
     for _ in 0..64 {
         select.step().unwrap();
         if let Some((sequence, selected)) = select.output() {
@@ -259,7 +260,7 @@ fn emits_original_once_for_true_and_nothing_for_false() {
         }
     }
     assert_eq!(select.state(), &FlowSelectState::Idle);
-    select.admit(2, &value(b"false-original")).unwrap();
+    select.admit(2, value(b"false-original")).unwrap();
     for _ in 0..64 {
         select.step().unwrap();
         if select.state() == &FlowSelectState::Idle {
@@ -273,19 +274,19 @@ fn emits_original_once_for_true_and_nothing_for_false() {
 fn one_active_one_queued_drain_before_close() {
     let mut select = coordinator();
     assert_eq!(
-        select.admit(10, &value(b"true-first")).unwrap(),
+        select.admit(10, value(b"true-first")).unwrap(),
         FlowSelectAdmission::Accepted { sequence: 10 }
     );
     assert_eq!(
-        select.admit(11, &value(b"false-second")).unwrap(),
+        select.admit(11, value(b"false-second")).unwrap(),
         FlowSelectAdmission::Accepted { sequence: 11 }
     );
     assert_eq!(
-        select.admit(12, &value(b"true-full")).unwrap(),
+        select.admit(12, value(b"true-full")).unwrap(),
         FlowSelectAdmission::Full { sequence: 12 }
     );
     select.close_input().unwrap();
-    assert!(select.admit(13, &value(b"true-late")).is_err());
+    assert!(select.admit(13, value(b"true-late")).is_err());
     for _ in 0..128 {
         select.step().unwrap();
         if let Some((sequence, selected)) = select.output() {
@@ -302,13 +303,13 @@ fn one_active_one_queued_drain_before_close() {
 #[test]
 fn cancellation_drops_retained_work_and_rejects_late_completion() {
     let mut select = coordinator();
-    select.admit(20, &value(b"true-active")).unwrap();
-    select.admit(21, &value(b"true-queued")).unwrap();
+    select.admit(20, value(b"true-active")).unwrap();
+    select.admit(21, value(b"true-queued")).unwrap();
     select.cancel().unwrap();
     assert_eq!(
         select.state(),
         &FlowSelectState::Cancelled { sequence: Some(20) }
     );
     assert!(select.complete_output(20).is_err());
-    assert!(select.admit(22, &value(b"true-late")).is_err());
+    assert!(select.admit(22, value(b"true-late")).is_err());
 }

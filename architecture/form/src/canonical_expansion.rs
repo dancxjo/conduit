@@ -468,6 +468,21 @@ fn instantiate_gear(
     let mut child_path = path.to_vec();
     child_path.push(instance_name.to_string());
     if let Some(activation) = &gear.activation {
+        let initial_accumulator = activation
+            .initial_accumulator
+            .as_ref()
+            .map(|initial| substitute(initial, environment))
+            .transpose()?;
+        let initial_accumulator_bytes = match (
+            activation.accumulator_input.as_ref(),
+            initial_accumulator.as_ref(),
+        ) {
+            (Some(accumulator), Some(initial)) => Some(canonical_initial_bytes(
+                accumulator.value_kind.as_str(),
+                initial,
+            )?),
+            _ => None,
+        };
         let child = forms
             .get(activation.selected_form.as_str())
             .copied()
@@ -487,8 +502,8 @@ fn instantiate_gear(
         let mut input = activation.input.clone();
         input.temporal = conduit_core::PortTemporal::Flow { closes: true };
         let mut output = match activation.mode {
-            crate::ActivationSyntax::Each => activation.output.clone(),
-            crate::ActivationSyntax::Select => {
+            crate::ActivationSyntax::Each { .. } => activation.output.clone(),
+            crate::ActivationSyntax::Select { .. } => {
                 let [output] = source_form.runtime_front.outputs() else {
                     return Err(CanonicalExpansionDiagnostic::new(
                         "CND-FRM-063",
@@ -506,18 +521,27 @@ fn instantiate_gear(
                 }
                 output.clone()
             }
+            crate::ActivationSyntax::Fold { .. } => activation.output.clone(),
         };
-        output.temporal = conduit_core::PortTemporal::Flow { closes: true };
+        output.temporal = if matches!(activation.mode, crate::ActivationSyntax::Fold { .. }) {
+            conduit_core::PortTemporal::Value
+        } else {
+            conduit_core::PortTemporal::Flow { closes: true }
+        };
         let activation_id = format!("{}/activation", gear_id.as_str());
         gears.push(crate::checked_gear_from_parts! {
             gear_id: gear_id.clone(),
-            kind_id: KindId::from(match activation.mode { crate::ActivationSyntax::Each => "flow/each", crate::ActivationSyntax::Select => "flow/select" }),
-            kind_contract_revision: conduit_core::KindIdentity::from(match activation.mode { crate::ActivationSyntax::Each => "conduit.flow/each@1", crate::ActivationSyntax::Select => "conduit.flow/select@1" }),
+            kind_id: KindId::from(match activation.mode { crate::ActivationSyntax::Each { .. } => "flow/each", crate::ActivationSyntax::Select { .. } => "flow/select", crate::ActivationSyntax::Fold { .. } => "flow/fold" }),
+            kind_contract_revision: conduit_core::KindIdentity::from(match activation.mode { crate::ActivationSyntax::Each { .. } => "conduit.flow/each@1", crate::ActivationSyntax::Select { .. } => "conduit.flow/select@1", crate::ActivationSyntax::Fold { .. } => "conduit.flow/fold@1" }),
             startup_parameters: Vec::new(),
             shorthand: Some((input.port_id.clone(), output.port_id.clone())),
             inputs: vec![input.clone()],
             outputs: vec![output.clone()],
-            semantic_contract: conduit_core::KindSemanticContract::default(),
+            semantic_contract: match &activation.mode {
+                crate::ActivationSyntax::Each { maximum_items } => conduit_core::flow_each_activation_contract(&activation.input_contract, &activation.output_contract, activation.abnormal_contract.as_ref(), input.port_id.clone(), output.port_id.clone(), *maximum_items),
+                crate::ActivationSyntax::Select { maximum_items } => conduit_core::flow_select_activation_contract(&activation.input_contract, activation.abnormal_contract.as_ref(), input.port_id.clone(), output.port_id.clone(), *maximum_items),
+                crate::ActivationSyntax::Fold { maximum_items, .. } => conduit_core::flow_fold_activation_contract(&activation.input_contract, activation.accumulator_contract.as_ref().expect("checked fold accumulator contract"), initial_accumulator_bytes.clone().expect("expanded fold initial bytes"), activation.abnormal_contract.as_ref(), input.port_id.clone(), output.port_id.clone(), conduit_core::port_id("accumulator"), conduit_core::port_id("item"), conduit_core::port_id("combined"), *maximum_items),
+            },
             terminal_transductions: Vec::new(),
             resource_ports: Vec::new(),
             configuration: Vec::new(),
@@ -533,11 +557,18 @@ fn instantiate_gear(
         activations.push(ExpandedActivation {
             activation_id,
             owner_gear_id: gear_id.clone(),
-            mode: activation.mode,
+            mode: activation.mode.clone(),
             selected_form: activation.selected_form.clone(),
             selected_checked_form_id: child.checked_form_id.clone(),
             input: activation.input.clone(),
+            accumulator_input: activation.accumulator_input.clone(),
             output: activation.output.clone(),
+            initial_accumulator,
+            initial_accumulator_bytes,
+            input_contract: activation.input_contract.clone(),
+            output_contract: activation.output_contract.clone(),
+            abnormal_contract: activation.abnormal_contract.clone(),
+            accumulator_contract: activation.accumulator_contract.clone(),
             source_span: gear.source_span,
         });
         return Ok(Instance {
@@ -986,4 +1017,91 @@ fn substitute(
             })
         }
     }
+}
+
+fn canonical_initial_bytes(
+    kind: &str,
+    value: &CanonicalStartupValue,
+) -> Result<Vec<u8>, CanonicalExpansionDiagnostic> {
+    let bytes = match value {
+        CanonicalStartupValue::Structured(value) => value
+            .try_concrete()
+            .and_then(|value| value.canonical_bytes().ok()),
+        CanonicalStartupValue::Quantity(value) => Some(value.encode().to_vec()),
+        CanonicalStartupValue::Literal(literal) => match conduit_core::primitive_info_kind(kind) {
+            Some(conduit_core::PrimitiveInfoKind::Unit) if literal == "unit" => Some(Vec::new()),
+            Some(conduit_core::PrimitiveInfoKind::Bool) => match literal.as_str() {
+                "true" => Some(conduit_core::InfoBool::TRUE.encode().to_vec()),
+                "false" => Some(conduit_core::InfoBool::FALSE.encode().to_vec()),
+                _ => None,
+            },
+            Some(conduit_core::PrimitiveInfoKind::Text) => {
+                crate::text_value::parse_quoted_text(literal).map(String::into_bytes)
+            }
+            Some(conduit_core::PrimitiveInfoKind::Count)
+            | Some(conduit_core::PrimitiveInfoKind::U64) => literal
+                .parse::<u64>()
+                .ok()
+                .map(u64::to_le_bytes)
+                .map(Vec::from),
+            Some(conduit_core::PrimitiveInfoKind::U8) => {
+                literal.parse::<u8>().ok().map(|v| vec![v])
+            }
+            Some(conduit_core::PrimitiveInfoKind::U16) => literal
+                .parse::<u16>()
+                .ok()
+                .map(u16::to_le_bytes)
+                .map(Vec::from),
+            Some(conduit_core::PrimitiveInfoKind::U32) => literal
+                .parse::<u32>()
+                .ok()
+                .map(u32::to_le_bytes)
+                .map(Vec::from),
+            Some(conduit_core::PrimitiveInfoKind::U128) => literal
+                .parse::<u128>()
+                .ok()
+                .map(u128::to_le_bytes)
+                .map(Vec::from),
+            Some(conduit_core::PrimitiveInfoKind::I8) => {
+                literal.parse::<i8>().ok().map(|v| vec![v as u8])
+            }
+            Some(conduit_core::PrimitiveInfoKind::I16) => literal
+                .parse::<i16>()
+                .ok()
+                .map(i16::to_le_bytes)
+                .map(Vec::from),
+            Some(conduit_core::PrimitiveInfoKind::I32) => literal
+                .parse::<i32>()
+                .ok()
+                .map(i32::to_le_bytes)
+                .map(Vec::from),
+            Some(conduit_core::PrimitiveInfoKind::I64) => literal
+                .parse::<i64>()
+                .ok()
+                .map(i64::to_le_bytes)
+                .map(Vec::from),
+            Some(conduit_core::PrimitiveInfoKind::I128) => literal
+                .parse::<i128>()
+                .ok()
+                .map(i128::to_le_bytes)
+                .map(Vec::from),
+            _ => None,
+        },
+        CanonicalStartupValue::FormParameter(_) | CanonicalStartupValue::PoolReference(_) => None,
+    }
+    .ok_or_else(|| {
+        CanonicalExpansionDiagnostic::new(
+            "CND-FRM-064",
+            "fold initial accumulator has no exact canonical encoding".into(),
+        )
+    })?;
+    if conduit_core::primitive_info_kind(kind).is_some() {
+        conduit_core::validate_primitive_info(kind, &bytes).map_err(|_| {
+            CanonicalExpansionDiagnostic::new(
+                "CND-FRM-064",
+                "fold initial accumulator differs from its exact Value contract".into(),
+            )
+        })?;
+    }
+    Ok(bytes)
 }

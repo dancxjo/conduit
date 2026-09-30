@@ -6,7 +6,7 @@ use conduit_core::{
 };
 use conduit_form::{
     check_syntax_document, expand_canonical_form_for_authoring, parse_syntax_document,
-    CanonicalBackCatalog, KindProjection, KindSignature, ProfileCatalog, StartupCatalog,
+    CanonicalBackCatalog, KindSignature, ProfileCatalog, StartupCatalog,
 };
 use conduit_planner::{
     default_expanded_placements, plan_expanded_canonical_with_activations, PlanningOptions,
@@ -16,7 +16,7 @@ use std::collections::BTreeMap;
 const SOURCE: &str = "
 form text/is-useful (
  >> value: Text
- accepted: Boolean >>
+ accepted: Boolean <= 21B >>
 ) {
  predicate: test/predicate
  value >> predicate.value
@@ -27,12 +27,12 @@ form flow/select (
  item: type
  predicate: kind (
   >> value: item
-  accepted: Boolean >>
+  accepted: Boolean <= 21B >>
  )
  >> values: item...|
  selected: item...| >>
 ) {
- selection: select predicate()
+ selection: select(maximum-items = 4) predicate()
  values >> selection.value
  selection.selected >> selected
 }
@@ -67,7 +67,9 @@ fn catalogs() -> (StartupCatalog, ProfileCatalog) {
         .unwrap();
     let mut profile = ProfileCatalog::new();
     profile
-        .insert(KindProjection {
+        .insert_kind(conduit_core::Kind {
+            startup_parameters: vec![],
+            shorthand: None,
             kind_id: kind_id("test/predicate"),
             kind_contract_revision: KindIdentity::from("test/predicate@1"),
             inputs: vec![port(
@@ -83,6 +85,31 @@ fn catalogs() -> (StartupCatalog, ProfileCatalog) {
                 PortTemporal::Value,
             )],
             configuration: vec![],
+            semantic_laws: vec![conduit_core::KindSemanticLaw::ValueContracts(vec![
+                conduit_core::FrontValueContract {
+                    location: conduit_core::FrontValueLocation::Input(port_id("value")),
+                    contract: conduit_core::CheckedValueContract::new(
+                        kind_id("value/text"),
+                        256,
+                        vec![],
+                    )
+                    .unwrap(),
+                },
+                conduit_core::FrontValueContract {
+                    location: conduit_core::FrontValueLocation::Output(port_id("accepted")),
+                    contract: conduit_core::CheckedValueContract::new(
+                        kind_id(BOOL_INFO_ID),
+                        21,
+                        vec![],
+                    )
+                    .unwrap(),
+                },
+            ])],
+            limits: CapabilityLimits {
+                max_active_instances: 1,
+                max_queue_items: 1,
+                max_queue_bytes: 256,
+            },
         })
         .unwrap();
     (startup, profile)
@@ -95,8 +122,45 @@ fn capability(
     input: PortDescriptor,
     output: PortDescriptor,
 ) -> conduit_core::CapabilityOffer {
+    let semantic_contract = if kind == "flow/select" {
+        let item =
+            conduit_core::CheckedValueContract::new(input.value_kind.clone(), 256, vec![]).unwrap();
+        conduit_core::flow_select_activation_contract(
+            &item,
+            None,
+            input.port_id.clone(),
+            output.port_id.clone(),
+            4,
+        )
+    } else if kind == "test/predicate" {
+        conduit_core::KindSemanticContract {
+            configuration: vec![],
+            laws: vec![conduit_core::KindSemanticLaw::ValueContracts(vec![
+                conduit_core::FrontValueContract {
+                    location: conduit_core::FrontValueLocation::Input(input.port_id.clone()),
+                    contract: conduit_core::CheckedValueContract::new(
+                        input.value_kind.clone(),
+                        256,
+                        vec![],
+                    )
+                    .unwrap(),
+                },
+                conduit_core::FrontValueContract {
+                    location: conduit_core::FrontValueLocation::Output(output.port_id.clone()),
+                    contract: conduit_core::CheckedValueContract::new(
+                        output.value_kind.clone(),
+                        21,
+                        vec![],
+                    )
+                    .unwrap(),
+                },
+            ])],
+        }
+    } else {
+        Default::default()
+    };
     conduit_core::capability_offer_from_parts! {
-        semantic_contract: Default::default(),
+        semantic_contract: semantic_contract,
         startup_parameters: vec![],
         shorthand: None,
         capability_id: CapabilityId::from(id),
@@ -199,10 +263,14 @@ fn authored_select_seals_the_exact_value_to_boolean_predicate_plan() {
     let [activation] = plan.activations.as_slice() else {
         panic!("select must seal exactly one predicate activation")
     };
+    let conduit_core::PlannedActivationEntry::Unary(activation) = activation else {
+        panic!("flow/select must retain a unary activation")
+    };
     assert_eq!(activation.input.value_kind.as_str(), "value/text");
     assert_eq!(activation.output.value_kind.as_str(), BOOL_INFO_ID);
     assert_eq!(activation.limits.maximum_active, 1);
     assert_eq!(activation.limits.maximum_queue_items, 1);
+    assert_eq!(activation.limits.maximum_items, 4);
     assert!(activation
         .selected_plan
         .fragments

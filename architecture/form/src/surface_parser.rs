@@ -635,22 +635,101 @@ impl<'a> Parser<'a> {
                     span: self.span(start, start + text.len()),
                 }));
             }
-            let (activation, invoked, invoked_start) =
-                if let Some(selected) = invoked.strip_prefix("activate ") {
-                    (
-                        Some(ActivationSyntax::Each),
-                        selected,
-                        invoked_start + "activate ".len(),
-                    )
-                } else if let Some(selected) = invoked.strip_prefix("select ") {
-                    (
-                        Some(ActivationSyntax::Select),
-                        selected,
-                        invoked_start + "select ".len(),
-                    )
-                } else {
-                    (None, invoked, invoked_start)
+            let (activation, invoked, invoked_start) = if let Some(rest) =
+                invoked.strip_prefix("activate(maximum-items = ")
+            {
+                let Some((maximum_items, selected)) = rest.split_once(") ") else {
+                    return Err((
+                        FormError::InvalidSyntax(
+                            "activate requires 'activate(maximum-items = N) transform-form()'"
+                                .into(),
+                        ),
+                        self.span(invoked_start, start + text.len()),
+                    ));
                 };
+                (
+                    Some(ActivationSyntax::Each {
+                        maximum_items: parse_activation_maximum(maximum_items).map_err(
+                            |message| {
+                                (
+                                    FormError::InvalidSyntax(message.into()),
+                                    self.span(invoked_start, start + text.len()),
+                                )
+                            },
+                        )?,
+                    }),
+                    selected,
+                    invoked_start
+                        + "activate(maximum-items = ".len()
+                        + maximum_items.len()
+                        + ") ".len(),
+                )
+            } else if let Some(rest) = invoked.strip_prefix("select(maximum-items = ") {
+                let Some((maximum_items, selected)) = rest.split_once(") ") else {
+                    return Err((
+                        FormError::InvalidSyntax(
+                            "select requires 'select(maximum-items = N) predicate-form()'".into(),
+                        ),
+                        self.span(invoked_start, start + text.len()),
+                    ));
+                };
+                (
+                    Some(ActivationSyntax::Select {
+                        maximum_items: parse_activation_maximum(maximum_items).map_err(
+                            |message| {
+                                (
+                                    FormError::InvalidSyntax(message.into()),
+                                    self.span(invoked_start, start + text.len()),
+                                )
+                            },
+                        )?,
+                    }),
+                    selected,
+                    invoked_start
+                        + "select(maximum-items = ".len()
+                        + maximum_items.len()
+                        + ") ".len(),
+                )
+            } else if let Some(rest) = invoked.strip_prefix("fold(") {
+                let Some((arguments, selected)) = rest.split_once(") ") else {
+                    return Err((
+                        FormError::InvalidSyntax(
+                            "fold requires 'fold(initial, maximum-items = N) combine-form()'"
+                                .into(),
+                        ),
+                        self.span(invoked_start, start + text.len()),
+                    ));
+                };
+                let Some((initial, maximum_items)) = arguments.rsplit_once(", maximum-items = ")
+                else {
+                    return Err((
+                        FormError::InvalidSyntax(
+                            "fold requires 'fold(initial, maximum-items = N) combine-form()'"
+                                .into(),
+                        ),
+                        self.span(invoked_start, start + text.len()),
+                    ));
+                };
+                let initial_start = invoked_start + "fold(".len();
+                let selected_start = initial_start + arguments.len() + ") ".len();
+                (
+                    Some(ActivationSyntax::Fold {
+                        initial: Box::new(self.expression_at(initial, initial, initial_start)?),
+                        maximum_items: parse_activation_maximum(maximum_items).map_err(
+                            |message| {
+                                (
+                                    FormError::InvalidSyntax(message.into()),
+                                    self.span(invoked_start, start + text.len()),
+                                )
+                            },
+                        )?,
+                    }),
+                    selected,
+                    selected_start,
+                )
+            } else {
+                (None, invoked, invoked_start)
+            };
             let invocation = self.parse_invocation(invoked, invoked_start)?;
             return Ok(BackStatement::NamedGear(NamedGear {
                 name: self.spanned_at(name, text, start),
@@ -1024,6 +1103,13 @@ impl<'a> Parser<'a> {
             end_column,
         }
     }
+}
+
+fn parse_activation_maximum(text: &str) -> Result<u16, &'static str> {
+    text.parse::<u16>()
+        .ok()
+        .filter(|value| *value > 0)
+        .ok_or("maximum-items must be an exact positive u16 decimal")
 }
 
 fn has_top_level_cord(text: &str) -> bool {

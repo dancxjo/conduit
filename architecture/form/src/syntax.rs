@@ -385,10 +385,28 @@ pub struct NamedGear {
     pub span: Span,
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub enum ActivationSyntax {
-    Each,
-    Select,
+    Each {
+        maximum_items: u16,
+    },
+    Select {
+        maximum_items: u16,
+    },
+    Fold {
+        initial: Box<Expression>,
+        maximum_items: u16,
+    },
+}
+
+impl ActivationSyntax {
+    pub fn maximum_items(&self) -> u16 {
+        match self {
+            Self::Each { maximum_items }
+            | Self::Select { maximum_items }
+            | Self::Fold { maximum_items, .. } => *maximum_items,
+        }
+    }
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]

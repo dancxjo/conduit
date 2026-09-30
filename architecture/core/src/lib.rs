@@ -9,6 +9,7 @@ use alloc::vec::Vec;
 use serde::{Deserialize, Serialize};
 use sha2::{Digest, Sha256};
 
+mod activation_contract;
 mod base_capability;
 mod base_registry;
 mod capability_offer;
@@ -61,6 +62,7 @@ mod temporal_quantity;
 mod terminal_info;
 mod value_constraint;
 
+pub use activation_contract::*;
 pub use base_capability::*;
 pub use base_registry::*;
 pub use capability_offer::*;
@@ -70,13 +72,14 @@ pub use conduit_assigned_plan::*;
 pub use configuration::{
     AbnormalTerminalTransduction, BoundedCollectSemanticLaw, CancellationTransduction,
     ConfigurationEntry, ConfigurationValue, ExternalEffectBehavior, FiniteTerminalEmission,
-    FlowSelectFalseDisposition, FlowSelectInvocation, FlowSelectRetainedInput,
-    FlowSelectSemanticLaw, FlowSelectTrueDisposition, KeyedJoinCapacityBehavior,
-    KeyedJoinOutputOrder, KeyedJoinPairing, KeyedJoinSemanticLaw, KeyedJoinUnmatchedCloseBehavior,
-    KindConfigurationField, KindConfigurationRule, KindSemanticContract, KindSemanticLaw,
-    KindTerminalBehavior, NormalCloseTransduction, ReplayBehavior, SemanticDependence,
-    StructuredConfigurationValue, SuspensionBehavior, TemporalStateBehavior,
-    TerminalTransductionProfile, VariabilityBehavior,
+    FlowEachSemanticLaw, FlowFoldAbnormalDisposition, FlowFoldCancellationDisposition,
+    FlowFoldCloseDisposition, FlowFoldInvocation, FlowFoldSemanticLaw, FlowSelectFalseDisposition,
+    FlowSelectInvocation, FlowSelectRetainedInput, FlowSelectSemanticLaw,
+    FlowSelectTrueDisposition, KeyedJoinCapacityBehavior, KeyedJoinOutputOrder, KeyedJoinPairing,
+    KeyedJoinSemanticLaw, KeyedJoinUnmatchedCloseBehavior, KindConfigurationField,
+    KindConfigurationRule, KindSemanticContract, KindSemanticLaw, KindTerminalBehavior,
+    NormalCloseTransduction, ReplayBehavior, SemanticDependence, StructuredConfigurationValue,
+    SuspensionBehavior, TemporalStateBehavior, TerminalTransductionProfile, VariabilityBehavior,
 };
 pub use consequential_effect::*;
 pub use control_loop::*;
@@ -811,7 +814,7 @@ pub struct Plan {
     #[serde(default)]
     pub realization_backs: Vec<FormBack>,
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
-    pub activations: Vec<PlannedActivation>,
+    pub activations: Vec<PlannedActivationEntry>,
     pub fragments: Vec<PlanFragment>,
 }
 
@@ -863,8 +866,27 @@ pub fn seal_plan_with_realization_backs_and_completion(
 pub fn seal_plan_with_activations(
     form_identity: FormIdentity,
     completion_policy: PlanCompletionPolicy,
-    mut realization_backs: Vec<FormBack>,
+    realization_backs: Vec<FormBack>,
     activations: Vec<PlannedActivation>,
+    fragments: Vec<PlanFragment>,
+) -> Plan {
+    seal_plan_with_activation_entries(
+        form_identity,
+        completion_policy,
+        realization_backs,
+        activations
+            .into_iter()
+            .map(PlannedActivationEntry::Unary)
+            .collect(),
+        fragments,
+    )
+}
+
+pub fn seal_plan_with_activation_entries(
+    form_identity: FormIdentity,
+    completion_policy: PlanCompletionPolicy,
+    mut realization_backs: Vec<FormBack>,
+    activations: Vec<PlannedActivationEntry>,
     mut fragments: Vec<PlanFragment>,
 ) -> Plan {
     realization_backs.sort();

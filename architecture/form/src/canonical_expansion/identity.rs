@@ -65,8 +65,8 @@ impl ExpandedCanonicalForm {
                 let mut input = activation.input.clone();
                 input.temporal = conduit_core::PortTemporal::Flow { closes: true };
                 let mut output = match activation.mode {
-                    crate::ActivationSyntax::Each => activation.output.clone(),
-                    crate::ActivationSyntax::Select => {
+                    crate::ActivationSyntax::Each { .. } => activation.output.clone(),
+                    crate::ActivationSyntax::Select { .. } => {
                         let Some(output) = owner.outputs.first() else {
                             return false;
                         };
@@ -75,12 +75,53 @@ impl ExpandedCanonicalForm {
                         retained.direction = conduit_core::PortDirection::Output;
                         retained
                     }
+                    crate::ActivationSyntax::Fold { .. } => activation.output.clone(),
                 };
-                output.temporal = conduit_core::PortTemporal::Flow { closes: true };
+                output.temporal = if matches!(activation.mode, crate::ActivationSyntax::Fold { .. })
+                {
+                    conduit_core::PortTemporal::Value
+                } else {
+                    conduit_core::PortTemporal::Flow { closes: true }
+                };
                 owner.inputs == [input] && owner.outputs == [output]
             });
+            let fold_metadata_matches = match activation.mode {
+                crate::ActivationSyntax::Fold { .. } => {
+                    activation
+                        .accumulator_input
+                        .as_ref()
+                        .is_some_and(|accumulator| {
+                            accumulator.port_id.as_str() == "accumulator"
+                                && accumulator.temporal == conduit_core::PortTemporal::Value
+                                && accumulator.direction == conduit_core::PortDirection::Input
+                                && accumulator.value_kind == activation.output.value_kind
+                                && accumulator.abnormal_kind == activation.output.abnormal_kind
+                        })
+                        && activation
+                            .initial_accumulator
+                            .as_ref()
+                            .is_some_and(|initial| {
+                                !matches!(
+                                    initial,
+                                    crate::CanonicalStartupValue::FormParameter(_)
+                                        | crate::CanonicalStartupValue::PoolReference(_)
+                                ) && !matches!(
+                                    initial,
+                                    crate::CanonicalStartupValue::Structured(value)
+                                        if value.try_concrete().is_none()
+                                )
+                            })
+                        && activation.initial_accumulator_bytes.is_some()
+                }
+                _ => {
+                    activation.accumulator_input.is_none()
+                        && activation.initial_accumulator.is_none()
+                        && activation.initial_accumulator_bytes.is_none()
+                }
+            };
             if !activation_ids.insert(activation.activation_id.as_str())
                 || !owner_matches
+                || !fold_metadata_matches
                 || activation.input.temporal != conduit_core::PortTemporal::Value
                 || activation.output.temporal != conduit_core::PortTemporal::Value
                 || activation.input.direction != conduit_core::PortDirection::Input
@@ -352,10 +393,12 @@ pub(super) fn expanded_identity(
         push(
             &mut canonical,
             match activation.mode {
-                crate::ActivationSyntax::Each => "activation-each",
-                crate::ActivationSyntax::Select => "activation-select",
+                crate::ActivationSyntax::Each { .. } => "activation-each",
+                crate::ActivationSyntax::Select { .. } => "activation-select",
+                crate::ActivationSyntax::Fold { .. } => "activation-fold",
             },
         );
+        push(&mut canonical, &activation.mode.maximum_items().to_string());
         push(&mut canonical, &activation.activation_id);
         push(&mut canonical, activation.owner_gear_id.as_str());
         push(&mut canonical, &activation.selected_form);
@@ -370,6 +413,19 @@ pub(super) fn expanded_identity(
                     .as_ref()
                     .map_or("none", conduit_core::KindId::as_str),
             );
+        }
+        if let Some(accumulator) = &activation.accumulator_input {
+            push(&mut canonical, accumulator.port_id.as_str());
+            push(&mut canonical, accumulator.value_kind.as_str());
+        }
+        if let Some(initial) = &activation.initial_accumulator {
+            push(
+                &mut canonical,
+                &crate::syntax_identity::canonical_value(initial),
+            );
+        }
+        if let Some(bytes) = &activation.initial_accumulator_bytes {
+            push(&mut canonical, &hex(bytes));
         }
     }
     ExpandedFormId::from(hash_string(&canonical))

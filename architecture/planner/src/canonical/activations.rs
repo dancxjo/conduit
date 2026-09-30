@@ -2,8 +2,9 @@ use super::*;
 use alloc::boxed::Box;
 use conduit_core::{
     PlannedActivation, PlannedActivationCancellationPolicy, PlannedActivationEffectMultiplicity,
-    PlannedActivationFront, PlannedActivationLimits, PlannedActivationTerminalPolicy,
-    SignStorageBudget,
+    PlannedActivationEntry, PlannedActivationFront, PlannedActivationLimits,
+    PlannedActivationTerminalPolicy, PlannedFoldAbnormalPolicy, PlannedFoldActivation,
+    PlannedFoldCancellationPolicy, PlannedFoldTerminalPolicy, SignStorageBudget,
 };
 
 #[allow(clippy::too_many_arguments)]
@@ -118,35 +119,122 @@ fn attach_activations(
                     "activation Sign storage sum exceeds architecture bounds".into(),
                 )
             })?;
-        planned.push(PlannedActivation {
+        let item = PlannedActivationFront {
+            front_port_id: activation.input.port_id.clone(),
+            value_kind: activation.input.value_kind.clone(),
+            abnormal_kind: activation.input.abnormal_kind.clone(),
+        };
+        let output = PlannedActivationFront {
+            front_port_id: activation.output.port_id.clone(),
+            value_kind: activation.output.value_kind.clone(),
+            abnormal_kind: activation.output.abnormal_kind.clone(),
+        };
+        let limits = PlannedActivationLimits {
+            maximum_active: 1,
+            maximum_queue_items: 1,
+            maximum_queue_bytes: owner.limits.max_queue_bytes,
+            maximum_items: activation.mode.maximum_items(),
+        };
+        if matches!(activation.mode, conduit_form::ActivationSyntax::Fold { .. }) {
+            let accumulator = activation.accumulator_input.as_ref().ok_or_else(|| {
+                PlannerError::InvalidFormIdentity(
+                    "fold activation lost its accumulator front".into(),
+                )
+            })?;
+            let initial = activation
+                .initial_accumulator_bytes
+                .clone()
+                .ok_or_else(|| {
+                    PlannerError::InvalidFormIdentity(
+                        "fold activation lost canonical initial bytes".into(),
+                    )
+                })?;
+            let law = owner
+                .semantic_contract
+                .laws
+                .iter()
+                .find_map(|law| match law {
+                    conduit_core::KindSemanticLaw::FlowFold(law) => Some(law),
+                    _ => None,
+                })
+                .ok_or_else(|| {
+                    PlannerError::InvalidFormIdentity(
+                        "fold coordinator has no exact fold law".into(),
+                    )
+                })?;
+            if law.initial_accumulator != initial
+                || law.item.value_kind != item.value_kind
+                || law.accumulator.value_kind != accumulator.value_kind
+                || law.maximum_items != limits.maximum_items
+            {
+                return Err(PlannerError::InvalidFormIdentity(
+                    "fold activation differs from its selected coordinator law".into(),
+                ));
+            }
+            planned.push(PlannedActivationEntry::Fold(PlannedFoldActivation {
+                activation_id: activation.activation_id.clone(),
+                owner_placement_id: owner.placement_id.clone(),
+                selected_plan_id: child.plan_id.clone(),
+                selected_plan: Box::new(child),
+                accumulator_input: PlannedActivationFront {
+                    front_port_id: accumulator.port_id.clone(),
+                    value_kind: accumulator.value_kind.clone(),
+                    abnormal_kind: accumulator.abnormal_kind.clone(),
+                },
+                item_input: item,
+                output,
+                initial_accumulator: initial,
+                retained_accumulator_bytes: law.accumulator.maximum_bytes,
+                retained_item_bytes: law.item.maximum_bytes,
+                limits,
+                terminal_policy: PlannedFoldTerminalPolicy::DrainThenEmitAccumulatorExactlyOnce,
+                abnormal_policy: PlannedFoldAbnormalPolicy::DiscardAccumulatorAndPropagateExact,
+                cancellation_policy:
+                    PlannedFoldCancellationPolicy::DiscardAccumulatorWithoutEmission,
+                effect_multiplicity: PlannedActivationEffectMultiplicity::OncePerAcceptedInput,
+                per_activation_sign_budget: sign_budget,
+            }));
+            continue;
+        }
+        let offered_maximum =
+            owner
+                .semantic_contract
+                .laws
+                .iter()
+                .find_map(|law| match (&activation.mode, law) {
+                    (
+                        conduit_form::ActivationSyntax::Each { .. },
+                        conduit_core::KindSemanticLaw::FlowEach(law),
+                    ) => Some(law.maximum_items),
+                    (
+                        conduit_form::ActivationSyntax::Select { .. },
+                        conduit_core::KindSemanticLaw::FlowSelect(law),
+                    ) => Some(law.maximum_items),
+                    _ => None,
+                });
+        if offered_maximum != Some(limits.maximum_items) {
+            return Err(PlannerError::InvalidFormIdentity(format!(
+                "activation maximum-items {} differs from its coordinator law {:?}",
+                limits.maximum_items, offered_maximum
+            )));
+        }
+        planned.push(PlannedActivationEntry::Unary(PlannedActivation {
             activation_id: activation.activation_id.clone(),
             owner_placement_id: owner.placement_id.clone(),
             selected_plan_id: child.plan_id.clone(),
             selected_plan: Box::new(child),
-            input: PlannedActivationFront {
-                front_port_id: activation.input.port_id.clone(),
-                value_kind: activation.input.value_kind.clone(),
-                abnormal_kind: activation.input.abnormal_kind.clone(),
-            },
-            output: PlannedActivationFront {
-                front_port_id: activation.output.port_id.clone(),
-                value_kind: activation.output.value_kind.clone(),
-                abnormal_kind: activation.output.abnormal_kind.clone(),
-            },
-            limits: PlannedActivationLimits {
-                maximum_active: 1,
-                maximum_queue_items: 1,
-                maximum_queue_bytes: owner.limits.max_queue_bytes,
-            },
+            input: item,
+            output,
+            limits,
             terminal_policy: PlannedActivationTerminalPolicy::DrainThenPropagateExact,
             cancellation_policy:
                 PlannedActivationCancellationPolicy::CancelActiveAndRejectLateCompletion,
             effect_multiplicity: PlannedActivationEffectMultiplicity::OncePerAcceptedInput,
             per_activation_sign_budget: sign_budget,
-        });
+        }));
     }
 
-    Ok(conduit_core::seal_plan_with_activations(
+    Ok(conduit_core::seal_plan_with_activation_entries(
         FormIdentity {
             source_document_id: plan.source_document_id,
             checked_form_id: plan.checked_form_id,
