@@ -253,10 +253,9 @@ mod tests {
 
     #[test]
     fn either_input_order_emits_only_after_both_canonical_values() {
-        let detection = conduit_tongues::encode_address_detection(&AddressDetection::Addressed {
-            matched_name_index: 0,
-            utterance: "temperature?".into(),
-        })
+        let detection = conduit_tongues::encode_address_detection(
+            &AddressDetection::addressed(0, "temperature?".into()).unwrap(),
+        )
         .unwrap();
         let context = conduit_tongues::encode_wired_house_context(&context()).unwrap();
         for inputs in [

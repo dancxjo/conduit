@@ -212,9 +212,10 @@ pub fn prepare_house_generation_request(
     explicitly_wired: &[WiredHouseContextItem],
     maximum_output_bytes: u64,
 ) -> Result<HouseGenerationRequest, HousePromptRefusal> {
-    let AddressDetection::Addressed { utterance, .. } = detection else {
+    let AddressDetection::Addressed(payload) = detection else {
         return Err(HousePromptRefusal::NotAddressed);
     };
+    let utterance = payload.utterance();
     if utterance.is_empty() {
         return Err(HousePromptRefusal::EmptyAddressedUtterance);
     }

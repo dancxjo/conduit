@@ -14,6 +14,13 @@ type MorseKeyTransition = {
 type AddressDetectionRefusal =
     recognized_text_too_large
 
+type AddressDetection =
+    not_addressed
+    | addressed {
+        matched_name_index: U8 in 0..=7
+        utterance: Text <= 256B
+    }
+
 type AddressConfigurationError =
     empty
     | too_many_names
