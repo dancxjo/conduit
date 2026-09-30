@@ -1,34 +1,38 @@
-# Conduitese
-
 Conduitese is the authored language of Conduit.
 
 The simplest description is:
 
-> **Conduitese describes finite semantic graphs and construction truth without baking realization machinery into portable meaning.**
+> **Conduitese describes semantic intent and construction truth without baking present realization machinery into portable meaning.**
 
-It is intentionally unlike an imperative systems language. There is no ambient process model, hidden callback loop, arbitrary mutable heap, exception unwinding, or "just call this platform API" escape hatch in portable source.
+It is intentionally unlike an imperative systems language. There is no ambient process model, hidden callback loop, arbitrary mutable heap, exception unwinding, or “just call this platform API” escape hatch in portable source.
 
-## One language, several document roles
+The language is designed around a question: **what must remain true if the same authored meaning is realized on different machinery?** Whatever belongs to that answer should be visible in semantic source; whatever depends on the current world belongs to construction, planning, or execution.
 
-Canonical `.conduit` source has four major roles:
+## One language, several kinds of authored truth
 
-| role | purpose |
+Canonical `.conduit` source carries several different kinds of statements:
+
+| authored thing | purpose |
 |---|---|
-| `form` | portable semantic work |
-| `host` | intended finite host construction |
-| `body` | intended body/part/host construction |
-| `pack` | source shipment and dependency description |
+| **plot** | portable semantic work and relationships |
+| **type** | reusable semantic meaning of values |
+| **form** | one portable concrete representation of a type |
+| **host** | intended finite host construction |
+| **body** | intended durable body/part/host construction |
+| **pack** | source shipment and dependency description |
 
-They share one lexical and diagnostic world, but they do not mean the same thing.
+These share one lexical and diagnostic world, but they do not mean the same thing.
 
-A form describes **meaning**. A host source describes machinery to construct. A body source describes intended durable composition. A pack describes source/distribution identity.
+A plot describes **what should happen**. A type describes **what information means**. A form describes **how values of that type may be carried or stored**. Host and body source describe intended construction. A pack describes source/distribution identity.
 
-None of those documents fabricates live runtime observations such as the current BootId, active plan, current line, or current authority.
+None of those declarations creates live runtime truth such as the current `BootId`, active plan, present line, current authority, or observed device.
 
-## Forms are graphs
+The repository is currently migrating the historical executable keyword `form` to **plot**, while reusing **form** for type representation. Learning pages use the durable vocabulary; [[Current language surface|Current-language-surface]] records the exact parser surface during migration.
+
+## Plots are semantic graphs
 
 ```conduit
-form button_across_room {
+plot button_across_room {
     button: input/button
     state: input/button-indicator-state
     indicator: presentation/indicator-state
@@ -37,9 +41,9 @@ form button_across_room {
 }
 ```
 
-A named gear is one configured occurrence of a semantic kind. Typed ports are connected by cords. `>>` is the canonical authored direction token.
+A named **gear** is one configured occurrence of a semantic **kind**. Typed **ports** are connected by **cords**. `>>` is the authored direction token.
 
-The form says what should connect. A plan later decides where and how those connections are realized.
+The plot says what should connect. A plan later decides where and how those connections are realized.
 
 ## Kind, fore, back, gear
 
@@ -47,7 +51,7 @@ These four words are worth learning early:
 
 ```text
 kind   reusable semantic meaning of work
-fore   the checked callable boundary of that kind/form
+fore   the checked callable boundary of that kind/plot
 back   one concrete realization behind that fore
 gear   one configured occurrence of a kind in a form
 ```
@@ -56,12 +60,12 @@ A gear invokes a kind through its fore. A host offers a back. A plan selects the
 
 Some older repository prose and internal Rust names still say **front**. The current language/architecture noun is **fore**. The human-facing noun is **face**.
 
-## Forms are live unless completed
+## Plots are live unless completed
 
-A form without a trailing full stop is live:
+A plot without a trailing full stop is live:
 
 ```conduit
-form clock-demo {
+plot clock-demo {
     clock: time/every(1s)
     clock >> presentation/tick
 }
@@ -72,7 +76,7 @@ Structural drain means quiescence. Later admitted input may resume the same play
 A trailing full stop makes structural drain a completion witness:
 
 ```conduit
-form finite-example (
+plot finite-example (
     >> input: Text
     output: Text >>
 ) {
@@ -80,7 +84,7 @@ form finite-example (
 }.
 ```
 
-The `.` is not an executable "stop now" statement. It changes the meaning of the form boundary.
+The `.` is not an executable "stop now" statement. It changes the meaning of the plot boundary.
 
 ## Finite by default
 
@@ -122,7 +126,7 @@ frequency: keep Frequency(440Hz) for this play
 
 A `keep` is not an imperative variable. It is semantic current state with an exact lifetime.
 
-Longer-lived forms may say:
+Longer-lived plots may say:
 
 ```conduit
 note: keep Text <= 4KiB for life
@@ -224,6 +228,27 @@ A type is reusable semantic meaning for finite information. An info value is one
 
 The migration is ongoing. Do not assume every existing Rust semantic type has moved yet.
 
+## Types have forms
+
+A semantic type and its concrete representation are deliberately separate.
+
+Conceptually:
+
+```conduit
+type LeniaRegionChunkKind =
+    work
+    | result
+
+form alife/lenia-region-chunk-kind =
+    LeniaRegionChunkKind as u8 from 1
+```
+
+The type says that the semantic alternatives are `work` and `result`. The form says that one portable compatibility contract carries them as consecutive `u8` tags beginning at 1.
+
+Thus `work` does not *mean* `1`; it has the code `1` **in this form**.
+
+A type may have multiple forms without changing its semantic identity. Wire/storage/ABI details remain exact and checkable without becoming the meaning of the value.
+
 ## Host source is still Conduitese
 
 Canonical host authoring keeps construction facts separate from live runtime truth:
@@ -262,7 +287,7 @@ This describes machinery to build and bounds to admit. It does not claim a devic
 
 ## Body wardrobe is authored, too
 
-Masks remain ordinary forms. A body may state encounter policy:
+Masks remain ordinary plots. A body may state encounter policy:
 
 ```conduit
 with masks/native-graphical as graphical
