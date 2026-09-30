@@ -172,16 +172,19 @@ pub(super) fn run(args: MorseKeyArgs, opts: &GlobalOpts) -> Result<(), Box<dyn s
         let Some(raw) = parse_transition(&line)? else {
             continue;
         };
-        let transition = MorseKeyTransition {
-            clock_basis: clock_basis.clone(),
-            monotonic_micros: raw.monotonic_micros,
-            phase: if raw.phase == "pressed" {
+        let transition = MorseKeyTransition::new(
+            clock_basis.clone(),
+            raw.monotonic_micros,
+            if raw.phase == "pressed" {
                 MorseKeyPhase::Pressed
             } else {
                 MorseKeyPhase::Released
             },
-            sequence: raw.sequence,
-        };
+            raw.sequence,
+        )
+        .map_err(|error| {
+            format!("physical Morse transition is not valid semantic data: {error:?}")
+        })?;
         interpreter
             .accept(&transition)
             .map_err(|error| format!("physical Morse transition refused: {error:?}"))?;

@@ -3,20 +3,12 @@
 use alloc::{string::String, vec::Vec};
 
 use crate::{
-    MorseError, MorseKeyPhase, MorsePattern, MorseSegment, MAXIMUM_MORSE_SEGMENTS,
-    MAXIMUM_MORSE_UNIT_MILLIS, MINIMUM_MORSE_UNIT_MILLIS,
+    MorseError, MorseKeyPhase, MorseKeyTransition, MorsePattern, MorseSegment,
+    MAXIMUM_MORSE_SEGMENTS, MAXIMUM_MORSE_UNIT_MILLIS, MINIMUM_MORSE_UNIT_MILLIS,
 };
 
 pub const MAXIMUM_MORSE_CLOCK_BASIS_BYTES: usize = 96;
 pub const MAXIMUM_MORSE_KEY_TRANSITIONS: u16 = (MAXIMUM_MORSE_SEGMENTS as u16) * 2;
-
-#[derive(Clone, Debug, PartialEq, Eq)]
-pub struct MorseKeyTransition {
-    pub clock_basis: String,
-    pub monotonic_micros: u64,
-    pub phase: MorseKeyPhase,
-    pub sequence: u64,
-}
 
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub enum MorseKeyRefusal {
@@ -84,37 +76,37 @@ impl MorseKeyInterpreter {
         if self.cancelled {
             return Err(MorseKeyRefusal::Cancelled);
         }
-        if transition.clock_basis != self.clock_basis {
+        if transition.clock_basis() != &self.clock_basis {
             return Err(MorseKeyRefusal::ClockBasisMismatch);
         }
-        if transition.sequence < self.next_sequence {
+        if *transition.sequence() < self.next_sequence {
             return Err(MorseKeyRefusal::DuplicateSequence);
         }
-        if transition.sequence > self.next_sequence {
+        if *transition.sequence() > self.next_sequence {
             return Err(MorseKeyRefusal::SequenceGap);
         }
         if self.accepted_transitions == self.maximum_transitions {
             return Err(MorseKeyRefusal::TransitionPressure);
         }
-        if transition.phase != self.next_phase {
+        if *transition.phase() != self.next_phase {
             return Err(MorseKeyRefusal::WrongPhase);
         }
         if self
             .last_micros
-            .is_some_and(|previous| transition.monotonic_micros <= previous)
+            .is_some_and(|previous| *transition.monotonic_micros() <= previous)
         {
             return Err(MorseKeyRefusal::NonMonotonicTime);
         }
 
-        let segment = match (transition.phase, self.last_micros) {
+        let segment = match (*transition.phase(), self.last_micros) {
             (MorseKeyPhase::Pressed, None) => None,
             (MorseKeyPhase::Pressed, Some(previous)) => Some(MorseSegment {
                 level: false,
-                units: self.classify(transition.monotonic_micros - previous, &[1, 3, 7])?,
+                units: self.classify(*transition.monotonic_micros() - previous, &[1, 3, 7])?,
             }),
             (MorseKeyPhase::Released, Some(previous)) => Some(MorseSegment {
                 level: true,
-                units: self.classify(transition.monotonic_micros - previous, &[1, 3])?,
+                units: self.classify(*transition.monotonic_micros() - previous, &[1, 3])?,
             }),
             (MorseKeyPhase::Released, None) => return Err(MorseKeyRefusal::WrongPhase),
         };
@@ -124,10 +116,10 @@ impl MorseKeyInterpreter {
             }
             self.segments.push(segment);
         }
-        self.last_micros = Some(transition.monotonic_micros);
+        self.last_micros = Some(*transition.monotonic_micros());
         self.accepted_transitions += 1;
         self.next_sequence += 1;
-        self.next_phase = match transition.phase {
+        self.next_phase = match transition.phase() {
             MorseKeyPhase::Pressed => MorseKeyPhase::Released,
             MorseKeyPhase::Released => MorseKeyPhase::Pressed,
         };
@@ -199,12 +191,7 @@ mod tests {
     }
 
     fn transition(sequence: u64, micros: u64, phase: MorseKeyPhase) -> MorseKeyTransition {
-        MorseKeyTransition {
-            clock_basis: BASIS.into(),
-            monotonic_micros: micros,
-            phase,
-            sequence,
-        }
+        MorseKeyTransition::new(BASIS.into(), micros, phase, sequence).unwrap()
     }
 
     #[test]
@@ -263,8 +250,8 @@ mod tests {
         );
 
         let mut interpreter = MorseKeyInterpreter::new(BASIS, 200, 2).unwrap();
-        let mut wrong_basis = transition(0, 1_000, MorseKeyPhase::Pressed);
-        wrong_basis.clock_basis = "other/boot".into();
+        let wrong_basis =
+            MorseKeyTransition::new("other/boot".into(), 1_000, MorseKeyPhase::Pressed, 0).unwrap();
         assert_eq!(
             interpreter.accept(&wrong_basis),
             Err(MorseKeyRefusal::ClockBasisMismatch)
