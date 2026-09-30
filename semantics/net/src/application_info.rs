@@ -1,23 +1,15 @@
 //! Portable application-network Info below HTTP and separate from Conduit Lines.
 
-use crate::{
-    DnsRecordKind, NetworkChunkShape, NetworkFrameDirection, NetworkFrameProtocol, NetworkTransport,
-};
+use crate::{DnsRecordKind, NetworkTransport};
 use alloc::{string::String, vec, vec::Vec};
-use conduit_core::{
-    kind_id, BoundedResourceRef, StructuredFieldType, StructuredInfoType, StructuredVariantCase,
-    RESOURCE_REFERENCE_INFO_ID,
-};
+use conduit_core::{kind_id, StructuredFieldType, StructuredInfoType, StructuredVariantCase};
 
 pub const NETWORK_ENDPOINT_TYPE: &str = "NetworkEndpoint";
 pub const DNS_QUERY_TYPE: &str = "DnsQuery";
 pub const DNS_RESULT_TYPE: &str = "DnsResult";
 pub const NETWORK_CONNECTION_STATE_TYPE: &str = "NetworkConnectionState";
-pub const NETWORK_CHUNK_METADATA_TYPE: &str = "NetworkChunkMetadata";
-pub const NETWORK_FRAME_TYPE: &str = "NetworkProtocolFrame";
 pub const NETWORK_MAXIMUM_CANDIDATES: usize = 4;
 pub const NETWORK_MAXIMUM_NAME_BYTES: usize = 253;
-pub const NETWORK_MAXIMUM_INLINE_PAYLOAD_BYTES: usize = 4_096;
 
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord)]
 pub enum NetworkAddress {
@@ -97,37 +89,12 @@ pub enum NetworkConnectionState {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
-pub enum NetworkFramePayload {
-    Inline(Vec<u8>),
-    Resource(BoundedResourceRef),
-}
-
-#[derive(Debug, Clone, PartialEq, Eq)]
-pub struct NetworkChunkMetadata {
-    pub shape: NetworkChunkShape,
-    pub direction: NetworkFrameDirection,
-    pub sequence: u64,
-    pub payload_bytes: u32,
-    pub truncated: bool,
-}
-
-#[derive(Debug, Clone, PartialEq, Eq)]
-pub struct NetworkProtocolFrame {
-    pub protocol: NetworkFrameProtocol,
-    pub direction: NetworkFrameDirection,
-    pub sequence: u64,
-    pub payload: NetworkFramePayload,
-}
-
-#[derive(Debug, Clone, PartialEq, Eq)]
 pub enum ApplicationNetworkRefusal {
     EmptyName,
     NameTooLarge,
     InvalidPort,
     TooManyCandidates,
     CandidateTransportMismatch,
-    InlinePayloadTooLarge,
-    InvalidResource,
 }
 
 impl DnsQuery {
@@ -168,32 +135,6 @@ impl DnsResolution {
             }
         }
         Ok(())
-    }
-}
-
-impl NetworkProtocolFrame {
-    pub fn validate(&self) -> Result<(), ApplicationNetworkRefusal> {
-        match &self.payload {
-            NetworkFramePayload::Inline(bytes)
-                if bytes.len() > NETWORK_MAXIMUM_INLINE_PAYLOAD_BYTES =>
-            {
-                Err(ApplicationNetworkRefusal::InlinePayloadTooLarge)
-            }
-            NetworkFramePayload::Inline(_) => Ok(()),
-            NetworkFramePayload::Resource(reference) => reference
-                .validate()
-                .map_err(|_| ApplicationNetworkRefusal::InvalidResource),
-        }
-    }
-}
-
-impl NetworkChunkMetadata {
-    pub fn validate(&self) -> Result<(), ApplicationNetworkRefusal> {
-        if self.payload_bytes as usize > NETWORK_MAXIMUM_INLINE_PAYLOAD_BYTES {
-            Err(ApplicationNetworkRefusal::InlinePayloadTooLarge)
-        } else {
-            Ok(())
-        }
     }
 }
 
@@ -370,60 +311,6 @@ pub fn network_connection_state_type() -> StructuredInfoType {
     .expect("reviewed connection state")
 }
 
-fn frame_direction_type() -> StructuredInfoType {
-    StructuredInfoType::variant(
-        kind_id("net/frame-direction@1"),
-        vec![case("received", unit_type()), case("sent", unit_type())],
-    )
-    .expect("reviewed frame direction")
-}
-
-pub fn network_frame_type() -> StructuredInfoType {
-    let protocol = StructuredInfoType::variant(
-        kind_id("net/frame-protocol@1"),
-        vec![case("echo_v1", unit_type())],
-    )
-    .expect("reviewed frame protocol");
-    let payload = StructuredInfoType::variant(
-        kind_id("net/frame-payload@1"),
-        vec![
-            case("inline", leaf("value/bytes")),
-            case("resource", leaf(RESOURCE_REFERENCE_INFO_ID)),
-        ],
-    )
-    .expect("reviewed frame payload");
-    record(
-        "net/protocol-frame@1",
-        vec![
-            field("direction", frame_direction_type()),
-            field("payload", payload),
-            field("protocol", protocol),
-            field("sequence", count_type()),
-        ],
-    )
-}
-
-pub fn network_chunk_metadata_type() -> StructuredInfoType {
-    let shape = StructuredInfoType::variant(
-        kind_id("net/chunk-shape@1"),
-        vec![
-            case("datagram", unit_type()),
-            case("stream_chunk", unit_type()),
-        ],
-    )
-    .expect("reviewed chunk shape");
-    record(
-        "net/chunk-metadata@1",
-        vec![
-            field("direction", frame_direction_type()),
-            field("payload_bytes", count_type()),
-            field("sequence", count_type()),
-            field("shape", shape),
-            field("truncated", leaf(conduit_core::BOOL_INFO_ID)),
-        ],
-    )
-}
-
 pub fn application_network_registered_types() -> Vec<(&'static str, StructuredInfoType)> {
     vec![
         (NETWORK_ENDPOINT_TYPE, network_endpoint_type()),
@@ -433,8 +320,6 @@ pub fn application_network_registered_types() -> Vec<(&'static str, StructuredIn
             NETWORK_CONNECTION_STATE_TYPE,
             network_connection_state_type(),
         ),
-        (NETWORK_CHUNK_METADATA_TYPE, network_chunk_metadata_type()),
-        (NETWORK_FRAME_TYPE, network_frame_type()),
     ]
 }
 

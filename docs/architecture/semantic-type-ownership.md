@@ -135,7 +135,7 @@ are satisfied.
 | Audio gate, modulation destination, PCM sample representation and channel layout | `semantics/audio/types.conduit` | generated at build time | yes | yes | exact native round trips plus audio, browser, std and embedded compile suites |
 | Robotics beacon/charging, chat connection/presence, HTTP method/failures | domain `types.conduit` sources | generated at build time | yes | yes | exact native round trips plus std/no-std domain suites |
 | Body Chat role, bounded message and history record | `semantics/chat/types.conduit` | generated at build time | yes | yes | exact native round trip plus Chat, prompt and std Host suites |
-| Network transport, DNS record kind, frame protocol/direction and chunk shape | `semantics/net/types.conduit` | generated at build time | yes | yes | exact native round trips plus network suites |
+| Network transport and DNS record kind | `semantics/net/types.conduit` | generated at build time | yes | yes | exact native round trips plus network suites |
 | Morse key phase | `semantics/text/types.conduit` | generated at build time | yes | yes | exact native round trip plus text suites |
 | Morse key transition record | `semantics/text/types.conduit` | generated at build time | yes | yes | exact native record round trip plus interpreter and ESP32 tooling suites |
 | Address-detection typed terminal | `semantics/text/types.conduit` | generated at build time | yes | yes | exact native round trip plus address-detection behavior suite |
