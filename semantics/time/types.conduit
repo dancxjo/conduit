@@ -121,3 +121,12 @@ type TemporalWindowRefusal =
     | reversed
     | indeterminate_boundary_order
     | empty
+
+type TemplateCollectionRefusal =
+    malformed
+    | name-empty
+    | name-too-long
+    | duplicate-name
+    | collection-full
+    | not-found
+    | corrupt-template

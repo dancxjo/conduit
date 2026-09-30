@@ -132,6 +132,7 @@ are satisfied.
 | Finance currency, comparison, pair, fixed decimal and money | `semantics/finance/types.conduit` | generated at build time | yes | yes | native binding and finance behavior suites |
 | Calendar participant role, invitation state and availability state | `semantics/time/types.conduit` | generated at build time | yes | yes | exact native round trips plus calendar, AI and std Host suites |
 | Historical origin/overflow and temporal window boundary/position vocabularies | `semantics/time/types.conduit` | generated at build time | yes | yes | exact native round trips, Serde compatibility and time behavior suites |
+| Named pattern-template collection refusal extracted from the catalog | `semantics/time/types.conduit` | generated at build time | yes | yes | exact native round trips plus template collection and storage suites |
 | Civil recurrence gap, fold and resolution-choice vocabularies | `semantics/time/types.conduit` | generated at build time | yes | yes | exact native round trips, Serde compatibility and civil recurrence suites |
 | Calendar, proposal, recurrence, schedule and temporal-window refusal vocabularies | `semantics/time/types.conduit` | generated at build time | yes | yes | exact native round trips plus temporal behavior suites |
 | Linguistic offset basis | `semantics/language/types.conduit` | generated at build time | yes | yes | native binding and linguistic suites |
