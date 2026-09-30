@@ -382,3 +382,11 @@ type VectorSearchExecutionProofClass =
 
 type VectorSearchProofClass =
     deterministic_exact_oracle
+
+type ObjectiveParticipation =
+    optimize
+    | observe_only
+
+type BatchOrder =
+    stable
+    | shuffled

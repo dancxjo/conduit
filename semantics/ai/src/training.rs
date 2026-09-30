@@ -4,7 +4,9 @@ use alloc::{boxed::Box, string::String, vec::Vec};
 use conduit_core::{PlannedStateBoundary, StateContinuation};
 use conduit_data::{DatasetDescriptor, DatasetSplitMembership};
 
-use crate::{ModelArtifact, MutableModelState, RandomnessProfile};
+use crate::{
+    BatchOrder, ModelArtifact, MutableModelState, ObjectiveParticipation, RandomnessProfile,
+};
 
 #[path = "training_request.rs"]
 mod request;
@@ -27,12 +29,6 @@ pub const MAXIMUM_BATCH_EXAMPLES: usize = 4096;
 pub const MAXIMUM_BATCH_MODALITIES: usize = 32;
 pub const MAXIMUM_METRICS: usize = 64;
 
-#[derive(Debug, Copy, Clone, PartialEq, Eq)]
-pub enum ObjectiveParticipation {
-    Optimize,
-    ObserveOnly,
-}
-
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct TrainingObjective {
     pub role: String,
@@ -47,12 +43,6 @@ pub struct TrainingObjective {
 pub enum MissingModalityPolicy {
     Reject,
     PermitDeclared { optional_modalities: Vec<String> },
-}
-
-#[derive(Debug, Copy, Clone, PartialEq, Eq)]
-pub enum BatchOrder {
-    Stable,
-    Shuffled,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]

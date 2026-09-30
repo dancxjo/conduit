@@ -7,7 +7,7 @@ mod generated {
     include!(concat!(env!("OUT_DIR"), "/semantic_types.rs"));
 }
 pub use generated::{
-    BaseProofClass, CandidateLifecycle, ContextOmissionReason, ContextOrderingPolicy,
+    BaseProofClass, BatchOrder, CandidateLifecycle, ContextOmissionReason, ContextOrderingPolicy,
     ContextRedundancyPolicy, ContextSelectionRationale, ContextTruncationReason, DataHandling,
     DrawRelationship, DrawRelationshipCorrelated, EmbeddingNormalization, EntityBoundary,
     EvaluationDisposition, GeneratedTextFlowTerminal, GroundedAnswerDisposition,
@@ -16,16 +16,17 @@ pub use generated::{
     LearnedLifecycleRefusal, LlmDeterminismProfile, LlmImplementationControl,
     LlmInterruptionReason, LlmPlanningRefusal, LlmTerminalOutcome, LogScoreKind, Metering,
     ModelFailure, ModelOperation, ModelOperationCode, ModelPortPresence, ModelPortPresenceCode,
-    ModelRefusal, ModelResultInvalidity, ModelResultProvenance, ProbabilisticDisposition,
-    ProbabilisticDispositionApproximate, ProbabilisticDispositionTruncated, ProbabilityRefusal,
-    PromotionDecision, PromotionTerminal, R3OfferInvalidity, RagAnswerOfferInvalidity,
-    RandomnessProfile, RandomnessProfileExplicitSeed, RandomnessProfileProviderChosen,
-    RerankingProofClass, RerankingStrategy, RerankingStrategyObservedScores, RetrievalMechanism,
-    RetrievalMechanismCode, RollbackTerminal, SelectedContextRationale, ShadowTerminal,
-    SimilarityMetric, SourceExtractionOfferInvalidity, SourceSpanUnit, StructuredResultInvalidity,
-    TemporalContextRefusal, TemporalSource, TemporalValidity, TemporalWindowRelation,
-    TrainingLifecyclePhase, TrainingLifecyclePhaseActiveStep, TransitionDirection,
-    VectorSearchExecutionProofClass, VectorSearchOfferInvalidity, VectorSearchProofClass,
+    ModelRefusal, ModelResultInvalidity, ModelResultProvenance, ObjectiveParticipation,
+    ProbabilisticDisposition, ProbabilisticDispositionApproximate,
+    ProbabilisticDispositionTruncated, ProbabilityRefusal, PromotionDecision, PromotionTerminal,
+    R3OfferInvalidity, RagAnswerOfferInvalidity, RandomnessProfile, RandomnessProfileExplicitSeed,
+    RandomnessProfileProviderChosen, RerankingProofClass, RerankingStrategy,
+    RerankingStrategyObservedScores, RetrievalMechanism, RetrievalMechanismCode, RollbackTerminal,
+    SelectedContextRationale, ShadowTerminal, SimilarityMetric, SourceExtractionOfferInvalidity,
+    SourceSpanUnit, StructuredResultInvalidity, TemporalContextRefusal, TemporalSource,
+    TemporalValidity, TemporalWindowRelation, TrainingLifecyclePhase,
+    TrainingLifecyclePhaseActiveStep, TransitionDirection, VectorSearchExecutionProofClass,
+    VectorSearchOfferInvalidity, VectorSearchProofClass,
 };
 
 mod bases;

@@ -182,6 +182,7 @@ are satisfied.
 | Normalized-quantity refusal vocabulary extracted from the catalog | `semantics/data/types.conduit` | generated at build time | yes | yes | exact native round trips plus normalized-quantity catalog and browser consumer suites |
 | Sequence-normalization and pattern-comparison refusal vocabularies extracted from the catalog | `semantics/time/types.conduit` | generated at build time | yes | yes | exact native round trips plus catalog and std/browser consumer suites |
 | LLM determinism, terminal-outcome, and implementation-control vocabularies | `semantics/ai/types.conduit` | generated at build time | yes | yes | exact native round trips plus AI semantic-contract suite |
+| Training objective participation and batch-order vocabularies | `semantics/ai/types.conduit` | generated at build time | yes | yes | exact native round trips plus training and lifecycle suites |
 | AI planning, interruption, candidate and training lifecycle vocabularies | `semantics/ai/types.conduit` | generated at build time | yes | yes | exact native round trips plus cross-host, composition and training lifecycle suites |
 | Reranking strategy and its bounded observed-score payload | `semantics/ai/types.conduit` | generated at build time | yes | yes | exact native payload round trip plus retrieval and context-selection suites |
 | Model operation and port-presence vocabularies | `semantics/ai/types.conduit` | generated at build time | yes | yes | exact native round trips plus AI model-signature suite |
