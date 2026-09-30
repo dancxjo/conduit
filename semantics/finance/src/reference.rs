@@ -107,7 +107,7 @@ fn rate_observation_value(
         vec![
             (
                 "instrument",
-                instrument_value(observation.base.clone(), observation.quote.clone())?,
+                instrument_value(observation.base, observation.quote)?,
             ),
             ("observed_at", instant_value(observation.observed_ticks)?),
             ("profile", text_value(observation.profile)),

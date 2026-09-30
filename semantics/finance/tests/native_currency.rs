@@ -19,7 +19,7 @@ fn native_currency_source_owns_catalog_identity_and_rust_round_trip() {
     ] {
         assert_eq!(currency.tag(), tag);
         assert_eq!(Currency::from_tag(tag).unwrap(), currency);
-        let encoded = currency.clone().encode().unwrap();
+        let encoded = currency.encode().unwrap();
         assert_eq!(FinanceCurrency::decode(&encoded).unwrap(), currency);
     }
 }
@@ -71,7 +71,7 @@ fn native_comparison_source_owns_catalog_identity_and_rust_round_trip() {
         FinanceMoneyComparison::greater(),
         FinanceMoneyComparison::less(),
     ] {
-        let encoded = comparison.clone().encode().unwrap();
+        let encoded = comparison.encode().unwrap();
         assert_eq!(
             FinanceMoneyComparison::decode(&encoded).unwrap(),
             comparison

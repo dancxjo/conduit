@@ -122,7 +122,7 @@ pub fn add_money(left: Money, right: Money) -> Result<Money, FinanceRefusal> {
     require_same_currency(left.currency(), right.currency())?;
     Ok(Money::new(
         left.amount().checked_add(right.amount())?,
-        left.currency().clone(),
+        *left.currency(),
     )?)
 }
 
@@ -140,15 +140,15 @@ pub fn convert_money(money: Money, rate: &RateObservation<'_>) -> Result<Money, 
     }
     Ok(Money::new(
         money.amount().checked_mul(&rate.rate)?,
-        rate.quote.clone(),
+        rate.quote,
     )?)
 }
 
 fn require_same_currency(left: &Currency, right: &Currency) -> Result<(), FinanceRefusal> {
     if left != right {
         return Err(FinanceRefusal::CurrencyMismatch {
-            left: left.clone(),
-            right: right.clone(),
+            left: *left,
+            right: *right,
         });
     }
     Ok(())

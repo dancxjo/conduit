@@ -131,6 +131,7 @@ fn emit_type(
             writeln!(out, "}}\n").expect("String writing is infallible");
         }
         StructuredInfoTypeShape::Variant { cases, .. } => {
+            let unit_only = cases.iter().all(|case| unit_type(case.payload_type()));
             for case in cases {
                 if unit_type(case.payload_type()) {
                     continue;
@@ -138,11 +139,13 @@ fn emit_type(
                 let payload = format!("{rust_name}{}", rust_pascal_identifier(case.tag())?);
                 emit_payload_struct(out, &payload, case.payload_type(), names)?;
             }
-            writeln!(
-                out,
-                "#[derive(Debug, Clone, PartialEq, Eq)]\npub enum {rust_name} {{"
-            )
-            .expect("String writing is infallible");
+            let derives = if unit_only {
+                "Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash"
+            } else {
+                "Debug, Clone, PartialEq, Eq"
+            };
+            writeln!(out, "#[derive({derives})]\npub enum {rust_name} {{")
+                .expect("String writing is infallible");
             for case in cases {
                 let variant = rust_pascal_identifier(case.tag())?;
                 if unit_type(case.payload_type()) {
