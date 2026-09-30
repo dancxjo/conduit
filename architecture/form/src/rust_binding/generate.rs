@@ -8,6 +8,10 @@ use core::fmt::Write;
 pub struct RustBindingOptions {
     /// A Rust-only spelling prefix. It never participates in semantic identity.
     pub type_prefix: String,
+    /// Adds representation-only Serde derives to payload-free variants.
+    /// This never participates in semantic identity and requires the consuming
+    /// crate to provide `serde` with derive support.
+    pub derive_serde_for_unit_variants: bool,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -70,7 +74,13 @@ pub fn generate_rust_bindings(
          use alloc::{string::String, vec, vec::Vec};\n\n",
     );
     for value_type in types {
-        emit_type(&mut source, value_type, &names, &semantic_type_bytes)?;
+        emit_type(
+            &mut source,
+            value_type,
+            &names,
+            &semantic_type_bytes,
+            options,
+        )?;
     }
     Ok(RustBindingModule {
         source,
@@ -83,6 +93,7 @@ fn emit_type(
     value_type: &CheckedNativeType,
     names: &BTreeMap<String, String>,
     bytes_by_identity: &BTreeMap<String, Vec<u8>>,
+    options: &RustBindingOptions,
 ) -> Result<(), RustBindingGenerationError> {
     let rust_name = &names[value_type.identity.as_str()];
     let constant = format!("{}_SEMANTIC_TYPE", rust_screaming_identifier(rust_name)?);
@@ -139,7 +150,9 @@ fn emit_type(
                 let payload = format!("{rust_name}{}", rust_pascal_identifier(case.tag())?);
                 emit_payload_struct(out, &payload, case.payload_type(), names)?;
             }
-            let derives = if unit_only {
+            let derives = if unit_only && options.derive_serde_for_unit_variants {
+                "Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, serde::Serialize, serde::Deserialize"
+            } else if unit_only {
                 "Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash"
             } else {
                 "Debug, Clone, PartialEq, Eq"

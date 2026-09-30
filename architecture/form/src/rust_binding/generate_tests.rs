@@ -45,10 +45,23 @@ fn generation_is_deterministic_and_keeps_rust_spelling_out_of_identity() {
         &types,
         &RustBindingOptions {
             type_prefix: "Fixture".into(),
+            ..RustBindingOptions::default()
+        },
+    )
+    .unwrap();
+    let serde_unit_variants = generate_rust_bindings(
+        &types,
+        &RustBindingOptions {
+            derive_serde_for_unit_variants: true,
+            ..RustBindingOptions::default()
         },
     )
     .unwrap();
     assert_eq!(plain.semantic_type_bytes, prefixed.semantic_type_bytes);
+    assert_eq!(
+        plain.semantic_type_bytes,
+        serde_unit_variants.semantic_type_bytes
+    );
     assert!(plain.source.contains("pub struct Note(u8);"));
     assert!(plain.source.contains("pub struct Position {"));
     assert!(plain.source.contains("pub struct Observation {"));
@@ -60,6 +73,12 @@ fn generation_is_deterministic_and_keeps_rust_spelling_out_of_identity() {
         "#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]\npub enum Direction"
     ));
     assert!(prefixed.source.contains("pub struct FixtureNote(u8);"));
+    assert!(serde_unit_variants
+        .source
+        .contains("Hash, serde::Serialize, serde::Deserialize)]\npub enum Direction"));
+    assert!(!serde_unit_variants
+        .source
+        .contains("serde::Serialize)]\npub struct Position"));
 }
 
 #[test]
@@ -75,6 +94,7 @@ fn colliding_or_invalid_rust_spellings_refuse_instead_of_rebinding() {
             &checked_types(),
             &RustBindingOptions {
                 type_prefix: "9".into(),
+                ..RustBindingOptions::default()
             },
         ),
         Err(RustBindingGenerationError::InvalidRustIdentifier(
