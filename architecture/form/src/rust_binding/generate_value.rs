@@ -2,8 +2,8 @@ use crate::prelude::*;
 use crate::{CheckedNativeType, NativeTypeValueContract};
 use alloc::collections::BTreeMap;
 use conduit_core::{
-    CheckedTextPattern, CheckedValueContract, StructuredInfoType, StructuredInfoTypeShape,
-    TextPatternState, TextPatternTransition, ValueConstraint,
+    CheckedTextPattern, CheckedValueContract, PrimitiveInfoKind, StructuredInfoType,
+    StructuredInfoTypeShape, TextPatternState, TextPatternTransition, ValueConstraint,
 };
 use core::fmt::Write;
 
@@ -213,14 +213,21 @@ fn emit_variant_constructors(
                 .expect("String writing is infallible");
         } else {
             let payload = format!("{rust_name}{variant}");
+            let StructuredInfoTypeShape::Record { fields, .. } = case.payload_type().shape() else {
+                return Err(RustBindingGenerationError::InvalidSemanticType);
+            };
             let contract_prefix = format!("|{}.", case.tag());
             let is_unconstrained = contracts.iter().all(|contract| {
                 !contract.representation_path.is_empty()
                     && !contract.representation_path.starts_with(&contract_prefix)
+            }) && fields.iter().all(|field| {
+                matches!(
+                    field.value_type().shape(),
+                    StructuredInfoTypeShape::Leaf(kind)
+                        if conduit_core::primitive_info_kind(kind.as_str())
+                            == Some(PrimitiveInfoKind::Bool)
+                )
             });
-            let StructuredInfoTypeShape::Record { fields, .. } = case.payload_type().shape() else {
-                return Err(RustBindingGenerationError::InvalidSemanticType);
-            };
             write!(out, "    pub fn {function}(").expect("String writing is infallible");
             for (index, field) in fields.iter().enumerate() {
                 if index > 0 {

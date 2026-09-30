@@ -34,6 +34,12 @@ type Input =
         enabled: Boolean
     }
     | absent
+
+type Timing =
+    estimated {
+        uncertainty: Duration
+    }
+    | exact
 "#;
     crate::check_syntax_document(
         &crate::parse_syntax_document(source),
@@ -132,6 +138,9 @@ fn generation_is_deterministic_and_keeps_rust_spelling_out_of_identity() {
     ));
     assert!(plain.source.contains(
         "pub fn note(pitches: BoundedSequence<Note, 16>, velocity: u8) -> Result<Self, NativeBindingRefusal> { let candidate = Self::Note"
+    ));
+    assert!(plain.source.contains(
+        "pub fn estimated(uncertainty: conduit_core::Quantity) -> Result<Self, NativeBindingRefusal> { let candidate = Self::Estimated"
     ));
     assert!(plain.source.contains(
         "#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]\npub enum Direction"
