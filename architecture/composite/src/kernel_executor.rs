@@ -338,12 +338,24 @@ impl KernelCompositeHost {
             .map(|(_, obligation)| usize::from(obligation.requirement.maximum_in_flight))
             .sum();
         let child_count = children.len();
+        let active_plays = definition
+            .internal_plan
+            .fragments
+            .iter()
+            .map(|fragment| {
+                (
+                    fragment.host_id.clone(),
+                    bind_active_play(&fragment.plan_id, &fragment.host_id, &fragment.boot_id, 0)
+                        .active_play_id,
+                )
+            })
+            .collect();
         Ok(Self {
             definition,
             children,
             fronts,
             links,
-            active_plays: BTreeMap::new(),
+            active_plays,
             started: false,
             cancelled: false,
             host_call_obligations,
@@ -368,19 +380,6 @@ impl KernelCompositeHost {
         if self.started || self.cancelled {
             return Err(KernelCompositeError::InvalidLifecycle);
         }
-        self.active_plays = self
-            .definition
-            .internal_plan
-            .fragments
-            .iter()
-            .map(|fragment| {
-                (
-                    fragment.host_id.clone(),
-                    bind_active_play(&fragment.plan_id, &fragment.host_id, &fragment.boot_id, 0)
-                        .active_play_id,
-                )
-            })
-            .collect();
         self.started = true;
         Ok(&self.active_plays)
     }
@@ -396,22 +395,32 @@ impl KernelCompositeHost {
         value: &ValuePayload,
     ) -> Result<RemoteIngressOutcome, KernelCompositeError> {
         self.require_started()?;
-        let route = self.front(port_id, PortDirection::Input)?.clone();
+        let route = self
+            .fronts
+            .get(port_id)
+            .filter(|route| route.direction == PortDirection::Input)
+            .ok_or(KernelCompositeError::UnknownFront)?;
+        let child = &route.child;
         self.children
-            .get_mut(&route.child)
-            .ok_or_else(|| KernelCompositeError::StaleChild(route.child.clone()))?
+            .get_mut(child)
+            .ok_or_else(|| KernelCompositeError::StaleChild(child.clone()))?
             .admit_boundary(port_id, sequence, value)
             .map_err(|_| KernelCompositeError::MalformedBoundary(port_id.clone()))
     }
 
     pub fn close_input(&mut self, port_id: &PortId) -> Result<(), KernelCompositeError> {
         self.require_started()?;
-        let route = self.front(port_id, PortDirection::Input)?.clone();
+        let route = self
+            .fronts
+            .get(port_id)
+            .filter(|route| route.direction == PortDirection::Input)
+            .ok_or(KernelCompositeError::UnknownFront)?;
+        let child = &route.child;
         self.children
-            .get_mut(&route.child)
-            .ok_or_else(|| KernelCompositeError::StaleChild(route.child.clone()))?
+            .get_mut(child)
+            .ok_or_else(|| KernelCompositeError::StaleChild(child.clone()))?
             .close_boundary(port_id)
-            .map_err(|reason| execution(&route.child, reason))
+            .map_err(|reason| execution(child, reason))
     }
 
     pub fn close_input_abnormal(
@@ -420,12 +429,17 @@ impl KernelCompositeHost {
         terminal: &ValuePayload,
     ) -> Result<(), KernelCompositeError> {
         self.require_started()?;
-        let route = self.front(port_id, PortDirection::Input)?.clone();
+        let route = self
+            .fronts
+            .get(port_id)
+            .filter(|route| route.direction == PortDirection::Input)
+            .ok_or(KernelCompositeError::UnknownFront)?;
+        let child = &route.child;
         self.children
-            .get_mut(&route.child)
-            .ok_or_else(|| KernelCompositeError::StaleChild(route.child.clone()))?
+            .get_mut(child)
+            .ok_or_else(|| KernelCompositeError::StaleChild(child.clone()))?
             .close_boundary_abnormal(port_id, terminal)
-            .map_err(|reason| execution(&route.child, reason))
+            .map_err(|reason| execution(child, reason))
     }
 
     pub fn output(

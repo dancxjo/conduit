@@ -20,7 +20,55 @@ use conduit_kernel::scheduler::{StepBack, StepInputBytes, StepIo, StepOutcome};
 use conduit_kernel::{HostedValueStore, PortId as KernelPortId};
 use conduit_plan_lowering::lowering::FIXED_KERNEL_STORAGE_PORTS_PER_NODE;
 use conduit_planner::{plan_with_line_offers, PlacementChoice, PlacementChoices};
+use std::alloc::{GlobalAlloc, Layout, System};
+use std::cell::Cell;
 use std::collections::BTreeMap;
+
+struct CountingAllocator;
+thread_local! {
+    static COUNT_ALLOCATIONS: Cell<bool> = const { Cell::new(false) };
+    static ALLOCATION_COUNT: Cell<usize> = const { Cell::new(0) };
+}
+
+unsafe impl GlobalAlloc for CountingAllocator {
+    unsafe fn alloc(&self, layout: Layout) -> *mut u8 {
+        COUNT_ALLOCATIONS.with(|armed| {
+            if armed.get() {
+                ALLOCATION_COUNT.with(|count| count.set(count.get() + 1));
+            }
+        });
+        unsafe { System.alloc(layout) }
+    }
+    unsafe fn dealloc(&self, ptr: *mut u8, layout: Layout) {
+        unsafe { System.dealloc(ptr, layout) }
+    }
+    unsafe fn realloc(&self, ptr: *mut u8, layout: Layout, size: usize) -> *mut u8 {
+        COUNT_ALLOCATIONS.with(|armed| {
+            if armed.get() {
+                ALLOCATION_COUNT.with(|count| count.set(count.get() + 1));
+            }
+        });
+        unsafe { System.realloc(ptr, layout, size) }
+    }
+}
+
+#[global_allocator]
+static TEST_ALLOCATOR: CountingAllocator = CountingAllocator;
+
+fn allocations_during(run: impl FnOnce()) -> usize {
+    struct Disarm;
+    impl Drop for Disarm {
+        fn drop(&mut self) {
+            COUNT_ALLOCATIONS.with(|armed| armed.set(false));
+        }
+    }
+    ALLOCATION_COUNT.with(|count| count.set(0));
+    COUNT_ALLOCATIONS.with(|armed| armed.set(true));
+    let disarm = Disarm;
+    run();
+    drop(disarm);
+    ALLOCATION_COUNT.with(Cell::get)
+}
 
 const ECHO_KIND: &str = "test/kernel-composite-echo";
 const VALUE_KIND: &str = "value/bytes";
@@ -812,6 +860,62 @@ fn pressure_is_finite_and_retry_keeps_the_exact_sequence() {
         host.admit_input(&conduit_core::port_id("input"), 2, &value(b"blocked")),
         Ok(conduit_kernel::scheduler::RemoteIngressOutcome::Accepted { sequence: 2 })
     ));
+}
+
+#[test]
+fn direct_composite_successful_play_allocates_nothing_after_preparation() {
+    let mut host = KernelCompositeHost::prepare(definition(), &registry()).unwrap();
+    let input_port = conduit_core::port_id("input");
+    let output_port = conduit_core::port_id("output");
+    let input = value(b"exact");
+    let mut output = value(b"12345678");
+    output.encoded.clear();
+
+    let allocations = allocations_during(|| {
+        host.start().unwrap();
+        assert!(matches!(
+            host.admit_input(&input_port, 0, &input).unwrap(),
+            conduit_kernel::scheduler::RemoteIngressOutcome::Accepted { sequence: 0 }
+        ));
+        let sequence = loop {
+            host.step().unwrap();
+            if let Some(sequence) = host.output_into(&output_port, &mut output).unwrap() {
+                break sequence;
+            }
+        };
+        host.complete_output(&output_port, sequence).unwrap();
+    });
+    assert_eq!(allocations, 0, "play allocated {allocations} times");
+    assert_eq!(output.encoded, b"exact");
+}
+
+#[test]
+fn direct_composite_pressure_and_retry_allocate_nothing_during_play() {
+    let mut host = KernelCompositeHost::prepare(definition(), &registry()).unwrap();
+    let input_port = conduit_core::port_id("input");
+    let first = value(b"12345678");
+    let second = value(b"abcdefgh");
+    let blocked = value(b"blocked");
+    host.start().unwrap();
+
+    let allocations = allocations_during(|| {
+        assert!(matches!(
+            host.admit_input(&input_port, 0, &first).unwrap(),
+            conduit_kernel::scheduler::RemoteIngressOutcome::Accepted { sequence: 0 }
+        ));
+        assert!(matches!(
+            host.admit_input(&input_port, 1, &second).unwrap(),
+            conduit_kernel::scheduler::RemoteIngressOutcome::Accepted { sequence: 1 }
+        ));
+        assert!(matches!(
+            host.admit_input(&input_port, 2, &blocked).unwrap(),
+            conduit_kernel::scheduler::RemoteIngressOutcome::Full { sequence: 2 }
+        ));
+    });
+    assert_eq!(
+        allocations, 0,
+        "pressure path allocated {allocations} times"
+    );
 }
 
 #[test]
