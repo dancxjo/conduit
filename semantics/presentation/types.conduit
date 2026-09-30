@@ -44,6 +44,20 @@ type GraphicsTextRole =
 
 representation presentation/graphics-text-role = GraphicsTextRole as u8 from 1
 
+type CompositionItemKind =
+    icon
+    | frame
+    | badge
+
+representation presentation/composition-item-kind = CompositionItemKind as u8 from 1
+
+type CompositionRole =
+    image
+    | group
+    | status
+
+representation presentation/composition-role = CompositionRole as u8 from 1
+
 type PresentationMechanismKind =
     shell
     | workbench
