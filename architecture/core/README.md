@@ -31,6 +31,7 @@ depends on semantic, application, target, or proof packages.
 | `port.rs` | universal architecture | Typed port direction and temporal shape. |
 | `preparation.rs` | universal architecture | Finite cross-host admission before one exact plan starts. |
 | `resource_content.rs`, `resource_canonical.rs`, `resource.rs`, `resource_port.rs` | universal architecture | Generic resource requirements, offers, observations, bindings, compute topology, and the checked distinction between serializable info ports and unforgeable resource-authority ports. |
+| `resource_cord.rs` | universal architecture | Exact local Plan Cord transfer of opaque move-only resource possession, including sink acceptance, finite operation use, and lifecycle-bound revocation. |
 | `resource_admission.rs` | universal architecture | Atomic admission of finite current host resources before play. |
 | `route.rs` | universal architecture | Exact planned/admitted line, base, endpoint, authority, and route truth. |
 | `shared_pool.rs` | universal architecture | Generic finite shared-pool identity, admission, and placement records. |
