@@ -397,6 +397,7 @@ pub enum ActivationSyntax {
         initial: Box<Expression>,
         maximum_items: u16,
     },
+    Scan { initial: Box<Expression>, maximum_items: u16 },
 }
 
 impl ActivationSyntax {
@@ -404,7 +405,8 @@ impl ActivationSyntax {
         match self {
             Self::Each { maximum_items }
             | Self::Select { maximum_items }
-            | Self::Fold { maximum_items, .. } => *maximum_items,
+            | Self::Fold { maximum_items, .. }
+            | Self::Scan { maximum_items, .. } => *maximum_items,
         }
     }
 }
