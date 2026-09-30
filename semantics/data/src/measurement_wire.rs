@@ -4,9 +4,9 @@ use alloc::{string::String, vec::Vec};
 use conduit_core::{Quantity, TemporalInstant, TemporalScale};
 
 use crate::{
-    BoundedMeasurementWindow, FullWindowPolicy, MeasurementPlotPoint, MeasurementPlotSeries,
-    MeasurementRange, MeasurementSample, MeasurementSummary, MeasurementWindowProfile,
-    MAXIMUM_MEASUREMENT_PLOT_POINTS, MAXIMUM_MEASUREMENT_WINDOW_SAMPLES,
+    BoundedMeasurementWindow, FullWindowPolicyRepresentation, MeasurementPlotPoint,
+    MeasurementPlotSeries, MeasurementRange, MeasurementSample, MeasurementSummary,
+    MeasurementWindowProfile, MAXIMUM_MEASUREMENT_PLOT_POINTS, MAXIMUM_MEASUREMENT_WINDOW_SAMPLES,
 };
 
 pub const MAXIMUM_MEASUREMENT_WINDOW_BYTES: usize = 32_768;
@@ -30,10 +30,7 @@ pub fn encode_measurement_window(
     bytes.push(
         u8::try_from(profile.capacity).map_err(|_| MeasurementWireRefusal::CapacityExceeded)?,
     );
-    bytes.push(match profile.full_policy {
-        FullWindowPolicy::Reject => 0,
-        FullWindowPolicy::DropOldest => 1,
-    });
+    bytes.extend_from_slice(&FullWindowPolicyRepresentation::encode(profile.full_policy));
     bytes.extend_from_slice(&profile.range.minimum.encode());
     bytes.extend_from_slice(&profile.range.maximum.encode());
     put_text(&mut bytes, &profile.clock_basis)?;
@@ -73,11 +70,8 @@ pub fn decode_measurement_window(
     if capacity == 0 || capacity > MAXIMUM_MEASUREMENT_WINDOW_SAMPLES {
         return Err(MeasurementWireRefusal::CapacityExceeded);
     }
-    let full_policy = match input.u8()? {
-        0 => FullWindowPolicy::Reject,
-        1 => FullWindowPolicy::DropOldest,
-        _ => return Err(MeasurementWireRefusal::Malformed),
-    };
+    let full_policy = FullWindowPolicyRepresentation::decode(&[input.u8()?])
+        .map_err(|_| MeasurementWireRefusal::Malformed)?;
     let minimum = input.quantity()?;
     let maximum = input.quantity()?;
     let clock_basis = input.text()?;
@@ -356,6 +350,7 @@ impl<'a> Input<'a> {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::FullWindowPolicy;
 
     fn sample(value: i64, ticks: u64) -> MeasurementSample {
         MeasurementSample {
