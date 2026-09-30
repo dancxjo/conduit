@@ -6,6 +6,23 @@ type KeyTransition =
 
 representation human/key-transition = KeyTransition as u8
 
+type ChordPhase =
+    triggered
+
+representation human/chord-phase = ChordPhase as u8 from 2
+
+type CoreChordId =
+    cancel_or_escape
+    | clear_or_refresh
+    | repeat_or_replan
+    | palette
+    | inspect
+    | plan
+    | command
+    | activate
+
+representation human/core-chord-id = CoreChordId as u8 from 1
+
 type ExperienceDomain =
     visual
     | auditory

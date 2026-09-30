@@ -2,30 +2,14 @@
 
 use conduit_core::{semantic_digest, InfoDecodeError};
 
-use crate::{KeyEvent, KeyModifiers, KeyTransition};
+use crate::{
+    ChordPhase, ChordPhaseRepresentation, CoreChordId, CoreChordIdRepresentation, KeyEvent,
+    KeyModifiers, KeyTransition,
+};
 
 pub const CHORD_INFO_ID: &str = "input/chord@1";
 pub const CHORD_ENCODED_LEN: usize = 4;
 pub const CORE_CHORD_MAP: &str = "conduit-core";
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
-#[repr(u8)]
-pub enum ChordPhase {
-    Triggered = 2,
-}
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
-#[repr(u8)]
-pub enum CoreChordId {
-    CancelOrEscape = 1,
-    ClearOrRefresh = 2,
-    RepeatOrReplan = 3,
-    Palette = 4,
-    Inspect = 5,
-    Plan = 6,
-    Command = 7,
-    Activate = 8,
-}
 
 impl CoreChordId {
     pub const fn canonical_name(self) -> &'static str {
@@ -39,20 +23,6 @@ impl CoreChordId {
             Self::Command => "chord/command",
             Self::Activate => "chord/activate",
         }
-    }
-
-    const fn decode(value: u8) -> Option<Self> {
-        Some(match value {
-            1 => Self::CancelOrEscape,
-            2 => Self::ClearOrRefresh,
-            3 => Self::RepeatOrReplan,
-            4 => Self::Palette,
-            5 => Self::Inspect,
-            6 => Self::Plan,
-            7 => Self::Command,
-            8 => Self::Activate,
-            _ => return None,
-        })
     }
 }
 
@@ -98,8 +68,8 @@ impl ChordInfo {
         [
             self.modifiers.bits(),
             self.usage,
-            self.phase as u8,
-            self.chord_id as u8,
+            ChordPhaseRepresentation::encode(self.phase)[0],
+            CoreChordIdRepresentation::encode(self.chord_id)[0],
         ]
     }
 
@@ -114,20 +84,18 @@ impl ChordInfo {
                 actual: encoded.len(),
             });
         }
-        if encoded[2] != ChordPhase::Triggered as u8 {
-            return Err(InfoDecodeError::NonCanonicalEnum(encoded[2]));
-        }
+        let phase = ChordPhaseRepresentation::decode(&encoded[2..3])
+            .map_err(|_| InfoDecodeError::NonCanonicalEnum(encoded[2]))?;
         let modifiers = KeyModifiers::from_bits(encoded[0]);
-        let Some(chord_id) = CoreChordId::decode(encoded[3]) else {
-            return Err(InfoDecodeError::NonCanonicalEnum(encoded[3]));
-        };
+        let chord_id = CoreChordIdRepresentation::decode(&encoded[3..4])
+            .map_err(|_| InfoDecodeError::NonCanonicalEnum(encoded[3]))?;
         if core_chord_id(modifiers, encoded[1]) != Some(chord_id) {
             return Err(InfoDecodeError::InconsistentValue("canonical-chord-id"));
         }
         Ok(Self {
             modifiers,
             usage: encoded[1],
-            phase: ChordPhase::Triggered,
+            phase,
             chord_id,
         })
     }
