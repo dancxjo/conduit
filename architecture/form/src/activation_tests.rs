@@ -82,16 +82,16 @@ form main {
 
 const SCAN_SOURCE: &str = "
 form integer/add (
- >> accumulator: U64
- >> item: U64
- combined: U64 >>
+ >> accumulator: U64 <= 28B
+ >> item: U64 <= 28B
+ combined: U64 <= 28B >>
 ) {
 }
 
 form flow/scan-integers (
  initial: U64
- >> items: U64...|
- accumulators: U64...| >>
+ >> items: U64...| <= 28B
+ accumulators: U64...| <= 28B >>
 ) {
  scanner: scan(initial, maximum-items = 4) integer/add()
  items >> scanner.item
@@ -374,8 +374,8 @@ fn scan_retains_exact_initial_and_two_input_combine_truth() {
 #[test]
 fn scan_refuses_a_unary_combine_form_instead_of_faking_unary_activation() {
     let source = SCAN_SOURCE.replace(
-        ">> accumulator: U64\n >> item: U64\n combined: U64 >>",
-        ">> item: U64\n combined: U64 >>",
+        ">> accumulator: U64 <= 28B\n >> item: U64 <= 28B\n combined: U64 <= 28B >>",
+        ">> item: U64 <= 28B\n combined: U64 <= 28B >>",
     );
     let error =
         check_syntax_document(&parse_syntax_document(&source), &StartupCatalog::new()).unwrap_err();
