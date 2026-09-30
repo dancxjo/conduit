@@ -11,6 +11,7 @@ mod delay;
 mod deterministic_garden_source;
 mod factory;
 mod final_normalized_pattern;
+mod flow_collect;
 pub(crate) mod garden_step;
 pub(crate) mod historical;
 mod input;
