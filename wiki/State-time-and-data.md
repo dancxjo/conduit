@@ -1,6 +1,14 @@
-# State, time and data
-
 Conduitese treats temporal shape as meaning, not container trivia.
+
+## Time is part of meaning
+
+Many programming models treat time as something that happens *to* values after the type system has finished its work.
+
+Conduit treats temporal shape as semantic information.
+
+“One value,” “a stream of values,” “the current retained value,” “an immutable saved generation,” and “a value that may arrive later” are not merely different containers around the same `T`; they make different promises about causality, pressure, lifetime, completion, and replay.
+
+That is why the language gives these distinctions visible syntax instead of hiding them behind mutable variables and callbacks.
 
 ## Four common temporal shapes
 
@@ -80,12 +88,12 @@ G still names immutable C
 
 That is why the Durable Notebook vertical refuses "autosave fiction." See [#4116](https://github.com/dancxjo/conduit/issues/4116).
 
-## Live versus finite forms
+## Live versus finite plots
 
-A live form:
+A live plot:
 
 ```conduit
-form clock-demo {
+plot clock-demo {
     clock: time/every(1s)
     clock >> presentation/tick
 }
@@ -93,10 +101,10 @@ form clock-demo {
 
 can quiesce and resume.
 
-A finite-on-drain form:
+A finite-on-drain plot:
 
 ```conduit
-form upper (
+plot upper (
     >> input: Text
     output: Text >>
 ) {
@@ -108,12 +116,26 @@ turns structural drain into semantic completion.
 
 The full stop does not mean "kill the scheduler now."
 
+## Quiescence is not completion
+
+A live play may have no admitted work capable of progress and still remain alive.
+
+That state is **quiescence**.
+
+```text
+active → quiescent → active
+```
+
+Later admitted work can wake the same play again. Semantic completion is stronger: it means the authored plot has supplied a completion witness, such as structural drain on a plot explicitly marked finite-on-drain.
+
+The distinction prevents an idle reactive system from being mistaken for a finished one.
+
 ## Source activation is ordinary semantic work
 
 External conditions can activate source gears:
 
 ```conduit
-form scheduled-reminder {
+plot scheduled-reminder {
     source: notification/deterministic-reminder
     deliver: notification/deliver-reminder
 
