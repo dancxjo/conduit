@@ -1,0 +1,8 @@
+[package]
+name = "conduit-body-invitation-form"
+version = "0.1.0"
+edition = "2024"
+publish = false
+
+[dependencies]
+conduit-presentation = { path = "../presentation", default-features = false }

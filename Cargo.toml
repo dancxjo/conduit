@@ -56,7 +56,7 @@ members = [
 	"semantics/home",
 	"semantics/form-library",
 	"semantics/tutorial",
-	"products/workspace/model",
+	"semantics/body-invitation",
 	"forms/tour",
 	"targets/std/patchbay-workbench",
 	"products/patchbay/html",
@@ -87,6 +87,7 @@ members = [
 
 	# Explicit proof and conformance packages.
 	"proof/conformance/alife-distributed",
+	"proof/conformance/body-lifecycle",
 	"proof/conformance/network-r1",
 	"proof/conformance/pete-workload",
 	"proof/conformance/signal",

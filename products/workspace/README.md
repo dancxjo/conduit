@@ -59,10 +59,12 @@ Crèche respects the same live owner and returns an arrived body to its forms.
 
 ## Lifecycle and ownership
 
-The portable `conduit-workspace-model` holds the ordinary body biography and its
-exact current proposal, admitted play, and foreground form identity. It does not
-execute work. Browser realization uses the existing planner, resource admission,
-single kernel slot, and admitted Host Call dispatcher.
+The shared Body architecture holds the ordinary biography and its exact current
+proposal, admitted play, and foreground Form identity. Resident Forms own the
+Tutorial, reviewed library, and invitation presentation meaning. The Workspace
+browser host realizes those contracts through the existing planner, resource
+admission, single kernel slot, and admitted Host Call dispatcher; it does not own
+a parallel product model.
 
 The host saves the accepted startup lifecycle before dispatching any platform
 effects. A failed save cancels the actual play, preserves its terminal receipt,
