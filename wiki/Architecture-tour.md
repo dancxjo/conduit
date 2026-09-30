@@ -1,32 +1,15 @@
-# Architecture tour
-
 Conduit has one recurring move:
 
-> **separate semantic meaning from concrete realization, then join them explicitly in a plan.**
+> **Separate semantic meaning from concrete realization, then join them explicitly in a plan.**
 
-## From source to execution
+Nearly every important noun exists to protect one side of that boundary.
 
-```mermaid
-flowchart LR
-    source[".conduit source"] --> checked["checked meaning"]
-    checked --> expanded["expanded form"]
-    expanded --> planner["planner"]
-    host["current host / boot / offers / resources / lines"] --> planner
-    planner --> plan["immutable plan"]
-    plan --> play["play"]
-    play --> signs["signs / evidence"]
-```
+## Begin with the authored happening
 
-A source file is not a plan. A plan is not execution. Evidence is not authority.
-
-Those separations are intentional.
-
-## Semantic graph
-
-A form contains gears.
+The user authors a **plot**: a portable description of the intended course of semantic work.
 
 ```conduit
-form hello {
+plot hello {
     upper: text/upper
     show: presentation/text
 
@@ -34,153 +17,250 @@ form hello {
 }.
 ```
 
-The graph can be summarized as:
+A plot is not a deployment recipe. It does not have to say which process, operating system, transport, device, library, or machine performs each piece of work.
+
+It says what work is required and how that work relates.
+
+During the current terminology migration, repository source may still spell this declaration `form`; [[Current language surface|Current-language-surface]] records exact implemented syntax.
+
+## Read the semantic graph
+
+Inside the plot, each named **gear** is one occurrence of a semantic **kind**.
 
 ```text
-literal -> text/upper -> presentation/text
+literal → text/upper → presentation/text
 ```
 
-Each gear invokes a **kind** through a checked **fore**. Each fore has typed directional **ports**. **Cords** connect compatible ports and carry **info**.
+A kind says what reusable work means. Its **fore** is its checked outward boundary. Typed **ports** appear on that boundary. **Cords** connect compatible ports.
 
-## Realization
+At this altitude, the graph says nothing about where the gears will run.
 
-A host offers **backs**, concrete realizations of semantic kinds.
+That is deliberate: “uppercase text” should not become “call this Rust function on Linux” merely because the first implementation happened to be written that way.
 
-For the same `presentation/text` meaning, one host might offer a native graphical back, another a browser back, another a spoken path, and a headless host none at all.
+## Realization lives behind the fore
 
-The planner considers only semantically eligible backs and then checks current facts such as:
+A **back** is one concrete realization of a kind.
+
+A host might offer several backs for the same semantic kind:
+
+```text
+presentation/text
+  ↳ native graphical back
+  ↳ browser back
+  ↳ speech back
+  ↳ deterministic linear-text back
+```
+
+These backs are not interchangeable because machines are magically equivalent. They are candidates because each one truthfully claims compatibility with the same semantic obligation and exact fore contract.
+
+The planner may then consider:
 
 - host and boot identity;
-- bases and initialized machinery;
-- finite resources;
+- available backs and implementations;
+- resources and bases;
 - explicit authority;
 - line availability;
-- queue and memory limits;
-- policy;
-- required evidence and execution limits.
+- queue and memory envelopes;
+- policy and preferences;
+- required signs/evidence;
+- execution limits.
 
-It produces an exact immutable **plan**.
+## Planning is the meeting point
 
-## Execution
+The plot supplies enduring intent; the world supplies current facts.
+
+```text
+plot
+  +
+body / hosts / boots / backs / resources / authority / lines
+  ↓
+planner
+  ↓
+immutable plan
+```
+
+The **plan** is not a fuzzy strategy. It is the exact admitted realization selected for this moment.
+
+A plan may say, in effect:
+
+```text
+gear A → Host 1 / Boot 7 / Back X
+gear B → Host 2 / Boot 3 / Back Y
+cord A→B → Line L
+queues → these exact bounds
+effects → this exact authority
+```
+
+Once sealed, the plan becomes history. A later change produces explicit fallback already admitted by that plan or a replacement plan; the old plan is not silently edited.
+
+## Play is execution, not selection
 
 A **play** is one active execution of one exact plan.
 
-Execution advances in bounded **steps**. A step may consume input, emit output, wait, complete, terminate abnormally, or make a bounded **host call**.
+```text
+plot ≠ plan ≠ play
+```
 
-The host call boundary is where admitted realization machinery does concrete work such as waiting on a timer, touching a device, presenting output, or sending bytes.
+A plan can exist without being played. The same plan may be played more than once. A replacement plan may realize the same plot after the world changes.
 
-The host adapter does not become a second scheduler.
+Execution advances through bounded **steps**. A step may move info, invoke a back, make a bounded host call, observe pressure, quiesce, complete, or terminate abnormally according to the checked meaning and sealed realization.
 
-## Body continuity
+## Quiescence is a pause, not a conclusion
+
+Reactive software often reaches moments when no admitted work can presently progress.
+
+Conduit names that **quiescence** rather than pretending the computation has ended.
+
+```text
+active → quiescent → active
+```
+
+A live play may later continue when new admitted work arrives. Semantic completion is different: the plot must explicitly establish that the relevant drain is sufficient evidence that the authored work is finished.
+
+This is one reason Conduit can model always-on/reactive systems without turning “the event loop is currently idle” into “the program terminated.”
+
+## Cords are not lines
+
+A **cord** is semantic composition. A **line** is concrete carriage.
+
+Suppose one plot contains:
+
+```text
+sensor → classify → display
+```
+
+Planning may put all three gears on one host, or place the sensor and classifier on different hosts:
+
+```text
+plot:
+  sensor >> classify >> display
+
+plan:
+  sensor   on Host A
+  classify on Host B
+  display  on Host B
+
+realization:
+  sensor→classify cord uses Line L
+```
+
+If Line L disappears, the cord did not become semantically different. The realization became invalid. Planning is the place to reconcile that new truth.
+
+## A body is the thing that continues
 
 A **body** is the durable logical computer.
 
+Hosts come and go; hosts reboot; lines appear and vanish; plans are replaced; plays begin and end. The body can remain the same continuant across those changes.
+
 ```text
 body
-  has durable parts
-  may wake and lull
-  may gain or lose current hosts
-  may receive a replacement plan
-  may execute many plays over its life
+  ├─ durable parts
+  ├─ current hosts
+  │    └─ current boots
+  ├─ resident plots
+  ├─ current plan
+  └─ active play
 ```
 
-A host is not a body. A boot is not a host identity. A network peer is not automatically a part. Availability is not authority.
+A **wake** is a period of active availability. A **lull** preserves the body's continuity while active play ceases.
 
-This is what lets "the same computer" continue even as machinery changes.
+This distinction lets the architecture answer “what stayed the same?” without using process lifetime as a proxy for identity.
 
-## Cord versus line
+## Information has meaning and form
 
-A **cord** belongs to semantic composition.
+Work is not the only place Conduit separates semantics from realization.
 
-A **line** is one finite connectivity realization that may carry a cord between hosts.
+A **type** says what a value means. A **form** says one concrete portable representation of values of that type.
 
 ```text
-form:   source >> transform >> sink
-
-plan:
-  source on Host A
-  transform on Host B
-  sink on Host B
-
-realization:
-  the source->transform cord needs an admitted Line
+type = meaning
+form = carried/stored shape
 ```
 
-If the line vanishes, Conduit does not silently invent a new network path. A pre-admitted fallback may be used when the plan already contains it; otherwise replacement planning is required.
+A semantic variant may be encoded as a byte in one form and differently in another. The byte assignment is a compatibility fact, not the meaning of the variant itself.
 
-## Face, Mask, Show
+This keeps wire/storage/ABI details available for exact checking without making them semantic identity.
 
-Human encounter has its own clean waist:
+## Time has several different promises
+
+Conduit refuses to collapse every temporal relationship into “mutable state.”
+
+- **info** is a value flowing now;
+- a **keep** is current truth retained for an exact duration;
+- **data** is an independently addressable immutable generation;
+- **save** publishes one generation;
+- **load** recovers typed info.
+
+These distinctions preserve causality and durability promises that ordinary variable/storage terminology often smears together.
+
+## Human meaning has its own realization boundary
+
+The human-facing path has the same shape:
 
 ```text
-body truth
-   -> face
-   -> mask
-   -> show
+authoritative body truth
+        ↓
+      face
+        ↓
+      mask
+        ↓
+      show
 ```
 
-- **face**: the semantic encounter, what a human is meant to understand or do;
-- **mask**: an ordinary form realizing that face for a medium/user agent;
-- **show**: one finite realized occurrence.
+The **face** contains the humanly relevant meaning and agency. A **mask** realizes that face for a user agent or medium. A **show** is one concrete manifestation.
 
-A screen, speech stream, terminal transcript, or browser DOM can be a show. None of them becomes the authoritative application truth merely because a person sees it.
+A browser DOM, a spoken interaction, a native surface, and a terminal transcript can therefore be different shows of the same face without any one rendering becoming the application truth.
 
-See [[Face, Mask and Show|Face-Mask-and-Show]].
+## Signs make adaptation explainable
 
-## Signs and evidence
+A **sign** is bounded evidence that something was selected, attempted, observed, completed, refused, lost, or replaced.
 
-A **sign** records bounded evidence about what was selected, prepared, attempted, completed, refused, lost, or replaced.
-
-Signs answer questions such as:
+Good signs let the system answer causal questions:
 
 - which plan selected this back?
 - which host and boot supplied it?
-- which line carried a remote cord?
-- what observation invalidated an old realization?
-- did recovery stay inside the same plan or require a new one?
+- which line carried this cord?
+- what observation invalidated the realization?
+- was fallback already admitted?
+- did planning create a replacement plan?
+- was work replayed, moved, continued, or refused?
 
-A sign does not grant permission. Evidence and authority remain separate.
+A sign is evidence, never authority.
 
-## Architectural altitude
-
-A useful ladder:
+## The whole movement
 
 ```text
-type       reusable semantic meaning of info
-info       one finite value
-kind       reusable semantic meaning of work
-fore       callable checked boundary
-gear       one configured occurrence
-port       typed semantic endpoint
-cord       semantic connection
-back       concrete realization
-base       concrete mechanism/resource boundary
-host       current realization environment
-line       finite connectivity realization
-plan       exact immutable selection
-play       active execution
-step       one bounded kernel transition
-sign       bounded evidence
-body       durable continuant
-face       human-facing semantic encounter
-mask       user-agent realization
-show       one finite realized occurrence
+AUTHORED MEANING
+
+type → form
+kind → fore
+plot containing gears, ports, and cords
+        │
+        │ meets current truth
+        ▼
+PLANNING
+
+backs + hosts + resources + authority + lines
+        │
+        ▼
+exact immutable plan
+        │
+        ▼
+EXECUTION
+
+play → steps → signs
+
+CONTINUITY
+
+body persists across hosts, boots, plans, plays, wakes, and lulls
+
+PRESENTATION
+
+face → mask → show
 ```
 
-When a design problem gets confusing, asking "which altitude owns this fact?" is often enough to expose the mistake.
+The architecture is easiest to understand not by memorizing all the nouns, but by asking one recurring question:
 
-## Three constitutional distinctions
+> **Is this fact part of enduring meaning, or part of the present realization of that meaning?**
 
-### Meaning is not mechanism
-
-A temperature kind does not become a USB kind because its first sensor used USB.
-
-### Availability is not selection
-
-An offered back is only a candidate until a plan selects it.
-
-### Selection is not execution
-
-A plan can exist without being played.
-
-Those distinctions are the spine of the system.
+When that question is answered at the right altitude, many difficult distributed-systems questions become much less mysterious.
