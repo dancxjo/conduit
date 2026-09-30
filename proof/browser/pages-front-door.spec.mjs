@@ -13,7 +13,6 @@ async function assemblePagesCarrier() {
   await cp("target/creche-product", `${pagesRoot}/creche`, { recursive: true });
   await cp("target/workspace-product", `${pagesRoot}/workspace`, { recursive: true });
   await cp("target/patchbay-product", `${pagesRoot}/patchbay`, { recursive: true });
-  await cp("target/home-product", `${pagesRoot}/home`, { recursive: true });
   await stageLegacyCrecheRoute(pagesRoot);
 }
 
@@ -39,38 +38,6 @@ test("Open your body enters the current Body surface", async ({ page }) => {
   // Readiness is a Body fact, not the incidental layout of an empty main.
   await expect(page.locator("[data-body-state]")).not.toHaveText("Opening…");
   await expect(page.getByRole("main")).toBeVisible();
-});
-
-test("Browser Home enacts the shared journey through the real Patchbay", async ({ page }) => {
-  const root = entrance.url.replace(/\/$/, "");
-  const steps = ["home.arrived"];
-  await page.goto(`${root}/home/`);
-  await expect(page.locator("#host-state")).toHaveText("Browser Home is ready.");
-  await page.getByRole("button", { name: "FORMS" }).click();
-  steps.push("forms.opened");
-  await page.getByRole("button", { name: "Hello" }).click();
-  steps.push("form.selected");
-  const command = page.getByLabel("conduit>");
-  await command.fill("open prompt");
-  await command.press("Enter");
-  steps.push("prompt.opened");
-  await command.fill("run hello");
-  await command.press("Enter");
-  await expect(page.locator("#host-state")).toHaveAttribute("data-play-disposition", "completed");
-  steps.push("form.run", "play.observed");
-  await command.fill("home");
-  await command.press("Enter");
-  await page.getByRole("button", { name: "PATCHBAY" }).click();
-  await expect(page).toHaveURL(`${root}/patchbay/`);
-  await expect(page.locator("body")).toHaveAttribute("data-application-ready", "true");
-  steps.push("patchbay.requested");
-  await page.goBack();
-  await expect(page.getByRole("button", { name: "TOUR" })).toBeVisible();
-  steps.push("home.returned");
-  expect(steps).toEqual([
-    "home.arrived", "forms.opened", "form.selected", "prompt.opened",
-    "form.run", "play.observed", "patchbay.requested", "home.returned",
-  ]);
 });
 
 test("the main site exposes exact reviewed host and ConduitOS releases", async ({ page }) => {

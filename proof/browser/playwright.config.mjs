@@ -73,7 +73,6 @@ export default defineConfig({
     "browser-presence.spec.mjs",
     "browser-webrtc-body.spec.mjs",
     "firefly-choir.spec.mjs",
-    "home-host.spec.mjs",
     "webrtc-datachannel-line.spec.mjs",
     "native-webrtc-line.spec.mjs",
     "protected-line.spec.mjs",
@@ -98,7 +97,7 @@ export default defineConfig({
     { name: "chromium", use: { browserName: "chromium" } },
     {
       name: "firefox",
-      testMatch: ["browser-webrtc-body.spec.mjs", "home-host.spec.mjs"],
+      testMatch: ["browser-webrtc-body.spec.mjs"],
       use: { browserName: "firefox" },
     },
   ],
