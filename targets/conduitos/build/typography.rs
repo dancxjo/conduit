@@ -1,4 +1,4 @@
-//! Fabrication-only preparation of the fixed native graphical text repertoire.
+//! Make-only preparation of the fixed native graphical text repertoire.
 
 use std::{collections::BTreeSet, env, fmt::Write as _, fs, path::PathBuf};
 

@@ -63,7 +63,7 @@ pub(super) fn seal(
         });
     }
     let bundle_sha256 = bundle_digest(&entries);
-    let implementations = conduit_host_browser_fabrication::BROWSER_IMPLEMENTATIONS
+    let implementations = conduit_host_browser_make::BROWSER_IMPLEMENTATIONS
         .iter()
         .map(|item| ReviewedBrowserImplementation {
             id: item.implementation_id,
@@ -74,7 +74,7 @@ pub(super) fn seal(
     let manifest = ReleaseManifest {
         schema: RELEASE_SCHEMA,
         target_id,
-        fabrication_package_id: package_id,
+        make_package_id: package_id,
         output,
         builder_adapter: builder,
         deployment_adapter: deployment,
@@ -83,7 +83,7 @@ pub(super) fn seal(
         files: entries,
         reviewed_distribution: Some(ReviewedBrowserDistribution {
             schema: "conduit.browser/reviewed-distribution@1",
-            distribution_id: conduit_host_browser_fabrication::REVIEWED_DISTRIBUTION_ID,
+            distribution_id: conduit_host_browser_make::REVIEWED_DISTRIBUTION_ID,
             runtime_abi: "conduit.browser/runtime-abi@1",
             targets: ["browser/wasm32/page"],
             toolchain_identity: "rustc:stable+wasm32-unknown-unknown",

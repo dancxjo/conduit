@@ -1,10 +1,10 @@
-//! Fabricated headless boot without an invented resident workload or offer.
-use conduitos::{arch, boot, fabrication, identity, sign_format};
+//! Made headless boot without an invented resident workload or offer.
+use conduitos::{arch, boot, identity, make, sign_format};
 use core::fmt::Write;
 
 pub fn run(record: boot::BootRecord) -> ! {
-    let image = &fabrication::EMBEDDED_FABRICATION;
-    if image.includes(fabrication::IMPL_NATIVE_PRESENTER)
+    let image = &make::EMBEDDED_MAKE;
+    if image.includes(make::IMPL_NATIVE_PRESENTER)
         || image.facilities != 0
         || image.presenters != 0
         || image.resources != 0

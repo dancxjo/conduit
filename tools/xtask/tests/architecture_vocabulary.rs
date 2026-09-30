@@ -130,7 +130,7 @@ fn is_explicit_boundary(repository: &Path, path: &Path) -> bool {
     relative.components().any(|component| {
         matches!(
             component.as_os_str().to_str(),
-            Some("proof" | "proof-appliances" | "tests" | "fixtures" | "fabrication" | "build")
+            Some("proof" | "proof-appliances" | "tests" | "fixtures" | "make" | "build")
         )
     })
 }

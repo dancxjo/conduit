@@ -223,7 +223,7 @@ pub fn frame_resource_plan(
             .capabilities
             .retain(|c| !matches!(c.kind_id.as_str(), "frame/display" | "frame/encoder"));
         // The remote host cannot satisfy the exact local Resource residence.
-        // No remote dereference implementation or Line is fabricated for it.
+        // No remote dereference implementation or Line is made for it.
         hosts.push(remote);
     }
     let grants = hosts

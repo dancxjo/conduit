@@ -6,7 +6,7 @@ const encoder = new TextEncoder();
 const decoder = new TextDecoder();
 const FAMILY = Object.freeze({ id: "conduit-target-family/orange-pi@1", label: "Orange Pi computers" });
 const MODES = Object.freeze([
-  Object.freeze({ id: "fabricate-new", resultKind: "artifact", supported: true }),
+  Object.freeze({ id: "make-new", resultKind: "artifact", supported: true }),
   Object.freeze({ id: "install-existing", resultKind: "installation", supported: false }),
   Object.freeze({ id: "attach-running", resultKind: "attachment", supported: false }),
 ]);
@@ -36,7 +36,7 @@ export const ORANGE_PI_5_PROFILE = Object.freeze({
 
 const declaration = Object.freeze({
   schema: "conduit.orange-pi/creche-bare-metal-profile@1",
-  intention: "fabricate-new",
+  intention: "make-new",
   model: ORANGE_PI_5_PROFILE.board,
   soc: "rockchip-rk3588s",
   cpu: "4xcortex-a76+4xcortex-a55",
@@ -56,7 +56,7 @@ export const ORANGE_PI_CRECHE_TARGET_CONTRIBUTION = Object.freeze({
   family: FAMILY,
   target: ORANGE_PI_5_PROFILE.target,
   intentions: MODES,
-  fabrication_strategies: Object.freeze([
+  make_strategies: Object.freeze([
     Object.freeze({ id: "reviewed-generic-release-download", label: "Reviewed ConduitOS Orange Pi 5 SD image" }),
   ]),
   carriers: Object.freeze({
@@ -75,9 +75,9 @@ export function createOrangePiAdapter({ host, imageWriter, prepareSpore = null }
   function createOptions({ mode }) {
     const note = document.createElement("p");
     note.className = "target-option-note";
-    note.textContent = mode === "fabricate-new"
+    note.textContent = mode === "make-new"
       ? "Conduit downloads the exact reviewed Orange Pi 5 ConduitOS image and binds it into a spore. A separate local writer must hold explicit raw block-device authority; this browser does not."
-      : "This exact bare-metal substrate is fabricated as a new host; no existing operating-system installation is used.";
+      : "This exact bare-metal substrate is made as a new host; no existing operating-system installation is used.";
     return note;
   }
 
@@ -121,7 +121,7 @@ export function createOrangePiAdapter({ host, imageWriter, prepareSpore = null }
           return readOutput(host.runtime);
         })();
       if (prepared.target_id !== ORANGE_PI_5_PROFILE.target.id || prepared.image_content_digest !== release.digest
-        || prepared.output !== "sd-image" || prepared.fabrication_package_id !== ORANGE_PI_5_PROFILE.packageId
+        || prepared.output !== "sd-image" || prepared.make_package_id !== ORANGE_PI_5_PROFILE.packageId
         || prepared.deployment_adapter !== ORANGE_PI_5_PROFILE.deploymentAdapter) {
         refuse(mode, "bind", "BindingIdentity", "prepared invitation lost exact Orange Pi 5, ConduitOS image, or writer-adapter truth");
       }
@@ -158,7 +158,7 @@ export function createOrangePiAdapter({ host, imageWriter, prepareSpore = null }
   return Object.freeze({ schema: "conduit.creche/physical-host-target-adapter@1", target: ORANGE_PI_5_PROFILE.target, modes: MODES, bounds: BOUNDS, createOptions, obtain, bind, realize, observe, cancel });
 }
 
-function requireMode(mode, operation) { if (mode === "fabricate-new") return; refuse(mode, operation, mode === "install-existing" ? "InstallExistingUnsupported" : "AttachRunningUnsupported", `bare-metal Orange Pi 5 target does not offer ${mode}`); }
+function requireMode(mode, operation) { if (mode === "make-new") return; refuse(mode, operation, mode === "install-existing" ? "InstallExistingUnsupported" : "AttachRunningUnsupported", `bare-metal Orange Pi 5 target does not offer ${mode}`); }
 function requireCurrent(signal, mode, operation) { if (signal?.aborted) refuse(mode, operation, "Cancelled", "Orange Pi operation was cancelled"); }
 function refuse(mode, operation, terminal, message) { const error = new Error(message); error.code = terminal; error.evidence = Object.freeze({ schema: "conduit.orange-pi/creche-operation-refusal@1", target_id: ORANGE_PI_5_PROFILE.target.id, mode, operation, terminal, message, browser_raw_block_authority_claimed: false, external_work_started: false }); throw error; }
 function readOutput(api) { return JSON.parse(decoder.decode(new Uint8Array(api.memory.buffer, api.conduit_creche_output_ptr(), api.conduit_creche_output_len()))); }

@@ -324,7 +324,7 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          test "$(grep -c '4c760c09c53560d859b362319a3dc63b79cca3d47f35d69ab0106a13b8057055' targets/conduitos/fabrication/xtask/profile.rs)" = 1
+          test "$(grep -c '4c760c09c53560d859b362319a3dc63b79cca3d47f35d69ab0106a13b8057055' targets/conduitos/make/xtask/profile.rs)" = 1
           mkdir -p target/conduitos/vendor
           archive=target/conduitos/vendor/limine-binary-12.5.2.tar.gz
           if ! curl --fail --location --remove-on-error \
@@ -341,7 +341,7 @@ jobs:
           fi
       - name: Verify the pinned bootloader archive
         run: |
-          test "$(grep -c '4c760c09c53560d859b362319a3dc63b79cca3d47f35d69ab0106a13b8057055' targets/conduitos/fabrication/xtask/profile.rs)" = 1
+          test "$(grep -c '4c760c09c53560d859b362319a3dc63b79cca3d47f35d69ab0106a13b8057055' targets/conduitos/make/xtask/profile.rs)" = 1
           echo '4c760c09c53560d859b362319a3dc63b79cca3d47f35d69ab0106a13b8057055  target/conduitos/vendor/limine-binary-12.5.2.tar.gz' | sha256sum --check --strict
       - name: Distribute the verified pinned archive
         id: upload
@@ -519,7 +519,7 @@ jobs:
         with:
           name: ci-attestation-controller-${{ env.CONDUIT_CHECKOUT_SHA }}
           path: ${{ runner.temp }}/conduit-ci-attestation
-      - name: Validate every standalone fabrication lock before machine fan-out
+      - name: Validate every standalone make lock before machine fan-out
         run: |
           controller=(cargo xtask)
           if test "${{ github.event_name == 'pull_request' || inputs.candidate_sha != '' }}" = true; then
@@ -590,13 +590,13 @@ jobs:
           workspaces: |
             . -> target
             targets/esp32/firmware/${{ matrix.target }}-signal -> target
-            ${{ matrix.target == 'wroom' && 'targets/esp32/firmware/wroom-signal/fabrication-package-runner -> target' || '' }}
+            ${{ matrix.target == 'wroom' && 'targets/esp32/firmware/wroom-signal/make-package-runner -> target' || '' }}
           shared-key: esp32-${{ matrix.target }}-v4
-      - name: Check the locked standalone fabrication package
+      - name: Check the locked standalone make package
         if: matrix.target == 'wroom'
-        run: cargo +1.98.1 xtask fabricate esp32-firmware check --locked
+        run: cargo +1.98.1 xtask make esp32-firmware check --locked
       - name: Build the exact ESP32 firmware image
-        run: cargo +1.98.1 xtask fabricate esp32-firmware build --target "${{ matrix.target }}" --locked --receipt "target/esp32-firmware/${{ matrix.target }}-build.json"
+        run: cargo +1.98.1 xtask make esp32-firmware build --target "${{ matrix.target }}" --locked --receipt "target/esp32-firmware/${{ matrix.target }}-build.json"
       - name: Retain the exact successful ESP32 proof proposition
         if: github.event_name == 'pull_request' || inputs.candidate_sha != ''
         uses: ./.github/actions/attest-ci-proof
@@ -713,7 +713,7 @@ jobs:
       - name: Install the exact ConduitOS tool bundle without mirror access
         run: targets/conduitos/tools/conduitos-tools.sh install target/conduitos/tool-bundle
       - name: BUILD one exact immutable x86 proof image
-        run: cargo xtask fabricate conduitos prepare-proof-image --locked
+        run: cargo xtask make conduitos prepare-proof-image --locked
       - name: Distribute the exact prepared proof image
         id: upload
         uses: ./.github/actions/upload-artifact-retry
@@ -783,7 +783,7 @@ jobs:
           mapfile -t proofs < <(jq -r '.[]' <<<"$SELECTED_PROOFS")
           args=()
           for proof in "${proofs[@]}"; do args+=(--proof "$proof"); done
-          cargo xtask fabricate conduitos prove-many "${args[@]}" --max-parallel 4 --output-root "$CONDUIT_X86_BATCH_ROOT" --locked
+          cargo xtask make conduitos prove-many "${args[@]}" --max-parallel 4 --output-root "$CONDUIT_X86_BATCH_ROOT" --locked
       - name: Validate the complete x86 batch contract
         id: x86-contract
         if: always()
@@ -902,9 +902,9 @@ jobs:
       - name: Prove ${{ matrix.architecture }} ConduitOS architecture
         run: |
           if test '${{ matrix.architecture }}' = ia32; then
-            cargo xtask fabricate conduitos architecture-matrix --locked
+            cargo xtask make conduitos architecture-matrix --locked
           fi
-          cargo xtask fabricate conduitos prove --arch '${{ matrix.architecture }}' --locked
+          cargo xtask make conduitos prove --arch '${{ matrix.architecture }}' --locked
       - name: Retain the exact successful architecture proof proposition
         if: github.event_name == 'pull_request' || inputs.candidate_sha != ''
         uses: ./.github/actions/attest-ci-proof
@@ -946,12 +946,12 @@ jobs:
         run: targets/conduitos/tools/conduitos-tools.sh install target/conduitos/tool-bundle
       - name: Build the checked AArch64 Host source and prove two fresh boots
         run: |
-          cargo xtask fabricate host build targets/conduitos/profiles/conduitos-aarch64-virt.host.conduit \
+          cargo xtask make host build targets/conduitos/profiles/conduitos-aarch64-virt.host.conduit \
             --output target/conduitos/aarch64-product-host \
             --source-identity "$CONDUIT_CHECKOUT_SHA" \
             --locked
-          cargo xtask fabricate host verify target/conduitos/aarch64-product-host --boot --locked
-          cargo xtask fabricate conduitos product-readiness-matrix --locked > target/conduitos/product-readiness-matrix.json
+          cargo xtask make host verify target/conduitos/aarch64-product-host --boot --locked
+          cargo xtask make conduitos product-readiness-matrix --locked > target/conduitos/product-readiness-matrix.json
       - name: Retain AArch64 product proof and final PROFILE artifacts
         uses: ./.github/actions/upload-artifact-retry
         with:

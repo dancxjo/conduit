@@ -1,6 +1,6 @@
 use std::{fs, path::Path, process::Command};
 
-use conduit_host_esp32_fabrication::{Esp32FamilyTarget, NATIVE_SPORE_REGION_START};
+use conduit_host_esp32_make::{Esp32FamilyTarget, NATIVE_SPORE_REGION_START};
 use serde::Serialize;
 
 use crate::cli::GlobalOpts;
@@ -11,7 +11,7 @@ use super::{provision_espflash, require_success, sha256_file, write_receipt};
 struct BrowserReleaseManifest {
     schema: &'static str,
     target_id: String,
-    fabrication_package_id: &'static str,
+    make_package_id: &'static str,
     output: &'static str,
     builder_adapter: &'static str,
     deployment_adapter: &'static str,
@@ -78,7 +78,7 @@ pub(super) fn write(
     let manifest = BrowserReleaseManifest {
         schema: "conduit.release/target-artifact@1",
         target_id: format!("esp32/{}/{}", facts.architecture, facts.machine),
-        fabrication_package_id: "conduit-host-esp32@1",
+        make_package_id: "conduit-host-esp32@1",
         output: "esp32-image",
         builder_adapter: facts.builder_adapter,
         deployment_adapter: facts

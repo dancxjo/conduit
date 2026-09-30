@@ -82,14 +82,14 @@ alignment, and recovery are outside this epic; no compatibility gear is added.
 Every observation carries an exact producing host/boot/implementation,
 observation sign, clock/domain, frame where applicable, observation time or
 bounded age, calibration identity where applicable, and availability state.
-Stale, missing, malformed, and unavailable are not values fabricated as fresh.
+Stale, missing, malformed, and unavailable are not values made as fresh.
 
 | Brainstem sensor/state | Disposition | Portable contract | Realization source |
 |---|---|---|---|
 | left/right bump | keep | structured contact observation; `robotics/observe-bump` remains the aggregate convenience | Create OI packet 7 flags |
 | cliff left/front-left/front-right/right | keep | structured cliff hazard with exact location and optional signal | Create OI packet flags/signals |
 | wheel drop | keep | structured wheel-drop hazard observation | Create OI packet 7 |
-| wall | keep | proximity/contact-adjacent observation, not fabricated metric range | Create OI wall flag/signal where supported |
+| wall | keep | proximity/contact-adjacent observation, not made metric range | Create OI wall flag/signal where supported |
 | virtual wall | keep | virtual-wall/beacon observation | Create OI packet flag |
 | IR byte | keep | bounded IR/beacon code observation | Create OI IR packet |
 | buttons | keep | ordinary structured button/input observation | Create OI buttons packet |
@@ -136,7 +136,7 @@ around it. The envelope owns finite stop work and safe output disposition.
 | bump/contact withdrawal | fresh edge during toward-contact output preempts into one fixed straight bounded reverse, then stop | contact side/generation and preempted command identity scope the authority-independent local reflex; stronger invariants preempt; no turn, retry, or general escape authority |
 | authority/control loss | revoke and stop | authority identity and stop terminal sign |
 | Create UART/device loss | stop and mark actuator unavailable | UART-provider loss differs from device no-response |
-| watchdog starvation | hardware reset/safe output | watchdog capability and last terminal evidence are not fabricated afterward |
+| watchdog starvation | hardware reset/safe output | watchdog capability and last terminal evidence are not made afterward |
 | tilt/impact | thresholded local inhibit | calibrated IMU identity, threshold profile, and latch generation |
 | charging | inhibit physical motion while applicable | source, state, interlock, and disagreement truth |
 | all failures | zero/safe disposition | failure cannot be converted into retry or success |

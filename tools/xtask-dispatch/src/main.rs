@@ -122,7 +122,7 @@ fn main() {
         #[cfg(feature = "host-release")]
         {
             // The isolated directory protects the running bootstrap executable;
-            // it is not part of the host artifact fabrication contract.
+            // it is not part of the host artifact make contract.
             std::env::remove_var("CARGO_TARGET_DIR");
             if let Err(error) = run_host_release(&arguments) {
                 eprintln!("xtask error: {error}");
@@ -282,7 +282,7 @@ mod dependency_boundary_tests {
             non_optional,
             BTreeSet::from(["serde", "serde_json", "sha2", "toml"])
         );
-        assert!(dependencies["conduit-host-browser-fabrication"]["optional"]
+        assert!(dependencies["conduit-host-browser-make"]["optional"]
             .as_bool()
             .unwrap());
     }

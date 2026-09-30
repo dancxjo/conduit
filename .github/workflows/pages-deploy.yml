@@ -11,7 +11,7 @@ on:
         required: false
         type: number
       main_sha:
-        description: Exact current main commit to fabricate and promote
+        description: Exact current main commit to make and promote
         required: false
         type: string
 concurrency:
@@ -95,10 +95,10 @@ jobs:
           disposition=$RECONCILED_DISPOSITION
           if test "$disposition" = inherited && test "$CARRIER_PRESENT" != true; then
             disposition=execute
-            echo 'Exact proof is inherited, but its carrier payload is absent; fabricate the merged tree.' >> "$GITHUB_STEP_SUMMARY"
+            echo 'Exact proof is inherited, but its carrier payload is absent; make the merged tree.' >> "$GITHUB_STEP_SUMMARY"
           fi
           echo "disposition=$disposition" >> "$GITHUB_OUTPUT"
-      - name: Fabricate the exact explicitly requested current main carrier
+      - name: Make the exact explicitly requested current main carrier
         id: direct
         if: steps.resolve.outputs.direct_main == 'true'
         run: echo 'disposition=execute' >> "$GITHUB_OUTPUT"

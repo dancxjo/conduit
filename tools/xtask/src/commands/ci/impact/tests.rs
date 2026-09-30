@@ -180,7 +180,7 @@ fn dispatcher_command_implementation_has_command_local_impact() {
 }
 
 #[test]
-fn actions_monitor_bootstrap_is_controller_work_not_product_fabrication() {
+fn actions_monitor_bootstrap_is_controller_work_not_product_make() {
     let root = crate::workspace::workspace_root().unwrap();
     let packages = discover(&root).unwrap();
     let plan = plan_for_paths(
@@ -215,7 +215,7 @@ fn actions_monitor_bootstrap_is_controller_work_not_product_fabrication() {
 }
 
 #[test]
-fn check_result_gate_contract_does_not_fabricate_products() {
+fn check_result_gate_contract_does_not_make_products() {
     let root = crate::workspace::workspace_root().unwrap();
     let packages = discover(&root).unwrap();
     let complete = plan_for_paths(
@@ -284,7 +284,7 @@ fn pages_products_follow_the_typed_live_ownership_registry() {
 }
 
 #[test]
-fn registered_form_commands_do_not_fabricate_unrelated_machines() {
+fn registered_form_commands_do_not_make_unrelated_machines() {
     let root = crate::workspace::workspace_root().unwrap();
     let packages = discover(&root).unwrap();
     let plan = plan_for_paths(
@@ -423,7 +423,7 @@ fn browser_admission_runs_only_the_owned_product_shards() {
 }
 
 #[test]
-fn complete_tongues_analysis_slice_avoids_unrelated_machine_fabrication() {
+fn complete_tongues_analysis_slice_avoids_unrelated_machine_make() {
     let root = crate::workspace::workspace_root().unwrap();
     let packages = discover(&root).unwrap();
     let paths = [
@@ -615,7 +615,7 @@ fn acceptance_diff_classes_keep_exact_obligation_boundaries() {
         &root,
         vec![
             "products/creche/tools/stage-creche-product.sh".to_owned(),
-            "targets/raspberry-pi/fabrication/src/lib.rs".to_owned(),
+            "targets/raspberry-pi/make/src/lib.rs".to_owned(),
         ],
         &packages,
     )
@@ -782,7 +782,7 @@ fn acceptance_diff_classes_keep_exact_obligation_boundaries() {
 }
 
 #[test]
-fn native_patchbay_changes_do_not_fabricate_browser_or_pages_work() {
+fn native_patchbay_changes_do_not_make_browser_or_pages_work() {
     let root = crate::workspace::workspace_root().unwrap();
     let packages = discover(&root).unwrap();
     let plan = plan_for_paths(
@@ -917,14 +917,14 @@ fn esp32_paths_select_exact_target_obligations() {
     .unwrap();
     assert_eq!(shared_source.esp32_targets.len(), 3);
 
-    let shared_fabrication = plan_for_paths(
+    let shared_make = plan_for_paths(
         &root,
-        vec!["targets/esp32/fabrication/src/family.rs".to_owned()],
+        vec!["targets/esp32/make/src/family.rs".to_owned()],
         &packages,
     )
     .unwrap();
-    assert_eq!(shared_fabrication.esp32_targets.len(), 3);
-    assert!(!shared_fabrication.pages_products_required);
+    assert_eq!(shared_make.esp32_targets.len(), 3);
+    assert!(!shared_make.pages_products_required);
 
     let shared_dependency = plan_for_paths(
         &root,
@@ -1035,8 +1035,8 @@ fn workflow_keeps_focused_candidates_and_exhaustive_promotions_distinct() {
     assert!(workflow
         .contains("inputs.full_suite && '[\"aarch64\",\"ia32\",\"riscv64\",\"loongarch64\"]'"));
     assert!(workflow.contains("conduitos-proof-image:"));
-    assert!(workflow.contains("cargo xtask fabricate conduitos prepare-proof-image --locked"));
-    assert!(workflow.contains("cargo xtask fabricate conduitos prove-many"));
+    assert!(workflow.contains("cargo xtask make conduitos prepare-proof-image --locked"));
+    assert!(workflow.contains("cargo xtask make conduitos prove-many"));
     assert!(
         workflow.contains("--max-parallel 4 --output-root \"$CONDUIT_X86_BATCH_ROOT\" --locked")
     );

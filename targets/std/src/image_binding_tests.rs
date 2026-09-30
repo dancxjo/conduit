@@ -5,7 +5,7 @@ use conduit_form::{
     check_syntax_document, expand_canonical_form, parse_syntax_document, ProfileCatalog,
     StartupCatalog,
 };
-use conduit_host_fabrication::{
+use conduit_host_make::{
     bind_runtime_offer, build_default_host_image, BuildInputs, HostImage, HostProfile,
     RuntimeFacts, RuntimeOfferInputs,
 };
@@ -20,8 +20,8 @@ fn bound_host(source: &str, boot: &str, extra_timer_slots: u32) -> (StdHost, Hos
         source_identity: source.into(),
         toolchain_available: true,
     };
-    let catalog = conduit_workspace_fabrication::catalog();
-    let packages = conduit_workspace_fabrication::package_set();
+    let catalog = conduit_workspace_make::catalog();
+    let packages = conduit_workspace_make::package_set();
     let (image, bytes) = build_default_host_image(profile, &catalog, &packages, &inputs).unwrap();
     let binding = bind_runtime_offer(
         &image.manifest,

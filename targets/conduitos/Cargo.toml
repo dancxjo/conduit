@@ -248,7 +248,7 @@ limine = "=0.5.0"
 conduit-std-host = { path = "../std" }
 
 [build-dependencies]
-# Fabrication-only rasterization: no font parser or atlas allocation in Play.
+# Make-only rasterization: no font parser or atlas allocation in Play.
 fontdue = { version = "=0.9.3", optional = true, default-features = false, features = ["std"] }
 sha2 = { version = "=0.10.9" }
 

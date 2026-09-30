@@ -16,7 +16,7 @@ From a checkout of `dev`:
 
 ```bash
 cargo xtask doctor
-cargo xtask fabricate host std
+cargo xtask make host std
 ```
 
 The second command checks, plans, and executes [forms/hello/main.conduit](https://github.com/dancxjo/conduit/blob/dev/forms/hello/main.conduit) through the production kernel.
@@ -67,8 +67,8 @@ Patchbay is a projection over real body and execution truth. It is not another s
 ## 5. Boot ConduitOS
 
 ```bash
-cargo xtask fabricate conduitos live x86_64
-cargo xtask fabricate conduitos live-boot x86_64
+cargo xtask make conduitos live x86_64
+cargo xtask make conduitos live-boot x86_64
 ```
 
 The first builds the x86_64 live ISO. The second verifies and boots it in visible QEMU.

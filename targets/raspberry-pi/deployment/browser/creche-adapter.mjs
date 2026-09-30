@@ -7,7 +7,7 @@ const encoder = new TextEncoder();
 const decoder = new TextDecoder();
 const FAMILY = Object.freeze({ id: "conduit-target-family/raspberry-pi@1", label: "Raspberry Pi computers" });
 const BARE_METAL_MODES = Object.freeze([
-  Object.freeze({ id: "fabricate-new", resultKind: "artifact", supported: true }),
+  Object.freeze({ id: "make-new", resultKind: "artifact", supported: true }),
   Object.freeze({ id: "install-existing", resultKind: "installation", supported: false }),
   Object.freeze({ id: "attach-running", resultKind: "attachment", supported: false }),
 ]);
@@ -127,7 +127,7 @@ function piOsContribution(profile) { return Object.freeze({
   family: FAMILY,
   target: profile.target,
   intentions: EXISTING_COMPUTER_MODES,
-  fabrication_strategies: Object.freeze([
+  make_strategies: Object.freeze([
     Object.freeze({ id: "reviewed-generic-release-download", label: "Reviewed Raspberry Pi OS aarch64 package" }),
   ]),
   carriers: Object.freeze({
@@ -146,7 +146,7 @@ function piOsContribution(profile) { return Object.freeze({
 
 function bareMetalDeclaration(profile) { return Object.freeze({
   schema: "conduit.raspberry-pi/creche-bare-metal-profile@1",
-  intention: "fabricate-new",
+  intention: "make-new",
   model: profile.board,
   architecture: profile.architecture,
   machine: profile.machine,
@@ -165,7 +165,7 @@ function bareMetalContribution(profile) { return Object.freeze({
   family: FAMILY,
   target: profile.target,
   intentions: BARE_METAL_MODES,
-  fabrication_strategies: Object.freeze([
+  make_strategies: Object.freeze([
     Object.freeze({ id: "reviewed-generic-release-download", label: `Reviewed ConduitOS ${profile.target.label} SD image` }),
   ]),
   carriers: Object.freeze({
@@ -191,9 +191,9 @@ export function createBareMetalAdapter({ host, imageWriter, profile = RASPBERRY_
   function createOptions({ mode }) {
     const note = document.createElement("p");
     note.className = "target-option-note";
-    note.textContent = mode === "fabricate-new"
+    note.textContent = mode === "make-new"
       ? `Conduit downloads the exact reviewed ${profile.target.label} SD image and binds it into a spore. A separate local writer must hold explicit raw block-device authority; this browser does not.`
-      : "This exact bare-metal substrate is fabricated as a new host; it is not an existing OS installation or an already-running attachment.";
+      : "This exact bare-metal substrate is made as a new host; it is not an existing OS installation or an already-running attachment.";
     return note;
   }
 
@@ -241,7 +241,7 @@ export function createBareMetalAdapter({ host, imageWriter, profile = RASPBERRY_
           return readOutput(host.runtime);
         })();
       if (prepared.target_id !== profile.target.id || prepared.image_content_digest !== release.digest
-        || prepared.output !== "sd-image" || prepared.fabrication_package_id !== profile.packageId
+        || prepared.output !== "sd-image" || prepared.make_package_id !== profile.packageId
         || prepared.deployment_adapter !== profile.deploymentAdapter) {
         refuse(profile, mode, "bind", "BindingIdentity", "prepared invitation lost exact Raspberry Pi board, SD image, or writer-adapter truth");
       }
@@ -316,7 +316,7 @@ export function createBareMetalAdapter({ host, imageWriter, profile = RASPBERRY_
 }
 
 function requireMode(profile, mode, operation) {
-  if (mode === "fabricate-new") return;
+  if (mode === "make-new") return;
   refuse(profile, mode, operation, mode === "install-existing" ? "InstallExistingUnsupported" : "AttachRunningUnsupported", `bare-metal ${profile.target.label} target does not offer ${mode}`);
 }
 function requireCurrent(profile, signal, mode, operation) { if (signal?.aborted) refuse(profile, mode, operation, "Cancelled", "Raspberry Pi operation was cancelled"); }

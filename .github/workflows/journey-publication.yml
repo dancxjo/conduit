@@ -156,7 +156,7 @@ jobs:
             sleep 1
           done
           chmod 755 proof/fixtures/ollama
-          PATH="$PWD/proof/fixtures:$PATH" cargo xtask --json fabricate host prove-local-model --locked \
+          PATH="$PWD/proof/fixtures:$PATH" cargo xtask --json make host prove-local-model --locked \
             --ollama-endpoint http://127.0.0.1:11435 \
             --model conduit-fixture:latest --admitted-memory-mib 64 --orifina-presenter --journey-documentary \
             > "$RUNNER_TEMP/model-body.json"

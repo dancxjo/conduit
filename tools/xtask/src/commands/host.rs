@@ -4,8 +4,8 @@ use std::{
 };
 
 use clap::{Args, Subcommand};
-use conduit_host_fabrication::{
-    build_default_host_image, check_host_configuration, fabrication_chooser_catalog,
+use conduit_host_make::{
+    build_default_host_image, check_host_configuration, make_chooser_catalog,
     parse_host_configuration_conduit, BuildInputs, HostImage,
 };
 
@@ -112,7 +112,7 @@ enum HostCommand {
     },
     /// Prove one body across native, browser, and headless PROFILE-built Hosts.
     Capstone {
-        #[arg(long, default_value = "target/host-fabrication-capstone")]
+        #[arg(long, default_value = "target/host-make-capstone")]
         output: PathBuf,
         #[arg(long, default_value = "workspace-head")]
         source_identity: String,
@@ -251,7 +251,7 @@ enum RpiHostAction {
 
 #[derive(Subcommand, Debug)]
 enum HostConfigCommand {
-    /// Validate canonical source without saving or fabricating an IMAGE.
+    /// Validate canonical source without saving or making an IMAGE.
     Check { path: PathBuf },
     /// Print the resolved target, Bases, variants, limits, and identity.
     Show { path: PathBuf },
@@ -354,8 +354,7 @@ pub fn run(args: HostArgs, opts: &GlobalOpts) -> Result<(), Box<dyn std::error::
             Ok(())
         }
         HostCommand::Catalog => {
-            let catalog =
-                fabrication_chooser_catalog(&conduit_workspace_fabrication::package_set());
+            let catalog = make_chooser_catalog(&conduit_workspace_make::package_set());
             println!("{}", serde_json::to_string_pretty(&catalog)?);
             Ok(())
         }
@@ -514,8 +513,8 @@ fn resolve_profile(
         .map_err(|diagnostic| format!("Host configuration decode refused: {diagnostic:?}"))?;
     let profile = check_host_configuration(
         configuration,
-        &conduit_workspace_fabrication::catalog(),
-        &conduit_workspace_fabrication::package_set(),
+        &conduit_workspace_make::catalog(),
+        &conduit_workspace_make::package_set(),
     )
     .map_err(|diagnostics| format!("Host configuration refused: {diagnostics:?}"))?
     .into_profile();
@@ -525,8 +524,8 @@ fn resolve_profile(
     };
     build_default_host_image(
         profile,
-        &conduit_workspace_fabrication::catalog(),
-        &conduit_workspace_fabrication::package_set(),
+        &conduit_workspace_make::catalog(),
+        &conduit_workspace_make::package_set(),
         &inputs,
     )
     .map_err(|diagnostics| format!("Host BUILD refused: {diagnostics:?}").into())
@@ -555,7 +554,7 @@ fn command_identity(
 
 fn load_configuration(
     path: &std::path::Path,
-) -> Result<conduit_host_fabrication::CheckedHostConfiguration, Box<dyn std::error::Error>> {
+) -> Result<conduit_host_make::CheckedHostConfiguration, Box<dyn std::error::Error>> {
     let source = fs::read_to_string(path)?;
     if !is_conduit_source(path, "host") {
         return Err(format!(
@@ -568,8 +567,8 @@ fn load_configuration(
         .map_err(|diagnostic| format!("Host configuration decode refused: {diagnostic:?}"))?;
     check_host_configuration(
         configuration,
-        &conduit_workspace_fabrication::catalog(),
-        &conduit_workspace_fabrication::package_set(),
+        &conduit_workspace_make::catalog(),
+        &conduit_workspace_make::package_set(),
     )
     .map_err(|diagnostics| format!("Host configuration refused: {diagnostics:?}").into())
 }

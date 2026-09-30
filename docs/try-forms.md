@@ -9,7 +9,7 @@ Run these commands from the repository root after
 [contributor setup](../CONTRIBUTING.md):
 
 ```bash
-cargo xtask fabricate host std
+cargo xtask make host std
 cargo xtask check forms check
 cargo xtask check forms report --output target/form-conformance.json
 ```

@@ -326,7 +326,7 @@ pub(super) fn write(
             construction: journey.receipt.host_ids.iter().map(|host_id| {
                 crate::commands::body_journey_track::ConstructionTruth {
                     host_id: host_id.clone(),
-                    profile: crate::commands::body_journey_track::ConstructionStage::omitted("This already-running std Host has no target-profile fabrication stage in the hosted journey."),
+                    profile: crate::commands::body_journey_track::ConstructionStage::omitted("This already-running std Host has no target-profile make stage in the hosted journey."),
                     build: crate::commands::body_journey_track::ConstructionStage::omitted("This hosted journey starts admitted implementations directly and produces no standalone build artifact."),
                     image: crate::commands::body_journey_track::ConstructionStage::omitted("This hosted Host is not booted from a journey-produced image, so no image identity is claimed."),
                 }

@@ -279,7 +279,7 @@ test("the ordinary face binds and admits one compiler-free reviewed browser Host
     git_commit: process.env.CONDUIT_CANDIDATE_SHA ?? execFileSync("git", ["rev-parse", "HEAD"], { encoding: "utf8" }).trim(),
     ...journeyReceipt,
     checkpoints: { joined: after, refused: replan, restored, repaired },
-    host_fabrication: evidence,
+    host_make: evidence,
   };
   await writeFile(testInfo.outputPath("browser-body-journey.json"), JSON.stringify(retainedJourney, null, 2));
   const screenshot = testInfo.outputPath("browser-body-fulfilled.png");

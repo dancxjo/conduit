@@ -167,7 +167,7 @@ fn track(index: usize) -> BodyTrack {
             vec![ConstructionTruth {
                 host_id: "host-2-a".into(),
                 profile: ConstructionStage::Omitted {
-                    reason: "This hosted journey uses an already-running Host and performs no profile fabrication stage.".into(),
+                    reason: "This hosted journey uses an already-running Host and performs no profile make stage.".into(),
                 },
                 build: ConstructionStage::Omitted {
                     reason: "This hosted journey starts admitted implementations and produces no standalone build artifact.".into(),
@@ -178,7 +178,7 @@ fn track(index: usize) -> BodyTrack {
             }, ConstructionTruth {
                 host_id: "host-2-b".into(),
                 profile: ConstructionStage::Omitted {
-                    reason: "This peer hosted journey uses an already-running Host and performs no profile fabrication stage.".into(),
+                    reason: "This peer hosted journey uses an already-running Host and performs no profile make stage.".into(),
                 },
                 build: ConstructionStage::Omitted {
                     reason: "This peer hosted journey starts admitted implementations and produces no standalone build artifact.".into(),

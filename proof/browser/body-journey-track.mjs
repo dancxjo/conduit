@@ -28,7 +28,7 @@ export async function writeBrowserBodyJourneyTrack(source, screenshotPath, outpu
   if (!/^[0-9a-f]{40}$/.test(commit)) throw new Error("browser track refuses a non-exact commit");
   const current = source.current;
   const evidence = source.evidence.evidence;
-  const fabrication = source.host_fabrication?.obtainment;
+  const make = source.host_make?.obtainment;
   const events = evidence.body.events;
   const joined = source.checkpoints.joined.evidence.membership.parts.map(part => part.current).filter(Boolean);
   const peer = joined.find(host => host.host_id !== current.host_id);
@@ -77,15 +77,15 @@ export async function writeBrowserBodyJourneyTrack(source, screenshotPath, outpu
   const construction = [
     {
       host_id: ids.host,
-      profile: { disposition: "omitted", reason: "The original page Host predates this producer's fabrication step; no profile fabrication identity was retained for it." },
-      build: { disposition: "omitted", reason: "The original page Host predates this producer's fabrication step; no build identity was retained for it." },
-      image: { disposition: "omitted", reason: "The original page Host predates this producer's fabrication step; no image identity was retained for it." },
+      profile: { disposition: "omitted", reason: "The original page Host predates this producer's make step; no profile make identity was retained for it." },
+      build: { disposition: "omitted", reason: "The original page Host predates this producer's make step; no build identity was retained for it." },
+      image: { disposition: "omitted", reason: "The original page Host predates this producer's make step; no image identity was retained for it." },
     },
     {
       host_id: ids.peerHost,
-      profile: { disposition: "exact", identity: required(fabrication?.profile_id, "browser peer profile identity") },
-      build: { disposition: "exact", identity: required(fabrication?.build_id, "browser peer build identity") },
-      image: { disposition: "exact", identity: required(fabrication?.image_id, "browser peer image identity") },
+      profile: { disposition: "exact", identity: required(make?.profile_id, "browser peer profile identity") },
+      build: { disposition: "exact", identity: required(make?.build_id, "browser peer build identity") },
+      image: { disposition: "exact", identity: required(make?.image_id, "browser peer image identity") },
     },
   ];
   const facts = [

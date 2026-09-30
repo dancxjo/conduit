@@ -20,7 +20,7 @@ function targetContribution(suffix = "one", methods = {}, suppliedBounds = {}) {
     profile_id: `fixture/profile-${suffix}`,
   };
   const modes = [
-    { id: "fabricate-new", resultKind: "artifact", supported: true },
+    { id: "make-new", resultKind: "artifact", supported: true },
     { id: "install-existing", resultKind: "installation", supported: false },
     { id: "attach-running", resultKind: "attachment", supported: false },
   ];
@@ -48,7 +48,7 @@ function targetContribution(suffix = "one", methods = {}, suppliedBounds = {}) {
     family: { id: "fixture/family", label: "Fixture family" },
     target,
     intentions: modes,
-    fabrication_strategies: [{ id: "fixture/strategy", label: "Fixture strategy" }],
+    make_strategies: [{ id: "fixture/strategy", label: "Fixture strategy" }],
     carriers: { deployment: [], installation: [], attachment: [], observation: [] },
     bounds,
     expected_join_contract: "fixture/join@1",

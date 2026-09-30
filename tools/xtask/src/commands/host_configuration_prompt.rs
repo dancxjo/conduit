@@ -1,6 +1,6 @@
 use std::fmt::Write as _;
 
-use conduit_host_fabrication::{
+use conduit_host_make::{
     canonical_host_configuration_conduit, check_host_configuration,
     compatible_base_implementations, CheckedHostConfiguration, ConfigurationBase,
     ConfigurationTarget, HostConfiguration, TargetDescriptor, HOST_CONFIGURATION_SCHEMA,
@@ -24,7 +24,7 @@ pub(crate) fn prompt(
         .validate(|value: &String| validate_name(value))
         .interact()?;
 
-    let packages = conduit_workspace_fabrication::package_set();
+    let packages = conduit_workspace_make::package_set();
     let descriptors = packages.target_descriptors();
     let initial_target = existing
         .and_then(|configuration| descriptor_index(&descriptors, &configuration.target))
@@ -122,7 +122,7 @@ pub(crate) fn prompt(
             machine: descriptor.machine.clone(),
             board: descriptor.board.clone(),
             os: descriptor.os.clone(),
-            fabrication_descriptor: exact_single_descriptor(descriptor),
+            make_descriptor: exact_single_descriptor(descriptor),
         },
         bases,
         resources: existing
@@ -143,8 +143,8 @@ pub(crate) fn prepare(
 ) -> Result<PromptedHostConfiguration, Box<dyn std::error::Error>> {
     let checked = check_host_configuration(
         configuration,
-        &conduit_workspace_fabrication::catalog(),
-        &conduit_workspace_fabrication::package_set(),
+        &conduit_workspace_make::catalog(),
+        &conduit_workspace_make::package_set(),
     )
     .map_err(|items| format!("Host configuration refused: {items:?}"))?;
     let source = canonical_host_configuration_conduit(checked.configuration())
@@ -185,7 +185,7 @@ fn descriptor_matches(descriptor: &TargetDescriptor, target: &ConfigurationTarge
 }
 
 fn exact_single_descriptor(descriptor: &TargetDescriptor) -> Option<String> {
-    match descriptor.fabrication_descriptors.as_slice() {
+    match descriptor.make_descriptors.as_slice() {
         [binding] => Some(binding.clone()),
         _ => None,
     }
@@ -230,7 +230,7 @@ mod tests {
 
     #[test]
     fn prepared_configuration_uses_shared_descriptor_and_catalog_truth() {
-        let packages = conduit_workspace_fabrication::package_set();
+        let packages = conduit_workspace_make::package_set();
         let descriptor = packages
             .target_descriptors()
             .into_iter()
@@ -246,7 +246,7 @@ mod tests {
                 machine: descriptor.machine.clone(),
                 board: descriptor.board.clone(),
                 os: descriptor.os.clone(),
-                fabrication_descriptor: exact_single_descriptor(descriptor),
+                make_descriptor: exact_single_descriptor(descriptor),
             },
             bases: vec![ConfigurationBase {
                 kind: kind.clone(),

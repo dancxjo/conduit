@@ -54,7 +54,7 @@ export async function buildBrowserBundleImage({ checked, distribution }) {
     manifest: Object.freeze({
       schema: RELEASE_SCHEMA,
       target_id: TARGET,
-      fabrication_package_id: "browser-wasm@1",
+      make_package_id: "browser-wasm@1",
       output: "browser-bundle",
       builder_adapter: BUILDER,
       deployment_adapter: DEPLOYMENT,
@@ -135,7 +135,7 @@ function requireDistribution(distribution) {
   const manifest = distribution?.manifest;
   const reviewed = manifest?.reviewed_distribution;
   if (manifest?.schema !== RELEASE_SCHEMA || manifest.target_id !== TARGET
-    || manifest.fabrication_package_id !== "browser-wasm@1" || manifest.output !== "browser-bundle"
+    || manifest.make_package_id !== "browser-wasm@1" || manifest.output !== "browser-bundle"
     || !digestIdentity(manifest.bundle_sha256)) {
     refuse("MissingReviewedDistribution", "exact reviewed browser distribution is unavailable");
   }

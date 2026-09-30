@@ -1,0 +1,8 @@
+[package]
+name = "conduit-host-avr-make"
+version = "0.1.0"
+edition = "2021"
+publish = false
+
+[dependencies]
+conduit-host-make = { path = "../../../make/host" }

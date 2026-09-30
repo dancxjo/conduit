@@ -17,7 +17,7 @@ pub struct CiArgs {
 
 #[derive(Subcommand, Debug)]
 enum CiCommand {
-    /// Fail fast when a separately rooted fabrication lock is stale.
+    /// Fail fast when a separately rooted make lock is stale.
     StandaloneLocks,
     /// Plan heavyweight CI obligations for one exact Git diff.
     Plan {
@@ -93,11 +93,11 @@ enum CiCommand {
         #[arg(long)]
         summary_out: Option<PathBuf>,
     },
-    /// Reconcile one fabricated product against an exact integration tree.
+    /// Reconcile one made product against an exact integration tree.
     ReconcileProduct {
         /// Registered product proof identifier.
         product_id: String,
-        /// Commit whose exact artifact was fabricated and proved.
+        /// Commit whose exact artifact was made and proved.
         candidate: String,
         /// Exact integrated commit proposed for promotion.
         integration: String,

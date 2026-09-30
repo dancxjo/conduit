@@ -25,7 +25,7 @@ conduit-little-seismograph-fixture = { path = "../../../forms/little-seismograph
 conduit-form-library = { path = "../../../semantics/form-library" }
 conduit-human = { path = "../../../semantics/human" }
 conduit-body = { path = "../../../architecture/body" }
-conduit-body-fabrication = { path = "../../../fabrication/body" }
+conduit-body-make = { path = "../../../make/body" }
 conduit-chat = { path = "../../../semantics/chat", features = ["form-catalog"] }
 conduit-ai = { path = "../../../semantics/ai", features = ["form-catalog"] }
 conduit-tongues = { path = "../../../semantics/tongues" }
@@ -46,16 +46,16 @@ conduit-text = { path = "../../../semantics/text", default-features = false, fea
 conduit-time = { path = "../../../semantics/time", features = ["form-catalog", "kernel-step"] }
 conduit-wire = { path = "../../../architecture/wire" }
 conduit-protected-line = { path = "../../../architecture/protected-line", optional = true }
-conduit-host-fabrication = { path = "../../../fabrication/host" }
-conduit-host-avr-fabrication = { path = "../../avr/fabrication" }
-conduit-host-rp2040 = { path = "../../rp2040/fabrication" }
-conduit-host-esp32-fabrication = { path = "../../esp32/fabrication" }
-conduit-host-hosted = { path = "../../std/fabrication" }
-conduit-host-orange-pi = { path = "../../orange-pi/fabrication" }
-conduit-host-browser-fabrication = { path = "../fabrication" }
-conduit-host-raspberry-pi = { path = "../../raspberry-pi/fabrication" }
-conduit-host-conduitos-fabrication = { path = "../../conduitos/fabrication" }
-conduit-linear-framebuffer-fabrication = { path = "../../../mechanisms/implementations/linear-framebuffer-fabrication" }
+conduit-host-make = { path = "../../../make/host" }
+conduit-host-avr-make = { path = "../../avr/make" }
+conduit-host-rp2040 = { path = "../../rp2040/make" }
+conduit-host-esp32-make = { path = "../../esp32/make" }
+conduit-host-hosted = { path = "../../std/make" }
+conduit-host-orange-pi = { path = "../../orange-pi/make" }
+conduit-host-browser-make = { path = "../make" }
+conduit-host-raspberry-pi = { path = "../../raspberry-pi/make" }
+conduit-host-conduitos-make = { path = "../../conduitos/make" }
+conduit-linear-framebuffer-make = { path = "../../../mechanisms/implementations/linear-framebuffer-make" }
 ed25519-dalek = { version = "2.2", default-features = false, features = ["alloc"] }
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"

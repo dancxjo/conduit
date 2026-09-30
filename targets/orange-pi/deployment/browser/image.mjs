@@ -37,7 +37,7 @@ export function validateOrangePiImageManifest(manifest, profile) {
   const files = [manifest.bootloader_asset, manifest.kernel, manifest.boot_script];
   if (files.some((file) => typeof file?.path !== "string" || !Number.isSafeInteger(file?.bytes) || file.bytes < 1 || !/^sha256:[0-9a-f]{64}$/.test(file?.sha256))) refuse("IncompleteBootImage", "reviewed Orange Pi image manifest omitted exact bootloader, kernel, or boot-script identity");
   if (manifest.schema !== "conduit.conduitos.orange-pi-5-image/v1" || manifest.os !== null
-    || manifest.fabrication_package_id !== profile.packageId || manifest.fabrication_package_revision !== 1
+    || manifest.make_package_id !== profile.packageId || manifest.make_package_revision !== 1
     || manifest.output !== "sd-image" || manifest.builder_adapter !== profile.builderAdapter
     || manifest.deployment_adapter !== profile.deploymentAdapter || manifest.boot_mechanism !== profile.bootMechanism
     || manifest.bootloader_start_sector !== 64 || manifest.partition_start_sector !== 32768

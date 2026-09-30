@@ -25,7 +25,7 @@ impl BootIdentity {
 
     pub fn print_boot(&self) {
         esp_println::println!(
-            "CONDUIT_ESP32_BOOT schema=conduit.host/esp32-boot@1 host=esp32/{:02x}{:02x}{:02x}{:02x}{:02x}{:02x} boot={:02x}{:02x}{:02x}{:02x}{:02x}{:02x}{:02x}{:02x}{:02x}{:02x}{:02x}{:02x}{:02x}{:02x}{:02x}{:02x} plan={} fabrication={}",
+            "CONDUIT_ESP32_BOOT schema=conduit.host/esp32-boot@1 host=esp32/{:02x}{:02x}{:02x}{:02x}{:02x}{:02x} boot={:02x}{:02x}{:02x}{:02x}{:02x}{:02x}{:02x}{:02x}{:02x}{:02x}{:02x}{:02x}{:02x}{:02x}{:02x}{:02x} plan={} make={}",
             self.host_mac[0],
             self.host_mac[1],
             self.host_mac[2],
@@ -49,7 +49,7 @@ impl BootIdentity {
             self.nonce[14],
             self.nonce[15],
             crate::generated::PLAN_ID,
-            crate::generated::GENERATED_FABRICATION_DESCRIPTOR_BINDING,
+            crate::generated::GENERATED_MAKE_DESCRIPTOR_BINDING,
         );
     }
 

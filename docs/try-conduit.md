@@ -27,7 +27,7 @@ or gallery evidence, run QEMU, or claim physical hardware proof.
 ## Run a first form
 
 ```bash
-cargo xtask fabricate host std
+cargo xtask make host std
 ```
 
 `cargo xtask doctor` is an optional diagnostic across targets; missing browser
@@ -66,7 +66,7 @@ cargo xtask prove journey patchbay --on browser
 
 This command builds the required browser runtime and serves it locally. Keep
 the terminal process running while using the page. A separate browser host can
-be launched with `cargo xtask fabricate host browser`; each launch has its own
+be launched with `cargo xtask make host browser`; each launch has its own
 runtime identity. The [body lifecycle guide](self-hosted-biography.md) explains
 how resident Forms, Crèche compatibility, and Patchbay relate.
 
@@ -76,8 +76,8 @@ Install the build and emulator prerequisites listed in the
 [ConduitOS guide](../targets/conduitos/README.md), then run:
 
 ```bash
-cargo xtask fabricate conduitos live x86_64
-cargo xtask fabricate conduitos live-boot x86_64
+cargo xtask make conduitos live x86_64
+cargo xtask make conduitos live-boot x86_64
 ```
 
 The first command builds `target/conduitos/live/x86_64-pc/conduitos-x86_64.iso`.
@@ -95,19 +95,19 @@ portable Tour application state and action identities; each host supplies its
 own presentation implementation.
 
 ```bash
-cargo xtask fabricate conduitos live-matrix
+cargo xtask make conduitos live-matrix
 ```
 
 The matrix describes the supported media and their limits. Additional `ia32`,
 `aarch64`, `riscv64`, and `loongarch64` product ISOs expose serial-console
 sessions; they do not have the x86_64 graphical experience. Board images have
-their own fabrication and physical-proof boundaries. See
-[host fabrication](host-fabrication.md) for those workflows.
+their own make and physical-proof boundaries. See
+[host make](host-make.md) for those workflows.
 
 To capture the reproducible x86_64 journey yourself:
 
 ```bash
-cargo xtask fabricate conduitos journey-proof
+cargo xtask make conduitos journey-proof
 ```
 
 This runs QEMU and writes the manifest and checkpoint PNGs under
@@ -178,8 +178,8 @@ Start with `cargo xtask doctor pico` and the
 BOOTSEL mode, the explicit USB firmware workflow is:
 
 ```bash
-cargo xtask fabricate pico build --usb-remote
-cargo xtask fabricate pico flash --usb-remote
+cargo xtask make pico build --usb-remote
+cargo xtask make pico flash --usb-remote
 cargo xtask prove std-pico-usb --interactive
 ```
 

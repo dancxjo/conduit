@@ -39,13 +39,7 @@ fn foundational_crates_do_not_depend_on_pete() {
         .parent()
         .and_then(Path::parent)
         .expect("workspace root");
-    for owner in [
-        "architecture",
-        "fabrication",
-        "mechanisms",
-        "semantics",
-        "targets",
-    ] {
+    for owner in ["architecture", "make", "mechanisms", "semantics", "targets"] {
         assert_no_pete_dependency(&root.join(owner));
     }
 }

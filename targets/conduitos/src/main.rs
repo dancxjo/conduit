@@ -55,8 +55,8 @@ extern "C" fn conduitos_start() -> ! {
                 {
                     #[cfg(feature = "conduitos-isolation-proof")]
                     run_isolation_proof(&record);
-                    let fabrication = &conduitos::fabrication::EMBEDDED_FABRICATION;
-                    if let Err(error) = fabrication.validate(record.runtime_arena.length) {
+                    let make = &conduitos::make::EMBEDDED_MAKE;
+                    if let Err(error) = make.validate(record.runtime_arena.length) {
                         emit_machine_refusal(error.as_str());
                     }
                     initialize_runtime_arena(&record);
@@ -83,8 +83,8 @@ extern "C" fn conduitos_start() -> ! {
 
 #[cfg(all(target_os = "none", feature = "virtio-net-proof"))]
 fn run_virtio_net_proof(record: &boot::BootRecord) -> ! {
-    let fabrication = &conduitos::fabrication::EMBEDDED_FABRICATION;
-    if let Err(error) = fabrication.validate(record.runtime_arena.length) {
+    let make = &conduitos::make::EMBEDDED_MAKE;
+    if let Err(error) = make.validate(record.runtime_arena.length) {
         emit_machine_refusal(error.as_str());
     }
     initialize_runtime_arena(record);
@@ -138,9 +138,9 @@ fn inspect_spore_provision(
             let expires_at_millis = provision.invitation_provision.expires_at_millis;
             if let Err(error) = spore_provision::validate_image_binding(
                 &provision,
-                conduitos::fabrication::EMBEDDED_FABRICATION.target,
-                conduitos::fabrication::EMBEDDED_FABRICATION.profile_id,
-                conduitos::fabrication::EMBEDDED_FABRICATION.build_id,
+                conduitos::make::EMBEDDED_MAKE.target,
+                conduitos::make::EMBEDDED_MAKE.profile_id,
+                conduitos::make::EMBEDDED_MAKE.build_id,
             ) {
                 emit_refusal(error.as_str());
             }

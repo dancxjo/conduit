@@ -62,8 +62,8 @@ export function validateRaspberryPiImageManifest(manifest, profile) {
     refuse("IncompleteBootPartition", "reviewed Raspberry Pi image manifest omitted an exact verified boot file");
   }
   if (manifest.schema !== "conduit.conduitos.armv6-rpi-image/v1"
-    || manifest.fabrication_package_id !== profile.packageId
-    || manifest.fabrication_package_revision !== 2
+    || manifest.make_package_id !== profile.packageId
+    || manifest.make_package_revision !== 2
     || manifest.output !== "sd-image"
     || manifest.builder_adapter !== profile.builderAdapter
     || manifest.deployment_adapter !== profile.deploymentAdapter

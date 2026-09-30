@@ -28,7 +28,7 @@ Refresh the source artifacts by running the ordinary repository-development
 entrance:
 
 ```sh
-cargo xtask fabricate conduitos journey-proof
+cargo xtask make conduitos journey-proof
 ```
 
 That proof replaces `target/conduitos/x86_64/journey-frames/manifest.json` and
@@ -161,7 +161,7 @@ compares one semantic moment; body controls follow a single track. Machine
 receipts remain under Evidence. Pre-birth conversational moments are silent
 because no Body exists yet.
 
-`cargo xtask fabricate host prove-local-model --orifina-presenter --journey-documentary`
+`cargo xtask make host prove-local-model --orifina-presenter --journey-documentary`
 retains every tutorial-state request and its actual outward model words (supply
 the explicit local model and admitted-memory options shown by `--help`). This
 is an explicit documentary run, not a required live-inference release gate.
@@ -178,7 +178,7 @@ an invented dialogue. See the retained recording's README for its exact limits.
 Release promotion does not run this publisher. `journey-publication.yml` runs
 only after the accepted software carrier has deployed. The successful Pages run
 retains one normalized exact base carrier for the downstream workflow regardless
-of whether those bytes were inherited or freshly fabricated. The publisher
+of whether those bytes were inherited or freshly made. The publisher
 consumes immutable native/browser claim evidence from promotion, creates the
 gallery-only One Form, Two Fronts and Little Life evidence against the accepted
 source, and refuses to replace Pages if `main` has advanced. Its failure leaves
@@ -205,7 +205,7 @@ previous raster as runtime truth.
 
 ## ConduitOS console evidence
 
-`cargo xtask fabricate conduitos prove --arch x86-64 --evidence-root <directory>` can
+`cargo xtask make conduitos prove --arch x86-64 --evidence-root <directory>` can
 emit one bounded UTF-8 console transcript after the existing x86_64 proof has
 validated its boot sign, kernel sign, Observatory snapshot, exact semantic
 presentation, and terminal QEMU debug exit. The ordinary proof remains the

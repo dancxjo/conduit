@@ -193,7 +193,7 @@ fn traces_current_profile_build_image_host_boot_and_inclusion_without_owning_tru
             host_id: advertisement.host_id,
             boot_id: advertisement.boot_id,
             firmware_environment: "rp2040-current".into(),
-            adapter_name: "rp2040-fabrication-package".into(),
+            adapter_name: "rp2040-make-package".into(),
             adapter_version: "1".into(),
             adapter_revision: "1".into(),
             image_id: ArtifactId::from("image:sha256:exact"),

@@ -89,7 +89,7 @@ impl FakeMidiOutputSession {
 }
 
 #[test]
-fn provider_loss_does_not_fabricate_successful_all_notes_off() {
+fn provider_loss_does_not_make_successful_all_notes_off() {
     let mut session = FakeMidiOutputSession::new(FakeMidiOutputBehavior::FailAfter(1));
     session.send([0x90, 60, 100]).unwrap();
     assert_eq!(

@@ -76,7 +76,7 @@ async function fixture(mutate = () => {}) {
   }
   const value = {
     manifest: {
-      schema: "conduit.release/host-bundle@1", target_id: "browser/wasm32/page", fabrication_package_id: "browser-wasm@1",
+      schema: "conduit.release/host-bundle@1", target_id: "browser/wasm32/page", make_package_id: "browser-wasm@1",
       output: "browser-bundle", builder_adapter: "conduit-host-browser/build-wasm@1", deployment_adapter: "conduit-host-browser/load@1",
       source_identity: "commit:fixture", bundle_sha256: await bundleDigest(files), files,
       reviewed_distribution: {

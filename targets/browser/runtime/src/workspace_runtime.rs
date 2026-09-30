@@ -429,7 +429,7 @@ fn dispatch(request: Request) -> Result<Vec<u8>, Refusal> {
                     &image_content_digest,
                     selection,
                 )
-                .map_err(|message| Refusal::new("Fabrication.Prepare", &message))?;
+                .map_err(|message| Refusal::new("Make.Prepare", &message))?;
                 let response = encode(&prepared)?;
                 ADMISSIONS.with(|admissions| *admissions.borrow_mut() = Some(next_admissions));
                 return Ok(response);
@@ -469,7 +469,7 @@ fn dispatch(request: Request) -> Result<Vec<u8>, Refusal> {
                     &target_id,
                     image_content_digest.as_deref(),
                     reviewed_image.as_deref(),
-                ).map_err(|message| Refusal::new("Fabrication.Prepare", &message))?;
+                ).map_err(|message| Refusal::new("Make.Prepare", &message))?;
                 let response = encode(&prepared)?;
                 ADMISSIONS.with(|admissions| *admissions.borrow_mut() = Some(next_admissions));
                 return Ok(response);

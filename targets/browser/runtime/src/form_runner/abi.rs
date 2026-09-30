@@ -113,7 +113,7 @@ pub extern "C" fn conduit_tour_inventory() -> i32 {
         .unwrap_or(ERROR_OUTPUT)
 }
 
-/// Projects the exact fabrication selections used to construct this runtime's
+/// Projects the exact make selections used to construct this runtime's
 /// ordinary installed-host advertisement.
 #[no_mangle]
 pub extern "C" fn conduit_tour_human_machinery() -> i32 {

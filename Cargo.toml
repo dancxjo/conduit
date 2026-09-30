@@ -33,17 +33,17 @@ members = [
 	"semantics/tongues",
 	"semantics/web",
 
-	# Generic fabrication layers.
-	"fabrication/body",
-	"fabrication/embedded-build",
-	"fabrication/host",
-	"fabrication/workspace",
+	# Generic make layers.
+	"make/body",
+	"make/embedded-build",
+	"make/host",
+	"make/workspace",
 
 	# Reusable lower mechanisms and implementations.
 	"mechanisms/devices/create-oi",
 	"mechanisms/devices/mpu6050",
 	"mechanisms/devices/ssd1306",
-	"mechanisms/implementations/linear-framebuffer-fabrication",
+	"mechanisms/implementations/linear-framebuffer-make",
 	"mechanisms/implementations/emergency-keyword-spotter",
 	"mechanisms/implementations/synth",
 	"mechanisms/protocols/bluetooth",
@@ -70,19 +70,19 @@ members = [
 	"forms/little-seismograph/fixture",
 
 	# Exact host, machine, board, and target-family realizations.
-	"targets/avr/fabrication",
+	"targets/avr/make",
 	"targets/browser/host",
-	"targets/browser/fabrication",
+	"targets/browser/make",
 	"targets/browser/runtime",
 	"targets/conduitos",
-	"targets/conduitos/fabrication",
-	"targets/esp32/fabrication",
-	"targets/orange-pi/fabrication",
-	"targets/raspberry-pi/fabrication",
-	"targets/rp2040/fabrication",
+	"targets/conduitos/make",
+	"targets/esp32/make",
+	"targets/orange-pi/make",
+	"targets/raspberry-pi/make",
+	"targets/rp2040/make",
 	"targets/rp2040/network-realization",
 	"targets/std",
-	"targets/std/fabrication",
+	"targets/std/make",
 	"targets/std/offers",
 
 	# Explicit proof and conformance packages.
@@ -92,6 +92,10 @@ members = [
 	"proof/conformance/pete-workload",
 	"proof/conformance/signal",
 	"proof/fixtures/rp2040-pio-audio-extension",
+	# Retired package identities used only by the pre-rename trusted CI controller.
+	"proof/fixtures/make-rename-ci-bridge/conduitos",
+	"proof/fixtures/make-rename-ci-bridge/esp32",
+	"proof/fixtures/make-rename-ci-bridge/workspace",
 
 	# Repository-development tooling.
 	"tools/xtask-dispatch",

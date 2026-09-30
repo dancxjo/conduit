@@ -34,11 +34,11 @@ fn dry_run_json_is_deterministic_and_effect_free_for_migrated_commands() {
             "7",
             "--authorize-output",
         ],
-        &["--dry-run", "--json", "fabricate", "pico", "build"],
+        &["--dry-run", "--json", "make", "pico", "build"],
         &[
             "--dry-run",
             "--json",
-            "fabricate",
+            "make",
             "pico",
             "drive-create",
             "--wheels-off-floor",
@@ -66,7 +66,7 @@ fn quiet_dry_runs_emit_no_ordinary_stdout() {
     for command in [
         vec!["--dry-run", "--quiet", "doctor", "midi"],
         vec!["--dry-run", "--quiet", "doctor", "audio"],
-        vec!["--dry-run", "--quiet", "fabricate", "pico", "build"],
+        vec!["--dry-run", "--quiet", "make", "pico", "build"],
     ] {
         let output = xtask(&command);
         assert!(
@@ -82,7 +82,7 @@ fn quiet_dry_runs_emit_no_ordinary_stdout() {
 fn live_pico_structured_modes_refuse_before_dispatch() {
     let json = xtask(&[
         "--json",
-        "fabricate",
+        "make",
         "pico",
         "drive-create",
         "--wheels-off-floor",
@@ -95,7 +95,7 @@ fn live_pico_structured_modes_refuse_before_dispatch() {
 
     let quiet = xtask(&[
         "--quiet",
-        "fabricate",
+        "make",
         "pico",
         "drive-create",
         "--wheels-off-floor",
@@ -110,7 +110,7 @@ fn migrated_sources_have_no_bespoke_unsupported_literals() {
         include_str!("../src/main.rs"),
         include_str!("../src/commands/midi.rs"),
         include_str!("../src/commands/audio.rs"),
-        include_str!("../../../targets/rp2040/firmware/pico-w-signal/fabrication/xtask/mod.rs"),
+        include_str!("../../../targets/rp2040/firmware/pico-w-signal/make/xtask/mod.rs"),
     ] {
         assert!(!source.contains("--json is not yet supported"));
         assert!(!source.contains("--quiet is not yet supported"));

@@ -26,7 +26,7 @@ Upstream source:
 Regenerate from the downloaded, checksum-verified asset:
 
 ```sh
-cargo xtask fabricate unifont-subset \
+cargo xtask make unifont-subset \
   unifont_all-17.0.04.hex.gz \
   mechanisms/implementations/bounded-unifont/unifont-17.0.04-bounded.hex
 ```

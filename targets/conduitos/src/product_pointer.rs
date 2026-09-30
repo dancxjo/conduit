@@ -9,8 +9,8 @@ use conduit_tour_model::TourPointerOutcome;
 
 use crate::{
     arch::{self, HidPointerReady, HidPointerSession, UsbDevice, XhciReady},
-    fabrication::FabricationRecord,
     identity::{self, BootIdentities},
+    make::MakeRecord,
     native_compositor::{NativeCompositorError, RoutedPointer},
     pointer_offer::PointerRealization,
     tour_product::TourProduct,
@@ -57,7 +57,7 @@ pub fn realization(
 #[allow(clippy::too_many_arguments)]
 pub fn run(
     identities: &BootIdentities,
-    fabrication: &FabricationRecord,
+    make: &MakeRecord,
     tour: &mut TourProduct,
     presenter: &mut TourShellPresenter,
     display: &mut impl crate::display::PixelTarget,
@@ -66,44 +66,30 @@ pub fn run(
     usb: &UsbDevice,
     execute: &mut impl Execute,
 ) -> Result<(), &'static str> {
-    run_with(
-        identities,
-        fabrication,
-        tour,
-        presenter,
-        display,
-        execute,
-        || {
-            session
-                .receive(controller, usb)
-                .map_err(|error| error.as_str())
-        },
-    )
+    run_with(identities, make, tour, presenter, display, execute, || {
+        session
+            .receive(controller, usb)
+            .map_err(|error| error.as_str())
+    })
 }
 
 pub fn run_ps2(
     identities: &BootIdentities,
-    fabrication: &FabricationRecord,
+    make: &MakeRecord,
     tour: &mut TourProduct,
     presenter: &mut TourShellPresenter,
     display: &mut impl crate::display::PixelTarget,
     input: &mut crate::arch::Ps2Input,
     execute: &mut impl Execute,
 ) -> Result<(), &'static str> {
-    run_with(
-        identities,
-        fabrication,
-        tour,
-        presenter,
-        display,
-        execute,
-        || input.receive_pointer().map_err(|error| error.as_str()),
-    )
+    run_with(identities, make, tour, presenter, display, execute, || {
+        input.receive_pointer().map_err(|error| error.as_str())
+    })
 }
 
 fn run_with(
     identities: &BootIdentities,
-    fabrication: &FabricationRecord,
+    make: &MakeRecord,
     tour: &mut TourProduct,
     presenter: &mut TourShellPresenter,
     display: &mut impl crate::display::PixelTarget,
@@ -173,7 +159,7 @@ fn run_with(
                 {
                     arch::early_write(b"CONDUIT_TOUR_CHECKPOINT scrolled-surface-subject-hit\n");
                 }
-                emit_auxiliary_focus_sign(&route, sample, tour, identities, fabrication);
+                emit_auxiliary_focus_sign(&route, sample, tour, identities, make);
                 arch::early_write(b"CONDUIT_TOUR_CHECKPOINT auxiliary-surface-focused\n");
                 if route.surface_id == TRANSIENT_SURFACE {
                     let chosen = presenter
@@ -196,10 +182,7 @@ fn run_with(
                         return Err("dismissed-transient-route-remained-current");
                     }
                     crate::product_front_door::transient_sign::emit_dismissed_transient(
-                        &dismissal,
-                        true,
-                        identities,
-                        fabrication,
+                        &dismissal, true, identities, make,
                     );
                     if chosen.is_some() {
                         presenter
@@ -285,20 +268,12 @@ fn run_with(
             let relayout = presenter
                 .relayout_inspector(tour, display)
                 .map_err(|error| error.as_str())?;
-            emit_relayout_sign(&relayout, identities, fabrication);
+            emit_relayout_sign(&relayout, identities, make);
             shell.inspector = Some(relayout.current);
             shell.frame = relayout.frame;
             arch::early_write(b"CONDUIT_TOUR_CHECKPOINT inspector-relayout\n");
         }
-        emit_sign(
-            &outcome,
-            &route,
-            &shell,
-            sample,
-            tour,
-            identities,
-            fabrication,
-        );
+        emit_sign(&outcome, &route, &shell, sample, tour, identities, make);
         arch::early_write(b"CONDUIT_BOOT_STAGE pointer-awaiting-report\n");
     }
 }
@@ -333,7 +308,7 @@ fn emit_sign(
     sample: conduit_semantic_catalog::NormalizedPointerSample,
     tour: &TourProduct,
     identities: &BootIdentities,
-    fabrication: &FabricationRecord,
+    make: &MakeRecord,
 ) {
     let (status, subject) = match outcome {
         TourPointerOutcome::Hovered { subject } => ("hovered", subject.as_str()),
@@ -376,9 +351,9 @@ fn emit_sign(
         shell.frame.frame_sequence,
         shell.frame.surfaces_composed,
         shell.frame.damage_count,
-        fabrication.profile_id,
-        fabrication.build_id,
-        fabrication.image_binding,
+        make.profile_id,
+        make.build_id,
+        make.image_binding,
         identity::hex(&identities.host),
         identity::hex(&identities.boot),
     );
@@ -390,7 +365,7 @@ fn emit_auxiliary_focus_sign(
     sample: conduit_semantic_catalog::NormalizedPointerSample,
     tour: &TourProduct,
     identities: &BootIdentities,
-    fabrication: &FabricationRecord,
+    make: &MakeRecord,
 ) {
     let status = if route.surface_id == TRANSIENT_SURFACE {
         "transient-focused"
@@ -410,9 +385,9 @@ fn emit_auxiliary_focus_sign(
         route.manifestation_id.as_str(),
         route.local_x,
         route.local_y,
-        fabrication.profile_id,
-        fabrication.build_id,
-        fabrication.image_binding,
+        make.profile_id,
+        make.build_id,
+        make.image_binding,
         identity::hex(&identities.host),
         identity::hex(&identities.boot),
     );
@@ -426,7 +401,7 @@ fn json_optional(value: Option<&str>) -> alloc::string::String {
 fn emit_relayout_sign(
     receipt: &crate::tour_shell::ShellRelayoutReceipt,
     identities: &BootIdentities,
-    fabrication: &FabricationRecord,
+    make: &MakeRecord,
 ) {
     let line = format!(
         "CONDUIT_RESIZE_SIGN {{\"schema\":\"conduit.conduitos.surface-relayout/v1\",\"status\":\"current\",\"surface_id\":\"{}\",\"previous_x\":{},\"previous_y\":{},\"previous_width\":{},\"previous_height\":{},\"current_x\":{},\"current_y\":{},\"current_width\":{},\"current_height\":{},\"invalidated_manifestation_id\":\"{}\",\"loss_sign_id\":\"conduitos/surface-loss/{}\",\"current_presentation_id\":\"{}\",\"current_manifestation_id\":\"{}\",\"input_refused_while_invalidated\":{},\"frame_sequence\":{},\"damage_count\":{},\"pixels_written\":{},\"profile_id\":\"{}\",\"build_id\":\"{}\",\"image_id\":\"{}\",\"host_id\":\"{}\",\"boot_id\":\"{}\",\"bounded\":true}}\n",
@@ -447,9 +422,9 @@ fn emit_relayout_sign(
         receipt.frame.frame_sequence,
         receipt.frame.damage_count,
         receipt.frame.pixels_written,
-        fabrication.profile_id,
-        fabrication.build_id,
-        fabrication.image_binding,
+        make.profile_id,
+        make.build_id,
+        make.image_binding,
         identity::hex(&identities.host),
         identity::hex(&identities.boot),
     );

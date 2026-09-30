@@ -34,7 +34,7 @@ pub enum CheckScope {
     Catalog(crate::commands::catalog::CatalogArgs),
     /// Check and report the explicit reviewed form inventory.
     Forms(crate::commands::forms::FormsArgs),
-    /// Check Pete's reviewed workload and Host fabrication closure without physical access.
+    /// Check Pete's reviewed workload and Host make closure without physical access.
     Pete,
 }
 
@@ -386,7 +386,7 @@ const SECURITY_ACCEPTANCE_STEPS: &[Step] = &[
         "security-acceptance.conduitos",
         "Attack x86_64 kernel memory, sibling domains, MMIO, I/O, and handles",
         "cargo",
-        &["xtask", "fabricate", "conduitos", "isolation-proof"],
+        &["xtask", "make", "conduitos", "isolation-proof"],
     ),
 ];
 

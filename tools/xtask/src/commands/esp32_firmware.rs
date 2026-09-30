@@ -6,7 +6,7 @@ use std::{
 };
 
 use clap::{Args, Subcommand};
-use conduit_host_esp32_fabrication::Esp32FamilyTarget;
+use conduit_host_esp32_make::Esp32FamilyTarget;
 use serde::Serialize;
 use sha2::{Digest, Sha256};
 
@@ -15,8 +15,8 @@ use crate::{cli::GlobalOpts, workspace::workspace_root};
 mod browser_release;
 mod morse_key;
 
-const FABRICATION_RUNNER_MANIFEST: &str =
-    "targets/esp32/firmware/wroom-signal/fabrication-package-runner/Cargo.toml";
+const MAKE_RUNNER_MANIFEST: &str =
+    "targets/esp32/firmware/wroom-signal/make-package-runner/Cargo.toml";
 const ESPFLASH_VERSION: &str = "4.5.0";
 const ESPFLASH_ARCHIVE: &str = "espflash-x86_64-unknown-linux-gnu.zip";
 const ESPFLASH_URL: &str = "https://github.com/esp-rs/espflash/releases/download/v4.5.0/espflash-x86_64-unknown-linux-gnu.zip";
@@ -33,7 +33,7 @@ pub struct Esp32FirmwareArgs {
 
 #[derive(Subcommand, Debug)]
 enum Esp32FirmwareCommand {
-    /// Delegate the locked machine-only check to the ESP32 fabrication package.
+    /// Delegate the locked machine-only check to the ESP32 make package.
     Check {
         #[arg(long, default_value = "target/esp32-firmware/check-receipt.json")]
         receipt: PathBuf,
@@ -147,10 +147,10 @@ fn run_check(
     opts: &GlobalOpts,
 ) -> Result<(), Box<dyn std::error::Error>> {
     let root = workspace_root()?;
-    let manifest = root.join(FABRICATION_RUNNER_MANIFEST);
+    let manifest = root.join(MAKE_RUNNER_MANIFEST);
     if !manifest.is_file() {
         return Err(format!(
-            "ESP32 fabrication-package runner is unavailable at {}",
+            "ESP32 make-package runner is unavailable at {}",
             manifest.display()
         )
         .into());
@@ -168,7 +168,7 @@ fn run_check(
         command.arg("--allow-dirty");
     }
     forward_output_flags(&mut command, opts);
-    require_success(command, "ESP32 fabrication-package runner")
+    require_success(command, "ESP32 make-package runner")
 }
 
 fn run_build(

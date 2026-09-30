@@ -338,7 +338,7 @@ fn missing_is_not_zero_and_undeclared_reverse_or_singleton_refuses() {
 }
 
 #[test]
-fn terminal_and_bounds_are_finite_and_do_not_fabricate_results() {
+fn terminal_and_bounds_are_finite_and_do_not_make_results() {
     let callable = callable_signature();
     let artifact = artifact(&callable);
     let relation = relation(&callable);

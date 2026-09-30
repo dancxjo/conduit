@@ -30,7 +30,7 @@ try {
   const distribution = {
     schema: "conduit.release/host-bundle@1",
     target_id: "browser/wasm32/page",
-    fabrication_package_id: "browser-wasm@1",
+    make_package_id: "browser-wasm@1",
     output: "browser-bundle",
     files: [runtimeFile, bootFile],
     bundle_sha256: distributionDigest,
@@ -39,7 +39,7 @@ try {
   const release = {
     schema: distribution.schema,
     target_id: distribution.target_id,
-    fabrication_package_id: distribution.fabrication_package_id,
+    make_package_id: distribution.make_package_id,
     output: distribution.output,
     distribution_id: "browser-reviewed@1",
     distribution_sha256: distributionDigest,

@@ -68,7 +68,7 @@ conditions remain different:
 - unavailable traversability evidence;
 - no route in the admitted finite environment;
 - unavailable local controller, which prevents an exact plan rather than
-  becoming a fabricated control value;
+  becoming a made control value;
 - authority refusal below portable control; and
 - physical-safety inhibition at the actuator realization.
 
@@ -108,7 +108,7 @@ authored goal and the form's portable front unchanged.
 
 The form ends at `RoboticsMotionRequest`. Producing that typed value grants no
 motor authority and performs no physical effect. A model proposal, human
-interaction, valid route, body membership, or reachable host cannot fabricate
+interaction, valid route, body membership, or reachable host cannot make
 the capability required by the selected actuator realization.
 
 For Pete's Create realization, the boundary below navigation remains the

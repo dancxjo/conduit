@@ -3,9 +3,9 @@ import { createBrowserUsbDeviceBase } from "../../../usb-device-base.mjs";
 import { createRp2040BrowserDeploymentAdapter, RP2040_BROWSER_DEPLOYMENT } from "./deployment.mjs";
 import {
   bindRp2040BodySpore,
-  createRp2040BrowserFabricationAdapter,
-  RP2040_BROWSER_FABRICATION,
-} from "./fabrication.mjs";
+  createRp2040BrowserMakeAdapter,
+  RP2040_BROWSER_MAKE,
+} from "./make.mjs";
 import { PHYSICAL_SPAWN_STREAM_BOUNDS, requestRp2040SpawnJoin } from "./spawn.mjs";
 import { createNativeSporeDownload } from "../../../creche-spore-bundle.mjs";
 
@@ -32,7 +32,7 @@ const TARGET = Object.freeze({
   profile_id: "pico-local",
 });
 const MODES = Object.freeze([
-  Object.freeze({ id: "fabricate-new", resultKind: "artifact", supported: true }),
+  Object.freeze({ id: "make-new", resultKind: "artifact", supported: true }),
   Object.freeze({ id: "install-existing", resultKind: "installation", supported: false }),
   Object.freeze({ id: "attach-running", resultKind: "attachment", supported: false }),
 ]);
@@ -40,7 +40,7 @@ const BOUNDS = Object.freeze({
   maximumOperations: 16,
   maximumOperationEvidenceBytes: 32 * 1024,
   maximumRetainedEvidenceBytes: 128 * 1024,
-  maximumArtifactBytes: RP2040_BROWSER_FABRICATION.maximumArtifactBytes,
+  maximumArtifactBytes: RP2040_BROWSER_MAKE.maximumArtifactBytes,
 });
 
 export const RP2040_CRECHE_TARGET_CONTRIBUTION = Object.freeze({
@@ -48,7 +48,7 @@ export const RP2040_CRECHE_TARGET_CONTRIBUTION = Object.freeze({
   family: Object.freeze({ id: "conduit-target-family/rp2040@1", label: "RP2040 boards" }),
   target: TARGET,
   intentions: MODES,
-  fabrication_strategies: Object.freeze([
+  make_strategies: Object.freeze([
     Object.freeze({ id: "packaged-exact", label: "Reviewed packaged IMAGE" }),
     Object.freeze({ id: "template-specialized", label: "Reviewed template + bounded Body label" }),
   ]),
@@ -68,7 +68,7 @@ export const RP2040_CRECHE_TARGET_CONTRIBUTION = Object.freeze({
     schema: "conduit.rp2040/creche-target-profile@1",
     chip: "RP2040",
     artifact_layout: "UF2 family RP2040; 512-byte blocks",
-    fabrication_strategy: "reviewed packaged IMAGE or bounded template specialization",
+    make_strategy: "reviewed packaged IMAGE or bounded template specialization",
     browser_transport: "WebUSB Picoboot",
     loader_behavior: "BOOTSEL Picoboot command protocol then reboot",
     expected_post_flash_join: "bounded Web Serial spawn protocol 2",
@@ -89,7 +89,7 @@ export function createRp2040CrecheTargetAdapter({ host, prepareSpore = null }) {
   });
 
   function createOptions({ mode, onChange }) {
-    if (mode !== "fabricate-new") {
+    if (mode !== "make-new") {
       const explanation = document.createElement("p");
       explanation.className = "target-option-note";
       explanation.textContent = mode === "install-existing"
@@ -98,11 +98,11 @@ export function createRp2040CrecheTargetAdapter({ host, prepareSpore = null }) {
       return explanation;
     }
     const label = document.createElement("label");
-    label.textContent = "Fabrication strategy";
+    label.textContent = "Make strategy";
     const wrapper = document.createElement("span");
     wrapper.className = "select-field";
     const select = document.createElement("select");
-    select.className = "fabrication-strategy";
+    select.className = "make-strategy";
     for (const [value, text] of [
       ["packaged-exact", "Reviewed packaged IMAGE"],
       ["template-specialized", "Reviewed template + bounded Body label"],
@@ -126,7 +126,7 @@ export function createRp2040CrecheTargetAdapter({ host, prepareSpore = null }) {
       const resolved = host?.resolveReviewedRelease
         ? await host.resolveReviewedRelease(RELEASE_PROFILE, signal)
         : null;
-      const fabrication = await createRp2040BrowserFabricationAdapter({ resolved }).fabricate({
+      const make = await createRp2040BrowserMakeAdapter({ resolved }).make({
         strategy,
         selection: {
           targetId: "conduit-target/rp2040-pico-w@1",
@@ -140,27 +140,27 @@ export function createRp2040CrecheTargetAdapter({ host, prepareSpore = null }) {
       requireCurrent(signal, mode, "obtain");
       return Object.freeze({
         resultKind: "artifact",
-        private: Object.freeze({ imageBytes: fabrication.bytes, imageDigest: fabrication.content_id }),
+        private: Object.freeze({ imageBytes: make.bytes, imageDigest: make.content_id }),
         evidence: Object.freeze({
           schema: "conduit.rp2040/creche-obtainment@1",
           mode,
           result_kind: "artifact",
           target_id: TARGET_ID,
           artifact: Object.freeze({
-            ...fabrication.provenance,
-            content_digest: fabrication.content_id,
-            bytes: fabrication.bytes.length,
+            ...make.provenance,
+            content_digest: make.content_id,
+            bytes: make.bytes.length,
           }),
-          fabrication: Object.freeze({
-            ...fabrication,
-            bytes: `${fabrication.bytes.length} bytes retained outside evidence`,
+          make: Object.freeze({
+            ...make,
+            bytes: `${make.bytes.length} bytes retained outside evidence`,
           }),
           does_not_prove: Object.freeze(["invitation", "deployment", "boot", "join", "membership", "offers"]),
         }),
       });
     } catch (error) {
       if (error?.evidence) throw error;
-      refuse(mode, "obtain", error?.code ?? "FabricationFailed", "RP2040 artifact fabrication terminated without success", error);
+      refuse(mode, "obtain", error?.code ?? "MakeFailed", "RP2040 artifact make terminated without success", error);
     }
   }
 
@@ -364,7 +364,7 @@ function friendlyFilename(value) {
 }
 
 function requireMode(mode, operation) {
-  if (mode === "fabricate-new") return;
+  if (mode === "make-new") return;
   const code = mode === "install-existing" ? "InstallExistingUnsupported" : "AttachRunningUnsupported";
   const resultKind = mode === "install-existing" ? "installation" : "attachment";
   refuse(

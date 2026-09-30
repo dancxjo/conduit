@@ -35,7 +35,7 @@ pub struct SporeManifest {
     pub image_content_digest: String,
     pub target: String,
     pub output: String,
-    pub fabrication: serde_json::Value,
+    pub make: serde_json::Value,
     pub source_identity: String,
 }
 
@@ -116,7 +116,7 @@ impl ProvisionError {
     }
 }
 
-/// Prove that an invitation was fabricated for this exact booted product.
+/// Prove that an invitation was made for this exact booted product.
 pub fn validate_image_binding(
     provision: &NativeMediaProvision,
     target: &str,
@@ -276,7 +276,7 @@ mod tests {
                 "body_description_id":"description/one", "host_entry_name":"host", "host_configuration_id":"config/one",
                 "profile_id":"profile/one", "build_id":"build/one", "image_id":"image/one",
                 "image_content_digest":format!("sha256:{}", "1".repeat(64)), "target":"conduitos/x86_64/pc",
-                "output":"disk-image", "fabrication":{}, "source_identity":"source/one"},
+                "output":"disk-image", "make":{}, "source_identity":"source/one"},
             "invitation_provision":{"invitation_id":"invitation/one", "nonce":vec![1;32],
                 "expires_at_millis":1_800_000_000_000_u64, "secret":vec![2;32],
                 "rendezvous_candidates":[{

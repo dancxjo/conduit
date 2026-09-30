@@ -59,7 +59,7 @@ Every Conduitese-changing PR must obey:
 2. Do not treat parser acceptance as proof of canonicality.
 3. Do not introduce legacy `>` Cords in new canonical source.
 4. Do not replace a dimensioned semantic contract with generic `Quantity` merely to reuse representation.
-5. Do not fabricate missing production kinds/contracts solely in a test catalog and then claim the language supports them.
+5. Do not make missing production kinds/contracts solely in a test catalog and then claim the language supports them.
 6. If canon is unsupported, either:
    - implement the smallest general missing capability clearly owned by the assigned task; or
    - stop and identify the exact canon gap/blocker.
@@ -263,7 +263,7 @@ Closed issues remain historical quarry. The live canon above carries their durab
 
 #602 #873 #884 #892 #1154 #1155 #3224 #3397 #3524 #3528 #3708 #3951 #3974
 
-### Host fabrication and native-systems ancestry
+### Host make and native-systems ancestry
 
 #1137 #1138 #1139 #1170 #1173 #1174 #1752 #1780 #2284 #3518 #3526 #3993 #3994 #3995 #3996 #4012
 

@@ -103,7 +103,7 @@ impl BrowserPresentationSpec {
     }
 }
 
-// These inputs change browser presentation or how an already-fabricated
+// These inputs change browser presentation or how an already-made
 // browser product is assembled. They require the Pages/browser product proof,
 // but cannot change firmware or an operating-system image.
 pub(super) const BROWSER_PRESENTATION_PROOFS: &[BrowserPresentationSpec] =
@@ -225,7 +225,7 @@ mod product_source_tests {
     }
 
     #[test]
-    fn rust_test_sources_do_not_fabricate_the_product_carrier() {
+    fn rust_test_sources_do_not_make_the_product_carrier() {
         for path in [
             "targets/browser/runtime/src/workspace_mask_tests.rs",
             "targets/browser/runtime/src/form_runner/tests.rs",
@@ -274,22 +274,22 @@ mod product_source_tests {
     }
 
     #[test]
-    fn machine_and_fabrication_sources_do_not_select_the_browser_carrier() {
+    fn machine_and_make_sources_do_not_select_the_browser_carrier() {
         for path in [
             "targets/conduitos/src/main.rs",
-            "targets/conduitos/fabrication/xtask/journey_body_track.rs",
+            "targets/conduitos/make/xtask/journey_body_track.rs",
             "targets/esp32/firmware/s3-signal/build.rs",
-            "targets/esp32/fabrication/src/lib.rs",
+            "targets/esp32/make/src/lib.rs",
             "targets/avr/firmware/promicro-host/Cargo.toml",
-            "targets/avr/fabrication/src/lib.rs",
-            "targets/raspberry-pi/fabrication/src/lib.rs",
-            "targets/orange-pi/fabrication/src/lib.rs",
-            "targets/std/fabrication/src/lib.rs",
+            "targets/avr/make/src/lib.rs",
+            "targets/raspberry-pi/make/src/lib.rs",
+            "targets/orange-pi/make/src/lib.rs",
+            "targets/std/make/src/lib.rs",
             "targets/std/profiles/linux-computer.host.conduit",
             "targets/browser/profiles/browser-page.host.conduit",
             "targets/rp2040/profiles/pico-w.host.conduit",
-            "fabrication/host/src/lib.rs",
-            "fabrication/workspace/src/lib.rs",
+            "make/host/src/lib.rs",
+            "make/workspace/src/lib.rs",
         ] {
             assert!(proofs_for_paths(&[path.into()]).is_empty(), "{path}");
         }

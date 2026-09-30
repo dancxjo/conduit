@@ -1,0 +1,8 @@
+[package]
+name = "conduit-host-rp2040"
+version = "0.1.0"
+edition = "2021"
+description = "RP2040/Pico W Host make anchor package"
+
+[dependencies]
+conduit-host-make = { path = "../../../make/host" }

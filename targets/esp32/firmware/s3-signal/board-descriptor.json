@@ -1,7 +1,7 @@
 {
   "schema": "conduit.host/esp32-board-descriptor@2",
   "id": "observed/usb-54e2006398-esp32-s3@1",
-  "fabrication": {
+  "make": {
     "board_marking": "not-visually-inspected",
     "module_marking": "not-visually-inspected",
     "soc_marking": "ESP32-S3 (QFN56)",

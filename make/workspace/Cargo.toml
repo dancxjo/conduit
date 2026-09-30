@@ -1,0 +1,17 @@
+[package]
+name = "conduit-workspace-make"
+version = "0.1.0"
+edition = "2021"
+publish = false
+
+[dependencies]
+conduit-host-make = { path = "../host" }
+conduit-host-avr-make = { path = "../../targets/avr/make" }
+conduit-host-browser-make = { path = "../../targets/browser/make" }
+conduit-host-conduitos-make = { path = "../../targets/conduitos/make" }
+conduit-host-esp32-make = { path = "../../targets/esp32/make" }
+conduit-host-hosted = { path = "../../targets/std/make" }
+conduit-host-orange-pi = { path = "../../targets/orange-pi/make" }
+conduit-linear-framebuffer-make = { path = "../../mechanisms/implementations/linear-framebuffer-make" }
+conduit-host-rp2040 = { path = "../../targets/rp2040/make" }
+conduit-host-raspberry-pi = { path = "../../targets/raspberry-pi/make" }

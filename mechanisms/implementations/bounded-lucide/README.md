@@ -8,7 +8,7 @@ Only the ten SVGs named by the canonical `PaletteIconKey` table are retained
 under `svg/`. The repository-development entrance
 
 ```console
-cargo xtask fabricate palette-icons mechanisms/implementations/bounded-lucide/svg products/patchbay/native/src/palette_icon_data.rs
+cargo xtask make palette-icons mechanisms/implementations/bounded-lucide/svg products/patchbay/native/src/palette_icon_data.rs
 ```
 
 validates that exact bounded set and deterministically rasterizes it into the

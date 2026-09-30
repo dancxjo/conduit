@@ -4,8 +4,8 @@ use alloc::format;
 
 use crate::{
     arch,
-    fabrication::FabricationRecord,
     identity::{self, BootIdentities},
+    make::MakeRecord,
     native_compositor::InputRoute,
     tour_shell::{ShellTransientDismissalReceipt, ShellTransientReceipt, TourShellPresenter},
 };
@@ -15,7 +15,7 @@ pub(crate) fn emit_shown_transient(
     cause: Option<&str>,
     shell: &TourShellPresenter,
     identities: &BootIdentities,
-    fabrication: &FabricationRecord,
+    make: &MakeRecord,
 ) -> Result<(), &'static str> {
     let InputRoute::Delivered(keyboard) = shell.route_keyboard().map_err(|error| error.as_str())?
     else {
@@ -36,9 +36,9 @@ pub(crate) fn emit_shown_transient(
         receipt.frame.surfaces_composed,
         receipt.frame.damage_count,
         receipt.frame.pixels_written,
-        fabrication.profile_id,
-        fabrication.build_id,
-        fabrication.image_binding,
+        make.profile_id,
+        make.build_id,
+        make.image_binding,
         identity::hex(&identities.host),
         identity::hex(&identities.boot),
     );
@@ -50,7 +50,7 @@ pub(crate) fn emit_dismissed_transient(
     receipt: &ShellTransientDismissalReceipt,
     stale_input_refused: bool,
     identities: &BootIdentities,
-    fabrication: &FabricationRecord,
+    make: &MakeRecord,
 ) {
     let line = format!(
         "CONDUIT_TRANSIENT_SIGN {{\"schema\":\"conduit.conduitos.transient-surface/v1\",\"status\":\"dismissed\",\"surface_id\":\"{}\",\"manifestation_id\":\"{}\",\"frame_sequence\":{},\"surfaces_composed\":{},\"damage_count\":{},\"pixels_written\":{},\"stale_input_refused\":{},\"profile_id\":\"{}\",\"build_id\":\"{}\",\"image_id\":\"{}\",\"host_id\":\"{}\",\"boot_id\":\"{}\",\"bounded\":true}}\n",
@@ -61,9 +61,9 @@ pub(crate) fn emit_dismissed_transient(
         receipt.frame.damage_count,
         receipt.frame.pixels_written,
         stale_input_refused,
-        fabrication.profile_id,
-        fabrication.build_id,
-        fabrication.image_binding,
+        make.profile_id,
+        make.build_id,
+        make.image_binding,
         identity::hex(&identities.host),
         identity::hex(&identities.boot),
     );

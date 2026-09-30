@@ -108,22 +108,22 @@ fn selected_uf2_content_is_bound_before_spore_creation() {
 
 #[test]
 fn reviewed_conduitos_description_is_retained_instead_of_reconstructed() {
-    use conduit_host_browser_fabrication::BrowserFabricationPackage;
-    use conduit_host_conduitos_fabrication::ConduitOsFabricationPackage;
-    use conduit_host_fabrication::{
+    use conduit_host_browser_make::BrowserMakePackage;
+    use conduit_host_conduitos_make::ConduitOsMakePackage;
+    use conduit_host_make::{
         build_host_image, check_host_configuration, parse_host_configuration_conduit, BuildInputs,
-        FabricationCatalog, FabricationPackageSet,
+        MakeCatalog, MakePackageSet,
     };
-    use conduit_linear_framebuffer_fabrication::LinearFramebufferFabricationExtension;
+    use conduit_linear_framebuffer_make::LinearFramebufferMakeExtension;
 
     born();
-    let packages = FabricationPackageSet::compose(&[
-        &BrowserFabricationPackage,
-        &ConduitOsFabricationPackage,
-        &LinearFramebufferFabricationExtension,
+    let packages = MakePackageSet::compose(&[
+        &BrowserMakePackage,
+        &ConduitOsMakePackage,
+        &LinearFramebufferMakeExtension,
     ])
     .unwrap();
-    let catalog = FabricationCatalog::canonical().with_packages(&packages);
+    let catalog = MakeCatalog::canonical().with_packages(&packages);
     let profile = check_host_configuration(
         parse_host_configuration_conduit(include_str!(
             "../../../../conduitos/profiles/conduitos-native.host.conduit"
@@ -183,7 +183,7 @@ fn exact_esp32_targets_bind_in_c3_s3_wroom_order_without_family_widening() {
         assert_eq!(prepared.target_id, target);
         assert_eq!(prepared.output, SporeOutputKind::Esp32Image);
         assert_eq!(prepared.image_content_digest, digest);
-        assert_eq!(prepared.fabrication_package_id, "conduit-host-esp32@1");
+        assert_eq!(prepared.make_package_id, "conduit-host-esp32@1");
         assert!(prepared
             .deployment_adapter
             .as_deref()
@@ -211,10 +211,7 @@ fn exact_pro_micro_spore_retains_external_carrier_truth() {
     assert_eq!(prepared.target_id, TARGET);
     assert_eq!(prepared.output, SporeOutputKind::IntelHex);
     assert_eq!(prepared.image_content_digest, digest);
-    assert_eq!(
-        prepared.fabrication_package_id,
-        "conduit-host-avr-promicro@1"
-    );
+    assert_eq!(prepared.make_package_id, "conduit-host-avr-promicro@1");
     assert_eq!(prepared.deployment_adapter, None);
 }
 

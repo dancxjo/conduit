@@ -60,7 +60,7 @@ fn an_embodiment_cannot_replace_the_shared_journey_with_its_own_stage_play() {
 }
 
 #[test]
-fn the_shared_loop_proves_order_only_and_never_fabricates_embodiment_evidence() {
+fn the_shared_loop_proves_order_only_and_never_makes_embodiment_evidence() {
     let mut embodiment = RecordingEmbodiment::default();
     let mut retained = Vec::new();
     actualize_mask_journey(&mut embodiment, |action, outcome| {

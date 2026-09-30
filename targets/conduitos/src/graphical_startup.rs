@@ -5,11 +5,11 @@ use conduitos::{arch, boot, identity, sign_format};
 use conduitos::{display::PixelTarget, presentation_nucleus};
 
 pub fn run(record: boot::BootRecord) -> ! {
-    let fabrication = &conduitos::fabrication::EMBEDDED_FABRICATION;
-    if !fabrication.includes(conduitos::fabrication::IMPL_NATIVE_PRESENTER)
-        || !fabrication.includes_facility(conduitos::fabrication::FACILITY_NATIVE_COMPOSITOR)
+    let make = &conduitos::make::EMBEDDED_MAKE;
+    if !make.includes(conduitos::make::IMPL_NATIVE_PRESENTER)
+        || !make.includes_facility(conduitos::make::FACILITY_NATIVE_COMPOSITOR)
     {
-        emit_machine_refusal("fabrication-presentation-unavailable");
+        emit_machine_refusal("make-presentation-unavailable");
     }
     arch::early_write(b"CONDUIT_BOOT_STAGE xhci-start\n");
     let mut xhci =
@@ -222,15 +222,15 @@ pub fn run(record: boot::BootRecord) -> ! {
         ps2_ready = Some(ready);
     }
     arch::early_write(b"CONDUIT_BOOT_STAGE local-rescue-ready\n");
-    let keyboard_offer = conduitos::offer_fabrication::ImageBoundHostOffer::new(
+    let keyboard_offer = conduitos::offer_make::ImageBoundHostOffer::new(
         &identities,
-        fabrication,
+        make,
         arch::feature_basis(),
         record.runtime_arena.length,
     )
     .and_then(|offer| {
         offer.with_keyboard(
-            fabrication,
+            make,
             if let Some(ready) = ps2_ready {
                 conduitos::keyboard_offer::KeyboardRealization {
                     mechanism: conduitos::keyboard_offer::KeyboardMechanism::Ps2,
@@ -265,7 +265,7 @@ pub fn run(record: boot::BootRecord) -> ! {
     let input_offer = keyboard_offer.and_then(|offer| {
         if let Some(ready) = ps2_ready {
             return offer.with_pointer(
-                fabrication,
+                make,
                 conduitos::pointer_offer::PointerRealization {
                     mechanism: conduitos::pointer_offer::PointerMechanism::Ps2,
                     controller_id: identity::derive_base(&identities.boot, "conduitos/i8042/0"),
@@ -290,11 +290,11 @@ pub fn run(record: boot::BootRecord) -> ! {
         let realization =
             conduitos::product_pointer::realization(&identities, xhci_base, pointer, ready)
                 .unwrap_or_else(|error| emit_machine_refusal(error));
-        offer.with_pointer(fabrication, realization)
+        offer.with_pointer(make, realization)
     });
     let offer = match input_offer.and_then(|offer| {
         offer.with_pc_speaker(
-            fabrication,
+            make,
             conduitos::pc_speaker_offer::PcSpeakerRealization {
                 base_id: identity::derive_base(&identities.boot, "conduitos/pc-speaker/0"),
                 pit_input_hz: arch::pc_speaker_input_hz(),
@@ -309,7 +309,7 @@ pub fn run(record: boot::BootRecord) -> ! {
         Ok(offer) => offer,
         Err(error) => emit_machine_refusal(error.as_str()),
     };
-    match sign_format::accepted(&record, &identities, fabrication, offer.generation) {
+    match sign_format::accepted(&record, &identities, make, offer.generation) {
         Ok(sign) => {
             arch::early_write(sign.as_bytes());
             arch::early_write(b"CONDUIT_BOOT_STAGE identities\n");
@@ -360,7 +360,7 @@ pub fn run(record: boot::BootRecord) -> ! {
         if let Err(reason) = conduitos::product_front_door::run(
             &identities,
             &offer,
-            fabrication,
+            make,
             &framebuffer_basis,
             &mut presentation_display,
             Some(&mut hid_session),

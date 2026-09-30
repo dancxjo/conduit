@@ -4,7 +4,7 @@ use conduit_core::{
     kind_id, resource_requirement, ArtifactId, CapabilityId, CapabilityLimits, ExecutionProfileId,
     HostCallContractId, HostCallRequirement, ImplementationId,
 };
-use conduit_host_fabrication::RuntimeFacts;
+use conduit_host_make::RuntimeFacts;
 use conduit_presentation::{renderer_offer, RendererRealizationOffer, MAX_RENDERER_VALUE_BYTES};
 
 pub(super) fn presenter_offer(

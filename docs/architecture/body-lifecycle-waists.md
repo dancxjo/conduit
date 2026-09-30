@@ -14,7 +14,7 @@ boot, offers, resources, lines, plans, and plays are current realization truth
 and are not continuity payload. Reboot replaces boot truth and clears stale
 plan/resource/line/authority bindings. Replacement machinery joins through a
 fresh admitted part claim. After the last claim is destroyed, Conduit promises
-neither recovery nor fabrication of the same identity. `SOUL` names only this
+neither recovery nor make of the same identity. `SOUL` names only this
 bounded continuity material and protocol.
 
 ## Atomic workload replacement

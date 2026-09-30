@@ -126,7 +126,7 @@ test("product jobs build the immutable PR head and deployments queue", () => {
   );
   assert.match(
     productWorkflow,
-    /Retain the browser two-profile fabrication report\n        if: matrix\.shard == 'creche-machines'/,
+    /Retain the browser two-profile make report\n        if: matrix\.shard == 'creche-machines'/,
   );
   assert.match(productWorkflow, /name: conduitos-release-\$\{\{ matrix\.architecture \}\}/);
   for (const architecture of ["x86_64", "aarch64", "ia32", "riscv64", "loongarch64"]) {
@@ -187,7 +187,7 @@ test("product jobs build the immutable PR head and deployments queue", () => {
   assert.match(liveModelWorkflow, /host prove-local-model --locked/);
 });
 
-test("standalone locks fail before ESP32 fabrication fans out", () => {
+test("standalone locks fail before ESP32 make fans out", () => {
   const checkWorkflow = readFileSync(".github/workflows/check.yml", "utf8");
   const productWorkflow = readFileSync(".github/workflows/product-carrier.yml", "utf8");
 

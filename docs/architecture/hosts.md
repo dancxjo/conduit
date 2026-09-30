@@ -93,9 +93,9 @@ creates fresh immutable realization truth.
 | Portable hosted implementation | [`targets/std`](../../targets/std/) |
 | Browser host and runtime | [`targets/browser`](../../targets/browser/) |
 | Native ConduitOS machinery | [`targets/conduitos`](../../targets/conduitos/) |
-| RP2040 fabrication and firmware | [`targets/rp2040`](../../targets/rp2040/) |
+| RP2040 make and firmware | [`targets/rp2040`](../../targets/rp2040/) |
 
-[Fabrication](../host-fabrication.md) selects machinery through
+[Make](../host-make.md) selects machinery through
 PROFILE → BUILD → IMAGE. Building an image does not create a live host, a boot,
 a body membership, or an offer. Runtime observations establish those facts.
 

@@ -5,7 +5,7 @@ const ROOTS: &[&str] = &[
     "architecture",
     "bodies",
     "docs",
-    "fabrication",
+    "make",
     "forms",
     "mechanisms",
     "products",

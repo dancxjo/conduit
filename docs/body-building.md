@@ -1,6 +1,6 @@
 # body building and Spores
 
-body building is a repository-development orchestration layer above accepted host fabrication:
+body building is a repository-development orchestration layer above accepted host make:
 
 ```text
 checked *.body.conduit
@@ -18,14 +18,14 @@ It is not a planner, runtime, package manager, or source of live body presence. 
 Use the checked example with:
 
 ```text
-cargo xtask fabricate body check bodies/pete/profiles/pete-r1.body.conduit
-cargo xtask fabricate body show bodies/pete/profiles/pete-r1.body.conduit
-cargo xtask fabricate body build bodies/pete/profiles/pete-r1.body.conduit
-cargo xtask fabricate body build bodies/pete/profiles/pete-r1.body.conduit --host brainstem
-cargo xtask fabricate body deploy bodies/pete/profiles/pete-r1.body.conduit --host forebrain
+cargo xtask make body check bodies/pete/profiles/pete-r1.body.conduit
+cargo xtask make body show bodies/pete/profiles/pete-r1.body.conduit
+cargo xtask make body build bodies/pete/profiles/pete-r1.body.conduit
+cargo xtask make body build bodies/pete/profiles/pete-r1.body.conduit --host brainstem
+cargo xtask make body deploy bodies/pete/profiles/pete-r1.body.conduit --host forebrain
 ```
 
-`check` and `show` parse descriptors and reuse host-configuration validation without invoking target builders. `build` emits `image.json`, `build-manifest.json`, and `spore-manifest.json` beneath one directory per selected host. `--host` selects one named host declaration and its fabrication package. The checked example covers hosted native, Pico W, and browser targets, and both prejoined and self-joining bindings.
+`check` and `show` parse descriptors and reuse host-configuration validation without invoking target builders. `build` emits `image.json`, `build-manifest.json`, and `spore-manifest.json` beneath one directory per selected host. `--host` selects one named host declaration and its make package. The checked example covers hosted native, Pico W, and browser targets, and both prejoined and self-joining bindings.
 
 `body` is a canonical Conduit document role parsed by the same tokenizer,
 declarations, structured values, spans, and diagnostics as `form` and `host`.
@@ -35,10 +35,10 @@ private parser and creates no host, boot, OFFER, OBSERVE, ADMIT, line, plan, or
 play truth. Canonical `*.body.conduit` documents are the only body construction
 source; repository loaders do not infer or import a second format.
 
-The output kind in a Spore is an exact requested target packaging class. Deployment is available only when the selected fabrication package declares an adapter. body build does not manufacture runtime host, boot, or physical-success truth.
+The output kind in a Spore is an exact requested target packaging class. Deployment is available only when the selected make package declares an adapter. body build does not manufacture runtime host, boot, or physical-success truth.
 
 ## Architecture packages
 
 Each package owns a target pattern, toolchain identity, build adapter identity, supported output kinds, optional deployment adapter, finite maxima, and base-implementation-to-feature mapping. Selected checked bases deterministically derive the recorded feature closure. For example, Pico `serial/text -> pico/usb-cdc@1` selects only `line-usb-cdc`; ESP32 Bluetooth adds `bluetooth` while the kernel-only specimen omits it.
 
-The generic body layer calls the existing `build_host_image` path and records which fabrication package and adapter were selected. Adding a target is localized to another package contribution rather than another target switch in body orchestration. A dependency-graph test keeps the descriptor/Spore model crate free of target SDKs, browser build CLIs, and unrelated speech assets.
+The generic body layer calls the existing `build_host_image` path and records which make package and adapter were selected. Adding a target is localized to another package contribution rather than another target switch in body orchestration. A dependency-graph test keeps the descriptor/Spore model crate free of target SDKs, browser build CLIs, and unrelated speech assets.

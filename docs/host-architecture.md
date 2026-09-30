@@ -65,7 +65,7 @@ strict subset. The planner consumes only the resulting exact offers.
 | `targets/std::StdHostComposition` | host composition | Selects explicitly enabled implementation families; `reference()` is broad and `minimal()` promises none of them |
 | `targets/std` timers, stdout, WebSocket, and USB code | bases/platform implementations | Real std effects and lines beneath selected plans; WebSocket/USB are not host-core methods |
 | feature-gated Linux isolated-file proof provider | hosted base confinement specimen | Separate process with private bounded IPC capability slot, Landlock file-read boundary, seccomp process/network denial, and rlimits; not an ordinary std offer or a claim about other families/platforms |
-| `targets/browser/host` | browser host product entrance and assets | Authoritative browser host launcher, HTTP delivery, fabrication package, and generic browser adapters |
+| `targets/browser/host` | browser host product entrance and assets | Authoritative browser host launcher, HTTP delivery, make package, and generic browser adapters |
 | `targets/browser/runtime` | browser composition and bases | Exact browser/WASM offers with timer/DOM/WebSocket machinery; not a compatibility runtime |
 | `proof/browser` | browser conformance evidence | Playwright specifications, proof pages, proof-only adapters, configurations, and local proof server; not another browser host |
 | `targets/rp2040/firmware/pico-w-signal` and generated image | Pico W composition and bases | Selectable fixed Signal images; local-minimal omits Conduit session/lifecycle control, while physical-proof and remote modes include it explicitly; no general Pico capability claim |

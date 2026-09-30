@@ -307,7 +307,7 @@ fn x86_proofs_keep_distinct_keys_in_one_batch_environment() {
         .all(|proof| proof.environment == "ubuntu-qemu-x86_64-batch-v1"));
     assert!(x86.iter().all(|proof| proof
         .command
-        .starts_with("cargo xtask fabricate conduitos prove-many --proof ")));
+        .starts_with("cargo xtask make conduitos prove-many --proof ")));
     let ids: BTreeSet<_> = x86.iter().map(|proof| proof.id).collect();
     assert_eq!(ids.len(), x86.len());
 }

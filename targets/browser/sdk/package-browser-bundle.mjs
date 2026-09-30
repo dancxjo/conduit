@@ -28,7 +28,7 @@ const [distribution, release, image] = await Promise.all([
   readJson(path.join(bundleRoot, IMAGE_PATH)),
 ]);
 if (distribution.schema !== RELEASE_SCHEMA || distribution.target_id !== "browser/wasm32/page"
-  || distribution.fabrication_package_id !== "browser-wasm@1" || distribution.output !== "browser-bundle"
+  || distribution.make_package_id !== "browser-wasm@1" || distribution.output !== "browser-bundle"
   || distribution.reviewed_distribution?.runtime_abi !== "conduit.browser/runtime-abi@1"
   || release.schema !== RELEASE_SCHEMA || release.target_id !== distribution.target_id
   || release.distribution_id !== distribution.reviewed_distribution.distribution_id

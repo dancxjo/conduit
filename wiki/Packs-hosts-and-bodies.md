@@ -25,7 +25,7 @@ Current `*.host.conduit` source lowers into the accepted checked Host configurat
 
 Current `*.body.conduit` source composes checked host sources and bounded Body/spore construction metadata.
 
-Construction source never fabricates live runtime truth:
+Construction source never makes live runtime truth:
 
 ~~~text
 host source

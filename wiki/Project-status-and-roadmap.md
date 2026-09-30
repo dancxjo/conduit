@@ -73,7 +73,7 @@ Makes Mask an ordinary form role, with authored `wear`, `doff`, `want`, and `els
 
 [#4117](https://github.com/dancxjo/conduit/issues/4117)
 
-Connects host source to build/image/boot/resources/backs/masks without confusing fabricated machinery with current runtime truth.
+Connects host source to build/image/boot/resources/backs/masks without confusing made machinery with current runtime truth.
 
 ### Two Ollamas
 

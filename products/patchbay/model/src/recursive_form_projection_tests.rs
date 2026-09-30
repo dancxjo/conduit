@@ -56,7 +56,7 @@ fn collapse_and_open_change_visibility_without_rewriting_recursive_truth() {
 }
 
 #[test]
-fn projection_refuses_an_unselected_or_fabricated_back_path() {
+fn projection_refuses_an_unselected_or_made_back_path() {
     let proof = crate::patchbay_mask_plans().unwrap();
     assert_eq!(
         project_recursive_form_gear(

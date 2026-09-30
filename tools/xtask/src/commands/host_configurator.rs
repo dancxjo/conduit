@@ -4,7 +4,7 @@ use std::{
     path::{Path, PathBuf},
 };
 
-use conduit_host_fabrication::{
+use conduit_host_make::{
     parse_host_configuration_conduit, CheckedHostConfiguration, HostConfiguration,
 };
 use console::style;

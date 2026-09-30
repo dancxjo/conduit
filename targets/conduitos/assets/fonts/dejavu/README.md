@@ -2,7 +2,7 @@
 
 Unmodified DejaVu Sans and DejaVu Sans Mono from upstream release **2.37**
 are the proportional UI and monospace code sources for #3163. These are
-fabrication inputs, not ambient host fonts. The complete upstream license is
+make inputs, not ambient host fonts. The complete upstream license is
 preserved in `LICENSE`.
 
 Source: <https://github.com/dejavu-fonts/dejavu-fonts/releases/tag/version_2_37>
@@ -15,7 +15,7 @@ Archive: `dejavu-fonts-ttf-2.37.tar.bz2`, SHA-256
 | `DejaVuSans.ttf` | `7da195a74c55bef988d0d48f9508bd5d849425c1770dba5d7bfc6ce9ed848954` |
 | `DejaVuSansMono.ttf` | `b4a6c3e4faab8773f4ff761d56451646409f29abedd68f05d38c2df667d3c582` |
 
-Fabrication verifies these checksums and prepares five fixed profiles: label,
+Make verifies these checksums and prepares five fixed profiles: label,
 body, heading, title, and code. Each input font is limited to 1 MiB; the repertoire
 to 1,024 scalars; each raster edge to 64 pixels; and total grayscale coverage to
 4 MiB. The repertoire includes the pinned Unifont subset and the shared Crèche

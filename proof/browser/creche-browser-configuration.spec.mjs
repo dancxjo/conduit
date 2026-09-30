@@ -15,13 +15,13 @@ test("Crèche evidence budgets cover the release runtime's canonical advertiseme
   // Check the actual release ABI, not a second copy of the Rust catalog limit.
   // Identity, invitation, signature, and observation framing need finite space too.
   expect(EXISTING_COMPUTER_BOUNDS.maximumOperationEvidenceBytes).toBeGreaterThanOrEqual(advertisementBytes + 8 * 1024);
-  // The workflow retains earlier fabrication/binding/load evidence alongside the join.
+  // The workflow retains earlier make/binding/load evidence alongside the join.
   expect(EXISTING_COMPUTER_BOUNDS.maximumRetainedEvidenceBytes).toBeGreaterThanOrEqual(
     EXISTING_COMPUTER_BOUNDS.maximumOperationEvidenceBytes + 24 * 1024,
   );
 });
 
-test("one reviewed distribution fabricates materially different, capability-enforcing browser Hosts", async ({ browser }) => {
+test("one reviewed distribution makes materially different, capability-enforcing browser Hosts", async ({ browser }) => {
   const viewerPage = await browser.newPage();
   const richPage = await browser.newPage();
   const capabilityPage = await browser.newPage();
@@ -29,8 +29,8 @@ test("one reviewed distribution fabricates materially different, capability-enfo
   const richRelease = await installBrowserRelease(richPage);
   expect(richRelease.bundle_sha256).toBe(viewerRelease.bundle_sha256);
 
-  const viewer = await fabricateBrowserHost(viewerPage, { preset: "Minimal" });
-  const rich = await fabricateBrowserHost(richPage, {
+  const viewer = await makeBrowserHost(viewerPage, { preset: "Minimal" });
+  const rich = await makeBrowserHost(richPage, {
     preset: "Interactive",
     add: ["browser/indexeddb@1", "browser/websocket@1", "browser/webserial@1"],
   });
@@ -84,7 +84,7 @@ test("one reviewed distribution fabricates materially different, capability-enfo
   await capabilityPage.close();
 });
 
-test("browser outfitting is catalog-driven, editable, and handed to checked fabrication", async ({ page }) => {
+test("browser outfitting is catalog-driven, editable, and handed to checked make", async ({ page }) => {
   const release = await installBrowserRelease(page);
   await page.goto(entrance.url);
   await page.getByRole("button", { name: "Birth Body", exact: true }).click();
@@ -181,7 +181,7 @@ async function installBrowserRelease(page) {
   return manifest;
 }
 
-async function fabricateBrowserHost(page, { preset, add = [] }) {
+async function makeBrowserHost(page, { preset, add = [] }) {
   const runner = await openBrowserRunner(page, preset, add);
   await runner.getByRole("button", { name: "Bind Body invitation" }).click();
   let evidence = JSON.parse(await runner.locator("details code").textContent());
@@ -266,7 +266,7 @@ async function retainCapstoneReport(evidence) {
   await mkdir(root, { recursive: true });
   const has = (profile, id) => profile.implementations.some((item) => item.id === id) ? "yes" : "no";
   const serial = evidence.rich.inspection.find(({ implementation_id }) => implementation_id === "browser/webserial@1");
-  const markdown = `# Browser two-profile fabrication capstone\n\nExact evidence: \`browser-two-profile-capstone.json\`\n\n| capability | viewer | rich host |\n|---|---:|---:|\n| presentation | ${has(evidence.viewer, "browser/dom-presentation@1")} | ${has(evidence.rich, "browser/dom-presentation@1")} |\n| pointer | ${has(evidence.viewer, "browser/pointer-events@1")} | active plan/Play |\n| storage | ${has(evidence.viewer, "browser/indexeddb@1")} | active plan/Play |\n| WebSerial | ${has(evidence.viewer, "browser/webserial@1")} | selected / ${serial?.refusal ?? "current"} |\n| WebSocket | ${has(evidence.viewer, "browser/websocket@1")} | unavailable, then offered without IMAGE mutation |\n`;
+  const markdown = `# Browser two-profile make capstone\n\nExact evidence: \`browser-two-profile-capstone.json\`\n\n| capability | viewer | rich host |\n|---|---:|---:|\n| presentation | ${has(evidence.viewer, "browser/dom-presentation@1")} | ${has(evidence.rich, "browser/dom-presentation@1")} |\n| pointer | ${has(evidence.viewer, "browser/pointer-events@1")} | active plan/Play |\n| storage | ${has(evidence.viewer, "browser/indexeddb@1")} | active plan/Play |\n| WebSerial | ${has(evidence.viewer, "browser/webserial@1")} | selected / ${serial?.refusal ?? "current"} |\n| WebSocket | ${has(evidence.viewer, "browser/websocket@1")} | unavailable, then offered without IMAGE mutation |\n`;
   await writeFile(new URL("browser-two-profile-capstone.json", root), `${JSON.stringify(evidence, null, 2)}\n`);
   await writeFile(new URL("browser-two-profile-capstone.md", root), markdown);
 }

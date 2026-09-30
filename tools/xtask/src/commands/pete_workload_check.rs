@@ -2,7 +2,7 @@
 
 use std::{fs, process::Command};
 
-use conduit_host_fabrication::{
+use conduit_host_make::{
     build_default_host_image, check_host_configuration, parse_host_configuration_conduit,
     BuildInputs,
 };
@@ -66,8 +66,8 @@ pub fn run(opts: &GlobalOpts) -> Result<(), Box<dyn std::error::Error>> {
     let workload = conduit_pete::reviewed_pete_workload()
         .map_err(|error| format!("Pete workload refused: {error:?}"))?;
     let source_identity = git_identity(&root)?;
-    let catalog = conduit_workspace_fabrication::catalog();
-    let packages = conduit_workspace_fabrication::package_set();
+    let catalog = conduit_workspace_make::catalog();
+    let packages = conduit_workspace_make::package_set();
     let mut hosts = Vec::new();
     for requirement in conduit_pete::reviewed_pete_host_requirements() {
         let path = root.join(requirement.target_owned_configuration);

@@ -12,13 +12,13 @@ use conduitos::{
     arch,
     boot::{BootRecord, RuntimeArena},
     dual_region_composition, dual_region_plan,
-    fabrication::{EMBEDDED_FABRICATION, IMPL_LINEAR_PRESENTER},
     front_door::FrontDoor,
     identity, keyboard_text_plan,
     linear_presenter::LinearPresenter,
+    make::{EMBEDDED_MAKE, IMPL_LINEAR_PRESENTER},
     observatory,
     offer::CpuFeatures,
-    offer_fabrication::ImageBoundHostOffer,
+    offer_make::ImageBoundHostOffer,
     spore_join,
 };
 
@@ -93,13 +93,12 @@ extern "C" fn conduitos_ia32_product_rust_entry(
             .unwrap_or_else(|_| refuse("runtime-arena-initialization-failed"));
     }
     arch::initialize_machine();
-    EMBEDDED_FABRICATION
+    EMBEDDED_MAKE
         .validate(1024 * 1024)
         .unwrap_or_else(|error| refuse(error.as_str()));
-    if EMBEDDED_FABRICATION.target != "conduitos/ia32/pc"
-        || !EMBEDDED_FABRICATION.includes(IMPL_LINEAR_PRESENTER)
+    if EMBEDDED_MAKE.target != "conduitos/ia32/pc" || !EMBEDDED_MAKE.includes(IMPL_LINEAR_PRESENTER)
     {
-        refuse("ia32-product-fabrication-mismatch");
+        refuse("ia32-product-make-mismatch");
     }
 
     let counter = arch::read_counter();
@@ -115,7 +114,7 @@ extern "C" fn conduitos_ia32_product_rust_entry(
     );
     let offer = ImageBoundHostOffer::new(
         &identities,
-        &EMBEDDED_FABRICATION,
+        &EMBEDDED_MAKE,
         CpuFeatures {
             sse2: true,
             rdrand: false,
@@ -137,9 +136,9 @@ extern "C" fn conduitos_ia32_product_rust_entry(
         host_id.clone(),
         boot_id.clone(),
         generation,
-        EMBEDDED_FABRICATION.profile_id,
-        EMBEDDED_FABRICATION.build_id,
-        EMBEDDED_FABRICATION.image_binding,
+        EMBEDDED_MAKE.profile_id,
+        EMBEDDED_MAKE.build_id,
+        EMBEDDED_MAKE.image_binding,
         form.source_document_id,
         form.checked_form_id,
         5,
@@ -152,8 +151,8 @@ extern "C" fn conduitos_ia32_product_rust_entry(
         host_id,
         boot_id,
         generation,
-        EMBEDDED_FABRICATION.profile_id,
-        EMBEDDED_FABRICATION.image_binding,
+        EMBEDDED_MAKE.profile_id,
+        EMBEDDED_MAKE.image_binding,
         "presenter/ia32-linear-debugcon@1",
         "conduitos/presenter/ia32-linear-debugcon@1",
         "conduitos/base/ia32-debugcon/0",
@@ -168,14 +167,13 @@ extern "C" fn conduitos_ia32_product_rust_entry(
         arch::present(b"\n");
     }
 
-    let mut prepared =
-        dual_region_plan::prepare(&identities, &offer, EMBEDDED_FABRICATION.build_id)
-            .unwrap_or_else(|error| refuse(error.as_str()));
+    let mut prepared = dual_region_plan::prepare(&identities, &offer, EMBEDDED_MAKE.build_id)
+        .unwrap_or_else(|error| refuse(error.as_str()));
     if let Some(join) = spore_join::encode_region(
         spore_region,
-        EMBEDDED_FABRICATION.target,
-        EMBEDDED_FABRICATION.profile_id,
-        EMBEDDED_FABRICATION.build_id,
+        EMBEDDED_MAKE.target,
+        EMBEDDED_MAKE.profile_id,
+        EMBEDDED_MAKE.build_id,
         &prepared.advertisement,
     )
     .unwrap_or_else(|error| refuse(error))
@@ -209,8 +207,8 @@ extern "C" fn conduitos_ia32_product_rust_entry(
         &identities,
         &offer,
         &prepared,
-        EMBEDDED_FABRICATION.build_id,
-        EMBEDDED_FABRICATION.image_binding,
+        EMBEDDED_MAKE.build_id,
+        EMBEDDED_MAKE.image_binding,
         None,
     )
     .unwrap_or_else(|error| refuse(error.as_str()));
@@ -230,11 +228,11 @@ extern "C" fn conduitos_ia32_product_rust_entry(
     .unwrap_or_else(|error| refuse(error.as_str()));
 
     arch::present(b"CONDUIT_IA32_PRODUCT {\"schema\":\"conduit.conduitos/ia32-product@1\",\"status\":\"ready\",\"profile_id\":\"");
-    arch::present(EMBEDDED_FABRICATION.profile_id.as_bytes());
+    arch::present(EMBEDDED_MAKE.profile_id.as_bytes());
     arch::present(b"\",\"build_id\":\"");
-    arch::present(EMBEDDED_FABRICATION.build_id.as_bytes());
+    arch::present(EMBEDDED_MAKE.build_id.as_bytes());
     arch::present(b"\",\"image_id\":\"");
-    arch::present(EMBEDDED_FABRICATION.image_binding.as_bytes());
+    arch::present(EMBEDDED_MAKE.image_binding.as_bytes());
     arch::present(b"\",\"host_id\":\"");
     arch::present(identity::hex(&identities.host).as_bytes());
     arch::present(b"\",\"boot_id\":\"");
@@ -259,9 +257,9 @@ extern "C" fn conduitos_ia32_product_rust_entry(
         let host = identity::hex(&identities.host);
         let boot = identity::hex(&identities.boot);
         arch::present_legacy_bios_receipt(
-            EMBEDDED_FABRICATION.profile_id.as_bytes(),
-            EMBEDDED_FABRICATION.build_id.as_bytes(),
-            EMBEDDED_FABRICATION.image_binding.as_bytes(),
+            EMBEDDED_MAKE.profile_id.as_bytes(),
+            EMBEDDED_MAKE.build_id.as_bytes(),
+            EMBEDDED_MAKE.image_binding.as_bytes(),
             host.as_bytes(),
             boot.as_bytes(),
         );

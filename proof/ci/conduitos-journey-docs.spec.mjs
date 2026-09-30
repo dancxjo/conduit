@@ -37,7 +37,7 @@ test("ConduitOS journey publisher renders a complete narrated sequence", () => {
     assert.match(page, /Focused artifact and exact correlation/);
     assert.match(page, /What this proves/);
     assert.match(page, /What it does not prove/);
-    assert.match(page, /cargo xtask fabricate conduitos journey-proof/);
+    assert.match(page, /cargo xtask make conduitos journey-proof/);
     assert.match(page, /src="front-door-ready\.png"/);
     assert.match(page, /src="host-current-offers\.png"/);
     assert.match(page, /src="home-prompt\.png"/);

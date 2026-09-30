@@ -14,11 +14,11 @@ proved; removing an old spec name does not remove its evidence.
 | Canonical three-form birth, SDK planning participation, Play/cancel, exact placements, kernel Signs, and retained evidence | `sdk-external-body-execution.spec.mjs` | Body evidence originates in Workspace; HTML execution enters through `@conduit/browser`. |
 | Rosehip measurement plot, threshold, bounded history, and cancellation | `sdk-external-body-execution.spec.mjs` | The same SDK journey runs reusable measurement semantics without a Patchbay page runtime. |
 | Independent browser hosts, membership, replay refusal, mixed parts, loss, and replacement planning | `workspace-mixed-membership.spec.mjs` and `workspace-membership.spec.mjs` | Birth evidence originates in Workspace; the comprehensive membership owner remains Workspace. |
-| Browser, microcontroller, native-computer, and ConduitOS target selection, fabrication, and Body-bound handoff | `creche-*.spec.mjs` through the Workspace `Add a host` surface | The target catalog, adapters, and runner remain shared standard machinery; Workspace supplies the current Body and admission boundary. |
+| Browser, microcontroller, native-computer, and ConduitOS target selection, make, and Body-bound handoff | `creche-*.spec.mjs` through the Workspace `Add a host` surface | The target catalog, adapters, and runner remain shared standard machinery; Workspace supplies the current Body and admission boundary. |
 | Retired Tour scenarios that drove the standalone Crèche stepper, direct routes, target catalog, cancellation/delegation fixture, or graduation | Workspace lifecycle specs, Workspace-hosted machine specs, and lower-level catalog/runner contracts | Removed from the active Tour shard because each fixture booted the retired lifecycle owner. |
 
 The retired Crèche-only expectations—`Crèche ready`, `/creche/birth/`, direct
 workflow steps, graduation controls, and standalone evidence download—described
-the removed runtime rather than a current product contract. Machine fabrication
+the removed runtime rather than a current product contract. Machine make
 and configuration retain their historical spec names and CI shard for
 continuity, but no longer imply Crèche lifecycle ownership.

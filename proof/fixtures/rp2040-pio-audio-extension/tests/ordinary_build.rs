@@ -1,13 +1,13 @@
-use conduit_host_fabrication::{
-    build_host_image, BaseSelection, BuildInputs, DriverSelection, FabricationCatalog,
-    FabricationPackageSet, HostBounds, HostPolicy, HostProfile, SporeOutputKind, TargetSelection,
+use conduit_host_make::{
+    build_host_image, BaseSelection, BuildInputs, DriverSelection, HostBounds, HostPolicy,
+    HostProfile, MakeCatalog, MakePackageSet, SporeOutputKind, TargetSelection,
 };
-use conduit_host_rp2040::{Rp2040FabricationPackage, TARGET_ID};
+use conduit_host_rp2040::{Rp2040MakePackage, TARGET_ID};
 use conduit_rp2040_pio_audio_extension::{Rp2040PioAudioExtension, IMPLEMENTATION_ID, PACKAGE_ID};
 
 fn profile() -> HostProfile {
     HostProfile {
-        schema: conduit_host_fabrication::HOST_PROFILE_SCHEMA.into(),
+        schema: conduit_host_make::HOST_PROFILE_SCHEMA.into(),
         name: "rp2040-extension-proof".into(),
         source_configuration_id: Some("sha256:rp2040-extension-proof".into()),
         target: TargetSelection {
@@ -15,7 +15,7 @@ fn profile() -> HostProfile {
             architecture: "thumbv6m".into(),
             machine: "pico-w".into(),
             build_profile: "release".into(),
-            fabrication_descriptor: None,
+            make_descriptor: None,
         },
         host_core: "host-core/conduitos@1".into(),
         fragments: Vec::new(),
@@ -57,15 +57,14 @@ fn profile() -> HostProfile {
 
 #[test]
 fn extension_is_absent_until_composed_then_survives_profile_build_image_provenance() {
-    let anchor_only = FabricationPackageSet::compose(&[&Rp2040FabricationPackage]).unwrap();
+    let anchor_only = MakePackageSet::compose(&[&Rp2040MakePackage]).unwrap();
     assert!(anchor_only
         .offers_for_target(TARGET_ID)
         .iter()
         .all(|offer| offer.offer.implementation_id != IMPLEMENTATION_ID));
 
     let packages =
-        FabricationPackageSet::compose(&[&Rp2040FabricationPackage, &Rp2040PioAudioExtension])
-            .unwrap();
+        MakePackageSet::compose(&[&Rp2040MakePackage, &Rp2040PioAudioExtension]).unwrap();
     let profile = profile();
     let selection = packages
         .derive_build_selection(&profile, &SporeOutputKind::Uf2)
@@ -74,7 +73,7 @@ fn extension_is_absent_until_composed_then_survives_profile_build_image_provenan
     assert_eq!(selection.implementation_packages.len(), 1);
     assert_eq!(selection.implementation_packages[0].package_id, PACKAGE_ID);
 
-    let catalog = FabricationCatalog::canonical().with_packages(&packages);
+    let catalog = MakeCatalog::canonical().with_packages(&packages);
     let (image, bytes) = build_host_image(
         profile,
         &catalog,
@@ -89,10 +88,7 @@ fn extension_is_absent_until_composed_then_survives_profile_build_image_provenan
     assert_eq!(image.manifest.target, TARGET_ID);
     assert!(!bytes.is_empty());
     assert_eq!(selection.selected_base_implementations, [IMPLEMENTATION_ID]);
-    assert_eq!(
-        image.manifest.fabrication_package_id,
-        "conduit-host-rp2040@1"
-    );
+    assert_eq!(image.manifest.make_package_id, "conduit-host-rp2040@1");
     assert_eq!(
         image.manifest.implementation_packages[0].package_id,
         PACKAGE_ID

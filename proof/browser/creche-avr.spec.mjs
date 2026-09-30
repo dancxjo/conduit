@@ -46,7 +46,7 @@ test("the exact Pro Micro release becomes a body-bound downloadable spore", asyn
     family: { id: "conduit-target-family/sparkfun-pro-micro@1" },
     target: { id: TARGET_ID, profile_id: "atmega32u4-5v-16mhz-caterina-avr109" },
     intentions: [
-      { id: "fabricate-new", supported: true },
+      { id: "make-new", supported: true },
       { id: "install-existing", supported: false },
       { id: "attach-running", supported: false },
     ],
@@ -84,7 +84,7 @@ test("the exact Pro Micro release becomes a body-bound downloadable spore", asyn
   expect(evidence.binding).toMatchObject({
     target_id: TARGET_ID,
     output: "intel-hex",
-    fabrication_package_id: "conduit-host-avr-promicro@1",
+    make_package_id: "conduit-host-avr-promicro@1",
     deployment_adapter: null,
     image_content_digest: release.manifest.artifact.sha256,
     invitation_secret: "embedded in native HEX; redacted",

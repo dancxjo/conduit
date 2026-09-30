@@ -13,7 +13,7 @@ pub const REPLAY_SOURCE_KIND: &str = "history/replay-source";
 pub const REPLAY_SOURCE_CONTRACT_REVISION: &str = "conduit.history/replay-source@1";
 
 /// The finite replayable view of one retained semantic history. A retention
-/// gap remains explicit beside the replay entries and is never fabricated as
+/// gap remains explicit beside the replay entries and is never made as
 /// an event.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct ReplaySourceProjection {

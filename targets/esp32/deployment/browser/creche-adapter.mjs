@@ -12,7 +12,7 @@ const ADAPTER_SCHEMA = "conduit.creche/physical-host-target-adapter@1";
 const encoder = new TextEncoder();
 const decoder = new TextDecoder();
 const MODES = Object.freeze([
-  Object.freeze({ id: "fabricate-new", resultKind: "artifact", supported: true }),
+  Object.freeze({ id: "make-new", resultKind: "artifact", supported: true }),
   Object.freeze({ id: "install-existing", resultKind: "installation", supported: false }),
   Object.freeze({ id: "attach-running", resultKind: "attachment", supported: false }),
 ]);
@@ -77,7 +77,7 @@ export const ESP32_CRECHE_TARGET_CONTRIBUTIONS = Object.freeze(PROFILES.map((tar
   family: FAMILY,
   target: targetProfile.target,
   intentions: MODES,
-  fabrication_strategies: Object.freeze([
+  make_strategies: Object.freeze([
     Object.freeze({ id: "reviewed-generic-release-download", label: "Reviewed generic release IMAGE" }),
   ]),
   carriers: Object.freeze({
@@ -100,7 +100,7 @@ export function createEsp32CrecheTargetAdapter({ host, targetProfile, acquireSer
   function createOptions({ mode, onChange }) {
     const note = document.createElement("p");
     note.className = "target-option-note";
-    if (mode !== "fabricate-new") {
+    if (mode !== "make-new") {
       note.textContent = "This target does not install or attach existing machinery in this adapter.";
       return note;
     }
@@ -138,13 +138,13 @@ export function createEsp32CrecheTargetAdapter({ host, targetProfile, acquireSer
             release_source_identity: release.manifest.source_identity,
             release_artifact_sha256: release.manifest.artifact_sha256,
           }),
-          fabrication_strategy: "reviewed-generic-release-download",
+          make_strategy: "reviewed-generic-release-download",
           does_not_prove: Object.freeze(["invitation", "deployment", "boot", "join", "membership", "offers"]),
         }),
       });
     } catch (error) {
       if (error?.evidence) throw error;
-      refuse(targetProfile, mode, "obtain", error?.code ?? "FabricationFailed", "ESP32 IMAGE validation terminated without success", error);
+      refuse(targetProfile, mode, "obtain", error?.code ?? "MakeFailed", "ESP32 IMAGE validation terminated without success", error);
     }
   }
 
@@ -169,7 +169,7 @@ export function createEsp32CrecheTargetAdapter({ host, targetProfile, acquireSer
           return readOutput(host.runtime);
         })();
       if (prepared.target_id !== targetProfile.target.id || prepared.image_content_digest !== digest
-        || prepared.output !== "esp32-image" || prepared.fabrication_package_id !== "conduit-host-esp32@1") {
+        || prepared.output !== "esp32-image" || prepared.make_package_id !== "conduit-host-esp32@1") {
         refuse(targetProfile, mode, "bind", "BindingIdentity", "prepared invitation lost the selected ESP32 target or artifact identity");
       }
       requireCurrent(signal, mode, "bind", targetProfile);
@@ -326,7 +326,7 @@ function profile(values) {
         transfer_block_bytes: ESP32_BROWSER_DEPLOYMENT.imageBounds.flashBlockBytes,
         spore_region: Object.freeze({ start: 4 * 1024 * 1024 - 4096, bytes: 4096, body_bound: true }),
       }),
-      fabrication_strategy: "reviewed generic release IMAGE download, then Body binding into one merged ESP32 flash image",
+      make_strategy: "reviewed generic release IMAGE download, then Body binding into one merged ESP32 flash image",
       browser_transport: values.transport,
       reset_strategy: values.resetStrategy,
       rom_loader: "Espressif serial ROM loader with exact chip observation and MD5 verification",
@@ -371,7 +371,7 @@ function requirePort(evidence, targetProfile) {
 }
 
 function requireMode(mode, operation, targetProfile) {
-  if (mode === "fabricate-new") return;
+  if (mode === "make-new") return;
   refuse(targetProfile, mode, operation, mode === "install-existing" ? "InstallExistingUnsupported" : "AttachRunningUnsupported", `ESP32 target adapter does not offer ${mode}`);
 }
 

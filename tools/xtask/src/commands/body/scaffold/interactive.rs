@@ -159,7 +159,7 @@ fn part_name(suggestion: &str) -> Result<String, Box<dyn std::error::Error>> {
 
 fn choose_output(
     recipe: &HostRecipe,
-) -> Result<Option<conduit_host_fabrication::SporeOutputKind>, Box<dyn std::error::Error>> {
+) -> Result<Option<conduit_host_make::SporeOutputKind>, Box<dyn std::error::Error>> {
     if recipe.outputs.len() == 1 {
         return Ok(None);
     }
@@ -210,7 +210,7 @@ pub(super) fn finish(report: &CreationReport) -> Result<(), Box<dyn std::error::
     cliclack::outro_note(
         format!("Created {}", report.body_id),
         format!(
-            "{created}\n\nNext\n  cargo xtask fabricate body show {}",
+            "{created}\n\nNext\n  cargo xtask make body show {}",
             report.output
         ),
     )?;

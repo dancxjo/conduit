@@ -2,7 +2,7 @@
 
 use std::collections::BTreeSet;
 
-use conduit_host_browser_fabrication::BROWSER_IMPLEMENTATIONS;
+use conduit_host_browser_make::BROWSER_IMPLEMENTATIONS;
 use conduit_presentation::{
     ActionAvailability, ApplicationEventKind, ChoiceMultiplicity, ChoiceOption,
     EvidenceDisposition, EvidencePresentation, PresentationMechanism, SemanticAction,
@@ -176,7 +176,7 @@ impl BrowserConfigurationReviewPresentation {
                     title: "Reviewed browser Host configuration".into(),
                     disposition: EvidenceDisposition::Succeeded,
                     identity: self.configuration_id.clone(),
-                    provenance: "checked browser fabrication configuration".into(),
+                    provenance: "checked browser make configuration".into(),
                 }),
                 vec![
                     node(

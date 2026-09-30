@@ -8,7 +8,7 @@ integer synthesizer and contains no recorded audio, codec, or network input.
 To create a file for listening from a repository checkout:
 
 ```sh
-cargo xtask fabricate startup-cue --output /tmp/conduit-startup-cue.wav
+cargo xtask make startup-cue --output /tmp/conduit-startup-cue.wav
 ```
 
 Choose a new output path; the command refuses to overwrite an existing file.
