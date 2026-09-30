@@ -10,6 +10,7 @@ use conduit_net::{
     MAXIMUM_EXTERNAL_WEBSOCKET_QUEUE_BYTES, MAXIMUM_EXTERNAL_WEBSOCKET_QUEUE_ITEMS,
 };
 
+#[cfg(feature = "form-catalog")]
 const CLIENT_SOURCE: &str = include_str!("../../../forms/socket-client/main.conduit");
 
 fn client() -> conduit_core::CapabilityOffer {

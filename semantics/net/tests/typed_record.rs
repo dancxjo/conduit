@@ -4,6 +4,7 @@ use conduit_core::{
 };
 use conduit_net::*;
 
+#[cfg(feature = "form-catalog")]
 fn install_gallery_input_test_catalogs(
     startup: &mut conduit_form::StartupCatalog,
     profile: &mut conduit_form::ProfileCatalog,
@@ -168,6 +169,7 @@ fn bounded_frame_round_trips_exact_type_and_payload_in_caller_storage() {
     );
 }
 
+#[cfg(feature = "form-catalog")]
 #[test]
 fn declared_form_values_wrap_frame_and_deframe_exact_structured_info() {
     let original = StructuredInfoValue::leaf(
@@ -385,6 +387,7 @@ fn framing_and_deframing_are_independent_reusable_checked_forms() {
     }
 }
 
+#[cfg(feature = "form-catalog")]
 #[test]
 fn desk_telegraph_uses_reusable_text_record_fronts_around_exact_framing() {
     let mut startup = conduit_form::StartupCatalog::new();
@@ -453,6 +456,7 @@ fn desk_telegraph_uses_reusable_text_record_fronts_around_exact_framing() {
     assert!(kinds.contains(&ORDERED_RECORD_QUEUE_KIND));
 }
 
+#[cfg(feature = "form-catalog")]
 #[test]
 fn night_radio_composes_existing_framing_queue_and_presentation() {
     let mut startup = conduit_form::StartupCatalog::new();
