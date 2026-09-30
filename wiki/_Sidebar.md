@@ -1,6 +1,7 @@
 ### Start
 
 - [[Home]]
+- [[Why Conduit|Why-Conduit]]
 - [[Start here|Start-here]]
 - [[Architecture tour|Architecture-tour]]
 - [[Glossary]]
