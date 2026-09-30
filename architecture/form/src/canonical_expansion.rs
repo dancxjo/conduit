@@ -489,7 +489,7 @@ fn instantiate_gear(
         let mut output = activation.output.clone();
         output.temporal = conduit_core::PortTemporal::Flow { closes: true };
         let activation_id = format!("{}/activation", gear_id.as_str());
-        gears.push(CheckedGear {
+        gears.push(crate::checked_gear_from_parts! {
             gear_id: gear_id.clone(),
             kind_id: KindId::from("flow/each"),
             kind_contract_revision: conduit_core::KindIdentity::from("conduit.flow/each@1"),
