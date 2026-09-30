@@ -4,6 +4,8 @@ type FullWindowPolicy =
     reject
     | drop_oldest
 
+representation data/full-window-policy = FullWindowPolicy as u8
+
 type MeasurementPlotOverflowPolicy =
     reject
     | evenly_spaced
