@@ -66,14 +66,7 @@ fn headers_type() -> StructuredInfoType {
 }
 
 fn method_type() -> StructuredInfoType {
-    StructuredInfoType::variant(
-        kind_id("http/method@1"),
-        ["delete", "get", "head", "options", "patch", "post", "put"]
-            .into_iter()
-            .map(|tag| case(tag, leaf(UNIT)))
-            .collect(),
-    )
-    .expect("HTTP method schema is finite")
+    HttpMethod::semantic_type().expect("checked native HTTP method type is finite")
 }
 
 fn body_type() -> StructuredInfoType {

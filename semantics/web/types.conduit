@@ -1,0 +1,37 @@
+# Authoritative portable HTTP meaning. Rust consumes generated bindings.
+
+type HttpMethod =
+    get
+    | head
+    | post
+    | put
+    | patch
+    | delete
+    | options
+
+type HttpExchangeFailure =
+    name_resolution
+    | route_unavailable
+    | connect
+    | tls
+    | provider_lost
+    | request_overflow
+    | response_header_overflow
+    | response_body_overflow
+    | resource_unavailable
+    | capacity
+    | authority_denied
+    | cancelled
+
+type HttpServerResponseRefusal =
+    unknown_transaction
+    | stale_transaction
+    | duplicate_response
+    | late_response
+    | response_header_overflow
+    | response_body_overflow
+    | resource_unavailable
+    | listener_lost
+    | capacity
+    | authority_denied
+    | cancelled
