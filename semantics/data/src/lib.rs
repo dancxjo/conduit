@@ -8,8 +8,8 @@ mod generated {
 }
 
 pub use generated::{
-    FullWindowPolicy, MeasurementPlotOverflowPolicy, MeasurementThresholdState,
-    MeasurementThresholdTransition, SampledSignalRefusal,
+    DataLoadTextTerminal, DataSaveTextTerminal, FullWindowPolicy, MeasurementPlotOverflowPolicy,
+    MeasurementThresholdState, MeasurementThresholdTransition, SampledSignalRefusal,
 };
 
 mod data_catalog;

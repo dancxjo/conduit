@@ -1,5 +1,7 @@
 //! Exact bounded abnormal-terminal information for Text data operations.
 
+use crate::{DataLoadTextTerminal, DataSaveTextTerminal};
+
 pub const DATA_SAVE_TEXT_TERMINAL_INFO_ID: &str = "data/save-text-terminal@1";
 pub const DATA_LOAD_TEXT_TERMINAL_INFO_ID: &str = "data/load-text-terminal@1";
 pub const DATA_TEXT_TERMINAL_ENCODED_LEN: usize = 1;
@@ -8,14 +10,6 @@ pub const DATA_TEXT_TERMINAL_ENCODED_LEN: usize = 1;
 pub enum DataTerminalCodecRefusal {
     WrongLength { actual: usize },
     InvalidTag { actual: u8 },
-}
-
-#[derive(Debug, Copy, Clone, PartialEq, Eq)]
-pub enum DataSaveTextTerminal {
-    ValueTooLarge,
-    GenerationCapacityExhausted,
-    ByteCapacityExhausted,
-    WrongContentKind,
 }
 
 impl DataSaveTextTerminal {
@@ -42,17 +36,6 @@ impl DataSaveTextTerminal {
             actual => Err(DataTerminalCodecRefusal::InvalidTag { actual: *actual }),
         }
     }
-}
-
-#[derive(Debug, Copy, Clone, PartialEq, Eq)]
-pub enum DataLoadTextTerminal {
-    MalformedReference,
-    WrongContentKind,
-    WrongAccessClass,
-    ExpiringGeneration,
-    ItemExtent,
-    GenerationNotRetained,
-    ExtentMismatch,
 }
 
 impl DataLoadTextTerminal {
