@@ -1414,10 +1414,12 @@ name = "conduit-system-continuity"
 version = "0.1.0"
 dependencies = [
  "conduit-core",
+ "conduit-form",
  "conduit-observatory",
  "conduit-signal-conformance",
  "conduit-wire",
  "serde",
+ "serde_json",
 ]
 
 [[package]]

@@ -11,7 +11,7 @@ use conduit_observatory::{HostReport, OperationalState};
 use conduit_wire::SessionBinding;
 use serde::{Deserialize, Serialize};
 
-use crate::{DelegatedTransitionGrant, HostInstance};
+use crate::{DelegatedTransitionGrant, HostInstance, RebootDenial};
 
 pub const REBOOT_OPERATION: &str = "lifecycle/reboot";
 pub const REBOOT_CONTRACT_REVISION: &str = "conduit.lifecycle/reboot@1";
@@ -116,18 +116,6 @@ pub struct RebootRequest {
     pub required_front: CheckedFront,
     pub semantic_contract: KindIdentity,
     pub selected_line_id: LineId,
-}
-
-#[derive(Debug, Copy, Clone, PartialEq, Eq, Serialize, Deserialize)]
-pub enum RebootDenial {
-    MalformedRequest,
-    Unsupported,
-    Unauthorized,
-    StaleTargetBoot,
-    SessionMismatch,
-    Replay,
-    AttemptLimitReached,
-    TransactionPending,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
