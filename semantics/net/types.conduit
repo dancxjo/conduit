@@ -1,0 +1,21 @@
+# Authoritative portable application-network vocabulary.
+
+type NetworkTransport =
+    tcp
+    | udp
+
+type DnsRecordKind =
+    a
+    | aaaa
+    | address
+
+type NetworkFrameProtocol =
+    echo_v1
+
+type NetworkFrameDirection =
+    received
+    | sent
+
+type NetworkChunkShape =
+    datagram
+    | stream_chunk

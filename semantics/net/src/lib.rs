@@ -2,6 +2,15 @@
 
 extern crate alloc;
 
+#[allow(dead_code)]
+mod generated {
+    include!(concat!(env!("OUT_DIR"), "/semantic_types.rs"));
+}
+
+pub use generated::{
+    DnsRecordKind, NetworkChunkShape, NetworkFrameDirection, NetworkFrameProtocol, NetworkTransport,
+};
+
 #[cfg(feature = "form-catalog")]
 use alloc::string::{String, ToString};
 use alloc::vec;
