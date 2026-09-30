@@ -1,14 +1,8 @@
 //! Exact semantic lowering from a Lenia scalar field to portable gray8 pixels.
 
-use crate::{LeniaFieldState, LENIA_Q16_ONE};
+use crate::{FieldBitmapRefusal, LeniaFieldState, LENIA_Q16_ONE};
 use alloc::vec::Vec;
 use conduit_presentation::{BitmapRefusal, Gray8Bitmap};
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum FieldBitmapRefusal {
-    InvalidField,
-    InvalidBitmap,
-}
 
 pub fn lenia_field_to_gray8(field: &LeniaFieldState) -> Result<Gray8Bitmap, FieldBitmapRefusal> {
     field

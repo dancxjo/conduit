@@ -8,3 +8,7 @@ type ReactionDiffusionBoundaryEdge =
     | south
     | west
     | east
+
+type FieldBitmapRefusal =
+    invalid-field
+    | invalid-bitmap

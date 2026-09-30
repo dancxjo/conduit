@@ -138,7 +138,7 @@ are satisfied.
 | Audio tone terminal | `semantics/audio/types.conduit` | generated at build time | yes | yes | exact terminal round trip and audio suites |
 | Audio gate, modulation destination, PCM sample representation and channel layout | `semantics/audio/types.conduit` | generated at build time | yes | yes | exact native round trips plus audio, browser, std and embedded compile suites |
 | Sound pressure, cancellation, terminal, stream-state and compatibility-seam vocabularies | `semantics/audio/types.conduit` | generated at build time | yes | yes | exact native round trips plus catalog, conformance and Host consumer suites |
-| Artificial-life Lenia and reaction-diffusion boundary vocabularies | `semantics/alife/types.conduit` | generated at build time | yes | yes | exact native round trips plus artificial-life behavior and conformance suites |
+| Artificial-life Lenia and reaction-diffusion boundary vocabularies and field-bitmap refusal | `semantics/alife/types.conduit` | generated at build time | yes | yes | exact native round trips plus field projection, artificial-life behavior and conformance suites |
 | AI randomness, draw relationship, probability disposition, log-score and refusal vocabularies | `semantics/ai/types.conduit` | generated at build time | yes | yes | exact native round trips plus probability, relation, dynamics and training suites |
 | Robotics beacon/charging, chat connection/presence, HTTP method/failures | domain `types.conduit` sources | generated at build time | yes | yes | exact native round trips plus std/no-std domain suites |
 | HTTP contract refusal vocabulary | `semantics/web/types.conduit` | generated at build time | yes | yes | exact native round trips plus HTTP codec and hosted-HTTP suites |
