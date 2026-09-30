@@ -129,6 +129,31 @@ fn activation_refuses_inexact_ownership_fronts_limits_and_sign_accounting() {
 }
 
 #[test]
+fn activation_owner_is_unique_even_when_ids_and_variants_differ() {
+    let child = selected_plan("duplicate-owner");
+    let outer = common::fragment();
+    let mut first = activation(child.clone());
+    first.activation_id = "first".into();
+    let mut second = activation(child);
+    second.activation_id = "second".into();
+    let plan = seal_plan_with_activation_entries(
+        FormIdentity {
+            source_document_id: outer.source_document_id.clone(),
+            checked_form_id: outer.checked_form_id.clone(),
+            expanded_form_id: outer.expanded_form_id.clone(),
+        },
+        PlanCompletionPolicy::Live,
+        vec![],
+        vec![
+            PlannedActivationEntry::Unary(first),
+            PlannedActivationEntry::Unary(second),
+        ],
+        vec![outer],
+    );
+    assert!(!verify_plan(&plan));
+}
+
+#[test]
 fn fold_activation_seals_two_inputs_initial_storage_and_child_plan() {
     let mut child = selected_plan("fold");
     let fragment = &mut child.fragments[0];
@@ -197,6 +222,22 @@ fn fold_activation_seals_two_inputs_initial_storage_and_child_plan() {
         vec![outer],
     );
     assert!(verify_plan(&plan));
+    let fold_entry = plan.activations[0].clone();
+    let duplicate = seal_plan_with_activation_entries(
+        FormIdentity {
+            source_document_id: plan.source_document_id.clone(),
+            checked_form_id: plan.checked_form_id.clone(),
+            expanded_form_id: plan.expanded_form_id.clone(),
+        },
+        plan.completion_policy,
+        vec![],
+        vec![
+            fold_entry,
+            PlannedActivationEntry::Unary(activation(selected_plan("cross-variant"))),
+        ],
+        plan.fragments.clone(),
+    );
+    assert!(!verify_plan(&duplicate));
     let mut stale = plan.clone();
     let PlannedActivationEntry::Fold(fold) = &mut stale.activations[0] else {
         panic!()

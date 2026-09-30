@@ -120,3 +120,34 @@ fn refuses_stale_plan_and_lowered_mutation() {
         Err(ActivationLoweringError::InvalidPlan)
     );
 }
+
+#[test]
+fn activation_free_plan_projects_an_exact_empty_set() {
+    let plan = common::seal(common::fragment());
+    let lowered = lower_fragment_activations(&plan, &plan.fragments[0].fragment_id).unwrap();
+    assert!(lowered.entries.is_empty());
+    assert!(verify_lowered_fragment_activations(&lowered, &plan));
+}
+
+#[test]
+fn duplicate_fragment_identity_is_refused_as_invalid_plan() {
+    let mut plan = plan();
+    plan.fragments.push(plan.fragments[0].clone());
+    let fragment = plan.fragments[0].fragment_id.clone();
+    assert_eq!(
+        lower_fragment_activations(&plan, &fragment),
+        Err(ActivationLoweringError::InvalidPlan)
+    );
+}
+
+#[test]
+fn fingerprint_is_the_exact_recursive_plan_and_fragment_commitment() {
+    let plan = plan();
+    let lowered = lower_fragment_activations(&plan, &plan.fragments[0].fragment_id).unwrap();
+    let mut changed = plan.clone();
+    let PlannedActivationEntry::Unary(entry) = &mut changed.activations[0] else {
+        panic!()
+    };
+    entry.input.abnormal_kind = Some(kind_id("failure/changed"));
+    assert!(!verify_lowered_fragment_activations(&lowered, &changed));
+}

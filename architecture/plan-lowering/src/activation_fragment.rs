@@ -4,7 +4,7 @@
 //! selected child Plan onto target Host Calls requires a separately reviewed
 //! authority contract.
 
-use alloc::vec::Vec;
+use alloc::{collections::BTreeSet, vec::Vec};
 use conduit_core::{verify_plan, FragmentId, Plan, PlanId, PlannedActivationEntry};
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -41,8 +41,12 @@ pub fn lower_fragment_activations(
         return Err(ActivationLoweringError::StaleFragmentIdentity);
     }
     let mut entries = Vec::new();
+    let mut owners = BTreeSet::new();
     for entry in &plan.activations {
         let owner = owner(entry);
+        if !owners.insert(owner.clone()) {
+            return Err(ActivationLoweringError::ForeignOrDuplicateOwner);
+        }
         let count = plan
             .fragments
             .iter()
@@ -87,41 +91,14 @@ fn owner(entry: &PlannedActivationEntry) -> &conduit_core::PlacementId {
 fn fingerprint(
     plan: &PlanId,
     fragment: &FragmentId,
-    entries: &[PlannedActivationEntry],
+    _entries: &[PlannedActivationEntry],
 ) -> [u8; 32] {
+    // PlanId already commits every activation field, including the recursively
+    // verified selected Plan, fronts, limits, policies, initial/retained state,
+    // effects, and Sign budget. Re-encoding a subset here would be weaker.
     let mut canonical = Vec::new();
     canonical.extend_from_slice(plan.as_str().as_bytes());
     canonical.push(0);
     canonical.extend_from_slice(fragment.as_str().as_bytes());
-    for entry in entries {
-        let (tag, id, selected, limits) = match entry {
-            PlannedActivationEntry::Unary(value) => (
-                0,
-                &value.activation_id,
-                &value.selected_plan_id,
-                value.limits,
-            ),
-            PlannedActivationEntry::Fold(value) => (
-                1,
-                &value.activation_id,
-                &value.selected_plan_id,
-                value.limits,
-            ),
-            PlannedActivationEntry::Scan(value) => (
-                2,
-                &value.activation_id,
-                &value.selected_plan_id,
-                value.limits,
-            ),
-        };
-        canonical.push(tag);
-        canonical.extend_from_slice(id.as_bytes());
-        canonical.push(0);
-        canonical.extend_from_slice(selected.as_str().as_bytes());
-        canonical.extend_from_slice(&limits.maximum_active.to_le_bytes());
-        canonical.extend_from_slice(&limits.maximum_queue_items.to_le_bytes());
-        canonical.extend_from_slice(&limits.maximum_queue_bytes.to_le_bytes());
-        canonical.extend_from_slice(&limits.maximum_items.to_le_bytes());
-    }
     conduit_core::semantic_digest("conduit/lowered-fragment-activations@1", &canonical)
 }
