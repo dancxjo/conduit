@@ -667,6 +667,24 @@ impl<'a> Parser<'a> {
                     selected,
                     selected_start,
                 )
+            } else if let Some(rest) = invoked.strip_prefix("scan(") {
+                let Some((initial, selected)) = rest.split_once(") ") else {
+                    return Err((
+                        FormError::InvalidSyntax(
+                            "scan requires 'scan(initial) combine-form()'".into(),
+                        ),
+                        self.span(invoked_start, start + text.len()),
+                    ));
+                };
+                let initial_start = invoked_start + "scan(".len();
+                let selected_start = initial_start + initial.len() + ") ".len();
+                (
+                    Some(ActivationSyntax::Scan {
+                        initial: Box::new(self.expression_at(initial, initial, initial_start)?),
+                    }),
+                    selected,
+                    selected_start,
+                )
             } else {
                 (None, invoked, invoked_start)
             };

@@ -294,6 +294,58 @@ pub enum KindSemanticLaw {
     FlowSelect(FlowSelectSemanticLaw),
     /// Exact bounded left fold of one closing Flow through a reviewed combine Form.
     FlowFold(FlowFoldSemanticLaw),
+    /// Exact bounded retained progression through a reviewed combine Form.
+    FlowScan(FlowScanSemanticLaw),
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct FlowScanSemanticLaw {
+    pub input_port_id: PortId,
+    pub output_port_id: PortId,
+    pub item: crate::CheckedValueContract,
+    pub accumulator: crate::CheckedValueContract,
+    pub initial_accumulator: Vec<u8>,
+    pub combine_accumulator_port_id: PortId,
+    pub combine_item_port_id: PortId,
+    pub combine_output_port_id: PortId,
+    pub maximum_active: u16,
+    pub maximum_queued: u16,
+    pub invocation: FlowScanInvocation,
+    pub progression: FlowScanProgression,
+    pub empty: FlowScanEmptyDisposition,
+    pub close: FlowScanCloseDisposition,
+    pub abnormal: FlowScanAbnormalDisposition,
+    pub cancellation: FlowScanCancellationDisposition,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+pub enum FlowScanInvocation {
+    OncePerAcceptedInput,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+pub enum FlowScanProgression {
+    EmitCombinedAccumulatorExactlyOnceInInputOrder,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+pub enum FlowScanEmptyDisposition {
+    EmitNothing,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+pub enum FlowScanCloseDisposition {
+    DrainThenCloseWithoutExtraEmission,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+pub enum FlowScanAbnormalDisposition {
+    DiscardAccumulatorAndPropagateExact,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+pub enum FlowScanCancellationDisposition {
+    DiscardAccumulatorWithoutEmission,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]

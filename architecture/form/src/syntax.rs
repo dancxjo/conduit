@@ -389,7 +389,15 @@ pub struct NamedGear {
 pub enum ActivationSyntax {
     Each,
     Select,
-    Fold { initial: Box<Expression> },
+    Fold {
+        initial: Box<Expression>,
+    },
+    /// Retained progression through an exact two-input combine Form. Planning
+    /// and execution require their multi-input activation path; this is never
+    /// lowered through the unary activation contract.
+    Scan {
+        initial: Box<Expression>,
+    },
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]

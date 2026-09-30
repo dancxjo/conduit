@@ -633,6 +633,26 @@ fn push_semantic_contract(canonical: &mut Vec<u8>, contract: &crate::KindSemanti
                 canonical.push(fold.abnormal as u8);
                 canonical.push(fold.cancellation as u8);
             }
+            Law::FlowScan(scan) => {
+                canonical.push(15);
+                push_string(canonical, scan.input_port_id.as_str());
+                push_string(canonical, scan.output_port_id.as_str());
+                push_value_contract(canonical, &scan.item);
+                push_value_contract(canonical, &scan.accumulator);
+                push_u32(canonical, scan.initial_accumulator.len() as u32);
+                canonical.extend_from_slice(&scan.initial_accumulator);
+                push_string(canonical, scan.combine_accumulator_port_id.as_str());
+                push_string(canonical, scan.combine_item_port_id.as_str());
+                push_string(canonical, scan.combine_output_port_id.as_str());
+                canonical.extend_from_slice(&scan.maximum_active.to_le_bytes());
+                canonical.extend_from_slice(&scan.maximum_queued.to_le_bytes());
+                canonical.push(scan.invocation as u8);
+                canonical.push(scan.progression as u8);
+                canonical.push(scan.empty as u8);
+                canonical.push(scan.close as u8);
+                canonical.push(scan.abnormal as u8);
+                canonical.push(scan.cancellation as u8);
+            }
         }
     }
 }

@@ -248,6 +248,8 @@ mod flow_select;
 pub use flow_select::*;
 mod flow_fold;
 pub use flow_fold::*;
+mod flow_scan;
+pub use flow_scan::*;
 mod flow_join_by_key;
 pub use flow_join_by_key::*;
 mod flow_state;

@@ -75,7 +75,9 @@ impl ExpandedCanonicalForm {
                         retained.direction = conduit_core::PortDirection::Output;
                         retained
                     }
-                    crate::ActivationSyntax::Fold { .. } => activation.output.clone(),
+                    crate::ActivationSyntax::Fold { .. } | crate::ActivationSyntax::Scan { .. } => {
+                        activation.output.clone()
+                    }
                 };
                 output.temporal = if matches!(activation.mode, crate::ActivationSyntax::Fold { .. })
                 {
@@ -86,7 +88,7 @@ impl ExpandedCanonicalForm {
                 owner.inputs == [input] && owner.outputs == [output]
             });
             let fold_metadata_matches = match activation.mode {
-                crate::ActivationSyntax::Fold { .. } => {
+                crate::ActivationSyntax::Fold { .. } | crate::ActivationSyntax::Scan { .. } => {
                     activation
                         .accumulator_input
                         .as_ref()
@@ -396,6 +398,7 @@ pub(super) fn expanded_identity(
                 crate::ActivationSyntax::Each => "activation-each",
                 crate::ActivationSyntax::Select => "activation-select",
                 crate::ActivationSyntax::Fold { .. } => "activation-fold",
+                crate::ActivationSyntax::Scan { .. } => "activation-scan",
             },
         );
         push(&mut canonical, &activation.activation_id);
