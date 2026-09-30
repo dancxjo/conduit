@@ -1,10 +1,13 @@
 //! Fixed-capacity graphical leaf obligations below semantic presentation.
 
-use crate::{LayoutRect, PresentationIconKey, MAX_LAYOUT_EXTENT};
+use crate::{
+    GraphicsCommandKind, GraphicsCommandKindRepresentation, GraphicsPaintRole,
+    GraphicsPaintRoleRepresentation, GraphicsShapeStyle, GraphicsShapeStyleRepresentation,
+    GraphicsTextRole, GraphicsTextRoleRepresentation, LayoutRect, PresentationIconKey,
+    MAX_LAYOUT_EXTENT,
+};
 mod path;
-mod typography;
 pub use path::{GraphicsPath, GraphicsPoint, MAX_GRAPHICS_PATH_POINTS};
-pub use typography::GraphicsTextRole;
 
 pub const GRAPHICS_SCENE_KIND: &str = "presentation/graphics-scene@1";
 pub const MAX_GRAPHICS_COMMANDS: usize = 48;
@@ -17,40 +20,6 @@ pub const MAX_GRAPHICS_SCENE_BYTES: usize =
 // Version 2 carries one explicit graphical text-role byte per command. Old
 // scene encodings refuse rather than silently changing text layout on replay.
 const VERSION: u8 = 2;
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-#[repr(u8)]
-pub enum GraphicsCommandKind {
-    Rect = 1,
-    Text = 2,
-    Icon = 3,
-    OrthogonalPath = 4,
-}
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-#[repr(u8)]
-pub enum GraphicsPaintRole {
-    Background = 1,
-    Foreground = 2,
-    Accent = 3,
-    Status = 4,
-    Muted = 5,
-    Success = 6,
-    Warning = 7,
-    Danger = 8,
-    Focus = 9,
-    Hovered = 10,
-    Selected = 11,
-}
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-#[repr(u8)]
-pub enum GraphicsShapeStyle {
-    Fill = 1,
-    Stroke = 2,
-    RoundedFill = 3,
-    RoundedStroke = 4,
-}
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum GraphicsClipClass {
@@ -287,13 +256,13 @@ impl GraphicsScene {
         output[1] = self.count;
         let mut offset = 2;
         for command in self.commands() {
-            output[offset] = command.kind as u8;
-            output[offset + 1] = command.paint as u8;
-            output[offset + 2] = command.style as u8;
+            output[offset] = GraphicsCommandKindRepresentation::encode(command.kind)[0];
+            output[offset + 1] = GraphicsPaintRoleRepresentation::encode(command.paint)[0];
+            output[offset + 2] = GraphicsShapeStyleRepresentation::encode(command.style)[0];
             write_rect(&mut output[offset + 3..offset + 11], command.bounds);
             write_rect(&mut output[offset + 11..offset + 19], command.clip);
             output[offset + 19] = command.payload_len;
-            output[offset + 20] = command.text_role as u8;
+            output[offset + 20] = GraphicsTextRoleRepresentation::encode(command.text_role)[0];
             let len = usize::from(command.payload_len);
             output[offset + 21..offset + 21 + len].copy_from_slice(&command.payload[..len]);
             offset += 21 + len;
@@ -329,7 +298,8 @@ impl GraphicsScene {
             let bounds = read_rect(&input[offset + 3..offset + 11]);
             let clip = read_rect(&input[offset + 11..offset + 19]);
             let len = usize::from(input[offset + 19]);
-            let text_role = GraphicsTextRole::decode(input[offset + 20])?;
+            let text_role = GraphicsTextRoleRepresentation::decode(&[input[offset + 20]])
+                .map_err(|_| GraphicsError::MalformedEncoding)?;
             if kind != GraphicsCommandKind::Text && text_role != GraphicsTextRole::Body {
                 return Err(GraphicsError::NonCanonicalEncoding);
             }
@@ -404,40 +374,16 @@ fn read_rect(input: &[u8]) -> LayoutRect {
 }
 
 fn decode_kind(value: u8) -> Result<GraphicsCommandKind, GraphicsError> {
-    match value {
-        1 => Ok(GraphicsCommandKind::Rect),
-        2 => Ok(GraphicsCommandKind::Text),
-        3 => Ok(GraphicsCommandKind::Icon),
-        4 => Ok(GraphicsCommandKind::OrthogonalPath),
-        _ => Err(GraphicsError::MalformedEncoding),
-    }
+    GraphicsCommandKindRepresentation::decode(&[value])
+        .map_err(|_| GraphicsError::MalformedEncoding)
 }
 
 fn decode_paint(value: u8) -> Result<GraphicsPaintRole, GraphicsError> {
-    match value {
-        1 => Ok(GraphicsPaintRole::Background),
-        2 => Ok(GraphicsPaintRole::Foreground),
-        3 => Ok(GraphicsPaintRole::Accent),
-        4 => Ok(GraphicsPaintRole::Status),
-        5 => Ok(GraphicsPaintRole::Muted),
-        6 => Ok(GraphicsPaintRole::Success),
-        7 => Ok(GraphicsPaintRole::Warning),
-        8 => Ok(GraphicsPaintRole::Danger),
-        9 => Ok(GraphicsPaintRole::Focus),
-        10 => Ok(GraphicsPaintRole::Hovered),
-        11 => Ok(GraphicsPaintRole::Selected),
-        _ => Err(GraphicsError::MalformedEncoding),
-    }
+    GraphicsPaintRoleRepresentation::decode(&[value]).map_err(|_| GraphicsError::MalformedEncoding)
 }
 
 fn decode_style(value: u8) -> Result<GraphicsShapeStyle, GraphicsError> {
-    match value {
-        1 => Ok(GraphicsShapeStyle::Fill),
-        2 => Ok(GraphicsShapeStyle::Stroke),
-        3 => Ok(GraphicsShapeStyle::RoundedFill),
-        4 => Ok(GraphicsShapeStyle::RoundedStroke),
-        _ => Err(GraphicsError::MalformedEncoding),
-    }
+    GraphicsShapeStyleRepresentation::decode(&[value]).map_err(|_| GraphicsError::MalformedEncoding)
 }
 
 #[cfg(test)]
