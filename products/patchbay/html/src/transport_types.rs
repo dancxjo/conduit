@@ -76,7 +76,7 @@ pub struct RendererSnapshot {
     pub body_host_planning_offer: Option<conduit_body::HostOfferProjection>,
     /// Ordinary body/Wake/Plan state derived from policy-admitted offers.
     #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub body_planning: Option<patchbay_model::BodyPlanningSessionSnapshot>,
+    pub body_planning: Option<conduit_body::BodyPlanningSessionSnapshot>,
     /// Portable semantic projection of the selected body Mask chains.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub mask_topology: Option<Presentation>,

@@ -6,11 +6,13 @@
 mod body_description;
 mod body_source;
 mod construction_source;
+mod planning;
 mod spore;
 
 pub use body_description::*;
 pub use body_source::*;
 pub use construction_source::*;
+pub use planning::*;
 pub use spore::*;
 
 #[cfg(test)]

@@ -806,8 +806,14 @@ dependencies = [
 name = "conduit-body-make"
 version = "0.1.0"
 dependencies = [
+ "conduit-body",
+ "conduit-core",
  "conduit-form",
  "conduit-host-make",
+ "conduit-planner",
+ "conduit-semantic-catalog",
+ "conduit-std-host",
+ "conduit-std-offers",
  "conduit-workspace-make",
  "serde",
  "serde_json",
@@ -3883,6 +3889,7 @@ name = "patchbay-html"
 version = "0.1.0"
 dependencies = [
  "conduit-body",
+ "conduit-body-make",
  "conduit-browser-host",
  "conduit-core",
  "conduit-kernel",
@@ -3906,6 +3913,7 @@ dependencies = [
  "conduit-ai",
  "conduit-birth-form",
  "conduit-body",
+ "conduit-body-make",
  "conduit-browser-runtime",
  "conduit-chat",
  "conduit-core",
