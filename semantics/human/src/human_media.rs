@@ -4,17 +4,12 @@
 //! Browser device identifiers and permission APIs are host-adapter truth and
 //! therefore never appear in these contracts.
 
+use crate::HumanMediaKind;
 use conduit_core::{
     AuthorityContractId, AuthorityGrantId, BootId, HostCallContractId, HostCallId, HostId,
     ImplementationId, KindId, OfferGeneration, PlanId, PortId, ResourceClassId, ResourceHandleId,
 };
 use serde::{Deserialize, Serialize};
-
-#[derive(Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]
-pub enum HumanMediaKind {
-    Camera,
-    Microphone,
-}
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct MediaFlowBounds {

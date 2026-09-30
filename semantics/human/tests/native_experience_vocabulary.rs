@@ -1,8 +1,8 @@
 use conduit_form::rust_binding::NativeRustBinding;
 use conduit_human::{
     ExperienceAvailability, ExperienceCertainty, ExperienceDomain, ExperienceOrigin,
-    ExperienceRelationKind, ExperienceTemporalRole, KeymapRefusal, SourceAvailability,
-    VisualEvidenceClass, VisualExperienceRelationKind,
+    ExperienceRelationKind, ExperienceTemporalRole, HumanMediaKind, KeymapRefusal,
+    SourceAvailability, VisualEvidenceClass, VisualExperienceRelationKind,
 };
 
 fn assert_round_trip<T>(value: T)
@@ -21,6 +21,13 @@ fn keymap_refusals_round_trip_through_the_exact_native_type() {
         KeymapRefusal::UnicodeEntryOverflow,
         KeymapRefusal::InvalidUnicodeScalar,
     ] {
+        assert_round_trip(value);
+    }
+}
+
+#[test]
+fn human_media_kinds_round_trip_through_the_exact_native_type() {
+    for value in [HumanMediaKind::Camera, HumanMediaKind::Microphone] {
         assert_round_trip(value);
     }
 }
