@@ -63,6 +63,7 @@ pub fn generate_rust_bindings(
          extern crate alloc;\n\
          #[allow(unused_imports)]\n\
          use conduit_form::rust_binding::{BoundedBytes, BoundedSequence, NativeBindingRefusal, NativeRustBinding};\n\
+         use conduit_form::rust_binding::semantic_core as conduit_core;\n\
          use conduit_core::{StructuredFieldValue, StructuredInfoType, StructuredInfoValue, StructuredInfoValueShape};\n\
          #[allow(unused_imports)]\n\
          use alloc::{string::String, vec, vec::Vec};\n\n",

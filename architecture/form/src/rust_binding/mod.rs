@@ -14,6 +14,7 @@ mod primitive;
 mod value;
 
 pub use bounded::{BoundedBytes, BoundedSequence, BoundedText};
+pub use conduit_core as semantic_core;
 pub use generate::{
     generate_rust_bindings, RustBindingGenerationError, RustBindingModule, RustBindingOptions,
 };

@@ -106,7 +106,6 @@ fn generated_bindings_compile_as_an_independent_rust_library() {
             .unwrap_or_else(|| panic!("missing {crate_name} rlib in {}", dependencies.display()))
     };
     let form = find_rlib("conduit_form");
-    let core = find_rlib("conduit_core");
     let directory =
         std::env::temp_dir().join(format!("conduit-rust-bindings-{}", std::process::id()));
     fs::create_dir_all(&directory).unwrap();
@@ -156,8 +155,6 @@ mod generated_round_trip {
         .arg(format!("dependency={}", dependencies.display()))
         .arg("--extern")
         .arg(format!("conduit_form={}", form.display()))
-        .arg("--extern")
-        .arg(format!("conduit_core={}", core.display()))
         .arg(&source)
         .arg("-o")
         .arg(&executable)
@@ -186,8 +183,6 @@ mod generated_round_trip {
         .arg(format!("dependency={}", dependencies.display()))
         .arg("--extern")
         .arg(format!("conduit_form={}", form.display()))
-        .arg("--extern")
-        .arg(format!("conduit_core={}", core.display()))
         .arg(&no_std_source)
         .arg("-o")
         .arg(&no_std_library)
