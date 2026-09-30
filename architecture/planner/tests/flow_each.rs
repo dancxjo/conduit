@@ -178,6 +178,9 @@ fn authored_each_plans_one_exact_ordinary_child_plan() {
     assert!(verify_plan(&plan));
     assert_eq!(plan.activations.len(), 1);
     let activation = &plan.activations[0];
+    let conduit_core::PlannedActivationEntry::Unary(activation) = activation else {
+        panic!("flow/each must retain a unary activation")
+    };
     assert_eq!(
         activation.effect_multiplicity,
         PlannedActivationEffectMultiplicity::OncePerAcceptedInput
