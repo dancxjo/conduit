@@ -69,7 +69,7 @@ Guiding sentence:
 
 [#4115](https://github.com/dancxjo/conduit/issues/4115)
 
-Makes Mask an ordinary form role, with authored `wear`, `doff`, `prefer`, and `else` policy.
+Makes Mask an ordinary form role, with authored `wear`, `doff`, `want`, and `else` policy.
 
 ### Host: bare metal to show
 

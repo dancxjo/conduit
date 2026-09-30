@@ -312,7 +312,7 @@ with masks/spoken as spoken
 
 body roseau {
     wear graphical else spoken
-    prefer graphical over spoken
+    want graphical over spoken
 }
 ```
 

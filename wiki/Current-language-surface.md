@@ -170,11 +170,11 @@ with masks/spoken as spoken
 
 body roseau {
     wear graphical else spoken
-    prefer graphical over spoken
+    want graphical over spoken
 }
 ```
 
-`wear a else b` admits fallback structure into the Plan. Without authored `else`, loss requires ordinary replacement planning. `prefer` is policy only among eligible alternatives. Runtime `wear` and `doff` are Body-control actions requesting wardrobe change and therefore new planning where required; they never mutate an immutable Plan in place. Owner: #4115.
+`wear a else b` admits fallback structure into the Plan. Without authored `else`, loss requires ordinary replacement planning. `want` is policy only among eligible alternatives. Runtime `wear` and `doff` are Body-control actions requesting wardrobe change and therefore new planning where required; they never mutate an immutable Plan in place. Owner: #4115.
 
 ### Host source
 
