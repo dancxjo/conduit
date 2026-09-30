@@ -9,6 +9,7 @@ mod generated {
 
 pub use generated::{
     ApplicationNetworkRefusal, DnsRecordKind, DnsTtl, NetworkTransport, RecordTranscriptDirection,
+    RecordTranscriptTerminal, RecordTranscriptTerminalFailed, RecordTranscriptTerminalRefused,
 };
 
 #[cfg(feature = "form-catalog")]

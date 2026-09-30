@@ -613,11 +613,11 @@ fn transcript_projection(transcript: &SessionTranscript) -> RecordTranscriptProj
                         ("disconnected", 0, None)
                     }
                     conduit_net::RecordTranscriptTerminal::TimedOut => ("timed-out", 0, None),
-                    conduit_net::RecordTranscriptTerminal::Refused(code) => {
-                        ("refused", 0, Some(code))
+                    conduit_net::RecordTranscriptTerminal::Refused(payload) => {
+                        ("refused", 0, Some(*payload.code()))
                     }
-                    conduit_net::RecordTranscriptTerminal::Failed(code) => {
-                        ("failed", 0, Some(code))
+                    conduit_net::RecordTranscriptTerminal::Failed(payload) => {
+                        ("failed", 0, Some(*payload.code()))
                     }
                 },
             };
