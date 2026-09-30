@@ -106,3 +106,31 @@ type ContextOmissionReason =
     | byte_budget
     | token_budget
     | work_budget
+
+type SourceSpanUnit =
+    bytes
+    | items
+
+type ContextSelectionRationale =
+    exact_match
+    | semantic_candidate
+    | metadata_match
+    | temporal_match
+    | boundary_evidence
+    | conflict_preserved
+
+type ContextTruncationReason =
+    byte_budget
+    | token_budget
+    | item_budget
+
+type GroundingDisposition =
+    supported
+    | insufficient_evidence
+    | conflicting_evidence
+
+type GroundedAnswerDisposition =
+    supported
+    | partially_supported
+    | insufficient_evidence
+    | conflicting_evidence

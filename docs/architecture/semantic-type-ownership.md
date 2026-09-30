@@ -145,6 +145,7 @@ are satisfied.
 | Vector similarity and embedding-normalization vocabularies | `semantics/ai/types.conduit` | generated at build time | yes | yes | exact native round trips plus vector retrieval and canonical serialization suites |
 | AI temporal source, boundary, direction, validity, and window vocabularies | `semantics/ai/types.conduit` | generated at build time | yes | yes | exact native round trips plus temporal context, retrieval, and serialization suites |
 | Context selection redundancy, ordering, rationale, and omission vocabularies | `semantics/ai/types.conduit` | generated at build time | yes | yes | exact native round trips plus context selection and planning suites |
+| RAG span, selection, truncation, and grounding vocabularies | `semantics/ai/types.conduit` | generated at build time | yes | yes | exact native round trips plus RAG semantics and grounded-answer suites |
 | System-continuity reboot denial | `semantics/system-continuity/types.conduit` | generated at build time | yes | yes | exact native round trip plus continuity and no-std suites |
 | Remaining P families in `semantics/**` | family-owned `.conduit` source required | binding machinery available | in progress | in progress | exact std/browser/ConduitOS/embedded applicability per family |
 
