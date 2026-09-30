@@ -10,8 +10,8 @@ pub use generated::{
     AvailabilityState, CalendarRefusal, CivilFoldPolicy, CivilGapPolicy, CivilResolutionChoice,
     ClockChangeBehavior, HistoricalEntryOrigin, HistoricalOverflowPolicy, InvitationState,
     MeetingProposalRefusal, ParticipantRole, RecurrenceRefusal, ReplayPolicy, ReplayPolicyRate,
-    ScheduledIntentRefusal, SuspendBehavior, TemporalBoundary, TemporalWindowPosition,
-    TemporalWindowRefusal, TimedPatternRefusal,
+    ScheduleRefusal, ScheduledIntentRefusal, SuspendBehavior, TemporalBoundary,
+    TemporalWindowPosition, TemporalWindowRefusal, TimedPatternRefusal, WorkflowLifecycle,
 };
 
 mod timed_pattern_refusal;
