@@ -591,6 +591,23 @@ fn expression_body_checks_and_expands_identically_to_its_explicit_form() {
         concise_checked.forms[0].checked_form_id,
         explicit_checked.forms[0].checked_form_id
     );
+    assert!(explicit_checked.source_sugar_expansions.is_empty());
+    let source_expansion = &concise_checked.source_sugar_expansions[0];
+    assert_eq!(source_expansion.authored, "= (. * factor)");
+    assert_eq!(
+        &concise[source_expansion.source_span.start..source_expansion.source_span.end],
+        "= (. * factor)"
+    );
+    assert_eq!(
+        source_expansion.ordinary_kind,
+        "conduitese/pure-expression-operation@1"
+    );
+    assert_eq!(source_expansion.input_ports, ["value"]);
+    assert_eq!(source_expansion.output_ports, ["result"]);
+    assert_eq!(
+        source_expansion.canonical_replacement.as_deref(),
+        Some("{\n    value >> (. * factor) >> result\n}")
+    );
 
     let concise_expanded =
         expand_canonical_form_for_authoring(&concise_checked, "increment", &ProfileCatalog::new())

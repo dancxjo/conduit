@@ -329,6 +329,13 @@ impl<'a> Parser<'a> {
             front = parsed_front;
             if let Some(expression) = expression_body {
                 let close = self.lines[self.index - 1];
+                let expression_body = crate::syntax::ExpressionBodySyntax {
+                    expression: expression.clone(),
+                    span: self.span(
+                        close.start + close.text.find('=').expect("expression body has '='"),
+                        expression.span.end,
+                    ),
+                };
                 return Ok(FormSyntax {
                     name,
                     back: vec![expression_body_cord(
@@ -339,6 +346,7 @@ impl<'a> Parser<'a> {
                     front,
                     completion: FormCompletionPolicy::Live,
                     local_forms: Vec::new(),
+                    expression_body: Some(expression_body),
                     span: self.span(form_start, close.start + close.text.len()),
                 });
             }
@@ -363,6 +371,7 @@ impl<'a> Parser<'a> {
             completion,
             local_forms,
             back,
+            expression_body: None,
             span: self.span(form_start, close.start + close.text.len()),
         })
     }

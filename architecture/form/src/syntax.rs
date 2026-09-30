@@ -229,6 +229,15 @@ pub struct FormSyntax {
     /// identities before Fore checking and canonical expansion.
     pub local_forms: Vec<FormSyntax>,
     pub back: Vec<BackStatement>,
+    /// Authored expression-body spelling retained only for source inspection.
+    /// The ordinary cord in `back` remains the sole checked meaning.
+    pub expression_body: Option<ExpressionBodySyntax>,
+    pub span: Span,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct ExpressionBodySyntax {
+    pub expression: Expression,
     pub span: Span,
 }
 
