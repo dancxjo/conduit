@@ -25,6 +25,7 @@ depends on semantic, application, target, or proof packages.
 | `interop.rs` | universal architecture | Exact directional bridge identity, bounded mapping, reflection fencing, and machine-readable refusal without granting sibling authority. |
 | `plan_fingerprint.rs` | universal architecture | Canonical fragment and plan commitment encoding; preserves immutable realization identity. |
 | `plan_realization.rs` | universal architecture | Exact reusable back identity retained in an expanded form and plan. |
+| `planned_activation.rs` | universal architecture | Exact bounded activation of one recursively verified selected Plan, including owner, Value fronts, finite pressure, terminal and cancellation laws, and per-activation Sign storage. |
 | `planned_gear.rs` | universal architecture | Checked named-field construction and minimum identity validation for one fully selected Gear in a Plan. |
 | `port.rs` | universal architecture | Typed port direction and temporal shape. |
 | `preparation.rs` | universal architecture | Finite cross-host admission before one exact plan starts. |
