@@ -3,8 +3,8 @@
 use alloc::{string::String, vec::Vec};
 
 use crate::{
-    ChunkIdentity, ExtractedSourceValue, HybridCandidate, RerankingProofClass, RerankingStrategy,
-    MAXIMUM_HYBRID_OUTPUT_CANDIDATES, MAXIMUM_RAG_IDENTITY_BYTES,
+    ChunkIdentity, ExtractedSourceValue, HybridCandidate, RerankingProofClass, RerankingRefusal,
+    RerankingStrategy, MAXIMUM_HYBRID_OUTPUT_CANDIDATES, MAXIMUM_RAG_IDENTITY_BYTES,
 };
 
 pub const MAXIMUM_RERANKING_WORK_UNITS: u32 = 1_048_576;
@@ -45,24 +45,6 @@ pub struct RerankingReceipt {
     pub proof_class: RerankingProofClass,
     pub candidates: Vec<RerankedCandidate>,
     pub work_units: u32,
-}
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum RerankingRefusal {
-    EmptyIdentity,
-    IdentityTooLarge,
-    EmptyCandidates,
-    CandidateLimitExceeded,
-    InvalidBound,
-    InvalidProofClass,
-    InvalidCandidate,
-    DuplicateCandidate,
-    MissingObservation,
-    DuplicateObservation,
-    UnexpectedObservation,
-    ZeroObservationWork,
-    WorkBoundExceeded,
-    ArithmeticOverflow,
 }
 
 impl RerankingPolicy {

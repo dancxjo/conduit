@@ -4,7 +4,7 @@ use alloc::{string::String, vec::Vec};
 use serde::{Deserialize, Serialize};
 use sha2::{Digest, Sha256};
 
-use crate::HouseContextProvenanceClass;
+use crate::{HouseContextProvenanceClass, HouseContextRefusal};
 
 pub const MAXIMUM_HOUSE_CONTEXT_ITEMS: usize = 16;
 pub const MAXIMUM_HOUSE_CONTEXT_BYTES: usize = 16_384;
@@ -26,20 +26,6 @@ pub struct HouseModelRequest {
     pub addressed_utterance: String,
     pub context: Vec<WiredHouseContextItem>,
     pub maximum_output_bytes: u64,
-}
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum HouseContextRefusal {
-    EmptyUtterance,
-    UtteranceBoundExceeded,
-    EmptyContext,
-    ContextItemLimitExceeded,
-    ContextByteLimitExceeded,
-    MissingIdentity,
-    IdentityBoundExceeded,
-    EmptyValue,
-    DuplicateItem,
-    InvalidOutputBound,
 }
 
 pub fn build_house_model_request(

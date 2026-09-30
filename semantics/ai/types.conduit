@@ -574,3 +574,47 @@ type InterpretationInvalidity =
     | fabricated_evidence_reference
     | resolved_evidence_marked_unresolved
     | invalid_temporal_context
+
+type ContextSelectionRefusal =
+    empty_identity
+    | identity_too_large
+    | empty_candidates
+    | candidate_limit_exceeded
+    | invalid_bound
+    | invalid_candidate
+    | duplicate_candidate
+    | arithmetic_overflow
+    | invalid_temporal_evidence
+    | temporal_evidence_not_contributed
+    | missing_temporal_evidence
+    | missing_redundancy_group
+    | empty_token_cost
+    | no_selected_context
+
+type RerankingRefusal =
+    empty_identity
+    | identity_too_large
+    | empty_candidates
+    | candidate_limit_exceeded
+    | invalid_bound
+    | invalid_proof_class
+    | invalid_candidate
+    | duplicate_candidate
+    | missing_observation
+    | duplicate_observation
+    | unexpected_observation
+    | zero_observation_work
+    | work_bound_exceeded
+    | arithmetic_overflow
+
+type HouseContextRefusal =
+    empty_utterance
+    | utterance_bound_exceeded
+    | empty_context
+    | context_item_limit_exceeded
+    | context_byte_limit_exceeded
+    | missing_identity
+    | identity_bound_exceeded
+    | empty_value
+    | duplicate_item
+    | invalid_output_bound

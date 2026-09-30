@@ -5,10 +5,10 @@ use conduit_core::TemporalRelation;
 
 use crate::{
     ChunkIdentity, ContextOmissionReason, ContextOrderingPolicy, ContextRedundancyPolicy,
-    EntityBoundary, ExtractedSourceValue, RerankedCandidate, RerankingProofClass,
-    RetrievalContribution, SelectedContextRationale, TemporalContext, TemporalProvenance,
-    TemporalSource, TemporalValidity, MAXIMUM_CONTEXT_ITEMS, MAXIMUM_HYBRID_OUTPUT_CANDIDATES,
-    MAXIMUM_RAG_IDENTITY_BYTES,
+    ContextSelectionRefusal, EntityBoundary, ExtractedSourceValue, RerankedCandidate,
+    RerankingProofClass, RetrievalContribution, SelectedContextRationale, TemporalContext,
+    TemporalProvenance, TemporalSource, TemporalValidity, MAXIMUM_CONTEXT_ITEMS,
+    MAXIMUM_HYBRID_OUTPUT_CANDIDATES, MAXIMUM_RAG_IDENTITY_BYTES,
 };
 
 pub const MAXIMUM_CONTEXT_SELECTION_WORK_UNITS: u32 = 1_048_576;
@@ -86,24 +86,6 @@ pub struct StructuredContext {
     pub items: Vec<SelectedContextItem>,
     pub disposition: ContextSelectionDisposition,
     pub used: SelectedContextCost,
-}
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum ContextSelectionRefusal {
-    EmptyIdentity,
-    IdentityTooLarge,
-    EmptyCandidates,
-    CandidateLimitExceeded,
-    InvalidBound,
-    InvalidCandidate,
-    DuplicateCandidate,
-    ArithmeticOverflow,
-    InvalidTemporalEvidence,
-    TemporalEvidenceNotContributed,
-    MissingTemporalEvidence,
-    MissingRedundancyGroup,
-    EmptyTokenCost,
-    NoSelectedContext,
 }
 
 impl ContextSelectionPolicy {
