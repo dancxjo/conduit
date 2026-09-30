@@ -3,6 +3,7 @@
 use alloc::string::String;
 use alloc::vec;
 use alloc::vec::Vec;
+pub use conduit_audio::SoundSeam;
 use conduit_audio::{PcmChannelLayout, PcmSampleRepresentation};
 use conduit_core::{
     stable_realization_boolean, stable_realization_category, stable_realization_quantity,
@@ -43,14 +44,6 @@ pub const AUDIO_STARTUP_POLICY_CHARACTERISTIC: &str = "audio/startup-policy@1";
 pub const AUDIO_DRAIN_POLICY_CHARACTERISTIC: &str = "audio/drain-policy@1";
 pub const AUDIO_TIMING_CLASS_CHARACTERISTIC: &str = "audio/timing-class@1";
 pub const AUDIO_CONTROLLED_STAGING_BYTES_CHARACTERISTIC: &str = "audio/controlled-staging-bytes@1";
-
-#[derive(Debug, Copy, Clone, PartialEq, Eq, Serialize, Deserialize)]
-pub enum SoundSeam {
-    Tone,
-    MusicalEvents,
-    Synthesis,
-    PcmPlayback,
-}
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct PcmCompatibilityProfile {

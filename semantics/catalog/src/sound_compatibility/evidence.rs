@@ -10,15 +10,9 @@ use super::IncompatibilityReason;
 pub const MAXIMUM_NORMALIZED_SOUND_EVENTS: usize = 256;
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Serialize, Deserialize)]
-pub enum NormalizedGate {
-    On,
-    Off,
-}
-
-#[derive(Debug, Copy, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct NormalizedNoteEvidence {
     pub occurrence: u64,
-    pub gate: NormalizedGate,
+    pub gate: Gate,
     pub order: u32,
     pub requested_pitch_millihertz: u64,
     pub admitted_pitch_millihertz: u64,
@@ -32,10 +26,7 @@ impl NormalizedNoteEvidence {
     pub fn admitted(event: MusicalNoteEvent, admitted_pitch_millihertz: u64) -> Self {
         Self {
             occurrence: event.occurrence.0,
-            gate: match event.gate {
-                Gate::On => NormalizedGate::On,
-                Gate::Off => NormalizedGate::Off,
-            },
+            gate: event.gate,
             order: event.order,
             requested_pitch_millihertz: event.pitch.frequency_millihertz,
             admitted_pitch_millihertz,
@@ -92,25 +83,21 @@ impl NormalizedSoundTrace {
                 .iter()
                 .filter(|prior| prior.occurrence == event.occurrence)
                 .fold(0_i16, |balance, prior| match prior.gate {
-                    NormalizedGate::On => balance + 1,
-                    NormalizedGate::Off => balance - 1,
+                    Gate::On => balance + 1,
+                    Gate::Off => balance - 1,
                 });
             match event.gate {
-                NormalizedGate::On if balance != 0 => {
-                    return Err(SoundEvidenceError::GateLifecycleInvalid)
-                }
-                NormalizedGate::On => {}
-                NormalizedGate::Off if balance != 1 => {
-                    return Err(SoundEvidenceError::GateLifecycleInvalid)
-                }
-                NormalizedGate::Off => {}
+                Gate::On if balance != 0 => return Err(SoundEvidenceError::GateLifecycleInvalid),
+                Gate::On => {}
+                Gate::Off if balance != 1 => return Err(SoundEvidenceError::GateLifecycleInvalid),
+                Gate::Off => {}
             }
         }
         if terminal == TerminalDisposition::Completed
             && events.iter().enumerate().any(|(index, event)| {
-                event.gate == NormalizedGate::On
+                event.gate == Gate::On
                     && !events[index + 1..].iter().any(|later| {
-                        later.occurrence == event.occurrence && later.gate == NormalizedGate::Off
+                        later.occurrence == event.occurrence && later.gate == Gate::Off
                     })
             })
         {

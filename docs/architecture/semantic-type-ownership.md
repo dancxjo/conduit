@@ -135,6 +135,7 @@ are satisfied.
 | Linguistic offset basis | `semantics/language/types.conduit` | generated at build time | yes | yes | native binding and linguistic suites |
 | Audio tone terminal | `semantics/audio/types.conduit` | generated at build time | yes | yes | exact terminal round trip and audio suites |
 | Audio gate, modulation destination, PCM sample representation and channel layout | `semantics/audio/types.conduit` | generated at build time | yes | yes | exact native round trips plus audio, browser, std and embedded compile suites |
+| Sound pressure, cancellation, terminal, stream-state and compatibility-seam vocabularies | `semantics/audio/types.conduit` | generated at build time | yes | yes | exact native round trips plus catalog, conformance and Host consumer suites |
 | Artificial-life Lenia and reaction-diffusion boundary vocabularies | `semantics/alife/types.conduit` | generated at build time | yes | yes | exact native round trips plus artificial-life behavior and conformance suites |
 | Robotics beacon/charging, chat connection/presence, HTTP method/failures | domain `types.conduit` sources | generated at build time | yes | yes | exact native round trips plus std/no-std domain suites |
 | Body Chat role, bounded message and history record | `semantics/chat/types.conduit` | generated at build time | yes | yes | exact native round trip plus Chat, prompt and std Host suites |
