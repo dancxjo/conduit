@@ -1,6 +1,9 @@
 //! Canonical bounded PCM frame information.
 
-use crate::{PcmChannelLayout, PcmSampleRepresentation, SoundInfoError};
+use crate::{
+    PcmChannelLayout, PcmChannelLayoutRepresentation, PcmSampleRepresentation,
+    PcmSampleRepresentationRepresentation, SoundInfoError,
+};
 use alloc::vec::Vec;
 use conduit_core::semantic_digest;
 
@@ -17,24 +20,6 @@ impl PcmSampleRepresentation {
             Self::Float32LittleEndian => 4,
         }
     }
-    const fn tag(self) -> u8 {
-        match self {
-            Self::Signed16LittleEndian => 0,
-            Self::Signed24LittleEndian => 1,
-            Self::Float32LittleEndian => 2,
-        }
-    }
-    fn decode(actual: u8) -> Result<Self, SoundInfoError> {
-        match actual {
-            0 => Ok(Self::Signed16LittleEndian),
-            1 => Ok(Self::Signed24LittleEndian),
-            2 => Ok(Self::Float32LittleEndian),
-            actual => Err(SoundInfoError::InvalidTag {
-                field: "sample-representation",
-                actual,
-            }),
-        }
-    }
 }
 
 impl PcmChannelLayout {
@@ -42,22 +27,6 @@ impl PcmChannelLayout {
         match self {
             Self::Mono => 1,
             Self::StereoLeftRight => 2,
-        }
-    }
-    const fn tag(self) -> u8 {
-        match self {
-            Self::Mono => 0,
-            Self::StereoLeftRight => 1,
-        }
-    }
-    fn decode(actual: u8) -> Result<Self, SoundInfoError> {
-        match actual {
-            0 => Ok(Self::Mono),
-            1 => Ok(Self::StereoLeftRight),
-            actual => Err(SoundInfoError::InvalidTag {
-                field: "channel-layout",
-                actual,
-            }),
         }
     }
 }
@@ -124,9 +93,9 @@ impl PcmFrameHeader {
 
     pub fn encode(self) -> [u8; PCM_FRAME_HEADER_ENCODED_LEN] {
         let mut out = [0; PCM_FRAME_HEADER_ENCODED_LEN];
-        out[0] = self.representation.tag();
+        out[0] = PcmSampleRepresentationRepresentation::encode(self.representation)[0];
         out[1..5].copy_from_slice(&self.sample_rate_hz.to_le_bytes());
-        out[5] = self.layout.tag();
+        out[5] = PcmChannelLayoutRepresentation::encode(self.layout)[0];
         out[6..8].copy_from_slice(&self.frame_count.to_le_bytes());
         out[8..16].copy_from_slice(&self.clock_id.to_le_bytes());
         out[16..24].copy_from_slice(&self.start_frame.to_le_bytes());
@@ -148,9 +117,9 @@ impl PcmFrameHeader {
             }
         };
         let header = Self::new(
-            PcmSampleRepresentation::decode(encoded[0])?,
+            decode_sample_representation(encoded[0])?,
             u32::from_le_bytes(array(encoded, 1)?),
-            PcmChannelLayout::decode(encoded[5])?,
+            decode_channel_layout(encoded[5])?,
             u16::from_le_bytes(array(encoded, 6)?),
             u64::from_le_bytes(array(encoded, 8)?),
             u64::from_le_bytes(array(encoded, 16)?),
@@ -193,6 +162,22 @@ impl PcmFrameHeader {
         header.validate_payload(payload)?;
         Ok((header, payload))
     }
+}
+
+fn decode_sample_representation(actual: u8) -> Result<PcmSampleRepresentation, SoundInfoError> {
+    PcmSampleRepresentationRepresentation::decode(&[actual]).map_err(|_| {
+        SoundInfoError::InvalidTag {
+            field: "sample-representation",
+            actual,
+        }
+    })
+}
+
+fn decode_channel_layout(actual: u8) -> Result<PcmChannelLayout, SoundInfoError> {
+    PcmChannelLayoutRepresentation::decode(&[actual]).map_err(|_| SoundInfoError::InvalidTag {
+        field: "channel-layout",
+        actual,
+    })
 }
 
 fn exact_length(encoded: &[u8], expected: usize) -> Result<(), SoundInfoError> {
