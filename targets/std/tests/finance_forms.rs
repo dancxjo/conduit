@@ -90,7 +90,7 @@ fn same_currency_arithmetic_and_comparison_are_exact_across_scales() {
         amount: FixedDecimal::new(7, 1).unwrap(),
         currency: Currency::Usd,
     };
-    let sum = add_money(left, right).unwrap();
+    let sum = add_money(left.clone(), right.clone()).unwrap();
     assert_eq!(sum.amount, FixedDecimal::new(193, 2).unwrap());
     assert_eq!(compare_money(left, right), Ok(Ordering::Greater));
     assert_eq!(sum.amount.encode().len(), 9);
@@ -115,7 +115,7 @@ fn cross_currency_requires_one_explicit_exact_rate_observation() {
         currency: Currency::Usd,
     };
     assert_eq!(
-        add_money(euros, dollars),
+        add_money(euros.clone(), dollars.clone()),
         Err(FinanceRefusal::CurrencyMismatch {
             left: Currency::Eur,
             right: Currency::Usd,

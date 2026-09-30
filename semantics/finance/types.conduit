@@ -1,0 +1,6 @@
+# Authoritative portable finance meaning. Rust consumes generated bindings.
+
+type FinanceCurrency =
+    eur
+    | gbp
+    | usd
