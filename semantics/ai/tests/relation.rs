@@ -181,7 +181,7 @@ fn query(
         targets: vec![target.into()],
         mode,
         requested_result: RelationResultProfile::Probabilistic { maximum_samples: 4 },
-        randomness: RandomnessProfile::ExplicitSeed(42),
+        randomness: RandomnessProfile::explicit_seed(42).unwrap(),
         admitted_work_units: 80,
         maximum_output_bytes: 200,
     }
@@ -192,9 +192,8 @@ fn candidate(target: &str, byte: u8) -> HostRelationTerminal {
         outputs: vec![RelationCandidateOutput {
             target_variable: target.into(),
             value_identity: [byte; 32],
-            disposition: ProbabilisticDisposition::Approximate {
-                method_profile: "conditional-samples".into(),
-            },
+            disposition: ProbabilisticDisposition::approximate("conditional-samples".into())
+                .unwrap(),
             sample_count: 4,
         }],
         consumed_work_units: 60,

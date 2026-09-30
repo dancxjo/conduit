@@ -67,14 +67,14 @@ impl RelationQuery {
         push_profile(&mut bytes, self.requested_result);
         match &self.randomness {
             RandomnessProfile::Deterministic => bytes.push(0),
-            RandomnessProfile::ExplicitSeed(seed) => {
+            RandomnessProfile::ExplicitSeed(payload) => {
                 bytes.push(1);
-                bytes.extend_from_slice(&seed.to_le_bytes());
+                bytes.extend_from_slice(&payload.seed().to_le_bytes());
             }
-            RandomnessProfile::ProviderChosen { seed, nonce } => {
+            RandomnessProfile::ProviderChosen(payload) => {
                 bytes.push(2);
-                bytes.extend_from_slice(&seed.to_le_bytes());
-                push_text(&mut bytes, nonce);
+                bytes.extend_from_slice(&payload.seed().to_le_bytes());
+                push_text(&mut bytes, payload.nonce());
             }
         }
         bytes.extend_from_slice(&self.admitted_work_units.to_le_bytes());

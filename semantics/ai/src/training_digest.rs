@@ -169,14 +169,14 @@ fn push_metrics(output: &mut Vec<u8>, values: &[crate::TrainingMetric]) {
 fn push_randomness(output: &mut Vec<u8>, value: &RandomnessProfile) {
     match value {
         RandomnessProfile::Deterministic => output.push(0),
-        RandomnessProfile::ExplicitSeed(seed) => {
+        RandomnessProfile::ExplicitSeed(payload) => {
             output.push(1);
-            output.extend_from_slice(&seed.to_le_bytes());
+            output.extend_from_slice(&payload.seed().to_le_bytes());
         }
-        RandomnessProfile::ProviderChosen { seed, nonce } => {
+        RandomnessProfile::ProviderChosen(payload) => {
             output.push(2);
-            output.extend_from_slice(&seed.to_le_bytes());
-            push_text(output, nonce);
+            output.extend_from_slice(&payload.seed().to_le_bytes());
+            push_text(output, payload.nonce());
         }
     }
 }

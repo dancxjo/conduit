@@ -257,9 +257,6 @@ impl TrainingSession {
         {
             return Err(TrainingRefusal::InvalidSession);
         }
-        if let RandomnessProfile::ProviderChosen { nonce, .. } = &self.randomness {
-            text(nonce)?;
-        }
         validate_interval_policy(self.checkpoint_policy)?;
         validate_evaluation_policy(self.evaluation_policy)?;
         match &self.missing_modality_policy {
