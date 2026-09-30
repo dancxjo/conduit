@@ -605,6 +605,8 @@ pub enum KernelEventKind {
     StepFuelExceeded,
     ValueStored,
     ValueRouted,
+    /// The play entered a new wakeable quiescent epoch.
+    QuiescenceEntered,
     ValueConsumed,
     RemoteValueOffered,
     RemoteValueAccepted,

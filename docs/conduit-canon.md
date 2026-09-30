@@ -446,6 +446,11 @@ abnormal truth propagates to the containing Form's exact boundary; observation
 alone is not recovery, and several unresolved abnormal origins may not be
 collapsed into an implicit error bus.
 
+`flow;` projects entry into a wakeable quiescent epoch as `Unit`. It fires once
+when the containing play settles without completing, and rearms only when new
+work is admitted. Quiescence is not queue emptiness, normal close, abnormal
+termination, or cancellation; none of those may manufacture a `;` event.
+
 Terminal transduction is a distinct Kind contract. It states, independently,
 how normal close, abnormal termination, and cancellation are transduced.
 Normal-close flushing cannot silently run on abnormal termination. Successful

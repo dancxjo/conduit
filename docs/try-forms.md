@@ -67,6 +67,20 @@ Any future arbitrary-precision representation must admit and charge its actual
 encoded extent. Sequence cardinality, stream backlog, and retained state remain
 explicitly bounded or governed independently of the element domain.
 
+## Observe quiescence
+
+Terminal punctuation stays terse and exact:
+
+```conduit
+events; >> rest
+events| >> finish
+events! >> explain
+```
+
+`;` means “this play has just become quiet, but may wake again.” It emits one
+`Unit` per quiet epoch. `|` is normal close; `!` is abnormal terminal truth.
+An empty queue alone proves none of them.
+
 For an interactive authoring surface, open the native Text Lab:
 
 ```bash

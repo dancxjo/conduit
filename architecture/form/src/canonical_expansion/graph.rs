@@ -535,6 +535,7 @@ pub(super) fn project_terminal(
             conduit_core::ConnectionTrack::NormalClose
         }
         crate::TerminalProjection::Abnormal => conduit_core::ConnectionTrack::AbnormalTerminal,
+        crate::TerminalProjection::Quiescence => conduit_core::ConnectionTrack::Quiescence,
     };
     match output {
         StageSource::Internal(endpoint) => {
@@ -670,6 +671,9 @@ pub(super) fn connect(
                     conduit_core::ConnectionTrack::NormalClose => {
                         conduit_core::kind_id(conduit_core::UNIT_INFO_ID)
                     }
+                    conduit_core::ConnectionTrack::Quiescence => {
+                        conduit_core::kind_id(conduit_core::UNIT_INFO_ID)
+                    }
                     conduit_core::ConnectionTrack::AbnormalTerminal => source_port
                         .abnormal_kind
                         .clone()
@@ -781,6 +785,11 @@ fn validate_connection_contract(
         }
         ConnectionTrack::NormalClose => {
             matches!(source.temporal, PortTemporal::Flow { closes: true })
+                && sink.temporal == PortTemporal::Value
+                && sink.value_kind.as_str() == conduit_core::UNIT_INFO_ID
+        }
+        ConnectionTrack::Quiescence => {
+            matches!(source.temporal, PortTemporal::Flow { .. })
                 && sink.temporal == PortTemporal::Value
                 && sink.value_kind.as_str() == conduit_core::UNIT_INFO_ID
         }

@@ -1014,6 +1014,7 @@ pub struct FixedScheduler<
     decisions: u32,
     last_host_request: [Option<RequestId>; NODES],
     cancelled: bool,
+    quiescence_announced: bool,
     debug_control: DebugControlState,
 }
 
@@ -1116,6 +1117,7 @@ where
             decisions: 0,
             last_host_request: [None; NODES],
             cancelled: false,
+            quiescence_announced: false,
             debug_control: DebugControlState::new(),
         })
     }
@@ -1195,7 +1197,7 @@ where
             {
                 self.drained_status()
             } else {
-                Ok(SchedulerStatus::Idle)
+                self.enter_quiescence()
             };
         };
         if self.debug_control.suspend_before(NodeId(as_u16(node)?)) {
@@ -1585,6 +1587,7 @@ where
         state.offered_remote_sequence = None;
         state.remote_accepted = false;
         self.ready[usize::from(source_node.0)] = true;
+        self.quiescence_announced = false;
         self.signs.record_remote(
             source_node,
             source_port,
@@ -1657,6 +1660,7 @@ where
         }
         self.cords[cord_index].next_remote_sequence = next_sequence;
         self.ready[usize::from(sink_node.0)] = true;
+        self.quiescence_announced = false;
         self.signs.record_remote(
             sink_node,
             sink_port,
@@ -1745,6 +1749,7 @@ where
                 },
             )?;
         }
+        self.quiescence_announced = false;
         Ok(RemoteIngressOutcome::Accepted { sequence })
     }
 
@@ -2017,6 +2022,7 @@ where
             .ok_or(SchedulerError::HostCallCompletionRejected)?
             .completion = Some(outcome);
         self.ready[usize::from(pending.request.node.0)] = true;
+        self.quiescence_announced = false;
         self.signs.record(
             pending.request.node,
             None,
@@ -3386,6 +3392,76 @@ where
             .map_err(SchedulerError::Sign)
     }
 
+    fn enter_quiescence(&mut self) -> Result<SchedulerStatus, SchedulerError> {
+        if self.quiescence_announced {
+            return Ok(SchedulerStatus::Idle);
+        }
+        let mut targets = 0_usize;
+        let mut first_source = None;
+        for (cord, spec) in self.cord_specs[..self.active_cords]
+            .iter()
+            .copied()
+            .enumerate()
+        {
+            if spec.track != AssignedConnectionTrack::Quiescence {
+                continue;
+            }
+            let source = spec.source_local().ok_or(SchedulerError::InvalidPlan)?;
+            if self.completed[usize::from(source.0 .0)] {
+                continue;
+            }
+            if self.cords[cord].len >= spec.item_capacity {
+                return Err(SchedulerError::QueueCapacityExceeded);
+            }
+            spec.sink_local().ok_or(SchedulerError::InvalidPlan)?;
+            first_source.get_or_insert(source.0);
+            targets = targets.checked_add(1).ok_or(SchedulerError::InvalidPlan)?;
+        }
+        self.ensure_sign_capacity(targets)?;
+        let value = if targets == 0 {
+            None
+        } else {
+            let value = self.values.store(&[])?;
+            for references in 1..targets {
+                if let Err(error) = self.values.retain(value) {
+                    for _ in 0..references {
+                        self.values.release(value)?;
+                    }
+                    return Err(error.into());
+                }
+            }
+            Some(value)
+        };
+        for cord in 0..self.active_cords {
+            let spec = self.cord_specs[cord];
+            if spec.track != AssignedConnectionTrack::Quiescence {
+                continue;
+            }
+            let (source_node, source_port) =
+                spec.source_local().ok_or(SchedulerError::InvalidPlan)?;
+            if self.completed[usize::from(source_node.0)] {
+                continue;
+            }
+            let value = value.ok_or(SchedulerError::InvalidPlan)?;
+            if self.push(cord, value)?.is_some() {
+                return Err(SchedulerError::InvalidPlan);
+            }
+            let (sink_node, _) = spec.sink_local().ok_or(SchedulerError::InvalidPlan)?;
+            self.ready[usize::from(sink_node.0)] = true;
+            self.signs.record(
+                source_node,
+                Some(source_port),
+                None,
+                KernelEventKind::QuiescenceEntered,
+            )?;
+        }
+        self.quiescence_announced = true;
+        match first_source {
+            Some(node) => Ok(SchedulerStatus::Progress { node }),
+            None => Ok(SchedulerStatus::Idle),
+        }
+    }
+
     fn ensure_remote_sign_capacity(&self, additional: usize) -> Result<(), SchedulerError> {
         let additional = u16::try_from(additional).map_err(|_| SchedulerError::InvalidPlan)?;
         self.signs.ensure_remote_capacity(additional)?;
@@ -3781,6 +3857,13 @@ fn validate_plan<
             || cord.byte_capacity == 0
             || cord.maximum_value_bytes == 0
             || cord.maximum_value_bytes > cord.byte_capacity
+        {
+            return Err(SchedulerError::InvalidPlan);
+        }
+        if cord.track == AssignedConnectionTrack::Quiescence
+            && (!matches!(cord.source, CordEndpoint::Local { .. })
+                || !matches!(cord.sink, CordEndpoint::Local { .. })
+                || cord.pressure_policy != AssignedPressurePolicy::PreserveOrder)
         {
             return Err(SchedulerError::InvalidPlan);
         }

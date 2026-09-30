@@ -443,6 +443,7 @@ pub enum CordStage {
 pub enum TerminalProjection {
     NormalClose,
     Abnormal,
+    Quiescence,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]

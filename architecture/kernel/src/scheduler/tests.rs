@@ -43,6 +43,12 @@ enum Driver {
     BlockedSink {
         cancelled: bool,
     },
+    Wakeable {
+        seen: u8,
+    },
+    QuiescenceSink {
+        seen: u8,
+    },
     TerminalSource,
     SemanticAbnormal,
     TerminalPropagator {
@@ -248,6 +254,24 @@ impl StepBack<PORTS> for Driver {
                 }
             }
             Self::BlockedSink { .. } => StepOutcome::Await,
+            Self::Wakeable { seen } => {
+                if io.input(PortId(0)).is_some() {
+                    io.consume(PortId(0)).unwrap();
+                    *seen += 1;
+                    StepOutcome::Progress
+                } else {
+                    StepOutcome::Await
+                }
+            }
+            Self::QuiescenceSink { seen } => {
+                if io.input(PortId(0)).is_some() {
+                    io.consume(PortId(0)).unwrap();
+                    *seen += 1;
+                    StepOutcome::Progress
+                } else {
+                    StepOutcome::Await
+                }
+            }
             Self::TerminalSource => StepOutcome::Complete,
             Self::SemanticAbnormal => StepOutcome::Abnormal {
                 port: PortId(0),
@@ -3400,4 +3424,87 @@ fn cord(id: u16, source_node: u16, source_port: u16, sink_node: u16, sink_port: 
             pressure_policy: Default::default(),
         },
     )
+}
+
+#[test]
+fn quiescence_fires_once_per_wakeable_epoch() {
+    let endpoint = RemoteEndpointId(9);
+    let mut routes = FixedRoutes::<2, 1>::new(PORTS as u16);
+    routes
+        .install(
+            NodeId(0),
+            PortId(1),
+            RouteRange { start: 0, len: 1 },
+            &[RouteTarget {
+                cord: CordId(1),
+                sink: crate::CordEndpoint::local(NodeId(1), PortId(0)),
+            }],
+        )
+        .unwrap();
+    routes.seal().unwrap();
+    let capacity = CordCapacity {
+        slot_start: 0,
+        item_capacity: 1,
+        byte_capacity: 1,
+        pressure_policy: AssignedPressurePolicy::PreserveOrder,
+    };
+    let mut quiescence_capacity = capacity;
+    quiescence_capacity.slot_start = 1;
+    let signs = FixedSignLog::<32>::new_with_remote_storage(
+        (32 * core::mem::size_of::<crate::KernelEvent>()) as u32,
+        8,
+        crate::remote_sign_storage_bytes(8).unwrap(),
+    )
+    .unwrap();
+    let mut scheduler = FixedScheduler::<_, _, _, 2, 2, PORTS, 2, 2, 1>::new(
+        [node([Some(CordId(0)), None]), node([Some(CordId(1)), None])],
+        [
+            CordSpec::remote_ingress(CordId(0), endpoint, (NodeId(0), PortId(0)), capacity),
+            CordSpec::local(
+                CordId(1),
+                (NodeId(0), PortId(1)),
+                (NodeId(1), PortId(0)),
+                quiescence_capacity,
+            )
+            .with_track(AssignedConnectionTrack::Quiescence),
+        ],
+        routes,
+        [
+            Driver::Wakeable { seen: 0 },
+            Driver::QuiescenceSink { seen: 0 },
+        ],
+        FixedValueStore::<2, 2>::new(2).unwrap(),
+        signs,
+    )
+    .unwrap();
+
+    for _ in 0..8 {
+        if scheduler.step().unwrap() == SchedulerStatus::Idle {
+            break;
+        }
+    }
+    assert_eq!(scheduler.step().unwrap(), SchedulerStatus::Idle);
+    let Driver::QuiescenceSink { seen } = scheduler.drivers()[1] else {
+        panic!("quiescence sink")
+    };
+    assert_eq!(seen, 1);
+
+    assert_eq!(
+        scheduler.admit_remote_input(endpoint, CordId(0), 0, &[1]),
+        Ok(RemoteIngressOutcome::Accepted { sequence: 0 })
+    );
+    for _ in 0..8 {
+        if scheduler.step().unwrap() == SchedulerStatus::Idle {
+            break;
+        }
+    }
+    assert_eq!(scheduler.step().unwrap(), SchedulerStatus::Idle);
+    let Driver::Wakeable { seen } = scheduler.drivers()[0] else {
+        panic!("wakeable source")
+    };
+    assert_eq!(seen, 1);
+    let Driver::QuiescenceSink { seen } = scheduler.drivers()[1] else {
+        panic!("quiescence sink")
+    };
+    assert_eq!(seen, 2);
 }

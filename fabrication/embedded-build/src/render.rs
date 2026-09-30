@@ -274,6 +274,9 @@ fn render_cords(output: &mut String, plan: &GeneratedEmbeddedPlan) {
             AssignedConnectionTrack::AbnormalTerminal => {
                 "conduit_kernel::scheduler::AssignedConnectionTrack::AbnormalTerminal"
             }
+            AssignedConnectionTrack::Quiescence => {
+                "conduit_kernel::scheduler::AssignedConnectionTrack::Quiescence"
+            }
         };
         writeln!(
             output,

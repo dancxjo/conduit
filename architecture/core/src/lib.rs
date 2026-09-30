@@ -735,6 +735,7 @@ pub enum ConnectionTrack {
     Payload,
     NormalClose,
     AbnormalTerminal,
+    Quiescence,
 }
 
 impl ConnectionTrack {
@@ -743,6 +744,7 @@ impl ConnectionTrack {
             Self::Payload => "payload",
             Self::NormalClose => "normal-close",
             Self::AbnormalTerminal => "abnormal-terminal",
+            Self::Quiescence => "quiescence",
         }
     }
 }
@@ -1218,6 +1220,11 @@ fn verify_fragment_fore_ports(fragment: &PlanFragment) -> bool {
                                         && boundary.value_kind.as_str() == UNIT_INFO_ID
                                         && boundary.temporal == PortTemporal::Value
                                 }
+                                ConnectionTrack::Quiescence => {
+                                    matches!(port.temporal, PortTemporal::Flow { .. })
+                                        && boundary.value_kind.as_str() == UNIT_INFO_ID
+                                        && boundary.temporal == PortTemporal::Value
+                                }
                             };
                             if !port_contract_matches {
                                 return false;
@@ -1240,8 +1247,10 @@ fn verify_fragment_fore_ports(fragment: &PlanFragment) -> bool {
                                 .checked_port_front()
                                 .value_contract(&location)
                                 .cloned();
-                            boundary.track == ConnectionTrack::NormalClose
-                                || internal_contract == boundary.value_contract
+                            matches!(
+                                boundary.track,
+                                ConnectionTrack::NormalClose | ConnectionTrack::Quiescence
+                            ) || internal_contract == boundary.value_contract
                         })
                 })
         })
