@@ -10,9 +10,10 @@ use alloc::vec;
 use conduit_core::{
     kind_id, port_id, CapabilityLimits, ConfigurationValue, ExternalEffectBehavior, Kind,
     KindSemanticLaw, PortDescriptor, PortDirection, PortTemporal, ReplayBehavior, Scalar,
-    ScalarArithmeticError, SemanticDependence, SuspensionBehavior, TemporalStateBehavior,
-    VariabilityBehavior, SCALAR_ENCODED_LEN, SCALAR_INFO_ID,
+    SemanticDependence, SuspensionBehavior, TemporalStateBehavior, VariabilityBehavior,
+    SCALAR_ENCODED_LEN, SCALAR_INFO_ID,
 };
+pub use conduit_data::MathScalarRefusal;
 
 pub const MATH_CLAMP_KIND: &str = "math/clamp";
 pub const MATH_SCALE_KIND: &str = "math/scale";
@@ -34,37 +35,27 @@ pub const DEFAULT_CLAMP_MAXIMUM: i64 = Scalar::SCALE;
 pub const DEFAULT_SCALE_GAIN: i64 = Scalar::SCALE;
 pub const DEFAULT_DEADBAND_RADIUS: i64 = 50_000;
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum MathScalarError {
-    InvalidConfiguration,
-    Overflow,
-}
-
-impl From<ScalarArithmeticError> for MathScalarError {
-    fn from(_: ScalarArithmeticError) -> Self {
-        Self::Overflow
-    }
-}
-
 pub fn clamp_scalar(
     input: Scalar,
     minimum: Scalar,
     maximum: Scalar,
-) -> Result<Scalar, MathScalarError> {
+) -> Result<Scalar, MathScalarRefusal> {
     if minimum > maximum {
-        return Err(MathScalarError::InvalidConfiguration);
+        return Err(MathScalarRefusal::InvalidConfiguration);
     }
     Ok(input.max(minimum).min(maximum))
 }
 
-pub fn scale_scalar(input: Scalar, gain: Scalar) -> Result<Scalar, MathScalarError> {
-    input.checked_mul(gain).map_err(Into::into)
+pub fn scale_scalar(input: Scalar, gain: Scalar) -> Result<Scalar, MathScalarRefusal> {
+    input
+        .checked_mul(gain)
+        .map_err(|_| MathScalarRefusal::Overflow)
 }
 
-pub fn deadband_scalar(input: Scalar, radius: Scalar) -> Result<Scalar, MathScalarError> {
+pub fn deadband_scalar(input: Scalar, radius: Scalar) -> Result<Scalar, MathScalarRefusal> {
     let radius = radius.raw_microunits();
     if radius < 0 {
-        return Err(MathScalarError::InvalidConfiguration);
+        return Err(MathScalarRefusal::InvalidConfiguration);
     }
     let raw = input.raw_microunits();
     Ok(if raw >= -radius && raw <= radius {
@@ -239,7 +230,7 @@ mod tests {
         assert_eq!(clamp_scalar(Scalar::MAX, negative_one, one), Ok(one));
         assert_eq!(
             clamp_scalar(one, one, negative_one),
-            Err(MathScalarError::InvalidConfiguration)
+            Err(MathScalarRefusal::InvalidConfiguration)
         );
         assert_eq!(
             scale_scalar(
@@ -250,7 +241,7 @@ mod tests {
         );
         assert_eq!(
             scale_scalar(Scalar::MAX, Scalar::from_raw_microunits(2_000_000)),
-            Err(MathScalarError::Overflow)
+            Err(MathScalarRefusal::Overflow)
         );
     }
 
