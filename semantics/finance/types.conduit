@@ -4,3 +4,23 @@ type FinanceCurrency =
     eur
     | gbp
     | usd
+
+type FinanceMoneyComparison =
+    equal
+    | greater
+    | less
+
+type FinanceCurrencyPair = {
+    base: FinanceCurrency
+    quote: FinanceCurrency
+}
+
+type FinanceFixedDecimal = {
+    coefficient: I64
+    scale: U8 in 0..=9
+}
+
+type FinanceMoney = {
+    amount: FinanceFixedDecimal
+    currency: FinanceCurrency
+}

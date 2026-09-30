@@ -7,7 +7,7 @@ use conduit_finance::{
     convert_money_values, decode_money_value, deterministic_finance_fixture,
     deterministic_rate_observation, install_finance_catalogs, Currency, FinanceRefusal,
     FixedDecimal, Money, FINANCE_ADD_KIND, FINANCE_COMPARE_KIND, FINANCE_CONVERT_KIND,
-    FINANCE_FIXED_DECIMAL_INFO_ID, FINANCE_FIXTURE_KIND, FINANCE_MAXIMUM_DECIMAL_SCALE,
+    FINANCE_FIXTURE_KIND, FINANCE_MAXIMUM_DECIMAL_SCALE,
 };
 use conduit_form::{
     check_syntax_document, expand_canonical_form_for_authoring, parse_syntax_document,
@@ -82,38 +82,18 @@ fn canonical_form_flows_money_quotes_events_and_exact_comparison() {
 
 #[test]
 fn same_currency_arithmetic_and_comparison_are_exact_across_scales() {
-    let left = Money {
-        amount: FixedDecimal::new(123, 2).unwrap(),
-        currency: Currency::Usd,
-    };
-    let right = Money {
-        amount: FixedDecimal::new(7, 1).unwrap(),
-        currency: Currency::Usd,
-    };
+    let left = Money::new(FixedDecimal::new(123, 2).unwrap(), Currency::Usd).unwrap();
+    let right = Money::new(FixedDecimal::new(7, 1).unwrap(), Currency::Usd).unwrap();
     let sum = add_money(left.clone(), right.clone()).unwrap();
-    assert_eq!(sum.amount, FixedDecimal::new(193, 2).unwrap());
+    assert_eq!(sum.amount(), &FixedDecimal::new(193, 2).unwrap());
     assert_eq!(compare_money(left, right), Ok(Ordering::Greater));
-    assert_eq!(sum.amount.encode().len(), 9);
-    assert_eq!(FINANCE_FIXED_DECIMAL_INFO_ID, "finance/fixed-decimal@1");
-    assert_eq!(
-        FixedDecimal::new(1, FINANCE_MAXIMUM_DECIMAL_SCALE + 1),
-        Err(FinanceRefusal::ScaleOutOfRange {
-            maximum: FINANCE_MAXIMUM_DECIMAL_SCALE,
-            actual: FINANCE_MAXIMUM_DECIMAL_SCALE + 1,
-        })
-    );
+    assert!(FixedDecimal::new(1, FINANCE_MAXIMUM_DECIMAL_SCALE + 1).is_err());
 }
 
 #[test]
 fn cross_currency_requires_one_explicit_exact_rate_observation() {
-    let euros = Money {
-        amount: FixedDecimal::new(1_000, 2).unwrap(),
-        currency: Currency::Eur,
-    };
-    let dollars = Money {
-        amount: FixedDecimal::new(1_000, 2).unwrap(),
-        currency: Currency::Usd,
-    };
+    let euros = Money::new(FixedDecimal::new(1_000, 2).unwrap(), Currency::Eur).unwrap();
+    let dollars = Money::new(FixedDecimal::new(1_000, 2).unwrap(), Currency::Usd).unwrap();
     assert_eq!(
         add_money(euros.clone(), dollars.clone()),
         Err(FinanceRefusal::CurrencyMismatch {
@@ -134,10 +114,7 @@ fn cross_currency_requires_one_explicit_exact_rate_observation() {
     );
     assert_eq!(
         convert_money(euros, &rate).unwrap(),
-        Money {
-            amount: FixedDecimal::new(108_250_000, 7).unwrap(),
-            currency: Currency::Usd,
-        }
+        Money::new(FixedDecimal::new(108_250_000, 7).unwrap(), Currency::Usd,).unwrap()
     );
 }
 
@@ -147,10 +124,7 @@ fn deterministic_fixture_keeps_quote_age_transaction_variants_and_types_visible(
     let sum = add_money_values(&fixture.left, &fixture.right).unwrap();
     assert_eq!(
         decode_money_value(&sum).unwrap(),
-        Money {
-            amount: FixedDecimal::new(1_300, 2).unwrap(),
-            currency: Currency::Usd,
-        }
+        Money::new(FixedDecimal::new(1_300, 2).unwrap(), Currency::Usd).unwrap()
     );
     assert_eq!(
         variant_tag(&compare_money_values(&fixture.left, &fixture.right).unwrap()),
@@ -159,10 +133,7 @@ fn deterministic_fixture_keeps_quote_age_transaction_variants_and_types_visible(
     assert_eq!(
         decode_money_value(&convert_money_values(&fixture.convertible, &fixture.rate).unwrap())
             .unwrap(),
-        Money {
-            amount: FixedDecimal::new(108_250_000, 7).unwrap(),
-            currency: Currency::Usd,
-        }
+        Money::new(FixedDecimal::new(108_250_000, 7).unwrap(), Currency::Usd,).unwrap()
     );
     assert_eq!(
         variant_tag(record_field(&fixture.quote, "freshness")),

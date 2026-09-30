@@ -21,6 +21,7 @@ pub(super) fn emit_record_binding(
         let rust_field = rust_snake_identifier(field.name())?;
         writeln!(out, "        let field_type = conduit_form::rust_binding::record_field_type(&semantic, {:?})?;", field.name())
             .expect("String writing is infallible");
+        writeln!(out, "        let _ = &field_type;").expect("String writing is infallible");
         let encoded = encode_expression(
             field.value_type(),
             &format!("self.{rust_field}"),
@@ -81,6 +82,8 @@ pub(super) fn emit_variant_binding(
             for field in fields {
                 let rust_field = rust_snake_identifier(field.name())?;
                 writeln!(out, "                let field_type = conduit_form::rust_binding::record_field_type(&payload_type, {:?})?;", field.name())
+                    .expect("String writing is infallible");
+                writeln!(out, "                let _ = &field_type;")
                     .expect("String writing is infallible");
                 let encoded = encode_expression(
                     field.value_type(),
