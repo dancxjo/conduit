@@ -34,7 +34,7 @@ form main {
 const SELECT_SOURCE: &str = "
 form text/is-useful (
  >> value: Text
- accepted: Boolean >>
+ accepted: Boolean <= 21B >>
 ) {
 }
 
@@ -42,7 +42,7 @@ form flow/select (
  item: type
  predicate: kind (
   >> value: item
-  accepted: Boolean >>
+  accepted: Boolean <= 21B >>
  )
  >> values: item...|
  selected: item...| >>
@@ -59,16 +59,16 @@ form main {
 
 const FOLD_SOURCE: &str = "
 form integer/add (
- >> accumulator: U64
- >> item: U64
- combined: U64 >>
+ >> accumulator: U64 <= 28B
+ >> item: U64 <= 28B
+ combined: U64 <= 28B >>
 ) {
 }
 
 form flow/fold-integers (
  initial: U64
- >> items: U64...|
- result: U64 >>
+ >> items: U64...| <= 28B
+ result: U64 <= 28B >>
 ) {
  folder: fold(initial, maximum-items = 4) integer/add()
  items >> folder.item
@@ -283,8 +283,8 @@ fn fold_retains_exact_initial_and_two_input_combine_truth() {
 #[test]
 fn fold_refuses_a_unary_combine_form() {
     let source = FOLD_SOURCE.replace(
-        ">> accumulator: U64\n >> item: U64\n combined: U64 >>",
-        ">> item: U64\n combined: U64 >>",
+        ">> accumulator: U64 <= 28B\n >> item: U64 <= 28B\n combined: U64 <= 28B >>",
+        ">> item: U64 <= 28B\n combined: U64 <= 28B >>",
     );
     let error =
         check_syntax_document(&parse_syntax_document(&source), &StartupCatalog::new()).unwrap_err();
