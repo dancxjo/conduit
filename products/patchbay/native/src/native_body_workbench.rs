@@ -3,10 +3,9 @@
 //! of the same bounded evidence document.
 
 use crate::arguments::NativeBodyEntrance;
+use conduit_body_make::{BodyEvidenceAttachment, BodyEvidenceEntrance};
 use patchbay_graph::PatchbayGraph;
-use patchbay_model::{
-    CurrentBodyFrame, PatchbayBodyApplicationEntrance, PatchbayBodyAttachment, ReadableBodyHistory,
-};
+use patchbay_model::{CurrentBodyFrame, ReadableBodyHistory};
 use winit::keyboard::{Key, NamedKey};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -61,7 +60,7 @@ impl NativeBodyWorkbench {
             return Err(NativeBodyWorkbenchError::InvalidRevision);
         }
         let attachment =
-            PatchbayBodyAttachment::open_serialized(&encoded_evidence, model_entrance(entrance))
+            BodyEvidenceAttachment::open_serialized(&encoded_evidence, model_entrance(entrance))
                 .map_err(NativeBodyWorkbenchError::Entrance)?;
         if !attachment
             .evidence()
@@ -330,7 +329,7 @@ impl NativeBodyWorkbenchSlot {
 pub enum NativeBodyWorkbenchError {
     InvalidRevision,
     StaleRevision { current: u64, offered: u64 },
-    Entrance(patchbay_model::PatchbayBodyEntranceError),
+    Entrance(conduit_body_make::BodyEvidenceEntranceError),
     History(patchbay_model::ReadableBodyHistoryError),
     ProgramIdentityMismatch,
 }
@@ -352,16 +351,16 @@ impl core::fmt::Display for NativeBodyWorkbenchError {
     }
 }
 
-fn model_entrance(entrance: NativeBodyEntrance) -> PatchbayBodyApplicationEntrance {
+fn model_entrance(entrance: NativeBodyEntrance) -> BodyEvidenceEntrance {
     match entrance {
         NativeBodyEntrance::Hosted {
             plan_id,
             implementation_id,
-        } => PatchbayBodyApplicationEntrance::Hosted {
+        } => BodyEvidenceEntrance::Hosted {
             plan_id: conduit_core::PlanId::from(plan_id),
             implementation_id: conduit_core::ImplementationId::from(implementation_id),
         },
-        NativeBodyEntrance::ExternalReader => PatchbayBodyApplicationEntrance::ExternalReader,
+        NativeBodyEntrance::ExternalReader => BodyEvidenceEntrance::ExternalReader,
     }
 }
 

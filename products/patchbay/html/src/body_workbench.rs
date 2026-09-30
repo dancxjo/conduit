@@ -2,6 +2,7 @@
 //! readable `BODY / SIGNS` history. This module adds no Body truth: it retains
 //! the validated evidence bytes and serializes the shared model projections.
 
+use conduit_body_make::{BodyEvidenceAttachment, BodyEvidenceEntrance, BodyEvidenceEntranceError};
 use conduit_core::{BootId, HostId, ImplementationId, PlanId, SignId};
 use conduit_presentation::{
     Presentation, PresentationAction, PresentationActionAvailability, PresentationBasis,
@@ -10,9 +11,8 @@ use conduit_presentation::{
     PresentationRole, PresentationSubject, PresentationText,
 };
 use patchbay_model::{
-    CurrentBodyFrame, FormCandidate, PatchbayBodyApplicationEntrance, PatchbayBodyAttachment,
-    PatchbayNavigationProjection, ReadableBodyHistory, RendererAdapterIdentity,
-    RendererAdapterKind, RendererExecution,
+    CurrentBodyFrame, FormCandidate, PatchbayNavigationProjection, ReadableBodyHistory,
+    RendererAdapterIdentity, RendererAdapterKind, RendererExecution,
 };
 
 use crate::{
@@ -24,7 +24,7 @@ pub const BODY_WORKBENCH_SCHEMA: &str = "conduit.patchbay/browser-body-workbench
 
 #[derive(Debug)]
 pub enum BodyWorkbenchError {
-    Entrance(patchbay_model::PatchbayBodyEntranceError),
+    Entrance(BodyEvidenceEntranceError),
     History(patchbay_model::ReadableBodyHistoryError),
     Encode(serde_json::Error),
     IdentityMismatch,
@@ -58,7 +58,7 @@ pub(crate) fn body_workbench_snapshot_with_reviewed(
     reviewed_forms: &[BrowserReviewedForm],
 ) -> Result<RendererSnapshot, BodyWorkbenchError> {
     let attachment =
-        PatchbayBodyAttachment::open_serialized(encoded_evidence, model_entrance(&entrance))
+        BodyEvidenceAttachment::open_serialized(encoded_evidence, model_entrance(&entrance))
             .map_err(BodyWorkbenchError::Entrance)?;
     let presentation = workbench_presentation(evidence_revision, &attachment, reviewed_forms)?;
     let execution = RendererExecution::prepare(
@@ -119,7 +119,7 @@ fn attach_body_workbench_with_reviewed(
     reviewed_forms: &[BrowserReviewedForm],
 ) -> Result<RendererSnapshot, BodyWorkbenchError> {
     let model_entrance = model_entrance(&entrance);
-    let attachment = PatchbayBodyAttachment::open_serialized(encoded_evidence, model_entrance)
+    let attachment = BodyEvidenceAttachment::open_serialized(encoded_evidence, model_entrance)
         .map_err(BodyWorkbenchError::Entrance)?;
     let current = CurrentBodyFrame::from_attachment(evidence_revision, &attachment);
     let history = ReadableBodyHistory::from_attachment(evidence_revision, &attachment)
@@ -148,7 +148,7 @@ pub(crate) fn validate_body_workbench(
     if workbench.schema != BODY_WORKBENCH_SCHEMA || workbench.evidence_revision == 0 {
         return Err(BodyWorkbenchError::IdentityMismatch);
     }
-    let attachment = PatchbayBodyAttachment::open_serialized(
+    let attachment = BodyEvidenceAttachment::open_serialized(
         &workbench.encoded_evidence,
         model_entrance(&workbench.entrance),
     )
@@ -216,26 +216,22 @@ pub(crate) fn validate_body_workbench(
     Ok(())
 }
 
-pub(crate) fn model_entrance(
-    entrance: &BrowserBodyWorkbenchEntrance,
-) -> PatchbayBodyApplicationEntrance {
+pub(crate) fn model_entrance(entrance: &BrowserBodyWorkbenchEntrance) -> BodyEvidenceEntrance {
     match entrance {
         BrowserBodyWorkbenchEntrance::Hosted {
             plan_id,
             implementation_id,
-        } => PatchbayBodyApplicationEntrance::Hosted {
+        } => BodyEvidenceEntrance::Hosted {
             plan_id: PlanId::from(plan_id.as_str()),
             implementation_id: ImplementationId::from(implementation_id.as_str()),
         },
-        BrowserBodyWorkbenchEntrance::ExternalReader => {
-            PatchbayBodyApplicationEntrance::ExternalReader
-        }
+        BrowserBodyWorkbenchEntrance::ExternalReader => BodyEvidenceEntrance::ExternalReader,
     }
 }
 
 fn workbench_presentation(
     revision: u64,
-    attachment: &PatchbayBodyAttachment,
+    attachment: &BodyEvidenceAttachment,
     reviewed_forms: &[BrowserReviewedForm],
 ) -> Result<Presentation, BodyWorkbenchError> {
     let evidence = attachment.evidence();

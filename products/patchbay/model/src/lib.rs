@@ -12,7 +12,6 @@ use conduit_observatory::{
 };
 
 mod body_biography;
-mod body_biography_entrance;
 mod body_planning_session;
 mod build_birth;
 mod control;
@@ -123,10 +122,6 @@ mod degradation_explanation_tests;
 pub use body_biography::{
     project_body_biography, BodyBiographyArchiveProjection, BodyBiographyEntry,
     BodyBiographyProjection, BodyBiographyProjectionError, MAX_BODY_BIOGRAPHY_EXPLANATION_BYTES,
-};
-pub use body_biography_entrance::{
-    PatchbayBodyApplicationEntrance, PatchbayBodyAttachment, PatchbayBodyEntranceError,
-    MAX_PATCHBAY_BODY_EVIDENCE_BYTES,
 };
 pub use build_birth::{
     BirthSigns, BuildBirthController, BuildBirthDocument, BuildBirthError, BuildRevisionStatus,

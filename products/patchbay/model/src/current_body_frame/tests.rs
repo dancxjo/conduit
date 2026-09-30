@@ -80,9 +80,9 @@ fn encoded(choice: BodyGraduationChoice) -> Vec<u8> {
 
 #[test]
 fn hosted_roseau_opens_as_one_lulled_current_body_with_exact_facts() {
-    let attachment = PatchbayBodyAttachment::open_serialized(
+    let attachment = BodyEvidenceAttachment::open_serialized(
         &encoded(BodyGraduationChoice::HostedPatchbay),
-        PatchbayBodyApplicationEntrance::Hosted {
+        BodyEvidenceEntrance::Hosted {
             plan_id: PlanId::from(HOSTED_PLAN),
             implementation_id: ImplementationId::from(HOSTED_IMPLEMENTATION),
         },
@@ -114,14 +114,14 @@ fn hosted_roseau_opens_as_one_lulled_current_body_with_exact_facts() {
 
 #[test]
 fn external_readers_distinguish_hosted_and_unhosted_graduations() {
-    let hosted = PatchbayBodyAttachment::open_serialized(
+    let hosted = BodyEvidenceAttachment::open_serialized(
         &encoded(BodyGraduationChoice::HostedPatchbay),
-        PatchbayBodyApplicationEntrance::ExternalReader,
+        BodyEvidenceEntrance::ExternalReader,
     )
     .unwrap();
-    let unhosted = PatchbayBodyAttachment::open_serialized(
+    let unhosted = BodyEvidenceAttachment::open_serialized(
         &encoded(BodyGraduationChoice::ExternalReader),
-        PatchbayBodyApplicationEntrance::ExternalReader,
+        BodyEvidenceEntrance::ExternalReader,
     )
     .unwrap();
 
@@ -141,9 +141,9 @@ fn external_reader_accepts_a_workspace_born_body_without_creche_graduation() {
     workspace_body.graduation = None;
     workspace_body.records.pop();
     workspace_body.validate().unwrap();
-    let attachment = PatchbayBodyAttachment::open_serialized(
+    let attachment = BodyEvidenceAttachment::open_serialized(
         &serde_json::to_vec(&workspace_body).unwrap(),
-        PatchbayBodyApplicationEntrance::ExternalReader,
+        BodyEvidenceEntrance::ExternalReader,
     )
     .unwrap();
 
@@ -159,7 +159,7 @@ fn stale_and_malformed_replacements_clear_prior_friendly_content() {
     slot.replace_serialized(
         2,
         &encoded(BodyGraduationChoice::ExternalReader),
-        PatchbayBodyApplicationEntrance::ExternalReader,
+        BodyEvidenceEntrance::ExternalReader,
     )
     .unwrap();
     assert_eq!(slot.current().unwrap().friendly_name, "Roseau");
@@ -168,7 +168,7 @@ fn stale_and_malformed_replacements_clear_prior_friendly_content() {
         slot.replace_serialized(
             1,
             &encoded(BodyGraduationChoice::ExternalReader),
-            PatchbayBodyApplicationEntrance::ExternalReader,
+            BodyEvidenceEntrance::ExternalReader,
         ),
         Err(CurrentBodyFrameError::StaleRevision {
             current: 2,
@@ -178,9 +178,9 @@ fn stale_and_malformed_replacements_clear_prior_friendly_content() {
     assert!(slot.current().is_none());
 
     assert_eq!(
-        slot.replace_serialized(3, b"{bad", PatchbayBodyApplicationEntrance::ExternalReader,),
+        slot.replace_serialized(3, b"{bad", BodyEvidenceEntrance::ExternalReader,),
         Err(CurrentBodyFrameError::Entrance(
-            PatchbayBodyEntranceError::MalformedEvidence
+            BodyEvidenceEntranceError::MalformedEvidence
         ))
     );
     assert!(slot.current().is_none());
@@ -195,9 +195,9 @@ fn an_awake_body_offers_lull_without_inventing_a_physical_host() {
         .unwrap();
     let sequence = evidence.records.last().unwrap().sequence + 1;
     evidence.append_wake(awake, wake, sequence).unwrap();
-    let attachment = PatchbayBodyAttachment::open_serialized(
+    let attachment = BodyEvidenceAttachment::open_serialized(
         &serde_json::to_vec(&evidence).unwrap(),
-        PatchbayBodyApplicationEntrance::ExternalReader,
+        BodyEvidenceEntrance::ExternalReader,
     )
     .unwrap();
     let frame = CurrentBodyFrame::from_attachment(9, &attachment);

@@ -99,7 +99,7 @@ impl PatchbayHtmlServer {
                 .ok_or_else(|| ServerError::Interaction("Body workbench is absent".into()))?
                 .entrance,
         );
-        patchbay_model::PatchbayBodyAttachment::open_serialized(&encoded, entrance).map_err(
+        conduit_body_make::BodyEvidenceAttachment::open_serialized(&encoded, entrance).map_err(
             |error| ServerError::Interaction(format!("open updated attachment: {error:?}")),
         )?;
         let session =
