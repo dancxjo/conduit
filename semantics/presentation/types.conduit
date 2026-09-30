@@ -129,3 +129,12 @@ type PresentationTemporalRole =
     event
     | observation
     | ingestion
+
+type LayoutAxis =
+    horizontal
+    | vertical
+
+type LayoutAlignment =
+    start
+    | center
+    | end

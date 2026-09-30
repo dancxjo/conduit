@@ -1,8 +1,8 @@
 use conduit_form::rust_binding::NativeRustBinding;
 use conduit_presentation::{
     AdmittedNavigationDestination, ChoiceMultiplicity, EvidenceDisposition,
-    FaceUtteranceClauseKind, PresentationDisclosureLevel, PresentationMechanismKind,
-    PresentationTemporalRole, StatusKind,
+    FaceUtteranceClauseKind, LayoutAlignment, LayoutAxis, PresentationDisclosureLevel,
+    PresentationMechanismKind, PresentationTemporalRole, StatusKind,
 };
 
 fn assert_round_trip<T>(value: T)
@@ -100,6 +100,16 @@ fn presentation_vocabularies_round_trip_through_exact_native_types() {
         PresentationTemporalRole::Event,
         PresentationTemporalRole::Observation,
         PresentationTemporalRole::Ingestion,
+    ] {
+        assert_round_trip(value);
+    }
+    for value in [LayoutAxis::Horizontal, LayoutAxis::Vertical] {
+        assert_round_trip(value);
+    }
+    for value in [
+        LayoutAlignment::Start,
+        LayoutAlignment::Center,
+        LayoutAlignment::End,
     ] {
         assert_round_trip(value);
     }

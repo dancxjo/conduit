@@ -20,8 +20,8 @@ pub use generated::{
     CompositionItemKindCode, CompositionRole, CompositionRoleCode, EvidenceDisposition,
     FaceUtteranceClauseKind, GraphicsCommandKind, GraphicsCommandKindCode, GraphicsPaintRole,
     GraphicsPaintRoleCode, GraphicsShapeStyle, GraphicsShapeStyleCode, GraphicsTextRole,
-    GraphicsTextRoleCode, PresentationDisclosureLevel, PresentationMechanismKind,
-    PresentationTemporalRole, StatusKind,
+    GraphicsTextRoleCode, LayoutAlignment, LayoutAxis, PresentationDisclosureLevel,
+    PresentationMechanismKind, PresentationTemporalRole, StatusKind,
 };
 
 mod application_event;
