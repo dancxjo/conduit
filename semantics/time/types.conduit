@@ -1,0 +1,10 @@
+# Authoritative portable temporal meaning. Rust consumes generated bindings.
+
+type SuspendBehavior =
+    clock_includes_suspend
+    | clock_excludes_suspend
+    | refuse_after_suspend
+
+type ClockChangeBehavior =
+    reevaluate_window
+    | refuse_after_change
