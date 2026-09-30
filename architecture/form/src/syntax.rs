@@ -200,7 +200,22 @@ pub struct ConstructionSyntax {
     pub role: ConstructionRole,
     pub name: SpannedText,
     pub declarations: Vec<LocalValue>,
+    /// Role-specific declarative policy which is not a runtime expression.
+    pub directives: Vec<ConstructionDirectiveSyntax>,
     pub span: Span,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum ConstructionDirectiveSyntax {
+    BodyWear {
+        mask: SpannedText,
+        fallback: Option<SpannedText>,
+        span: Span,
+    },
+    BodyWant {
+        masks: Vec<SpannedText>,
+        span: Span,
+    },
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]

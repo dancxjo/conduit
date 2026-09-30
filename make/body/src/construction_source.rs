@@ -1,12 +1,16 @@
 use std::collections::BTreeMap;
 
 use conduit_form::{
-    parse_syntax_document, ConstructionRole, ExpressionSyntax, StructuredExpressionField,
+    parse_syntax_document, ConstructionDirectiveSyntax, ConstructionRole, ExpressionSyntax,
+    StructuredExpressionField,
 };
 use serde::de::DeserializeOwned;
 use serde_json::{Map, Number, Value};
 
-use crate::{BodyBindingTarget, BodyDescription, BodyDescriptionDiagnostic, BodyHostDescription};
+use crate::{
+    BodyBindingTarget, BodyDescription, BodyDescriptionDiagnostic, BodyHostDescription,
+    BodyMaskImportDescription, BodyMaskRouteDescription, BodyWardrobeDescription,
+};
 
 pub fn parse_body_description_conduit(
     source: &str,
@@ -30,6 +34,14 @@ pub fn parse_body_description_conduit(
             "construction source must contain exactly one document",
         ));
     }
+    let mask_imports = document
+        .uses
+        .iter()
+        .map(|import| BodyMaskImportDescription {
+            alias: import.alias.text.clone(),
+            source: import.path.clone(),
+        })
+        .collect();
     let construction = document
         .constructions
         .into_iter()
@@ -51,12 +63,31 @@ pub fn parse_body_description_conduit(
     let schema = one_required::<u32>(&declarations, "schema").map_err(decode_error)?;
     let id = one_required::<String>(&declarations, "id").map_err(decode_error)?;
     let hosts = repeated::<BodyHostDescription>(&declarations, "host").map_err(decode_error)?;
+    let mut wardrobe = BodyWardrobeDescription::default();
+    for directive in construction.directives {
+        match directive {
+            ConstructionDirectiveSyntax::BodyWear { mask, fallback, .. } => {
+                wardrobe.worn.push(BodyMaskRouteDescription {
+                    mask: mask.text,
+                    fallback: fallback.map(|mask| mask.text),
+                });
+            }
+            ConstructionDirectiveSyntax::BodyWant { masks, .. } => {
+                if !wardrobe.preference.is_empty() {
+                    return Err(decode_error("duplicate conflicting 'want' directive"));
+                }
+                wardrobe.preference = masks.into_iter().map(|mask| mask.text).collect();
+            }
+        }
+    }
     reject_unknown(&declarations, &["schema", "id", "host"]).map_err(decode_error)?;
     Ok(BodyDescription {
         schema,
         name: construction.name.text,
         body: BodyBindingTarget { id },
         hosts,
+        mask_imports,
+        wardrobe,
     })
 }
 

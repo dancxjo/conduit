@@ -17,6 +17,22 @@ pub fn canonical_body_description_conduit(
         .hosts
         .sort_by(|left, right| left.name.cmp(&right.name));
     let mut source = String::new();
+    for imported in &canonical.mask_imports {
+        if !is_name(&imported.alias) || imported.source.trim().is_empty() {
+            return Err(BodyDescriptionDiagnostic::Encode {
+                detail: "Mask imports require a source path and a valid alias".into(),
+            });
+        }
+        writeln!(
+            &mut source,
+            "with {} as {}",
+            imported.source, imported.alias
+        )
+        .map_err(encode)?;
+    }
+    if !canonical.mask_imports.is_empty() {
+        source.push('\n');
+    }
     writeln!(&mut source, "body {} {{", canonical.name).map_err(encode)?;
     writeln!(&mut source, "  schema = {}", canonical.schema).map_err(encode)?;
     writeln!(&mut source, "  id = {}", string(&canonical.body.id)?).map_err(encode)?;
@@ -47,6 +63,21 @@ pub fn canonical_body_description_conduit(
         }
         source.push_str("}\n");
     }
+    for route in &canonical.wardrobe.worn {
+        write!(&mut source, "  wear {}", route.mask).map_err(encode)?;
+        if let Some(fallback) = &route.fallback {
+            write!(&mut source, " else {fallback}").map_err(encode)?;
+        }
+        source.push('\n');
+    }
+    if !canonical.wardrobe.preference.is_empty() {
+        writeln!(
+            &mut source,
+            "  want {}",
+            canonical.wardrobe.preference.join(" over ")
+        )
+        .map_err(encode)?;
+    }
     source.push_str("}\n");
     Ok(source)
 }
@@ -76,8 +107,9 @@ fn encode(error: impl std::fmt::Display) -> BodyDescriptionDiagnostic {
 mod tests {
     use super::*;
     use crate::{
-        parse_body_description_conduit, BodyBindingTarget, BodyHostDescription, SporeDescription,
-        SporeJoinMode, BODY_DESCRIPTION_SCHEMA,
+        parse_body_description_conduit, BodyBindingTarget, BodyHostDescription,
+        BodyMaskImportDescription, BodyMaskRouteDescription, BodyWardrobeDescription,
+        SporeDescription, SporeJoinMode, BODY_DESCRIPTION_SCHEMA,
     };
     use conduit_host_make::SporeOutputKind;
 
@@ -93,6 +125,8 @@ mod tests {
                 host("z-host", "part:z-host", "../z\"host.host.conduit"),
                 host("a-host", "part:a-host", "../a.host.conduit"),
             ],
+            mask_imports: Vec::new(),
+            wardrobe: BodyWardrobeDescription::default(),
         };
 
         let source = canonical_body_description_conduit(&description).unwrap();
@@ -114,11 +148,46 @@ mod tests {
                 id: "body:not-a-name".into(),
             },
             hosts: vec![host("main", "part:main", "main.host.conduit")],
+            mask_imports: Vec::new(),
+            wardrobe: BodyWardrobeDescription::default(),
         };
         assert!(matches!(
             canonical_body_description_conduit(&description),
             Err(BodyDescriptionDiagnostic::Encode { .. })
         ));
+    }
+
+    #[test]
+    fn authored_mask_wardrobe_round_trips_as_planning_input() {
+        let source = "with masks/native-graphical as graphical\nwith masks/spoken as spoken\n\nbody roseau {\n  schema = 1\n  id = \"body:roseau\"\n  host = {name: \"main\", part: \"part:main\", configuration: \"main.host.conduit\", spore: {join_mode: \"prejoined\", output: \"native-bundle\"}}\n  wear graphical else spoken\n  want graphical over spoken\n}\n";
+        let description = parse_body_description_conduit(source).unwrap();
+        assert_eq!(
+            description.mask_imports,
+            vec![
+                BodyMaskImportDescription {
+                    alias: "graphical".into(),
+                    source: "masks/native-graphical".into(),
+                },
+                BodyMaskImportDescription {
+                    alias: "spoken".into(),
+                    source: "masks/spoken".into(),
+                },
+            ]
+        );
+        assert_eq!(
+            description.wardrobe,
+            BodyWardrobeDescription {
+                worn: vec![BodyMaskRouteDescription {
+                    mask: "graphical".into(),
+                    fallback: Some("spoken".into()),
+                }],
+                preference: vec!["graphical".into(), "spoken".into()],
+            }
+        );
+        assert_eq!(
+            canonical_body_description_conduit(&description).unwrap(),
+            source
+        );
     }
 
     fn host(name: &str, part: &str, configuration: &str) -> BodyHostDescription {
