@@ -11,7 +11,7 @@ use crate::{
     product_journey::{JourneyAction, ProductJourney},
 };
 use alloc::format;
-use conduit_creche_model::birth::BirthSelection;
+use conduit_birth_form::BirthSelection;
 
 pub(super) fn open(
     door: &mut FrontDoor,

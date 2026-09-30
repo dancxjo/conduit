@@ -4,8 +4,8 @@ use crate::machine::{
     BaseError, IdleBase, InterruptBase, InterruptState, MonotonicClockBase, SerialBase,
 };
 use alloc::vec::Vec;
+use conduit_birth_form::BirthSelection;
 use conduit_body::BodyWorkset;
-use conduit_creche_model::birth::BirthSelection;
 use conduit_human::KeyTransition;
 
 fn born() -> (BootIdentities, HostOffer<'static>, ProductJourney) {

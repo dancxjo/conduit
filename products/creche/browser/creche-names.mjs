@@ -1,4 +1,4 @@
-import catalog from "../names/catalog.mjs";
+import catalog from "../../../forms/birth/names/catalog.mjs";
 const encoder = new TextEncoder();
 const MAX_FRIENDLY_NAME_BYTES = 64;
 export const PERSONA_CATALOG_VERSION = catalog.version;

@@ -10,7 +10,6 @@ use conduit_presentation::{
 };
 
 pub mod birth;
-pub mod names;
 
 pub const MINIMAL_PRESET_ACTION: &str = "configuration.preset.minimal";
 pub const INTERACTIVE_PRESET_ACTION: &str = "configuration.preset.interactive";

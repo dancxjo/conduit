@@ -1,11 +1,11 @@
 //! Exact transitions from an unbodied Host into one live local body session.
 
+use conduit_birth_form::BirthSelection;
 use conduit_body::{
     AdmissionManager, AuthenticatedHostObservation, Body, BodyMembership, CandidateInventory,
     MembershipProofId, PartId, Wake,
 };
 use conduit_core::SignId;
-use conduit_creche_model::birth::BirthSelection;
 use std::sync::Arc;
 
 use crate::{
@@ -78,7 +78,7 @@ impl LocalFrontDoor {
         let friendly_name = selection.friendly_name.trim();
         if selection.revision == 0
             || friendly_name.is_empty()
-            || friendly_name.len() > conduit_creche_model::names::MAX_FRIENDLY_NAME_BYTES
+            || friendly_name.len() > conduit_birth_form::names::MAX_FRIENDLY_NAME_BYTES
             || friendly_name.chars().any(char::is_control)
             || selection.workset.validate().is_err()
             || selected.len() != selection.workset.len()

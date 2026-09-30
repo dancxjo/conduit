@@ -3,8 +3,9 @@
 
 use std::cell::RefCell;
 
+use conduit_birth_form::{BirthDraft, BirthFormChoice};
 use conduit_body::ResidentForm;
-use conduit_creche_model::birth::{BirthActionOutcome, BirthDraft, BirthFormChoice};
+use conduit_creche_model::birth::{BirthActionOutcome, BirthActions, BirthPresentation};
 use conduit_presentation::ApplicationEventKind;
 use serde::{Deserialize, Serialize};
 

@@ -1,22 +1,28 @@
-use super::*;
-use alloc::{format, vec};
+//! The live widget projection; it consumes renderer-neutral Birth draft state.
+use alloc::{format, string::String, vec, vec::Vec};
+use conduit_birth_form::{BirthDraft, names::MAX_FRIENDLY_NAME_BYTES};
 use conduit_presentation::{
     ActionAvailability, ApplicationEventKind, ChoiceMultiplicity, ChoiceOption, FieldKind,
     FormField, PresentationMechanism, SelectOption, SemanticAction, SemanticApplicationView,
     SemanticPresentationNode, SemanticPresentationRefusal, StatusKind,
 };
 
-impl BirthDraft {
-    pub fn presentation(&self) -> Result<SemanticApplicationView, SemanticPresentationRefusal> {
+/// The current browser/native widget view, separate from Birth form meaning.
+pub trait BirthPresentation {
+    fn presentation(&self) -> Result<SemanticApplicationView, SemanticPresentationRefusal>;
+}
+
+impl BirthPresentation for BirthDraft {
+    fn presentation(&self) -> Result<SemanticApplicationView, SemanticPresentationRefusal> {
         let mut birth = action("creche.birth", "Birth Body", ApplicationEventKind::Activate);
-        if let Err(error) = self.selection(self.revision) {
+        if let Err(error) = self.selection(self.revision()) {
             birth.availability = ActionAvailability::Unavailable {
                 detail: format!("{error:?}"),
             };
         }
-        let query = self.search.to_lowercase();
+        let query = self.search().to_lowercase();
         let choices: Vec<_> = self
-            .choices
+            .choices()
             .iter()
             .enumerate()
             .filter(|(_, choice)| {
@@ -56,7 +62,7 @@ impl BirthDraft {
             }
         };
         let mut view = SemanticApplicationView {
-            revision: self.revision,
+            revision: self.revision(),
             root: node(
                 "creche",
                 PresentationMechanism::Shell,
@@ -74,7 +80,7 @@ impl BirthDraft {
                             label: "Friendly Body name".into(),
                             help: "Give it a name, or use a suggestion.".into(),
                             error: None,
-                            value: self.friendly_name.clone(),
+                            value: self.friendly_name().into(),
                             value_capacity: MAX_FRIENDLY_NAME_BYTES as u32,
                             input_action: action(
                                 "creche.name",
@@ -91,7 +97,7 @@ impl BirthDraft {
                             label: "Naming tradition".into(),
                             help: "Choose a tradition for the next name suggestion.".into(),
                             error: None,
-                            value: self.requested_system.clone(),
+                            value: self.requested_system().into(),
                             value_capacity: 64,
                             input_action: action(
                                 "creche.naming",
@@ -124,7 +130,7 @@ impl BirthDraft {
                 ],
             ),
         };
-        if self.choices.len() > 1 {
+        if self.choices().len() > 1 {
             view.root.children.insert(
                 4,
                 node(
@@ -133,7 +139,7 @@ impl BirthDraft {
                         label: "Search Forms".into(),
                         help: "Find a form by name or what it uses.".into(),
                         error: None,
-                        value: self.search.clone(),
+                        value: self.search().into(),
                         value_capacity: 128,
                         input_action: action(
                             "creche.search",
@@ -153,7 +159,10 @@ impl BirthDraft {
                         kind: StatusKind::Ordinary,
                         title: format!(
                             "Selected: {}",
-                            self.choices.iter().filter(|choice| choice.selected).count()
+                            self.choices()
+                                .iter()
+                                .filter(|choice| choice.selected)
+                                .count()
                         ),
                         detail: String::new(),
                     },
