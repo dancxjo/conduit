@@ -3,9 +3,14 @@ name = "conduit-data"
 version = "0.1.0"
 edition = "2021"
 
+[features]
+default = []
+kernel-step = ["dep:conduit-kernel"]
+
 [dependencies]
 conduit-core = { path = "../../architecture/core" }
 conduit-form = { path = "../../architecture/form" }
+conduit-kernel = { path = "../../architecture/kernel", optional = true, features = ["alloc", "step-test-support"] }
 
 [dev-dependencies]
 conduit-little-seismograph-fixture = { path = "../../forms/little-seismograph/fixture" }
