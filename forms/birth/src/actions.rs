@@ -1,8 +1,9 @@
-//! One action boundary for the browser and native Crèche Presenters.
+//! One Birth action boundary shared by browser and native Face consumers.
 
 use alloc::{format, string::String};
-use conduit_birth_form::{BirthDraft, BirthDraftRefusal, BirthSelection};
 use conduit_presentation::ApplicationEventKind;
+
+use crate::{BirthDraft, BirthDraftRefusal, BirthSelection, names::MAX_FRIENDLY_NAME_BYTES};
 
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub enum BirthActionOutcome {
@@ -38,7 +39,7 @@ impl BirthActions for BirthDraft {
         }
         match (action, event) {
             ("creche.name", ApplicationEventKind::Input) => {
-                if value.len() > conduit_birth_form::names::MAX_FRIENDLY_NAME_BYTES {
+                if value.len() > MAX_FRIENDLY_NAME_BYTES {
                     return Err(BirthDraftRefusal::InvalidName);
                 }
                 self.edit_name(revision, value.into())?;

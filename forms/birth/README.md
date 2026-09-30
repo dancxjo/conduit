@@ -12,15 +12,13 @@ The [shared naming corpus](names/README.md) remains one versioned source for
 Rust and the browser. Moving ownership does not change the catalog bytes,
 SHA-256 domain, seed encoding, suggestion order, or UTF-8 bounds.
 
-The live widget view and event protocol remain explicit consumers in
-`products/creche/model`: `BirthPresentation` and `BirthActions` extend this
-draft for the current browser and ConduitOS entrances. Their control vocabulary,
-action identities, and projection are not part of this crate. Existing refusal
-spellings, including `StalePresentation`, remain unchanged in this extraction.
-This is the semantic extraction seam for #4231, not retirement of those live
-adapters or a new body lifecycle.
+`BirthPresentation` and `BirthActions` own the Form's exact Face encounter and
+extend this draft for the current browser and ConduitOS entrances. Their control
+vocabulary, action identities, and projection remain one shared bounded
+contract. Existing refusal spellings, including `StalePresentation`, remain
+unchanged. This ownership does not create another body lifecycle or renderer.
 
-Renderer-neutral draft and naming contracts are tested here. Widget lowering,
-event routing, and view bounds stay with the Crèche adapter; browser and native
-lifecycle integration stays with those consumers. The repository workspace
-check (`cargo xtask check`) includes this package in the foundation test shard.
+Draft, naming, Face lowering, event routing, and view bounds are tested here;
+browser and native lifecycle integration stays with those consumers. The
+repository workspace check (`cargo xtask check`) includes this package in the
+foundation test shard.

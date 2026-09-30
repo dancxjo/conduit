@@ -109,7 +109,6 @@ package_test_shard!(
         "conduit-pete",
         "conduit-pete-workload-conformance",
         "conduit-tongues",
-        "conduit-creche-model",
         "conduit-home-model",
         "conduit-body-invitation-form",
         "conduit-body-lifecycle-conformance",

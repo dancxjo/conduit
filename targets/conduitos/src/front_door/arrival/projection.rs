@@ -1,7 +1,7 @@
 //! Inspectable Crèche state, with the same action availability as its shared draft.
 use super::{Arrival, Error, FrontDoor};
 use alloc::{format, vec, vec::Vec};
-use conduit_creche_model::birth::BirthPresentation;
+use conduit_birth_form::BirthPresentation;
 use conduit_presentation::*;
 
 impl Arrival {
