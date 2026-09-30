@@ -4,9 +4,11 @@ use alloc::{string::String, vec::Vec};
 use conduit_core::TemporalRelation;
 
 use crate::{
-    ChunkIdentity, EntityBoundary, ExtractedSourceValue, RerankedCandidate, RerankingProofClass,
-    RetrievalContribution, TemporalContext, TemporalProvenance, TemporalSource, TemporalValidity,
-    MAXIMUM_CONTEXT_ITEMS, MAXIMUM_HYBRID_OUTPUT_CANDIDATES, MAXIMUM_RAG_IDENTITY_BYTES,
+    ChunkIdentity, ContextOmissionReason, ContextOrderingPolicy, ContextRedundancyPolicy,
+    EntityBoundary, ExtractedSourceValue, RerankedCandidate, RerankingProofClass,
+    RetrievalContribution, SelectedContextRationale, TemporalContext, TemporalProvenance,
+    TemporalSource, TemporalValidity, MAXIMUM_CONTEXT_ITEMS, MAXIMUM_HYBRID_OUTPUT_CANDIDATES,
+    MAXIMUM_RAG_IDENTITY_BYTES,
 };
 
 pub const MAXIMUM_CONTEXT_SELECTION_WORK_UNITS: u32 = 1_048_576;
@@ -33,18 +35,6 @@ pub struct ContextCandidate {
     pub token_count: u32,
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum ContextRedundancyPolicy {
-    KeepAll,
-    OnePerReviewedGroup,
-}
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum ContextOrderingPolicy {
-    Reranked,
-    ChronologicalOldestFirst,
-}
-
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct ContextSelectionPolicy {
     pub identity: String,
@@ -64,12 +54,6 @@ pub struct SelectedContextCost {
     pub work_units: u32,
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum SelectedContextRationale {
-    Reranked,
-    TemporalChronology,
-}
-
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct SelectedContextItem {
     pub reranked: RerankedCandidate,
@@ -79,15 +63,6 @@ pub struct SelectedContextItem {
     pub redundancy_group: Option<String>,
     pub rationale: SelectedContextRationale,
     pub budget: SelectedContextCost,
-}
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum ContextOmissionReason {
-    ReviewedRedundancy,
-    ItemBudget,
-    ByteBudget,
-    TokenBudget,
-    WorkBudget,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]

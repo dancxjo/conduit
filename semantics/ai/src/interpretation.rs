@@ -2,7 +2,9 @@ use alloc::{string::String, vec::Vec};
 use conduit_core::SignId;
 use serde::{Deserialize, Serialize};
 
-use crate::{TemporalReference, TemporalRetrievalIntent};
+use crate::{
+    InterpretationDisposition, InterpretationProvenance, TemporalReference, TemporalRetrievalIntent,
+};
 
 pub const MAXIMUM_INTERPRETATION_EVIDENCE: usize = 16;
 pub const MAXIMUM_INTERPRETATION_TEXT_BYTES: usize = 2_048;
@@ -20,18 +22,6 @@ pub struct InterpretationRequest {
     pub context: String,
     pub temporal_reference: TemporalReference,
     pub temporal_intent: Option<TemporalRetrievalIntent>,
-}
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
-pub enum InterpretationProvenance {
-    ModelDerived,
-}
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
-pub enum InterpretationDisposition {
-    Interpreted,
-    InsufficientEvidence,
-    ContradictoryEvidence,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]

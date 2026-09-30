@@ -1,10 +1,10 @@
 //! Grounded answer assembly from one admitted context and ordinary LLM result.
 
 use crate::{
-    llm_contract, AnswerSpan, Citation, ModelDerivedResult, ModelResultDisposition,
-    ModelResultInvalidity, ModelResultProvenance, RetrievalIntent, StructuredContext,
-    LLM_GENERATE_KIND, MAXIMUM_CITATIONS, MAXIMUM_GROUNDED_ANSWER_BYTES, MAXIMUM_GROUNDED_CLAIMS,
-    MAXIMUM_RAG_IDENTITY_BYTES, MAXIMUM_RAG_TEXT_BYTES,
+    llm_contract, AnswerSpan, Citation, GroundedAnswerDisposition, ModelDerivedResult,
+    ModelResultDisposition, ModelResultInvalidity, ModelResultProvenance, RetrievalIntent,
+    StructuredContext, LLM_GENERATE_KIND, MAXIMUM_CITATIONS, MAXIMUM_GROUNDED_ANSWER_BYTES,
+    MAXIMUM_GROUNDED_CLAIMS, MAXIMUM_RAG_IDENTITY_BYTES, MAXIMUM_RAG_TEXT_BYTES,
 };
 use alloc::{string::String, vec::Vec};
 
@@ -56,14 +56,6 @@ pub enum GroundedClaimSupport {
 pub struct AnswerClaimSupport {
     pub answer_span: AnswerSpan,
     pub support: GroundedClaimSupport,
-}
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum GroundedAnswerDisposition {
-    Supported,
-    PartiallySupported,
-    InsufficientEvidence,
-    ConflictingEvidence,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]

@@ -3,17 +3,11 @@
 use alloc::{string::String, vec::Vec};
 
 use crate::{
-    ChunkIdentity, ExtractedSourceValue, HybridCandidate, MAXIMUM_HYBRID_OUTPUT_CANDIDATES,
-    MAXIMUM_RAG_IDENTITY_BYTES,
+    ChunkIdentity, ExtractedSourceValue, HybridCandidate, RerankingProofClass,
+    MAXIMUM_HYBRID_OUTPUT_CANDIDATES, MAXIMUM_RAG_IDENTITY_BYTES,
 };
 
 pub const MAXIMUM_RERANKING_WORK_UNITS: u32 = 1_048_576;
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum RerankingProofClass {
-    DeterministicConformance,
-    ModelDerived,
-}
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum RerankingStrategy {

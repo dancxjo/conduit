@@ -4,20 +4,12 @@ use alloc::{string::String, vec::Vec};
 use serde::{Deserialize, Serialize};
 use sha2::{Digest, Sha256};
 
+use crate::HouseContextProvenanceClass;
+
 pub const MAXIMUM_HOUSE_CONTEXT_ITEMS: usize = 16;
 pub const MAXIMUM_HOUSE_CONTEXT_BYTES: usize = 16_384;
 pub const MAXIMUM_HOUSE_UTTERANCE_BYTES: usize = 4_096;
 pub const MAXIMUM_HOUSE_CONTEXT_IDENTITY_BYTES: usize = 256;
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
-pub enum HouseContextProvenanceClass {
-    /// An exact Sign identity accompanies the value; the model output does not inherit it.
-    ObservedSign,
-    /// Current body/profile configuration explicitly wired into this form.
-    DeclaredConfiguration,
-    /// A prior model result, retained as model-derived rather than evidence.
-    ModelDerivedHistory,
-}
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct WiredHouseContextItem {

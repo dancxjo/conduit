@@ -30,3 +30,146 @@ type LlmImplementationControl =
     | prompt_template
     | chat_role_encoding
     | provider_function_json
+
+type ModelOperation =
+    infer
+    | encode
+    | decode
+    | sample
+    | log_probability
+    | evaluate
+    | train
+
+type ModelPortPresence =
+    required
+    | optional
+
+type SimilarityMetric =
+    cosine_similarity
+    | dot_product_similarity
+    | squared_euclidean_distance
+
+type EmbeddingNormalization =
+    none
+    | unit_length
+
+type TemporalSource =
+    event
+    | valid_from
+    | valid_until
+    | observed
+    | recorded
+    | ingested
+    | retrieved
+
+type EntityBoundary =
+    created
+    | first_observed
+    | first_user_mention
+    | born
+    | started
+    | current_phase_started
+    | last_changed
+
+type TransitionDirection =
+    into_state
+    | out_of_state
+
+type TemporalValidity =
+    current
+    | historical
+    | superseded
+    | unknown_whether_current
+
+type TemporalWindowRelation =
+    before
+    | within
+    | after
+    | overlaps
+    | unknown
+
+type ContextRedundancyPolicy =
+    keep_all
+    | one_per_reviewed_group
+
+type ContextOrderingPolicy =
+    reranked
+    | chronological_oldest_first
+
+type SelectedContextRationale =
+    reranked
+    | temporal_chronology
+
+type ContextOmissionReason =
+    reviewed_redundancy
+    | item_budget
+    | byte_budget
+    | token_budget
+    | work_budget
+
+type SourceSpanUnit =
+    bytes
+    | items
+
+type ContextSelectionRationale =
+    exact_match
+    | semantic_candidate
+    | metadata_match
+    | temporal_match
+    | boundary_evidence
+    | conflict_preserved
+
+type ContextTruncationReason =
+    byte_budget
+    | token_budget
+    | item_budget
+
+type GroundingDisposition =
+    supported
+    | insufficient_evidence
+    | conflicting_evidence
+
+type GroundedAnswerDisposition =
+    supported
+    | partially_supported
+    | insufficient_evidence
+    | conflicting_evidence
+
+type InterpretationProvenance =
+    model_derived
+
+type InterpretationDisposition =
+    interpreted
+    | insufficient_evidence
+    | contradictory_evidence
+
+type ModelResultProvenance =
+    model_derived
+
+type ModelRefusal =
+    unsupported_request
+    | policy_denied
+    | context_unavailable
+    | capacity_unavailable
+
+type ModelFailure =
+    malformed_result
+    | implementation_failure
+    | resource_exhausted
+    | output_bound_exceeded
+
+type HouseContextProvenanceClass =
+    observed_sign
+    | declared_configuration
+    | model_derived_history
+
+type RetrievalMechanism =
+    vector_similarity
+    | lexical
+    | metadata
+    | temporal
+    | domain_exact
+
+type RerankingProofClass =
+    deterministic_conformance
+    | model_derived

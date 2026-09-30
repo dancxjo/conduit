@@ -9,7 +9,10 @@ use alloc::{string::String, vec::Vec};
 use conduit_core::{BoundedResourceRef, ResourceReferenceRefusal};
 use sha2::{Digest, Sha256};
 
-use crate::{ModelResultProvenance, TemporalRetrievalIntent};
+use crate::{
+    ContextSelectionRationale, ContextTruncationReason, GroundingDisposition,
+    ModelResultProvenance, SourceSpanUnit, TemporalRetrievalIntent,
+};
 
 pub const MAXIMUM_RETRIEVAL_MODES: usize = 8;
 pub const MAXIMUM_RETRIEVAL_CANDIDATES: u16 = 1_024;
@@ -39,12 +42,6 @@ pub struct RetrievalIntent {
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct SourceRef {
     pub resource: BoundedResourceRef,
-}
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum SourceSpanUnit {
-    Bytes,
-    Items,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -85,16 +82,6 @@ pub struct Candidate<T> {
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum ContextSelectionRationale {
-    ExactMatch,
-    SemanticCandidate,
-    MetadataMatch,
-    TemporalMatch,
-    BoundaryEvidence,
-    ConflictPreserved,
-}
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct ContextBudgetCost {
     pub bytes: u32,
     pub tokens: u32,
@@ -105,13 +92,6 @@ pub struct ContextItem<T> {
     pub candidate: Candidate<T>,
     pub rationale: ContextSelectionRationale,
     pub budget: ContextBudgetCost,
-}
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum ContextTruncationReason {
-    ByteBudget,
-    TokenBudget,
-    ItemBudget,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -146,13 +126,6 @@ pub struct AnswerSpan {
 pub struct GroundedClaim {
     pub answer_span: AnswerSpan,
     pub citation_indices: Vec<u16>,
-}
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum GroundingDisposition {
-    Supported,
-    InsufficientEvidence,
-    ConflictingEvidence,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
