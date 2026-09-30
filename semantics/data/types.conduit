@@ -118,6 +118,14 @@ type QuantityMappingRefusal =
     | inexact
     | overflow
 
+type ScalarComparison =
+    less
+    | less-or-equal
+    | equal
+    | not-equal
+    | greater-or-equal
+    | greater
+
 type DataSaveTextTerminal =
     value_too_large
     | generation_capacity_exhausted
