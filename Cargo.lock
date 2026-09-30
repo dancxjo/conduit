@@ -815,6 +815,7 @@ dependencies = [
  "conduit-creche-model",
  "conduit-data",
  "conduit-form",
+ "conduit-form-library",
  "conduit-host-avr-fabrication",
  "conduit-host-browser-fabrication",
  "conduit-host-conduitos-fabrication",
@@ -957,6 +958,14 @@ dependencies = [
  "serde",
  "serde_json",
  "sha2 0.10.9",
+]
+
+[[package]]
+name = "conduit-form-library"
+version = "0.1.0"
+dependencies = [
+ "conduit-body",
+ "conduit-presentation",
 ]
 
 [[package]]
@@ -1533,6 +1542,7 @@ version = "0.1.0"
 dependencies = [
  "conduit-body",
  "conduit-core",
+ "conduit-form-library",
  "conduit-presentation",
  "conduit-tutorial-form",
  "serde",

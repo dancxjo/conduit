@@ -114,6 +114,7 @@ package_test_shard!(
         "conduit-workspace-model",
         "conduit-tour-model",
         "conduit-tutorial-form",
+        "conduit-form-library",
         "conduit",
         "conduit-xtask-dispatch",
         "xtask",

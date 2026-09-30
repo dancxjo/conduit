@@ -58,8 +58,8 @@ pub(crate) fn workspace_library(
     host: &HostId,
     boot: &BootId,
     joined_lines: &[JoinedLineObservation],
-) -> Result<conduit_workspace_model::library::FormLibrary, String> {
-    use conduit_workspace_model::library::{FormLibrary, LibraryEntry, MAX_LIBRARY_FORMS};
+) -> Result<conduit_form_library::FormLibrary, String> {
+    use conduit_form_library::{FormLibrary, LibraryEntry, MAX_LIBRARY_FORMS};
     let catalog: WorkspaceCatalog = serde_json::from_str(source)
         .map_err(|_| "reviewed Workspace Form catalog is malformed".to_string())?;
     if catalog.schema != "conduit.workspace/reviewed-form-catalog@2"
@@ -111,7 +111,7 @@ pub(crate) fn workspace_library(
                                 boot,
                                 joined_lines,
                             );
-                            Ok(conduit_workspace_model::library::LibraryFallback {
+                            Ok(conduit_form_library::LibraryFallback {
                                 title: fallback.title.clone(),
                                 availability,
                             })
@@ -130,8 +130,8 @@ fn catalog_availability(
     host: &HostId,
     boot: &BootId,
     joined_lines: &[JoinedLineObservation],
-) -> conduit_workspace_model::library::LibraryAvailability {
-    use conduit_workspace_model::library::LibraryAvailability;
+) -> conduit_form_library::LibraryAvailability {
+    use conduit_form_library::LibraryAvailability;
     match catalog_form_plan(entry, observed_hosts, host, boot, joined_lines) {
         Ok(()) => LibraryAvailability::Available,
         Err(_) => LibraryAvailability::NeedsCapability(entry.unavailable_hint.clone()),
