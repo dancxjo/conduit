@@ -78,10 +78,9 @@ pub fn check_package_bundle(
         }
     })?;
     let mut fronts = BTreeMap::new();
-    for form in all_forms
-        .iter()
-        .filter(|form| form.front.type_parameters.is_empty())
-    {
+    for form in all_forms.iter().filter(|form| {
+        form.front.type_parameters.is_empty() && form.front.kind_parameters.is_empty()
+    }) {
         fronts.insert(
             form.name.text.clone(),
             crate::value_type::checked_front(form, catalog).map_err(|diagnostic| {

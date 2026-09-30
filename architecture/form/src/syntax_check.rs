@@ -68,10 +68,9 @@ pub(crate) fn check_document(
     let lexical_forms = lexical_forms::lower(&document.forms)?;
     let unresolved_form_signatures = form_signatures(&lexical_forms)?;
     let mut form_fronts = BTreeMap::new();
-    for form in lexical_forms
-        .iter()
-        .filter(|form| form.front.type_parameters.is_empty())
-    {
+    for form in lexical_forms.iter().filter(|form| {
+        form.front.type_parameters.is_empty() && form.front.kind_parameters.is_empty()
+    }) {
         form_fronts.insert(
             form.name.text.clone(),
             crate::value_type::checked_front(form, catalog)?,
@@ -552,6 +551,12 @@ fn reject_alias_shadowing(
         .map(|parameter| (&parameter.name.text, parameter.name.span))
         .chain(
             form.front
+                .kind_parameters
+                .iter()
+                .map(|parameter| (&parameter.name.text, parameter.name.span)),
+        )
+        .chain(
+            form.front
                 .startup_parameters
                 .iter()
                 .map(|parameter| (&parameter.name.text, parameter.name.span)),
@@ -604,6 +609,15 @@ pub(crate) fn form_signatures(
         let mut names = BTreeSet::new();
         let mut type_names = BTreeSet::new();
         for parameter in &form.front.type_parameters {
+            if !names.insert(parameter.name.text.clone()) {
+                return Err(
+                    SyntaxCheckError::DuplicateImmutable(parameter.name.text.clone())
+                        .diagnostic(parameter.span),
+                );
+            }
+            type_names.insert(parameter.name.text.clone());
+        }
+        for parameter in &form.front.kind_parameters {
             if !names.insert(parameter.name.text.clone()) {
                 return Err(
                     SyntaxCheckError::DuplicateImmutable(parameter.name.text.clone())

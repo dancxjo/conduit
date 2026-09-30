@@ -1,13 +1,16 @@
 //! Parsing for the checked callable boundary of one authored Form.
 
+mod kind_parameter;
+mod startup;
+
 use super::Parser;
 use crate::surface_lex::{
     split_declaration, split_top_level, split_top_level_token, top_level_positions,
     top_level_token_positions,
 };
 use crate::syntax::{
-    Expression, FormFront, RuntimePort, RuntimePortDirection, RuntimePortTemporal, ShorthandPair,
-    StartupParameter, TypeParameter,
+    Expression, FormFront, KindParameter, RuntimePort, RuntimePortDirection, RuntimePortTemporal,
+    ShorthandPair, TypeParameter,
 };
 use crate::{eof_span, FormError, Span};
 use alloc::vec::Vec;
@@ -73,7 +76,7 @@ pub(crate) fn canonical_default_bound(value_type: &str) -> Option<u64> {
     }
 }
 
-fn split_default(text: &str) -> (&str, Option<&str>) {
+pub(super) fn split_default(text: &str) -> (&str, Option<&str>) {
     top_level_positions(text, '=')
         .into_iter()
         .find(|position| {
@@ -121,6 +124,25 @@ impl Parser<'_> {
                 self.index += 1;
                 continue;
             }
+            if let Some(declaration) = text.strip_suffix("kind (") {
+                let name = declaration
+                    .trim()
+                    .strip_suffix(':')
+                    .map(str::trim)
+                    .filter(|name| crate::surface_lex::is_name(name))
+                    .ok_or_else(|| self.invalid_statement(text, start))?;
+                let parameter_start = start;
+                let name = self.spanned_at(name, text, start);
+                self.index += 1;
+                let parameter_front = self.parse_kind_parameter_front(parameter_start)?;
+                let close = self.lines[self.index - 1];
+                front.kind_parameters.push(KindParameter {
+                    name,
+                    front: parameter_front,
+                    span: self.span(parameter_start, close.start + close.text.len()),
+                });
+                continue;
+            }
             if text.contains(">>") {
                 self.parse_front_runtime(text, start, &mut front)?;
             } else if !top_level_positions(text, '>').is_empty() {
@@ -153,40 +175,7 @@ impl Parser<'_> {
         Err((FormError::IncompleteForm, eof_span(self.source)))
     }
 
-    fn parse_startup(
-        &self,
-        text: &str,
-        start: usize,
-    ) -> Result<StartupParameter, (FormError, Span)> {
-        let (left, default) = split_default(text);
-        let (name, value_type) =
-            split_declaration(left).ok_or_else(|| self.invalid_statement(text, start))?;
-        let span = self.span(start, start + text.len());
-        let (value_type, refinements) = self.parse_value_refinements(value_type, text, start)?;
-        let (value_type, explicit_bound) =
-            split_type_bound(value_type).ok_or_else(|| self.invalid_statement(text, start))?;
-        let (value_type, temporal) =
-            parse_port_type(value_type).ok_or_else(|| self.invalid_statement(text, start))?;
-        if !matches!(
-            temporal,
-            RuntimePortTemporal::Value | RuntimePortTemporal::OptionalValue
-        ) {
-            return Err(self.invalid_statement(text, start));
-        }
-        Ok(StartupParameter {
-            name: self.spanned_at(name, text, start),
-            value_type: self.spanned_at(value_type, text, start),
-            optional: temporal == RuntimePortTemporal::OptionalValue,
-            maximum_bytes: explicit_bound.or_else(|| canonical_default_bound(value_type)),
-            refinements,
-            default: default
-                .map(|value| self.expression_at(value, text, start))
-                .transpose()?,
-            span,
-        })
-    }
-
-    fn parse_front_runtime(
+    pub(super) fn parse_front_runtime(
         &self,
         text: &str,
         start: usize,

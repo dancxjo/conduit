@@ -12,6 +12,7 @@ const LOCAL_FORM_PREFIX: &str = "$local/";
 struct LocalBinding {
     identity: String,
     captured_types: Vec<crate::TypeParameter>,
+    captured_kinds: Vec<crate::KindParameter>,
 }
 
 /// Lowers lexical Forms to ordinary source Forms before the normal checker.
@@ -97,16 +98,38 @@ fn lower_form(
                 ));
             }
         }
+        for parameter in &form.front.kind_parameters {
+            if child
+                .front
+                .kind_parameters
+                .iter()
+                .any(|own| own.name.text == parameter.name.text)
+            {
+                return Err(diagnostic(
+                    child.name.span,
+                    format!(
+                        "local Form '{}' cannot shadow outer compile-time behavior parameter '{}'",
+                        child.name.text, parameter.name.text
+                    ),
+                ));
+            }
+        }
         let captured_types = form.front.type_parameters.clone();
+        let captured_kinds = form.front.kind_parameters.clone();
         child
             .front
             .type_parameters
             .splice(0..0, captured_types.iter().cloned());
+        child
+            .front
+            .kind_parameters
+            .splice(0..0, captured_kinds.iter().cloned());
         visible.insert(
             child.name.text.clone(),
             LocalBinding {
                 identity: format!("{LOCAL_FORM_PREFIX}{}", child_path.join("/")),
                 captured_types,
+                captured_kinds,
             },
         );
     }
@@ -355,6 +378,17 @@ fn rewrite_invocation(invocation: &mut Invocation, visible: &BTreeMap<String, Lo
     if let Some(binding) = visible.get(&invocation.kind.text) {
         invocation.kind.text.clone_from(&binding.identity);
         for parameter in &binding.captured_types {
+            invocation.arguments.push(Argument::Named {
+                name: parameter.name.clone(),
+                value: Expression {
+                    text: parameter.name.text.clone(),
+                    syntax: ExpressionSyntax::Atomic(parameter.name.clone()),
+                    span: parameter.span,
+                },
+                span: parameter.span,
+            });
+        }
+        for parameter in &binding.captured_kinds {
             invocation.arguments.push(Argument::Named {
                 name: parameter.name.clone(),
                 value: Expression {
