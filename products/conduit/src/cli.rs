@@ -413,6 +413,24 @@ mod public_surface_tests {
     }
 
     #[test]
+    fn body_help_exposes_joining_intent_without_protocol_phases() {
+        let body = Cli::command()
+            .find_subcommand("body")
+            .expect("body command")
+            .clone();
+        let help = body.render_long_help().to_string();
+        for entrance in ["birth", "invite", "join"] {
+            assert!(help.contains(entrance), "missing {entrance} in:\n{help}");
+        }
+        for phase in ["accept", "admit", "complete-join", "status"] {
+            assert!(
+                !help.contains(&format!("\n  {phase}")),
+                "hidden phase {phase} leaked in:\n{help}"
+            );
+        }
+    }
+
+    #[test]
     fn source_expansion_is_a_public_human_and_machine_entrance() {
         assert!(matches!(
             Cli::try_parse_from(["conduit", "expand", "example.conduit"])
