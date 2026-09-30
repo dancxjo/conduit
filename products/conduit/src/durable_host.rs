@@ -1222,6 +1222,7 @@ mod tests {
                 schema: INVITATION_SCHEMA.into(),
                 claim: invitation.claim(),
                 secret: secret_bytes,
+                rendezvous: None,
             })
             .unwrap(),
         )
@@ -1307,6 +1308,7 @@ mod tests {
                 schema: INVITATION_SCHEMA.into(),
                 claim: invitation.claim(),
                 secret: secret_bytes,
+                rendezvous: None,
             },
         )
         .unwrap();
