@@ -12,6 +12,19 @@ type ModulationDestination =
     | filter-cutoff
     | amplitude
 
+type MusicalControl =
+    sustain {
+        down: Boolean
+    }
+    | pitch-bend {
+        amount-millionths: I32 in -1000000..=1000000
+        range-microcents: U32 in 0..=2400000000
+    }
+    | modulation {
+        amount-millionths: U32 in 0..=1000000
+        destination: ModulationDestination
+    }
+
 type PcmSampleRepresentation =
     signed16-little-endian
     | signed24-little-endian

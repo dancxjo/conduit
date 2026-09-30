@@ -7,14 +7,14 @@ use conduit_audio::{
 use conduit_core::PlannedGear;
 use std::collections::VecDeque;
 
-#[derive(Debug, Copy, Clone)]
+#[derive(Debug, Clone)]
 enum PendingMusicalEvent {
     Note(conduit_audio::MusicalNoteEvent),
     Control(conduit_audio::MusicalControlEvent),
 }
 
 impl PendingMusicalEvent {
-    fn frame(self) -> u64 {
+    fn frame(&self) -> u64 {
         let micros = match self {
             Self::Note(event) => event.event_time_micros,
             Self::Control(event) => event.event_time_micros,
@@ -86,7 +86,7 @@ pub(super) fn execute(
     } else {
         return Err("reference synth input has an unsupported exact length".to_string());
     };
-    let key = match event {
+    let key = match &event {
         PendingMusicalEvent::Note(event) => (event.event_time_micros, event.order),
         PendingMusicalEvent::Control(event) => (event.event_time_micros, event.order),
     };

@@ -197,12 +197,12 @@ fn sustain_modulation_and_pitch_bend_use_the_control_port() {
         }),
         22,
     ));
-    assert_eq!(sustain.control, MusicalControl::Sustain { down: true });
-    assert!(matches!(
-        modulation.control,
-        MusicalControl::Modulation { .. }
-    ));
-    assert!(matches!(bend.control, MusicalControl::PitchBend { .. }));
+    assert_eq!(
+        sustain.control,
+        MusicalControl::sustain(conduit_core::InfoBool::TRUE).unwrap()
+    );
+    assert!(matches!(modulation.control, MusicalControl::Modulation(_)));
+    assert!(matches!(bend.control, MusicalControl::PitchBend(_)));
     assert_eq!((sustain.order, modulation.order, bend.order), (0, 1, 2));
 }
 

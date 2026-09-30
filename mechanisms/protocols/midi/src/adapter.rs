@@ -44,7 +44,7 @@ impl MidiProfile {
     }
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub enum PortableMidiEvent {
     Note(MusicalNoteEvent),
     Control(MusicalControlEvent),
@@ -134,7 +134,8 @@ impl MidiInputAdapter {
                 value,
                 ..
             } => self.control(
-                MusicalControl::Sustain { down: value >= 64 },
+                MusicalControl::sustain(conduit_core::InfoBool::new(value >= 64))
+                    .expect("boolean control is valid"),
                 event_time_micros,
             ),
             MidiMessage::ControlChange {
@@ -142,20 +143,22 @@ impl MidiInputAdapter {
                 value,
                 ..
             } => self.control(
-                MusicalControl::Modulation {
-                    amount_millionths: seven_bit_to_millionths(value),
-                    destination: ModulationDestination::Pitch,
-                },
+                MusicalControl::modulation(
+                    seven_bit_to_millionths(value),
+                    ModulationDestination::Pitch,
+                )
+                .expect("MIDI modulation is within native bounds"),
                 event_time_micros,
             ),
             MidiMessage::ControlChange { controller, .. } => {
                 Ok(PortableMidiEvent::UnsupportedControl { controller })
             }
             MidiMessage::PitchBend { value, .. } => self.control(
-                MusicalControl::PitchBend {
-                    amount_millionths: pitch_bend_to_millionths(value),
-                    range_microcents: MIDI_PITCH_BEND_RANGE_MICROCENTS,
-                },
+                MusicalControl::pitch_bend(
+                    pitch_bend_to_millionths(value),
+                    MIDI_PITCH_BEND_RANGE_MICROCENTS,
+                )
+                .expect("MIDI pitch bend is within native bounds"),
                 event_time_micros,
             ),
             MidiMessage::UnsupportedChannel { .. } => {
@@ -320,24 +323,24 @@ impl MidiOutputAdapter {
 
     pub fn encode_control(&self, event: MusicalControlEvent) -> Result<[u8; 3], MidiAdapterError> {
         match event.control {
-            MusicalControl::Sustain { down } => Ok([
+            MusicalControl::Sustain(payload) => Ok([
                 0xb0 | self.profile.output_channel,
                 64,
-                if down { 127 } else { 0 },
+                if payload.down().get() { 127 } else { 0 },
             ]),
-            MusicalControl::Modulation {
-                amount_millionths,
-                destination: ModulationDestination::Pitch,
-            } => Ok([
-                0xb0 | self.profile.output_channel,
-                1,
-                exact_seven_bit(amount_millionths)?,
-            ]),
-            MusicalControl::PitchBend {
-                amount_millionths,
-                range_microcents: MIDI_PITCH_BEND_RANGE_MICROCENTS,
-            } => {
-                let value = exact_pitch_bend(amount_millionths)?;
+            MusicalControl::Modulation(payload)
+                if payload.destination() == &ModulationDestination::Pitch =>
+            {
+                Ok([
+                    0xb0 | self.profile.output_channel,
+                    1,
+                    exact_seven_bit(*payload.amount_millionths())?,
+                ])
+            }
+            MusicalControl::PitchBend(payload)
+                if *payload.range_microcents() == MIDI_PITCH_BEND_RANGE_MICROCENTS =>
+            {
+                let value = exact_pitch_bend(*payload.amount_millionths())?;
                 Ok([
                     0xe0 | self.profile.output_channel,
                     (value & 0x7f) as u8,

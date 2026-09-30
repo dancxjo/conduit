@@ -203,33 +203,28 @@ fn sustain_modulation_and_pitch_bend_become_typed_controls() {
     assert!(matches!(
         sustain,
         PortableMidiEvent::Control(event)
-            if event.control == MusicalControl::Sustain { down: true }
+            if event.control == MusicalControl::sustain(conduit_core::InfoBool::TRUE).unwrap()
     ));
     assert!(matches!(
         modulation,
         PortableMidiEvent::Control(event)
-            if event.control == MusicalControl::Modulation {
-                amount_millionths: 1_000_000,
-                destination: ModulationDestination::Pitch,
-            }
+            if event.control
+                == MusicalControl::modulation(1_000_000, ModulationDestination::Pitch).unwrap()
     ));
     assert!(matches!(
         bend,
         PortableMidiEvent::Control(event)
-            if event.control == MusicalControl::PitchBend {
-                amount_millionths: 0,
-                range_microcents: 200_000_000,
-            }
+            if event.control == MusicalControl::pitch_bend(0, 200_000_000).unwrap()
     ));
     assert!(matches!(
         bend_minimum,
         PortableMidiEvent::Control(event)
-            if matches!(event.control, MusicalControl::PitchBend { amount_millionths: -1_000_000, .. })
+            if matches!(event.control, MusicalControl::PitchBend(ref payload) if *payload.amount_millionths() == -1_000_000)
     ));
     assert!(matches!(
         bend_maximum,
         PortableMidiEvent::Control(event)
-            if matches!(event.control, MusicalControl::PitchBend { amount_millionths: 1_000_000, .. })
+            if matches!(event.control, MusicalControl::PitchBend(ref payload) if *payload.amount_millionths() == 1_000_000)
     ));
 }
 
