@@ -80,6 +80,8 @@ pub struct RepresentationSyntax {
     pub name: SpannedText,
     pub value_type: SpannedText,
     pub storage: RepresentationStorageSyntax,
+    /// First iota discriminant. Defaults to zero.
+    pub first_discriminant: u8,
     /// Empty means semantic variant order. Otherwise this is iota order.
     pub mappings: Vec<RepresentationMappingSyntax>,
     pub span: Span,

@@ -76,6 +76,24 @@ fn checked_representation_generates_the_only_rust_discriminant_table() {
 }
 
 #[test]
+fn generated_representation_preserves_explicit_iota_origin() {
+    let source = "type Outcome =\n    ready\n    | refused\n\nrepresentation test/outcome = Outcome as u8 from 1\n";
+    let checked = crate::check_syntax_document(
+        &crate::parse_syntax_document(source),
+        &crate::StartupCatalog::new(),
+    )
+    .unwrap();
+    let generated = generate_rust_bindings_with_representations(
+        &checked.native_types,
+        &checked.representations,
+        &RustBindingOptions::default(),
+    )
+    .unwrap();
+    assert!(generated.source.contains("Outcome::Ready => 1"));
+    assert!(generated.source.contains("2 => Ok(Outcome::Refused)"));
+}
+
+#[test]
 fn generated_contracts_preserve_semantic_openness() {
     let checked = crate::check_syntax_document(
         &crate::parse_syntax_document(
