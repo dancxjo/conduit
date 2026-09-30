@@ -7,7 +7,7 @@ mod generated {
     include!(concat!(env!("OUT_DIR"), "/semantic_types.rs"));
 }
 
-pub use generated::RebootDenial;
+pub use generated::{LineLossDisposition, RebootDenial, RebootPendingState, RebootProgressError};
 
 mod model;
 mod reboot;

@@ -9,3 +9,23 @@ type RebootDenial =
     | replay
     | attempt-limit-reached
     | transaction-pending
+
+type RebootPendingState =
+    idle
+    | accepted
+    | awaiting-replacement
+    | completed
+    | unknown-proof-window-expired
+
+type RebootProgressError =
+    request-mismatch
+    | not-accepted
+    | old-boot-not-terminated
+    | replacement-host-mismatch
+    | replacement-boot-reused
+    | replacement-unavailable
+    | proof-window-expired
+
+type LineLossDisposition =
+    intentional-transition-pending
+    | ordinary-transport-failure
