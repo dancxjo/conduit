@@ -9,6 +9,13 @@
 
 extern crate alloc;
 
+#[allow(dead_code)]
+mod generated {
+    include!(concat!(env!("OUT_DIR"), "/semantic_types.rs"));
+}
+
+pub use generated::MorseKeyPhase;
+
 mod addressed_utterance;
 mod morse;
 #[cfg(feature = "form-catalog")]
