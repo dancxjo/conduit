@@ -143,7 +143,7 @@ pub(super) enum InstalledBack {
     CurrentSample(CurrentSampleBack),
     CombineLatest(CombineLatestBack),
     FlowZip(FlowZipBack),
-    FlowCollect(FlowCollectBack),
+    FlowCollect(Box<FlowCollectBack>),
     FlowJoinByKey(Box<FlowJoinByKeyBack>),
     FlowGateScalar(FlowGateScalarBack),
     FlowFirst(FlowFirstBack),

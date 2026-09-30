@@ -80,7 +80,7 @@ fn prepare(
         overflow,
     )
     .map_err(|error| format!("prepare flow/collect storage: {error:?}"))?;
-    Ok(InstalledBack::FlowCollect(operation))
+    Ok(InstalledBack::FlowCollect(Box::new(operation)))
 }
 
 #[cfg(test)]
