@@ -28,6 +28,12 @@ type Direction =
 type Toggle = {
     enabled: Boolean
 }
+
+type Input =
+    toggle {
+        enabled: Boolean
+    }
+    | absent
 "#;
     crate::check_syntax_document(
         &crate::parse_syntax_document(source),
@@ -104,6 +110,12 @@ fn generation_is_deterministic_and_keeps_rust_spelling_out_of_identity() {
     assert!(plain.source.contains("pitches: BoundedSequence<Note, 16>"));
     assert!(plain.source.contains("Note(MusicEventNote)"));
     assert!(plain.source.contains("Rest,"));
+    assert!(plain.source.contains(
+        "pub fn toggle(enabled: bool) -> Result<Self, NativeBindingRefusal> { Ok(Self::Toggle(InputToggle { enabled, })) }"
+    ));
+    assert!(plain.source.contains(
+        "pub fn note(pitches: BoundedSequence<Note, 16>, velocity: u8) -> Result<Self, NativeBindingRefusal> { let candidate = Self::Note"
+    ));
     assert!(plain.source.contains(
         "#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]\npub enum Direction"
     ));
