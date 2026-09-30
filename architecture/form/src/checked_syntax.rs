@@ -275,6 +275,7 @@ pub struct CheckedCanonicalGear {
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct CheckedActivation {
+    pub mode: crate::ActivationSyntax,
     pub selected_form: String,
     pub input: conduit_core::PortDescriptor,
     pub output: conduit_core::PortDescriptor,
@@ -519,6 +520,7 @@ pub struct ExpandedCanonicalForm {
 pub struct ExpandedActivation {
     pub activation_id: String,
     pub owner_gear_id: conduit_core::GearId,
+    pub mode: crate::ActivationSyntax,
     pub selected_form: String,
     pub selected_checked_form_id: CheckedFormId,
     pub input: conduit_core::PortDescriptor,

@@ -64,7 +64,18 @@ impl ExpandedCanonicalForm {
             let owner_matches = owner.is_some_and(|owner| {
                 let mut input = activation.input.clone();
                 input.temporal = conduit_core::PortTemporal::Flow { closes: true };
-                let mut output = activation.output.clone();
+                let mut output = match activation.mode {
+                    crate::ActivationSyntax::Each => activation.output.clone(),
+                    crate::ActivationSyntax::Select => {
+                        let Some(output) = owner.outputs.first() else {
+                            return false;
+                        };
+                        let mut retained = activation.input.clone();
+                        retained.port_id = output.port_id.clone();
+                        retained.direction = conduit_core::PortDirection::Output;
+                        retained
+                    }
+                };
                 output.temporal = conduit_core::PortTemporal::Flow { closes: true };
                 owner.inputs == [input] && owner.outputs == [output]
             });
@@ -338,7 +349,13 @@ pub(super) fn expanded_identity(
         push(&mut canonical, back.checked_form_id.as_str());
     }
     for activation in activations {
-        push(&mut canonical, "activation-each");
+        push(
+            &mut canonical,
+            match activation.mode {
+                crate::ActivationSyntax::Each => "activation-each",
+                crate::ActivationSyntax::Select => "activation-select",
+            },
+        );
         push(&mut canonical, &activation.activation_id);
         push(&mut canonical, activation.owner_gear_id.as_str());
         push(&mut canonical, &activation.selected_form);

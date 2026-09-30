@@ -173,7 +173,13 @@ pub(crate) fn canonical_gear(gear: &CheckedCanonicalGear) -> String {
         );
     }
     if let Some(activation) = &gear.activation {
-        push_field(&mut value, "activate-each");
+        push_field(
+            &mut value,
+            match activation.mode {
+                crate::ActivationSyntax::Each => "activate-each",
+                crate::ActivationSyntax::Select => "activate-select",
+            },
+        );
         push_field(&mut value, &activation.selected_form);
         push_field(&mut value, activation.input.port_id.as_str());
         push_field(&mut value, activation.input.value_kind.as_str());

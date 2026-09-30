@@ -388,6 +388,7 @@ pub struct NamedGear {
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum ActivationSyntax {
     Each,
+    Select,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
