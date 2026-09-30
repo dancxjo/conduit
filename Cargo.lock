@@ -1306,6 +1306,7 @@ dependencies = [
  "conduit-alife",
  "conduit-audio",
  "conduit-core",
+ "conduit-data",
  "conduit-form",
  "conduit-human",
  "conduit-kernel",

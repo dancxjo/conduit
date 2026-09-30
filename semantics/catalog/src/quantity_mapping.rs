@@ -12,6 +12,7 @@ use conduit_core::{
     PortTemporal, Quantity, QuantityUnit, Scalar, DISTANCE_INFO_ID, FREQUENCY_INFO_ID,
     QUANTITY_ENCODED_LEN, QUANTITY_INFO_ID, SCALAR_INFO_ID,
 };
+pub use conduit_data::{QuantityMappingRefusal, QuantizationPolicy, RangePolicy};
 
 use crate::{
     KindConfigurationField, KindConfigurationRule, KindTerminalBehavior, StandardKindContract,
@@ -23,18 +24,6 @@ pub const DISTANCE_FREQUENCY_MAP_KIND: &str = "math/map-distance-frequency";
 pub const DISTANCE_FREQUENCY_MAP_REVISION: &str = "conduit.std/math-map-distance-frequency@1";
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum RangePolicy {
-    Refuse,
-    Clamp,
-}
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum QuantizationPolicy {
-    Exact,
-    Nearest,
-}
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct QuantityMapping {
     pub source_minimum: Scalar,
     pub source_maximum: Scalar,
@@ -44,14 +33,6 @@ pub struct QuantityMapping {
     pub target_unit: QuantityUnit,
     pub range_policy: RangePolicy,
     pub quantization: QuantizationPolicy,
-}
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum QuantityMappingRefusal {
-    InvalidRange,
-    OutOfRange,
-    Inexact,
-    Overflow,
 }
 
 impl QuantityMapping {
