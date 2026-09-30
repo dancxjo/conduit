@@ -195,6 +195,7 @@ pub struct ProductJourney {
     last_request_id: Option<String>,
     application_request: Option<native_workset::NativeApplicationRequest>,
     mask_control: Option<crate::mask_control::MaskControl>,
+    surface_provider: Option<crate::native_surface_provider::NativeSurfaceProvider>,
 }
 
 impl ProductJourney {
@@ -302,7 +303,15 @@ impl ProductJourney {
             last_request_id: None,
             application_request: None,
             mask_control: None,
+            surface_provider: None,
         })
+    }
+
+    pub fn admit_surface_provider(
+        &mut self,
+        provider: crate::native_surface_provider::NativeSurfaceProvider,
+    ) {
+        self.surface_provider = Some(provider);
     }
 
     pub const fn revision(&self) -> u64 {

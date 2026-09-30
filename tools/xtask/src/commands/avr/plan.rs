@@ -120,7 +120,7 @@ mod tests {
             conduit_core::AssignedSingleSourceRequirements {
                 host: planned.host,
                 boot: planned.boot,
-                counts: [1, 1, 0, 0, 0, 0, 1, 3, 4, 0, 1, 2],
+                counts: [1, 1, 0, 0, 0, 0, 1, 3, 4, 0, 1, 2, 0],
                 host_call: AssignedIdentity::from_text("pete.host/create1-observe-contact@1"),
                 resources: &[0, 1, 2],
             },

@@ -5,11 +5,13 @@ form native-graphical (
     show: Show >>
 ) {
     spread: presentation/tee
-    render: presentation/renderer
+    surface: presentation/show-resource-source
+    render: presentation/resource-renderer
     human: face/interaction
 
     face >> spread.presentation
     spread.presentation >> render.presentation
+    surface.show-resource >> render.show-resource
     spread.presentation >> human.presentation
     render.show >> human.show
     render.show >> show

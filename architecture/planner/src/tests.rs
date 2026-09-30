@@ -164,6 +164,28 @@ fn local_resource_cord_seals_exact_source_binding_without_bearer_material() {
         resource.contract.mobility,
         conduit_core::ResourcePortMobility::HostLocal
     );
+
+    let lowered = conduit_plan_lowering::lowering::lower_plan_fragment(&planned.fragments[0])
+        .expect("a local resource Cord lowers outside the byte value store");
+    assert!(lowered.cords.is_empty());
+    assert_eq!(lowered.cord_value_slots, 0);
+    assert_eq!(lowered.cord_value_bytes, 0);
+    assert_eq!(lowered.resource_cords.len(), 1);
+    let lowered_resource = &lowered.resource_cords[0];
+    assert_eq!(
+        lowered_resource.connection_id,
+        planned.fragments[0].connections[0].connection_id
+    );
+    assert_eq!(lowered_resource.binding, resource.source_binding);
+    assert_eq!(lowered_resource.contract, resource.contract);
+    assert_eq!(
+        lowered.identity.resource_connections,
+        vec![(
+            lowered_resource.source_node,
+            lowered_resource.resource,
+            lowered_resource.connection_id.clone(),
+        )]
+    );
 }
 
 #[test]

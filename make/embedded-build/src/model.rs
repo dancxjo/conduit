@@ -1,7 +1,10 @@
 use std::error::Error;
 use std::fmt;
 
-use conduit_core::{BaseImplementationId, CancellationPolicy, LineContract, TerminalPolicy};
+use conduit_core::{
+    BaseImplementationId, CancellationPolicy, LineContract, ResourcePortLifecycle,
+    ResourcePortOwnership, TerminalPolicy,
+};
 use conduit_kernel::scheduler::{AssignedConnectionTrack, AssignedPressurePolicy};
 use conduit_plan_lowering::lowering::{RemoteCordDirection, FIXED_KERNEL_STORAGE_PORTS_PER_NODE};
 
@@ -201,11 +204,23 @@ pub struct GeneratedStaticResource {
     pub units: u32,
 }
 
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct GeneratedStaticResourceCord {
+    pub source_node: u16,
+    pub source_port: u16,
+    pub sink_node: u16,
+    pub sink_port: u16,
+    pub resource: u16,
+    pub ownership: ResourcePortOwnership,
+    pub lifecycle: ResourcePortLifecycle,
+}
+
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum GeneratedSignTarget {
     Fragment,
     Node(u16),
     Cord(u16),
+    Resource { node: u16, resource: u16 },
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -276,6 +291,7 @@ pub struct GeneratedEmbeddedPlan {
     pub route_targets: Vec<GeneratedStaticRouteTarget>,
     pub host_calls: Vec<GeneratedHostCall>,
     pub resources: Vec<GeneratedStaticResource>,
+    pub resource_cords: Vec<GeneratedStaticResourceCord>,
     pub signs: Vec<GeneratedStaticSign>,
     pub startup_dependencies: Vec<GeneratedStartupDependency>,
     pub startup_order: Vec<u16>,

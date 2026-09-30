@@ -9,11 +9,11 @@ mod single_source;
 pub use execution::*;
 pub use single_source::*;
 
-pub const ASSIGNED_PLAN_SCHEMA: u16 = 3;
-pub const ASSIGNED_PLAN_HEADER_BYTES: usize = 124;
+pub const ASSIGNED_PLAN_SCHEMA: u16 = 4;
+pub const ASSIGNED_PLAN_HEADER_BYTES: usize = 125;
 pub const TINY_HOST_TOTAL_BYTES: u16 = 2_560;
 const MAGIC: &[u8; 8] = b"CNDAP001";
-pub const ASSIGNED_PLAN_COUNT_KINDS: usize = 12;
+pub const ASSIGNED_PLAN_COUNT_KINDS: usize = 13;
 
 pub const ASSIGNED_NODE: u8 = 1;
 pub const ASSIGNED_PORT: u8 = 2;
@@ -27,6 +27,7 @@ pub const ASSIGNED_SIGN: u8 = 9;
 pub const ASSIGNED_REMOTE_ENDPOINT: u8 = 10;
 pub const ASSIGNED_STARTUP: u8 = 11;
 pub const ASSIGNED_TERMINAL: u8 = 12;
+pub const ASSIGNED_RESOURCE_CORD: u8 = 13;
 
 /// Allocation-free execution encoding of the semantic delivery pressure policy.
 /// Semantic planning owns the richer contract; assigned Plans and the kernel
@@ -93,13 +94,13 @@ impl AssignedPlanMaxima {
     pub const SINGLE_SOURCE: Self = Self {
         encoded_bytes: 544,
         runtime_state_bytes: 192,
-        counts: [1, 1, 0, 0, 0, 0, 1, 3, 4, 0, 1, 2],
+        counts: [1, 1, 0, 0, 0, 0, 1, 3, 4, 0, 1, 2, 0],
     };
 
     pub const TINY_HOST: Self = Self {
         encoded_bytes: 1_536,
         runtime_state_bytes: 1_024,
-        counts: [8, 16, 8, 8, 8, 8, 8, 8, 16, 2, 8, 8],
+        counts: [8, 16, 8, 8, 8, 8, 8, 8, 16, 2, 8, 8, 8],
     };
 
     pub const fn total_bytes(self) -> u16 {
@@ -186,14 +187,16 @@ pub fn decode_assigned_plan(
         return Err(AssignedPlanRefusal::WrongBoot);
     }
     let mut counts = [0; ASSIGNED_PLAN_COUNT_KINDS];
-    counts.copy_from_slice(&bytes[80..92]);
+    counts.copy_from_slice(&bytes[80..80 + ASSIGNED_PLAN_COUNT_KINDS]);
     for (index, (actual, maximum)) in counts.iter().zip(maxima.counts).enumerate() {
         if *actual > maximum {
             return Err(AssignedPlanRefusal::CountCapacityExceeded(index as u8 + 1));
         }
     }
-    let expected_digest = &bytes[92..124];
-    let actual_digest = sha256::digest(&bytes[124..]);
+    let digest_start = 80 + ASSIGNED_PLAN_COUNT_KINDS;
+    let digest_end = digest_start + 32;
+    let expected_digest = &bytes[digest_start..digest_end];
+    let actual_digest = sha256::digest(&bytes[digest_end..]);
     if actual_digest != expected_digest {
         return Err(AssignedPlanRefusal::DigestMismatch);
     }
@@ -239,6 +242,7 @@ pub fn decode_assigned_plan(
             ASSIGNED_REMOTE_ENDPOINT => length == 250,
             ASSIGNED_STARTUP => length == 3 || length == 5,
             ASSIGNED_TERMINAL => length == 32,
+            ASSIGNED_RESOURCE_CORD => length == 12,
             _ => false,
         };
         if !valid_length {
@@ -249,7 +253,8 @@ pub fn decode_assigned_plan(
             ASSIGNED_CONFIGURATION => payload[18] <= 2,
             ASSIGNED_CORD => payload[18] <= 1 && payload[23] <= 1 && payload[36] <= 2,
             ASSIGNED_ROUTE_TARGET => length == 6 || payload[2] == 1,
-            ASSIGNED_SIGN => payload[34] <= 2,
+            ASSIGNED_SIGN => payload[34] <= 3,
+            ASSIGNED_RESOURCE_CORD => payload[10] <= 1 && payload[11] <= 2,
             ASSIGNED_REMOTE_ENDPOINT => {
                 payload[228] <= 1
                     && payload[229] <= 4
@@ -294,6 +299,12 @@ pub fn decode_assigned_plan(
                     .map(|(index, _)| index)
                     .ok_or(AssignedPlanRefusal::UnknownResource)?;
                 resources[index] = true;
+            }
+            ASSIGNED_RESOURCE_CORD => {
+                let resource = read_u16(payload, 8)?;
+                if !requirements.resources.contains(&resource) {
+                    return Err(AssignedPlanRefusal::UnknownResource);
+                }
             }
             ASSIGNED_REMOTE_ENDPOINT => {
                 let binding = AssignedRemoteBinding {
