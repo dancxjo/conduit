@@ -246,6 +246,12 @@ mod tests {
             .filter(|package| {
                 member_ids.contains(package["id"].as_str().expect("package id must be a string"))
             })
+            .filter(|package| {
+                !package["manifest_path"]
+                    .as_str()
+                    .expect("package manifest path must be a string")
+                    .contains("/proof/fixtures/make-rename-ci-bridge/")
+            })
             .map(|package| {
                 package["name"]
                     .as_str()
