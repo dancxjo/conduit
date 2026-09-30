@@ -1,21 +1,15 @@
 //! Explicit clock relations, coordinate frames, and derived alignment views.
 
 use alloc::{string::String, vec::Vec};
-use conduit_core::{Quantity, QuantityUnit};
+use conduit_core::QuantityUnit;
 
 use crate::{
-    nonzero, text, ObservationProvenance, ObservationSet, ObservationValue, ScientificObservation,
-    ScientificObservationRefusal, TensorElement, TensorValue,
+    nonzero, text, ClockRelationQuality, ObservationProvenance, ObservationSet, ObservationValue,
+    ScientificObservation, ScientificObservationRefusal, TensorElement, TensorValue,
 };
 
 pub const MAXIMUM_COORDINATE_DIMENSIONS: usize = 4;
 pub const MAXIMUM_ALIGNMENT_SOURCES: usize = 16;
-
-#[derive(Debug, Copy, Clone, PartialEq, Eq)]
-pub enum ClockRelationQuality {
-    Exact,
-    Estimated { maximum_error: Quantity },
-}
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct ClockRelation {
@@ -99,7 +93,8 @@ impl ClockRelation {
         {
             return Err(ScientificAlignmentRefusal::InvalidRelation);
         }
-        if let ClockRelationQuality::Estimated { maximum_error } = self.quality {
+        if let ClockRelationQuality::Estimated(estimated) = &self.quality {
+            let maximum_error = estimated.maximum_error();
             if maximum_error.value() <= 0
                 || !matches!(
                     maximum_error.unit(),

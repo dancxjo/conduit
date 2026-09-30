@@ -1,7 +1,8 @@
+use conduit_core::{Quantity, QuantityUnit};
 use conduit_data::{
-    DataLoadTextTerminal, DataSaveTextTerminal, FullWindowPolicy, MeasurementPlotOverflowPolicy,
-    MeasurementThresholdState, MeasurementThresholdTransition, SampledSignalRefusal,
-    TensorAxisRole, TensorElement,
+    ClockRelationQuality, DataLoadTextTerminal, DataSaveTextTerminal, FullWindowPolicy,
+    MeasurementPlotOverflowPolicy, MeasurementThresholdState, MeasurementThresholdTransition,
+    SampledSignalRefusal, TensorAxisRole, TensorElement,
 };
 use conduit_form::rust_binding::NativeRustBinding;
 
@@ -126,4 +127,31 @@ fn tensor_axis_roles_keep_bounded_other_meaning_in_the_native_type() {
         let structured = role.clone().into_structured().unwrap();
         assert_eq!(TensorAxisRole::from_structured(structured).unwrap(), role);
     }
+}
+
+#[test]
+fn clock_relation_quality_keeps_duration_meaning_in_the_native_type() {
+    let estimated =
+        ClockRelationQuality::estimated(Quantity::new(3, QuantityUnit::Microsecond)).unwrap();
+    let ClockRelationQuality::Estimated(payload) = &estimated else {
+        panic!("estimated quality retains its maximum error")
+    };
+    assert_eq!(
+        *payload.maximum_error(),
+        Quantity::new(3, QuantityUnit::Microsecond)
+    );
+    let structured = estimated.clone().into_structured().unwrap();
+    assert_eq!(
+        ClockRelationQuality::from_structured(structured).unwrap(),
+        estimated
+    );
+
+    let exact = ClockRelationQuality::Exact;
+    let structured = exact.clone().into_structured().unwrap();
+    assert_eq!(
+        ClockRelationQuality::from_structured(structured).unwrap(),
+        exact
+    );
+
+    assert!(ClockRelationQuality::estimated(Quantity::new(1, QuantityUnit::Celsius)).is_err());
 }
