@@ -1,6 +1,7 @@
 use crate::{
     KernelCompositeDefinition, KernelCompositeError, KernelCompositeHost,
-    KernelCompositeHostRequest, KernelCompositeStatus, KernelOperationRegistry,
+    KernelCompositeHostRequest, KernelCompositeStatus, KernelCompositeTerminal,
+    KernelOperationRegistry,
 };
 use conduit_core::{semantic_digest, PlanId, PortDirection, PortId, PortTemporal, ValuePayload};
 use conduit_kernel::scheduler::RemoteIngressOutcome;
@@ -111,6 +112,7 @@ pub enum BoundedActivationState {
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum BoundedActivationFault {
     Execution(KernelCompositeError),
+    Abnormal(ValuePayload),
     MissingOutput,
 }
 
@@ -251,16 +253,26 @@ impl BoundedActivationHost {
                 }
             }
             Ok(KernelCompositeStatus::Complete) => {
+                let terminal = activation
+                    .output_terminal(&self.contract.output_port)
+                    .map_err(BoundedActivationError::Refused)?;
                 self.last_signs = activation.signs();
                 self.active = None;
                 self.input_close_pending = false;
-                self.state = if self.output_completed {
-                    BoundedActivationState::Succeeded { sequence }
-                } else {
-                    BoundedActivationState::Faulted {
+                self.state = match terminal {
+                    Some(KernelCompositeTerminal::Abnormal(terminal)) => {
+                        BoundedActivationState::Faulted {
+                            sequence,
+                            fault: BoundedActivationFault::Abnormal(terminal),
+                        }
+                    }
+                    Some(KernelCompositeTerminal::Normal) if self.output_completed => {
+                        BoundedActivationState::Succeeded { sequence }
+                    }
+                    _ => BoundedActivationState::Faulted {
                         sequence,
                         fault: BoundedActivationFault::MissingOutput,
-                    }
+                    },
                 };
             }
             Ok(KernelCompositeStatus::Cancelled) => {

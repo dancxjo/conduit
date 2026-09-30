@@ -105,6 +105,7 @@ impl KernelCompositeDefinition {
                     if planned_port.value_kind != front.external_port.value_kind
                         || planned_port.direction != front.external_port.direction
                         || planned_port.temporal != front.external_port.temporal
+                        || planned_port.abnormal_kind != front.external_port.abnormal_kind
                     {
                         return Err(KernelCompositeDefinitionError::InvalidInternalPlan(
                             format!(
