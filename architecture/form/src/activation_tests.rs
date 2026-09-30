@@ -80,6 +80,29 @@ form main {
 }
 ";
 
+const SCAN_SOURCE: &str = "
+form integer/add (
+ >> accumulator: U64
+ >> item: U64
+ combined: U64 >>
+) {
+}
+
+form flow/scan-integers (
+ initial: U64
+ >> items: U64...|
+ accumulators: U64...| >>
+) {
+ scanner: scan(initial) integer/add()
+ items >> scanner.item
+ scanner.combined >> accumulators
+}
+
+form main {
+ scanned: flow/scan-integers(initial = 7)
+}
+";
+
 fn checked() -> crate::CheckedSyntaxDocument {
     check_syntax_document(&parse_syntax_document(SOURCE), &StartupCatalog::new()).unwrap()
 }
@@ -289,4 +312,72 @@ fn fold_refuses_a_unary_combine_form() {
     let error =
         check_syntax_document(&parse_syntax_document(&source), &StartupCatalog::new()).unwrap_err();
     assert_eq!(error.code, "CND-FRM-064");
+}
+
+#[test]
+fn scan_retains_exact_initial_and_two_input_combine_truth() {
+    let checked =
+        check_syntax_document(&parse_syntax_document(SCAN_SOURCE), &StartupCatalog::new()).unwrap();
+    let scan = checked
+        .forms
+        .iter()
+        .find(|form| form.name == "flow/scan-integers")
+        .unwrap();
+    let activation = scan.gears[0].activation.as_ref().unwrap();
+    assert!(matches!(
+        activation.mode,
+        crate::ActivationSyntax::Scan { .. }
+    ));
+    assert_eq!(activation.input.port_id.as_str(), "item");
+    assert_eq!(
+        activation
+            .accumulator_input
+            .as_ref()
+            .unwrap()
+            .port_id
+            .as_str(),
+        "accumulator"
+    );
+    assert_eq!(activation.output.port_id.as_str(), "combined");
+    assert_eq!(
+        activation.initial_accumulator,
+        Some(crate::CanonicalStartupValue::FormParameter(
+            "initial".into()
+        ))
+    );
+    assert_eq!(activation.initial_accumulator_bytes, None);
+
+    let expanded = crate::expand_canonical_form(&checked, "main", &ProfileCatalog::new()).unwrap();
+    assert_eq!(expanded.gears[0].kind_id.as_str(), "flow/scan");
+    assert_eq!(expanded.gears[0].inputs[0].port_id.as_str(), "item");
+    assert_eq!(expanded.gears[0].outputs[0].port_id.as_str(), "combined");
+    assert_eq!(
+        expanded.gears[0].inputs[0].temporal,
+        conduit_core::PortTemporal::Flow { closes: true }
+    );
+    assert_eq!(
+        expanded.gears[0].outputs[0].temporal,
+        conduit_core::PortTemporal::Flow { closes: true }
+    );
+    assert!(expanded.activations[0].accumulator_input.is_some());
+    assert_eq!(
+        expanded.activations[0].initial_accumulator,
+        Some(crate::CanonicalStartupValue::Literal("7".into()))
+    );
+    assert_eq!(
+        expanded.activations[0].initial_accumulator_bytes,
+        Some(7_u64.to_le_bytes().to_vec())
+    );
+    expanded.validate_expansion().unwrap();
+}
+
+#[test]
+fn scan_refuses_a_unary_combine_form_instead_of_faking_unary_activation() {
+    let source = SCAN_SOURCE.replace(
+        ">> accumulator: U64\n >> item: U64\n combined: U64 >>",
+        ">> item: U64\n combined: U64 >>",
+    );
+    let error =
+        check_syntax_document(&parse_syntax_document(&source), &StartupCatalog::new()).unwrap_err();
+    assert_eq!(error.code, "CND-FRM-065");
 }

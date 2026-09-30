@@ -179,6 +179,7 @@ pub(crate) fn canonical_gear(gear: &CheckedCanonicalGear) -> String {
                 crate::ActivationSyntax::Each { .. } => "activate-each",
                 crate::ActivationSyntax::Select { .. } => "activate-select",
                 crate::ActivationSyntax::Fold { .. } => "activate-fold",
+                crate::ActivationSyntax::Scan { .. } => "activate-scan",
             },
         );
         push_field(&mut value, &activation.mode.maximum_items().to_string());
