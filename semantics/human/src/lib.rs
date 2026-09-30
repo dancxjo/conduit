@@ -9,7 +9,7 @@ mod generated {
 pub use generated::{
     ChordPhase, ChordPhaseCode, CoreChordId, CoreChordIdCode, ExperienceAvailability,
     ExperienceCertainty, ExperienceDomain, ExperienceOrigin, ExperienceRelationKind,
-    ExperienceTemporalRole, KeyTransition, KeyTransitionCode, SourceAvailability,
+    ExperienceTemporalRole, KeyTransition, KeyTransitionCode, KeymapRefusal, SourceAvailability,
     VisualEvidenceClass, VisualExperienceRelationKind,
 };
 

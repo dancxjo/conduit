@@ -1,8 +1,8 @@
 use conduit_form::rust_binding::NativeRustBinding;
 use conduit_human::{
     ExperienceAvailability, ExperienceCertainty, ExperienceDomain, ExperienceOrigin,
-    ExperienceRelationKind, ExperienceTemporalRole, SourceAvailability, VisualEvidenceClass,
-    VisualExperienceRelationKind,
+    ExperienceRelationKind, ExperienceTemporalRole, KeymapRefusal, SourceAvailability,
+    VisualEvidenceClass, VisualExperienceRelationKind,
 };
 
 fn assert_round_trip<T>(value: T)
@@ -11,6 +11,18 @@ where
 {
     let structured = value.into_structured().unwrap();
     assert_eq!(T::from_structured(structured).unwrap(), value);
+}
+
+#[test]
+fn keymap_refusals_round_trip_through_the_exact_native_type() {
+    for value in [
+        KeymapRefusal::UnknownComposeSequence,
+        KeymapRefusal::EmptyUnicodeEntry,
+        KeymapRefusal::UnicodeEntryOverflow,
+        KeymapRefusal::InvalidUnicodeScalar,
+    ] {
+        assert_round_trip(value);
+    }
 }
 
 #[test]
