@@ -796,6 +796,8 @@ dependencies = [
 name = "conduit-body-invitation-form"
 version = "0.1.0"
 dependencies = [
+ "conduit-core",
+ "conduit-form",
  "conduit-presentation",
 ]
 

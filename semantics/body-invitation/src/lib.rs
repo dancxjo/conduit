@@ -2,6 +2,13 @@
 //! Portable presentation of one finite Body invitation.
 
 extern crate alloc;
+
+#[allow(dead_code)]
+mod generated {
+    include!(concat!(env!("OUT_DIR"), "/semantic_types.rs"));
+}
+pub use generated::InvitationPresentationRefusal;
+
 use alloc::{format, vec, vec::Vec};
 use conduit_presentation::{
     ActionAvailability, ApplicationEventKind, PresentationMechanism, SemanticAction,
@@ -18,12 +25,6 @@ pub struct InvitationPresentation<'a> {
     pub transfer_uri: &'a str,
     pub clipboard_available: bool,
     pub share_available: bool,
-}
-
-#[derive(Clone, Copy, Debug, Eq, PartialEq)]
-pub enum InvitationPresentationRefusal {
-    InvalidInvitation,
-    Presentation,
 }
 
 impl InvitationPresentation<'_> {
