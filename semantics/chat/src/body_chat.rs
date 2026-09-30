@@ -15,7 +15,9 @@ use conduit_form::{KindProjection, KindSignature, ProfileCatalog, StartupCatalog
 use serde::{ser::SerializeStruct, Deserialize, Serialize};
 use sha2::{Digest, Sha256};
 
-use crate::{BodyChatHistoryItem, BodyChatMessage, BodyChatRefusal, BodyChatRole};
+use crate::{
+    BodyChatHistoryItem, BodyChatMessage, BodyChatRefusal, BodyChatRole, BodyChatRoleRepresentation,
+};
 
 pub const BODY_CHAT_PROMPT_KIND: &str = "body/chat-prompt";
 pub const BODY_CONVERSATION_CONTEXT_KIND: &str = "body/conversation-context";
@@ -282,10 +284,7 @@ impl BodyChatPromptState {
             digest.update(model_context_sha256);
             digest.update(message.get().as_bytes());
             for item in &recent_history {
-                digest.update([match item.role() {
-                    BodyChatRole::Human => 0,
-                    BodyChatRole::Body => 1,
-                }]);
+                digest.update(BodyChatRoleRepresentation::encode(*item.role()));
                 digest.update(item.text().get().as_bytes());
             }
             let request_identity = format!("body-chat-request/{:x}", digest.finalize());
