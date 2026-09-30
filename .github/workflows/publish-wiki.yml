@@ -6,6 +6,7 @@ on:
     paths:
       - "wiki/**"
       - ".github/workflows/publish-wiki.yml"
+  gollum:
   workflow_dispatch:
 
 permissions:
