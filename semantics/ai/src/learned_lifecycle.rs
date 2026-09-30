@@ -2,7 +2,11 @@
 
 use alloc::{string::String, vec::Vec};
 
-use crate::ModelInvocationEvidence;
+use crate::{
+    EvaluationDisposition, HumanAssessmentDisposition, LearnedLifecycleRefusal,
+    ModelInvocationEvidence, PromotionDecision, PromotionTerminal, RollbackTerminal,
+    ShadowTerminal,
+};
 
 pub const MAXIMUM_LIFECYCLE_METRICS: usize = 32;
 pub const MAXIMUM_HUMAN_ASSESSMENTS: usize = 16;
@@ -37,16 +41,6 @@ pub struct ShadowContract {
     pub protected_effect_routes: Vec<String>,
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum ShadowTerminal {
-    Compared,
-    Cancelled,
-    Pressured,
-    CandidateProviderLost,
-    BaselineFailed,
-    CandidateFailed,
-}
-
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct ShadowRun {
     pub identity: [u8; 32],
@@ -72,26 +66,11 @@ pub struct EvaluationMetric {
     pub candidate_value_millionths: i64,
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum HumanAssessmentDisposition {
-    SupportsCandidate,
-    SupportsBaseline,
-    Disagrees,
-    Inconclusive,
-}
-
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct HumanAssessment {
     pub evaluator_identity: [u8; 32],
     pub evidence_identity: [u8; 32],
     pub disposition: HumanAssessmentDisposition,
-}
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum EvaluationDisposition {
-    Sufficient,
-    Insufficient,
-    Disagreement,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -108,12 +87,6 @@ pub struct CandidateEvaluation {
     pub disposition: EvaluationDisposition,
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum PromotionDecision {
-    Approved,
-    Denied,
-}
-
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct PromotionGrant {
     pub identity: [u8; 32],
@@ -125,13 +98,6 @@ pub struct PromotionGrant {
     pub valid_from_tick: u64,
     pub valid_until_tick: Option<u64>,
     pub decision: PromotionDecision,
-}
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum PromotionTerminal {
-    Promoted,
-    PreparationFailed,
-    CommitUnknown,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -160,15 +126,6 @@ pub struct RollbackGrant {
     pub valid_until_tick: Option<u64>,
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum RollbackTerminal {
-    RolledBack,
-    Unavailable,
-    Refused,
-    Failed,
-    CommitUnknown,
-}
-
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct RollbackReceipt {
     pub identity: [u8; 32],
@@ -179,29 +136,6 @@ pub struct RollbackReceipt {
     pub attempt: u16,
     pub selected: Option<LearnedRealizationIdentity>,
     pub terminal: RollbackTerminal,
-}
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum LearnedLifecycleRefusal {
-    InvalidIdentity,
-    SameRealization,
-    UnboundedResources,
-    EffectfulShadowRoute,
-    WrongContract,
-    WrongInput,
-    WrongRealization,
-    ResourceBoundExceeded,
-    InvalidEvidence,
-    InvalidEvaluation,
-    EvidenceInsufficient,
-    ApprovalDenied,
-    GrantNotYetValid,
-    GrantExpired,
-    StaleCandidate,
-    IncompatibleSignature,
-    InvalidPlanTransition,
-    RollbackTargetMismatch,
-    AttemptLimitExceeded,
 }
 
 impl LearnedRealizationIdentity {
