@@ -48,7 +48,8 @@ fn frame(
 }
 
 fn admit(operation: &mut FlowCollectBack, bytes: &[u8], slot: u16) {
-    let (mut io, inputs) = frame(Some((bytes, slot)), false, Some(operation.output_maximum));
+    let output_maximum = operation.encoder.maximum_bytes();
+    let (mut io, inputs) = frame(Some((bytes, slot)), false, Some(output_maximum));
     assert_eq!(operation.step(&mut io, &inputs), StepOutcome::Progress);
     assert!(io.test_consumed(PortId(0)));
     <FlowCollectBack as StepBack<1>>::step_committed(operation);
@@ -65,12 +66,12 @@ fn normal_close_emits_one_ordered_sequence_then_completes() {
     admit(&mut operation, b"one", 1);
     admit(&mut operation, b"two", 2);
 
-    let (mut io, inputs) = frame(None, true, Some(operation.output_maximum));
+    let (mut io, inputs) = frame(None, true, Some(operation.encoder.maximum_bytes()));
     assert_eq!(operation.step(&mut io, &inputs), StepOutcome::Progress);
     assert!(io.test_consumed_closed(PortId(0)));
     <FlowCollectBack as StepBack<1>>::step_committed(&mut operation);
 
-    let (mut io, inputs) = frame(None, false, Some(operation.output_maximum));
+    let (mut io, inputs) = frame(None, false, Some(operation.encoder.maximum_bytes()));
     assert_eq!(operation.step(&mut io, &inputs), StepOutcome::Progress);
     let value = staged_collection(&operation);
     let StructuredInfoValueShape::Collection(values) = value.shape() else {
@@ -81,18 +82,18 @@ fn normal_close_emits_one_ordered_sequence_then_completes() {
     assert!(matches!(values[1].shape(), StructuredInfoValueShape::Leaf(bytes) if bytes == b"two"));
     <FlowCollectBack as StepBack<1>>::step_committed(&mut operation);
 
-    let (mut io, inputs) = frame(None, false, Some(operation.output_maximum));
+    let (mut io, inputs) = frame(None, false, Some(operation.encoder.maximum_bytes()));
     assert_eq!(operation.step(&mut io, &inputs), StepOutcome::Complete);
 }
 
 #[test]
 fn empty_normal_close_still_emits_exactly_one_empty_sequence() {
     let mut operation = operation(2);
-    let (mut io, inputs) = frame(None, true, Some(operation.output_maximum));
+    let (mut io, inputs) = frame(None, true, Some(operation.encoder.maximum_bytes()));
     assert_eq!(operation.step(&mut io, &inputs), StepOutcome::Progress);
     <FlowCollectBack as StepBack<1>>::step_committed(&mut operation);
 
-    let (mut io, inputs) = frame(None, false, Some(operation.output_maximum));
+    let (mut io, inputs) = frame(None, false, Some(operation.encoder.maximum_bytes()));
     assert_eq!(operation.step(&mut io, &inputs), StepOutcome::Progress);
     let value = staged_collection(&operation);
     let StructuredInfoValueShape::Collection(values) = value.shape() else {
@@ -107,7 +108,11 @@ fn value_after_exact_bound_is_the_prepared_abnormal_terminal() {
     admit(&mut operation, b"one", 1);
     admit(&mut operation, b"two", 2);
 
-    let (mut io, inputs) = frame(Some((b"three", 3)), false, Some(operation.output_maximum));
+    let (mut io, inputs) = frame(
+        Some((b"three", 3)),
+        false,
+        Some(operation.encoder.maximum_bytes()),
+    );
     assert_eq!(
         operation.step(&mut io, &inputs),
         StepOutcome::Abnormal {
@@ -124,7 +129,7 @@ fn output_pressure_retains_the_prepared_result_without_reopening_input() {
     admit(&mut operation, b"held", 1);
     let capacity = operation.allocation_capacity();
 
-    let (mut io, inputs) = frame(None, true, Some(operation.output_maximum));
+    let (mut io, inputs) = frame(None, true, Some(operation.encoder.maximum_bytes()));
     assert_eq!(operation.step(&mut io, &inputs), StepOutcome::Progress);
     <FlowCollectBack as StepBack<1>>::step_committed(&mut operation);
 
@@ -135,7 +140,7 @@ fn output_pressure_retains_the_prepared_result_without_reopening_input() {
         assert_eq!(operation.allocation_capacity(), capacity);
     }
 
-    let (mut io, inputs) = frame(None, false, Some(operation.output_maximum));
+    let (mut io, inputs) = frame(None, false, Some(operation.encoder.maximum_bytes()));
     assert_eq!(operation.step(&mut io, &inputs), StepOutcome::Progress);
     assert!(io.test_prepared_output().is_some());
     assert_eq!(operation.allocation_capacity(), capacity);
@@ -147,17 +152,17 @@ fn cancellation_discards_partial_and_pending_output_distinctly() {
     admit(&mut partial, b"partial", 1);
     <FlowCollectBack as StepBack<1>>::cancel(&mut partial);
     assert_eq!(partial.count, 0);
-    let (mut io, inputs) = frame(None, false, Some(partial.output_maximum));
+    let (mut io, inputs) = frame(None, false, Some(partial.encoder.maximum_bytes()));
     assert_eq!(partial.step(&mut io, &inputs), StepOutcome::Complete);
     assert!(io.test_prepared_output().is_none());
 
     let mut pending = operation(2);
     admit(&mut pending, b"pending", 1);
-    let (mut io, inputs) = frame(None, true, Some(pending.output_maximum));
+    let (mut io, inputs) = frame(None, true, Some(pending.encoder.maximum_bytes()));
     assert_eq!(pending.step(&mut io, &inputs), StepOutcome::Progress);
     <FlowCollectBack as StepBack<1>>::step_committed(&mut pending);
     <FlowCollectBack as StepBack<1>>::cancel(&mut pending);
-    let (mut io, inputs) = frame(None, false, Some(pending.output_maximum));
+    let (mut io, inputs) = frame(None, false, Some(pending.encoder.maximum_bytes()));
     assert_eq!(pending.step(&mut io, &inputs), StepOutcome::Complete);
     assert!(io.test_prepared_output().is_none());
 }
@@ -173,24 +178,7 @@ fn preparation_refuses_a_mismatched_output_envelope() {
 }
 
 #[test]
-fn terminal_contract_keeps_abnormal_and_cancellation_distinct() {
+fn value_output_does_not_claim_a_flow_terminal_transduction() {
     let operation = operation(2);
-    let contract = <FlowCollectBack as StepBack<1>>::terminal_transduction(&operation).unwrap();
-    assert!(matches!(
-        contract.normal_close,
-        AssignedNormalCloseTransduction::FlushThenPropagate(
-            AssignedFiniteTerminalEmission {
-                maximum_items: 1,
-                maximum_bytes,
-            }
-        ) if maximum_bytes == operation.output_maximum
-    ));
-    assert_eq!(
-        contract.abnormal,
-        AssignedAbnormalTransduction::PropagateAfterDrain
-    );
-    assert!(matches!(
-        contract.cancellation,
-        AssignedCancellationTransduction::DomainSpecific { .. }
-    ));
+    assert!(<FlowCollectBack as StepBack<1>>::terminal_transduction(&operation).is_none());
 }

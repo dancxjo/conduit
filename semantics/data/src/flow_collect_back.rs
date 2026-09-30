@@ -3,11 +3,7 @@
 use alloc::{vec, vec::Vec};
 use conduit_core::{CheckedValueContract, PreparedLeafSequenceEncoder};
 use conduit_kernel::{
-    scheduler::{
-        AssignedAbnormalTransduction, AssignedCancellationTransduction,
-        AssignedFiniteTerminalEmission, AssignedNormalCloseTransduction,
-        AssignedTerminalTransduction, StepBack, StepInputBytes, StepIo, StepOutcome,
-    },
+    scheduler::{AssignedTerminalTransduction, StepBack, StepInputBytes, StepIo, StepOutcome},
     CanonicalValue, Failure, FailureCode, PortId,
 };
 
@@ -29,7 +25,6 @@ pub struct FlowCollectBack {
     candidate: Vec<u8>,
     candidate_len: Option<usize>,
     encoder: PreparedLeafSequenceEncoder,
-    output_maximum: u32,
     overflow_terminal: CanonicalValue,
     output_pending: bool,
     output_staged: bool,
@@ -66,7 +61,6 @@ impl FlowCollectBack {
             candidate: vec![0; element_maximum],
             candidate_len: None,
             encoder,
-            output_maximum,
             overflow_terminal,
             output_pending: false,
             output_staged: false,
@@ -94,23 +88,10 @@ impl FlowCollectBack {
 
 impl<const PORTS: usize> StepBack<PORTS> for FlowCollectBack {
     fn terminal_transduction(&self) -> Option<AssignedTerminalTransduction> {
-        Some(AssignedTerminalTransduction {
-            input: PortId(0),
-            output: PortId(0),
-            normal_close: AssignedNormalCloseTransduction::FlushThenPropagate(
-                AssignedFiniteTerminalEmission {
-                    maximum_items: 1,
-                    maximum_bytes: self.output_maximum,
-                },
-            ),
-            abnormal: AssignedAbnormalTransduction::PropagateAfterDrain,
-            cancellation: AssignedCancellationTransduction::DomainSpecific {
-                law: conduit_core::semantic_digest(
-                    "conduit/kind-identity",
-                    b"flow/collect/cancellation-discards-partial@1",
-                ),
-            },
-        })
+        // `flow/collect` turns a normally closing Flow into one Value. It does
+        // not propagate a close onto that Value output, so the ordinary
+        // Flow-to-Flow terminal-transduction profiles do not apply.
+        None
     }
 
     fn step(&mut self, io: &mut StepIo<PORTS>, inputs: &StepInputBytes<'_, PORTS>) -> StepOutcome {
@@ -131,17 +112,6 @@ impl<const PORTS: usize> StepBack<PORTS> for FlowCollectBack {
                 .expect("ready exact flow/collect output");
             self.output_staged = true;
             return StepOutcome::Progress;
-        }
-
-        if let Some(terminal) = io.input_abnormal(PortId(0)) {
-            io.consume_abnormal(PortId(0))
-                .expect("present flow/collect abnormal terminal");
-            self.count = 0;
-            self.terminal = true;
-            return StepOutcome::Abnormal {
-                port: PortId(0),
-                terminal,
-            };
         }
 
         if io.input_closed(PortId(0)) {
