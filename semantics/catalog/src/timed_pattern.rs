@@ -11,6 +11,7 @@ use conduit_core::{
     StructuredInfoValue, StructuredInfoValueShape, MAXIMUM_STRUCTURED_CANONICAL_BYTES,
 };
 use conduit_form::{KindProjection, KindSignature};
+pub use conduit_time::TimedPatternRefusal;
 
 pub const TIMED_EVENT_SEQUENCE_TYPE: &str = "TimedEventSequence";
 pub const INTERVAL_SEQUENCE_TYPE: &str = "IntervalSequence";
@@ -20,27 +21,6 @@ pub const CLOCK_BASIS_INFO_ID: &str = "time/clock-basis@1";
 pub const EVENT_TIMES_INFO_ID: &str = "time/ordered-microsecond-sequence@1";
 pub const INTERVALS_INFO_ID: &str = "time/microsecond-interval-sequence@1";
 pub const MAXIMUM_TIMED_EVENTS: usize = 16;
-
-#[derive(Debug, Clone, PartialEq, Eq)]
-pub enum TimedPatternRefusal {
-    Malformed,
-    TooFewEvents,
-    TooManyEvents,
-    ReorderedOrDuplicateEvent,
-    IntervalOverflow,
-}
-
-impl core::fmt::Display for TimedPatternRefusal {
-    fn fmt(&self, formatter: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
-        formatter.write_str(match self {
-            Self::Malformed => "timed sequence is malformed",
-            Self::TooFewEvents => "timed sequence requires at least two events",
-            Self::TooManyEvents => "timed sequence exceeds its event bound",
-            Self::ReorderedOrDuplicateEvent => "timed sequence events are not strictly ordered",
-            Self::IntervalOverflow => "timed sequence interval is not representable",
-        })
-    }
-}
 
 pub fn timed_event_sequence_type() -> StructuredInfoType {
     sequence_record_type(
@@ -218,15 +198,19 @@ fn sequence_value(
                 StructuredInfoValue::leaf(
                     StructuredInfoType::leaf(kind_id(CLOCK_BASIS_INFO_ID)).unwrap(),
                     clock_basis.as_bytes().to_vec(),
-                )?,
-            )?,
+                )
+                .map_err(|_| TimedPatternRefusal::Malformed)?,
+            )
+            .map_err(|_| TimedPatternRefusal::Malformed)?,
             StructuredFieldValue::new(
                 sequence_field,
                 StructuredInfoValue::leaf(
                     StructuredInfoType::leaf(kind_id(sequence_kind)).unwrap(),
                     encode_sequence(values).into_bytes(),
-                )?,
-            )?,
+                )
+                .map_err(|_| TimedPatternRefusal::Malformed)?,
+            )
+            .map_err(|_| TimedPatternRefusal::Malformed)?,
         ],
     )
     .map_err(|_| TimedPatternRefusal::Malformed)
@@ -293,12 +277,6 @@ fn leaf(value: &StructuredInfoValue) -> Result<&[u8], TimedPatternRefusal> {
     match value.shape() {
         StructuredInfoValueShape::Leaf(bytes) => Ok(bytes),
         _ => Err(TimedPatternRefusal::Malformed),
-    }
-}
-
-impl From<conduit_core::StructuredInfoRefusal> for TimedPatternRefusal {
-    fn from(_: conduit_core::StructuredInfoRefusal) -> Self {
-        Self::Malformed
     }
 }
 

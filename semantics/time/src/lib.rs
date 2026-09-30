@@ -11,8 +11,10 @@ pub use generated::{
     ClockChangeBehavior, HistoricalEntryOrigin, HistoricalOverflowPolicy, InvitationState,
     MeetingProposalRefusal, ParticipantRole, RecurrenceRefusal, ReplayPolicy, ReplayPolicyRate,
     ScheduledIntentRefusal, SuspendBehavior, TemporalBoundary, TemporalWindowPosition,
-    TemporalWindowRefusal,
+    TemporalWindowRefusal, TimedPatternRefusal,
 };
+
+mod timed_pattern_refusal;
 
 mod tick;
 pub use tick::*;

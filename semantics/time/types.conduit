@@ -121,3 +121,10 @@ type TemporalWindowRefusal =
     | reversed
     | indeterminate_boundary_order
     | empty
+
+type TimedPatternRefusal =
+    malformed
+    | too-few-events
+    | too-many-events
+    | reordered-or-duplicate-event
+    | interval-overflow
