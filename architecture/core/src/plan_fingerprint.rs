@@ -889,22 +889,24 @@ pub(crate) fn compute_plan_id(
     if !realization_backs.is_empty() {
         plan_realization::push_canonical(&mut canonical, realization_backs);
     }
-    push_u32(&mut canonical, activation_preparations.len() as u32);
-    for binding in activation_preparations {
-        push_string(&mut canonical, &binding.activation_id);
-        push_string(&mut canonical, binding.owner_placement_id.as_str());
-        push_string(&mut canonical, binding.owner_fragment_id.as_str());
-        push_string(&mut canonical, binding.owner_host_id.as_str());
-        push_string(&mut canonical, binding.owner_boot_id.as_str());
-        canonical.extend_from_slice(&binding.owner_offer_generation.0.to_le_bytes());
-        push_string(&mut canonical, binding.selected_plan_id.as_str());
-        push_u32(&mut canonical, binding.child_fragments.len() as u32);
-        for child in &binding.child_fragments {
-            push_string(&mut canonical, child.fragment_id.as_str());
-            push_string(&mut canonical, child.host_id.as_str());
-            push_string(&mut canonical, child.boot_id.as_str());
-            canonical.extend_from_slice(&child.offer_generation.0.to_le_bytes());
-            canonical.extend_from_slice(&child.obligation_digest);
+    if !activation_preparations.is_empty() {
+        push_u32(&mut canonical, activation_preparations.len() as u32);
+        for binding in activation_preparations {
+            push_string(&mut canonical, &binding.activation_id);
+            push_string(&mut canonical, binding.owner_placement_id.as_str());
+            push_string(&mut canonical, binding.owner_fragment_id.as_str());
+            push_string(&mut canonical, binding.owner_host_id.as_str());
+            push_string(&mut canonical, binding.owner_boot_id.as_str());
+            canonical.extend_from_slice(&binding.owner_offer_generation.0.to_le_bytes());
+            push_string(&mut canonical, binding.selected_plan_id.as_str());
+            push_u32(&mut canonical, binding.child_fragments.len() as u32);
+            for child in &binding.child_fragments {
+                push_string(&mut canonical, child.fragment_id.as_str());
+                push_string(&mut canonical, child.host_id.as_str());
+                push_string(&mut canonical, child.boot_id.as_str());
+                canonical.extend_from_slice(&child.offer_generation.0.to_le_bytes());
+                canonical.extend_from_slice(&child.obligation_digest);
+            }
         }
     }
     if !activations.is_empty() {
