@@ -8,8 +8,9 @@ use crate::{
 };
 use conduit_core::{
     kind_id, port_id, AbnormalTerminalTransduction, CancellationTransduction, CapabilityLimits,
-    FrontStartupParameter, Kind, KindIdentity, KindSemanticLaw, NormalCloseTransduction,
-    PortDescriptor, PortDirection, Quantity, QuantityUnit, TerminalTransductionProfile,
+    ExternalEffectBehavior, FrontStartupParameter, Kind, KindIdentity, KindSemanticLaw,
+    NormalCloseTransduction, PortDescriptor, PortDirection, Quantity, QuantityUnit,
+    SuspensionBehavior, TemporalStateBehavior, TerminalTransductionProfile,
 };
 use conduit_kernel::scheduler::{
     AssignedAbnormalTransduction, AssignedCancellationTransduction, AssignedConnectionTrack,
@@ -572,6 +573,114 @@ fn pure_expression_lowers_to_one_exact_ordinary_gear() {
     assert_eq!(expression.outputs[0].value_kind.as_str(), "value/u8");
     assert_eq!(expanded.connections.len(), 2);
     expanded.validate_expansion().unwrap();
+}
+
+#[test]
+fn expression_body_checks_and_expands_identically_to_its_explicit_form() {
+    let concise = "form increment (\n    factor: U8 = 2\n    >> value: U8\n    result: U8 >>\n) = (. * factor)\n";
+    let explicit = "form increment (\n    factor: U8 = 2\n    >> value: U8\n    result: U8 >>\n) {\n    value >> (. * factor) >> result\n}\n";
+    let concise_checked =
+        check_syntax_document(&parse_syntax_document(concise), &StartupCatalog::new()).unwrap();
+    let explicit_checked =
+        check_syntax_document(&parse_syntax_document(explicit), &StartupCatalog::new()).unwrap();
+    assert_ne!(
+        concise_checked.source_document_id,
+        explicit_checked.source_document_id
+    );
+    assert_eq!(
+        concise_checked.forms[0].checked_form_id,
+        explicit_checked.forms[0].checked_form_id
+    );
+
+    let concise_expanded =
+        expand_canonical_form_for_authoring(&concise_checked, "increment", &ProfileCatalog::new())
+            .unwrap();
+    let explicit_expanded =
+        expand_canonical_form_for_authoring(&explicit_checked, "increment", &ProfileCatalog::new())
+            .unwrap();
+    assert_eq!(
+        concise_expanded.expanded.expanded_form_id,
+        explicit_expanded.expanded.expanded_form_id
+    );
+    assert_eq!(
+        concise_expanded.expanded.gears,
+        explicit_expanded.expanded.gears
+    );
+    assert_eq!(
+        concise_expanded.expanded.connections,
+        explicit_expanded.expanded.connections
+    );
+    assert_eq!(
+        concise_expanded.input_bindings,
+        explicit_expanded.input_bindings
+    );
+    assert_eq!(
+        concise_expanded.output_bindings,
+        explicit_expanded.output_bindings
+    );
+}
+
+#[test]
+fn expression_body_refuses_effectful_stateful_and_suspending_calls_without_escape_hatches() {
+    let port = |name, direction| PortDescriptor {
+        port_id: port_id(name),
+        value_kind: kind_id(conduit_core::SCALAR_INFO_ID),
+        direction,
+        temporal: conduit_core::PortTemporal::Value,
+        abnormal_kind: None,
+    };
+    for (kind_name, law_index, ineligible_law) in [
+        (
+            "test/effect",
+            0,
+            KindSemanticLaw::ExternalEffects(ExternalEffectBehavior::Observable),
+        ),
+        (
+            "test/state",
+            1,
+            KindSemanticLaw::TemporalState(TemporalStateBehavior::Retained),
+        ),
+        (
+            "test/suspend",
+            5,
+            KindSemanticLaw::Suspension(SuspensionBehavior::MaySuspend),
+        ),
+    ] {
+        let mut laws = crate::pure_expression_semantic_laws();
+        laws[law_index] = ineligible_law;
+        let mut profile = ProfileCatalog::new();
+        profile
+            .insert_kind(Kind {
+                kind_id: kind_id(kind_name),
+                kind_contract_revision: KindIdentity::from(format!("{kind_name}@1")),
+                startup_parameters: vec![],
+                shorthand: Some((port_id("value"), port_id("result"))),
+                inputs: vec![port("value", PortDirection::Input)],
+                outputs: vec![port("result", PortDirection::Output)],
+                configuration: vec![],
+                semantic_laws: laws,
+                limits: CapabilityLimits {
+                    max_active_instances: 1,
+                    max_queue_items: 1,
+                    max_queue_bytes: 8,
+                },
+            })
+            .unwrap();
+        let source = format!(
+            "form dangerous (\n    >> value: Scalar\n    result: Scalar >>\n) = ({kind_name}(.))\n"
+        );
+        let checked = check_syntax_document(
+            &parse_syntax_document(&source),
+            &profile.startup_catalog().unwrap(),
+        )
+        .unwrap();
+        let refusal =
+            expand_canonical_form_for_authoring(&checked, "dangerous", &profile).unwrap_err();
+        assert_eq!(refusal.code, "CND-FRM-046");
+        assert!(refusal
+            .message
+            .contains("ineligible for pure expression use"));
+    }
 }
 
 fn catalogs() -> (StartupCatalog, ProfileCatalog) {

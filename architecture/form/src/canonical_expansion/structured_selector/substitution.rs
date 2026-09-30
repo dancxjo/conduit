@@ -7,11 +7,20 @@ pub(super) fn substitute_immutable_values(
     environment: &BTreeMap<String, CanonicalStartupValue>,
 ) -> Result<ExpressionSyntax, CanonicalExpansionDiagnostic> {
     let substitute = |value: &crate::SpannedText| {
-        let Some((_, local)) = source_form
+        let local = source_form
             .local_values
             .iter()
             .find(|(name, _)| name == &value.text)
-        else {
+            .map(|(_, local)| local)
+            .or_else(|| {
+                source_form
+                    .startup_parameters
+                    .iter()
+                    .any(|parameter| parameter.name == value.text)
+                    .then(|| environment.get(&value.text))
+                    .flatten()
+            });
+        let Some(local) = local else {
             return Ok(None);
         };
         let local = match local {

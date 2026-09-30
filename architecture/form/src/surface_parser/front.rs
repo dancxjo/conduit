@@ -6,7 +6,7 @@ use crate::surface_lex::{
     top_level_token_positions,
 };
 use crate::syntax::{
-    FormFront, RuntimePort, RuntimePortDirection, RuntimePortTemporal, ShorthandPair,
+    Expression, FormFront, RuntimePort, RuntimePortDirection, RuntimePortTemporal, ShorthandPair,
     StartupParameter, TypeParameter,
 };
 use crate::{eof_span, FormError, Span};
@@ -85,7 +85,10 @@ fn split_default(text: &str) -> (&str, Option<&str>) {
 }
 
 impl Parser<'_> {
-    pub(super) fn parse_front(&mut self, open: usize) -> Result<FormFront, (FormError, Span)> {
+    pub(super) fn parse_front(
+        &mut self,
+        open: usize,
+    ) -> Result<(FormFront, Option<Expression>), (FormError, Span)> {
         let mut front = FormFront::default();
         while self.index < self.lines.len() {
             let line = self.lines[self.index];
@@ -93,7 +96,26 @@ impl Parser<'_> {
             if text == ") {" || text == "){" {
                 front.span = Some(self.span(open, start + text.find(')').unwrap() + 1));
                 self.index += 1;
-                return Ok(front);
+                return Ok((front, None));
+            }
+            if let Some(body) = text
+                .strip_prefix(')')
+                .and_then(|tail| tail.trim().strip_prefix('='))
+            {
+                let body = body.trim();
+                if body.is_empty() {
+                    return Err((
+                        FormError::InvalidSyntax(
+                            "expression-bodied form requires one finite expression after '='"
+                                .into(),
+                        ),
+                        self.line_span(line),
+                    ));
+                }
+                let expression = self.expression_at(body, text, start)?;
+                front.span = Some(self.span(open, start + text.find(')').unwrap() + 1));
+                self.index += 1;
+                return Ok((front, Some(expression)));
             }
             if text.is_empty() || text.starts_with('#') {
                 self.index += 1;

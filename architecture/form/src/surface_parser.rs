@@ -8,7 +8,8 @@ use crate::syntax::{
     Argument, BackStatement, ConstructionRole, ConstructionSyntax, Cord, CordStage, Expression,
     FormCompletionPolicy, FormFront, FormSyntax, Invocation, LocalValue, MatchedRoute,
     MatchedRouteArm, MatchedRoutePattern, NamedGear, RetainedDuration, RetainedValue,
-    RuntimePortTemporal, SpannedText, SyntaxDocument, TypeSyntax, UseDeclaration,
+    RuntimePortDirection, RuntimePortTemporal, SpannedText, SyntaxDocument, TypeSyntax,
+    UseDeclaration,
 };
 use crate::{
     diagnostic, eof_span, tokenize_losslessly, FormError, Span, MAXIMUM_FORM_SOURCE_BYTES,
@@ -304,7 +305,22 @@ impl<'a> Parser<'a> {
             }
             let open = header_start + "form ".len() + boundary;
             self.index += 1;
-            front = self.parse_front(open)?;
+            let (parsed_front, expression_body) = self.parse_front(open)?;
+            front = parsed_front;
+            if let Some(expression) = expression_body {
+                let close = self.lines[self.index - 1];
+                return Ok(FormSyntax {
+                    name,
+                    back: vec![expression_body_cord(
+                        &front,
+                        expression,
+                        self.line_span(close),
+                    )?],
+                    front,
+                    completion: FormCompletionPolicy::Live,
+                    span: self.span(form_start, close.start + close.text.len()),
+                });
+            }
         } else {
             if !rest[boundary..].trim().starts_with('{') || rest[boundary + 1..].trim() != "" {
                 return Err((
@@ -963,6 +979,40 @@ fn has_top_level_cord(text: &str) -> bool {
     top_level_token_positions(text, ">>")
         .into_iter()
         .any(|position| !text[..position].ends_with('>') && !text[position + 2..].starts_with('>'))
+}
+
+fn expression_body_cord(
+    front: &FormFront,
+    expression: Expression,
+    span: Span,
+) -> Result<BackStatement, (FormError, Span)> {
+    let inputs = front
+        .runtime_ports
+        .iter()
+        .filter(|port| port.direction == RuntimePortDirection::Input)
+        .collect::<Vec<_>>();
+    let outputs = front
+        .runtime_ports
+        .iter()
+        .filter(|port| port.direction == RuntimePortDirection::Output)
+        .collect::<Vec<_>>();
+    if inputs.len() != 1 || outputs.len() != 1 || inputs[0].temporal != outputs[0].temporal {
+        return Err((
+            FormError::InvalidSyntax(
+                "expression-bodied form requires exactly one runtime input and one runtime output with the same temporal contract; write an ordinary explicit Form back"
+                    .into(),
+            ),
+            span,
+        ));
+    }
+    Ok(BackStatement::Cord(Cord {
+        stages: vec![
+            CordStage::Reference(inputs[0].name.clone()),
+            CordStage::PureExpression(expression),
+            CordStage::Reference(outputs[0].name.clone()),
+        ],
+        span,
+    }))
 }
 
 fn has_legacy_top_level_cord(text: &str) -> bool {
