@@ -1,4 +1,5 @@
 use conduit_composite::{
+    BoundedActivationAdmission, BoundedActivationHost, BoundedActivationState,
     KernelCompositeDefinition, KernelCompositeError, KernelCompositeHost, KernelCompositeStatus,
     KernelOperationBudget, KernelOperationFactory, KernelOperationRegistry,
 };
@@ -411,4 +412,76 @@ fn cancellation_is_terminal_and_rejects_late_kernel_work() {
         host.admit_input(&conduit_core::port_id("input"), 0, &value(b"late")),
         Err(KernelCompositeError::InvalidLifecycle)
     ));
+}
+
+#[test]
+fn bounded_activation_owes_one_fresh_exact_execution_per_accepted_value() {
+    let mut activations = BoundedActivationHost::prepare(
+        definition(),
+        &registry(),
+        conduit_core::port_id("input"),
+        conduit_core::port_id("output"),
+    )
+    .unwrap();
+    assert_eq!(activations.contract().maximum_active, 1);
+    assert_eq!(activations.contract().maximum_queue_items, 1);
+
+    assert_eq!(
+        activations.activate(7, &value(b"first")).unwrap(),
+        BoundedActivationAdmission::Accepted { sequence: 7 }
+    );
+    assert_eq!(
+        activations.activate(8, &value(b"second")).unwrap(),
+        BoundedActivationAdmission::Full { sequence: 8 }
+    );
+    for _ in 0..64 {
+        activations.step().unwrap();
+        if let Some((sequence, output)) = activations.output().unwrap() {
+            assert_eq!((sequence, output), (7, value(b"first")));
+            activations.complete_output(sequence).unwrap();
+            break;
+        }
+    }
+    for _ in 0..64 {
+        if matches!(
+            activations.step().unwrap(),
+            BoundedActivationState::Succeeded { sequence: 7 }
+        ) {
+            break;
+        }
+    }
+    assert_eq!(
+        activations.activate(8, &value(b"second")).unwrap(),
+        BoundedActivationAdmission::Accepted { sequence: 8 }
+    );
+}
+
+#[test]
+fn bounded_activation_fault_and_cancellation_are_not_success() {
+    let mut failed = BoundedActivationHost::prepare(
+        definition(),
+        &failing_registry(),
+        conduit_core::port_id("input"),
+        conduit_core::port_id("output"),
+    )
+    .unwrap();
+    failed.activate(3, &value(b"fault")).unwrap();
+    assert!(matches!(
+        failed.step().unwrap(),
+        BoundedActivationState::Faulted { sequence: 3, .. }
+    ));
+
+    let mut cancelled = BoundedActivationHost::prepare(
+        definition(),
+        &registry(),
+        conduit_core::port_id("input"),
+        conduit_core::port_id("output"),
+    )
+    .unwrap();
+    cancelled.activate(4, &value(b"cancel")).unwrap();
+    cancelled.cancel().unwrap();
+    assert_eq!(
+        cancelled.state(),
+        &BoundedActivationState::Cancelled { sequence: Some(4) }
+    );
 }
