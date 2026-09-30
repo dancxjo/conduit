@@ -19,3 +19,8 @@ type FinanceFixedDecimal = {
     coefficient: I64
     scale: U8 in 0..=9
 }
+
+type FinanceMoney = {
+    amount: FinanceFixedDecimal
+    currency: FinanceCurrency
+}

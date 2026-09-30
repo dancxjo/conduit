@@ -25,11 +25,7 @@ pub type FixedDecimal = crate::FinanceFixedDecimal;
 
 pub type Currency = crate::FinanceCurrency;
 
-#[derive(Debug, Clone, PartialEq, Eq)]
-pub struct Money {
-    pub amount: FixedDecimal,
-    pub currency: Currency,
-}
+pub type Money = crate::FinanceMoney;
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct RateObservation<'a> {
@@ -123,29 +119,29 @@ impl Currency {
 }
 
 pub fn add_money(left: Money, right: Money) -> Result<Money, FinanceRefusal> {
-    require_same_currency(&left.currency, &right.currency)?;
-    Ok(Money {
-        amount: left.amount.checked_add(&right.amount)?,
-        currency: left.currency.clone(),
-    })
+    require_same_currency(left.currency(), right.currency())?;
+    Ok(Money::new(
+        left.amount().checked_add(right.amount())?,
+        left.currency().clone(),
+    )?)
 }
 
 pub fn compare_money(left: Money, right: Money) -> Result<Ordering, FinanceRefusal> {
-    require_same_currency(&left.currency, &right.currency)?;
-    left.amount.checked_cmp(&right.amount)
+    require_same_currency(left.currency(), right.currency())?;
+    left.amount().checked_cmp(right.amount())
 }
 
 pub fn convert_money(money: Money, rate: &RateObservation<'_>) -> Result<Money, FinanceRefusal> {
-    if rate.base == rate.quote || money.currency != rate.base {
+    if rate.base == rate.quote || money.currency() != &rate.base {
         return Err(FinanceRefusal::RatePairMismatch);
     }
     if rate.source.is_empty() || rate.profile.is_empty() {
         return Err(FinanceRefusal::InvalidObservation);
     }
-    Ok(Money {
-        amount: money.amount.checked_mul(&rate.rate)?,
-        currency: rate.quote.clone(),
-    })
+    Ok(Money::new(
+        money.amount().checked_mul(&rate.rate)?,
+        rate.quote.clone(),
+    )?)
 }
 
 fn require_same_currency(left: &Currency, right: &Currency) -> Result<(), FinanceRefusal> {
@@ -187,13 +183,7 @@ pub fn finance_currency_type() -> StructuredInfoType {
 }
 
 pub fn finance_money_type() -> StructuredInfoType {
-    record(
-        "finance/money@1",
-        vec![
-            field("amount", finance_fixed_decimal_type()),
-            field("currency", finance_currency_type()),
-        ],
-    )
+    crate::FinanceMoney::semantic_type().expect("checked native finance money Type")
 }
 
 pub fn finance_instrument_type() -> StructuredInfoType {

@@ -8,7 +8,7 @@ mod generated {
 }
 
 pub use generated::{
-    FinanceCurrency, FinanceCurrencyPair, FinanceFixedDecimal, FinanceMoneyComparison,
+    FinanceCurrency, FinanceCurrencyPair, FinanceFixedDecimal, FinanceMoney, FinanceMoneyComparison,
 };
 
 mod catalog;
