@@ -132,10 +132,12 @@ pub(crate) fn verify_planned_activations(plan: &Plan, depth: u8) -> bool {
         return plan.activations.is_empty();
     }
     let mut identities = alloc::collections::BTreeSet::new();
+    let mut owners = alloc::collections::BTreeSet::new();
     plan.activations.iter().all(|entry| match entry {
         PlannedActivationEntry::Unary(activation) => {
             !activation.activation_id.is_empty()
                 && identities.insert(activation.activation_id.clone())
+                && owners.insert(activation.owner_placement_id.clone())
                 && plan
                     .fragments
                     .iter()
@@ -159,10 +161,12 @@ pub(crate) fn verify_planned_activations(plan: &Plan, depth: u8) -> bool {
                 )
         }
         PlannedActivationEntry::Fold(activation) => {
-            verify_fold(plan, activation, depth, &mut identities)
+            owners.insert(activation.owner_placement_id.clone())
+                && verify_fold(plan, activation, depth, &mut identities)
         }
         PlannedActivationEntry::Scan(activation) => {
-            verify_scan(plan, activation, depth, &mut identities)
+            owners.insert(activation.owner_placement_id.clone())
+                && verify_scan(plan, activation, depth, &mut identities)
         }
     })
 }

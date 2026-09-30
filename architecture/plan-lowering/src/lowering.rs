@@ -784,6 +784,11 @@ pub fn lower_plan_fragment_from_plan(
     Ok((lower_plan_fragment(fragment)?, activations))
 }
 
+/// Lowers fragment-local kernel facts only. This API cannot establish whether
+/// a whole Plan owns activation coordinators and must never be used by new
+/// target installation code. Activation-aware installation must use
+/// [`lower_plan_fragment_from_plan`]. Kept temporarily for existing
+/// activation-free target callers pending their reviewed migration.
 pub fn lower_plan_fragment(fragment: &PlanFragment) -> Result<LoweredPlanFragment, LoweringError> {
     lower_plan_fragment_for_profile(fragment, FIXED_KERNEL_STORAGE_PROFILE)
 }
