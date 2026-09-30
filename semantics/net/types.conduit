@@ -22,6 +22,19 @@ type ApplicationNetworkRefusal =
     | too-many-candidates
     | candidate-transport-mismatch
 
+type NetworkJoinError =
+    malformed-request
+    | credential-too-large
+    | stale-host-boot
+    | unsupported
+    | missing-resource
+    | resource-mismatch
+    | missing-authority
+    | stale-authority
+    | authority-mismatch
+    | invalid-attachment
+    | output-too-small
+
 type RecordTranscriptDirection =
     sent
     | received

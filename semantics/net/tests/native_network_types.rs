@@ -1,7 +1,7 @@
 use conduit_form::rust_binding::NativeRustBinding;
 use conduit_net::{
-    ApplicationNetworkRefusal, DnsRecordKind, DnsTtl, NetworkTransport, RecordTranscriptDirection,
-    RecordTranscriptTerminal,
+    ApplicationNetworkRefusal, DnsRecordKind, DnsTtl, NetworkJoinError, NetworkTransport,
+    RecordTranscriptDirection, RecordTranscriptTerminal,
 };
 
 fn round_trip<T>(value: T)
@@ -38,6 +38,21 @@ fn application_network_vocabularies_are_native_semantic_types() {
         ApplicationNetworkRefusal::InvalidPort,
         ApplicationNetworkRefusal::TooManyCandidates,
         ApplicationNetworkRefusal::CandidateTransportMismatch,
+    ] {
+        round_trip(value);
+    }
+    for value in [
+        NetworkJoinError::MalformedRequest,
+        NetworkJoinError::CredentialTooLarge,
+        NetworkJoinError::StaleHostBoot,
+        NetworkJoinError::Unsupported,
+        NetworkJoinError::MissingResource,
+        NetworkJoinError::ResourceMismatch,
+        NetworkJoinError::MissingAuthority,
+        NetworkJoinError::StaleAuthority,
+        NetworkJoinError::AuthorityMismatch,
+        NetworkJoinError::InvalidAttachment,
+        NetworkJoinError::OutputTooSmall,
     ] {
         round_trip(value);
     }

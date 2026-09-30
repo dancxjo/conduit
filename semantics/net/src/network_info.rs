@@ -4,8 +4,8 @@ use conduit_core::{BootId, HostId, ResourcePoolId};
 use serde::{Deserialize, Serialize};
 
 use crate::{
-    MAXIMUM_CREDENTIAL_BYTES, MAXIMUM_JOIN_INPUT_BYTES, MAXIMUM_JOIN_OUTPUT_BYTES,
-    MAXIMUM_SSID_BYTES, NETWORK_JOIN_WIRE_VERSION,
+    NetworkJoinError, MAXIMUM_CREDENTIAL_BYTES, MAXIMUM_JOIN_INPUT_BYTES,
+    MAXIMUM_JOIN_OUTPUT_BYTES, MAXIMUM_SSID_BYTES, NETWORK_JOIN_WIRE_VERSION,
 };
 
 const NETWORK_JOIN_WIRE_MAGIC: [u8; 4] = *b"CNJ1";
@@ -56,21 +56,6 @@ pub struct NetworkAttachmentInfo<'a> {
     pub boot_id: &'a str,
     pub resource_pool_id: &'a str,
     pub generation: u64,
-}
-
-#[derive(Debug, Copy, Clone, PartialEq, Eq)]
-pub enum NetworkJoinError {
-    MalformedRequest,
-    CredentialTooLarge,
-    StaleHostBoot,
-    Unsupported,
-    MissingResource,
-    ResourceMismatch,
-    MissingAuthority,
-    StaleAuthority,
-    AuthorityMismatch,
-    InvalidAttachment,
-    OutputTooSmall,
 }
 
 pub fn encode_network_attachment(
