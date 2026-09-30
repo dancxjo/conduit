@@ -3,20 +3,14 @@
 use alloc::vec::Vec;
 
 use crate::{
-    decode_typed_record, TypedRecordFrameRefusal, MAXIMUM_TYPED_RECORD_FRAME_BYTES,
-    TYPED_RECORD_FRAME_HEADER_BYTES,
+    decode_typed_record, RecordTranscriptDirection, TypedRecordFrameRefusal,
+    MAXIMUM_TYPED_RECORD_FRAME_BYTES, TYPED_RECORD_FRAME_HEADER_BYTES,
 };
 
 pub const MAXIMUM_RECORD_TRANSCRIPT_ITEMS: usize = 32;
 pub const MAXIMUM_RECORD_TRANSCRIPT_EVENTS: usize = 128;
 pub const MAXIMUM_RECORD_TRANSCRIPT_BYTES: usize =
     MAXIMUM_RECORD_TRANSCRIPT_ITEMS * MAXIMUM_TYPED_RECORD_FRAME_BYTES;
-
-#[derive(Debug, Copy, Clone, PartialEq, Eq)]
-pub enum RecordTranscriptDirection {
-    Sent,
-    Received,
-}
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
 pub enum RecordTranscriptTerminal {

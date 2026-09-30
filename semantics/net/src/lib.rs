@@ -7,7 +7,9 @@ mod generated {
     include!(concat!(env!("OUT_DIR"), "/semantic_types.rs"));
 }
 
-pub use generated::{DnsRecordKind, NetworkTransport};
+pub use generated::{
+    ApplicationNetworkRefusal, DnsRecordKind, DnsTtl, NetworkTransport, RecordTranscriptDirection,
+};
 
 #[cfg(feature = "form-catalog")]
 use alloc::string::{String, ToString};
