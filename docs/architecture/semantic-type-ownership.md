@@ -143,6 +143,7 @@ are satisfied.
 | Measurement window/plot policies and threshold state/transitions | `semantics/data/types.conduit` | generated at build time | yes | yes | exact native round trips plus data and wire suites |
 | Sampled-signal typed terminal | `semantics/data/types.conduit` | generated at build time | yes | yes | exact native round trip plus sampled-signal behavior suite |
 | Data text save/load typed terminals | `semantics/data/types.conduit` | generated at build time | yes | yes | exact native round trips plus one-byte codec and data behavior suites |
+| Tensor element vocabulary | `semantics/data/types.conduit` | generated at build time | yes | yes | exact native round trips plus canonical tensor codec and behavior suites |
 | LLM determinism, terminal-outcome, and implementation-control vocabularies | `semantics/ai/types.conduit` | generated at build time | yes | yes | exact native round trips plus AI semantic-contract suite |
 | Reranking strategy and its bounded observed-score payload | `semantics/ai/types.conduit` | generated at build time | yes | yes | exact native payload round trip plus retrieval and context-selection suites |
 | Model operation and port-presence vocabularies | `semantics/ai/types.conduit` | generated at build time | yes | yes | exact native round trips plus AI model-signature suite |

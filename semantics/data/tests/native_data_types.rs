@@ -1,6 +1,6 @@
 use conduit_data::{
     DataLoadTextTerminal, DataSaveTextTerminal, FullWindowPolicy, MeasurementPlotOverflowPolicy,
-    MeasurementThresholdState, MeasurementThresholdTransition, SampledSignalRefusal,
+    MeasurementThresholdState, MeasurementThresholdTransition, SampledSignalRefusal, TensorElement,
 };
 use conduit_form::rust_binding::NativeRustBinding;
 
@@ -76,6 +76,25 @@ fn measurement_policy_variants_round_trip_through_exact_native_types() {
     for value in [
         MeasurementThresholdTransition::RoseAbove,
         MeasurementThresholdTransition::FellBelow,
+    ] {
+        assert_round_trip(value);
+    }
+}
+
+#[test]
+fn tensor_elements_round_trip_through_their_exact_native_type() {
+    for value in [
+        TensorElement::I8,
+        TensorElement::U8,
+        TensorElement::I16,
+        TensorElement::I24,
+        TensorElement::U16,
+        TensorElement::I32,
+        TensorElement::U32,
+        TensorElement::I64,
+        TensorElement::U64,
+        TensorElement::F32,
+        TensorElement::F64,
     ] {
         assert_round_trip(value);
     }

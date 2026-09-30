@@ -3,27 +3,14 @@
 use alloc::{string::String, vec::Vec};
 use conduit_core::{semantic_digest, BoundedResourceRef, QuantityUnit};
 
+use crate::TensorElement;
+
 pub const TENSOR_INFO_ID: &str = "data/tensor@1";
 pub const TENSOR_ENCODING_VERSION: u8 = 1;
 pub const MAXIMUM_TENSOR_RANK: usize = 8;
 pub const MAXIMUM_TENSOR_AXIS_IDENTITY_BYTES: usize = 64;
 pub const MAXIMUM_INLINE_TENSOR_BYTES: usize = 64 * 1024;
 pub const MAXIMUM_TENSOR_BYTES: u64 = 1_u64 << 50;
-
-#[derive(Debug, Copy, Clone, PartialEq, Eq)]
-pub enum TensorElement {
-    I8,
-    U8,
-    I16,
-    I24,
-    U16,
-    I32,
-    U32,
-    I64,
-    U64,
-    F32,
-    F64,
-}
 
 impl TensorElement {
     pub const fn byte_width(self) -> u64 {
