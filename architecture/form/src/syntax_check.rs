@@ -1362,9 +1362,10 @@ fn check_invocation(
         });
     }
     let activation = activation
-        .map(|_| {
+        .map(|mode| {
             checked_activation(
                 invocation,
+                mode,
                 form_fronts.expect("activation checking receives source Form fronts"),
             )
         })
@@ -1388,6 +1389,7 @@ fn check_invocation(
 
 fn checked_activation(
     invocation: &Invocation,
+    mode: crate::ActivationSyntax,
     form_fronts: &BTreeMap<String, CheckedFront>,
 ) -> Result<crate::CheckedActivation, SyntaxCheckDiagnostic> {
     let front = form_fronts
@@ -1415,7 +1417,17 @@ fn checked_activation(
             message: "activate requires startup-free Value fronts with one exact propagated abnormal terminal".into(),
         });
     }
+    if mode == crate::ActivationSyntax::Select
+        && output.value_kind.as_str() != conduit_core::BOOL_INFO_ID
+    {
+        return Err(SyntaxCheckDiagnostic {
+            code: "CND-FRM-063",
+            span: invocation.span,
+            message: "select requires an exact Value-to-Boolean predicate; truthiness coercion is not permitted".into(),
+        });
+    }
     Ok(crate::CheckedActivation {
+        mode,
         selected_form: invocation.kind.text.clone(),
         input: input.clone(),
         output: output.clone(),

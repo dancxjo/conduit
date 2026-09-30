@@ -486,13 +486,33 @@ fn instantiate_gear(
         }
         let mut input = activation.input.clone();
         input.temporal = conduit_core::PortTemporal::Flow { closes: true };
-        let mut output = activation.output.clone();
+        let mut output = match activation.mode {
+            crate::ActivationSyntax::Each => activation.output.clone(),
+            crate::ActivationSyntax::Select => {
+                let [output] = source_form.runtime_front.outputs() else {
+                    return Err(CanonicalExpansionDiagnostic::new(
+                        "CND-FRM-063",
+                        "select coordinator requires one exact retained-item output".into(),
+                    ));
+                };
+                if output.value_kind != activation.input.value_kind
+                    || output.abnormal_kind != activation.input.abnormal_kind
+                {
+                    return Err(CanonicalExpansionDiagnostic::new(
+                        "CND-FRM-063",
+                        "select output must retain the exact predicate input item and abnormal truth"
+                            .into(),
+                    ));
+                }
+                output.clone()
+            }
+        };
         output.temporal = conduit_core::PortTemporal::Flow { closes: true };
         let activation_id = format!("{}/activation", gear_id.as_str());
         gears.push(crate::checked_gear_from_parts! {
             gear_id: gear_id.clone(),
-            kind_id: KindId::from("flow/each"),
-            kind_contract_revision: conduit_core::KindIdentity::from("conduit.flow/each@1"),
+            kind_id: KindId::from(match activation.mode { crate::ActivationSyntax::Each => "flow/each", crate::ActivationSyntax::Select => "flow/select" }),
+            kind_contract_revision: conduit_core::KindIdentity::from(match activation.mode { crate::ActivationSyntax::Each => "conduit.flow/each@1", crate::ActivationSyntax::Select => "conduit.flow/select@1" }),
             startup_parameters: Vec::new(),
             shorthand: Some((input.port_id.clone(), output.port_id.clone())),
             inputs: vec![input.clone()],
@@ -513,6 +533,7 @@ fn instantiate_gear(
         activations.push(ExpandedActivation {
             activation_id,
             owner_gear_id: gear_id.clone(),
+            mode: activation.mode,
             selected_form: activation.selected_form.clone(),
             selected_checked_form_id: child.checked_form_id.clone(),
             input: activation.input.clone(),
