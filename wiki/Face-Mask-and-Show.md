@@ -106,13 +106,13 @@ with masks/spoken as spoken
 
 body roseau {
     wear graphical else spoken
-    prefer graphical over spoken
+    want graphical over spoken
 }
 ```
 
 `wear graphical else spoken` puts the fallback structure into the plan.
 
-`prefer` is policy among semantically eligible alternatives. It cannot make an ineligible mask valid.
+`want` is policy among semantically eligible alternatives. It cannot make an ineligible mask valid.
 
 Runtime `wear` and `doff` request wardrobe change and therefore planning where required. They do not mutate an immutable plan.
 
