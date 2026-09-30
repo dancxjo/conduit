@@ -1,0 +1,5 @@
+# Authoritative portable text meaning. Rust consumes generated bindings.
+
+type MorseKeyPhase =
+    pressed
+    | released
