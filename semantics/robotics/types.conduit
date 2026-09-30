@@ -11,3 +11,8 @@ type ChargingState =
     | trickle
     | waiting
     | fault
+
+type RoboticsSimulationAvailability =
+    fresh
+    | missing
+    | stale
