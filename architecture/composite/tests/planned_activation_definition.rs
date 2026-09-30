@@ -8,7 +8,7 @@ use conduit_core::{
     PlanPreparationHost, PreparationHostIdentity, PreparedFragmentReceipt,
 };
 use conduit_kernel::scheduler::{StepBack, StepInputBytes, StepIo, StepOutcome};
-use conduit_kernel::HostedValueStore;
+use conduit_kernel::{BoundedValueRef, HostCallId, HostedValueStore, PortId, RequestId};
 use conduit_plan_lowering::lowering::FIXED_KERNEL_STORAGE_PORTS_PER_NODE;
 use std::sync::{
     atomic::{AtomicUsize, Ordering},
@@ -151,6 +151,62 @@ impl StepBack<{ FIXED_KERNEL_STORAGE_PORTS_PER_NODE }> for PreparedBack {
         _: &StepInputBytes<'_, { FIXED_KERNEL_STORAGE_PORTS_PER_NODE }>,
     ) -> StepOutcome {
         StepOutcome::Complete
+    }
+}
+
+struct HostCallFactory;
+
+impl KernelOperationFactory for HostCallFactory {
+    fn implementation_id(&self) -> &conduit_core::ImplementationId {
+        static ID: std::sync::OnceLock<conduit_core::ImplementationId> = std::sync::OnceLock::new();
+        ID.get_or_init(|| conduit_core::ImplementationId::from("state@1"))
+    }
+
+    fn budget(&self, _: &conduit_core::PlannedGear) -> Result<KernelOperationBudget, String> {
+        Ok(KernelOperationBudget {
+            value_items: 2,
+            value_bytes: 2,
+            maximum_value_bytes: 1,
+            host_requests: 1,
+            sign_items: 8,
+        })
+    }
+
+    fn prepare(
+        &self,
+        _: &conduit_core::PlannedGear,
+        _: &mut HostedValueStore,
+    ) -> Result<Box<dyn StepBack<{ FIXED_KERNEL_STORAGE_PORTS_PER_NODE }> + Send>, String> {
+        Ok(Box::new(HostCallBack { pending: false }))
+    }
+}
+
+struct HostCallBack {
+    pending: bool,
+}
+
+impl StepBack<{ FIXED_KERNEL_STORAGE_PORTS_PER_NODE }> for HostCallBack {
+    fn step(
+        &mut self,
+        io: &mut StepIo<{ FIXED_KERNEL_STORAGE_PORTS_PER_NODE }>,
+        _: &StepInputBytes<'_, { FIXED_KERNEL_STORAGE_PORTS_PER_NODE }>,
+    ) -> StepOutcome {
+        if self.pending {
+            if io.host_completion().is_some() {
+                io.consume_host_completion().expect("present completion");
+                return StepOutcome::Complete;
+            }
+            return StepOutcome::Await;
+        }
+        let Some(value) = io.input(PortId(0)) else {
+            return StepOutcome::Await;
+        };
+        let input = BoundedValueRef::new(value, 1).expect("one-byte fixture input");
+        io.consume(PortId(0)).expect("present fixture input");
+        io.request_host_call(RequestId(0), HostCallId(0), input)
+            .expect("planned fixture Host Call");
+        self.pending = true;
+        StepOutcome::Progress
     }
 }
 
@@ -358,4 +414,48 @@ fn child_pool_cannot_be_substituted_for_another_activation_identity() {
     let pool =
         PreparedActivationChildPool::prepare_on_host(&plan, &prepared, "each", &mut host).unwrap();
     assert!(PreparedPlannedActivationComposite::prepare(&plan, &prepared, "other", pool,).is_err());
+}
+
+#[test]
+fn invalid_completion_retains_dispatch_then_corrected_completion_consumes_it_once() {
+    let plan = activation_plan();
+    let mut preparation_host = Host::new();
+    let prepared = prepare_plan_on_hosts(&plan, &mut [&mut preparation_host]).unwrap();
+    let definition =
+        KernelCompositeDefinition::from_planned_activation(&plan, &prepared, "each").unwrap();
+    let mut registry = KernelOperationRegistry::new();
+    registry.install(HostCallFactory).unwrap();
+    let mut child = conduit_composite::KernelCompositeHost::prepare(definition, &registry).unwrap();
+    child.start().unwrap();
+    child
+        .admit_input(
+            &conduit_core::port_id("in"),
+            0,
+            &conduit_core::ValuePayload {
+                value_kind: conduit_core::kind_id("fixture/byte@1"),
+                encoded: vec![7],
+            },
+        )
+        .unwrap();
+    let request = loop {
+        child.step().unwrap();
+        if let Some(request) = child.next_host_request() {
+            break request;
+        }
+    };
+    let obligation = child.host_request_obligation(&request).unwrap().clone();
+    let admitted = child
+        .admit_host_request(
+            &request,
+            &obligation.host,
+            &obligation.resources,
+            &obligation.authorities,
+        )
+        .unwrap();
+
+    assert!(child.complete_host_call_bytes(&admitted, &[1, 2]).is_err());
+    assert_eq!(child.host_request_input(&admitted).unwrap(), &[7]);
+    child.complete_host_call_bytes(&admitted, &[9]).unwrap();
+    assert!(child.complete_host_call_bytes(&admitted, &[9]).is_err());
+    assert!(child.host_request_input(&admitted).is_err());
 }

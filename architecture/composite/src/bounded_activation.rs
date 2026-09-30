@@ -467,6 +467,31 @@ impl BoundedActivationHost {
         self.active.as_mut()?.next_host_request()
     }
 
+    pub fn host_request_obligation(
+        &self,
+        request: &KernelCompositeHostRequest,
+    ) -> Result<&crate::KernelCompositeHostCallObligation, BoundedActivationError> {
+        self.active
+            .as_ref()
+            .ok_or(BoundedActivationError::InvalidLifecycle)?
+            .host_request_obligation(request)
+            .map_err(BoundedActivationError::Refused)
+    }
+
+    pub fn admit_host_request(
+        &self,
+        request: &KernelCompositeHostRequest,
+        host: &conduit_core::PreparationHostIdentity,
+        resources: &[conduit_core::ResourceBinding],
+        authorities: &[conduit_core::AuthorityBinding],
+    ) -> Result<AdmittedKernelCompositeHostRequest, BoundedActivationError> {
+        self.active
+            .as_ref()
+            .ok_or(BoundedActivationError::InvalidLifecycle)?
+            .admit_host_request(request, host, resources, authorities)
+            .map_err(BoundedActivationError::Refused)
+    }
+
     pub fn complete_host_call(
         &mut self,
         request: &AdmittedKernelCompositeHostRequest,

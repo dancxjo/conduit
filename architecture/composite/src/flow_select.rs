@@ -368,6 +368,27 @@ impl FlowSelectCoordinator {
         self.activation.next_host_request()
     }
 
+    pub fn host_request_obligation(
+        &self,
+        request: &KernelCompositeHostRequest,
+    ) -> Result<&crate::KernelCompositeHostCallObligation, FlowSelectError> {
+        self.activation
+            .host_request_obligation(request)
+            .map_err(FlowSelectError::Activation)
+    }
+
+    pub fn admit_host_request(
+        &self,
+        request: &KernelCompositeHostRequest,
+        host: &conduit_core::PreparationHostIdentity,
+        resources: &[conduit_core::ResourceBinding],
+        authorities: &[conduit_core::AuthorityBinding],
+    ) -> Result<AdmittedKernelCompositeHostRequest, FlowSelectError> {
+        self.activation
+            .admit_host_request(request, host, resources, authorities)
+            .map_err(FlowSelectError::Activation)
+    }
+
     pub fn complete_host_call(
         &mut self,
         request: &AdmittedKernelCompositeHostRequest,

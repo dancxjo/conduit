@@ -333,6 +333,29 @@ impl BoundedFoldActivationHost {
     pub fn next_host_request(&mut self) -> Option<KernelCompositeHostRequest> {
         self.active.as_mut()?.next_host_request()
     }
+    pub fn host_request_obligation(
+        &self,
+        request: &KernelCompositeHostRequest,
+    ) -> Result<&crate::KernelCompositeHostCallObligation, BoundedFoldError> {
+        self.active
+            .as_ref()
+            .ok_or(BoundedFoldError::InvalidLifecycle)?
+            .host_request_obligation(request)
+            .map_err(BoundedFoldError::Refused)
+    }
+    pub fn admit_host_request(
+        &self,
+        request: &KernelCompositeHostRequest,
+        host: &conduit_core::PreparationHostIdentity,
+        resources: &[conduit_core::ResourceBinding],
+        authorities: &[conduit_core::AuthorityBinding],
+    ) -> Result<AdmittedKernelCompositeHostRequest, BoundedFoldError> {
+        self.active
+            .as_ref()
+            .ok_or(BoundedFoldError::InvalidLifecycle)?
+            .admit_host_request(request, host, resources, authorities)
+            .map_err(BoundedFoldError::Refused)
+    }
     pub fn complete_host_call(
         &mut self,
         request: &AdmittedKernelCompositeHostRequest,
