@@ -397,7 +397,10 @@ pub enum ActivationSyntax {
         initial: Box<Expression>,
         maximum_items: u16,
     },
-    Scan { initial: Box<Expression>, maximum_items: u16 },
+    Scan {
+        initial: Box<Expression>,
+        maximum_items: u16,
+    },
 }
 
 impl ActivationSyntax {

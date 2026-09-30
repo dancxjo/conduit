@@ -658,9 +658,12 @@ fn push_semantic_contract(canonical: &mut Vec<u8>, contract: &crate::KindSemanti
                 canonical.extend_from_slice(&scan.maximum_active.to_le_bytes());
                 canonical.extend_from_slice(&scan.maximum_queued.to_le_bytes());
                 canonical.extend_from_slice(&scan.maximum_items.to_le_bytes());
-                canonical.push(scan.invocation as u8); canonical.push(scan.progression as u8);
-                canonical.push(scan.empty as u8); canonical.push(scan.close as u8);
-                canonical.push(scan.abnormal as u8); canonical.push(scan.cancellation as u8);
+                canonical.push(scan.invocation as u8);
+                canonical.push(scan.progression as u8);
+                canonical.push(scan.empty as u8);
+                canonical.push(scan.close as u8);
+                canonical.push(scan.abnormal as u8);
+                canonical.push(scan.cancellation as u8);
             }
             Law::FlowEach(each) => {
                 canonical.push(16);
@@ -916,6 +919,38 @@ pub(crate) fn compute_plan_id(
                 }
                 PlannedActivationEntry::Fold(activation) => {
                     push_string(&mut canonical, "planned-fold-activation@1");
+                    push_string(&mut canonical, &activation.activation_id);
+                    push_string(&mut canonical, activation.owner_placement_id.as_str());
+                    push_string(&mut canonical, activation.selected_plan_id.as_str());
+                    push_activation_front(&mut canonical, &activation.accumulator_input);
+                    push_activation_front(&mut canonical, &activation.item_input);
+                    push_activation_front(&mut canonical, &activation.output);
+                    push_u32(&mut canonical, activation.initial_accumulator.len() as u32);
+                    canonical.extend_from_slice(&activation.initial_accumulator);
+                    push_u32(&mut canonical, activation.retained_accumulator_bytes);
+                    push_u32(&mut canonical, activation.retained_item_bytes);
+                    canonical.extend_from_slice(&activation.limits.maximum_active.to_le_bytes());
+                    canonical
+                        .extend_from_slice(&activation.limits.maximum_queue_items.to_le_bytes());
+                    push_u32(&mut canonical, activation.limits.maximum_queue_bytes);
+                    canonical.extend_from_slice(&activation.limits.maximum_items.to_le_bytes());
+                    canonical.push(activation.terminal_policy as u8);
+                    canonical.push(activation.abnormal_policy as u8);
+                    canonical.push(activation.cancellation_policy as u8);
+                    canonical.push(activation.effect_multiplicity as u8);
+                    canonical.extend_from_slice(
+                        &activation
+                            .per_activation_sign_budget
+                            .item_capacity
+                            .to_le_bytes(),
+                    );
+                    push_u32(
+                        &mut canonical,
+                        activation.per_activation_sign_budget.byte_capacity,
+                    );
+                }
+                PlannedActivationEntry::Scan(activation) => {
+                    push_string(&mut canonical, "planned-scan-activation@1");
                     push_string(&mut canonical, &activation.activation_id);
                     push_string(&mut canonical, activation.owner_placement_id.as_str());
                     push_string(&mut canonical, activation.selected_plan_id.as_str());

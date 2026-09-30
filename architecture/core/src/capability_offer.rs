@@ -264,8 +264,14 @@ impl Kind {
                     if flow_scan.replace(contract).is_some() {
                         return Err(KindValidationError::DuplicateFlowScan);
                     }
-                    let input = self.inputs.iter().find(|port| port.port_id == contract.input_port_id);
-                    let output = self.outputs.iter().find(|port| port.port_id == contract.output_port_id);
+                    let input = self
+                        .inputs
+                        .iter()
+                        .find(|port| port.port_id == contract.input_port_id);
+                    let output = self
+                        .outputs
+                        .iter()
+                        .find(|port| port.port_id == contract.output_port_id);
                     if !matches!((input, output), (Some(input), Some(output))
                         if input.temporal == crate::PortTemporal::Flow { closes: true }
                             && output.temporal == crate::PortTemporal::Flow { closes: true }
@@ -279,7 +285,9 @@ impl Kind {
                             && contract.combine_output_port_id.as_str() == "combined"
                             && contract.maximum_active == 1 && contract.maximum_queued == 1
                             && contract.maximum_items > 0)
-                    { return Err(KindValidationError::InvalidFlowScan); }
+                    {
+                        return Err(KindValidationError::InvalidFlowScan);
+                    }
                 }
                 KindSemanticLaw::FlowEach(contract) => {
                     if flow_each.replace(contract).is_some() || contract.maximum_items == 0 {
