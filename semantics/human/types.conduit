@@ -14,6 +14,12 @@ type HumanMediaKind =
     camera
     | microphone
 
+type VisualImpressionDisposition =
+    complete
+    | truncated {
+        original_bytes: U32
+    }
+
 code human/key-transition = KeyTransition as u8
 
 type ChordPhase =
