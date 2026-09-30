@@ -157,7 +157,7 @@
       "dependencies": [
         {
           "role": "creche-name-catalog",
-          "specifier": "../names/catalog.mjs"
+          "specifier": "../../../forms/birth/names/catalog.mjs"
         }
       ]
     },

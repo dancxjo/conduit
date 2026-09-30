@@ -38,7 +38,7 @@ cargo xtask fabricate host release-catalog --root "$destination/artifacts" --gen
 for asset in browser-host-calls.mjs browser-audio-cue.mjs browser-pcm-audio.mjs browser-remote-fragment.mjs browser-remote-voice.mjs browser-body-host.mjs browser-body-input.mjs browser-body-continuity.mjs browser-human-input.mjs browser-form-effects.mjs browser-runtime-bridge.mjs browser-application-loader.mjs browser-application-storage.mjs browser-host-bootstrap.mjs browser-host-membership.mjs browser-host-identity.mjs application-presentation.mjs application-theme.mjs application-syntax-presentation.mjs device-base.mjs usb-device-base.mjs; do
   cp "targets/browser/host/assets/$asset" "$destination/$asset"
 done
-cp products/creche/names/catalog.mjs "$destination/creche-name-catalog.mjs"
+cp forms/birth/names/catalog.mjs "$destination/creche-name-catalog.mjs"
 cp products/shared/browser/conduit.css "$destination/conduit.css"
 cp "$runtime" "$destination/runtime.wasm"
 if test -n "$initial_body_bundle" || test -n "$workspace_catalog"; then

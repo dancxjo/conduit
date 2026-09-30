@@ -1,9 +1,12 @@
-# Shared Crèche names
+# Birth naming corpus
 
-The browser Crèche and `conduit_creche_model::names::NamingCatalog` use the same
-version 7 catalog and derivation. Native birth surfaces can offer the existing
-23 naming traditions, “Surprise me,” and later variations. A UUID seeds the
-suggestion; it is not replaced by the friendly name.
+This resident birth-encounter data is shared by the current browser naming
+adapter and `conduit_creche_model::names::NamingCatalog`. The adapters remain
+in their existing packages while extraction continues; this directory owns
+the single version 7 catalog, not a second birth runtime or presentation model.
+Birth surfaces can offer the existing 23 naming traditions, “Surprise me,” and
+later variations. A UUID seeds the suggestion; it is not replaced by the
+friendly name.
 
 `catalog.mjs` contains one JSON literal with a standard module export. This lets
 the browser import the data through its admitted application package. The

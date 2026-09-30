@@ -36,6 +36,13 @@ const RETIRED_ROOTS: &[&str] = &[
     "libraries",
 ];
 
+// Reviewed resident data can have a Form owner without pretending to be a
+// canonical executable entry in the authored inventory.
+const RESIDENT_FORM_ASSETS: &[&str] = &[
+    "forms/birth/names/README.md",
+    "forms/birth/names/catalog.mjs",
+];
+
 fn tracked_paths(repository: &Path) -> BTreeSet<String> {
     let output = Command::new("git")
         .current_dir(repository)
@@ -105,7 +112,10 @@ fn validate_form_paths(paths: &BTreeSet<String>, inventory: &str) -> Result<(), 
         if parts.len() == 2 && !matches!(parts[1], "README.md" | "inventory.toml") {
             return Err(format!("loose source at canonical Forms root: {path}"));
         }
-        if parts.len() >= 3 && !declared.contains(&format!("forms/{}/main.conduit", parts[1])) {
+        if parts.len() >= 3
+            && !declared.contains(&format!("forms/{}/main.conduit", parts[1]))
+            && !RESIDENT_FORM_ASSETS.contains(&path.as_str())
+        {
             return Err(format!("unreviewed canonical Form owner: {path}"));
         }
     }
@@ -205,6 +215,22 @@ fn canonical_paths_follow_the_existing_inventory_without_promoting_fixtures() {
         assert!(validate_form_paths(&invalid, inventory).is_err());
     }
     assert!(validate_form_paths(&valid, "[[forms]]\nslug = '../proof'\n").is_err());
+}
+
+#[test]
+fn resident_naming_data_does_not_promote_an_authored_form() {
+    let inventory = "forms = []\n";
+    let valid = paths(RESIDENT_FORM_ASSETS);
+    validate_form_paths(&valid, inventory).unwrap();
+    for extra in [
+        "forms/birth/main.conduit",
+        "forms/birth/extra.mjs",
+        "forms/unreviewed/names/catalog.mjs",
+    ] {
+        let mut invalid = valid.clone();
+        invalid.insert(extra.into());
+        assert!(validate_form_paths(&invalid, inventory).is_err(), "{extra}");
+    }
 }
 
 #[test]
