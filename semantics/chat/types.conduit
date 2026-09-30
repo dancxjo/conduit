@@ -1,0 +1,12 @@
+# Authoritative portable chat state meaning. Rust consumes generated bindings.
+
+type ChatConnectionState =
+    connected
+    | connecting
+    | disconnected
+
+type PresenceState =
+    available
+    | away
+    | offline
+    | unknown
