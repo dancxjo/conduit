@@ -41,7 +41,7 @@ pub const PROVE_EMERGENCY_CONTROL_STEPS: &[Step] = &[
         "cargo",
         &[
             "xtask",
-            "fabricate",
+            "make",
             "conduitos",
             "emergency-halt-proof",
             "--locked",
@@ -57,7 +57,7 @@ pub const PROVE_EMERGENCY_CONTROL_STEPS: &[Step] = &[
         "cargo",
         &[
             "xtask",
-            "fabricate",
+            "make",
             "conduitos",
             "rescue-proof",
             "--locked",

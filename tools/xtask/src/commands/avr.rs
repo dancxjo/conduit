@@ -25,7 +25,7 @@ use avr_toolchain::{
     avrdude_bin, avrdude_config, ARDUINO_AVR_VERSION, CLI_VERSION, SPARKFUN_AVR_VERSION,
 };
 use build_identity::{digest_compiled_sources, EmbeddedBuildIdentity, BUILD_ID_SCHEMA};
-use conduit_host_avr_fabrication::{FQBN, SPORE_REGION_START, SRAM_BYTES};
+use conduit_host_avr_make::{FQBN, SPORE_REGION_START, SRAM_BYTES};
 use rust_firmware::{AVR_HAL_REVISION, FIRMWARE, RUST_TOOLCHAIN};
 const EXPECTED_BY_ID: &str = "usb-SparkFun_SparkFun_Pro_Micro-if00";
 const EXPECTED_VID: &str = "1b4f";

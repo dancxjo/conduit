@@ -3,9 +3,9 @@ use super::{emit_journey_sign, refresh};
 use crate::{
     arch,
     display::PixelTarget,
-    fabrication::FabricationRecord,
     front_door::{FrontDoor, FrontDoorPresenter},
     identity::BootIdentities,
+    make::MakeRecord,
     native_workset,
     offer::HostOffer,
     product_journey::{JourneyAction, ProductJourney},
@@ -18,7 +18,7 @@ pub(super) fn open(
     journey: &mut ProductJourney,
     identities: &BootIdentities,
     offer: &HostOffer<'_>,
-    fabrication: &FabricationRecord,
+    make: &MakeRecord,
 ) -> Result<(), &'static str> {
     // Crèche is the zero-body entrance. Do not open a form merely to make the
     // arrival surface exist: reviewed forms belong to the Crèche inventory and
@@ -35,7 +35,7 @@ pub(super) fn open(
         &hex[20..32]
     );
     let refusals = native_workset::inventory().map(|form| {
-        native_workset::review(form, identities, offer, fabrication.build_id)
+        native_workset::review(form, identities, offer, make.build_id)
             .err()
             .map(|error| error.as_str().into())
     });
@@ -52,7 +52,7 @@ pub(super) fn birth_and_wake(
     display: &mut impl PixelTarget,
     identities: &BootIdentities,
     offer: &HostOffer<'_>,
-    fabrication: &FabricationRecord,
+    make: &MakeRecord,
 ) -> Result<(), &'static str> {
     journey
         .birth_from_creche(selection)
@@ -66,7 +66,7 @@ pub(super) fn birth_and_wake(
     .map_err(|e| e.as_str())?;
     door.close_creche().map_err(|e| e.as_str())?;
     let receipt = presenter.present(door, display).map_err(|e| e.as_str())?;
-    emit_journey_sign(&journey.projection(), fabrication, &receipt);
+    emit_journey_sign(&journey.projection(), make, &receipt);
     for action in [
         JourneyAction::Wake,
         JourneyAction::Plan,
@@ -78,26 +78,22 @@ pub(super) fn birth_and_wake(
         let request = journey
             .next_request(action, semantic.target, door.revision())
             .map_err(|e| e.as_str())?;
-        if let Err(error) = journey.apply(
-            request,
-            identities,
-            offer,
-            fabrication.build_id,
-            door.revision(),
-        ) {
+        if let Err(error) =
+            journey.apply(request, identities, offer, make.build_id, door.revision())
+        {
             door.startup_refused(error.as_str())
                 .map_err(|e| e.as_str())?;
             let receipt = refresh(door, journey, presenter, display)?;
-            emit_journey_sign(&journey.projection(), fabrication, &receipt);
+            emit_journey_sign(&journey.projection(), make, &receipt);
             arch::early_write(format!("CONDUIT_CRECHE_REFUSAL {}\n", error.as_str()).as_bytes());
             return Ok(());
         }
         let receipt = refresh(door, journey, presenter, display)?;
-        emit_journey_sign(&journey.projection(), fabrication, &receipt);
+        emit_journey_sign(&journey.projection(), make, &receipt);
     }
     door.open_home().map_err(|e| e.as_str())?;
     let receipt = refresh(door, journey, presenter, display)?;
-    emit_journey_sign(&journey.projection(), fabrication, &receipt);
+    emit_journey_sign(&journey.projection(), make, &receipt);
     arch::early_write(b"CONDUIT_HOME_CHECKPOINT ready\n");
     arch::early_write(b"CONDUIT_CRECHE_CHECKPOINT body-awake\n");
     Ok(())

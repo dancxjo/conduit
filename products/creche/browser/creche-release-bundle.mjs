@@ -83,7 +83,7 @@ function requireProfile(profile) {
 function requireManifest(manifest, profile) {
   if (manifest?.schema !== "conduit.release/host-bundle@1"
     || manifest.target_id !== profile.target_id
-    || manifest.fabrication_package_id !== profile.package_id
+    || manifest.make_package_id !== profile.package_id
     || manifest.output !== profile.output
     || manifest.builder_adapter !== profile.builder_adapter
     || manifest.deployment_adapter !== profile.deployment_adapter

@@ -1,7 +1,7 @@
 use std::{env, fmt::Write, fs, path::PathBuf};
 
 use conduit_embedded_build::{EmbeddedImageBounds, generate_embedded_plan};
-use conduit_host_esp32_fabrication::{
+use conduit_host_esp32_make::{
     Esp32BoardDescriptor, esp32_descriptor_binding, validate_esp32_descriptor,
 };
 use conduit_plan_lowering::lowering::{FIXED_KERNEL_STORAGE_PORTS_PER_NODE, lower_plan_fragment};
@@ -22,9 +22,9 @@ fn main() {
     )
     .expect("C3 descriptor must decode");
     validate_esp32_descriptor(&descriptor)
-        .expect("the inspected C3 fabrication descriptor must remain valid");
+        .expect("the inspected C3 make descriptor must remain valid");
     let descriptor_binding = esp32_descriptor_binding(&descriptor)
-        .expect("the inspected C3 fabrication descriptor must have an exact binding");
+        .expect("the inspected C3 make descriptor must have an exact binding");
     let distributed = env::var_os("CARGO_FEATURE_DISTRIBUTED_LENIA").is_some();
     let plan = if distributed {
         conduit_alife_distributed_conformance::exact_distributed_lenia_plan()
@@ -47,7 +47,7 @@ fn main() {
     let out = PathBuf::from(env::var_os("OUT_DIR").expect("Cargo sets OUT_DIR"));
     let mut module = generated.render_no_alloc_firmware_module();
     module.push_str(&format!(
-        "\npub const GENERATED_FABRICATION_DESCRIPTOR_BINDING: &str = {descriptor_binding:?};\n"
+        "\npub const GENERATED_MAKE_DESCRIPTOR_BINDING: &str = {descriptor_binding:?};\n"
     ));
     if distributed {
         let bindings =

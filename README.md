@@ -791,7 +791,7 @@ You need Git and Rust installed through `rustup`.
 ```sh
 git clone --branch dev https://github.com/dancxjo/conduit.git
 cd conduit
-cargo xtask fabricate host std
+cargo xtask make host std
 ```
 
 That builds and runs the local example through the repository development tooling.
@@ -908,7 +908,7 @@ The repository is organized around the same boundaries:
 | `architecture/` | core identities and contracts, form checking and expansion, planning, and kernel execution |
 | `semantics/` | kinds, info types, and domain meaning |
 | `forms/` | reusable authored compositions |
-| `targets/` | hosts, bases, fabrication, and platform realization |
+| `targets/` | hosts, bases, make, and platform realization |
 | `bodies/` | complete durable body compositions such as Pete |
 | `products/` | user-facing tools and projections such as Patchbay |
 | `proof/` | executable evidence and conformance work |

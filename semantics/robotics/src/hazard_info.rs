@@ -66,7 +66,7 @@ impl ContactObservation {
 
 /// Four exact cliff detectors in body order: left, front-left, front-right,
 /// right. Signal values are meaningful only when their matching bit is set in
-/// `signal_available`; unavailable is never encoded as a fabricated zero.
+/// `signal_available`; unavailable is never encoded as a made zero.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub struct CliffObservation {
     active_sectors: u8,

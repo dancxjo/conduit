@@ -21,7 +21,7 @@ implementation lookup, queue creation, heap growth, or retry loop.
 Run the repository proof with:
 
 ```text
-cargo xtask fabricate conduitos timing-profile
+cargo xtask make conduitos timing-profile
 ```
 
 The command executes the accepted plan with a deterministic clock, proves the

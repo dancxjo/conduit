@@ -4,7 +4,7 @@ use std::{
     path::{Component, Path, PathBuf},
 };
 
-use conduit_host_fabrication::{
+use conduit_host_make::{
     ReleaseArtifactDescriptor, ReleaseCatalog, ReleaseCatalogEntry, MAXIMUM_RELEASE_CATALOG_BYTES,
     MAXIMUM_RELEASE_CATALOG_ENTRIES, MAXIMUM_RELEASE_MANIFEST_BYTES, RELEASE_CATALOG_SCHEMA,
 };
@@ -17,7 +17,7 @@ const MAXIMUM_DIRECTORY_ENTRIES: usize = 256;
 struct ReleaseManifestIdentity {
     schema: String,
     target_id: String,
-    fabrication_package_id: String,
+    make_package_id: String,
     output: String,
     builder_adapter: String,
     deployment_adapter: Option<String>,
@@ -94,7 +94,7 @@ pub(crate) fn run(
         }
         entries.push(ReleaseCatalogEntry {
             target_id: manifest.target_id,
-            package_id: manifest.fabrication_package_id,
+            package_id: manifest.make_package_id,
             output: manifest.output,
             builder_adapter: manifest.builder_adapter,
             deployment_adapter,
@@ -199,7 +199,7 @@ mod tests {
         serde_json::json!({
             "schema": "conduit.release/host-bundle@1",
             "target_id": target,
-            "fabrication_package_id": "conduit-host-hosted@1",
+            "make_package_id": "conduit-host-hosted@1",
             "output": "native-bundle",
             "builder_adapter": "conduit-host-hosted/build-native@1",
             "deployment_adapter": deployment,

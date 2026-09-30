@@ -1,6 +1,6 @@
 # Deploy-first publication trigger for 47372b96
 
-The integrated release payload for `47372b96d31ca8a04e9868a88bdd1919a9cad986` was fully fabricated in Actions run `34522795014`.
+The integrated release payload for `47372b96d31ca8a04e9868a88bdd1919a9cad986` was fully made in Actions run `34522795014`.
 
 Publication was blocked only by three stale Tour browser expectations after 54 of 57 tests passed. Per explicit operator direction, those proof drifts are follow-up debt and are not authoritative for this release.
 

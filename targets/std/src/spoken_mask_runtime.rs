@@ -473,7 +473,7 @@ impl<const PORTS: usize> StepBack<PORTS> for ArtifactAcknowledgedShowBack {
 
 /// A spoken Mask with no admitted input mechanism closes interaction honestly.
 /// Completion closes the ordinary `FaceInteraction...|` output; it does not
-/// fabricate an empty interaction value.
+/// make an empty interaction value.
 #[derive(Default)]
 pub struct ClosingNoInteractionBack;
 

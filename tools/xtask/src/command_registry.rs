@@ -5,7 +5,7 @@ pub enum LifecycleClass {
     Prove,
     Check,
     Integrate,
-    Fabricate,
+    Make,
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
@@ -28,13 +28,13 @@ pub const REPOSITORY_COMMANDS: &[RepositoryCommand] = &[
         aliases: &[],
     },
     RepositoryCommand {
-        canonical: &["fabricate", "host", "browser"],
-        lifecycle: LifecycleClass::Fabricate,
+        canonical: &["make", "host", "browser"],
+        lifecycle: LifecycleClass::Make,
         aliases: &[],
     },
     RepositoryCommand {
-        canonical: &["fabricate", "host", "std"],
-        lifecycle: LifecycleClass::Fabricate,
+        canonical: &["make", "host", "std"],
+        lifecycle: LifecycleClass::Make,
         aliases: &[],
     },
     RepositoryCommand {
@@ -53,8 +53,8 @@ pub const REPOSITORY_COMMANDS: &[RepositoryCommand] = &[
         aliases: &[],
     },
     RepositoryCommand {
-        canonical: &["fabricate", "host", "build"],
-        lifecycle: LifecycleClass::Fabricate,
+        canonical: &["make", "host", "build"],
+        lifecycle: LifecycleClass::Make,
         aliases: &[],
     },
 ];
@@ -235,7 +235,7 @@ mod tests {
             },
             RepositoryCommand {
                 canonical: &["b"],
-                lifecycle: LifecycleClass::Fabricate,
+                lifecycle: LifecycleClass::Make,
                 aliases: TO_A,
             },
         ];

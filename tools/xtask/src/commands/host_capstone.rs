@@ -7,10 +7,10 @@ use conduit_core::{
     HostBaseKindId, HostId, HostProfileId, OfferGeneration, SignId,
 };
 use conduit_form::{parse, ProfileCatalog};
-use conduit_host_fabrication::{
+use conduit_host_make::{
     bind_runtime_offer, build_default_host_image, check_host_configuration,
-    parse_host_configuration_conduit, BoundHostAdvertisement, BuildInputs, FabricationCatalog,
-    HostProfile, RuntimeFacts, RuntimeOfferInputs,
+    parse_host_configuration_conduit, BoundHostAdvertisement, BuildInputs, HostProfile,
+    MakeCatalog, RuntimeFacts, RuntimeOfferInputs,
 };
 use conduit_planner::{plan, PlacementChoice, PlacementChoices};
 use conduit_presentation::{
@@ -43,7 +43,7 @@ const HEADLESS_PROFILE: &str =
     include_str!("../../../../targets/conduitos/profiles/conduitos-x86_64-pc.host.conduit");
 
 pub fn prove(source_identity: &str) -> Result<CapstoneReceipt, Box<dyn std::error::Error>> {
-    let catalog = conduit_workspace_fabrication::catalog();
+    let catalog = conduit_workspace_make::catalog();
     let inputs = BuildInputs {
         source_identity: source_identity.into(),
         toolchain_available: true,
@@ -269,10 +269,10 @@ pub fn prove(source_identity: &str) -> Result<CapstoneReceipt, Box<dyn std::erro
 fn build_profile(
     name: &'static str,
     source: &str,
-    catalog: &FabricationCatalog,
+    catalog: &MakeCatalog,
     inputs: &BuildInputs,
 ) -> Result<BuiltProfile, Box<dyn std::error::Error>> {
-    let packages = conduit_workspace_fabrication::package_set();
+    let packages = conduit_workspace_make::package_set();
     let profile: HostProfile = if source.trim_start().starts_with("host ") {
         check_host_configuration(
             parse_host_configuration_conduit(source)
@@ -292,7 +292,7 @@ fn build_profile(
 
 fn bind_profile(
     built: &BuiltProfile,
-    catalog: &FabricationCatalog,
+    catalog: &MakeCatalog,
     host: &str,
     boot: &str,
     generation: u64,

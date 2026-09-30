@@ -1,6 +1,6 @@
 //! Target-oriented host installation planning and realization.
 
-use conduit_host_fabrication::{
+use conduit_host_make::{
     download_body_bound_artifact, flash_body_bound_rp2040_uf2,
     install_start_body_bound_native_package, launch_body_bound_virtual_machine,
     serve_body_bound_network_boot, write_body_bound_artifact_to_removable,
@@ -378,9 +378,7 @@ fn select_carrier(
 #[cfg(test)]
 mod tests {
     use super::*;
-    use conduit_host_fabrication::{
-        DEPLOYMENT_CARRIER_SCHEMA, NATIVE_INSTALL_START_IMPLEMENTATION,
-    };
+    use conduit_host_make::{DEPLOYMENT_CARRIER_SCHEMA, NATIVE_INSTALL_START_IMPLEMENTATION};
     use std::fs;
 
     fn descriptor(id: &str, target: &str) -> DeploymentCarrierDescriptor {

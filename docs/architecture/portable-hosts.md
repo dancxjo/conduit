@@ -529,7 +529,7 @@ The first Pico W slice does not require DHCP, DNS, captive portal behavior, HTTP
 
 Those may follow once the semantic source-to-sink path is proven.
 
-The RP2040 family package lives under `targets/rp2040/fabrication`. The current
+The RP2040 family package lives under `targets/rp2040/make`. The current
 Pico W firmware and its repository-development proof mechanics live under
 `targets/rp2040/firmware/pico-w-signal` and consume that package. Deterministic
 contract, planning, lowering, image-generation, and kernel tests remain

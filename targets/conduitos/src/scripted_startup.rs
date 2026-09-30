@@ -8,7 +8,7 @@ use core::fmt::Write;
 pub struct Context {
     pub record: boot::BootRecord,
     pub identities: identity::BootIdentities,
-    pub offer: conduitos::offer_fabrication::ImageBoundHostOffer<'static>,
+    pub offer: conduitos::offer_make::ImageBoundHostOffer<'static>,
     pub framebuffer_basis: conduit_observatory::FramebufferBasis,
     pub xhci: arch::XhciReady,
     pub usb: arch::UsbDevice,
@@ -37,10 +37,10 @@ pub fn run(context: Context) -> ! {
         endpoint_id,
         keyboard_limits,
     } = context;
-    let fabrication = &conduitos::fabrication::EMBEDDED_FABRICATION;
+    let make = &conduitos::make::EMBEDDED_MAKE;
     let xhci_base_id = identity::hex(&xhci_base);
     let opl2_offer = conduitos::opl2_offer::Opl2Offer {
-        artifact_build: fabrication.build_id,
+        artifact_build: make.build_id,
         realization: conduitos::opl2_offer::Opl2Realization {
             base_id: identity::derive_base(&identities.boot, "conduitos/opl2/0"),
             clock_hz: conduitos::opl2_offer::OPL2_CLOCK_HZ,
@@ -51,15 +51,11 @@ pub fn run(context: Context) -> ! {
             patch_profile: conduitos::opl2_offer::OPL2_PATCH_PROFILE,
         },
     };
-    let opl2_prepared = match conduitos::opl2_plan::prepare(
-        &identities,
-        &offer,
-        opl2_offer,
-        fabrication.build_id,
-    ) {
-        Ok(prepared) => prepared,
-        Err(error) => emit_machine_refusal(error.as_str()),
-    };
+    let opl2_prepared =
+        match conduitos::opl2_plan::prepare(&identities, &offer, opl2_offer, make.build_id) {
+            Ok(prepared) => prepared,
+            Err(error) => emit_machine_refusal(error.as_str()),
+        };
     let mut opl2_execution = match conduitos::opl2_play::prepare_execution(
         &opl2_prepared,
         conduitos::opl2_play::reviewed_values(),
@@ -71,7 +67,7 @@ pub fn run(context: Context) -> ! {
     let opl2_boot_id = identity::hex(&identities.boot);
     let opl2_base_id = identity::hex(&opl2_offer.realization.base_id);
     let keyboard_prepared =
-        match conduitos::keyboard_plan::prepare(&identities, &offer, fabrication.build_id) {
+        match conduitos::keyboard_plan::prepare(&identities, &offer, make.build_id) {
             Ok(prepared) => prepared,
             Err(error) => emit_machine_refusal(error.as_str()),
         };
@@ -158,7 +154,7 @@ pub fn run(context: Context) -> ! {
         conduit_semantic_catalog::KEYBOARD_CONTRACT_REVISION,
         conduitos::keyboard_offer::KEYBOARD_IMPLEMENTATION,
         conduitos::keyboard_offer::KEYBOARD_EXECUTION_PROFILE,
-        fabrication.build_id,
+        make.build_id,
         xhci_base_id,
         identity::hex(&device_id),
         identity::hex(&interface_id),
@@ -221,8 +217,8 @@ pub fn run(context: Context) -> ! {
         &record,
         &identities,
         &offer,
-        fabrication.build_id,
-        fabrication.image_binding,
+        make.build_id,
+        make.image_binding,
         &keyboard_text_events,
         Some(&framebuffer_basis),
     ) {
@@ -238,18 +234,17 @@ pub fn run(context: Context) -> ! {
             d1_session: hid_session,
             d1_offer: offer.into_inner(),
             controller_id: xhci_base,
-            build_id: fabrication.build_id,
+            build_id: make.build_id,
         });
     }
     if let Err(error) = offer.validate() {
         emit_machine_refusal(error.as_str());
     }
     arch::early_write(b"CONDUIT_BOOT_STAGE offer\n");
-    let pc_speaker_prepared =
-        match pc_speaker_plan::prepare(&identities, &offer, fabrication.build_id) {
-            Ok(prepared) => prepared,
-            Err(error) => emit_machine_refusal(error.as_str()),
-        };
+    let pc_speaker_prepared = match pc_speaker_plan::prepare(&identities, &offer, make.build_id) {
+        Ok(prepared) => prepared,
+        Err(error) => emit_machine_refusal(error.as_str()),
+    };
     let mut pc_speaker_execution = match pc_speaker_play::prepare_execution(
         &pc_speaker_prepared,
         pc_speaker_play::reviewed_values(),
@@ -258,7 +253,7 @@ pub fn run(context: Context) -> ! {
         Err(error) => emit_machine_refusal(error.as_str()),
     };
     arch::early_write(b"CONDUIT_BOOT_STAGE pc-speaker-plan\n");
-    let mut prepared = match dual_region_plan::prepare(&identities, &offer, fabrication.build_id) {
+    let mut prepared = match dual_region_plan::prepare(&identities, &offer, make.build_id) {
         Ok(prepared) => prepared,
         Err(error) => emit_machine_refusal(error.as_str()),
     };
@@ -269,9 +264,9 @@ pub fn run(context: Context) -> ! {
         &offer,
         &prepared,
         conduitos::observatory::ImageBoundProvenance {
-            profile_id: fabrication.profile_id,
-            build_id: fabrication.build_id,
-            image_binding: fabrication.image_binding,
+            profile_id: make.profile_id,
+            build_id: make.build_id,
+            image_binding: make.image_binding,
         },
         Some(&framebuffer_basis),
     ) {
@@ -402,7 +397,7 @@ pub fn run(context: Context) -> ! {
                 after_play: BOOT_ARENA.used(),
                 capacity: BOOT_ARENA.capacity(),
             },
-            fabrication.build_id,
+            make.build_id,
         ) {
             Ok(sign) => {
                 arch::early_write(sign.as_bytes());

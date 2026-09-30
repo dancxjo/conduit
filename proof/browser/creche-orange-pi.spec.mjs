@@ -27,19 +27,19 @@ test("Orange Pi 5 becomes an exact bare-metal ConduitOS SD spore", async ({ page
   const release = await installRelease(page);
   const runner = await birthBody(page);
   await runner.locator('[data-application-key="physical-target"]').selectOption(TARGET);
-  await expect(runner.locator('[data-application-key="physical-mode"]')).toHaveValue("fabricate-new");
+  await expect(runner.locator('[data-application-key="physical-mode"]')).toHaveValue("make-new");
   await expect(runner.locator('[data-application-key="physical-stage-obtain"]')).not.toContainText("waiting");
   let evidence = JSON.parse(await runner.locator("details code").textContent());
   expect(evidence.target_entry).toMatchObject({
     family: { id: "conduit-target-family/orange-pi@1", label: "Orange Pi computers" },
     target: { id: TARGET, model_id: "orange-pi/orange-pi-5@1", profile_id: "conduitos-rk3588s-u-boot-sd" },
     intentions: [
-      { id: "fabricate-new", supported: true },
+      { id: "make-new", supported: true },
       { id: "install-existing", supported: false },
       { id: "attach-running", supported: false },
     ],
     target_profile: {
-      intention: "fabricate-new", model: "orange-pi-5", soc: "rockchip-rk3588s",
+      intention: "make-new", model: "orange-pi-5", soc: "rockchip-rk3588s",
       architecture: "aarch64", os: null, image_format: "mbr-rk3588-fat32-sd-image",
       carrier: "removable-microsd-card", browser_raw_block_authority: false,
       physical_flash_boot_uart_human_gated: true,
@@ -60,7 +60,7 @@ test("Orange Pi 5 becomes an exact bare-metal ConduitOS SD spore", async ({ page
   await expect(handoff).toContainText("Download IMG");
   evidence = JSON.parse(await runner.locator("details code").textContent());
   expect(evidence.binding).toMatchObject({
-    target_id: TARGET, output: "sd-image", fabrication_package_id: "conduit-host-orange-pi@1",
+    target_id: TARGET, output: "sd-image", make_package_id: "conduit-host-orange-pi@1",
     deployment_adapter: "conduit-host-orange-pi/flash-removable-media@1",
     image_content_digest: release.artifact.sha256,
     spore_artifact: { format: "img", media_type: "application/x-raw-disk-image", image_content_digest: release.artifact.sha256, image_bytes: release.artifact.bytes, provision_bytes: 4096 },

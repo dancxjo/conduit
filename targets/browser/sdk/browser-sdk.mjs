@@ -444,14 +444,14 @@ function requirePackage(pkg, requestedProfileId) {
 
 function requireRelease(distribution, bundle, pkg, image) {
   if (distribution?.schema !== RELEASE_SCHEMA || distribution.target_id !== pkg.target_id
-    || distribution.fabrication_package_id !== "browser-wasm@1" || distribution.output !== "browser-bundle"
+    || distribution.make_package_id !== "browser-wasm@1" || distribution.output !== "browser-bundle"
     || distribution.reviewed_distribution?.schema !== DISTRIBUTION_SCHEMA
     || distribution.reviewed_distribution.runtime_abi !== pkg.runtime_abi
     || distribution.bundle_sha256 !== image.reviewed_distribution?.distribution_digest) {
     refuse("IncompatibleDistribution", "reviewed BrowserBundle distribution does not match the SDK package ABI and identity");
   }
   if (bundle?.schema !== RELEASE_SCHEMA || bundle.target_id !== pkg.target_id
-    || bundle.fabrication_package_id !== "browser-wasm@1" || bundle.output !== "browser-bundle"
+    || bundle.make_package_id !== "browser-wasm@1" || bundle.output !== "browser-bundle"
     || bundle.distribution_id !== distribution.reviewed_distribution.distribution_id
     || bundle.distribution_sha256 !== distribution.bundle_sha256
     || bundle.browser_image_id !== pkg.image_id || bundle.browser_profile_id !== pkg.profile_id

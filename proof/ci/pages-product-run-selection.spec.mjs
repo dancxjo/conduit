@@ -99,7 +99,7 @@ test("refuses an unmerged pull or a merged commit without an exact tree", async 
   await assert.rejects(() => resolveMergedPullSource({ merged_at: "now", merge_commit_sha: merged, head: { sha: head } }, async () => ({ tree: { sha: headTree.slice(1) } })), /no exact source, integration base, and merged trees/);
 });
 
-test("an exact current main commit becomes one explicit fabrication source", async () => {
+test("an exact current main commit becomes one explicit make source", async () => {
   const source = await resolveExactMainSource(merged, merged, async (commit) => ({
     sha: commit,
     tree: { sha: mergedTree },

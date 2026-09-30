@@ -77,7 +77,7 @@ function productContribution(profile) {
   return Object.freeze({
     schema: "conduit.creche/physical-host-target-entry@1", family: FAMILY, target: profile.target,
     intentions: PRODUCT_MODES,
-    fabrication_strategies: Object.freeze([{ id: "reviewed-generic-release-download", label: "Reviewed generic ConduitOS product IMAGE" }]),
+    make_strategies: Object.freeze([{ id: "reviewed-generic-release-download", label: "Reviewed generic ConduitOS product IMAGE" }]),
     carriers: Object.freeze({
       deployment: Object.freeze([{ id: "conduit-carrier/downloadable-disk-image@1", label: "Download body-bound ISO" }]),
       installation: Object.freeze([]), attachment: Object.freeze([]), observation: Object.freeze([
@@ -108,7 +108,7 @@ export function createConduitOsAdapter({ host, profile, loader, prepareSpore = n
     return note;
   }
   async function obtain({ mode, signal }) {
-    requireFabrication(profile, mode, "obtain"); requireCurrent(profile, signal, mode, "obtain");
+    requireMake(profile, mode, "obtain"); requireCurrent(profile, signal, mode, "obtain");
     const resolved = host?.resolveReviewedRelease
       ? await host.resolveReviewedRelease(profile, signal)
       : null;
@@ -116,7 +116,7 @@ export function createConduitOsAdapter({ host, profile, loader, prepareSpore = n
     return Object.freeze({ resultKind: "artifact", private: release, evidence: Object.freeze({ schema: "conduit.conduitos/creche-obtainment@1", target_id: profile.target.id, result_kind: "artifact", artifact_role: "product-host", profile_id: release.manifest.profile_id, build_id: release.manifest.build_id, image_id: release.manifest.image_id, image_sha256: release.digest, image_bytes: release.bytes.byteLength, carrier: "conduit-carrier/downloadable-disk-image@1", does_not_prove: Object.freeze(["load", "boot", "join", "membership"]) }) });
   }
   async function bind({ mode, body, obtainment, nowMillis, signal }) {
-    requireFabrication(profile, mode, "bind"); requireCurrent(profile, signal, mode, "bind");
+    requireMake(profile, mode, "bind"); requireCurrent(profile, signal, mode, "bind");
     const release = obtainment?.private;
     if (!release?.bytes || release.digest !== obtainment.evidence?.image_sha256) refuse(profile, mode, "bind", "MissingArtifact", "exact ConduitOS IMAGE truth is missing before Body binding");
     const entropy = crypto.getRandomValues(new Uint8Array(32));
@@ -134,7 +134,7 @@ export function createConduitOsAdapter({ host, profile, loader, prepareSpore = n
           if (code < 0) throw outputError(host.runtime, "ConduitOS spore preparation", code);
           return readOutput(host.runtime);
         })();
-      if (prepared.target_id !== profile.target.id || prepared.image_content_digest !== release.digest || prepared.output !== "disk-image" || prepared.fabrication_package_id !== "conduitos-image@1" || prepared.deployment_adapter !== profile.deploymentAdapter) {
+      if (prepared.target_id !== profile.target.id || prepared.image_content_digest !== release.digest || prepared.output !== "disk-image" || prepared.make_package_id !== "conduitos-image@1" || prepared.deployment_adapter !== profile.deploymentAdapter) {
         refuse(profile, mode, "bind", "BindingIdentity", "prepared invitation lost exact ConduitOS target, IMAGE, or loader-adapter truth");
       }
       const filename = `${friendlyFilename(body?.friendly_name ?? "body")}-${profile.target.profile_id}.iso`;
@@ -161,7 +161,7 @@ export function createConduitOsAdapter({ host, profile, loader, prepareSpore = n
     } finally { entropy.fill(0); }
   }
   async function realize({ mode, binding, signal }) {
-    requireFabrication(profile, mode, "realize"); requireCurrent(profile, signal, mode, "realize");
+    requireMake(profile, mode, "realize"); requireCurrent(profile, signal, mode, "realize");
     let receipt;
     try { receipt = validateLoaderEvidence(loader ? await loader({ profile, binding, signal }) : null, profile, binding); }
     catch (error) { refuse(profile, mode, "realize", error?.code ?? "LoaderEvidenceInvalid", error instanceof Error ? error.message : String(error)); }
@@ -169,7 +169,7 @@ export function createConduitOsAdapter({ host, profile, loader, prepareSpore = n
     return Object.freeze({ terminal: "ImageLoaded", evidence: Object.freeze({ schema: "conduit.conduitos/creche-image-load@1", terminal: "ImageLoaded", receipt: withoutSerialOutput(receipt), boot_observed: false, join_created: false }) });
   }
   async function observe({ mode, binding, signal }) {
-    requireFabrication(profile, mode, "observe"); requireCurrent(profile, signal, mode, "observe");
+    requireMake(profile, mode, "observe"); requireCurrent(profile, signal, mode, "observe");
     const serialJoin = parseConduitOsSerialJoin(loaderReceipt?.serial_output, binding);
     const join = Object.freeze({
       spore_id: serialJoin.spore_id, image_id: serialJoin.image_id, advertisement: serialJoin.advertisement,
@@ -188,8 +188,8 @@ function withoutSerialOutput(receipt) {
   return Object.freeze({ ...retained, serial_output_observed: typeof serial_output === "string" });
 }
 
-function modes(fabricate) { return Object.freeze([{ id: "fabricate-new", resultKind: "artifact", supported: fabricate }, { id: "install-existing", resultKind: "installation", supported: false }, { id: "attach-running", resultKind: "attachment", supported: false }].map(Object.freeze)); }
-function requireFabrication(profile, mode, operation) { if (mode !== "fabricate-new") refuse(profile, mode, operation, "UnsupportedCombination", `ConduitOS product target does not offer ${mode}`); }
+function modes(make) { return Object.freeze([{ id: "make-new", resultKind: "artifact", supported: make }, { id: "install-existing", resultKind: "installation", supported: false }, { id: "attach-running", resultKind: "attachment", supported: false }].map(Object.freeze)); }
+function requireMake(profile, mode, operation) { if (mode !== "make-new") refuse(profile, mode, operation, "UnsupportedCombination", `ConduitOS product target does not offer ${mode}`); }
 function requireCurrent(profile, signal, mode, operation) { if (signal?.aborted) refuse(profile, mode, operation, "Cancelled", "ConduitOS operation was cancelled"); }
 function refuse(profile, mode, operation, terminal, message) { const error = new Error(message); error.code = terminal; error.evidence = Object.freeze({ schema: "conduit.conduitos/creche-operation-refusal@1", target_id: profile.target.id, mode, operation, terminal, message, browser_device_authority_requested: false, external_work_started: false }); throw error; }
 function readOutput(api) { return JSON.parse(decoder.decode(new Uint8Array(api.memory.buffer, api.conduit_creche_output_ptr(), api.conduit_creche_output_len()))); }

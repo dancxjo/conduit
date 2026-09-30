@@ -1,37 +1,35 @@
-//! Exact fabrication-package selection for one Crèche physical Host spore.
+//! Exact make-package selection for one Crèche physical Host spore.
 
 use std::collections::BTreeMap;
 
-use conduit_body_fabrication::{
+use conduit_body_make::{
     check_body_description, BodyBindingTarget, BodyDescription, BodyHostDescription,
     DeploymentDescription, SporeDescription, SporeJoinMode,
 };
-use conduit_host_avr_fabrication::{
-    AvrProMicroFabricationPackage, FABRICATION_DESCRIPTOR as AVR_DESCRIPTOR,
-    PACKAGE_ID as AVR_PACKAGE_ID, TARGET_ID as AVR_TARGET_ID,
+use conduit_host_avr_make::{
+    AvrProMicroMakePackage, MAKE_DESCRIPTOR as AVR_DESCRIPTOR, PACKAGE_ID as AVR_PACKAGE_ID,
+    TARGET_ID as AVR_TARGET_ID,
 };
-use conduit_host_browser_fabrication::BrowserFabricationPackage;
-use conduit_host_conduitos_fabrication::ConduitOsFabricationPackage;
-use conduit_host_esp32_fabrication::{
-    esp32_descriptor_binding, Esp32FabricationPackage, Esp32FamilyTarget,
-};
-use conduit_host_fabrication::{
-    ConfigurationBase, ConfigurationTarget, FabricationCatalog, FabricationPackageSet, HostBounds,
-    HostConfiguration, HostFabricationPackage, SporeOutputKind,
-};
+use conduit_host_browser_make::BrowserMakePackage;
+use conduit_host_conduitos_make::ConduitOsMakePackage;
+use conduit_host_esp32_make::{esp32_descriptor_binding, Esp32FamilyTarget, Esp32MakePackage};
 use conduit_host_hosted::{
-    HostedFabricationPackage, HOSTED_MACOS_AARCH64_TARGET_ID, HOSTED_TARGET_ID,
+    HostedMakePackage, HOSTED_MACOS_AARCH64_TARGET_ID, HOSTED_TARGET_ID,
     HOSTED_WINDOWS_X86_64_TARGET_ID,
 };
+use conduit_host_make::{
+    ConfigurationBase, ConfigurationTarget, HostBounds, HostConfiguration, HostMakePackage,
+    MakeCatalog, MakePackageSet, SporeOutputKind,
+};
 use conduit_host_orange_pi::{
-    OrangePiFabricationPackage, ORANGE_PI_5_TARGET, PACKAGE_ID as ORANGE_PI_PACKAGE_ID,
+    OrangePiMakePackage, ORANGE_PI_5_TARGET, PACKAGE_ID as ORANGE_PI_PACKAGE_ID,
 };
 use conduit_host_raspberry_pi::{
-    RaspberryPiFabricationPackage, B_PLUS_TARGET, RASPBERRY_PI_OS_TARGET, ZERO_2_WH_TARGET,
+    RaspberryPiMakePackage, B_PLUS_TARGET, RASPBERRY_PI_OS_TARGET, ZERO_2_WH_TARGET,
     ZERO_2_W_TARGET, ZERO_TARGET, ZERO_WH_TARGET, ZERO_W_TARGET,
 };
-use conduit_host_rp2040::Rp2040FabricationPackage;
-use conduit_linear_framebuffer_fabrication::LinearFramebufferFabricationExtension;
+use conduit_host_rp2040::Rp2040MakePackage;
+use conduit_linear_framebuffer_make::LinearFramebufferMakeExtension;
 
 pub(super) const PICO_W_TARGET_ID: &str = "conduitos/thumbv6m/pico-w";
 pub(super) const STD_COMPUTER_TARGET_ID: &str = HOSTED_TARGET_ID;
@@ -43,9 +41,9 @@ pub(super) const CONDUITOS_RISCV64_TARGET_ID: &str = "conduitos/riscv64/virt";
 pub(super) const CONDUITOS_LOONGARCH64_TARGET_ID: &str = "conduitos/loongarch64/virt";
 
 pub(super) struct PreparedTarget {
-    pub(super) body: conduit_body_fabrication::CheckedBodyDescription,
-    pub(super) configuration: conduit_host_fabrication::CheckedHostConfiguration,
-    pub(super) packages: FabricationPackageSet,
+    pub(super) body: conduit_body_make::CheckedBodyDescription,
+    pub(super) configuration: conduit_host_make::CheckedHostConfiguration,
+    pub(super) packages: MakePackageSet,
     pub(super) output: SporeOutputKind,
     pub(super) host_name: &'static str,
     pub(super) source_identity: &'static str,
@@ -58,7 +56,7 @@ struct TargetFacts {
     deployment_destination: Option<&'static str>,
     output: SporeOutputKind,
     configuration: HostConfiguration,
-    packages: FabricationPackageSet,
+    packages: MakePackageSet,
 }
 
 pub(super) fn prepare(
@@ -72,7 +70,7 @@ pub(super) fn prepare(
 pub(super) fn prepare_browser(
     body_id: &str,
     invitation_id: &str,
-    checked: conduit_host_fabrication::CheckedHostConfiguration,
+    checked: conduit_host_make::CheckedHostConfiguration,
 ) -> Result<PreparedTarget, String> {
     prepare_with_checked_configuration(
         body_id,
@@ -86,7 +84,7 @@ fn prepare_with_checked_configuration(
     body_id: &str,
     invitation_id: &str,
     target_id: &str,
-    checked_browser: Option<conduit_host_fabrication::CheckedHostConfiguration>,
+    checked_browser: Option<conduit_host_make::CheckedHostConfiguration>,
 ) -> Result<PreparedTarget, String> {
     let mut target = target_facts(target_id)?;
     let expected_configuration_id = checked_browser
@@ -100,7 +98,7 @@ fn prepare_with_checked_configuration(
     }
     let mut configurations = BTreeMap::new();
     configurations.insert(target.configuration_name.into(), target.configuration);
-    let catalog = FabricationCatalog::canonical().with_packages(&target.packages);
+    let catalog = MakeCatalog::canonical().with_packages(&target.packages);
     let body = check_body_description(
         BodyDescription {
             schema: 1,
@@ -131,9 +129,7 @@ fn prepare_with_checked_configuration(
         .as_deref()
         .is_some_and(|expected| body.hosts()[0].configuration.configuration_id() != expected)
     {
-        return Err(
-            "browser fabrication did not consume the reviewed configuration identity".into(),
-        );
+        return Err("browser make did not consume the reviewed configuration identity".into());
     }
     Ok(PreparedTarget {
         configuration: body.hosts()[0].configuration.clone(),
@@ -192,10 +188,9 @@ fn target_facts(target_id: &str) -> Result<TargetFacts, String> {
 }
 
 fn orange_pi_target() -> Result<TargetFacts, String> {
-    let package = OrangePiFabricationPackage;
-    let conduit_host_fabrication::FabricationContribution::Anchor(anchor) = package.contribution()
-    else {
-        return Err("Orange Pi fabrication package is not an anchor".into());
+    let package = OrangePiMakePackage;
+    let conduit_host_make::MakeContribution::Anchor(anchor) = package.contribution() else {
+        return Err("Orange Pi make package is not an anchor".into());
     };
     let descriptor = anchor
         .targets
@@ -217,7 +212,7 @@ fn orange_pi_target() -> Result<TargetFacts, String> {
                 machine: descriptor.machine,
                 board: descriptor.board,
                 os: descriptor.os,
-                fabrication_descriptor: None,
+                make_descriptor: None,
             },
             bases: vec![ConfigurationBase {
                 kind: "serial/text".into(),
@@ -227,16 +222,15 @@ fn orange_pi_target() -> Result<TargetFacts, String> {
             resources: Vec::new(),
             limits: descriptor.maxima,
         },
-        packages: FabricationPackageSet::compose(&[&OrangePiFabricationPackage])
+        packages: MakePackageSet::compose(&[&OrangePiMakePackage])
             .map_err(|error| format!("compose {ORANGE_PI_PACKAGE_ID}: {error:?}"))?,
     })
 }
 
 fn conduitos_target(target_id: &str) -> Result<TargetFacts, String> {
-    let package = ConduitOsFabricationPackage;
-    let conduit_host_fabrication::FabricationContribution::Anchor(anchor) = package.contribution()
-    else {
-        return Err("ConduitOS fabrication package is not an anchor".into());
+    let package = ConduitOsMakePackage;
+    let conduit_host_make::MakeContribution::Anchor(anchor) = package.contribution() else {
+        return Err("ConduitOS make package is not an anchor".into());
     };
     let descriptor = anchor
         .targets
@@ -295,7 +289,7 @@ fn conduitos_target(target_id: &str) -> Result<TargetFacts, String> {
                 machine: descriptor.machine,
                 board: descriptor.board,
                 os: descriptor.os,
-                fabrication_descriptor: None,
+                make_descriptor: None,
             },
             bases: serial_base
                 .map(|(kind, implementation)| {
@@ -309,20 +303,19 @@ fn conduitos_target(target_id: &str) -> Result<TargetFacts, String> {
             resources: Vec::new(),
             limits: descriptor.maxima,
         },
-        packages: FabricationPackageSet::compose(&[
-            &BrowserFabricationPackage,
-            &ConduitOsFabricationPackage,
-            &LinearFramebufferFabricationExtension,
+        packages: MakePackageSet::compose(&[
+            &BrowserMakePackage,
+            &ConduitOsMakePackage,
+            &LinearFramebufferMakeExtension,
         ])
-        .map_err(|error| format!("compose ConduitOS fabrication package: {error:?}"))?,
+        .map_err(|error| format!("compose ConduitOS make package: {error:?}"))?,
     })
 }
 
 fn raspberry_pi_target(target_id: &str) -> Result<TargetFacts, String> {
-    let package = RaspberryPiFabricationPackage;
-    let conduit_host_fabrication::FabricationContribution::Anchor(anchor) = package.contribution()
-    else {
-        return Err("Raspberry Pi fabrication package is not an anchor".into());
+    let package = RaspberryPiMakePackage;
+    let conduit_host_make::MakeContribution::Anchor(anchor) = package.contribution() else {
+        return Err("Raspberry Pi make package is not an anchor".into());
     };
     let descriptor = anchor
         .targets
@@ -362,7 +355,7 @@ fn raspberry_pi_target(target_id: &str) -> Result<TargetFacts, String> {
                 machine: descriptor.machine,
                 board: descriptor.board,
                 os: descriptor.os,
-                fabrication_descriptor: None,
+                make_descriptor: None,
             },
             bases: vec![ConfigurationBase {
                 kind: "serial/text".into(),
@@ -376,16 +369,15 @@ fn raspberry_pi_target(target_id: &str) -> Result<TargetFacts, String> {
             resources: Vec::new(),
             limits: descriptor.maxima,
         },
-        packages: FabricationPackageSet::compose(&[&RaspberryPiFabricationPackage])
-            .map_err(|error| format!("compose Raspberry Pi fabrication package: {error:?}"))?,
+        packages: MakePackageSet::compose(&[&RaspberryPiMakePackage])
+            .map_err(|error| format!("compose Raspberry Pi make package: {error:?}"))?,
     })
 }
 
 fn avr_target() -> Result<TargetFacts, String> {
-    let package = AvrProMicroFabricationPackage;
-    let conduit_host_fabrication::FabricationContribution::Anchor(anchor) = package.contribution()
-    else {
-        return Err("AVR Pro Micro fabrication package is not an anchor".into());
+    let package = AvrProMicroMakePackage;
+    let conduit_host_make::MakeContribution::Anchor(anchor) = package.contribution() else {
+        return Err("AVR Pro Micro make package is not an anchor".into());
     };
     let descriptor = anchor
         .targets
@@ -406,13 +398,13 @@ fn avr_target() -> Result<TargetFacts, String> {
                 machine: descriptor.machine,
                 board: descriptor.board,
                 os: None,
-                fabrication_descriptor: Some(AVR_DESCRIPTOR.into()),
+                make_descriptor: Some(AVR_DESCRIPTOR.into()),
             },
             bases: Vec::new(),
             resources: Vec::new(),
             limits: descriptor.maxima,
         },
-        packages: FabricationPackageSet::compose(&[&AvrProMicroFabricationPackage])
+        packages: MakePackageSet::compose(&[&AvrProMicroMakePackage])
             .map_err(|error| format!("compose {AVR_PACKAGE_ID}: {error:?}"))?,
     })
 }
@@ -433,16 +425,15 @@ fn hosted_target(target_id: &str) -> Result<TargetFacts, String> {
         ),
         _ => return Err(format!("unsupported hosted target {target_id:?}")),
     };
-    let package = HostedFabricationPackage;
-    let conduit_host_fabrication::FabricationContribution::Anchor(anchor) = package.contribution()
-    else {
-        return Err("hosted fabrication package is not an anchor".into());
+    let package = HostedMakePackage;
+    let conduit_host_make::MakeContribution::Anchor(anchor) = package.contribution() else {
+        return Err("hosted make package is not an anchor".into());
     };
     let descriptor = anchor
         .targets
         .into_iter()
         .find(|target| target.key() == target_id)
-        .ok_or_else(|| format!("hosted fabrication package omitted exact target {target_id:?}"))?;
+        .ok_or_else(|| format!("hosted make package omitted exact target {target_id:?}"))?;
     Ok(TargetFacts {
         configuration_name,
         host_name: configuration_name,
@@ -457,7 +448,7 @@ fn hosted_target(target_id: &str) -> Result<TargetFacts, String> {
                 machine: descriptor.machine,
                 board: descriptor.board,
                 os: descriptor.os,
-                fabrication_descriptor: None,
+                make_descriptor: None,
             },
             bases: vec![
                 ConfigurationBase {
@@ -474,22 +465,21 @@ fn hosted_target(target_id: &str) -> Result<TargetFacts, String> {
             resources: Vec::new(),
             limits: descriptor.maxima,
         },
-        packages: FabricationPackageSet::compose(&[&HostedFabricationPackage])
-            .map_err(|error| format!("compose hosted fabrication package: {error:?}"))?,
+        packages: MakePackageSet::compose(&[&HostedMakePackage])
+            .map_err(|error| format!("compose hosted make package: {error:?}"))?,
     })
 }
 
 fn browser_target() -> Result<TargetFacts, String> {
-    let package = BrowserFabricationPackage;
-    let conduit_host_fabrication::FabricationContribution::Anchor(anchor) = package.contribution()
-    else {
-        return Err("browser fabrication package is not an anchor".into());
+    let package = BrowserMakePackage;
+    let conduit_host_make::MakeContribution::Anchor(anchor) = package.contribution() else {
+        return Err("browser make package is not an anchor".into());
     };
     let descriptor = anchor
         .targets
         .into_iter()
         .next()
-        .ok_or_else(|| "browser fabrication package omitted its page target".to_string())?;
+        .ok_or_else(|| "browser make package omitted its page target".to_string())?;
     Ok(TargetFacts {
         configuration_name: "creche-browser-page",
         host_name: "creche-browser-page",
@@ -504,14 +494,14 @@ fn browser_target() -> Result<TargetFacts, String> {
                 machine: descriptor.machine,
                 board: descriptor.board,
                 os: descriptor.os,
-                fabrication_descriptor: None,
+                make_descriptor: None,
             },
-            bases: conduit_host_browser_fabrication::default_configuration_bases(),
+            bases: conduit_host_browser_make::default_configuration_bases(),
             resources: Vec::new(),
             limits: descriptor.maxima,
         },
-        packages: FabricationPackageSet::compose(&[&BrowserFabricationPackage])
-            .map_err(|error| format!("compose browser fabrication package: {error:?}"))?,
+        packages: MakePackageSet::compose(&[&BrowserMakePackage])
+            .map_err(|error| format!("compose browser make package: {error:?}"))?,
     })
 }
 
@@ -530,7 +520,7 @@ fn pico_target() -> Result<TargetFacts, String> {
                 machine: "pico-w".into(),
                 board: Some("pico-w".into()),
                 os: None,
-                fabrication_descriptor: None,
+                make_descriptor: None,
             },
             bases: vec![ConfigurationBase {
                 kind: "serial/text".into(),
@@ -550,8 +540,8 @@ fn pico_target() -> Result<TargetFacts, String> {
                 evidence_items: 64,
             },
         },
-        packages: FabricationPackageSet::compose(&[&Rp2040FabricationPackage])
-            .map_err(|error| format!("compose Pico fabrication package: {error:?}"))?,
+        packages: MakePackageSet::compose(&[&Rp2040MakePackage])
+            .map_err(|error| format!("compose Pico make package: {error:?}"))?,
     })
 }
 
@@ -559,7 +549,7 @@ fn esp32_target(target: Esp32FamilyTarget) -> Result<TargetFacts, String> {
     let facts = target.facts();
     let descriptor = target.target_descriptor();
     let descriptor_binding = esp32_descriptor_binding(&target.board_descriptor())
-        .map_err(|error| format!("bind ESP32 fabrication descriptor: {error:?}"))?;
+        .map_err(|error| format!("bind ESP32 make descriptor: {error:?}"))?;
     let configuration_name = match target {
         Esp32FamilyTarget::C3 => "creche-esp32-c3-prebuilt",
         Esp32FamilyTarget::S3 => "creche-esp32-s3-prebuilt",
@@ -584,7 +574,7 @@ fn esp32_target(target: Esp32FamilyTarget) -> Result<TargetFacts, String> {
                 machine: facts.machine.into(),
                 board: Some(facts.machine.into()),
                 os: None,
-                fabrication_descriptor: Some(descriptor_binding),
+                make_descriptor: Some(descriptor_binding),
             },
             bases: vec![
                 ConfigurationBase {
@@ -601,8 +591,8 @@ fn esp32_target(target: Esp32FamilyTarget) -> Result<TargetFacts, String> {
             resources: Vec::new(),
             limits: descriptor.maxima,
         },
-        packages: FabricationPackageSet::compose(&[&Esp32FabricationPackage])
-            .map_err(|error| format!("compose ESP32 fabrication package: {error:?}"))?,
+        packages: MakePackageSet::compose(&[&Esp32MakePackage])
+            .map_err(|error| format!("compose ESP32 make package: {error:?}"))?,
     })
 }
 

@@ -91,13 +91,13 @@ fn provider_swap_plan_reuse_and_ambient_ports_refuse() {
 
 #[test]
 fn unwired_or_unauthorized_effect_cannot_be_reported_as_real() {
-    let mut fabricated = receipt();
-    fabricated.views[0].decision = ProposalDecisionOutcome::Authorized {
-        request_id: "request/fabricated".into(),
+    let mut made = receipt();
+    made.views[0].decision = ProposalDecisionOutcome::Authorized {
+        request_id: "request/made".into(),
     };
-    fabricated.views[0].resulting_signs = vec![SignId::from("sign/fabricated")];
+    made.views[0].resulting_signs = vec![SignId::from("sign/made")];
     assert_eq!(
-        fabricated.validate(),
+        made.validate(),
         Err(EmbodimentReceiptError::InvalidDecision)
     );
 

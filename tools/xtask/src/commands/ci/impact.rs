@@ -191,15 +191,15 @@ const PATCHBAY_PACKAGE_SLICE: [&str; 11] = [
 ];
 const PI_ZERO_CRECHE_SLICE: [&str; 12] = [
     ".github/workflows/product-carrier.yml",
-    "fabrication/workspace/tests/family_contracts.rs",
+    "make/workspace/tests/family_contracts.rs",
     "proof/browser/creche-raspberry-pi.spec.mjs",
     "products/creche/tools/stage-creche-product.sh",
     "targets/browser/runtime/src/creche/spore_target.rs",
     "targets/raspberry-pi/deployment/browser/creche-adapter.mjs",
     "targets/raspberry-pi/deployment/browser/image.mjs",
-    "targets/raspberry-pi/fabrication/src/lib.rs",
-    "targets/raspberry-pi/fabrication/xtask/armv6_rpi_b_plus_image.rs",
-    "targets/raspberry-pi/fabrication/xtask/armv6_rpi_board.rs",
+    "targets/raspberry-pi/make/src/lib.rs",
+    "targets/raspberry-pi/make/xtask/armv6_rpi_b_plus_image.rs",
+    "targets/raspberry-pi/make/xtask/armv6_rpi_board.rs",
     "targets/std/deployment/browser/creche-adapter.mjs",
     "tools/xtask/src/commands/host_release.rs",
 ];
@@ -232,7 +232,7 @@ fn is_repository_tool_test(path: &str) -> bool {
 }
 
 /// Rust sources compiled only by a package's test target cannot alter a
-/// fabricated product or machine image. Their owning package and reverse
+/// made product or machine image. Their owning package and reverse
 /// dependents still run through the workspace test shards.
 fn is_rust_test_source(path: &str) -> bool {
     if !path.ends_with(".rs") {
@@ -250,7 +250,7 @@ fn machine_proof_is_required_for_dependency(path: &str, suite: &str) -> bool {
     }
     // Semantic crates are renderer- and machine-neutral contracts. Their
     // reverse-dependent workspace shards compile and test the affected product
-    // graph, including portable/embedded configurations. Fabricating firmware
+    // graph, including portable/embedded configurations. Making firmware
     // and booting every machine adds no distinct proof unless the change also
     // touches a target-sensitive layer, which is classified separately.
     !path.starts_with("semantics/") || !matches!(suite, "esp32" | "conduitos")
@@ -411,7 +411,7 @@ fn suite_roots() -> BTreeMap<&'static str, BTreeSet<&'static str>> {
                 "conduit-esp32-c3-signal",
                 "conduit-esp32-s3-signal",
                 "conduit-esp32-wroom-signal",
-                "conduit-host-esp32-fabrication",
+                "conduit-host-esp32-make",
             ]),
         ),
         (
@@ -429,8 +429,8 @@ fn suite_roots() -> BTreeMap<&'static str, BTreeSet<&'static str>> {
             "conduitos",
             BTreeSet::from([
                 "conduitos",
-                "conduit-host-conduitos-fabrication",
-                "conduit-workspace-fabrication",
+                "conduit-host-conduitos-make",
+                "conduit-workspace-make",
             ]),
         ),
     ])
@@ -532,7 +532,7 @@ fn plan_for_paths(
             "proof/browser/creche-raspberry-pi.spec.mjs",
             "products/creche/tools/stage-creche-product.sh",
             "targets/browser/runtime/src/creche/spore_target.rs",
-            "targets/raspberry-pi/fabrication/src/lib.rs",
+            "targets/raspberry-pi/make/src/lib.rs",
         ]
         .iter()
         .all(|required| substantive.iter().any(|path| path.as_str() == *required));
@@ -815,7 +815,7 @@ fn plan_for_paths(
 }
 
 fn select_esp32_path(path: &str, impact: &mut Esp32Impact) {
-    if path.starts_with("targets/esp32/fabrication/")
+    if path.starts_with("targets/esp32/make/")
         || path == "targets/esp32/README.md"
         || path.starts_with("targets/esp32/firmware/wroom-signal/src/")
     {
@@ -866,9 +866,7 @@ fn select_conduitos_path(path: &str, impact: &mut ConduitosImpact) {
             }
             return;
         }
-        if path.starts_with(&format!(
-            "targets/conduitos/fabrication/xtask/{architecture}_"
-        )) {
+        if path.starts_with(&format!("targets/conduitos/make/xtask/{architecture}_")) {
             impact.architectures.insert(architecture.to_owned());
             return;
         }
@@ -1045,7 +1043,7 @@ fn browser_admission_shards(
     if paths.iter().any(|path| {
         path.starts_with("products/creche/")
             || path.starts_with("products/workspace/")
-            || path.starts_with("fabrication/workspace/")
+            || path.starts_with("make/workspace/")
             || path.starts_with("targets/browser/runtime/src/creche/")
             || path.starts_with("proof/browser/workspace-")
             || path == "proof/browser/creche-workspace-continuity.spec.mjs"

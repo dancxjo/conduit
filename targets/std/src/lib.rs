@@ -454,7 +454,7 @@ pub fn run_kernel_multivalue_path_to<W: Write, T: TimerAdapter>(
 
 pub struct StdHost {
     advertisement: HostAdvertisement,
-    image_identity: Option<conduit_host_fabrication::ImageBootIdentity>,
+    image_identity: Option<conduit_host_make::ImageBootIdentity>,
     playback: Option<hosted_audio::HostedPlaybackSelection>,
     wav_artifact: Option<hosted_wav_artifact::WavArtifactSelection>,
     midi_input: Option<hosted_midi::HostedRawMidiSelection>,
@@ -1175,12 +1175,12 @@ impl StdHost {
         &self.advertisement
     }
 
-    pub fn image_identity(&self) -> Option<&conduit_host_fabrication::ImageBootIdentity> {
+    pub fn image_identity(&self) -> Option<&conduit_host_make::ImageBootIdentity> {
         self.image_identity.as_ref()
     }
 
     pub fn from_image_binding(
-        binding: conduit_host_fabrication::BoundHostAdvertisement,
+        binding: conduit_host_make::BoundHostAdvertisement,
     ) -> Result<Self, String> {
         let (image_identity, advertisement) = binding.into_parts();
         let kernel_resources = kernel_preparation::KernelResourceLedger::new(&advertisement)?;

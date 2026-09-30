@@ -73,10 +73,10 @@ pub fn local_model_provider(
     let construction = format!(
         "host {id} {{\n  schema = 1\n  target = {{architecture: \"x86_64\", machine: \"workstation\", os: \"linux\"}}\n  need = {{id: \"{id}/memory\", class: \"{LOCAL_MODEL_MEMORY_RESOURCE}\", slots: 8, bytes: 1}}\n  need = {{id: \"{id}/compute\", class: \"{LOCAL_MODEL_COMPUTE_RESOURCE}\", slots: {lanes}, bytes: 1}}\n  need = {{id: \"{id}/slot\", class: \"{LOCAL_MODEL_INFERENCE_SLOT_RESOURCE}\", slots: 1, bytes: 1}}\n  need = {{id: \"{id}/queue-items\", class: \"{LOCAL_MODEL_QUEUE_ITEM_RESOURCE}\", slots: 2, bytes: 1}}\n  need = {{id: \"{id}/queue-kib\", class: \"{LOCAL_MODEL_QUEUE_KIB_RESOURCE}\", slots: 8, bytes: 1}}\n  limits = {{static_memory_bytes: 16777216, heap_arena_bytes: 67108864, queue_items: 4096, buffered_bytes: 16777216, active_instances: 512, operation_slots: 256, timer_slots: 128, line_sessions: 64, evidence_items: 4096}}\n}}\n"
     );
-    let checked = conduit_host_fabrication::check_host_configuration(
-        conduit_host_fabrication::parse_host_configuration_conduit(&construction).unwrap(),
-        &conduit_workspace_fabrication::catalog(),
-        &conduit_workspace_fabrication::package_set(),
+    let checked = conduit_host_make::check_host_configuration(
+        conduit_host_make::parse_host_configuration_conduit(&construction).unwrap(),
+        &conduit_workspace_make::catalog(),
+        &conduit_workspace_make::package_set(),
     )
     .unwrap();
     let mut resources = checked

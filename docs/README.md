@@ -19,9 +19,9 @@ current capabilities, practical workflows, and detailed design references.
 | [Try Conduit](try-conduit.md) | Local hosted, browser, Patchbay, and ConduitOS entrances |
 | [Try forms](try-forms.md) and [form collection](../forms/README.md) | Examples, authoring, and checking reusable programs |
 | [Product surfaces](../products/README.md) | body Workspace, compatibility/development surfaces, and the CLI |
-| [Targets](../targets/README.md) | Platform setup, fabrication, and target-specific proof |
+| [Targets](../targets/README.md) | Platform setup, make, and target-specific proof |
 | [body building](body-building.md) | body-bound target artifacts and deployment boundaries |
-| [host fabrication](host-fabrication.md) | PROFILE, BUILD, IMAGE, and fabrication packages |
+| [host make](host-make.md) | PROFILE, BUILD, IMAGE, and make packages |
 | [Supply-chain export](supply-chain-export.md) | OCI transport, in-toto/SLSA provenance, and proof separation |
 | [User-operated relay](user-operated-relay.md) | Provision and run one private outbound-only remote rendezvous path |
 | [Visual evidence](visual-evidence.md) | Screenshots, provenance, reproduction, and publication |

@@ -630,7 +630,7 @@ fn gallery_publishes_current_history_and_provenance() {
     assert!(console_page.contains("QEMU evidence, not physical hardware evidence"));
     assert!(console_page.contains("freestanding-emulator"));
     assert!(console_page.contains(&commit));
-    assert!(console_page.contains("cargo xtask fabricate conduitos journey-proof"));
+    assert!(console_page.contains("cargo xtask make conduitos journey-proof"));
     assert!(site_root
         .join("current/conduitos/x86_64/manifest.json")
         .is_file());

@@ -127,7 +127,7 @@ stated separately rather than treating the entire crate as portable data.
 | `mechanisms/devices/**`, `mechanisms/implementations/**` | M | Device protocols, prepared implementations, hardware state and provider errors remain behind Base/Back boundaries. Any portable observation they emit uses a native P Type from the relevant semantic domain. |
 | `mechanisms/protocols/**` | W | MIDI, Bluetooth and other external protocol records retain their native protocol ownership. Semantic adapters map them explicitly to P Types. |
 | `products/**` | R/M | Product models, UI state, CLI records, queues and artifact views are realization/presentation machinery. Domain values shown by a product remain owned by native semantic Types. |
-| `targets/browser/**`, `targets/std/**`, `targets/conduitos/**`, `targets/rp2040/**`, `targets/avr/**`, `targets/esp32/**`, `targets/raspberry-pi/**`, `targets/orange-pi/**` | M/W | Host implementations, firmware state, fabrication records, ABI frames and target evidence remain target truth. No target-specific layout enters a portable Type identity. |
+| `targets/browser/**`, `targets/std/**`, `targets/conduitos/**`, `targets/rp2040/**`, `targets/avr/**`, `targets/esp32/**`, `targets/raspberry-pi/**`, `targets/orange-pi/**` | M/W | Host implementations, firmware state, make records, ABI frames and target evidence remain target truth. No target-specific layout enters a portable Type identity. |
 
 ## Migration ledger
 

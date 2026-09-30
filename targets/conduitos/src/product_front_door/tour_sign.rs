@@ -4,8 +4,8 @@ use alloc::{format, string::String};
 
 use crate::{
     arch,
-    fabrication::FabricationRecord,
     identity::{self, BootIdentities},
+    make::MakeRecord,
     tour_product::{TourProduct, TourProductUpdate},
     tour_shell::ShellPresentationReceipt,
 };
@@ -15,7 +15,7 @@ pub(super) fn emit_tour_sign(
     update: Option<&TourProductUpdate>,
     shell: &ShellPresentationReceipt,
     identities: &BootIdentities,
-    fabrication: &FabricationRecord,
+    make: &MakeRecord,
 ) {
     let state = tour.controller().state();
     let play = update.and_then(|value| value.play.as_ref());
@@ -30,9 +30,9 @@ pub(super) fn emit_tour_sign(
         state.progress.chapter,
         state.progress.stage,
         state.specimen_id,
-        fabrication.profile_id,
-        fabrication.build_id,
-        fabrication.image_binding,
+        make.profile_id,
+        make.build_id,
+        make.image_binding,
         identity::hex(&identities.host),
         identity::hex(&identities.boot),
         json_optional(play.map(|value| value.source_document_id.as_str())),

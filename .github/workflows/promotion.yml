@@ -54,7 +54,7 @@ jobs:
       full_suite: true
 
   products:
-    # Fail the machine gate before fabricating all products and browser carriers.
+    # Fail the machine gate before making all products and browser carriers.
     # check runs its x86 prerequisite first and retains the exact prepared image.
     needs: [boundary, check]
     uses: ./.github/workflows/product-carrier.yml
@@ -91,7 +91,7 @@ jobs:
         run: targets/conduitos/tools/conduitos-tools.sh install target/conduitos/tool-bundle
       - name: Boot the exact Crèche artifact through the ordinary product journey
         run: >-
-          cargo xtask fabricate conduitos acceptance --locked
+          cargo xtask make conduitos acceptance --locked
           --spore target/conduitos/x86_64/creche-export.iso
       - name: Retain exact visual and failure evidence
         if: always()

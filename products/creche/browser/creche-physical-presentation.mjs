@@ -112,7 +112,7 @@ export function presentPhysicalSelection(state) {
       { parent: null, component: "form-field", action: null, key: "physical-mode-field", text: "" },
       { parent: 0, component: "field-label", action: null, key: "physical-mode-label", text: "Intention" },
       { parent: 0, component: "select", state: controlState, action: state.selectionDisabled ? null : 0, key: "physical-mode", text: "Intention", value: state.mode, valueCapacity: 64 },
-      { parent: 0, component: "field-help", action: null, key: "physical-mode-help", text: "Choose fabrication, installation, or attachment without implying lifecycle progress." },
+      { parent: 0, component: "field-help", action: null, key: "physical-mode-help", text: "Choose make, installation, or attachment without implying lifecycle progress." },
       ...state.intentions.map((intention, index) => {
         const available = support.find((candidate) => candidate.id === intention.id).supported;
         return { parent: 2, component: "option", action: null, key: `physical-mode-${index}`, text: `${intention.label}${available ? "" : " · unavailable for this target"}`, value: intention.id, valueCapacity: 64 };

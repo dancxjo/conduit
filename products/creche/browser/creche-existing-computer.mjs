@@ -8,7 +8,7 @@ const ADAPTER_SCHEMA = "conduit.creche/physical-host-target-adapter@1";
 const encoder = new TextEncoder();
 const decoder = new TextDecoder();
 const MODES = Object.freeze([
-  Object.freeze({ id: "fabricate-new", resultKind: "artifact", supported: false }),
+  Object.freeze({ id: "make-new", resultKind: "artifact", supported: false }),
   Object.freeze({ id: "install-existing", resultKind: "installation", supported: true }),
   Object.freeze({ id: "attach-running", resultKind: "attachment", supported: false }),
 ]);
@@ -61,7 +61,7 @@ export function createExistingComputerAdapter({ host, profile, prepareSpore: pre
     } else if (mode === "attach-running") {
       note.textContent = "No authenticated already-running connection carrier is implemented for this exact target.";
     } else {
-      note.textContent = "This is existing machinery; the Crèche downloads a reviewed generic release instead of fabricating a machine.";
+      note.textContent = "This is existing machinery; the Crèche downloads a reviewed generic release instead of making a machine.";
     }
     return note;
   }
@@ -110,7 +110,7 @@ export function createExistingComputerAdapter({ host, profile, prepareSpore: pre
           target_id: profile.target_id,
           os: profile.os,
           architecture: profile.architecture,
-          package_id: release.manifest.fabrication_package_id,
+          package_id: release.manifest.make_package_id,
           output: release.manifest.output,
           source_identity: release.manifest.source_identity,
           bundle_sha256: release.manifest.bundle_sha256,
@@ -154,7 +154,7 @@ export function createExistingComputerAdapter({ host, profile, prepareSpore: pre
       if (prepared.target_id !== profile.target_id
         || prepared.image_content_digest !== release.manifest.bundle_sha256
         || prepared.output !== profile.output
-        || prepared.fabrication_package_id !== profile.package_id
+        || prepared.make_package_id !== profile.package_id
         || prepared.deployment_adapter !== profile.deployment_adapter) {
         refuse(profile, mode, "bind", "BindingIdentity", "Body binding lost the exact generic Host release selection");
       }
@@ -221,7 +221,7 @@ export function createExistingComputerAdapter({ host, profile, prepareSpore: pre
         prepared = readOutput(host.runtime);
       }
       if (prepared.target_id !== profile.target_id || prepared.image_content_digest !== digest
-        || prepared.output !== profile.output || prepared.fabrication_package_id !== profile.package_id) {
+        || prepared.output !== profile.output || prepared.make_package_id !== profile.package_id) {
         prepared.invitation_secret?.fill(0);
         refuse(profile, "attach-running", "bind", "BindingIdentity", "running host invitation lost its exact target or executable identity");
       }
@@ -498,7 +498,7 @@ function readMembershipOutput(api, json) {
 
 function requireMode(mode, operation, profile) {
   if (mode === "install-existing" || (mode === "attach-running" && profile.rendezvous)) return;
-  const code = mode === "attach-running" ? "AttachRunningUnsupported" : "FabricateNewUnsupported";
+  const code = mode === "attach-running" ? "AttachRunningUnsupported" : "MakeNewUnsupported";
   refuse(profile, mode, operation, code, `${profile.target.label} does not offer ${mode}`, undefined, { authority_requested: false, external_work_started: false });
 }
 

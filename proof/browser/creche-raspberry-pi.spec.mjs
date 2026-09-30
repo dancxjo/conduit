@@ -46,7 +46,7 @@ test("Raspberry Pi OS is an exact existing-machine package, not a disk image", a
     family: { id: "conduit-target-family/raspberry-pi@1" },
     target: { id: PI_OS_TARGET, model_id: "raspberry-pi/pi-4-model-b-rev-1.5-4gb@1" },
     intentions: [
-      { id: "fabricate-new", supported: false },
+      { id: "make-new", supported: false },
       { id: "install-existing", supported: true },
       { id: "attach-running", supported: false },
     ],
@@ -77,7 +77,7 @@ test("Raspberry Pi OS is an exact existing-machine package, not a disk image", a
   expect(evidence.binding).toMatchObject({
     target_id: PI_OS_TARGET,
     output: "native-bundle",
-    fabrication_package_id: "conduit-host-raspberry-pi@1",
+    make_package_id: "conduit-host-raspberry-pi@1",
     deployment_adapter: "conduit-host-raspberry-pi/install-raspios-package@1",
     image_content_digest: release.bundle_sha256,
     spore_artifact: {
@@ -125,14 +125,14 @@ test("bare-metal Model B+ becomes an exact SD spore without browser block author
   const release = await installRelease(page, BARE_MANIFEST);
   const runner = await birthBody(page);
   await runner.locator('[data-application-key="physical-target"]').selectOption(BARE_TARGET);
-  await expect(runner.locator('[data-application-key="physical-mode"]')).toHaveValue("fabricate-new");
+  await expect(runner.locator('[data-application-key="physical-mode"]')).toHaveValue("make-new");
   await expect(runner.locator('[data-application-key="physical-stage-obtain"]')).not.toContainText("waiting");
   let evidence = JSON.parse(await runner.locator("details code").textContent());
   expect(evidence.target_entry).toMatchObject({
     family: { id: "conduit-target-family/raspberry-pi@1" },
     target: { id: BARE_TARGET, profile_id: "bcm2835-armv6-direct-kernel-sd" },
     target_profile: {
-      intention: "fabricate-new",
+      intention: "make-new",
       model: "raspberry-pi-model-b-plus-v1.2",
       architecture: "armv6",
       image_format: "mbr-fat32-sd-image",
@@ -161,7 +161,7 @@ test("bare-metal Model B+ becomes an exact SD spore without browser block author
   expect(evidence.binding).toMatchObject({
     target_id: BARE_TARGET,
     output: "sd-image",
-    fabrication_package_id: "conduit-host-raspberry-pi@1",
+    make_package_id: "conduit-host-raspberry-pi@1",
     deployment_adapter: "conduit-host-raspberry-pi/flash-removable-media@1",
     image_content_digest: release.artifact.sha256,
     spore_artifact: {

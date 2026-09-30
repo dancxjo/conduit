@@ -10,13 +10,13 @@ path = "src/main.rs"
 
 [dependencies]
 conduit-audio = { path = "../../semantics/audio" }
-conduit-host-avr-fabrication = { path = "../../targets/avr/fabrication" }
-conduit-host-esp32-fabrication = { path = "../../targets/esp32/fabrication" }
+conduit-host-avr-make = { path = "../../targets/avr/make" }
+conduit-host-esp32-make = { path = "../../targets/esp32/make" }
 conduit-signal-conformance = { path = "../../proof/conformance/signal" }
 conduit-r1-network-conformance = { path = "../../proof/conformance/network-r1" }
 conduit-rp2040-network-realization = { path = "../../targets/rp2040/network-realization" }
-conduit-host-conduitos-fabrication = { path = "../../targets/conduitos/fabrication" }
-conduit-host-browser-fabrication = { path = "../../targets/browser/fabrication" }
+conduit-host-conduitos-make = { path = "../../targets/conduitos/make" }
+conduit-host-browser-make = { path = "../../targets/browser/make" }
 conduit-home-model = { path = "../../semantics/home" }
 clap = { version = "4", features = ["derive"] }
 cliclack = "0.5.6"
@@ -32,7 +32,7 @@ serde_json = "1"
 sha2 = "0.10"
 toml = "0.8"
 conduit-body = { path = "../../architecture/body" }
-conduit-body-fabrication = { path = "../../fabrication/body" }
+conduit-body-make = { path = "../../make/body" }
 conduit-browser-runtime = { path = "../../targets/browser/runtime" }
 conduit-chat = { path = "../../semantics/chat", features = ["form-catalog"] }
 conduit-ai = { path = "../../semantics/ai" }
@@ -41,9 +41,9 @@ conduit-core = { path = "../../architecture/core" }
 conduit-robotics = { path = "../../semantics/robotics" }
 conduit-create-oi = { path = "../../mechanisms/devices/create-oi" }
 conduit-form = { path = "../../architecture/form" }
-conduit-host-fabrication = { path = "../../fabrication/host" }
-conduit-embedded-build = { path = "../../fabrication/embedded-build" }
-conduit-workspace-fabrication = { path = "../../fabrication/workspace" }
+conduit-host-make = { path = "../../make/host" }
+conduit-embedded-build = { path = "../../make/embedded-build" }
+conduit-workspace-make = { path = "../../make/workspace" }
 conduit-kernel = { path = "../../architecture/kernel", features = ["alloc"] }
 conduit-midi = { path = "../../mechanisms/protocols/midi" }
 conduit-semantic-catalog = { path = "../../semantics/catalog", features = ["body-coordination-plan"] }

@@ -70,9 +70,9 @@ test("x86 gates expensive checks and the release product pipeline without rebuil
   assert.match(products, /needs: \[boundary, check\]/);
   assert.match(products, /full_suite: true/);
   assert.doesNotMatch(products, /if:.*always\(/);
-  assert.equal(source.match(/run: cargo xtask fabricate conduitos prepare-proof-image --locked/g)?.length, 1);
+  assert.equal(source.match(/run: cargo xtask make conduitos prepare-proof-image --locked/g)?.length, 1);
   assert.match(jobs["conduitos-x86"], /expected-digest: \$\{\{ needs.conduitos-proof-image.outputs.artifact_digest \}\}/);
-  assert.doesNotMatch(jobs["conduitos-x86"], /run: cargo xtask fabricate conduitos prepare-proof-image/);
+  assert.doesNotMatch(jobs["conduitos-x86"], /run: cargo xtask make conduitos prepare-proof-image/);
   assert.match(promotion, /--spore target\/conduitos\/x86_64\/creche-export.iso/);
 });
 

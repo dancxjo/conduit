@@ -653,13 +653,13 @@ dependencies = [
  "clap",
  "conduit-alife",
  "conduit-body",
- "conduit-body-fabrication",
+ "conduit-body-make",
  "conduit-chat",
  "conduit-core",
  "conduit-data",
  "conduit-finance",
  "conduit-form",
- "conduit-host-fabrication",
+ "conduit-host-make",
  "conduit-kernel",
  "conduit-language",
  "conduit-net",
@@ -676,7 +676,7 @@ dependencies = [
  "conduit-time",
  "conduit-web",
  "conduit-wire",
- "conduit-workspace-fabrication",
+ "conduit-workspace-make",
  "getrandom 0.3.4",
  "rcgen",
  "serde",
@@ -780,19 +780,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "conduit-body-fabrication"
-version = "0.1.0"
-dependencies = [
- "conduit-form",
- "conduit-host-fabrication",
- "conduit-workspace-fabrication",
- "serde",
- "serde_json",
- "sha2 0.10.9",
- "toml",
-]
-
-[[package]]
 name = "conduit-body-invitation-form"
 version = "0.1.0"
 dependencies = [
@@ -815,6 +802,19 @@ dependencies = [
 ]
 
 [[package]]
+name = "conduit-body-make"
+version = "0.1.0"
+dependencies = [
+ "conduit-form",
+ "conduit-host-make",
+ "conduit-workspace-make",
+ "serde",
+ "serde_json",
+ "sha2 0.10.9",
+ "toml",
+]
+
+[[package]]
 name = "conduit-browser-host"
 version = "0.1.0"
 dependencies = [
@@ -831,27 +831,27 @@ dependencies = [
  "conduit-audio",
  "conduit-birth-form",
  "conduit-body",
- "conduit-body-fabrication",
  "conduit-body-invitation-form",
+ "conduit-body-make",
  "conduit-chat",
  "conduit-core",
  "conduit-creche-model",
  "conduit-data",
  "conduit-form",
  "conduit-form-library",
- "conduit-host-avr-fabrication",
- "conduit-host-browser-fabrication",
- "conduit-host-conduitos-fabrication",
- "conduit-host-esp32-fabrication",
- "conduit-host-fabrication",
+ "conduit-host-avr-make",
+ "conduit-host-browser-make",
+ "conduit-host-conduitos-make",
+ "conduit-host-esp32-make",
  "conduit-host-hosted",
+ "conduit-host-make",
  "conduit-host-orange-pi",
  "conduit-host-raspberry-pi",
  "conduit-host-rp2040",
  "conduit-human",
  "conduit-kernel",
  "conduit-language",
- "conduit-linear-framebuffer-fabrication",
+ "conduit-linear-framebuffer-make",
  "conduit-little-seismograph-fixture",
  "conduit-net",
  "conduit-plan-lowering",
@@ -1000,39 +1000,49 @@ dependencies = [
 ]
 
 [[package]]
-name = "conduit-host-avr-fabrication"
+name = "conduit-host-avr-make"
 version = "0.1.0"
 dependencies = [
- "conduit-host-fabrication",
+ "conduit-host-make",
 ]
 
 [[package]]
-name = "conduit-host-browser-fabrication"
+name = "conduit-host-browser-make"
 version = "0.1.0"
 dependencies = [
  "conduit-core",
- "conduit-host-fabrication",
+ "conduit-host-make",
 ]
 
 [[package]]
-name = "conduit-host-conduitos-fabrication"
+name = "conduit-host-conduitos-make"
 version = "0.1.0"
 dependencies = [
- "conduit-host-fabrication",
+ "conduit-host-make",
 ]
 
 [[package]]
-name = "conduit-host-esp32-fabrication"
+name = "conduit-host-esp32-make"
 version = "0.1.0"
 dependencies = [
- "conduit-host-fabrication",
+ "conduit-host-make",
  "serde",
  "serde_json",
  "sha2 0.10.9",
 ]
 
 [[package]]
-name = "conduit-host-fabrication"
+name = "conduit-host-hosted"
+version = "0.1.0"
+dependencies = [
+ "conduit-host-make",
+ "conduit-semantic-catalog",
+ "conduit-std-offers",
+ "sha2 0.10.9",
+]
+
+[[package]]
+name = "conduit-host-make"
 version = "0.1.0"
 dependencies = [
  "conduit-core",
@@ -1047,34 +1057,24 @@ dependencies = [
 ]
 
 [[package]]
-name = "conduit-host-hosted"
-version = "0.1.0"
-dependencies = [
- "conduit-host-fabrication",
- "conduit-semantic-catalog",
- "conduit-std-offers",
- "sha2 0.10.9",
-]
-
-[[package]]
 name = "conduit-host-orange-pi"
 version = "0.1.0"
 dependencies = [
- "conduit-host-fabrication",
+ "conduit-host-make",
 ]
 
 [[package]]
 name = "conduit-host-raspberry-pi"
 version = "0.1.0"
 dependencies = [
- "conduit-host-fabrication",
+ "conduit-host-make",
 ]
 
 [[package]]
 name = "conduit-host-rp2040"
 version = "0.1.0"
 dependencies = [
- "conduit-host-fabrication",
+ "conduit-host-make",
 ]
 
 [[package]]
@@ -1104,10 +1104,10 @@ dependencies = [
 ]
 
 [[package]]
-name = "conduit-linear-framebuffer-fabrication"
+name = "conduit-linear-framebuffer-make"
 version = "0.1.0"
 dependencies = [
- "conduit-host-fabrication",
+ "conduit-host-make",
 ]
 
 [[package]]
@@ -1223,7 +1223,7 @@ dependencies = [
  "conduit-body",
  "conduit-core",
  "conduit-form",
- "conduit-host-fabrication",
+ "conduit-host-make",
  "conduit-kernel",
  "conduit-plan-lowering",
  "conduit-semantic-catalog",
@@ -1231,7 +1231,7 @@ dependencies = [
  "conduit-signal-conformance",
  "conduit-std-offers",
  "conduit-wire",
- "conduit-workspace-fabrication",
+ "conduit-workspace-make",
  "serde",
  "serde_json",
  "sha2 0.10.9",
@@ -1298,7 +1298,7 @@ dependencies = [
 name = "conduit-rp2040-pio-audio-extension"
 version = "0.1.0"
 dependencies = [
- "conduit-host-fabrication",
+ "conduit-host-make",
  "conduit-host-rp2040",
 ]
 
@@ -1373,7 +1373,7 @@ dependencies = [
  "conduit-emergency-keyword-spotter",
  "conduit-finance",
  "conduit-form",
- "conduit-host-fabrication",
+ "conduit-host-make",
  "conduit-human",
  "conduit-kernel",
  "conduit-language",
@@ -1397,7 +1397,7 @@ dependencies = [
  "conduit-tongues",
  "conduit-web",
  "conduit-wire",
- "conduit-workspace-fabrication",
+ "conduit-workspace-make",
  "dbus",
  "ed25519-dalek",
  "futures",
@@ -1546,19 +1546,19 @@ dependencies = [
 ]
 
 [[package]]
-name = "conduit-workspace-fabrication"
+name = "conduit-workspace-make"
 version = "0.1.0"
 dependencies = [
- "conduit-host-avr-fabrication",
- "conduit-host-browser-fabrication",
- "conduit-host-conduitos-fabrication",
- "conduit-host-esp32-fabrication",
- "conduit-host-fabrication",
+ "conduit-host-avr-make",
+ "conduit-host-browser-make",
+ "conduit-host-conduitos-make",
+ "conduit-host-esp32-make",
  "conduit-host-hosted",
+ "conduit-host-make",
  "conduit-host-orange-pi",
  "conduit-host-raspberry-pi",
  "conduit-host-rp2040",
- "conduit-linear-framebuffer-fabrication",
+ "conduit-linear-framebuffer-make",
 ]
 
 [[package]]
@@ -1566,7 +1566,7 @@ name = "conduit-xtask-dispatch"
 version = "0.1.0"
 dependencies = [
  "clap",
- "conduit-host-browser-fabrication",
+ "conduit-host-browser-make",
  "serde",
  "serde_json",
  "sha2 0.10.9",
@@ -6575,7 +6575,7 @@ dependencies = [
  "conduit-alife",
  "conduit-audio",
  "conduit-body",
- "conduit-body-fabrication",
+ "conduit-body-make",
  "conduit-browser-runtime",
  "conduit-chat",
  "conduit-core",
@@ -6585,11 +6585,11 @@ dependencies = [
  "conduit-finance",
  "conduit-form",
  "conduit-home-model",
- "conduit-host-avr-fabrication",
- "conduit-host-browser-fabrication",
- "conduit-host-conduitos-fabrication",
- "conduit-host-esp32-fabrication",
- "conduit-host-fabrication",
+ "conduit-host-avr-make",
+ "conduit-host-browser-make",
+ "conduit-host-conduitos-make",
+ "conduit-host-esp32-make",
+ "conduit-host-make",
  "conduit-human",
  "conduit-kernel",
  "conduit-language",
@@ -6616,7 +6616,7 @@ dependencies = [
  "conduit-tutorial-form",
  "conduit-web",
  "conduit-wire",
- "conduit-workspace-fabrication",
+ "conduit-workspace-make",
  "conduitos",
  "console",
  "embedded-websocket",

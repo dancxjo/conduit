@@ -52,7 +52,7 @@ pub enum Command {
     /// Plan repository CI obligations from an exact change.
     Ci(CiArgs),
     /// Construct repository artifacts for an exact target.
-    Fabricate(FabricateArgs),
+    Make(MakeArgs),
     /// Execute proofs and manage their bounded evidence.
     Prove(Box<ProveArgs>),
     /// Inspect repository and platform prerequisites.
@@ -62,22 +62,22 @@ pub enum Command {
 }
 
 #[derive(Args, Debug)]
-pub struct FabricateArgs {
+pub struct MakeArgs {
     #[command(subcommand)]
-    pub target: FabricateTarget,
+    pub target: MakeTarget,
 }
 
 #[derive(Subcommand, Debug)]
-pub enum FabricateTarget {
+pub enum MakeTarget {
     /// Build or guardedly flash the Pete Pro Micro Brainstem.
     Avr(AvrArgs),
     /// Build and launch one independent browser page/WASM Host.
     Browser,
     /// Create, inspect, build, or deploy one whole Body description.
     Body(BodyArgs),
-    /// Check the standalone ESP32 fabrication package without touching hardware.
+    /// Check the standalone ESP32 make package without touching hardware.
     Esp32Firmware(Esp32FirmwareArgs),
-    /// Target one host lifecycle or manage exact host configuration and fabrication.
+    /// Target one host lifecycle or manage exact host configuration and make.
     Host(HostArgs),
     /// Build, flash, or verify the Pico W local Signal proof.
     Pico(PicoArgs),
@@ -409,18 +409,18 @@ mod tests {
             .expect("Linux release setup command parses");
         assert!(matches!(setup.command, Command::Setup(_)));
 
-        let pico = Cli::try_parse_from(["xtask", "fabricate", "pico", "build"])
-            .expect("pico command parses");
+        let pico =
+            Cli::try_parse_from(["xtask", "make", "pico", "build"]).expect("pico command parses");
         assert!(matches!(
             pico.command,
-            Command::Fabricate(FabricateArgs {
-                target: FabricateTarget::Pico(_)
+            Command::Make(MakeArgs {
+                target: MakeTarget::Pico(_)
             })
         ));
 
         let host = Cli::try_parse_from([
             "xtask",
-            "fabricate",
+            "make",
             "host",
             "build",
             "profile.json",
@@ -432,14 +432,14 @@ mod tests {
         .expect("host BUILD command parses");
         assert!(matches!(
             host.command,
-            Command::Fabricate(FabricateArgs {
-                target: FabricateTarget::Host(_)
+            Command::Make(MakeArgs {
+                target: MakeTarget::Host(_)
             })
         ));
 
         let body_new = Cli::try_parse_from([
             "xtask",
-            "fabricate",
+            "make",
             "body",
             "new",
             "pete",
@@ -451,13 +451,13 @@ mod tests {
         .expect("Body scaffold command parses");
         assert!(matches!(
             body_new.command,
-            Command::Fabricate(FabricateArgs {
-                target: FabricateTarget::Body(_)
+            Command::Make(MakeArgs {
+                target: MakeTarget::Body(_)
             })
         ));
         assert!(Cli::try_parse_from([
             "xtask",
-            "fabricate",
+            "make",
             "body",
             "new",
             "pete",
@@ -465,38 +465,32 @@ mod tests {
             "unknown"
         ])
         .is_err());
-        let guided_body = Cli::try_parse_from(["xtask", "fabricate", "body", "new"])
+        let guided_body = Cli::try_parse_from(["xtask", "make", "body", "new"])
             .expect("interactive Body scaffold may prompt for its name");
         assert!(matches!(
             guided_body.command,
-            Command::Fabricate(FabricateArgs {
-                target: FabricateTarget::Body(_)
+            Command::Make(MakeArgs {
+                target: MakeTarget::Body(_)
             })
         ));
-        let scripted_body = Cli::try_parse_from([
-            "xtask",
-            "fabricate",
-            "body",
-            "new",
-            "pete",
-            "--no-interactive",
-        ])
-        .expect("scripted Body scaffold parses");
+        let scripted_body =
+            Cli::try_parse_from(["xtask", "make", "body", "new", "pete", "--no-interactive"])
+                .expect("scripted Body scaffold parses");
         assert!(matches!(
             scripted_body.command,
-            Command::Fabricate(FabricateArgs {
-                target: FabricateTarget::Body(_)
+            Command::Make(MakeArgs {
+                target: MakeTarget::Body(_)
             })
         ));
 
         for command in [
-            vec!["xtask", "fabricate", "host"],
-            vec!["xtask", "fabricate", "host", "std"],
-            vec!["xtask", "fabricate", "host", "browser"],
-            vec!["xtask", "fabricate", "host", "rpi"],
+            vec!["xtask", "make", "host"],
+            vec!["xtask", "make", "host", "std"],
+            vec!["xtask", "make", "host", "browser"],
+            vec!["xtask", "make", "host", "rpi"],
             vec![
                 "xtask",
-                "fabricate",
+                "make",
                 "host",
                 "rpi",
                 "--board",
@@ -505,7 +499,7 @@ mod tests {
             ],
             vec![
                 "xtask",
-                "fabricate",
+                "make",
                 "host",
                 "rpi",
                 "flash",
@@ -516,7 +510,7 @@ mod tests {
             ],
             vec![
                 "xtask",
-                "fabricate",
+                "make",
                 "host",
                 "rpi",
                 "physical-proof",
@@ -528,29 +522,22 @@ mod tests {
                 .unwrap_or_else(|error| panic!("host command {command:?} must parse: {error}"));
             assert!(matches!(
                 parsed.command,
-                Command::Fabricate(FabricateArgs {
-                    target: FabricateTarget::Host(_)
+                Command::Make(MakeArgs {
+                    target: MakeTarget::Host(_)
                 })
             ));
         }
         assert!(Cli::try_parse_from([
-            "xtask",
-            "fabricate",
-            "host",
-            "rpi",
-            "flash",
-            "--device",
-            "/dev/sda",
+            "xtask", "make", "host", "rpi", "flash", "--device", "/dev/sda",
         ])
         .is_err());
         assert!(
-            Cli::try_parse_from(["xtask", "fabricate", "host", "rpi", "--board", "rpi-5",])
-                .is_err()
+            Cli::try_parse_from(["xtask", "make", "host", "rpi", "--board", "rpi-5",]).is_err()
         );
 
         let pico_body = Cli::try_parse_from([
             "xtask",
-            "fabricate",
+            "make",
             "pico",
             "prove-body-admission",
             "--link-port",
@@ -559,8 +546,8 @@ mod tests {
         .expect("physical Pico Body admission proof parses");
         assert!(matches!(
             pico_body.command,
-            Command::Fabricate(FabricateArgs {
-                target: FabricateTarget::Pico(PicoArgs {
+            Command::Make(MakeArgs {
+                target: MakeTarget::Pico(PicoArgs {
                     subcommand: Some(crate::commands::pico::PicoSubcommand::ProveBodyAdmission),
                     ..
                 })
@@ -568,10 +555,10 @@ mod tests {
         ));
 
         let pico_build_remote =
-            Cli::try_parse_from(["xtask", "fabricate", "pico", "build", "--usb-remote"])
+            Cli::try_parse_from(["xtask", "make", "pico", "build", "--usb-remote"])
                 .expect("pico build --usb-remote parses");
-        if let Command::Fabricate(FabricateArgs {
-            target: FabricateTarget::Pico(args),
+        if let Command::Make(MakeArgs {
+            target: MakeTarget::Pico(args),
         }) = pico_build_remote.command
         {
             assert!(args.usb_remote);
@@ -580,10 +567,10 @@ mod tests {
         }
 
         let pico_flash_remote =
-            Cli::try_parse_from(["xtask", "fabricate", "pico", "flash", "--usb-remote"])
+            Cli::try_parse_from(["xtask", "make", "pico", "flash", "--usb-remote"])
                 .expect("pico flash --usb-remote parses");
-        if let Command::Fabricate(FabricateArgs {
-            target: FabricateTarget::Pico(args),
+        if let Command::Make(MakeArgs {
+            target: MakeTarget::Pico(args),
         }) = pico_flash_remote.command
         {
             assert!(args.usb_remote);
@@ -592,10 +579,10 @@ mod tests {
         }
 
         let pico_build_control =
-            Cli::try_parse_from(["xtask", "fabricate", "pico", "build", "--r1-control"])
+            Cli::try_parse_from(["xtask", "make", "pico", "build", "--r1-control"])
                 .expect("pico build --r1-control parses");
-        if let Command::Fabricate(FabricateArgs {
-            target: FabricateTarget::Pico(args),
+        if let Command::Make(MakeArgs {
+            target: MakeTarget::Pico(args),
         }) = pico_build_control.command
         {
             assert!(args.r1_control);
@@ -621,11 +608,11 @@ mod tests {
                 .unwrap_or_else(|error| panic!("journey {command} must parse: {error}"));
         }
         let browser =
-            Cli::try_parse_from(["xtask", "fabricate", "browser"]).expect("browser Host parses");
+            Cli::try_parse_from(["xtask", "make", "browser"]).expect("browser Host parses");
         assert!(matches!(
             browser.command,
-            Command::Fabricate(FabricateArgs {
-                target: FabricateTarget::Browser
+            Command::Make(MakeArgs {
+                target: MakeTarget::Browser
             })
         ));
         assert!(Cli::try_parse_from(["xtask", "prove", "journey", "browser"]).is_err());
@@ -646,7 +633,7 @@ mod tests {
 
         let subset = Cli::try_parse_from([
             "xtask",
-            "fabricate",
+            "make",
             "unifont-subset",
             "unifont.hex.gz",
             "subset.hex",
@@ -654,14 +641,14 @@ mod tests {
         .expect("unifont-subset command parses");
         assert!(matches!(
             subset.command,
-            Command::Fabricate(FabricateArgs {
-                target: FabricateTarget::UnifontSubset(_)
+            Command::Make(MakeArgs {
+                target: MakeTarget::UnifontSubset(_)
             })
         ));
 
         let icons = Cli::try_parse_from([
             "xtask",
-            "fabricate",
+            "make",
             "palette-icons",
             "mechanisms/implementations/bounded-lucide/svg",
             "icons.rs",
@@ -669,8 +656,8 @@ mod tests {
         .expect("palette-icons command parses");
         assert!(matches!(
             icons.command,
-            Command::Fabricate(FabricateArgs {
-                target: FabricateTarget::PaletteIcons(_)
+            Command::Make(MakeArgs {
+                target: MakeTarget::PaletteIcons(_)
             })
         ));
 
@@ -889,25 +876,19 @@ mod tests {
         assert!(Cli::try_parse_from(["xtask", "prove", "evidence", "verify"]).is_err());
         assert!(Cli::try_parse_from(["xtask", "evidence", "docs-verify"]).is_err());
 
-        let conduitos = Cli::try_parse_from([
-            "xtask",
-            "fabricate",
-            "conduitos",
-            "prove",
-            "--arch",
-            "x86-64",
-        ])
-        .expect("ConduitOS command parses");
+        let conduitos =
+            Cli::try_parse_from(["xtask", "make", "conduitos", "prove", "--arch", "x86-64"])
+                .expect("ConduitOS command parses");
         assert!(matches!(
             conduitos.command,
-            Command::Fabricate(FabricateArgs {
-                target: FabricateTarget::Conduitos(_)
+            Command::Make(MakeArgs {
+                target: MakeTarget::Conduitos(_)
             })
         ));
 
         let conduitos_evidence = Cli::try_parse_from([
             "xtask",
-            "fabricate",
+            "make",
             "conduitos",
             "prove",
             "--arch",
@@ -918,8 +899,8 @@ mod tests {
         .expect("ConduitOS evidence command parses");
         assert!(matches!(
             conduitos_evidence.command,
-            Command::Fabricate(FabricateArgs {
-                target: FabricateTarget::Conduitos(_)
+            Command::Make(MakeArgs {
+                target: MakeTarget::Conduitos(_)
             })
         ));
 
@@ -1054,16 +1035,16 @@ mod tests {
 
         let cue = Cli::try_parse_from([
             "xtask",
-            "fabricate",
+            "make",
             "startup-cue",
             "--output",
             "target/startup.wav",
         ])
-        .expect("startup cue fabrication parses");
+        .expect("startup cue make parses");
         assert!(matches!(
             cue.command,
-            Command::Fabricate(FabricateArgs {
-                target: FabricateTarget::StartupCue(_)
+            Command::Make(MakeArgs {
+                target: MakeTarget::StartupCue(_)
             })
         ));
     }

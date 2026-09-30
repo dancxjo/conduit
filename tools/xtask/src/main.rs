@@ -16,7 +16,7 @@ mod three_body_actions;
 mod workspace;
 
 use clap::Parser;
-use cli::{Cli, Command, DemoCommand, DoctorTarget, FabricateTarget, GlobalOpts, ProveCommand};
+use cli::{Cli, Command, DemoCommand, DoctorTarget, GlobalOpts, MakeTarget, ProveCommand};
 use commands::check::CheckScope;
 
 fn main() {
@@ -48,7 +48,7 @@ fn main() {
         }
         Command::Integrate => commands::integrate::run(&opts),
         Command::Ci(args) => commands::ci::run(args),
-        Command::Fabricate(args) => run_fabricate(args.target, &opts),
+        Command::Make(args) => run_make(args.target, &opts),
         Command::Prove(mut args) => {
             if let Some(command) = args.command.take() {
                 if args.proof.is_some()
@@ -115,23 +115,20 @@ fn run_journey(args: cli::DemoArgs, opts: &GlobalOpts) -> Result<(), Box<dyn std
     }
 }
 
-fn run_fabricate(
-    target: FabricateTarget,
-    opts: &GlobalOpts,
-) -> Result<(), Box<dyn std::error::Error>> {
+fn run_make(target: MakeTarget, opts: &GlobalOpts) -> Result<(), Box<dyn std::error::Error>> {
     match target {
-        FabricateTarget::Avr(args) => commands::avr::run(args, opts),
-        FabricateTarget::Browser => commands::browser::run(opts),
-        FabricateTarget::Body(args) => commands::body::run(args, opts),
-        FabricateTarget::Esp32Firmware(args) => commands::esp32_firmware::run(args, opts),
-        FabricateTarget::Host(args) => commands::host::run(args, opts),
-        FabricateTarget::Pico(mut args) => run_pico(opts, &mut args, false),
-        FabricateTarget::PicoLocal(mut args) => run_pico(opts, &mut args, true),
-        FabricateTarget::Conduitos(args) => commands::conduitos::run(args, opts)
+        MakeTarget::Avr(args) => commands::avr::run(args, opts),
+        MakeTarget::Browser => commands::browser::run(opts),
+        MakeTarget::Body(args) => commands::body::run(args, opts),
+        MakeTarget::Esp32Firmware(args) => commands::esp32_firmware::run(args, opts),
+        MakeTarget::Host(args) => commands::host::run(args, opts),
+        MakeTarget::Pico(mut args) => run_pico(opts, &mut args, false),
+        MakeTarget::PicoLocal(mut args) => run_pico(opts, &mut args, true),
+        MakeTarget::Conduitos(args) => commands::conduitos::run(args, opts)
             .map_err(|error| Box::new(error) as Box<dyn std::error::Error>),
-        FabricateTarget::UnifontSubset(args) => commands::unifont_subset::run(args),
-        FabricateTarget::PaletteIcons(args) => commands::palette_icons::run(args),
-        FabricateTarget::StartupCue(args) => commands::audio::cue::render(opts, &args.output),
+        MakeTarget::UnifontSubset(args) => commands::unifont_subset::run(args),
+        MakeTarget::PaletteIcons(args) => commands::palette_icons::run(args),
+        MakeTarget::StartupCue(args) => commands::audio::cue::render(opts, &args.output),
     }
 }
 

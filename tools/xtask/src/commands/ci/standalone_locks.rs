@@ -25,8 +25,8 @@ const LOCKS: &[StandaloneLock] = &[
         lock: "targets/esp32/firmware/wroom-signal/Cargo.lock",
     },
     StandaloneLock {
-        manifest: "targets/esp32/firmware/wroom-signal/fabrication-package-runner/Cargo.toml",
-        lock: "targets/esp32/firmware/wroom-signal/fabrication-package-runner/Cargo.lock",
+        manifest: "targets/esp32/firmware/wroom-signal/make-package-runner/Cargo.toml",
+        lock: "targets/esp32/firmware/wroom-signal/make-package-runner/Cargo.lock",
     },
     StandaloneLock {
         manifest: "targets/rp2040/firmware/pico-w-signal/Cargo.toml",
@@ -43,7 +43,7 @@ pub(super) fn run() -> Result<(), Box<dyn std::error::Error>> {
     }
 
     Err(format!(
-        "standalone Cargo lock preflight failed:\n{}\nregenerate each named lock deliberately before fabrication",
+        "standalone Cargo lock preflight failed:\n{}\nregenerate each named lock deliberately before make",
         failures
             .iter()
             .map(|failure| format!("- {failure}"))

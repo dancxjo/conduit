@@ -12,13 +12,13 @@ The development tree has product paths for:
 | RISC-V64 virt | serial product |
 | LoongArch64 virt | serial product |
 
-Board fabrication also exists for families such as RP2040, AVR, ESP32, Raspberry Pi, and Orange Pi, with different proof levels.
+Board make also exists for families such as RP2040, AVR, ESP32, Raspberry Pi, and Orange Pi, with different proof levels.
 
 ## Build and boot x86_64
 
 ```bash
-cargo xtask fabricate conduitos live x86_64 --locked
-cargo xtask fabricate conduitos live-boot x86_64 --locked
+cargo xtask make conduitos live x86_64 --locked
+cargo xtask make conduitos live-boot x86_64 --locked
 ```
 
 The first creates the live ISO. The second boots it in QEMU.
@@ -105,8 +105,8 @@ The physical laptop campaign keeps those stages separate.
 Physical RP2040/Pico work has its own explicit path:
 
 ```bash
-cargo xtask fabricate pico build --usb-remote
-cargo xtask fabricate pico flash --usb-remote
+cargo xtask make pico build --usb-remote
+cargo xtask make pico flash --usb-remote
 cargo xtask prove std-pico-usb --interactive
 ```
 

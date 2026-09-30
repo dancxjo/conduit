@@ -77,7 +77,7 @@
       "observer": "kernel capability and sibling state remain exact; authorized serial effect occurs",
       "survival": "kernel records all hostile outcomes and reaches terminal proof",
       "proof_class": "QEMU x86_64 protection-domain execution",
-      "command": "cargo xtask fabricate conduitos isolation-proof"
+      "command": "cargo xtask make conduitos isolation-proof"
     },
     {
       "principal": "consequential-effect-proposer",

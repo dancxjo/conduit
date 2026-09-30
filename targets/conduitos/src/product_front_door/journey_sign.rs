@@ -1,19 +1,19 @@
 //! Native lifecycle evidence emitted from the authoritative journey projection.
-use crate::{arch, fabrication::FabricationRecord, product_journey::JourneyProjection};
+use crate::{arch, make::MakeRecord, product_journey::JourneyProjection};
 use alloc::{format, string::String};
 
 pub(super) fn emit_journey_sign(
     projection: &JourneyProjection,
-    fabrication: &FabricationRecord,
+    make: &MakeRecord,
     receipt: &crate::native_compositor::CompositionReceipt,
 ) {
     let line = format!(
         "CONDUIT_PRODUCT_JOURNEY {{\"status\":\"{}\",\"revision\":{},\"profile_id\":\"{}\",\"build_id\":\"{}\",\"image_id\":\"{}\",\"host_id\":\"{}\",\"boot_id\":\"{}\",\"offer_generation\":{},\"source_document_id\":{},\"checked_form_id\":{},\"expanded_form_id\":{},\"body_id\":{},\"friendly_name\":{},\"born_sign_id\":{},\"fulfilled_sign_id\":{},\"lull_sign_id\":{},\"workload_revision\":{},\"workload_sign_id\":{},\"part_id\":{},\"wake_id\":{},\"wake_sign_id\":{},\"plan_id\":{},\"plan_sign_id\":{},\"active_play_id\":{},\"play_sign_id\":{},\"gear_ids\":{},\"port_ids\":{},\"cord_ids\":{},\"presentation_id\":\"{}\",\"manifestation_id\":\"{}\",\"presenter_implementation_id\":\"{}\",\"input_sign_id\":{},\"loss_kind\":{},\"loss_sign_id\":{},\"recovery\":{},\"result_sign_id\":{},\"result\":{},\"result_omitted_bytes\":{},\"input_count\":{},\"kernel_sign_gap\":{},\"request_id\":{}}}\n",
         projection.status.as_str(),
         projection.revision,
-        fabrication.profile_id,
-        fabrication.build_id,
-        fabrication.image_binding,
+        make.profile_id,
+        make.build_id,
+        make.image_binding,
         projection.host_id.as_str(),
         projection.boot_id.as_str(),
         projection.offer_generation.0,

@@ -19,7 +19,7 @@ Entry runs inexpensive patch, formatting, and controller checks first. After
 those pass, impact planning runs the affected workspace, browser, firmware,
 product, or ConduitOS proof before the required `candidate` result becomes
 green. Documentation-only and unrelated target worlds remain cheap; complete
-release fabrication stays in promotion.
+release make stays in promotion.
 
 Do not dispatch reconciliation, copy commit identities into comments, poll every
 child job, or preserve an obsolete candidate run. The newest head owns the PR.
@@ -63,7 +63,7 @@ runs there. Workspace checks run alongside x86 to report deterministic failures
 without waiting for emulator proof; both remain required by the final check gate.
 The x86 gate runs after classification, pinned tools, and its prepared-image
 build. Other platform check jobs wait for selected x86 proof;
-the product fabrication/browser/carrier pipeline waits for the check suite.
+the product make/browser/carrier pipeline waits for the check suite.
 This deliberately trades some green-run parallelism for early rejection of a
 known failing machine before spending a full release's build budget. A failure
 or cancellation cannot open the downstream gate. Unselected development proof

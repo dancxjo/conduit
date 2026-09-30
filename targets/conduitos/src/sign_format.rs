@@ -3,7 +3,7 @@
 use core::fmt::{self, Write};
 
 #[cfg(any(test, target_arch = "x86_64"))]
-use crate::{boot::BootRecord, fabrication::FabricationRecord};
+use crate::{boot::BootRecord, make::MakeRecord};
 use crate::{
     composition::MachineRunReceipt,
     dual_region_plan::PreparedDualRegionPlay,
@@ -61,7 +61,7 @@ impl Write for FixedText {
 pub fn accepted(
     record: &BootRecord,
     identities: &BootIdentities,
-    fabrication: &FabricationRecord,
+    make: &MakeRecord,
     offer_generation: u64,
 ) -> Result<FixedText, fmt::Error> {
     let mut output = FixedText::new();
@@ -70,9 +70,9 @@ pub fn accepted(
         "CONDUIT_BOOT_SIGN {{\"schema\":\"{BOOT_SIGN_SCHEMA}\",\"status\":\"accepted\",\"arch\":\"{}\",\"firmware\":\"{}\",\"profile_id\":\"{}\",\"build_id\":\"{}\",\"image_binding\":\"{}\",\"offer_generation\":{},\"limine\":\"12.5.2\",\"qemu_profile\":\"q35-single-cpu-64m-headless-xhci-usb-kbd-usb-mouse-usb-ftdi-adlib\",\"host_id\":\"",
         crate::arch::ARCHITECTURE,
         record.firmware.as_str(),
-        fabrication.profile_id,
-        fabrication.build_id,
-        fabrication.image_binding,
+        make.profile_id,
+        make.build_id,
+        make.image_binding,
         offer_generation,
     )?;
     write_hex(&mut output, &identities.host)?;
@@ -218,20 +218,20 @@ mod tests {
                 length: 262_144,
             },
         };
-        let fabrication = FabricationRecord {
-            schema: crate::fabrication::FABRICATION_SCHEMA,
+        let make = MakeRecord {
+            schema: crate::make::MAKE_SCHEMA,
             profile_id: "sha256:profile",
             build_id: "build:sha256:build",
             image_binding: "image:sha256:binding",
             target: "conduitos/x86_64/pc",
-            implementations: crate::fabrication::ALL_KNOWN_IMPLEMENTATIONS
-                & !crate::fabrication::IMPL_LINEAR_PRESENTER
-                & !crate::fabrication::IMPL_HTTP_CLIENT,
-            facilities: crate::fabrication::FACILITY_NATIVE_COMPOSITOR,
-            resources: crate::fabrication::RESOURCE_PRESENTATION_SURFACE,
-            bases: crate::fabrication::BASE_DISPLAY_SCANOUT,
-            drivers: crate::fabrication::DRIVER_LINEAR_FRAMEBUFFER,
-            presenters: crate::fabrication::PRESENTER_NATIVE_GRAPHICAL,
+            implementations: crate::make::ALL_KNOWN_IMPLEMENTATIONS
+                & !crate::make::IMPL_LINEAR_PRESENTER
+                & !crate::make::IMPL_HTTP_CLIENT,
+            facilities: crate::make::FACILITY_NATIVE_COMPOSITOR,
+            resources: crate::make::RESOURCE_PRESENTATION_SURFACE,
+            bases: crate::make::BASE_DISPLAY_SCANOUT,
+            drivers: crate::make::DRIVER_LINEAR_FRAMEBUFFER,
+            presenters: crate::make::PRESENTER_NATIVE_GRAPHICAL,
             proof_instrumentation: 0,
             presentation_surface_slots: 4,
             presentation_surface_bytes: 4 * 1024 * 1024,
@@ -246,7 +246,7 @@ mod tests {
                 host: [0xaa; 32],
                 boot: [0xbb; 32],
             },
-            &fabrication,
+            &make,
             1,
         )
         .unwrap();

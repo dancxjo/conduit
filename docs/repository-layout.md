@@ -9,7 +9,7 @@ Place material by the contract that owns it. File type, reuse count, and the act
 | Defines universal form, body, plan, play, kernel, or identity machinery | `architecture/` | Product state, concrete devices, proof-only scenarios |
 | Defines portable host-neutral meaning | `semantics/` | DOM, sockets, boot choices, credentials |
 | Realizes a reusable protocol, device contract, or lower mechanism | `mechanisms/` | Speculative sharing without an independent contract |
-| Generically manufactures machinery | `fabrication/` | Board-specific build policy or a concrete body |
+| Generically manufactures machinery | `make/` | Board-specific build policy or a concrete body |
 | Exists because of a browser, OS, board, or machine environment | `targets/` | Tour routing or another named product's state |
 | Is a named human-facing product | `products/` | Generic host truth or a concrete robot composition |
 | Is a concrete body composition | `bodies/` | A generic framework or a renamed proof fixture |
@@ -55,12 +55,12 @@ make staging convenient. Explicit package dependency declarations select
 finite bytes from their real owners.
 
 Legacy Tour, Crèche, Workspace, Home, and Patchbay compatibility packages still
-occupy `products/` while their useful Forms, journeys, fabrication, and Mask
+occupy `products/` while their useful Forms, journeys, make, and Mask
 machinery are extracted under [#4231](https://github.com/dancxjo/conduit/issues/4231).
 Their current directory placement is migration state, not a repository law or
 permission to create another application/runtime boundary.
 
-[Target-family ownership](../targets/README.md) defines the optional `host`, `runtime`, `offers`, `fabrication`, `firmware`, `deployment`, `profiles`, `tools`, and `proof` responsibilities. No target gets empty directories for symmetry. Target host examples live under `targets/<family>/profiles/`; Pete configuration belongs in `bodies/pete/profiles/`; proof-only topologies belong in `proof/fixtures/bodies/`. Target setup and credential/flash helpers belong in `targets/<family>/tools/`.
+[Target-family ownership](../targets/README.md) defines the optional `host`, `runtime`, `offers`, `make`, `firmware`, `deployment`, `profiles`, `tools`, and `proof` responsibilities. No target gets empty directories for symmetry. Target host examples live under `targets/<family>/profiles/`; Pete configuration belongs in `bodies/pete/profiles/`; proof-only topologies belong in `proof/fixtures/bodies/`. Target setup and credential/flash helpers belong in `targets/<family>/tools/`.
 
 Conduit product integration tests live in `products/conduit/tests/`. Package tests stay with their package. Repository-wide proof suites live under `proof/`; Playwright metadata and dependencies belong in `proof/browser/`. Target-local proof appliances remain under their exact target only when their manufacturing/bring-up contract requires it.
 

@@ -5,7 +5,7 @@ const ADAPTER_SCHEMA = "conduit.creche/physical-host-target-adapter@1";
 const encoder = new TextEncoder();
 const decoder = new TextDecoder();
 const MODES = Object.freeze([
-  Object.freeze({ id: "fabricate-new", resultKind: "artifact", supported: true }),
+  Object.freeze({ id: "make-new", resultKind: "artifact", supported: true }),
   Object.freeze({ id: "install-existing", resultKind: "installation", supported: false }),
   Object.freeze({ id: "attach-running", resultKind: "attachment", supported: false }),
 ]);
@@ -72,7 +72,7 @@ export const AVR_PRO_MICRO_CRECHE_TARGET_CONTRIBUTION = Object.freeze({
   family: FAMILY,
   target: AVR_PRO_MICRO_PROFILE.target,
   intentions: MODES,
-  fabrication_strategies: Object.freeze([
+  make_strategies: Object.freeze([
     Object.freeze({ id: "reviewed-generic-release-download", label: "Reviewed generic Pro Micro Intel HEX" }),
   ]),
   carriers: Object.freeze({
@@ -93,7 +93,7 @@ export function createAvrProMicroCrecheAdapter({ host, externalProgrammer, prepa
   function createOptions({ mode }) {
     const note = document.createElement("p");
     note.className = "target-option-note";
-    note.textContent = mode === "fabricate-new"
+    note.textContent = mode === "make-new"
       ? "Conduit downloads the exact reviewed Intel HEX and binds it into a spore. Flashing requires an explicit external programmer; browser AVR109 flashing is not offered."
       : "This exact Pro Micro profile does not install or attach already-running machinery.";
     return note;
@@ -142,7 +142,7 @@ export function createAvrProMicroCrecheAdapter({ host, externalProgrammer, prepa
           return readOutput(host.runtime);
         })();
       if (prepared.target_id !== AVR_PRO_MICRO_PROFILE.target.id || prepared.image_content_digest !== release.digest
-        || prepared.output !== "intel-hex" || prepared.fabrication_package_id !== AVR_PRO_MICRO_PROFILE.packageId
+        || prepared.output !== "intel-hex" || prepared.make_package_id !== AVR_PRO_MICRO_PROFILE.packageId
         || prepared.deployment_adapter !== null) {
         refuse(mode, "bind", "BindingIdentity", "prepared invitation lost the exact Pro Micro target, artifact, or external-carrier truth");
       }
@@ -230,7 +230,7 @@ export function createAvrProMicroCrecheAdapter({ host, externalProgrammer, prepa
 }
 
 function requireMode(mode, operation) {
-  if (mode === "fabricate-new") return;
+  if (mode === "make-new") return;
   refuse(mode, operation, mode === "install-existing" ? "InstallExistingUnsupported" : "AttachRunningUnsupported", `Pro Micro target does not offer ${mode}`);
 }
 

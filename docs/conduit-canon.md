@@ -235,7 +235,7 @@ identity, semantics, lifecycle, and native security sovereignty when a base
 maps it to or manifests a Conduit meaning. External identity, semantic kind,
 directional mapping, adapter/base, authority, and outward manifestation are
 never aliases. Import and export are independently configured and authorized;
-discovery supplies observation only and cannot fabricate a host, part,
+discovery supplies observation only and cannot make a host, part,
 capability, membership, trust, or authority.
 
 An outward manifestation that may be observed again carries exact adapter,
@@ -358,12 +358,12 @@ The role is admitted from an ordinary Form's exact Fore. Richer authored
 Body/wardrobe configuration syntax remains deliberately unfrozen; neither a
 Mask nor a test fixture may invent private source spelling to conceal that gap.
 
-### Fabrication and runtime
+### Make and runtime
 
-A host fabrication package is a Rust project boundary that knows how to manufacture machinery for a finite coherent family of exact targets. An anchor package owns each target's descriptor, toolchain and build adapter, finite maxima, artifact kinds, and target-appropriate post-build mechanics. Extension packages may add exact base implementation offers without editing the anchor or generic Conduit fabrication.
+A host make package is a Rust project boundary that knows how to manufacture machinery for a finite coherent family of exact targets. An anchor package owns each target's descriptor, toolchain and build adapter, finite maxima, artifact kinds, and target-appropriate post-build mechanics. Extension packages may add exact base implementation offers without editing the anchor or generic Conduit make.
 
 ```text
-fabrication packages present in a project
+make packages present in a project
     -> exact target and implementation offers
 
 host construction
@@ -687,7 +687,7 @@ slice belongs in the living project even when its larger ambition remains open:
 
 - broader SOUL recovery and durable policy beyond bounded continuity evidence;
 - Zenoh as a possible later line base;
-- general package and artifact distribution beyond reviewed fabrication packages;
+- general package and artifact distribution beyond reviewed make packages;
 - domain expansion beyond the current House, Laptop, and Pete slices.
 
 Hostile isolation, physical coverage, and product usability still have concrete

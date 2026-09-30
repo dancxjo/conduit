@@ -175,7 +175,7 @@ fn hidden_workspace_service_consumes_pending_work_without_touching_scanout() {
 }
 
 #[test]
-fn unaccepted_input_does_not_fabricate_an_observation() {
+fn unaccepted_input_does_not_make_an_observation() {
     let (journey, mut door) = listening();
     let (mut presenter, mut display) = renderer(&journey);
     let projection = journey.projection();

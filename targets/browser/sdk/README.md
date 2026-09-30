@@ -21,7 +21,7 @@ const snapshot = await host.refresh(); // current offers come from a new Boot ob
 ```
 
 The same admitted Host and Boot may explicitly participate in an externally
-owned Body. Participation does not birth, recover, or fabricate that Body; the
+owned Body. Participation does not birth, recover, or make that Body; the
 invitation protocol returns its own membership, presence, biography and offer
 evidence.
 
@@ -279,7 +279,7 @@ The consuming application only installs or serves that resulting directory;
 it does not invoke the producer or compile Conduit.
 
 Repository maintainers can produce an npm-style package from a reviewed bundle
-with `cargo xtask fabricate host browser-sdk-package --bundle <bundle-directory> --output
+with `cargo xtask make host browser-sdk-package --bundle <bundle-directory> --output
 <new-package-directory>`. Then run `npm pack` in the output directory or serve
 the complete directory from a same-origin static root.
 

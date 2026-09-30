@@ -147,7 +147,7 @@ mod tests {
                 "body_description_id":"description/one", "host_entry_name":"host", "host_configuration_id":"config/one",
                 "profile_id":"profile/one", "build_id":"build/one", "image_id":"image/one",
                 "image_content_digest":format!("sha256:{}", "1".repeat(64)), "target":"conduitos/x86_64/pc",
-                "output":"disk-image", "fabrication":{}, "source_identity":"source/one"},
+                "output":"disk-image", "make":{}, "source_identity":"source/one"},
             "invitation_provision":{"invitation_id":"invitation/one", "nonce":vec![17;32],
                 "expires_at_millis":1_800_000_000_000_u64, "secret":vec![13;32]}
         }))

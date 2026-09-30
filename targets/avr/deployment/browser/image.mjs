@@ -282,8 +282,8 @@ function idBytes(value, name) {
 
 function requireManifest(manifest, profile) {
   if (manifest?.schema !== "conduit.release/avr-intel-hex@1"
-    || manifest.fabrication_package_id !== profile.packageId
-    || manifest.fabrication_package_revision !== 1
+    || manifest.make_package_id !== profile.packageId
+    || manifest.make_package_revision !== 1
     || manifest.output !== "intel-hex" || manifest.builder_adapter !== profile.builderAdapter
     || manifest.deployment_adapter !== null || typeof manifest.image_id !== "string"
     || typeof manifest.source_identity !== "string") {

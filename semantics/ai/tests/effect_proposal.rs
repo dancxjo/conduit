@@ -164,17 +164,17 @@ fn actual_effect_and_resulting_signs_remain_distinct_and_bounded() {
         Err(ProposalGateError::UnknownRequest)
     );
 
-    let fabricated = AuthorizedEffectRequest {
-        request_id: "request/fabricated".into(),
-        proposal_id: "proposal/fabricated".into(),
-        decision_id: "decision/fabricated".into(),
-        authority_id: "authority/fabricated".into(),
+    let made = AuthorizedEffectRequest {
+        request_id: "request/made".into(),
+        proposal_id: "proposal/made".into(),
+        decision_id: "decision/made".into(),
+        authority_id: "authority/made".into(),
         plan_id: PlanId::from("plan/current"),
         back_kind: KindId::from("effect/send-message@1"),
-        canonical_arguments: arguments(b"fabricated"),
+        canonical_arguments: arguments(b"made"),
     };
     assert_eq!(
-        gate.complete(&fabricated, "effect/fabricated".into(), vec![]),
+        gate.complete(&made, "effect/made".into(), vec![]),
         Err(ProposalGateError::UnknownRequest)
     );
 }

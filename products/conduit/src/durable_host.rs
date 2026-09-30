@@ -906,7 +906,7 @@ mod tests {
         let manifest = serde_json::json!({
             "schema": RELEASE_SCHEMA,
             "target_id": "std/x86_64/computer",
-            "fabrication_package_id": "hosted-native@1",
+            "make_package_id": "hosted-native@1",
             "output": "native-bundle",
             "builder_adapter": "fixture/build@1",
             "deployment_adapter": "fixture/install@1",

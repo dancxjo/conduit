@@ -1,9 +1,9 @@
 use std::{collections::BTreeMap, fs, path::Path};
 
 use clap::ValueEnum;
-use conduit_host_fabrication::{
+use conduit_host_make::{
     check_host_configuration, parse_host_configuration_conduit, CheckedHostConfiguration,
-    FabricationAnchor, SporeOutputKind,
+    MakeAnchor, SporeOutputKind,
 };
 use serde::Serialize;
 
@@ -48,7 +48,7 @@ pub(super) struct HostRecipe {
     pub(super) checked: CheckedHostConfiguration,
     pub(super) source_path: std::path::PathBuf,
     pub(super) target: String,
-    pub(super) package: FabricationAnchor,
+    pub(super) package: MakeAnchor,
     pub(super) outputs: Vec<SporeOutputKind>,
 }
 
@@ -134,7 +134,7 @@ pub(super) fn load_host_recipes(
         }
     }
     paths.sort();
-    let catalog = conduit_workspace_fabrication::catalog();
+    let catalog = conduit_workspace_make::catalog();
     let mut recipes = BTreeMap::new();
     for path in paths {
         let Some(file_name) = path.file_name().and_then(|name| name.to_str()) else {
@@ -153,7 +153,7 @@ pub(super) fn load_host_recipes(
         let checked = check_host_configuration(
             configuration,
             &catalog,
-            &conduit_workspace_fabrication::package_set(),
+            &conduit_workspace_make::package_set(),
         )
         .map_err(|items| format!("Host configuration {} refused: {items:?}", path.display()))?;
         insert_host_recipe(&mut recipes, &selector, path, checked)?;
@@ -173,12 +173,12 @@ pub(super) fn insert_host_recipe(
     if recipes.contains_key(selector) {
         return Err(format!("duplicate Host recipe selector '{selector}'").into());
     }
-    let packages = conduit_workspace_fabrication::package_set();
+    let packages = conduit_workspace_make::package_set();
     let package = packages
         .anchor_for_target(&checked.profile().target.key())
         .ok_or_else(|| {
             format!(
-                "Host configuration {} has no fabrication anchor",
+                "Host configuration {} has no make anchor",
                 source_path.display()
             )
         })?

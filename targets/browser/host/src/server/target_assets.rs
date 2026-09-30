@@ -7,8 +7,7 @@ const RP2040_PICOBOOT: &[u8] = include_bytes!("../../../../rp2040/deployment/bro
 const RP2040_UF2: &[u8] = include_bytes!("../../../../rp2040/deployment/browser/uf2.mjs");
 const RP2040_BOOTSEL: &[u8] = include_bytes!("../../../../rp2040/deployment/browser/bootsel.mjs");
 const RP2040_SPAWN: &[u8] = include_bytes!("../../../../rp2040/deployment/browser/spawn.mjs");
-const RP2040_FABRICATION: &[u8] =
-    include_bytes!("../../../../rp2040/deployment/browser/fabrication.mjs");
+const RP2040_MAKE: &[u8] = include_bytes!("../../../../rp2040/deployment/browser/make.mjs");
 const RP2040_PICO_LOCAL_MANIFEST: &[u8] =
     include_bytes!("../../assets/artifacts/pico-w-signal-pico-local.json");
 const RP2040_PICO_LOCAL_UF2: &[u8] =
@@ -32,7 +31,7 @@ pub(super) fn response(request: Option<&str>) -> Option<(&'static str, &'static 
         "GET /targets/rp2040/browser-deployment/uf2.mjs HTTP/1.1" => RP2040_UF2,
         "GET /targets/rp2040/browser-deployment/bootsel.mjs HTTP/1.1" => RP2040_BOOTSEL,
         "GET /targets/rp2040/browser-deployment/spawn.mjs HTTP/1.1" => RP2040_SPAWN,
-        "GET /targets/rp2040/browser-deployment/fabrication.mjs HTTP/1.1" => RP2040_FABRICATION,
+        "GET /targets/rp2040/browser-deployment/make.mjs HTTP/1.1" => RP2040_MAKE,
         "GET /creche/artifacts/pico-w-signal-pico-local.json HTTP/1.1" => {
             return Some((
                 "application/json; charset=utf-8",

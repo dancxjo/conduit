@@ -62,7 +62,7 @@ pub fn run(args: &WorkspaceArgs, opts: &GlobalOpts) -> Result<(), Box<dyn std::e
             "cargo",
             &[
                 "xtask",
-                "fabricate",
+                "make",
                 "host",
                 "release",
                 "--platform",
@@ -81,7 +81,7 @@ pub fn run(args: &WorkspaceArgs, opts: &GlobalOpts) -> Result<(), Box<dyn std::e
             "cargo",
             &[
                 "xtask",
-                "fabricate",
+                "make",
                 "host",
                 "release-catalog",
                 "--root",
@@ -93,7 +93,7 @@ pub fn run(args: &WorkspaceArgs, opts: &GlobalOpts) -> Result<(), Box<dyn std::e
         &root,
         opts,
     )?;
-    // Host release fabrication also builds a narrower browser runtime in the
+    // Host release make also builds a narrower browser runtime in the
     // shared target directory. Build the Workspace-featured runtime last so
     // the staging input cannot be replaced by that intermediate artifact.
     run_step(

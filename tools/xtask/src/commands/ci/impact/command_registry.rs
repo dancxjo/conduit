@@ -43,7 +43,7 @@ pub(super) const COMMAND_PROOFS: &[CommandProofSpec] = &[
         heavy_suites: &[HeavySuite::Browser],
     },
     CommandProofSpec {
-        id: "repository.esp32-fabrication",
+        id: "repository.esp32-make",
         exact_inputs: &["tools/xtask/src/commands/esp32_firmware.rs"],
         input_prefixes: &[],
         workspace_packages: &["xtask"],

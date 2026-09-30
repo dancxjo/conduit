@@ -36,7 +36,7 @@ canonical validation remain distinct. The primitive font path is retained for
 non-compositor proof appliances; successful ordinary graphical boot emits the
 profile receipt after its first rendered frame and cannot select that path.
 
-Run `cargo xtask fabricate conduitos graphical-profile-proof` to fabricate the canonical
+Run `cargo xtask make conduitos graphical-profile-proof` to make the canonical
 live ISO and drive its actual native journey. Its retained screenshots and
 profile receipt are development/emulator evidence, not physical qualification
 or stable-release acceptance. The existing release gallery carries the same

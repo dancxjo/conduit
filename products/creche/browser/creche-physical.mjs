@@ -507,7 +507,7 @@ function minimalRetainedWorkflowEvidence(evidence) {
       reason: "maximumRetainedEvidenceBytes",
       omitted_prior_fields: [
         "target_entry.intentions",
-        "target_entry.fabrication_strategies",
+        "target_entry.make_strategies",
         "target_entry.carriers",
         "target_entry.target_profile",
         "obtainment.network_fetches",

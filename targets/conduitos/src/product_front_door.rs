@@ -20,15 +20,15 @@ use conduit_tour_model::{OPEN_PATCHBAY_ACTION_ID, TourTransientKind};
 
 use crate::{
     arch::{self, HidKeyboardSession, HidPointerSession, UsbDevice, XhciReady},
-    fabrication::FabricationRecord,
     front_door::{FrontDoor, FrontDoorPresenter},
     identity::{self, BootIdentities},
     keyboard_input::{self, ProductInputControl, ProductInputEvent},
     keyboard_text_plan,
     local_rescue::LocalRescueMatcher,
+    make::MakeRecord,
     native_compositor::InputRoute,
     offer::CAPABILITY_COUNT,
-    offer_fabrication::ImageBoundHostOffer,
+    offer_make::ImageBoundHostOffer,
     product_bases::{EffectFamily, FRAMEBUFFER_RESOURCE_CLASS, NativeProductBases},
     product_journey::{JourneyStatus, ProductJourney},
     rescue_guest,
@@ -48,7 +48,7 @@ const F11: u8 = 68;
 pub fn run(
     identities: &BootIdentities,
     offer: &ImageBoundHostOffer<'_>,
-    fabrication: &FabricationRecord,
+    make: &MakeRecord,
     framebuffer_basis: &conduit_observatory::FramebufferBasis,
     display: &mut impl crate::display::PixelTarget,
     mut hid_session: Option<&mut HidKeyboardSession>,
@@ -90,9 +90,9 @@ pub fn run(
         host_id.clone(),
         boot_id.clone(),
         generation,
-        fabrication.profile_id,
-        fabrication.build_id,
-        fabrication.image_binding,
+        make.profile_id,
+        make.build_id,
+        make.image_binding,
         form.source_document_id,
         form.checked_form_id,
         u64::try_from(CAPABILITY_COUNT).unwrap_or(u64::MAX)
@@ -101,38 +101,32 @@ pub fn run(
             + u64::from(offer.pc_speaker.is_some()),
         true,
     );
-    arrival::open(
-        &mut front_door,
-        &mut journey,
-        identities,
-        offer,
-        fabrication,
-    )?;
+    arrival::open(&mut front_door, &mut journey, identities, offer, make)?;
     let mut presenter = FrontDoorPresenter::prepare(
         host_id,
         boot_id,
         generation,
-        fabrication.profile_id,
-        fabrication.image_binding,
+        make.profile_id,
+        make.image_binding,
         framebuffer_basis.base_id.clone(),
-        fabrication.presentation_surface_slots,
+        make.presentation_surface_slots,
     )
     .map_err(|error| error.as_str())?;
     let receipt = presenter
         .present(&front_door, display)
         .map_err(|error| error.as_str())?;
     crate::display::profile::emit_boot_receipt();
-    emit_journey_sign(&journey.projection(), fabrication, &receipt);
+    emit_journey_sign(&journey.projection(), make, &receipt);
     arch::early_write(b"CONDUIT_BOOT_STAGE front-door-ready\nCONDUIT_CRECHE_CHECKPOINT ready\n");
     let mut tour = TourProduct::canonical(1);
     let mut shell = TourShellPresenter::prepare(
         conduit_core::HostId::from(identity::hex(&identities.host)),
         conduit_core::BootId::from(identity::hex(&identities.boot)),
         generation,
-        fabrication.profile_id,
-        fabrication.image_binding,
+        make.profile_id,
+        make.image_binding,
         framebuffer_basis.base_id.clone(),
-        fabrication.presentation_surface_slots,
+        make.presentation_surface_slots,
     )
     .map_err(|error| error.as_str())?;
     let mut tour_open = false;
@@ -155,7 +149,7 @@ pub fn run(
                         display,
                         !tour_open,
                     )? {
-                        emit_journey_sign(&journey.projection(), fabrication, &receipt);
+                        emit_journey_sign(&journey.projection(), make, &receipt);
                     }
                     return Ok(ProductInputControl::Continue);
                 }
@@ -173,7 +167,7 @@ pub fn run(
                             .input_lost(crate::product_journey::JourneyLossKind::InputDevice)
                             .map_err(|error| error.as_str())?;
                         let receipt = refresh(&mut front_door, &journey, &mut presenter, display)?;
-                        emit_journey_sign(&journey.projection(), fabrication, &receipt);
+                        emit_journey_sign(&journey.projection(), make, &receipt);
                     }
                     return Ok(ProductInputControl::Continue);
                 }
@@ -219,7 +213,7 @@ pub fn run(
                 let shell_receipt = shell
                     .present_with_lifecycle(&tour, &journey.projection(), display)
                     .map_err(|error| error.as_str())?;
-                emit_tour_sign(&tour, None, &shell_receipt, identities, fabrication);
+                emit_tour_sign(&tour, None, &shell_receipt, identities, make);
                 arch::early_write(b"CONDUIT_TOUR_CHECKPOINT workspace-opened\n");
                 return Ok(ProductInputControl::Continue);
             }
@@ -232,7 +226,7 @@ pub fn run(
                         let dismissal = shell
                             .dismiss_transient(display)
                             .map_err(|error| error.as_str())?;
-                        emit_dismissed_transient(&dismissal, false, identities, fabrication);
+                        emit_dismissed_transient(&dismissal, false, identities, make);
                         arch::early_write(b"CONDUIT_TOUR_CHECKPOINT transient-dismissed\n");
                         return Ok(ProductInputControl::Continue);
                     }
@@ -254,7 +248,7 @@ pub fn run(
                     let receipt = presenter
                         .present(&front_door, display)
                         .map_err(|error| error.as_str())?;
-                    emit_journey_sign(&journey.projection(), fabrication, &receipt);
+                    emit_journey_sign(&journey.projection(), make, &receipt);
                     arch::early_write(b"CONDUIT_TOUR_CHECKPOINT world-returned\n");
                     return Ok(ProductInputControl::Continue);
                 }
@@ -269,7 +263,7 @@ pub fn run(
                         &event,
                         identities,
                         offer,
-                        fabrication.build_id,
+                        make.build_id,
                         &mut clock,
                         &mut timer,
                         &mut serial,
@@ -292,7 +286,7 @@ pub fn run(
                                 Some(refusal.as_str()),
                                 &shell,
                                 identities,
-                                fabrication,
+                                make,
                             )?;
                             arch::early_write(b"CONDUIT_TOUR_CHECKPOINT refusal-transient-shown\n");
                             return Ok(ProductInputControl::Continue);
@@ -302,13 +296,7 @@ pub fn run(
                     let shell_receipt = shell
                         .present_with_lifecycle(&tour, &journey.projection(), display)
                         .map_err(|error| error.as_str())?;
-                    emit_tour_sign(
-                        &tour,
-                        Some(&update),
-                        &shell_receipt,
-                        identities,
-                        fabrication,
-                    );
+                    emit_tour_sign(&tour, Some(&update), &shell_receipt, identities, make);
                     if update.play.is_some() {
                         arch::early_write(b"\n");
                         let receipt = shell
@@ -319,7 +307,7 @@ pub fn run(
                                 display,
                             )
                             .map_err(|error| error.as_str())?;
-                        emit_shown_transient(&receipt, None, &shell, identities, fabrication)?;
+                        emit_shown_transient(&receipt, None, &shell, identities, make)?;
                         arch::early_write(
                             b"CONDUIT_TOUR_CHECKPOINT confirmation-transient-shown\n",
                         );
@@ -332,7 +320,7 @@ pub fn run(
                                 display,
                             )
                             .map_err(|error| error.as_str())?;
-                        emit_shown_transient(&receipt, None, &shell, identities, fabrication)?;
+                        emit_shown_transient(&receipt, None, &shell, identities, make)?;
                         arch::early_write(b"CONDUIT_TOUR_CHECKPOINT chooser-transient-shown\n");
                     }
                     return Ok(
@@ -374,7 +362,7 @@ pub fn run(
                         let receipt = shell
                             .present_with_lifecycle(&tour, &journey.projection(), display)
                             .map_err(|error| error.as_str())?;
-                        emit_tour_sign(&tour, None, &receipt, identities, fabrication);
+                        emit_tour_sign(&tour, None, &receipt, identities, make);
                         arch::early_write(b"CONDUIT_HOME_CHECKPOINT tour-opened\n");
                     }
                     crate::front_door::HomeInput::OpenPatchbay => {
@@ -394,7 +382,7 @@ pub fn run(
                         }
                         front_door.close_home().map_err(|error| error.as_str())?;
                         let receipt = refresh(&mut front_door, &journey, &mut presenter, display)?;
-                        emit_journey_sign(&journey.projection(), fabrication, &receipt);
+                        emit_journey_sign(&journey.projection(), make, &receipt);
                         arch::early_write(b"CONDUIT_HOME_CHECKPOINT patchbay-opened\n");
                     }
                     crate::front_door::HomeInput::OpenCreche => {
@@ -425,7 +413,7 @@ pub fn run(
                         }
                         front_door.close_home().map_err(|error| error.as_str())?;
                         let receipt = refresh(&mut front_door, &journey, &mut presenter, display)?;
-                        emit_journey_sign(&journey.projection(), fabrication, &receipt);
+                        emit_journey_sign(&journey.projection(), make, &receipt);
                         arch::early_write(
                             format!("CONDUIT_HOME_CHECKPOINT form-opened {}\n", requested.name())
                                 .as_bytes(),
@@ -450,7 +438,7 @@ pub fn run(
                         }
                         front_door.close_home().map_err(|error| error.as_str())?;
                         let receipt = refresh(&mut front_door, &journey, &mut presenter, display)?;
-                        emit_journey_sign(&journey.projection(), fabrication, &receipt);
+                        emit_journey_sign(&journey.projection(), make, &receipt);
                         arch::early_write(
                             format!("CONDUIT_HOME_CHECKPOINT form-run {}\n", requested.name())
                                 .as_bytes(),
@@ -481,7 +469,7 @@ pub fn run(
                             display,
                             identities,
                             offer,
-                            fabrication,
+                            make,
                         )?;
                     }
                 }
@@ -495,7 +483,7 @@ pub fn run(
             {
                 front_door.open_home().map_err(|error| error.as_str())?;
                 let receipt = refresh(&mut front_door, &journey, &mut presenter, display)?;
-                emit_journey_sign(&journey.projection(), fabrication, &receipt);
+                emit_journey_sign(&journey.projection(), make, &receipt);
                 arch::early_write(b"CONDUIT_HOME_CHECKPOINT returned\n");
                 return Ok(ProductInputControl::Continue);
             }
@@ -522,7 +510,7 @@ pub fn run(
                             let mut prepared = crate::tour_play::prepare_morse_stage(
                                 identities,
                                 offer,
-                                fabrication.build_id,
+                                make.build_id,
                             )
                             .map_err(|error| error.as_str())?;
                             let evidence = crate::tour_play::run_morse_stage(
@@ -548,7 +536,7 @@ pub fn run(
                                 crate::tour_play::prepare_stage(
                                     identities,
                                     offer,
-                                    fabrication.build_id,
+                                    make.build_id,
                                     chapter,
                                     stage,
                                 )
@@ -576,7 +564,7 @@ pub fn run(
                                     request,
                                     identities,
                                     offer,
-                                    fabrication.build_id,
+                                    make.build_id,
                                 )
                                 .map_err(|error| error.as_str())?;
                             arch::early_write(
@@ -594,13 +582,13 @@ pub fn run(
                         None => {}
                     }
                     let receipt = refresh(&mut front_door, &journey, &mut presenter, display)?;
-                    emit_journey_sign(&journey.projection(), fabrication, &receipt);
+                    emit_journey_sign(&journey.projection(), make, &receipt);
                     return Ok(ProductInputControl::Continue);
                 }
                 if let Some(changed) = workspace_input::select(event, &mut journey)? {
                     if changed {
                         let receipt = refresh(&mut front_door, &journey, &mut presenter, display)?;
-                        emit_journey_sign(&journey.projection(), fabrication, &receipt);
+                        emit_journey_sign(&journey.projection(), make, &receipt);
                     }
                     return Ok(ProductInputControl::Continue);
                 }
@@ -629,7 +617,7 @@ pub fn run(
                         request,
                         identities,
                         offer,
-                        fabrication.build_id,
+                        make.build_id,
                         front_door.revision(),
                     )
                     .map_err(|error| error.as_str())?;
@@ -637,7 +625,7 @@ pub fn run(
                     format!("CONDUIT_PRODUCT_ACTION applied {}\n", action.as_str()).as_bytes(),
                 );
                 let receipt = refresh(&mut front_door, &journey, &mut presenter, display)?;
-                emit_journey_sign(&journey.projection(), fabrication, &receipt);
+                emit_journey_sign(&journey.projection(), make, &receipt);
                 return Ok(ProductInputControl::Continue);
             }
             let revision = front_door.revision();
@@ -728,7 +716,7 @@ pub fn run(
                     })
                     .map_err(|error| error.as_str())?;
                 let receipt = refresh(&mut front_door, &journey, &mut presenter, display)?;
-                emit_journey_sign(&journey.projection(), fabrication, &receipt);
+                emit_journey_sign(&journey.projection(), make, &receipt);
                 Ok(())
             },
         )?;
@@ -742,7 +730,7 @@ pub fn run(
             event,
             identities,
             offer,
-            fabrication.build_id,
+            make.build_id,
             &mut clock,
             &mut timer,
             &mut serial,
@@ -753,7 +741,7 @@ pub fn run(
     if let Some(ps2) = ps2_input {
         return crate::product_pointer::run_ps2(
             identities,
-            fabrication,
+            make,
             &mut tour,
             &mut shell,
             display,
@@ -767,7 +755,7 @@ pub fn run(
         .ok_or("front-door-pointer-realization-missing")?;
     crate::product_pointer::run(
         identities,
-        fabrication,
+        make,
         &mut tour,
         &mut shell,
         display,

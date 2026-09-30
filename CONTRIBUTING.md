@@ -17,7 +17,7 @@ only for the target you work on.
 ```sh
 git clone --branch dev https://github.com/dancxjo/conduit.git
 cd conduit
-cargo xtask fabricate host std
+cargo xtask make host std
 ```
 
 The last command builds the product CLI and runs the checked-in Hello form.

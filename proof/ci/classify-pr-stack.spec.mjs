@@ -119,6 +119,6 @@ test("candidate workflows retain only cheap gates for an intermediate stack slic
   }
   assert.match(check, /reason=stacked-intermediate-slice/);
   assert.match(check, /docs_only=true/);
-  assert.match(products, /no product fabrication is scheduled/);
+  assert.match(products, /no product make is scheduled/);
   assert.match(products, /echo 'required=false'/);
 });

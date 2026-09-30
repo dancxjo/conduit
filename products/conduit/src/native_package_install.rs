@@ -1,6 +1,6 @@
 //! Native adapter for the bounded uncompressed body-bound ZIP emitted by Crèche.
 
-use conduit_host_fabrication::{
+use conduit_host_make::{
     BodyBoundArtifactIdentity, NativeInstallOutcome, NativeInstallRefusal, NativePackageInstaller,
 };
 use serde::{Deserialize, Serialize};
@@ -99,7 +99,7 @@ struct NativeSpore {
     image_content_digest: String,
     target: String,
     output: String,
-    fabrication: FabricationSelection,
+    make: MakeSelection,
     source_identity: String,
 }
 
@@ -110,8 +110,8 @@ struct SporeBinding {
 }
 
 #[derive(Deserialize)]
-struct FabricationSelection {
-    fabrication_package_id: String,
+struct MakeSelection {
+    make_package_id: String,
     builder_adapter: String,
     deployment_adapter: Option<String>,
 }
@@ -128,7 +128,7 @@ struct InvitationProvision {
 struct ReleaseManifest<'a> {
     schema: &'static str,
     target_id: &'a str,
-    fabrication_package_id: &'a str,
+    make_package_id: &'a str,
     output: &'static str,
     builder_adapter: &'a str,
     deployment_adapter: &'a str,
@@ -201,16 +201,16 @@ fn prepare(
         }
         let deployment = provision
             .spore
-            .fabrication
+            .make
             .deployment_adapter
             .as_deref()
             .ok_or(NativeInstallRefusal::BindingMismatch)?;
         let manifest = ReleaseManifest {
             schema: "conduit.release/host-bundle@1",
             target_id: &provision.spore.target,
-            fabrication_package_id: &provision.spore.fabrication.fabrication_package_id,
+            make_package_id: &provision.spore.make.make_package_id,
             output: "native-bundle",
-            builder_adapter: &provision.spore.fabrication.builder_adapter,
+            builder_adapter: &provision.spore.make.builder_adapter,
             deployment_adapter: deployment,
             source_identity: &provision.spore.source_identity,
             bundle_sha256: &artifact.image_content_sha256,

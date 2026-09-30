@@ -53,7 +53,7 @@ test("exact x86_64 product IMAGE obtains and binds as a downloadable spore witho
   expect(evidence.binding).toMatchObject({
     target_id: X86,
     output: "disk-image",
-    fabrication_package_id: "conduitos-image@1",
+    make_package_id: "conduitos-image@1",
     deployment_adapter: "conduit-host-conduitos/boot-x86_64@1",
     image_content_digest: release.manifest.artifact.sha256,
     spore_artifact: {

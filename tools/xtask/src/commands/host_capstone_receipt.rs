@@ -1,8 +1,8 @@
-//! Bounded retained evidence for the host fabrication capstone.
+//! Bounded retained evidence for the host make capstone.
 
 use conduit_body::{BodyMembership, PartId};
 use conduit_core::{ArtifactId, Plan, SignId};
-use conduit_host_fabrication::{BuildManifest, HostImage, ImageBootIdentity};
+use conduit_host_make::{BuildManifest, HostImage, ImageBootIdentity};
 use conduit_presentation::{ManifestationSet, Presentation};
 use serde::Serialize;
 

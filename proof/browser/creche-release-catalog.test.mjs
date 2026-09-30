@@ -11,7 +11,7 @@ test("selected target alone is fetched, verified, and reused from immutable cach
   const manifest = {
     schema: "conduit.release/host-bundle@1",
     target_id: "std/x86_64/computer",
-    fabrication_package_id: "hosted-native@1",
+    make_package_id: "hosted-native@1",
     output: "native-bundle",
     builder_adapter: "conduit-host-hosted/build-native@1",
     deployment_adapter: "conduit-host-hosted/launch@1",
@@ -27,7 +27,7 @@ test("selected target alone is fetched, verified, and reused from immutable cach
     catalog_id: "",
     entries: [{
       target_id: manifest.target_id,
-      package_id: manifest.fabrication_package_id,
+      package_id: manifest.make_package_id,
       output: manifest.output,
       builder_adapter: manifest.builder_adapter,
       deployment_adapter: manifest.deployment_adapter,
@@ -64,7 +64,7 @@ test("selected target alone is fetched, verified, and reused from immutable cach
   const profile = {
     target_id: manifest.target_id,
     release_catalog_key: manifest.target_id,
-    package_id: manifest.fabrication_package_id,
+    package_id: manifest.make_package_id,
     output: manifest.output,
     builder_adapter: manifest.builder_adapter,
     deployment_adapter: manifest.deployment_adapter,

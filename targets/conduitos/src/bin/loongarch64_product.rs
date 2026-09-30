@@ -10,13 +10,13 @@ use conduitos::{
     arch, boot,
     boot::{BootRecord, Firmware, RuntimeArena},
     dual_region_composition, dual_region_plan,
-    fabrication::{EMBEDDED_FABRICATION, IMPL_LINEAR_PRESENTER},
     front_door::FrontDoor,
     identity, keyboard_text_plan,
     linear_presenter::LinearPresenter,
+    make::{EMBEDDED_MAKE, IMPL_LINEAR_PRESENTER},
     observatory,
     offer::CpuFeatures,
-    offer_fabrication::ImageBoundHostOffer,
+    offer_make::ImageBoundHostOffer,
     spore_join,
 };
 use core::panic::PanicInfo;
@@ -40,13 +40,13 @@ pub extern "C" fn conduitos_loongarch64_product_start() -> ! {
     if !arch::initialize_machine() {
         refuse("unavailable-or-stale-trap-controller");
     }
-    EMBEDDED_FABRICATION
+    EMBEDDED_MAKE
         .validate(1024 * 1024)
         .unwrap_or_else(|error| refuse(error.as_str()));
-    if EMBEDDED_FABRICATION.target != "conduitos/loongarch64/virt"
-        || !EMBEDDED_FABRICATION.includes(IMPL_LINEAR_PRESENTER)
+    if EMBEDDED_MAKE.target != "conduitos/loongarch64/virt"
+        || !EMBEDDED_MAKE.includes(IMPL_LINEAR_PRESENTER)
     {
-        refuse("loongarch64-product-fabrication-mismatch");
+        refuse("loongarch64-product-make-mismatch");
     }
     let counter = arch::read_counter();
     let identities = identity::derive(
@@ -61,7 +61,7 @@ pub extern "C" fn conduitos_loongarch64_product_start() -> ! {
     );
     let offer = ImageBoundHostOffer::new(
         &identities,
-        &EMBEDDED_FABRICATION,
+        &EMBEDDED_MAKE,
         CpuFeatures {
             sse2: false,
             rdrand: false,
@@ -84,9 +84,9 @@ pub extern "C" fn conduitos_loongarch64_product_start() -> ! {
         host_id.clone(),
         boot_id.clone(),
         generation,
-        EMBEDDED_FABRICATION.profile_id,
-        EMBEDDED_FABRICATION.build_id,
-        EMBEDDED_FABRICATION.image_binding,
+        EMBEDDED_MAKE.profile_id,
+        EMBEDDED_MAKE.build_id,
+        EMBEDDED_MAKE.image_binding,
         form.source_document_id,
         form.checked_form_id,
         5,
@@ -99,8 +99,8 @@ pub extern "C" fn conduitos_loongarch64_product_start() -> ! {
         host_id,
         boot_id,
         generation,
-        EMBEDDED_FABRICATION.profile_id,
-        EMBEDDED_FABRICATION.image_binding,
+        EMBEDDED_MAKE.profile_id,
+        EMBEDDED_MAKE.image_binding,
         "presenter/loongarch64-linear-uart@1",
         "conduitos/presenter/loongarch64-linear-uart@1",
         "conduitos/base/loongarch64-uart/0",
@@ -109,15 +109,14 @@ pub extern "C" fn conduitos_loongarch64_product_start() -> ! {
     let receipt = presenter
         .present(&presentation)
         .unwrap_or_else(|_| refuse("linear-presenter-manifestation-refused"));
-    let mut prepared =
-        dual_region_plan::prepare(&identities, &offer, EMBEDDED_FABRICATION.build_id)
-            .unwrap_or_else(|error| refuse(error.as_str()));
+    let mut prepared = dual_region_plan::prepare(&identities, &offer, EMBEDDED_MAKE.build_id)
+        .unwrap_or_else(|error| refuse(error.as_str()));
     let region = boot::spore_module().unwrap_or_else(|| refuse("spore-boot-module-missing"));
     if let Some(join) = spore_join::encode_region(
         region,
-        EMBEDDED_FABRICATION.target,
-        EMBEDDED_FABRICATION.profile_id,
-        EMBEDDED_FABRICATION.build_id,
+        EMBEDDED_MAKE.target,
+        EMBEDDED_MAKE.profile_id,
+        EMBEDDED_MAKE.build_id,
         &prepared.advertisement,
     )
     .unwrap_or_else(|error| refuse(error))
@@ -149,8 +148,8 @@ pub extern "C" fn conduitos_loongarch64_product_start() -> ! {
         &identities,
         &offer,
         &prepared,
-        EMBEDDED_FABRICATION.build_id,
-        EMBEDDED_FABRICATION.image_binding,
+        EMBEDDED_MAKE.build_id,
+        EMBEDDED_MAKE.image_binding,
         None,
     )
     .unwrap_or_else(|error| refuse(error.as_str()));
@@ -175,11 +174,11 @@ pub extern "C" fn conduitos_loongarch64_product_start() -> ! {
         refuse("allocation-during-play");
     }
     arch::present(b"CONDUIT_LOONGARCH64_PRODUCT {\"schema\":\"conduit.conduitos/loongarch64-product@1\",\"status\":\"ready\",\"profile_id\":\"");
-    arch::present(EMBEDDED_FABRICATION.profile_id.as_bytes());
+    arch::present(EMBEDDED_MAKE.profile_id.as_bytes());
     arch::present(b"\",\"build_id\":\"");
-    arch::present(EMBEDDED_FABRICATION.build_id.as_bytes());
+    arch::present(EMBEDDED_MAKE.build_id.as_bytes());
     arch::present(b"\",\"image_id\":\"");
-    arch::present(EMBEDDED_FABRICATION.image_binding.as_bytes());
+    arch::present(EMBEDDED_MAKE.image_binding.as_bytes());
     arch::present(b"\",\"host_id\":\"");
     arch::present(host_identity.as_bytes());
     arch::present(b"\",\"boot_id\":\"");

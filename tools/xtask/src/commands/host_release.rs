@@ -22,7 +22,7 @@ pub(crate) enum ReleasePlatform {
 struct ReleaseManifest<'a> {
     schema: &'static str,
     target_id: &'a str,
-    fabrication_package_id: &'a str,
+    make_package_id: &'a str,
     output: &'a str,
     builder_adapter: &'a str,
     deployment_adapter: &'a str,
@@ -366,7 +366,7 @@ fn seal(
     let manifest = ReleaseManifest {
         schema: RELEASE_SCHEMA,
         target_id,
-        fabrication_package_id: package_id,
+        make_package_id: package_id,
         output,
         builder_adapter: builder,
         deployment_adapter: deployment,

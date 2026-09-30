@@ -55,7 +55,7 @@ counter that happens to reach the storage capacity.
 
 The finite-state specimen in `conduit-body` retains one bounded integer and one
 fixed resource envelope. Its caller may provide any number of transitions. A
-value overflow is reported as `ValueOverflow` and does not wrap or fabricate a
+value overflow is reported as `ValueOverflow` and does not wrap or make a
 new state. A replacement plan changes realization identity only; source and
 checked-form identity plus retained state remain unchanged when continuity is
 admitted. The specimen is a contract proof, not a second scheduler or runtime.

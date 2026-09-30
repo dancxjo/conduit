@@ -3,7 +3,7 @@ use std::{collections::BTreeSet, fs, path::Path, process::Command};
 const PACKAGE_ROOTS: &[&str] = &[
     "architecture",
     "bodies",
-    "fabrication",
+    "make",
     "forms",
     "mechanisms",
     "products",

@@ -4,14 +4,12 @@ use conduit_body::{
     AdmissionSigns, BodyBiographyEvidence, BodyLifecycleEvent, SpawnAdmissionProof,
     SpawnInvitationClaim, SpawnInvitationSecret,
 };
-use conduit_body_fabrication::{
+use conduit_body_make::{
     seal_prebuilt_body_spore, seal_prebuilt_body_spore_with_content_digest,
     seal_reviewed_prebuilt_body_spore_with_content_digest, SelectedPrebuiltContent, SporeBinding,
 };
 use conduit_core::{HostAdvertisement, SignId};
-use conduit_host_fabrication::{
-    build_host_image, BuildInputs, FabricationCatalog, SporeOutputKind,
-};
+use conduit_host_make::{build_host_image, BuildInputs, MakeCatalog, SporeOutputKind};
 use serde::{Deserialize, Serialize};
 
 use super::{session, spore_target};
@@ -33,7 +31,7 @@ pub(crate) struct PreparedSpore {
     image_content_digest: String,
     target_id: String,
     output: SporeOutputKind,
-    fabrication_package_id: String,
+    make_package_id: String,
     deployment_adapter: Option<String>,
     invitation_id: String,
     invitation_nonce: [u8; 32],
@@ -43,7 +41,7 @@ pub(crate) struct PreparedSpore {
     browser_configuration_id: Option<String>,
     browser_profile_id: Option<String>,
     browser_configuration_source: Option<String>,
-    spore_manifest: conduit_body_fabrication::SporeManifest,
+    spore_manifest: conduit_body_make::SporeManifest,
     does_not_prove: [&'static str; 6],
 }
 
@@ -171,7 +169,7 @@ pub(crate) fn prepare_workspace_browser(
         invitation.invitation_id.as_str(),
         checked,
     )?;
-    let catalog = FabricationCatalog::canonical().with_packages(&packages);
+    let catalog = MakeCatalog::canonical().with_packages(&packages);
     let (image, image_bytes) = build_host_image(
         target.configuration.profile().clone(),
         &catalog,
@@ -203,7 +201,7 @@ pub(crate) fn prepare_workspace_browser(
     {
         return Err("sealed spore lost its exact Workspace invitation".into());
     }
-    let deployment_adapter = spore.manifest.fabrication.deployment_adapter.clone();
+    let deployment_adapter = spore.manifest.make.deployment_adapter.clone();
     Ok(PreparedSpore {
         schema: "conduit.tour/prepared-physical-spore@1",
         disposition: "prepared",
@@ -213,7 +211,7 @@ pub(crate) fn prepare_workspace_browser(
         image_content_digest: spore.manifest.image_content_digest.clone(),
         target_id: spore.manifest.target.clone(),
         output: spore.manifest.output.clone(),
-        fabrication_package_id: spore.manifest.fabrication.fabrication_package_id.clone(),
+        make_package_id: spore.manifest.make.make_package_id.clone(),
         deployment_adapter,
         invitation_id: invitation.invitation_id.as_str().into(),
         invitation_nonce: invitation.nonce,
@@ -255,7 +253,7 @@ pub(crate) fn prepare_workspace_physical(
         invitation.invitation_id.as_str(),
         target_id,
     )?;
-    let catalog = FabricationCatalog::canonical().with_packages(&target.packages);
+    let catalog = MakeCatalog::canonical().with_packages(&target.packages);
     let reviewed_image = reviewed_image_bytes
         .map(|bytes| serde_json::from_slice(bytes).map(|image| (image, bytes)))
         .transpose()
@@ -318,7 +316,7 @@ pub(crate) fn prepare_workspace_physical(
     {
         return Err("sealed spore lost its exact Workspace invitation".into());
     }
-    let deployment_adapter = spore.manifest.fabrication.deployment_adapter.clone();
+    let deployment_adapter = spore.manifest.make.deployment_adapter.clone();
     Ok(PreparedSpore {
         schema: "conduit.tour/prepared-physical-spore@1",
         disposition: "prepared",
@@ -328,7 +326,7 @@ pub(crate) fn prepare_workspace_physical(
         image_content_digest: spore.manifest.image_content_digest.clone(),
         target_id: spore.manifest.target.clone(),
         output: spore.manifest.output.clone(),
-        fabrication_package_id: spore.manifest.fabrication.fabrication_package_id.clone(),
+        make_package_id: spore.manifest.make.make_package_id.clone(),
         deployment_adapter,
         invitation_id: invitation.invitation_id.as_str().into(),
         invitation_nonce: invitation.nonce,
@@ -356,7 +354,7 @@ fn prepare_selected_for_target_with_browser_configuration(
     target_id: &str,
     selected_image_content_digest: Option<&str>,
     browser_selection: Option<super::browser_configuration::BrowserConfigurationSelection>,
-    reviewed_image: Option<(conduit_host_fabrication::HostImage, &[u8])>,
+    reviewed_image: Option<(conduit_host_make::HostImage, &[u8])>,
 ) -> Result<PreparedSpore, String> {
     session::with_session(|session| {
         if session.pending_spore.is_some() {
@@ -393,7 +391,7 @@ fn prepare_selected_for_target_with_browser_configuration(
                 None,
             )
         };
-        let catalog = FabricationCatalog::canonical().with_packages(&target.packages);
+        let catalog = MakeCatalog::canonical().with_packages(&target.packages);
         let has_reviewed_image = reviewed_image.is_some();
         let (image, image_bytes) = if let Some((image, bytes)) = reviewed_image {
             (image, bytes.to_vec())
@@ -452,7 +450,7 @@ fn prepare_selected_for_target_with_browser_configuration(
         {
             return Err("sealed spore lost its exact self-joining invitation".into());
         }
-        let deployment_adapter = spore.manifest.fabrication.deployment_adapter.clone();
+        let deployment_adapter = spore.manifest.make.deployment_adapter.clone();
         let prepared = PreparedSpore {
             schema: "conduit.tour/prepared-physical-spore@1",
             disposition: "prepared",
@@ -462,7 +460,7 @@ fn prepare_selected_for_target_with_browser_configuration(
             image_content_digest: spore.manifest.image_content_digest.clone(),
             target_id: spore.manifest.target.clone(),
             output: spore.manifest.output.clone(),
-            fabrication_package_id: spore.manifest.fabrication.fabrication_package_id.clone(),
+            make_package_id: spore.manifest.make.make_package_id.clone(),
             deployment_adapter,
             invitation_id: invitation.invitation_id.as_str().into(),
             invitation_nonce: invitation.nonce,

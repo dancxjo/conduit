@@ -72,10 +72,7 @@ fn offline_revocation_and_extinction_are_separate_continuity_facts() {
     continuity.declare_extinct().unwrap();
     assert!(!continuity.is_continuing());
     assert_eq!(
-        continuity.admit(
-            claim(&body, "fabricated", 1),
-            runtime(&body, "fabricated", "boot")
-        ),
+        continuity.admit(claim(&body, "made", 1), runtime(&body, "made", "boot")),
         Err(BodyContinuityRefusal::BodyExtinct)
     );
 }
