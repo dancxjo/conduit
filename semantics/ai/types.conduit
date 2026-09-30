@@ -52,3 +52,38 @@ type SimilarityMetric =
 type EmbeddingNormalization =
     none
     | unit_length
+
+type TemporalSource =
+    event
+    | valid_from
+    | valid_until
+    | observed
+    | recorded
+    | ingested
+    | retrieved
+
+type EntityBoundary =
+    created
+    | first_observed
+    | first_user_mention
+    | born
+    | started
+    | current_phase_started
+    | last_changed
+
+type TransitionDirection =
+    into_state
+    | out_of_state
+
+type TemporalValidity =
+    current
+    | historical
+    | superseded
+    | unknown_whether_current
+
+type TemporalWindowRelation =
+    before
+    | within
+    | after
+    | overlaps
+    | unknown

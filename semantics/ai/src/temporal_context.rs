@@ -2,6 +2,10 @@ use alloc::string::String;
 use conduit_core::{TemporalInstant, TemporalRelation, TemporalRelationError, TemporalScale};
 use serde::{Deserialize, Serialize};
 
+use crate::{
+    EntityBoundary, TemporalSource, TemporalValidity, TemporalWindowRelation, TransitionDirection,
+};
+
 pub const MAXIMUM_CLOCK_IDENTITY_BYTES: usize = 128;
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
@@ -30,34 +34,6 @@ pub struct TemporalProvenance {
     pub uncertainty_millis: Option<u64>,
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
-pub enum TemporalSource {
-    Event,
-    ValidFrom,
-    ValidUntil,
-    Observed,
-    Recorded,
-    Ingested,
-    Retrieved,
-}
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
-pub enum EntityBoundary {
-    Created,
-    FirstObserved,
-    FirstUserMention,
-    Born,
-    Started,
-    CurrentPhaseStarted,
-    LastChanged,
-}
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
-pub enum TransitionDirection {
-    IntoState,
-    OutOfState,
-}
-
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub enum TemporalRetrievalIntent {
     EarliestEvidence,
@@ -69,29 +45,12 @@ pub enum TemporalRetrievalIntent {
     EvidenceWithin { start: u64, end: u64 },
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
-pub enum TemporalValidity {
-    Current,
-    Historical,
-    Superseded,
-    UnknownWhetherCurrent,
-}
-
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct TemporalContext {
     pub source: TemporalSource,
     pub relation: TemporalRelation,
     pub validity: TemporalValidity,
     pub relation_to_query_window: Option<TemporalWindowRelation>,
-}
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
-pub enum TemporalWindowRelation {
-    Before,
-    Within,
-    After,
-    Overlaps,
-    Unknown,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
