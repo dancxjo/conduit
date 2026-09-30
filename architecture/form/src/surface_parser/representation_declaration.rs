@@ -22,7 +22,14 @@ pub(super) fn parse_representation(
     let (value_type, storage) = realization
         .split_once(" as ")
         .ok_or_else(|| parser.invalid_statement(header, start))?;
-    if !is_operation(name) || !is_name(value_type) || storage != "u8" {
+    let first_discriminant = match storage.strip_prefix("u8 from ") {
+        Some(value) => value
+            .parse::<u8>()
+            .map_err(|_| parser.invalid_statement(header, start))?,
+        None if storage == "u8" => 0,
+        None => return Err(parser.invalid_statement(header, start)),
+    };
+    if !is_operation(name) || !is_name(value_type) {
         return Err(parser.invalid_statement(header, start));
     }
 
@@ -55,6 +62,7 @@ pub(super) fn parse_representation(
         name,
         value_type,
         storage: RepresentationStorageSyntax::U8,
+        first_discriminant,
         mappings,
         span: parser.span(start, end.start + end.text.len()),
     })

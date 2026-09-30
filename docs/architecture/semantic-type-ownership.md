@@ -59,7 +59,15 @@ representation data/save-refusal = SaveRefusal as u8
 The checked representation records `0` and `1`, bounded invalid-tag refusal,
 and a compatibility fingerprint. Authors write no tag table or version bump.
 When an established contract needs a different order, an indented list states
-only that order; the checker still proves it exhaustive and unique.
+only that order; the checker still proves it exhaustive and unique. A nonzero
+iota origin stays terse and equally checked:
+
+```conduit
+representation presentation/role = PresentationRole as u8 from 1
+```
+
+That records `1`, `2`, and onward in authored variant order. The checker
+refuses overflow instead of wrapping or inventing a wider layout.
 
 ## Architecture and language implementation
 

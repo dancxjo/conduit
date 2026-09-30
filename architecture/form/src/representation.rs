@@ -120,15 +120,23 @@ pub(crate) fn check_representations(
         let mappings = ordered
             .into_iter()
             .enumerate()
-            .map(|(discriminant, variant)| {
+            .map(|(offset, variant)| {
                 Ok(CheckedRepresentationMapping {
                     variant: variant.into(),
-                    discriminant: u8::try_from(discriminant).map_err(|_| {
-                        diagnostic(
-                            declaration.span,
-                            "u8 representation has too many variants".into(),
-                        )
-                    })?,
+                    discriminant: declaration
+                        .first_discriminant
+                        .checked_add(u8::try_from(offset).map_err(|_| {
+                            diagnostic(
+                                declaration.span,
+                                "u8 representation has too many variants".into(),
+                            )
+                        })?)
+                        .ok_or_else(|| {
+                            diagnostic(
+                                declaration.span,
+                                "u8 representation iota exceeds 255".into(),
+                            )
+                        })?,
                 })
             })
             .collect::<Result<Vec<_>, SyntaxCheckDiagnostic>>()?;
