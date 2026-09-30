@@ -521,7 +521,9 @@ fn instantiate_gear(
                 }
                 output.clone()
             }
-            crate::ActivationSyntax::Fold { .. } => activation.output.clone(),
+            crate::ActivationSyntax::Fold { .. } | crate::ActivationSyntax::Scan { .. } => {
+                activation.output.clone()
+            }
         };
         output.temporal = if matches!(activation.mode, crate::ActivationSyntax::Fold { .. }) {
             conduit_core::PortTemporal::Value
@@ -531,8 +533,8 @@ fn instantiate_gear(
         let activation_id = format!("{}/activation", gear_id.as_str());
         gears.push(crate::checked_gear_from_parts! {
             gear_id: gear_id.clone(),
-            kind_id: KindId::from(match activation.mode { crate::ActivationSyntax::Each { .. } => "flow/each", crate::ActivationSyntax::Select { .. } => "flow/select", crate::ActivationSyntax::Fold { .. } => "flow/fold" }),
-            kind_contract_revision: conduit_core::KindIdentity::from(match activation.mode { crate::ActivationSyntax::Each { .. } => "conduit.flow/each@1", crate::ActivationSyntax::Select { .. } => "conduit.flow/select@1", crate::ActivationSyntax::Fold { .. } => "conduit.flow/fold@1" }),
+            kind_id: KindId::from(match activation.mode { crate::ActivationSyntax::Each { .. } => "flow/each", crate::ActivationSyntax::Select { .. } => "flow/select", crate::ActivationSyntax::Fold { .. } => "flow/fold", crate::ActivationSyntax::Scan { .. } => "flow/scan" }),
+            kind_contract_revision: conduit_core::KindIdentity::from(match activation.mode { crate::ActivationSyntax::Each { .. } => "conduit.flow/each@1", crate::ActivationSyntax::Select { .. } => "conduit.flow/select@1", crate::ActivationSyntax::Fold { .. } => "conduit.flow/fold@1", crate::ActivationSyntax::Scan { .. } => "conduit.flow/scan@1" }),
             startup_parameters: Vec::new(),
             shorthand: Some((input.port_id.clone(), output.port_id.clone())),
             inputs: vec![input.clone()],
@@ -541,6 +543,7 @@ fn instantiate_gear(
                 crate::ActivationSyntax::Each { maximum_items } => conduit_core::flow_each_activation_contract(&activation.input_contract, &activation.output_contract, activation.abnormal_contract.as_ref(), input.port_id.clone(), output.port_id.clone(), *maximum_items),
                 crate::ActivationSyntax::Select { maximum_items } => conduit_core::flow_select_activation_contract(&activation.input_contract, activation.abnormal_contract.as_ref(), input.port_id.clone(), output.port_id.clone(), *maximum_items),
                 crate::ActivationSyntax::Fold { maximum_items, .. } => conduit_core::flow_fold_activation_contract(&activation.input_contract, activation.accumulator_contract.as_ref().expect("checked fold accumulator contract"), initial_accumulator_bytes.clone().expect("expanded fold initial bytes"), activation.abnormal_contract.as_ref(), input.port_id.clone(), output.port_id.clone(), conduit_core::port_id("accumulator"), conduit_core::port_id("item"), conduit_core::port_id("combined"), *maximum_items),
+                crate::ActivationSyntax::Scan { maximum_items, .. } => conduit_core::flow_scan_activation_contract(&activation.input_contract, activation.accumulator_contract.as_ref().expect("checked scan accumulator contract"), initial_accumulator_bytes.clone().expect("expanded scan initial bytes"), activation.abnormal_contract.as_ref(), input.port_id.clone(), output.port_id.clone(), conduit_core::port_id("accumulator"), conduit_core::port_id("item"), conduit_core::port_id("combined"), *maximum_items),
             },
             terminal_transductions: Vec::new(),
             resource_ports: Vec::new(),

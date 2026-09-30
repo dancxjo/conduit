@@ -727,6 +727,43 @@ impl<'a> Parser<'a> {
                     selected,
                     selected_start,
                 )
+            } else if let Some(rest) = invoked.strip_prefix("scan(") {
+                let Some((arguments, selected)) = rest.split_once(") ") else {
+                    return Err((
+                        FormError::InvalidSyntax(
+                            "scan requires 'scan(initial, maximum-items = N) combine-form()'"
+                                .into(),
+                        ),
+                        self.span(invoked_start, start + text.len()),
+                    ));
+                };
+                let Some((initial, maximum_items)) = arguments.rsplit_once(", maximum-items = ")
+                else {
+                    return Err((
+                        FormError::InvalidSyntax(
+                            "scan requires 'scan(initial, maximum-items = N) combine-form()'"
+                                .into(),
+                        ),
+                        self.span(invoked_start, start + text.len()),
+                    ));
+                };
+                let initial_start = invoked_start + "scan(".len();
+                let selected_start = initial_start + arguments.len() + ") ".len();
+                (
+                    Some(ActivationSyntax::Scan {
+                        initial: Box::new(self.expression_at(initial, initial, initial_start)?),
+                        maximum_items: parse_activation_maximum(maximum_items).map_err(
+                            |message| {
+                                (
+                                    FormError::InvalidSyntax(message.into()),
+                                    self.span(invoked_start, start + text.len()),
+                                )
+                            },
+                        )?,
+                    }),
+                    selected,
+                    selected_start,
+                )
             } else {
                 (None, invoked, invoked_start)
             };

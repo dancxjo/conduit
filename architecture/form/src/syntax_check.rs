@@ -1410,7 +1410,14 @@ fn checked_activation(
             .find(|value| value.location == location)
             .map(|value| value.contract.clone())
     };
-    if let crate::ActivationSyntax::Fold { initial, .. } = &mode {
+    if let crate::ActivationSyntax::Fold { initial, .. }
+    | crate::ActivationSyntax::Scan { initial, .. } = &mode
+    {
+        let (name, code) = if matches!(mode, crate::ActivationSyntax::Fold { .. }) {
+            ("fold", "CND-FRM-064")
+        } else {
+            ("scan", "CND-FRM-065")
+        };
         let accumulator = front
             .inputs()
             .iter()
@@ -1425,9 +1432,9 @@ fn checked_activation(
             .find(|port| port.port_id.as_str() == "combined");
         let (Some(accumulator), Some(item), Some(combined)) = (accumulator, item, combined) else {
             return Err(SyntaxCheckDiagnostic {
-                code: "CND-FRM-064",
+                code,
                 span: invocation.span,
-                message: "fold requires exact Value inputs 'accumulator' and 'item' and Value output 'combined'".into(),
+                message: format!("{name} requires exact Value inputs 'accumulator' and 'item' and Value output 'combined'"),
             });
         };
         if front.inputs().len() != 2
@@ -1441,9 +1448,9 @@ fn checked_activation(
             || !front.startup_parameters().is_empty()
         {
             return Err(SyntaxCheckDiagnostic {
-                code: "CND-FRM-064",
+                code,
                 span: invocation.span,
-                message: "fold combine must be startup-free and preserve one exact accumulator Value and abnormal terminal".into(),
+                message: format!("{name} combine must be startup-free and preserve one exact accumulator Value and abnormal terminal"),
             });
         }
         let initial = resolver
@@ -1467,17 +1474,17 @@ fn checked_activation(
                 item.port_id.clone(),
             ))
             .ok_or_else(|| SyntaxCheckDiagnostic {
-                code: "CND-FRM-064",
+                code,
                 span: invocation.span,
-                message: "fold item requires one exact finite value contract".into(),
+                message: format!("{name} item requires one exact finite value contract"),
             })?,
             output_contract: contract(conduit_core::FrontValueLocation::Output(
                 combined.port_id.clone(),
             ))
             .ok_or_else(|| SyntaxCheckDiagnostic {
-                code: "CND-FRM-064",
+                code,
                 span: invocation.span,
-                message: "fold output requires one exact finite value contract".into(),
+                message: format!("{name} output requires one exact finite value contract"),
             })?,
             abnormal_contract: item.abnormal_kind.as_ref().and_then(|_| {
                 contract(conduit_core::FrontValueLocation::InputAbnormal(
@@ -1489,9 +1496,9 @@ fn checked_activation(
                     accumulator.port_id.clone(),
                 ))
                 .ok_or_else(|| SyntaxCheckDiagnostic {
-                    code: "CND-FRM-064",
+                    code,
                     span: invocation.span,
-                    message: "fold accumulator requires one exact finite value contract".into(),
+                    message: format!("{name} accumulator requires one exact finite value contract"),
                 })?,
             ),
         });
