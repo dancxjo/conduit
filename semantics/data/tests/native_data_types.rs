@@ -1,8 +1,9 @@
 use conduit_core::{Quantity, QuantityUnit};
 use conduit_data::{
     ClockRelationQuality, DataLoadTextTerminal, DataSaveTextTerminal, FullWindowPolicy,
-    MeasurementPlotOverflowPolicy, MeasurementThresholdState, MeasurementThresholdTransition,
-    SampledSignalRefusal, TensorAxisRole, TensorElement,
+    MeasurementPlotOverflowPolicy, MeasurementPlotRefusal, MeasurementSummaryRefusal,
+    MeasurementThresholdRefusal, MeasurementThresholdState, MeasurementThresholdTransition,
+    MeasurementWindowRefusal, SampledSignalRefusal, TensorAxisRole, TensorElement,
 };
 use conduit_form::rust_binding::NativeRustBinding;
 
@@ -12,6 +13,51 @@ where
 {
     let structured = value.into_structured().unwrap();
     assert_eq!(T::from_structured(structured).unwrap(), value);
+}
+
+#[test]
+fn measurement_refusals_round_trip_through_exact_native_types() {
+    for refusal in [
+        MeasurementWindowRefusal::CapacityOutOfBounds,
+        MeasurementWindowRefusal::InvalidClockProfile,
+        MeasurementWindowRefusal::InvalidRange,
+        MeasurementWindowRefusal::InvalidTimestamp,
+        MeasurementWindowRefusal::UnitMismatch,
+        MeasurementWindowRefusal::UncertaintyUnitMismatch,
+        MeasurementWindowRefusal::NegativeUncertainty,
+        MeasurementWindowRefusal::ClockMismatch,
+        MeasurementWindowRefusal::TimestampRegression,
+        MeasurementWindowRefusal::OutOfRange,
+        MeasurementWindowRefusal::Full,
+        MeasurementWindowRefusal::DiscardCountOverflow,
+    ] {
+        assert_round_trip(refusal);
+    }
+    for refusal in [
+        MeasurementPlotRefusal::InvalidPointCapacity,
+        MeasurementPlotRefusal::EmptyWindow,
+        MeasurementPlotRefusal::Full,
+        MeasurementPlotRefusal::DegenerateValueRange,
+        MeasurementPlotRefusal::ArithmeticOverflow,
+        MeasurementPlotRefusal::InvalidProjection,
+    ] {
+        assert_round_trip(refusal);
+    }
+    for refusal in [
+        MeasurementSummaryRefusal::EmptyWindow,
+        MeasurementSummaryRefusal::UnitMismatch,
+        MeasurementSummaryRefusal::ArithmeticOverflow,
+        MeasurementSummaryRefusal::InexactMean,
+    ] {
+        assert_round_trip(refusal);
+    }
+    for refusal in [
+        MeasurementThresholdRefusal::PolicyUnitMismatch,
+        MeasurementThresholdRefusal::InvalidPolicyOrder,
+        MeasurementThresholdRefusal::SummaryUnitMismatch,
+    ] {
+        assert_round_trip(refusal);
+    }
 }
 
 #[test]
