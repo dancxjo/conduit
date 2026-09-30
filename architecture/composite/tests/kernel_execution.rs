@@ -599,25 +599,44 @@ fn bounded_fold_abnormal_and_cancel_discard_without_partial_value() {
 
     let mut host =
         BoundedFoldActivationHost::prepare(&planned, definition.clone(), &fold_registry()).unwrap();
-    host.admit(&value(b"1")).unwrap();
-    host.cancel().unwrap();
-    assert_eq!(*host.step().unwrap(), BoundedFoldState::Cancelled);
-    assert_eq!(host.final_value().unwrap(), None);
-    assert!(host.admit(&value(b"late")).is_err());
-    assert!(host.next_host_request().is_none());
+    let one = value(b"1");
+    let late = value(b"late");
+    let allocations = allocations_during(|| {
+        host.admit(&one).unwrap();
+        host.cancel().unwrap();
+        assert_eq!(*host.step().unwrap(), BoundedFoldState::Cancelled);
+        assert_eq!(host.final_value().unwrap(), None);
+        assert!(host.admit(&late).is_err());
+        assert!(host.next_host_request().is_none());
+    });
+    assert_eq!(
+        allocations, 0,
+        "fold cancellation allocated {allocations} times"
+    );
 
     let mut host =
         BoundedFoldActivationHost::prepare(&planned, definition, &fold_registry()).unwrap();
-    host.admit(&value(b"1")).unwrap();
+    host.admit(&one).unwrap();
     let terminal = ValuePayload {
         value_kind: abnormal,
         encoded: b"exact".to_vec(),
     };
-    host.terminate_input(terminal.clone()).unwrap();
-    assert_eq!(*host.step().unwrap(), BoundedFoldState::Abnormal(terminal));
-    assert_eq!(host.final_value().unwrap(), None);
-    assert!(host.admit(&value(b"late")).is_err());
-    assert!(host.next_host_request().is_none());
+    let expected = terminal.clone();
+    let allocations = allocations_during(|| {
+        host.terminate_input(terminal).unwrap();
+        assert!(matches!(
+            host.step().unwrap(),
+            BoundedFoldState::Abnormal(_)
+        ));
+        assert_eq!(host.final_value().unwrap(), None);
+        assert!(host.admit(&late).is_err());
+        assert!(host.next_host_request().is_none());
+    });
+    assert_eq!(
+        allocations, 0,
+        "fold abnormal allocated {allocations} times"
+    );
+    assert_eq!(*host.step().unwrap(), BoundedFoldState::Abnormal(expected));
 }
 
 fn planned_scan(
@@ -974,12 +993,18 @@ fn malformed_boundary_binding_and_value_kind_refuse_distinctly() {
 #[test]
 fn cancellation_is_terminal_and_rejects_late_kernel_work() {
     let mut host = KernelCompositeHost::prepare(definition(), &registry()).unwrap();
-    host.cancel().unwrap();
-    assert_eq!(host.step().unwrap(), KernelCompositeStatus::Cancelled);
-    assert!(matches!(
-        host.admit_input(&conduit_core::port_id("input"), 0, &value(b"late")),
-        Err(KernelCompositeError::InvalidLifecycle)
-    ));
+    let input_port = conduit_core::port_id("input");
+    let late = value(b"late");
+    host.start().unwrap();
+    let allocations = allocations_during(|| {
+        host.cancel().unwrap();
+        assert_eq!(host.step().unwrap(), KernelCompositeStatus::Cancelled);
+        assert!(matches!(
+            host.admit_input(&input_port, 0, &late),
+            Err(KernelCompositeError::InvalidLifecycle)
+        ));
+    });
+    assert_eq!(allocations, 0, "cancellation allocated {allocations} times");
 }
 
 #[test]
