@@ -1,5 +1,5 @@
 use crate::prelude::*;
-use crate::CheckedNativeType;
+use crate::{CheckedNativeType, CheckedRepresentation};
 use alloc::collections::{BTreeMap, BTreeSet};
 use conduit_core::{PrimitiveInfoKind, StructuredInfoType, StructuredInfoTypeShape};
 use core::fmt::Write;
@@ -31,6 +31,14 @@ pub enum RustBindingGenerationError {
 
 pub fn generate_rust_bindings(
     types: &[CheckedNativeType],
+    options: &RustBindingOptions,
+) -> Result<RustBindingModule, RustBindingGenerationError> {
+    generate_rust_bindings_with_representations(types, &[], options)
+}
+
+pub fn generate_rust_bindings_with_representations(
+    types: &[CheckedNativeType],
+    representations: &[CheckedRepresentation],
     options: &RustBindingOptions,
 ) -> Result<RustBindingModule, RustBindingGenerationError> {
     if types.is_empty() {
@@ -66,7 +74,7 @@ pub fn generate_rust_bindings(
          // Rust names and layout are bindings, never semantic identity.\n\
          extern crate alloc;\n\
          #[allow(unused_imports)]\n\
-         use conduit_form::rust_binding::{BoundedBytes, BoundedSequence, NativeBindingRefusal, NativeRustBinding};\n\
+         use conduit_form::rust_binding::{BoundedBytes, BoundedSequence, NativeBindingRefusal, NativeRepresentationRefusal, NativeRustBinding};\n\
          use conduit_form::rust_binding::semantic_core as conduit_core;\n\
          #[allow(unused_imports)]\n\
          use conduit_core::{StructuredFieldValue, StructuredInfoType, StructuredInfoValue, StructuredInfoValueShape};\n\
@@ -82,10 +90,95 @@ pub fn generate_rust_bindings(
             options,
         )?;
     }
+    emit_representations(&mut source, representations, &names)?;
     Ok(RustBindingModule {
         source,
         semantic_type_bytes,
     })
+}
+
+fn emit_representations(
+    out: &mut String,
+    representations: &[CheckedRepresentation],
+    names: &BTreeMap<String, String>,
+) -> Result<(), RustBindingGenerationError> {
+    let mut codec_names = BTreeSet::new();
+    for representation in representations {
+        let rust_type = names
+            .get(representation.value_type.as_str())
+            .ok_or(RustBindingGenerationError::InvalidSemanticType)?;
+        let codec = format!("{rust_type}Representation");
+        if !codec_names.insert(codec.clone()) {
+            return Err(RustBindingGenerationError::DuplicateRustIdentifier(codec));
+        }
+        writeln!(out, "pub struct {codec};").expect("String writing is infallible");
+        writeln!(out, "impl {codec} {{").expect("String writing is infallible");
+        writeln!(out, "    pub const NAME: &str = {:?};", representation.name)
+            .expect("String writing is infallible");
+        writeln!(
+            out,
+            "    pub const IDENTITY: &str = {:?};",
+            representation.compatibility_id
+        )
+        .expect("String writing is infallible");
+        writeln!(
+            out,
+            "    pub const EXACT_BYTES: usize = {};",
+            representation.exact_bytes
+        )
+        .expect("String writing is infallible");
+        writeln!(
+            out,
+            "    pub const MAXIMUM_BYTES: usize = {};",
+            representation.maximum_bytes
+        )
+        .expect("String writing is infallible");
+        writeln!(
+            out,
+            "    pub const MAXIMUM_DECODE_STEPS: usize = {};",
+            representation.maximum_decode_steps
+        )
+        .expect("String writing is infallible");
+        writeln!(
+            out,
+            "    pub const fn encode(value: {rust_type}) -> [u8; 1] {{"
+        )
+        .expect("String writing is infallible");
+        writeln!(out, "        [match value {{").expect("String writing is infallible");
+        for mapping in &representation.mappings {
+            writeln!(
+                out,
+                "            {rust_type}::{} => {},",
+                rust_pascal_identifier(&mapping.variant)?,
+                mapping.discriminant
+            )
+            .expect("String writing is infallible");
+        }
+        writeln!(out, "        }}]").expect("String writing is infallible");
+        writeln!(out, "    }}").expect("String writing is infallible");
+        writeln!(out, "    pub fn decode(encoded: &[u8]) -> Result<{rust_type}, NativeRepresentationRefusal> {{")
+            .expect("String writing is infallible");
+        writeln!(out, "        let [tag] = encoded else {{ return Err(NativeRepresentationRefusal::WrongLength {{ actual: encoded.len() }}); }};")
+            .expect("String writing is infallible");
+        writeln!(out, "        match *tag {{").expect("String writing is infallible");
+        for mapping in &representation.mappings {
+            writeln!(
+                out,
+                "            {} => Ok({rust_type}::{}),",
+                mapping.discriminant,
+                rust_pascal_identifier(&mapping.variant)?
+            )
+            .expect("String writing is infallible");
+        }
+        writeln!(
+            out,
+            "            actual => Err(NativeRepresentationRefusal::InvalidTag {{ actual }}),"
+        )
+        .expect("String writing is infallible");
+        writeln!(out, "        }}").expect("String writing is infallible");
+        writeln!(out, "    }}\n}}\n").expect("String writing is infallible");
+    }
+    Ok(())
 }
 
 fn emit_type(

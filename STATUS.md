@@ -37,6 +37,17 @@ present limitation.
 These source-level capabilities are present in the reviewed development tree.
 Their presence is not an additional physical or release acceptance claim:
 
+- **Native semantic Types and compact representations (#4382, #4428):**
+  Conduitese owns nominal scalar, record, variant, optional, data-reference,
+  bounded-sequence, and refined primitive meaning. Rust bindings are generated
+  from the checked graph. A named compact `u8` representation derives iota
+  tags from authored variant order, typed malformed-input refusal, finite
+  extent/work bounds, and a mechanical compatibility identity. The Data Text
+  terminal family has no handwritten Rust tag table, and generated Rust plus
+  ECMAScript consume the same checked declaration. Broader semantic algebra
+  and migration of the audited handwritten domain codecs remain open under
+  #4431 and #4382.
+
 - **Conduitese terminal contracts (#4109):** a Fore port retains its ordinary
   value kind, temporal modality, and optional exact abnormal-terminal kind as
   independent checked truth. Normal close, abnormal termination, and semantic

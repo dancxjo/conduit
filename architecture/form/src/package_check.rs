@@ -3,7 +3,8 @@
 use crate::prelude::*;
 use crate::{
     BackStatement, CheckedPackageBundle, CheckedSyntaxDocument, CordStage, PackageBundleError,
-    PackageMemberSource, PackageSyntax, StartupCatalog, SyntaxCheckDiagnostic, SyntaxDocument,
+    PackageMemberSource, PackageSyntax, StartupCatalog, SyntaxCheckDiagnostic, SyntaxDefinitions,
+    SyntaxDocument,
 };
 use alloc::collections::{BTreeMap, BTreeSet};
 
@@ -48,6 +49,7 @@ pub fn check_package_bundle(
     let mut documents = Vec::with_capacity(bundle.members.len());
     let mut all_forms = Vec::new();
     let mut all_types = Vec::new();
+    let mut all_representations = Vec::new();
     let mut owners = BTreeMap::new();
     for member in &bundle.members {
         let source = source_by_path
@@ -59,6 +61,7 @@ pub fn check_package_bundle(
             all_forms.push(form.clone());
         }
         all_types.extend(document.types.iter().cloned());
+        all_representations.extend(document.representations.iter().cloned());
         documents.push((member.path.clone(), document));
     }
 
@@ -70,6 +73,15 @@ pub fn check_package_bundle(
             }
         })?;
     let catalog = &package_catalog;
+    let representations = crate::representation::check_representations(
+        &all_representations,
+        &all_types,
+        &native_types,
+    )
+    .map_err(|diagnostic| PackageCheckError::Syntax {
+        module: "<package>".into(),
+        diagnostic,
+    })?;
 
     let signatures = crate::syntax_check::form_signatures(&all_forms).map_err(|diagnostic| {
         PackageCheckError::Syntax {
@@ -116,7 +128,10 @@ pub fn check_package_bundle(
         Vec::new(),
         Vec::new(),
         false,
-        (Vec::new(), resolved_forms, Vec::new(), Vec::new()),
+        SyntaxDefinitions {
+            forms: resolved_forms,
+            ..SyntaxDefinitions::default()
+        },
         Vec::new(),
     );
     let mut checked = crate::check_syntax_document(&document, catalog).map_err(|diagnostic| {
@@ -126,6 +141,7 @@ pub fn check_package_bundle(
         }
     })?;
     checked.native_types = native_types;
+    checked.representations = representations;
     Ok(checked)
 }
 

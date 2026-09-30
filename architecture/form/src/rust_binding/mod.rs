@@ -16,7 +16,8 @@ mod value;
 pub use bounded::{BoundedBytes, BoundedSequence, BoundedText};
 pub use conduit_core as semantic_core;
 pub use generate::{
-    generate_rust_bindings, RustBindingGenerationError, RustBindingModule, RustBindingOptions,
+    generate_rust_bindings, generate_rust_bindings_with_representations,
+    RustBindingGenerationError, RustBindingModule, RustBindingOptions,
 };
 pub use generate_package::{
     generate_locked_package_rust_bindings, LockedPackageBindingSource,
@@ -27,3 +28,10 @@ pub use value::{
     nominal_representation_type, record_field_type, record_field_value, sequence_element_type,
     validate_native_contracts, variant_payload_type, NativeBindingRefusal, NativeRustBinding,
 };
+
+/// A bounded refusal produced by any generated finite representation codec.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum NativeRepresentationRefusal {
+    WrongLength { actual: usize },
+    InvalidTag { actual: u8 },
+}

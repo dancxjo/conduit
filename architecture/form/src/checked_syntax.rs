@@ -368,12 +368,53 @@ pub struct CheckedCanonicalForm {
 pub struct CheckedSyntaxDocument {
     pub source_document_id: SourceDocumentId,
     pub native_types: Vec<CheckedNativeType>,
+    pub representations: Vec<CheckedRepresentation>,
     pub forms: Vec<CheckedCanonicalForm>,
     /// Authored shorthand correlated with the ordinary meaning established by
     /// this exact check. This is source inspection, not another expansion or
     /// an input to planning.
     pub source_sugar_expansions: Vec<SourceSugarExpansion>,
     pub(crate) structured_types: BTreeMap<conduit_core::KindId, conduit_core::StructuredInfoType>,
+}
+
+/// One checked compatibility representation, distinct from semantic Type identity.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct CheckedRepresentation {
+    pub name: String,
+    pub compatibility_id: String,
+    pub value_type_name: String,
+    pub value_type: conduit_core::KindId,
+    pub storage: CheckedRepresentationStorage,
+    /// Exact iota order, either derived from Type order or explicitly authored.
+    pub mappings: Vec<CheckedRepresentationMapping>,
+    pub invalid_refusal: CheckedRepresentationRefusal,
+    pub exact_bytes: u16,
+    pub maximum_bytes: u16,
+    pub maximum_decode_steps: u16,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum CheckedRepresentationStorage {
+    U8,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum CheckedRepresentationRefusal {
+    InvalidTag,
+}
+
+impl CheckedRepresentationRefusal {
+    pub const fn as_str(self) -> &'static str {
+        match self {
+            Self::InvalidTag => "invalid_tag",
+        }
+    }
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct CheckedRepresentationMapping {
+    pub variant: String,
+    pub discriminant: u8,
 }
 
 /// One checked source-owned semantic Type and its exact finite representation.

@@ -64,6 +64,62 @@ fn check(source: &str) -> crate::CheckedSyntaxDocument {
     check_syntax_document(&parsed, &catalog()).expect("canonical syntax checks")
 }
 
+const REPRESENTED_OUTCOME: &str =
+    "type Outcome =\n    ready\n    | refused\n\nrepresentation test/outcome = Outcome as u8\n";
+
+#[test]
+fn representation_is_named_bounded_and_distinct_from_type_identity() {
+    let checked = check(REPRESENTED_OUTCOME);
+    let value_type = &checked.native_types[0];
+    let representation = &checked.representations[0];
+    assert_eq!(representation.name, "test/outcome");
+    assert_eq!(representation.value_type, value_type.identity);
+    assert_ne!(
+        representation.compatibility_id,
+        value_type.identity.as_str()
+    );
+    assert_eq!(representation.exact_bytes, 1);
+    assert_eq!(representation.maximum_bytes, 1);
+    assert_eq!(representation.maximum_decode_steps, 3);
+    assert_eq!(
+        representation.invalid_refusal,
+        crate::CheckedRepresentationRefusal::InvalidTag
+    );
+    assert_eq!(representation.mappings[0].variant, "ready");
+    assert_eq!(representation.mappings[0].discriminant, 0);
+}
+
+#[test]
+fn representation_mapping_changes_compatibility_not_semantic_type_identity() {
+    let first = check(REPRESENTED_OUTCOME);
+    let second = check("type Outcome =\n    ready\n    | refused\n\nrepresentation test/outcome = Outcome as u8\n    refused\n    ready\n");
+    assert_eq!(
+        first.native_types[0].identity,
+        second.native_types[0].identity
+    );
+    assert_ne!(
+        first.representations[0].compatibility_id,
+        second.representations[0].compatibility_id
+    );
+}
+
+#[test]
+fn explicit_iota_order_requires_each_variant_exactly_once() {
+    for (mapping, expected) in [
+        ("    ready\n", "missing variant"),
+        (
+            "    ready\n    ready\n    refused\n",
+            "mapped more than once",
+        ),
+        ("    ready\n    refused\n    imaginary\n", "unknown variant"),
+    ] {
+        let source = alloc::format!("{REPRESENTED_OUTCOME}{mapping}");
+        let error = check_syntax_document(&parse_syntax_document(&source), &catalog()).unwrap_err();
+        assert_eq!(error.code, "CND-FRM-059");
+        assert!(error.message.contains(expected), "{}", error.message);
+    }
+}
+
 #[test]
 fn local_form_is_checked_through_one_private_ordinary_form_seam() {
     let checked = check("form outer {\n form helper {\n }\n child: helper\n}\n");

@@ -198,7 +198,9 @@ fn punctuation(text: &str) -> Option<(usize, SyntaxHighlightKind)> {
 fn classify_word(word: &str) -> SyntaxHighlightKind {
     match word {
         "form" | "host" | "body" | "pack" | "ship" | "need" | "version" | "pool" | "with"
-        | "as" | "sans" | "glyphs" | "in" | "not" | "type" | "kind" => SyntaxHighlightKind::Keyword,
+        | "as" | "sans" | "glyphs" | "in" | "not" | "type" | "representation" | "kind" => {
+            SyntaxHighlightKind::Keyword
+        }
         "true" | "false" => SyntaxHighlightKind::Literal,
         _ if word.parse::<i128>().is_ok() || word.parse::<u128>().is_ok() => {
             SyntaxHighlightKind::Number

@@ -64,6 +64,11 @@ pub(crate) fn check_document(
     let aliased_catalog = crate::native_type::install_import_aliases(document, catalog)?;
     let (native_types, checked_catalog) =
         crate::native_type::check_native_types(&document.types, &aliased_catalog)?;
+    let representations = crate::representation::check_representations(
+        &document.representations,
+        &document.types,
+        &native_types,
+    )?;
     let catalog = &checked_catalog;
     let lexical_forms = lexical_forms::lower(&document.forms)?;
     let unresolved_form_signatures = form_signatures(&lexical_forms)?;
@@ -200,6 +205,7 @@ pub(crate) fn check_document(
             document.round_trip()
         ))),
         native_types,
+        representations,
         forms: checked_forms,
         source_sugar_expansions,
         structured_types,

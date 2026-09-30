@@ -8,7 +8,8 @@ mod generated {
 }
 
 pub use generated::{
-    DataLoadTextTerminal, DataSaveTextTerminal, FullWindowPolicy, MeasurementPlotOverflowPolicy,
+    DataLoadTextTerminal, DataLoadTextTerminalRepresentation, DataSaveTextTerminal,
+    DataSaveTextTerminalRepresentation, FullWindowPolicy, MeasurementPlotOverflowPolicy,
     MeasurementThresholdState, MeasurementThresholdTransition, SampledSignalRefusal,
 };
 

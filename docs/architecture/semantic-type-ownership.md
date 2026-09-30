@@ -24,13 +24,42 @@ moving a type across a boundary requires reviewing its classification.
 | **C — checker/compiler representation** | Parser, checked syntax, semantic-contract model, catalog construction, or lowering machinery | Remains handwritten Rust; may refer to native Type identities but does not become source info |
 | **R — runtime identity or evidence** | Host, Boot, Body, Plan, Play, line, sign, admission, reservation, lifecycle, or execution truth | Remains architectural Rust unless an exact Fore deliberately carries a separate portable projection |
 | **M — Host/Back/Base mechanism** | Provider state, prepared executor, device driver, adapter, renderer, or platform implementation | Remains handwritten Rust behind the Host boundary |
-| **W — wire/ABI/storage representation** | Bytes owned by an explicit external protocol, persistent schema, firmware ABI, or transport frame | Remains Rust at that boundary; portable semantic adapters use native Types |
+| **W — external wire/ABI/storage representation** | Bytes owned by a named external protocol, provider schema, firmware ABI, or transport frame | Remains an adapter at that boundary; Conduit-owned compatibility mappings are native `representation` declarations |
 | **G — generated binding** | Rust mirror generated from an authoritative native Type | Generated deterministically under #4381; never an independent semantic owner |
 
 Fixtures, test oracles, builders, errors about Rust API misuse, and prepared
 allocation objects inherit the class of the machinery they exercise. A typed
 failure that actually crosses a Fore is **P**, even when its Rust name ends in
 `Error` or `Refusal`.
+
+## Type, representation, binding, and adapter
+
+A semantic `type` states what a value means. A named `representation` states
+one portable compatibility contract for realizing that value. Changing a
+representation does not change Type identity, and a Type may have several
+representations.
+
+A generated binding is target-language machinery derived from checked Types
+and representations. It may choose a native target type, a checked wrapper, or
+a dynamic carrier, but it never contributes meaning. An external adapter owns
+only translation to a separately governed protocol or mechanism. “The mapping
+is small” and “Rust already serializes it” do not establish an external
+boundary.
+
+The ordinary compact form derives iota tags from authored variant order:
+
+```conduit
+type SaveRefusal =
+    value_too_large
+    | wrong_content_kind
+
+representation data/save-refusal = SaveRefusal as u8
+```
+
+The checked representation records `0` and `1`, bounded invalid-tag refusal,
+and a compatibility fingerprint. Authors write no tag table or version bump.
+When an established contract needs a different order, an indented list states
+only that order; the checker still proves it exhaustive and unique.
 
 ## Architecture and language implementation
 

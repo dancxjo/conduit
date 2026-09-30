@@ -45,3 +45,7 @@ type DataLoadTextTerminal =
     | item_extent
     | generation_not_retained
     | extent_mismatch
+
+representation data/save-text-terminal = DataSaveTextTerminal as u8
+
+representation data/load-text-terminal = DataLoadTextTerminal as u8
