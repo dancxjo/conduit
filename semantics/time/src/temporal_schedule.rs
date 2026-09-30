@@ -8,9 +8,9 @@ use alloc::string::String;
 use serde::{Deserialize, Serialize};
 
 use crate::{
-    MonotonicDuration, MonotonicInstant, NamedTimeZone, OccurrenceInstant, RecurrenceOccurrence,
-    TemporalInstant, TemporalRelation, TemporalScale, TemporalWindow, TemporalWindowPosition,
-    MAXIMUM_TEMPORAL_IDENTITY_BYTES,
+    ClockChangeBehavior, MonotonicDuration, MonotonicInstant, NamedTimeZone, OccurrenceInstant,
+    RecurrenceOccurrence, SuspendBehavior, TemporalInstant, TemporalRelation, TemporalScale,
+    TemporalWindow, TemporalWindowPosition, MAXIMUM_TEMPORAL_IDENTITY_BYTES,
 };
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
@@ -40,19 +40,6 @@ pub struct CivilTrigger {
     pub window: TemporalWindow,
     pub zone: NamedTimeZone,
     pub clock_change: ClockChangeBehavior,
-}
-
-#[derive(Debug, Copy, Clone, PartialEq, Eq, Serialize, Deserialize)]
-pub enum SuspendBehavior {
-    ClockIncludesSuspend,
-    ClockExcludesSuspend,
-    RefuseAfterSuspend,
-}
-
-#[derive(Debug, Copy, Clone, PartialEq, Eq, Serialize, Deserialize)]
-pub enum ClockChangeBehavior {
-    ReevaluateWindow,
-    RefuseAfterChange,
 }
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Serialize, Deserialize)]

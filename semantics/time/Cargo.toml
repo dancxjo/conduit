@@ -6,10 +6,13 @@ edition = "2021"
 [features]
 default = ["form-catalog"]
 kernel-step = ["dep:conduit-kernel"]
-form-catalog = ["dep:conduit-form"]
+form-catalog = []
 
 [dependencies]
 conduit-kernel = { path = "../../architecture/kernel", optional = true, features = ["alloc", "step-test-support"] }
 conduit-core = { path = "../../architecture/core" }
-conduit-form = { path = "../../architecture/form", optional = true }
+conduit-form = { path = "../../architecture/form" }
 serde = { version = "1", default-features = false, features = ["alloc", "derive"] }
+
+[build-dependencies]
+conduit-form = { path = "../../architecture/form" }
