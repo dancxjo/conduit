@@ -1,6 +1,7 @@
 use conduit_finance::{
-    finance_currency_type, finance_instrument_type, finance_money_comparison_type, Currency,
-    FinanceCurrency, FinanceCurrencyPair, FinanceMoneyComparison,
+    finance_currency_type, finance_fixed_decimal_type, finance_instrument_type,
+    finance_money_comparison_type, Currency, FinanceCurrency, FinanceCurrencyPair,
+    FinanceFixedDecimal, FinanceMoneyComparison, FINANCE_MAXIMUM_DECIMAL_SCALE,
 };
 use conduit_form::rust_binding::NativeRustBinding;
 
@@ -20,6 +21,20 @@ fn native_currency_source_owns_catalog_identity_and_rust_round_trip() {
         let encoded = currency.clone().encode().unwrap();
         assert_eq!(FinanceCurrency::decode(&encoded).unwrap(), currency);
     }
+}
+
+#[test]
+fn native_fixed_decimal_owns_scale_bound_identity_and_round_trip() {
+    assert_eq!(
+        finance_fixed_decimal_type(),
+        FinanceFixedDecimal::semantic_type().unwrap()
+    );
+    let decimal = FinanceFixedDecimal::new(-12_345, 3).unwrap();
+    assert_eq!(decimal.coefficient(), &-12_345);
+    assert_eq!(decimal.scale(), &3);
+    let encoded = decimal.clone().encode().unwrap();
+    assert_eq!(FinanceFixedDecimal::decode(&encoded).unwrap(), decimal);
+    assert!(FinanceFixedDecimal::new(1, FINANCE_MAXIMUM_DECIMAL_SCALE + 1).is_err());
 }
 
 #[test]

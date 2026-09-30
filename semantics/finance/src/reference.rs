@@ -5,6 +5,7 @@ use conduit_core::{
     Quantity, QuantityUnit, StructuredFieldValue, StructuredInfoType, StructuredInfoTypeShape,
     StructuredInfoValue, StructuredInfoValueShape,
 };
+use conduit_form::rust_binding::NativeRustBinding;
 use core::cmp::Ordering;
 
 use crate::finance::*;
@@ -76,7 +77,7 @@ pub fn convert_money_values(
     let observation = RateObservation {
         base: Currency::from_tag(variant_tag(record_field(instrument, "base")?)?)?,
         quote: Currency::from_tag(variant_tag(record_field(instrument, "quote")?)?)?,
-        rate: FixedDecimal::decode(leaf_bytes(record_field(rate, "rate")?)?)?,
+        rate: FixedDecimal::from_structured(record_field(rate, "rate")?.clone())?,
         observed_ticks: parse_count(record_field(record_field(rate, "observed_at")?, "ticks")?)?,
         source: leaf_text(record_field(rate, "source")?)?,
         profile: leaf_text(record_field(rate, "profile")?)?,
@@ -88,10 +89,10 @@ pub fn decode_money_value(value: &StructuredInfoValue) -> Result<Money, FinanceR
     if value.value_type() != &finance_money_type() {
         return Err(FinanceRefusal::MalformedInfo);
     }
-    let amount = leaf_bytes(record_field(value, "amount")?)?;
+    let amount = record_field(value, "amount")?.clone();
     let currency = variant_tag(record_field(value, "currency")?)?;
     Ok(Money {
-        amount: FixedDecimal::decode(amount)?,
+        amount: FixedDecimal::from_structured(amount)?,
         currency: Currency::from_tag(currency)?,
     })
 }
@@ -119,13 +120,7 @@ fn rate_observation_value(
             ),
             ("observed_at", instant_value(observation.observed_ticks)?),
             ("profile", text_value(observation.profile)),
-            (
-                "rate",
-                StructuredInfoValue::leaf(
-                    finance_fixed_decimal_type(),
-                    observation.rate.encode().to_vec(),
-                )?,
-            ),
+            ("rate", observation.rate.clone().into_structured()?),
             ("source", text_value(observation.source)),
         ],
     )
@@ -240,13 +235,7 @@ fn money_value(money: Money) -> Result<StructuredInfoValue, FinanceRefusal> {
     record_value(
         finance_money_type(),
         vec![
-            (
-                "amount",
-                StructuredInfoValue::leaf(
-                    finance_fixed_decimal_type(),
-                    money.amount.encode().to_vec(),
-                )?,
-            ),
+            ("amount", money.amount.into_structured()?),
             (
                 "currency",
                 unit_variant(finance_currency_type(), money.currency.tag())?,

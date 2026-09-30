@@ -7,7 +7,9 @@ mod generated {
     include!(concat!(env!("OUT_DIR"), "/semantic_types.rs"));
 }
 
-pub use generated::{FinanceCurrency, FinanceCurrencyPair, FinanceMoneyComparison};
+pub use generated::{
+    FinanceCurrency, FinanceCurrencyPair, FinanceFixedDecimal, FinanceMoneyComparison,
+};
 
 mod catalog;
 mod finance;
