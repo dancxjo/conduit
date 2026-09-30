@@ -10,7 +10,7 @@ mod generated {
 pub use generated::{
     ClockRelationQuality, ClockRelationQualityEstimated, DataGenerationNamespaceRefusal,
     DataLoadTextTerminal, DataLoadTextTerminalRepresentation, DataReferenceRefusal,
-    DataSaveTextTerminal, DataSaveTextTerminalRepresentation, FullWindowPolicy,
+    DataSaveTextTerminal, DataSaveTextTerminalRepresentation, FullWindowPolicy, MathScalarRefusal,
     MeasurementPlotOverflowPolicy, MeasurementPlotRefusal, MeasurementSummaryRefusal,
     MeasurementThresholdRefusal, MeasurementThresholdState, MeasurementThresholdTransition,
     MeasurementWindowRefusal, QuantityMappingRefusal, QuantizationPolicy, RangePolicy,

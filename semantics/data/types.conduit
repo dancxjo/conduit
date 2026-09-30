@@ -126,6 +126,10 @@ type ScalarComparison =
     | greater-or-equal
     | greater
 
+type MathScalarRefusal =
+    invalid-configuration
+    | overflow
+
 type DataSaveTextTerminal =
     value_too_large
     | generation_capacity_exhausted

@@ -1,10 +1,11 @@
 use conduit_core::{Quantity, QuantityUnit};
 use conduit_data::{
     ClockRelationQuality, DataLoadTextTerminal, DataSaveTextTerminal, FullWindowPolicy,
-    MeasurementPlotOverflowPolicy, MeasurementPlotRefusal, MeasurementSummaryRefusal,
-    MeasurementThresholdRefusal, MeasurementThresholdState, MeasurementThresholdTransition,
-    MeasurementWindowRefusal, QuantityMappingRefusal, QuantizationPolicy, RangePolicy,
-    SampledSignalRefusal, ScalarComparison, SignalContinuity, TensorAxisRole, TensorElement,
+    MathScalarRefusal, MeasurementPlotOverflowPolicy, MeasurementPlotRefusal,
+    MeasurementSummaryRefusal, MeasurementThresholdRefusal, MeasurementThresholdState,
+    MeasurementThresholdTransition, MeasurementWindowRefusal, QuantityMappingRefusal,
+    QuantizationPolicy, RangePolicy, SampledSignalRefusal, ScalarComparison, SignalContinuity,
+    TensorAxisRole, TensorElement,
 };
 use conduit_form::rust_binding::NativeRustBinding;
 
@@ -175,6 +176,16 @@ fn scalar_comparisons_round_trip_through_their_exact_native_type() {
         ScalarComparison::NotEqual,
         ScalarComparison::GreaterOrEqual,
         ScalarComparison::Greater,
+    ] {
+        assert_round_trip(value);
+    }
+}
+
+#[test]
+fn math_scalar_refusals_round_trip_through_their_exact_native_type() {
+    for value in [
+        MathScalarRefusal::InvalidConfiguration,
+        MathScalarRefusal::Overflow,
     ] {
         assert_round_trip(value);
     }

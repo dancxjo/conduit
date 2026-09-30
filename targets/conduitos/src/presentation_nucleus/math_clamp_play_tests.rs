@@ -52,6 +52,6 @@ fn invalid_configuration_and_mutated_plan_identity_are_refused() {
             Scalar::from_raw_microunits(1),
             Scalar::from_raw_microunits(-1),
         ),
-        Err(conduit_semantic_catalog::MathScalarError::InvalidConfiguration)
+        Err(conduit_semantic_catalog::MathScalarRefusal::InvalidConfiguration)
     );
 }
