@@ -70,6 +70,23 @@ fn checked_representation_generates_the_only_rust_discriminant_table() {
 }
 
 #[test]
+fn generated_contracts_preserve_semantic_openness() {
+    let checked = crate::check_syntax_document(
+        &crate::parse_syntax_document(
+            "type Positive = Count in 0..\ntype AtMostOne = Scalar in ..=1.000000\n",
+        ),
+        &crate::StartupCatalog::new(),
+    )
+    .unwrap();
+    let generated =
+        generate_rust_bindings(&checked.native_types, &RustBindingOptions::default()).unwrap();
+    assert!(generated.source.contains("minimum: Some(0), maximum: None"));
+    assert!(generated
+        .source
+        .contains("minimum: None, maximum: Some(1000000)"));
+}
+
+#[test]
 fn generation_is_deterministic_and_keeps_rust_spelling_out_of_identity() {
     let types = checked_types();
     let plain = generate_rust_bindings(&types, &RustBindingOptions::default()).unwrap();

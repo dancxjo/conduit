@@ -66,13 +66,13 @@ admitted. The specimen is a contract proof, not a second scheduler or runtime.
    completion remain distinct results and retain bounded evidence.
 
 The contract therefore supports thermostats, servers, sensor pipelines,
-compositors, audio graphs, robot controllers, and UIs without claiming an
-infinite value domain, infinite reservation, background-realtime behavior, or
-physical continuity.
+compositors, audio graphs, robot controllers, and UIs without deriving an
+infinite reservation from an open value domain, claiming background-realtime
+behavior, or claiming physical continuity.
 
 ## Stop line
 
 No infinite resource reservation; no `universal` or `unsafe` escape hatch; no
-semantically unbounded allocation; no hidden restart loop; no timer-owned
+ungoverned allocation growth; no hidden restart loop; no timer-owned
 scheduler; and no conflation of lull, suspend, replan, or quiescence with
 HALT.

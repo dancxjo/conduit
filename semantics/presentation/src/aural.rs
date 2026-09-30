@@ -446,38 +446,36 @@ fn constraint_clause(constraint: &ValueConstraint) -> String {
             maximum,
             minimum_endpoint,
             maximum_endpoint,
-        } => range_clause(*minimum, *maximum, *minimum_endpoint, *maximum_endpoint),
+        } => range_clause("value", minimum.as_ref(), maximum.as_ref(), *minimum_endpoint, *maximum_endpoint),
         ValueConstraint::SignedRange {
             minimum,
             maximum,
             minimum_endpoint,
             maximum_endpoint,
-        } => range_clause(*minimum, *maximum, *minimum_endpoint, *maximum_endpoint),
+        } => range_clause("value", minimum.as_ref(), maximum.as_ref(), *minimum_endpoint, *maximum_endpoint),
         ValueConstraint::FixedIntegerRange {
             minimum,
             maximum,
             minimum_endpoint,
             maximum_endpoint,
-        } => format!(
-            "a fixed-width integer from {} canonical 0x{} through {} canonical 0x{}",
-            endpoint_word(*minimum_endpoint),
-            hex_bytes(minimum),
-            endpoint_word(*maximum_endpoint),
-            hex_bytes(maximum),
+        } => range_clause(
+            "fixed-width integer",
+            minimum.as_ref().map(|value| format!("canonical 0x{}", hex_bytes(value))).as_ref(),
+            maximum.as_ref().map(|value| format!("canonical 0x{}", hex_bytes(value))).as_ref(),
+            *minimum_endpoint,
+            *maximum_endpoint,
         ),
         ValueConstraint::QuantityRange {
             minimum,
             maximum,
             minimum_endpoint,
             maximum_endpoint,
-        } => format!(
-            "a quantity from {} {} {} through {} {} {}",
-            endpoint_word(*minimum_endpoint),
-            minimum.value(),
-            minimum.unit().semantic_id(),
-            endpoint_word(*maximum_endpoint),
-            maximum.value(),
-            maximum.unit().semantic_id(),
+        } => range_clause(
+            "quantity",
+            minimum.as_ref().map(|value| format!("{} {}", value.value(), value.unit().semantic_id())).as_ref(),
+            maximum.as_ref().map(|value| format!("{} {}", value.value(), value.unit().semantic_id())).as_ref(),
+            *minimum_endpoint,
+            *maximum_endpoint,
         ),
         ValueConstraint::CanonicalMembership { members, negated } => format!(
             "{} the canonical values {}",
@@ -519,16 +517,32 @@ fn pattern_profile(anchored_start: bool, anchored_end: bool) -> &'static str {
 }
 
 fn range_clause<T: core::fmt::Display>(
-    minimum: T,
-    maximum: T,
+    noun: &str,
+    minimum: Option<&T>,
+    maximum: Option<&T>,
     minimum_endpoint: IntervalEndpoint,
     maximum_endpoint: IntervalEndpoint,
 ) -> String {
-    format!(
-        "a value from {} {minimum} through {} {maximum}",
-        endpoint_word(minimum_endpoint),
-        endpoint_word(maximum_endpoint)
-    )
+    match (minimum, maximum) {
+        (Some(minimum), Some(maximum)) => format!(
+            "a {noun} from {} {minimum} through {} {maximum}",
+            endpoint_word(minimum_endpoint),
+            endpoint_word(maximum_endpoint)
+        ),
+        (Some(minimum), None) => {
+            format!(
+                "a {noun} from {} {minimum} with no upper semantic bound",
+                endpoint_word(minimum_endpoint)
+            )
+        }
+        (None, Some(maximum)) => {
+            format!(
+                "a {noun} with no lower semantic bound through {} {maximum}",
+                endpoint_word(maximum_endpoint)
+            )
+        }
+        (None, None) => format!("a {noun} with no semantic bounds"),
+    }
 }
 
 fn endpoint_word(endpoint: IntervalEndpoint) -> &'static str {
