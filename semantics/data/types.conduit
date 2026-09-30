@@ -30,3 +30,18 @@ type SampledSignalRefusal =
     | incompatible_signals
     | noncontiguous_signals
     | too_many_parts
+
+type DataSaveTextTerminal =
+    value_too_large
+    | generation_capacity_exhausted
+    | byte_capacity_exhausted
+    | wrong_content_kind
+
+type DataLoadTextTerminal =
+    malformed_reference
+    | wrong_content_kind
+    | wrong_access_class
+    | expiring_generation
+    | item_extent
+    | generation_not_retained
+    | extent_mismatch

@@ -1,6 +1,6 @@
 use conduit_data::{
-    FullWindowPolicy, MeasurementPlotOverflowPolicy, MeasurementThresholdState,
-    MeasurementThresholdTransition, SampledSignalRefusal,
+    DataLoadTextTerminal, DataSaveTextTerminal, FullWindowPolicy, MeasurementPlotOverflowPolicy,
+    MeasurementThresholdState, MeasurementThresholdTransition, SampledSignalRefusal,
 };
 use conduit_form::rust_binding::NativeRustBinding;
 
@@ -28,6 +28,29 @@ fn sampled_signal_terminal_round_trips_through_its_exact_native_type() {
         SampledSignalRefusal::IncompatibleSignals,
         SampledSignalRefusal::NoncontiguousSignals,
         SampledSignalRefusal::TooManyParts,
+    ] {
+        assert_round_trip(value);
+    }
+}
+
+#[test]
+fn data_text_terminals_round_trip_through_exact_native_types() {
+    for value in [
+        DataSaveTextTerminal::ValueTooLarge,
+        DataSaveTextTerminal::GenerationCapacityExhausted,
+        DataSaveTextTerminal::ByteCapacityExhausted,
+        DataSaveTextTerminal::WrongContentKind,
+    ] {
+        assert_round_trip(value);
+    }
+    for value in [
+        DataLoadTextTerminal::MalformedReference,
+        DataLoadTextTerminal::WrongContentKind,
+        DataLoadTextTerminal::WrongAccessClass,
+        DataLoadTextTerminal::ExpiringGeneration,
+        DataLoadTextTerminal::ItemExtent,
+        DataLoadTextTerminal::GenerationNotRetained,
+        DataLoadTextTerminal::ExtentMismatch,
     ] {
         assert_round_trip(value);
     }
