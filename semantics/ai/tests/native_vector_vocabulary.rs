@@ -1,4 +1,4 @@
-use conduit_ai::{EmbeddingNormalization, SimilarityMetric};
+use conduit_ai::{EmbeddingNormalization, SimilarityMetric, VectorRefusal};
 use conduit_form::rust_binding::NativeRustBinding;
 
 fn assert_round_trip<T>(value: T)
@@ -23,5 +23,12 @@ fn vector_vocabularies_round_trip_through_their_native_types() {
         EmbeddingNormalization::UnitLength,
     ] {
         assert_round_trip(normalization);
+    }
+    for refusal in [
+        VectorRefusal::EmptyIdentity,
+        VectorRefusal::DimensionMismatch,
+        VectorRefusal::RankExceedsTopK,
+    ] {
+        assert_round_trip(refusal);
     }
 }

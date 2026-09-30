@@ -1,6 +1,7 @@
 use conduit_ai::{
     BatchOrder, ModelComputeOperation, ModelComputeRefusal, ModelSignatureRefusal,
-    ObjectiveParticipation, PortableComputeClass, VectorIndexHealth, VectorIndexMaintenanceKind,
+    ObjectiveParticipation, PortableComputeClass, RelationQueryMode, RelationRefusal,
+    TrainingRefusal, VectorIndexHealth, VectorIndexMaintenanceKind, VectorIndexResourceRefusal,
 };
 use conduit_form::rust_binding::NativeRustBinding;
 
@@ -65,6 +66,37 @@ fn training_vocabularies_round_trip_through_native_types() {
         ModelSignatureRefusal::InvalidIdentity,
         ModelSignatureRefusal::DuplicateOperation,
         ModelSignatureRefusal::InvalidSignalConstraint,
+    ] {
+        assert_round_trip(refusal);
+    }
+    for mode in [
+        RelationQueryMode::InferPosterior,
+        RelationQueryMode::SampleConditional,
+        RelationQueryMode::Reconstruct,
+        RelationQueryMode::EncodeLatent,
+        RelationQueryMode::DecodeGenerate,
+        RelationQueryMode::LogProbability,
+    ] {
+        assert_round_trip(mode);
+    }
+    for refusal in [
+        RelationRefusal::MissingIdentity,
+        RelationRefusal::ShapeMismatch,
+        RelationRefusal::InvalidRealization,
+    ] {
+        assert_round_trip(refusal);
+    }
+    for refusal in [
+        TrainingRefusal::InvalidIdentity,
+        TrainingRefusal::WorkBoundExceeded,
+        TrainingRefusal::InvalidLifecycleTransition,
+    ] {
+        assert_round_trip(refusal);
+    }
+    for refusal in [
+        VectorIndexResourceRefusal::InvalidIdentity,
+        VectorIndexResourceRefusal::ResourceBusy,
+        VectorIndexResourceRefusal::InvalidResourceBinding,
     ] {
         assert_round_trip(refusal);
     }

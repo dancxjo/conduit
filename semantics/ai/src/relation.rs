@@ -3,7 +3,10 @@
 use alloc::{boxed::Box, string::String, vec::Vec};
 use conduit_data::{SampledSignal, TensorValue};
 
-use crate::{ModelValueConstraint, ProbabilisticDisposition, RandomnessProfile};
+use crate::{
+    ModelValueConstraint, ProbabilisticDisposition, RandomnessProfile, RelationQueryMode,
+    RelationRefusal,
+};
 
 #[path = "relation_digest.rs"]
 mod digest;
@@ -19,16 +22,6 @@ pub struct RelationVariable {
     pub identity: String,
     pub semantic_role: String,
     pub value: ModelValueConstraint,
-}
-
-#[derive(Debug, Copy, Clone, PartialEq, Eq)]
-pub enum RelationQueryMode {
-    InferPosterior,
-    SampleConditional,
-    Reconstruct,
-    EncodeLatent,
-    DecodeGenerate,
-    LogProbability,
 }
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
@@ -144,28 +137,4 @@ pub struct RelationReceipt {
 pub enum RelationQueryOutcome {
     Completed(Box<RelationReceipt>),
     NoResult(RelationTerminal),
-}
-
-#[derive(Debug, Copy, Clone, PartialEq, Eq)]
-pub enum RelationRefusal {
-    MissingIdentity,
-    InvalidSignature,
-    TooManyVariables,
-    DuplicateVariable,
-    InvalidPattern,
-    TooManyPatterns,
-    DuplicatePattern,
-    ArtifactMismatch,
-    UnknownVariable,
-    DuplicateEvidence,
-    DuplicateTarget,
-    UnsupportedQuery,
-    InvalidValue,
-    ShapeMismatch,
-    DeterminismMismatch,
-    InvalidRandomness,
-    WorkBoundExceeded,
-    OutputBoundExceeded,
-    InvalidResult,
-    InvalidRealization,
 }

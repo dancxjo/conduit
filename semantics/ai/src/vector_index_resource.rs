@@ -7,7 +7,10 @@ use conduit_core::{
 };
 use serde::{Deserialize, Serialize};
 
-use crate::{EmbeddingProfile, VectorIndexHealth, VectorRefusal, MAXIMUM_SIMILARITY_TOP_K};
+use crate::{
+    EmbeddingProfile, VectorIndexHealth, VectorIndexResourceRefusal, VectorRefusal,
+    MAXIMUM_SIMILARITY_TOP_K,
+};
 
 pub const VECTOR_INDEX_RESOURCE_CLASS: &str = "resource/vector-index@1";
 pub const MAXIMUM_VECTOR_INDEX_MEMBERS: u32 = 4_096;
@@ -105,36 +108,6 @@ pub struct VectorIndexQueryAdmission {
     pub work_units: u32,
     pub maximum_results: u32,
     pub concurrent_queries: u32,
-}
-
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
-pub enum VectorIndexResourceRefusal {
-    InvalidIdentity,
-    InvalidEmbeddingProfile,
-    InvalidResourceClass,
-    InvalidBounds,
-    WrongIndex,
-    UnknownAuthority,
-    StaleGeneration,
-    GenerationExhausted,
-    ResourceUnavailable,
-    QueryNotAuthorized,
-    InsertNotAuthorized,
-    UpsertNotAuthorized,
-    DeleteNotAuthorized,
-    MaintenanceNotAuthorized,
-    ResourceBusy,
-    WrongMaintenanceOperation,
-    SourceSetMismatch,
-    SourceAlreadyPresent,
-    SourceNotPresent,
-    ItemLimitExceeded,
-    StorageLimitExceeded,
-    StorageAccountingOverflow,
-    QueryWorkLimitExceeded,
-    ResultLimitExceeded,
-    QueryConcurrencyExceeded,
-    InvalidResourceBinding,
 }
 
 impl VectorIndexContract {

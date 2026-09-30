@@ -6,6 +6,7 @@ use conduit_data::{DatasetDescriptor, DatasetSplitMembership};
 
 use crate::{
     BatchOrder, ModelArtifact, MutableModelState, ObjectiveParticipation, RandomnessProfile,
+    TrainingRefusal,
 };
 
 #[path = "training_request.rs"]
@@ -158,34 +159,6 @@ pub enum TrainStepFailure {
 pub enum HostStepTerminal {
     Candidate(HostStepCandidate),
     NoCommit(TrainStepFailure),
-}
-
-#[derive(Debug, Copy, Clone, PartialEq, Eq)]
-pub enum TrainingRefusal {
-    InvalidIdentity,
-    InvalidArtifact,
-    InvalidSession,
-    InvalidObjective,
-    TooManyObjectives,
-    NoOptimizationObjective,
-    InvalidResourceEnvelope,
-    InvalidPolicy,
-    InvalidSplit,
-    InvalidBatch,
-    BatchBoundExceeded,
-    MissingRequiredModality,
-    UnexpectedSeed,
-    StepBoundExceeded,
-    StaleState,
-    InvalidCandidate,
-    WorkBoundExceeded,
-    InvalidMetric,
-    DuplicateMetric,
-    InvalidRealization,
-    CheckpointBoundExceeded,
-    CheckpointNotScheduled,
-    EvaluationNotScheduled,
-    InvalidLifecycleTransition,
 }
 
 impl TrainingSession {

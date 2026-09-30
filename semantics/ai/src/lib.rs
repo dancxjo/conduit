@@ -25,14 +25,15 @@ pub use generated::{
     ProbabilisticDispositionApproximate, ProbabilisticDispositionTruncated, ProbabilityRefusal,
     PromotionDecision, PromotionTerminal, R3OfferInvalidity, RagAnswerOfferInvalidity,
     RandomnessProfile, RandomnessProfileExplicitSeed, RandomnessProfileProviderChosen,
-    RerankingProofClass, RerankingRefusal, RerankingStrategy, RerankingStrategyObservedScores,
-    RetrievalMechanism, RetrievalMechanismCode, RollbackTerminal, SelectedContextRationale,
+    RelationQueryMode, RelationRefusal, RerankingProofClass, RerankingRefusal, RerankingStrategy,
+    RerankingStrategyObservedScores, RetrievalMechanism, RetrievalMechanismCode, RollbackTerminal,
+    SelectedContextRationale,
     ShadowTerminal, SimilarityMetric, SourceExtractionOfferInvalidity, SourceSpanUnit,
     StructuredResultInvalidity, TemporalContextRefusal, TemporalEvidenceSelectionRefusal,
     TemporalInterpretationRefusal, TemporalSource, TemporalValidity, TemporalWindowRelation,
-    TrainingLifecyclePhase, TrainingLifecyclePhaseActiveStep, TransitionDirection,
-    VectorIndexHealth, VectorIndexMaintenanceKind, VectorSearchExecutionProofClass,
-    VectorSearchOfferInvalidity, VectorSearchProofClass,
+    TrainingLifecyclePhase, TrainingLifecyclePhaseActiveStep, TrainingRefusal, TransitionDirection,
+    VectorIndexHealth, VectorIndexMaintenanceKind, VectorIndexResourceRefusal, VectorRefusal,
+    VectorSearchExecutionProofClass, VectorSearchOfferInvalidity, VectorSearchProofClass,
 };
 
 mod bases;

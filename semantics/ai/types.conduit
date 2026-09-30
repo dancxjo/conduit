@@ -642,3 +642,117 @@ type DynamicsRefusal =
     | invalid_final_state
     | work_bound_exceeded
     | invalid_realization
+
+type RelationQueryMode =
+    infer_posterior
+    | sample_conditional
+    | reconstruct
+    | encode_latent
+    | decode_generate
+    | log_probability
+
+type RelationRefusal =
+    missing_identity
+    | invalid_signature
+    | too_many_variables
+    | duplicate_variable
+    | invalid_pattern
+    | too_many_patterns
+    | duplicate_pattern
+    | artifact_mismatch
+    | unknown_variable
+    | duplicate_evidence
+    | duplicate_target
+    | unsupported_query
+    | invalid_value
+    | shape_mismatch
+    | determinism_mismatch
+    | invalid_randomness
+    | work_bound_exceeded
+    | output_bound_exceeded
+    | invalid_result
+    | invalid_realization
+
+type TrainingRefusal =
+    invalid_identity
+    | invalid_artifact
+    | invalid_session
+    | invalid_objective
+    | too_many_objectives
+    | no_optimization_objective
+    | invalid_resource_envelope
+    | invalid_policy
+    | invalid_split
+    | invalid_batch
+    | batch_bound_exceeded
+    | missing_required_modality
+    | unexpected_seed
+    | step_bound_exceeded
+    | stale_state
+    | invalid_candidate
+    | work_bound_exceeded
+    | invalid_metric
+    | duplicate_metric
+    | invalid_realization
+    | checkpoint_bound_exceeded
+    | checkpoint_not_scheduled
+    | evaluation_not_scheduled
+    | invalid_lifecycle_transition
+
+type VectorRefusal =
+    empty_identity
+    | identity_too_large
+    | zero_dimensions
+    | dimension_limit_exceeded
+    | no_compatible_metric
+    | invalid_embedding
+    | normalization_mismatch
+    | profile_identity_mismatch
+    | semantic_space_mismatch
+    | model_mismatch
+    | provider_mismatch
+    | dimension_mismatch
+    | metric_not_compatible
+    | zero_vector
+    | non_finite_score
+    | top_k_zero
+    | top_k_too_large
+    | too_many_metadata
+    | too_many_filters
+    | invalid_metadata
+    | duplicate_metadata
+    | threshold_metric_mismatch
+    | invalid_threshold
+    | threshold_not_met
+    | invalid_temporal_intent
+    | invalid_temporal_provenance
+    | rank_zero
+    | rank_exceeds_top_k
+
+type VectorIndexResourceRefusal =
+    invalid_identity
+    | invalid_embedding_profile
+    | invalid_resource_class
+    | invalid_bounds
+    | wrong_index
+    | unknown_authority
+    | stale_generation
+    | generation_exhausted
+    | resource_unavailable
+    | query_not_authorized
+    | insert_not_authorized
+    | upsert_not_authorized
+    | delete_not_authorized
+    | maintenance_not_authorized
+    | resource_busy
+    | wrong_maintenance_operation
+    | source_set_mismatch
+    | source_already_present
+    | source_not_present
+    | item_limit_exceeded
+    | storage_limit_exceeded
+    | storage_accounting_overflow
+    | query_work_limit_exceeded
+    | result_limit_exceeded
+    | query_concurrency_exceeded
+    | invalid_resource_binding
