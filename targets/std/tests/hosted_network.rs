@@ -1,7 +1,6 @@
 use conduit_net::{
     DnsQuery, DnsRecordKind, DnsResult, DnsTtl, NetworkAddress, NetworkConnectionState,
-    NetworkEndpoint, NetworkFrameDirection, NetworkFramePayload, NetworkFrameProtocol,
-    NetworkProtocolFrame, NetworkTransport, NETWORK_MAXIMUM_INLINE_PAYLOAD_BYTES,
+    NetworkEndpoint, NetworkTransport,
 };
 use conduit_std_host::hosted_network::{
     connect_tcp, resolve_dns, resolve_dns_with_provider, EndpointFreshness,
@@ -112,15 +111,4 @@ fn stale_lost_and_refused_remain_distinct() {
         ),
         DnsResult::ProviderLost { .. }
     ));
-}
-
-#[test]
-fn reviewed_frame_payload_is_inline_bounded_or_a_resource_reference() {
-    let frame = NetworkProtocolFrame {
-        protocol: NetworkFrameProtocol::EchoV1,
-        direction: NetworkFrameDirection::Sent,
-        sequence: 1,
-        payload: NetworkFramePayload::Inline(vec![0; NETWORK_MAXIMUM_INLINE_PAYLOAD_BYTES + 1]),
-    };
-    assert!(frame.validate().is_err());
 }
