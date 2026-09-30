@@ -10,6 +10,7 @@ use conduit_host_make::{
 
 pub const BODY_DESCRIPTION_SCHEMA: u32 = 1;
 pub const MAXIMUM_BODY_HOSTS: usize = 32;
+pub const MAXIMUM_WORN_MASKS: usize = 16;
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
@@ -18,6 +19,38 @@ pub struct BodyDescription {
     pub name: String,
     pub body: BodyBindingTarget,
     pub hosts: Vec<BodyHostDescription>,
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub mask_imports: Vec<BodyMaskImportDescription>,
+    #[serde(default, skip_serializing_if = "BodyWardrobeDescription::is_empty")]
+    pub wardrobe: BodyWardrobeDescription,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct BodyMaskImportDescription {
+    pub alias: String,
+    pub source: String,
+}
+
+#[derive(Debug, Clone, Default, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct BodyWardrobeDescription {
+    pub worn: Vec<BodyMaskRouteDescription>,
+    pub preference: Vec<String>,
+}
+
+impl BodyWardrobeDescription {
+    pub fn is_empty(&self) -> bool {
+        self.worn.is_empty() && self.preference.is_empty()
+    }
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct BodyMaskRouteDescription {
+    pub mask: String,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub fallback: Option<String>,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
@@ -107,6 +140,25 @@ pub enum BodyDescriptionDiagnostic {
     DuplicatePart {
         part: String,
     },
+    TooManyWornMasks {
+        actual: usize,
+        maximum: usize,
+    },
+    DuplicateMaskAlias {
+        alias: String,
+    },
+    UnknownMaskAlias {
+        alias: String,
+    },
+    DuplicateWornMask {
+        alias: String,
+    },
+    DuplicateMaskPreference {
+        alias: String,
+    },
+    PreferenceForUnwornMask {
+        alias: String,
+    },
     MissingConfiguration {
         path: String,
     },
@@ -170,6 +222,7 @@ pub fn check_body_description(
             maximum: MAXIMUM_BODY_HOSTS,
         });
     }
+    validate_wardrobe(&description, &mut diagnostics);
     let mut names = BTreeSet::new();
     let mut parts = BTreeSet::new();
     let mut checked_hosts = Vec::new();
@@ -278,7 +331,114 @@ pub fn check_body_description(
     })
 }
 
+fn validate_wardrobe(
+    description: &BodyDescription,
+    diagnostics: &mut Vec<BodyDescriptionDiagnostic>,
+) {
+    if description.wardrobe.worn.len() > MAXIMUM_WORN_MASKS {
+        diagnostics.push(BodyDescriptionDiagnostic::TooManyWornMasks {
+            actual: description.wardrobe.worn.len(),
+            maximum: MAXIMUM_WORN_MASKS,
+        });
+    }
+    let mut aliases = BTreeSet::new();
+    for imported in &description.mask_imports {
+        if imported.alias.is_empty()
+            || imported.source.is_empty()
+            || !aliases.insert(imported.alias.clone())
+        {
+            diagnostics.push(BodyDescriptionDiagnostic::DuplicateMaskAlias {
+                alias: imported.alias.clone(),
+            });
+        }
+    }
+    let mut worn = BTreeSet::new();
+    for route in &description.wardrobe.worn {
+        for alias in core::iter::once(&route.mask).chain(route.fallback.iter()) {
+            if !aliases.contains(alias) {
+                diagnostics.push(BodyDescriptionDiagnostic::UnknownMaskAlias {
+                    alias: alias.clone(),
+                });
+            } else if !worn.insert(alias.clone()) {
+                diagnostics.push(BodyDescriptionDiagnostic::DuplicateWornMask {
+                    alias: alias.clone(),
+                });
+            }
+        }
+    }
+    let mut preference = BTreeSet::new();
+    for alias in &description.wardrobe.preference {
+        if !preference.insert(alias.clone()) {
+            diagnostics.push(BodyDescriptionDiagnostic::DuplicateMaskPreference {
+                alias: alias.clone(),
+            });
+        } else if !worn.contains(alias) {
+            diagnostics.push(BodyDescriptionDiagnostic::PreferenceForUnwornMask {
+                alias: alias.clone(),
+            });
+        }
+    }
+}
+
 fn valid_body_binding_id(value: &str) -> bool {
     value.starts_with("body:")
         || (value.len() == 64 && value.bytes().all(|byte| byte.is_ascii_hexdigit()))
+}
+
+#[cfg(test)]
+mod wardrobe_tests {
+    use super::*;
+
+    fn description() -> BodyDescription {
+        BodyDescription {
+            schema: BODY_DESCRIPTION_SCHEMA,
+            name: "roseau".into(),
+            body: BodyBindingTarget {
+                id: "body:roseau".into(),
+            },
+            hosts: Vec::new(),
+            mask_imports: vec![
+                BodyMaskImportDescription {
+                    alias: "graphical".into(),
+                    source: "masks/native-graphical".into(),
+                },
+                BodyMaskImportDescription {
+                    alias: "spoken".into(),
+                    source: "masks/spoken".into(),
+                },
+            ],
+            wardrobe: BodyWardrobeDescription {
+                worn: vec![BodyMaskRouteDescription {
+                    mask: "graphical".into(),
+                    fallback: Some("spoken".into()),
+                }],
+                preference: vec!["graphical".into(), "spoken".into()],
+            },
+        }
+    }
+
+    #[test]
+    fn exact_worn_fallback_and_preference_aliases_are_validated() {
+        let mut diagnostics = Vec::new();
+        validate_wardrobe(&description(), &mut diagnostics);
+        assert!(diagnostics.is_empty());
+
+        let mut invalid = description();
+        invalid.wardrobe.worn[0].fallback = Some("absent".into());
+        invalid.wardrobe.preference = vec!["graphical".into(), "graphical".into(), "idle".into()];
+        let mut diagnostics = Vec::new();
+        validate_wardrobe(&invalid, &mut diagnostics);
+        assert!(diagnostics.iter().any(|item| matches!(
+            item,
+            BodyDescriptionDiagnostic::UnknownMaskAlias { alias } if alias == "absent"
+        )));
+        assert!(diagnostics.iter().any(|item| matches!(
+            item,
+            BodyDescriptionDiagnostic::DuplicateMaskPreference { alias } if alias == "graphical"
+        )));
+        assert!(diagnostics.iter().any(|item| matches!(
+            item,
+            BodyDescriptionDiagnostic::PreferenceForUnwornMask { alias } if alias == "idle"
+        )));
+    }
 }

@@ -354,9 +354,11 @@ operation, finite Face-realization resource, and exact display base remain plan
 and host truth. Transform kinds do not acquire hidden Show side effects.
 
 Mask is a Form role, not a new authored keyword or a second graph language.
-The role is admitted from an ordinary Form's exact Fore. Richer authored
-Body/wardrobe configuration syntax remains deliberately unfrozen; neither a
-Mask nor a test fixture may invent private source spelling to conceal that gap.
+The role is admitted from an ordinary Form's exact Fore. Body construction
+uses `wear MASK [else FALLBACK]` for finite eligibility/fallback structure and
+`want MASK over MASK ...` for ordered soft preference. These are planning
+inputs: they do not mutate an immutable Plan, grant deployment authority, or
+put realization policy inside a Mask.
 
 ### Make and runtime
 

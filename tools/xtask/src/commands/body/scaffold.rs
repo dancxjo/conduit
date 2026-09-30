@@ -273,6 +273,8 @@ fn prepare(
                 id: format!("body:{name}"),
             },
             hosts,
+            mask_imports: Vec::new(),
+            wardrobe: conduit_body_make::BodyWardrobeDescription::default(),
         },
         &configurations,
         &conduit_workspace_make::catalog(),
