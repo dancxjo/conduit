@@ -134,8 +134,7 @@ impl MidiInputAdapter {
                 value,
                 ..
             } => self.control(
-                MusicalControl::sustain(conduit_core::InfoBool::new(value >= 64))
-                    .expect("boolean control is valid"),
+                MusicalControl::sustain(value >= 64).expect("boolean control is valid"),
                 event_time_micros,
             ),
             MidiMessage::ControlChange {
@@ -326,7 +325,7 @@ impl MidiOutputAdapter {
             MusicalControl::Sustain(payload) => Ok([
                 0xb0 | self.profile.output_channel,
                 64,
-                if payload.down().get() { 127 } else { 0 },
+                if *payload.down() { 127 } else { 0 },
             ]),
             MusicalControl::Modulation(payload)
                 if payload.destination() == &ModulationDestination::Pitch =>

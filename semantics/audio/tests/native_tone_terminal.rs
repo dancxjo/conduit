@@ -30,7 +30,7 @@ fn native_tone_terminal_owns_semantic_identity_while_wire_codec_stays_explicit()
 #[test]
 fn musical_control_payloads_round_trip_and_own_their_refinements() {
     for control in [
-        MusicalControl::sustain(conduit_core::InfoBool::TRUE).unwrap(),
+        MusicalControl::sustain(true).unwrap(),
         MusicalControl::pitch_bend(-1_000_000, 2_400_000_000).unwrap(),
         MusicalControl::modulation(1_000_000, ModulationDestination::Amplitude).unwrap(),
     ] {

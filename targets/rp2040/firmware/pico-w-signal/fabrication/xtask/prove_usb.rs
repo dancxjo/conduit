@@ -300,7 +300,7 @@ pub fn run_prove_std_pico_usb(
                     },
                     sequence,
                     &payload,
-                    signal.level(),
+                    *signal.level(),
                 )?;
             }
             let final_sequence = source.finish_kernel()?;
@@ -364,7 +364,7 @@ pub fn run_prove_std_pico_usb(
                 },
                 sequence,
                 &payload,
-                signal.level(),
+                *signal.level(),
             )?;
             observed += 1;
         }

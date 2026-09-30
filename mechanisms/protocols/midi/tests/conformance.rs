@@ -203,7 +203,7 @@ fn sustain_modulation_and_pitch_bend_become_typed_controls() {
     assert!(matches!(
         sustain,
         PortableMidiEvent::Control(event)
-            if event.control == MusicalControl::sustain(conduit_core::InfoBool::TRUE).unwrap()
+            if event.control == MusicalControl::sustain(true).unwrap()
     ));
     assert!(matches!(
         modulation,

@@ -36,37 +36,29 @@ fn sustain_hold_and_release_are_distinct_ordered_events() {
             .unwrap()
             .encode()
             .to_vec(),
-        MusicalControlEvent::new(
-            MusicalControl::sustain(conduit_core::InfoBool::TRUE).unwrap(),
-            1_100,
-            1,
-        )
-        .unwrap()
-        .encode()
-        .to_vec(),
+        MusicalControlEvent::new(MusicalControl::sustain(true).unwrap(), 1_100, 1)
+            .unwrap()
+            .encode()
+            .to_vec(),
         MusicalNoteEvent::new(occurrence, pitch, Gate::Off, 0, 1_200, 2)
             .unwrap()
             .encode()
             .to_vec(),
-        MusicalControlEvent::new(
-            MusicalControl::sustain(conduit_core::InfoBool::FALSE).unwrap(),
-            1_300,
-            3,
-        )
-        .unwrap()
-        .encode()
-        .to_vec(),
+        MusicalControlEvent::new(MusicalControl::sustain(false).unwrap(), 1_300, 3)
+            .unwrap()
+            .encode()
+            .to_vec(),
     ];
 
     assert_eq!(MusicalNoteEvent::decode(&sequence[0]).unwrap().order, 0);
     assert_eq!(
         MusicalControlEvent::decode(&sequence[1]).unwrap().control,
-        MusicalControl::sustain(conduit_core::InfoBool::TRUE).unwrap()
+        MusicalControl::sustain(true).unwrap()
     );
     assert_eq!(MusicalNoteEvent::decode(&sequence[2]).unwrap().order, 2);
     assert_eq!(
         MusicalControlEvent::decode(&sequence[3]).unwrap().control,
-        MusicalControl::sustain(conduit_core::InfoBool::FALSE).unwrap()
+        MusicalControl::sustain(false).unwrap()
     );
 }
 
@@ -123,7 +115,7 @@ fn every_portable_event_round_trips_and_reserved_bytes_refuse() {
         MusicalNoteEvent::new(NoteOccurrenceId(11), pitch, Gate::Off, 65_535, 13, 4).unwrap();
     assert_eq!(MusicalNoteEvent::decode(&note.encode()), Ok(note));
     for control in [
-        MusicalControl::sustain(conduit_core::InfoBool::TRUE).unwrap(),
+        MusicalControl::sustain(true).unwrap(),
         MusicalControl::pitch_bend(-500_000, 200_000_000).unwrap(),
         MusicalControl::modulation(750_000, ModulationDestination::FilterCutoff).unwrap(),
     ] {
@@ -134,13 +126,9 @@ fn every_portable_event_round_trips_and_reserved_bytes_refuse() {
         );
         assert_ne!(event.semantic_digest(), [0; 32]);
     }
-    let mut noncanonical = MusicalControlEvent::new(
-        MusicalControl::sustain(conduit_core::InfoBool::FALSE).unwrap(),
-        0,
-        0,
-    )
-    .unwrap()
-    .encode();
+    let mut noncanonical = MusicalControlEvent::new(MusicalControl::sustain(false).unwrap(), 0, 0)
+        .unwrap()
+        .encode();
     noncanonical[5] = 1;
     assert_eq!(
         MusicalControlEvent::decode(&noncanonical),

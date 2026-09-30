@@ -79,7 +79,7 @@ fn bounded_musician_stress_ends_in_immediate_silence() {
         synth
             .apply_control(
                 MusicalControlEvent::new(
-                    MusicalControl::sustain(conduit_core::InfoBool::new(round % 2 == 0)).unwrap(),
+                    MusicalControl::sustain(round % 2 == 0).unwrap(),
                     now,
                     order,
                 )

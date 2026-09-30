@@ -120,8 +120,7 @@ fn map_control(
             let occurrence = count(field(fields, "occurrence", 184)?, 185)?;
             if index == mapping.sustain_button {
                 MusicalControlEvent::new(
-                    MusicalControl::sustain(conduit_core::InfoBool::new(down))
-                        .expect("boolean control is valid"),
+                    MusicalControl::sustain(down).expect("boolean control is valid"),
                     event_time,
                     order,
                 )

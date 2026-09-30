@@ -268,7 +268,7 @@ impl MusicalControlEvent {
         match &self.control {
             MusicalControl::Sustain(payload) => {
                 out[0] = 0;
-                out[1] = u8::from(payload.down().get());
+                out[1] = u8::from(*payload.down());
             }
             MusicalControl::PitchBend(payload) => {
                 out[0] = 1;
@@ -296,10 +296,8 @@ impl MusicalControlEvent {
             0 => {
                 require_zero(&encoded[2..10], "sustain-reserved")?;
                 match encoded[1] {
-                    0 => MusicalControl::sustain(conduit_core::InfoBool::FALSE)
-                        .expect("boolean control is valid"),
-                    1 => MusicalControl::sustain(conduit_core::InfoBool::TRUE)
-                        .expect("boolean control is valid"),
+                    0 => MusicalControl::sustain(false).expect("boolean control is valid"),
+                    1 => MusicalControl::sustain(true).expect("boolean control is valid"),
                     actual => {
                         return Err(SoundInfoError::InvalidTag {
                             field: "sustain",

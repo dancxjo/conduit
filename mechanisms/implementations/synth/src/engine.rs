@@ -107,7 +107,7 @@ impl ReferenceSynth {
         self.require_current_or_future(event.event_time_micros)?;
         match event.control {
             MusicalControl::Sustain(payload) => {
-                let down = payload.down().get();
+                let down = *payload.down();
                 let mut released = 0;
                 if self.sustain_down && !down {
                     for voice in self.voices.iter_mut().flatten() {

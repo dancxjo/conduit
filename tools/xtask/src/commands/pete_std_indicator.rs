@@ -316,18 +316,19 @@ impl SignalManifestation for CreateIndicatorManifestation<'_> {
         let expected = self
             .last_sequence
             .map_or(0, |value| value.saturating_add(1));
-        if signal.sequence != expected {
+        if *signal.sequence() != expected {
             return Err(format!(
                 "non-monotonic Signal sequence: expected {expected}, received {}",
-                signal.sequence
+                signal.sequence()
             ));
         }
-        self.write_level(signal.level)?;
-        self.last_sequence = Some(signal.sequence);
+        self.write_level(*signal.level())?;
+        self.last_sequence = Some(*signal.sequence());
         writeln!(
             operator_output,
             "create-indicator sequence={} level={} committed=true",
-            signal.sequence, signal.level
+            signal.sequence(),
+            signal.level()
         )
         .map_err(|error| error.to_string())
     }

@@ -155,10 +155,7 @@ fn eight_buttons_map_to_portable_frequencies_and_preserve_identity_and_time() {
 fn sustain_modulation_and_expression_use_the_distinct_control_port() {
     let mapping = test_mapping();
     let sustain = musical_control(map_control(&mapping, &button(8, true, 9, 20), 0).unwrap());
-    assert_eq!(
-        sustain.control,
-        MusicalControl::sustain(conduit_core::InfoBool::TRUE).unwrap()
-    );
+    assert_eq!(sustain.control, MusicalControl::sustain(true).unwrap());
     assert_eq!(sustain.event_time_micros, 20);
 
     let modulation = musical_control(map_control(&mapping, &analog(0, 250_000, 21), 1).unwrap());
