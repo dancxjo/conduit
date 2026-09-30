@@ -10,7 +10,9 @@ use conduit_core::{
 use serde::{Deserialize, Serialize};
 use std::{string::String, vec, vec::Vec};
 
-use crate::{SpeechRecognitionContract, MAXIMUM_RECOGNIZED_TEXT_BYTES};
+use crate::{
+    SpeechRecognitionContract, StreamingRecognitionRefusal, MAXIMUM_RECOGNIZED_TEXT_BYTES,
+};
 
 pub use speaking::StreamEvent as RecognitionEvent;
 pub use speaking::{SegmentId, StreamEvent, TextRole};
@@ -39,12 +41,6 @@ pub struct CommittedUserMessage {
     pub role: String,
     pub source: String,
     pub text: String,
-}
-
-#[derive(Clone, Copy, Debug, Eq, PartialEq)]
-pub enum StreamingRecognitionRefusal {
-    BoundExceeded,
-    InvalidEvent,
 }
 
 pub fn streaming_speech_recognition_contract() -> SpeechRecognitionContract {
