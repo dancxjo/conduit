@@ -199,6 +199,9 @@ fn authored_select_seals_the_exact_value_to_boolean_predicate_plan() {
     let [activation] = plan.activations.as_slice() else {
         panic!("select must seal exactly one predicate activation")
     };
+    let conduit_core::PlannedActivationEntry::Unary(activation) = activation else {
+        panic!("select must seal a unary predicate activation")
+    };
     assert_eq!(activation.input.value_kind.as_str(), "value/text");
     assert_eq!(activation.output.value_kind.as_str(), BOOL_INFO_ID);
     assert_eq!(activation.limits.maximum_active, 1);
