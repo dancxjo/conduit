@@ -12,7 +12,10 @@ pub use generated::{
     MeetingProposalRefusal, ParticipantRole, PatternComparisonRefusal, RecurrenceRefusal,
     ReplayPolicy, ReplayPolicyRate, ScheduledIntentRefusal, SequenceNormalizationRefusal,
     SuspendBehavior, TemporalBoundary, TemporalWindowPosition, TemporalWindowRefusal,
+    TimedPatternRefusal,
 };
+
+mod timed_pattern_refusal;
 
 mod tick;
 pub use tick::*;

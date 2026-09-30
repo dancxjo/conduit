@@ -134,3 +134,10 @@ type PatternComparisonRefusal =
     | tolerance-out-of-range
     | algorithm-mismatch
     | length-mismatch
+
+type TimedPatternRefusal =
+    malformed
+    | too-few-events
+    | too-many-events
+    | reordered-or-duplicate-event
+    | interval-overflow
