@@ -338,10 +338,8 @@ mod dependency_boundary_tests {
             non_optional,
             BTreeSet::from(["serde", "serde_json", "sha2", "toml"])
         );
-        assert!(
-            dependencies["conduit-host-browser-make"]["optional"]
-                .as_bool()
-                .unwrap()
-        );
+        assert!(dependencies["conduit-host-browser-make"]["optional"]
+            .as_bool()
+            .unwrap());
     }
 }
