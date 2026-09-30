@@ -7,9 +7,10 @@ mod generated {
     include!(concat!(env!("OUT_DIR"), "/semantic_types.rs"));
 }
 pub use generated::{
-    EmbeddingNormalization, EntityBoundary, GeneratedTextFlowTerminal, ModelOperation,
-    ModelPortPresence, SimilarityMetric, TemporalSource, TemporalValidity, TemporalWindowRelation,
-    TransitionDirection,
+    ContextOmissionReason, ContextOrderingPolicy, ContextRedundancyPolicy, EmbeddingNormalization,
+    EntityBoundary, GeneratedTextFlowTerminal, ModelOperation, ModelPortPresence,
+    SelectedContextRationale, SimilarityMetric, TemporalSource, TemporalValidity,
+    TemporalWindowRelation, TransitionDirection,
 };
 
 mod bases;
