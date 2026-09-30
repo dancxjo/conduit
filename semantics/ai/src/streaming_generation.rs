@@ -1,6 +1,6 @@
 //! Portable bounded accounting for monotonic generated-text deltas.
 
-use crate::GeneratedTextFlowTerminal;
+use crate::{GeneratedTextFlowRefusal, GeneratedTextFlowTerminal};
 use alloc::string::String;
 use serde::{Deserialize, Serialize};
 
@@ -25,16 +25,6 @@ pub struct GeneratedTextFlowEvidence {
     pub generated_bytes: u64,
     pub terminal: GeneratedTextFlowTerminal,
     pub retained_private_text: bool,
-}
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum GeneratedTextFlowRefusal {
-    WrongSequence,
-    EmptyChunk,
-    ChunkOverflow,
-    ChunkCountOverflow,
-    OutputOverflow,
-    AlreadyTerminal,
 }
 
 pub fn encode_generated_text_chunk(

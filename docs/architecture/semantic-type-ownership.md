@@ -186,6 +186,7 @@ are satisfied.
 | Local-model profile, cache, lifecycle, refusal, failure and offer-validity vocabularies | `semantics/ai/types.conduit` | generated at build time | yes | yes | exact native round trips plus local-model offer and hosted-adapter suites |
 | Interpretation invalidity and temporal interpretation/evidence-selection refusals | `semantics/ai/types.conduit` | generated at build time | yes | yes | exact native round trips plus interpretation and temporal-context suites |
 | Context-selection, reranking and wired-house-context refusals | `semantics/ai/types.conduit` | generated at build time | yes | yes | exact native round trips plus selection, reranking and house-context suites |
+| Generated-text-flow and continuous-dynamics refusals | `semantics/ai/types.conduit` | generated at build time | yes | yes | exact native round trips plus streaming-generation and dynamics suites |
 | AI planning, interruption, candidate and training lifecycle vocabularies | `semantics/ai/types.conduit` | generated at build time | yes | yes | exact native round trips plus cross-host, composition and training lifecycle suites |
 | Reranking strategy and its bounded observed-score payload | `semantics/ai/types.conduit` | generated at build time | yes | yes | exact native payload round trip plus retrieval and context-selection suites |
 | Model operation and port-presence vocabularies | `semantics/ai/types.conduit` | generated at build time | yes | yes | exact native round trips plus AI model-signature suite |

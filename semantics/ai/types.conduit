@@ -618,3 +618,27 @@ type HouseContextRefusal =
     | empty_value
     | duplicate_item
     | invalid_output_bound
+
+type GeneratedTextFlowRefusal =
+    wrong_sequence
+    | empty_chunk
+    | chunk_overflow
+    | chunk_count_overflow
+    | output_overflow
+    | already_terminal
+
+type DynamicsRefusal =
+    missing_identity
+    | invalid_time
+    | invalid_sampling
+    | unsupported_stochastic_profile
+    | invalid_accuracy
+    | invalid_resources
+    | invalid_state
+    | stale_state
+    | invalid_context
+    | resource_bound_exceeded
+    | invalid_trajectory
+    | invalid_final_state
+    | work_bound_exceeded
+    | invalid_realization
