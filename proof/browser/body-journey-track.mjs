@@ -55,9 +55,12 @@ export async function writeBrowserBodyJourneyTrack(source, screenshotPath, outpu
   }
   const interaction = inspectedMask.interaction;
   if (interaction?.schema !== "conduit.browser/mask-interaction@1"
-      || interaction.correlation?.interaction?.presentation_id !== inspectedMask.presentation?.identity
-      || interaction.correlation?.interaction?.presentation_revision !== inspectedMask.presentation?.revision
-      || interaction.correlation?.interaction?.manifestation_id !== inspectedMask.mask_show?.show?.manifestation_id) {
+      || interaction.correlation?.presentation_id !== inspectedMask.presentation?.identity
+      || interaction.correlation?.presentation_revision !== inspectedMask.presentation?.revision
+      || interaction.correlation?.show_id !== inspectedMask.mask_show?.show_id
+      || interaction.correlation?.interaction?.face_id !== inspectedMask.presentation?.identity
+      || interaction.correlation?.interaction?.face_revision !== inspectedMask.presentation?.revision
+      || interaction.correlation?.interaction?.show_id !== inspectedMask.mask_show?.show_id) {
     throw new Error("browser track lacks exact Face/Show-correlated Mask interaction");
   }
   const kernelSigns = new Set(inspectedMask.execution.remote_signs?.map(sign => sign.kind));

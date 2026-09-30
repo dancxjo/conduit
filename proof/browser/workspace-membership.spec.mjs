@@ -42,10 +42,15 @@ test("the ordinary face binds and admits one compiler-free reviewed browser Host
   await capture("body.inspected", "The body's own inspection panel reveals its lifecycle.");
   const inspectedInteraction = captures["body.inspected"].mask?.interaction;
   expect(inspectedInteraction?.schema).toBe("conduit.browser/mask-interaction@1");
-  expect(inspectedInteraction?.correlation?.interaction).toMatchObject({
+  expect(inspectedInteraction?.correlation).toMatchObject({
     presentation_id: captures["body.inspected"].mask.presentation.identity,
     presentation_revision: captures["body.inspected"].mask.presentation.revision,
-    manifestation_id: captures["body.inspected"].mask.mask_show.show.manifestation_id,
+    show_id: captures["body.inspected"].mask.mask_show.show_id,
+  });
+  expect(inspectedInteraction?.correlation?.interaction).toMatchObject({
+    face_id: captures["body.inspected"].mask.presentation.identity,
+    face_revision: captures["body.inspected"].mask.presentation.revision,
+    show_id: captures["body.inspected"].mask.mask_show.show_id,
     action_id: "body.use-current",
   });
   expect(inspectedInteraction?.semantic_action?.intent).toBe("conduit.intent/tutorial-next@1");
