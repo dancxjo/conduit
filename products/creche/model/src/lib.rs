@@ -9,8 +9,6 @@ use conduit_presentation::{
     SemanticApplicationView, SemanticPresentationNode, SemanticPresentationRefusal, StatusKind,
 };
 
-mod graduation_presentation;
-pub use graduation_presentation::*;
 pub mod birth;
 pub mod names;
 
