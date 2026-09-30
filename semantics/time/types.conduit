@@ -55,6 +55,8 @@ type HistoricalOverflowPolicy =
     refuse
     | evict_oldest_with_gap
 
+representation time/historical-overflow-policy = HistoricalOverflowPolicy as u8
+
 type ReplayPolicy =
     step
     | original-timing

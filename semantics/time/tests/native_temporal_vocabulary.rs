@@ -1,6 +1,7 @@
 use conduit_form::rust_binding::NativeRustBinding;
 use conduit_time::{
-    HistoricalEntryOrigin, HistoricalOverflowPolicy, TemporalBoundary, TemporalWindowPosition,
+    HistoricalEntryOrigin, HistoricalOverflowPolicy, HistoricalOverflowPolicyRepresentation,
+    TemporalBoundary, TemporalWindowPosition,
 };
 
 fn assert_round_trip<T>(value: T)
@@ -9,6 +10,29 @@ where
 {
     let structured = value.into_structured().unwrap();
     assert_eq!(T::from_structured(structured).unwrap(), value);
+}
+
+#[test]
+fn historical_overflow_representation_preserves_snapshot_tags() {
+    assert_eq!(
+        HistoricalOverflowPolicyRepresentation::encode(HistoricalOverflowPolicy::Refuse),
+        [0]
+    );
+    assert_eq!(
+        HistoricalOverflowPolicyRepresentation::encode(
+            HistoricalOverflowPolicy::EvictOldestWithGap
+        ),
+        [1]
+    );
+    assert_eq!(
+        HistoricalOverflowPolicyRepresentation::decode(&[0]),
+        Ok(HistoricalOverflowPolicy::Refuse)
+    );
+    assert_eq!(
+        HistoricalOverflowPolicyRepresentation::decode(&[1]),
+        Ok(HistoricalOverflowPolicy::EvictOldestWithGap)
+    );
+    assert!(HistoricalOverflowPolicyRepresentation::decode(&[2]).is_err());
 }
 
 #[test]
