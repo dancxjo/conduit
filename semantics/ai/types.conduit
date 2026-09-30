@@ -38,6 +38,17 @@ type LlmInterruptionReason =
 type LlmPlanningRefusal =
     missing_llm_realization
 
+type BaseProofClass =
+    deterministic_conformance_fixture
+
+type DataHandling =
+    local_only
+    | remote_egress
+
+type Metering =
+    unmetered_fixture
+    | metered_fixture
+
 type CandidateLifecycle =
     awaiting_explicit_validation_plan_and_play
 
