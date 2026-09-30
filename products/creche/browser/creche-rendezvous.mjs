@@ -2,7 +2,7 @@ const PROTOCOL = 1;
 // Shared with the native running-Host rendezvous envelope. The exact standard
 // Host advertisement travels in one bounded control frame before and after
 // invitation admission; ordinary joined-Line data remains separately bounded.
-const MAXIMUM_FRAME_BYTES = 128 * 1024;
+const MAXIMUM_FRAME_BYTES = 256 * 1024;
 const MAXIMUM_WAIT_MILLIS = 10_000;
 const WEBSOCKET_CODE_PATTERN = /^C1-WS-([0-9A-F]{4})-([0-9A-F]{64})$/;
 const SERIAL_CODE_PATTERN = /^C1-SERIAL-([0-9A-F]{64})$/;

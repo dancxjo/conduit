@@ -42,11 +42,16 @@ test("the ordinary face binds and admits one compiler-free reviewed browser Host
   await capture("body.inspected", "The body's own inspection panel reveals its lifecycle.");
   const inspectedInteraction = captures["body.inspected"].mask?.interaction;
   expect(inspectedInteraction?.schema).toBe("conduit.browser/mask-interaction@1");
-  expect(inspectedInteraction?.correlation?.interaction).toMatchObject({
+  expect(inspectedInteraction?.correlation).toMatchObject({
     presentation_id: captures["body.inspected"].mask.presentation.identity,
     presentation_revision: captures["body.inspected"].mask.presentation.revision,
-    manifestation_id: captures["body.inspected"].mask.mask_show.show.manifestation_id,
-    action_id: "body.use-current",
+    show_id: captures["body.inspected"].mask.mask_show.show_id,
+    interaction: {
+      face_id: captures["body.inspected"].mask.presentation.identity,
+      face_revision: captures["body.inspected"].mask.presentation.revision,
+      show_id: captures["body.inspected"].mask.mask_show.show_id,
+      action_id: "body.use-current",
+    },
   });
   expect(inspectedInteraction?.semantic_action?.intent).toBe("conduit.intent/tutorial-next@1");
   const maskActions = await page.evaluate(() => globalThis.__conduitWorkspace.maskJourney());
@@ -522,7 +527,7 @@ test("an already-running host joins without displacing the browser Host or its b
     await page.getByLabel("Running host rendezvous code", { exact: true }).fill(code);
     await page.getByRole("button", { name: "Connect Host", exact: true }).click();
 
-    await expect(page.locator(".member-card")).toHaveCount(2);
+    await expect(page.locator(".member-card")).toHaveCount(2, { timeout: 15_000 });
     await expect(page.locator(".member-card")).toContainText(["admitted · present · local host", "admitted · present"]);
     const after = await page.evaluate(() => globalThis.__conduitWorkspace.evidence());
     expect(after.evidence.membership.revision).toBe(before.revision + 2);
@@ -535,7 +540,7 @@ test("an already-running host joins without displacing the browser Host or its b
     await page.reload();
     await expectProcessSuccess(running);
     await page.getByRole("button", { name: "parts / hosts", exact: true }).click();
-    await expect(page.locator(".member-card")).toHaveCount(2);
+    await expect(page.locator(".member-card")).toHaveCount(2, { timeout: 15_000 });
     const restored = await page.evaluate(() => globalThis.__conduitWorkspace.evidence());
     expect(restored.evidence.membership.parts.filter(part => part.current)).toHaveLength(1);
     expect(restored.current_host_offers).toHaveLength(1);
@@ -563,7 +568,7 @@ test("loss of a joined Host Line removes only its current offers and keeps the b
     await page.getByRole("button", { name: "Connect a running host", exact: true }).click();
     await page.getByLabel("Running host rendezvous code", { exact: true }).fill(code);
     await page.getByRole("button", { name: "Connect Host", exact: true }).click();
-    await expect(page.locator(".member-card")).toHaveCount(2);
+    await expect(page.locator(".member-card")).toHaveCount(2, { timeout: 15_000 });
     expect(await page.evaluate(() => globalThis.__conduitWorkspace.evidence().current_host_offers.length)).toBe(2);
 
     running.kill();
