@@ -93,7 +93,8 @@ impl Session {
             Role::Source => source_fragment.clone(),
             Role::Sink => sink_fragment.clone(),
         };
-        let (scheduler, lowered) = engine::prepare_remote_fragment(&fragment)?;
+        let (scheduler, lowered) =
+            engine::prepare_remote_fragment_from_plan(&exact.plan, &fragment)?;
         let direction = lowered
             .remote_endpoints
             .first()

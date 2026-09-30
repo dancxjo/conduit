@@ -207,7 +207,7 @@ impl TourSession {
             .collect();
         let mut pending_effects =
             Vec::with_capacity(crate::installed_browser::BROWSER_PENDING_REQUESTS);
-        let (scheduler, pending) = engine::prepare(fragment)?;
+        let (scheduler, pending) = engine::prepare_from_plan(&plan, fragment)?;
         pending_effects.push(pending);
         let active = bind_active_play(
             &plan.plan_id,

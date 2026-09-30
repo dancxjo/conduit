@@ -148,11 +148,55 @@ pub(super) fn prepare(
     Ok((scheduler, pending))
 }
 
+/// Production whole-Plan entrance. Activation owners are never silently
+/// lowered as ordinary fragment-only kernels.
+pub(super) fn prepare_from_plan(
+    plan: &conduit_core::Plan,
+    fragment: &PlanFragment,
+) -> Result<(TourScheduler, PendingHostEffect), String> {
+    let (lowered, activations) =
+        conduit_plan_lowering::lowering::lower_plan_fragment_from_plan(plan, &fragment.fragment_id)
+            .map_err(|error| format!("lower executable-tour Plan: {error:?}"))?;
+    if !activations.entries.is_empty() {
+        return Err("browser Form activation owners require sealed coordinator preparation".into());
+    }
+    validate_envelope(fragment, &lowered, false)?;
+    let mut scheduler = prepare_scheduler(fragment, &lowered)?;
+    let pending = match drive(&mut scheduler, fragment)? {
+        DriveStatus::Effect(pending) => pending,
+        DriveStatus::Quiescent => {
+            return Err("Tour Play became quiescent without a planned host effect".into())
+        }
+        DriveStatus::SemanticCompleted => {
+            return Err("Tour Play semantically completed without a planned host effect".into())
+        }
+        DriveStatus::Waiting { .. } => {
+            return Err("initial browser effect is already pending".into())
+        }
+    };
+    Ok((scheduler, pending))
+}
+
 pub(super) fn prepare_remote_fragment(
     fragment: &PlanFragment,
 ) -> Result<(TourScheduler, LoweredPlanFragment), String> {
     let lowered = lower_plan_fragment(fragment)
         .map_err(|error| format!("lower multi-host executable-tour Plan: {error:?}"))?;
+    validate_envelope(fragment, &lowered, true)?;
+    let scheduler = prepare_scheduler(fragment, &lowered)?;
+    Ok((scheduler, lowered))
+}
+
+pub(super) fn prepare_remote_fragment_from_plan(
+    plan: &conduit_core::Plan,
+    fragment: &PlanFragment,
+) -> Result<(TourScheduler, LoweredPlanFragment), String> {
+    let (lowered, activations) =
+        conduit_plan_lowering::lowering::lower_plan_fragment_from_plan(plan, &fragment.fragment_id)
+            .map_err(|error| format!("lower multi-host executable-tour Plan: {error:?}"))?;
+    if !activations.entries.is_empty() {
+        return Err("remote browser fragment requires sealed activation preparation".into());
+    }
     validate_envelope(fragment, &lowered, true)?;
     let scheduler = prepare_scheduler(fragment, &lowered)?;
     Ok((scheduler, lowered))

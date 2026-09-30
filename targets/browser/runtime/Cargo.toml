@@ -18,6 +18,7 @@ conduit-synth = { path = "../../../mechanisms/implementations/synth" }
 conduit-audio = { path = "../../../semantics/audio" }
 conduit-body-invitation-form = { path = "../../../semantics/body-invitation" }
 conduit-core = { path = "../../../architecture/core" }
+conduit-composite = { path = "../../../architecture/composite" }
 conduit-birth-form = { path = "../../../forms/birth" }
 conduit-data = { path = "../../../semantics/data", features = ["kernel-step"] }
 conduit-little-seismograph-fixture = { path = "../../../forms/little-seismograph/fixture" }

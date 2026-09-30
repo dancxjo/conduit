@@ -8,7 +8,7 @@ use conduit_kernel::scheduler::{HostCallRequest, RemoteIngressOutcome, Scheduler
 use conduit_kernel::RemoteTerminalDisposition;
 use conduit_kernel::{HostCallId, HostCallOutcome, KernelEvent, NodeId, RemoteEndpointId};
 use conduit_plan_lowering::lowering::{
-    lower_plan_fragment, LoweredPlanFragment, LoweringError, RemoteCordDirection,
+    lower_plan_fragment_from_plan, LoweredPlanFragment, LoweringError, RemoteCordDirection,
 };
 use std::collections::BTreeMap;
 
@@ -48,11 +48,17 @@ impl KernelCompositePreparation {
         let mut children = BTreeMap::new();
         for fragment in &plan.fragments {
             let child = fragment.host_id.clone();
-            let lowered =
-                lower_plan_fragment(fragment).map_err(|error| KernelCompositeError::Lowering {
+            let (lowered, nested) = lower_plan_fragment_from_plan(&plan, &fragment.fragment_id)
+                .map_err(|error| KernelCompositeError::Lowering {
                     child: child.clone(),
                     error,
                 })?;
+            if !nested.entries.is_empty() {
+                return Err(KernelCompositeError::InvalidBoundary(
+                    "nested activation coordinator requires an explicitly prepared outer bridge"
+                        .into(),
+                ));
+            }
             if children.insert(child.clone(), lowered).is_some() {
                 return Err(KernelCompositeError::DuplicateChild(child));
             }

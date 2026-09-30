@@ -39,7 +39,7 @@ impl RemoteExecution {
     ) -> Result<Self, String> {
         let fragment = preparation::validate(plan, host, bindings, active_play_id)?;
         let resources = preparation::admit(fragment, host, observations)?;
-        let (scheduler, lowered) = engine::prepare_remote_fragment(fragment)?;
+        let (scheduler, lowered) = engine::prepare_remote_fragment_from_plan(plan, fragment)?;
         if lowered.remote_endpoints.len() != bindings.len() || bindings.is_empty() {
             return Err("remote endpoint count differs from the exact grants".into());
         }

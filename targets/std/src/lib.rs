@@ -56,6 +56,7 @@ pub use hosted_body_conversation_context::{
     BodyConversationContextReplacement, BodyConversationContextSource,
     BodyConversationContextUpdateRefusal,
 };
+pub mod flow_activation;
 pub mod hosted_calendar;
 pub mod hosted_data;
 pub mod hosted_geometry;

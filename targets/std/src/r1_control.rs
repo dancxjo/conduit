@@ -177,8 +177,14 @@ pub fn run_live_three_peer_input(bind: &str) -> Result<(), String> {
         .iter()
         .find(|fragment| fragment.host_id == exact.source_advertisement.host_id)
         .ok_or_else(|| "R1 control source fragment missing".to_string())?;
-    let lowered = conduit_plan_lowering::lowering::lower_plan_fragment(fragment)
-        .map_err(|error| format!("R1 control lowering: {error:?}"))?;
+    let (lowered, activations) = conduit_plan_lowering::lowering::lower_plan_fragment_from_plan(
+        &exact.plan,
+        &fragment.fragment_id,
+    )
+    .map_err(|error| format!("R1 control lowering: {error:?}"))?;
+    if !activations.entries.is_empty() {
+        return Err("R1 control source has no installed activation coordinator".into());
+    }
     let mut kernel = R1ControlKernel::from_lowered_plan(fragment, &lowered)
         .map_err(|error| format!("R1 control kernel: {error:?}"))?;
     crate::r1_control_input::run_live_three_peer_events(
