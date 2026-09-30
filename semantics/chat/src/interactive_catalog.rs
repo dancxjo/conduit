@@ -1,10 +1,8 @@
 //! Portable chat-state/submit contracts and browser realization offers.
 
-use alloc::{
-    string::{String, ToString},
-    vec,
-    vec::Vec,
-};
+#[cfg(feature = "form-catalog")]
+use alloc::string::{String, ToString};
+use alloc::{vec, vec::Vec};
 use conduit_core::{
     kind_id, port_id, ArtifactId, Back, BackOfferBuilder, CapabilityId, CapabilityLimits,
     CapabilityOffer, ExecutionProfileId, FrontStartupParameter, HostCallContractId,

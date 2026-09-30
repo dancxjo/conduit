@@ -8,6 +8,8 @@ use conduit_presentation::{
     PresentationRole, PresentationSubject, PresentationText,
 };
 
+use crate::ChatConnectionState;
+
 pub const CHAT_SEND_ACTION: &str = "chat/send";
 pub const CHAT_MESSAGE_INPUT: &str = "chat/message-input";
 pub const CHAT_MESSAGE_TARGET: &str = "chat/message-entry";
@@ -23,13 +25,6 @@ pub struct ChatPresentationConfiguration {
     pub status_label: String,
     pub maximum_message_bytes: u32,
     pub maximum_history_items: usize,
-}
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum ChatConnectionState {
-    Connecting,
-    Connected,
-    Disconnected,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
