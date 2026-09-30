@@ -2,6 +2,16 @@
 
 extern crate alloc;
 
+#[allow(dead_code)]
+mod generated {
+    include!(concat!(env!("OUT_DIR"), "/semantic_types.rs"));
+}
+pub use generated::{
+    ExperienceAvailability, ExperienceCertainty, ExperienceDomain, ExperienceOrigin,
+    ExperienceRelationKind, ExperienceTemporalRole, SourceAvailability, VisualEvidenceClass,
+    VisualExperienceRelationKind,
+};
+
 mod current_experience;
 mod current_experience_trace;
 mod experience_observation;

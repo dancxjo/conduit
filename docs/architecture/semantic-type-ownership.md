@@ -151,6 +151,7 @@ are satisfied.
 | Speech commit/recognition dispositions and typed refusals | `semantics/tongues/types.conduit` | generated at build time | yes | yes | exact native round trips plus speech recognition and commit suites |
 | Address-detection typed terminal | `semantics/text/types.conduit` | generated at build time | yes | yes | exact native round trip plus address-detection behavior suite |
 | Address-detection result and bounded addressed payload | `semantics/text/types.conduit` | generated at build time | yes | yes | exact native round trips and index/text bounds plus text, speech and std Host suites |
+| Human experience, source-availability, visual-evidence and relation vocabularies | `semantics/human/types.conduit` | generated at build time | yes | yes | exact native round trips plus human experience and visual behavior suites |
 | Measurement window/plot policies and threshold state/transitions | `semantics/data/types.conduit` | generated at build time | yes | yes | exact native round trips plus data and wire suites |
 | Measurement window, plot, summary and threshold refusal vocabularies | `semantics/data/types.conduit` | generated at build time | yes | yes | exact native round trips plus measurement behavior suites |
 | Sampled-signal continuity and typed terminal | `semantics/data/types.conduit` | generated at build time | yes | yes | exact native round trips and identity bounds plus sampled-signal behavior suite |

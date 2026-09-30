@@ -5,7 +5,7 @@ use conduit_core::{
     ArtifactId, BaseImplementationId, BaseInstanceId, KindId, SignId, TemporalInstant,
 };
 
-use crate::{ImageObservationReference, ImageObservationRefusal};
+use crate::{ImageObservationReference, ImageObservationRefusal, VisualEvidenceClass};
 
 pub const MAXIMUM_VISUAL_LABEL_BYTES: usize = 128;
 pub const MAXIMUM_VISIBLE_TEXT_BYTES: usize = 512;
@@ -35,13 +35,6 @@ impl ImageRegion {
         }
         Ok(())
     }
-}
-
-#[derive(Clone, Copy, Debug, Eq, PartialEq)]
-pub enum VisualEvidenceClass {
-    DeterministicDerived,
-    StatisticalCandidate,
-    ModelDerived,
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]

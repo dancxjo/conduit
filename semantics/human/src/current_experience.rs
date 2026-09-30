@@ -6,7 +6,11 @@ use conduit_core::{
     TemporalInstant,
 };
 
-use crate::{ExperienceTemporalPolicy, ExperienceTemporalRefusal};
+use crate::{
+    ExperienceAvailability, ExperienceCertainty, ExperienceDomain, ExperienceOrigin,
+    ExperienceRelationKind, ExperienceTemporalPolicy, ExperienceTemporalRefusal,
+    ExperienceTemporalRole,
+};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct ExperienceLimits {
@@ -24,46 +28,6 @@ pub struct ExperienceLimits {
     pub maximum_encoded_bytes: usize,
     pub maximum_conflict_alternatives: usize,
     pub maximum_identity_bytes: usize,
-}
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum ExperienceDomain {
-    Visual,
-    Auditory,
-    Location,
-    BodyState,
-    HumanUtterance,
-    Recollection,
-}
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum ExperienceOrigin {
-    Observation,
-    HumanReported,
-    Remembered,
-    ModelDerived,
-    Imagined,
-}
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum ExperienceTemporalRole {
-    Current,
-    Recent,
-    Stale,
-    Historical,
-}
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum ExperienceAvailability {
-    Present,
-    NotObserved,
-    SourceUnavailable,
-}
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum ExperienceCertainty {
-    Certain,
-    Uncertain,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -100,12 +64,6 @@ pub struct ExperienceItem {
     pub observed_at: Option<TemporalInstant>,
     pub recorded_at: Option<TemporalInstant>,
     pub sources: Vec<ExperienceSourceRef>,
-}
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum ExperienceRelationKind {
-    Relates,
-    Contradicts,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
