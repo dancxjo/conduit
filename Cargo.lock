@@ -1015,11 +1015,19 @@ dependencies = [
 ]
 
 [[package]]
+name = "conduit-host-conduitos-fabrication"
+version = "0.0.0"
+
+[[package]]
 name = "conduit-host-conduitos-make"
 version = "0.1.0"
 dependencies = [
  "conduit-host-make",
 ]
+
+[[package]]
+name = "conduit-host-esp32-fabrication"
+version = "0.0.0"
 
 [[package]]
 name = "conduit-host-esp32-make"
@@ -1544,6 +1552,10 @@ version = "0.1.0"
 dependencies = [
  "conduit-core",
 ]
+
+[[package]]
+name = "conduit-workspace-fabrication"
+version = "0.0.0"
 
 [[package]]
 name = "conduit-workspace-make"
