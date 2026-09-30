@@ -26,6 +26,7 @@ pub enum PreparedPlannedActivationComposite {
 pub enum PlannedActivationCompositeError {
     Definition(KernelCompositeDefinitionError),
     MissingActivation,
+    WrongActivationKind,
     StaleOrSubstitutedHandoff,
     HostPreparation(HostPreparationRefusal),
     ChildPreparation(crate::KernelCompositeError),
@@ -132,6 +133,27 @@ impl PreparedPlannedActivationComposite {
             )
             .map(Self::Scan)
             .map_err(PlannedActivationCompositeError::Scan),
+        }
+    }
+
+    pub fn into_unary(self) -> Result<BoundedActivationHost, PlannedActivationCompositeError> {
+        match self {
+            Self::Unary(value) => Ok(value),
+            _ => Err(PlannedActivationCompositeError::WrongActivationKind),
+        }
+    }
+
+    pub fn into_fold(self) -> Result<BoundedFoldActivationHost, PlannedActivationCompositeError> {
+        match self {
+            Self::Fold(value) => Ok(value),
+            _ => Err(PlannedActivationCompositeError::WrongActivationKind),
+        }
+    }
+
+    pub fn into_scan(self) -> Result<BoundedScanActivationHost, PlannedActivationCompositeError> {
+        match self {
+            Self::Scan(value) => Ok(value),
+            _ => Err(PlannedActivationCompositeError::WrongActivationKind),
         }
     }
 }

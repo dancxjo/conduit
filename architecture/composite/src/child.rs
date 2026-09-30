@@ -409,11 +409,12 @@ impl ChildKernel {
         self.scheduler.signs().events().collect()
     }
 
-    pub(crate) fn remote_offer(
+    pub(crate) fn remote_offer_into(
         &mut self,
         endpoint: RemoteEndpointId,
         cord: CordId,
-    ) -> Result<Option<(u64, Vec<u8>)>, String> {
+        output: &mut Vec<u8>,
+    ) -> Result<Option<u64>, String> {
         let Some(offer) = self
             .scheduler
             .remote_egress_offer(endpoint, cord)
@@ -421,14 +422,13 @@ impl ChildKernel {
         else {
             return Ok(None);
         };
-        Ok(Some((
-            offer.sequence,
-            self.scheduler
-                .values()
-                .get(offer.value)
-                .map_err(debug)?
-                .to_vec(),
-        )))
+        let bytes = self.scheduler.values().get(offer.value).map_err(debug)?;
+        if bytes.len() > output.capacity() {
+            return Err("prepared internal transfer buffer is smaller than its exact Cord".into());
+        }
+        output.clear();
+        output.extend_from_slice(bytes);
+        Ok(Some(offer.sequence))
     }
 
     pub(crate) fn remote_delivered(

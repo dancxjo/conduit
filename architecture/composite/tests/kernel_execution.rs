@@ -555,6 +555,8 @@ fn bounded_fold_abnormal_and_cancel_discard_without_partial_value() {
     host.cancel().unwrap();
     assert_eq!(*host.step().unwrap(), BoundedFoldState::Cancelled);
     assert_eq!(host.final_value().unwrap(), None);
+    assert!(host.admit(&value(b"late")).is_err());
+    assert!(host.next_host_request().is_none());
 
     let mut host =
         BoundedFoldActivationHost::prepare(&planned, definition, &fold_registry()).unwrap();
@@ -566,6 +568,8 @@ fn bounded_fold_abnormal_and_cancel_discard_without_partial_value() {
     host.terminate_input(terminal.clone()).unwrap();
     assert_eq!(*host.step().unwrap(), BoundedFoldState::Abnormal(terminal));
     assert_eq!(host.final_value().unwrap(), None);
+    assert!(host.admit(&value(b"late")).is_err());
+    assert!(host.next_host_request().is_none());
 }
 
 fn planned_scan(
@@ -692,6 +696,8 @@ fn bounded_scan_abnormal_and_cancel_discard_pending_output() {
     cancelled.cancel().unwrap();
     assert_eq!(*cancelled.step().unwrap(), BoundedScanState::Cancelled);
     assert!(!cancelled.output_into(&mut value(b"")).unwrap());
+    assert!(cancelled.admit(&value(b"late")).is_err());
+    assert!(cancelled.next_host_request().is_none());
     let mut failed =
         BoundedScanActivationHost::prepare(&planned, definition, &fold_registry()).unwrap();
     failed.admit(&value(b"1")).unwrap();
@@ -705,6 +711,8 @@ fn bounded_scan_abnormal_and_cancel_discard_pending_output() {
         BoundedScanState::Abnormal(terminal)
     );
     assert!(!failed.output_into(&mut value(b"")).unwrap());
+    assert!(failed.admit(&value(b"late")).is_err());
+    assert!(failed.next_host_request().is_none());
 }
 
 fn run_until_output(host: &mut KernelCompositeHost) -> (u64, ValuePayload) {
@@ -745,6 +753,7 @@ fn success_preserves_two_child_kernel_delivery_and_terminal_propagation() {
         })
         .collect::<BTreeMap<_, _>>();
     let mut host = KernelCompositeHost::prepare(definition, &registry()).unwrap();
+    let transfer_capacities = host.internal_transfer_capacities();
     assert_eq!(host.definition().internal_plan.plan_id, expected_plan);
     assert_eq!(
         host.definition()
@@ -762,12 +771,14 @@ fn success_preserves_two_child_kernel_delivery_and_terminal_propagation() {
         Ok(conduit_kernel::scheduler::RemoteIngressOutcome::Accepted { sequence: 0 })
     ));
     let (sequence, output) = run_until_output(&mut host);
+    assert_eq!(host.internal_transfer_capacities(), transfer_capacities);
     assert_eq!((sequence, output), (0, value(b"exact")));
     host.complete_output(&conduit_core::port_id("output"), sequence)
         .unwrap();
     host.close_input(&conduit_core::port_id("input")).unwrap();
     for _ in 0..64 {
         if host.step().unwrap() == KernelCompositeStatus::Complete {
+            assert_eq!(host.internal_transfer_capacities(), transfer_capacities);
             assert!(host.signs().values().all(|events| !events.is_empty()));
             return;
         }

@@ -449,9 +449,12 @@ impl BoundedActivationHost {
             BoundedActivationState::Idle => None,
             _ => return Err(BoundedActivationError::InvalidLifecycle),
         };
-        if let Some(active) = &mut self.active {
-            active.cancel().map_err(BoundedActivationError::Refused)?;
-        }
+        self.state = BoundedActivationState::Cancelled { sequence };
+        let cancellation = self
+            .active
+            .as_mut()
+            .map(KernelCompositeHost::cancel)
+            .transpose();
         if let Some(cancelled) = self.active.take() {
             self.receipts.push(cancelled);
         }
@@ -459,8 +462,9 @@ impl BoundedActivationHost {
         self.output_completed = false;
         self.output_sequence = None;
         self.pending_input_terminal = None;
-        self.state = BoundedActivationState::Cancelled { sequence };
-        Ok(())
+        cancellation
+            .map(|_| ())
+            .map_err(BoundedActivationError::Refused)
     }
 
     pub fn next_host_request(&mut self) -> Option<KernelCompositeHostRequest> {
@@ -516,6 +520,12 @@ impl BoundedActivationHost {
 
     pub fn allocation_capacities(&self) -> (usize, usize) {
         (self.ready.capacity(), self.receipts.capacity())
+    }
+
+    pub fn last_cancellation_failures(&self) -> &[(conduit_core::HostId, String)] {
+        self.receipts
+            .last()
+            .map_or(&[], KernelCompositeHost::cancellation_failures)
     }
 
     pub fn remaining_items(&self) -> usize {

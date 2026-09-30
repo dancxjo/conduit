@@ -91,6 +91,7 @@ struct InternalLink {
     sink_endpoint: RemoteEndpointId,
     sink_cord: conduit_kernel::CordId,
     closed: bool,
+    transfer: Vec<u8>,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -338,6 +339,13 @@ impl KernelCompositeHost {
 
     pub fn definition(&self) -> &KernelCompositeDefinition {
         &self.definition
+    }
+
+    pub fn internal_transfer_capacities(&self) -> (usize, usize) {
+        (
+            self.links.capacity(),
+            self.links.iter().map(|link| link.transfer.capacity()).sum(),
+        )
     }
 
     pub fn start(&mut self) -> Result<&BTreeMap<HostId, ActivePlayId>, KernelCompositeError> {
@@ -700,52 +708,48 @@ impl KernelCompositeHost {
     }
 
     fn pump_internal(&mut self) -> Result<(), KernelCompositeError> {
-        for index in 0..self.links.len() {
-            let link = self.links[index].clone();
+        let (children, links) = (&mut self.children, &mut self.links);
+        for link in links {
             if link.closed {
                 continue;
             }
-            let offer = self
-                .children
+            let offer = children
                 .get_mut(&link.source_child)
                 .ok_or_else(|| KernelCompositeError::StaleChild(link.source_child.clone()))?
-                .remote_offer(link.source_endpoint, link.source_cord)
+                .remote_offer_into(link.source_endpoint, link.source_cord, &mut link.transfer)
                 .map_err(|reason| execution(&link.source_child, reason))?;
-            if let Some((sequence, bytes)) = offer {
-                let accepted = self
-                    .children
+            if let Some(sequence) = offer {
+                let accepted = children
                     .get_mut(&link.sink_child)
                     .ok_or_else(|| KernelCompositeError::StaleChild(link.sink_child.clone()))?
-                    .remote_admit(link.sink_endpoint, link.sink_cord, sequence, &bytes)
+                    .remote_admit(link.sink_endpoint, link.sink_cord, sequence, &link.transfer)
                     .map_err(|reason| execution(&link.sink_child, reason))?;
                 if matches!(accepted, RemoteIngressOutcome::Accepted { .. }) {
-                    self.children
+                    children
                         .get_mut(&link.source_child)
                         .ok_or_else(|| KernelCompositeError::StaleChild(link.source_child.clone()))?
                         .remote_delivered(link.source_endpoint, link.source_cord, sequence)
                         .map_err(|reason| execution(&link.source_child, reason))?;
                 }
             } else {
-                let terminal = self
-                    .children
+                let terminal = children
                     .get(&link.source_child)
                     .ok_or_else(|| KernelCompositeError::StaleChild(link.source_child.clone()))?
                     .remote_terminal_disposition(link.source_endpoint, link.source_cord)
                     .map_err(|reason| execution(&link.source_child, reason))?;
                 match terminal {
                     Some(RemoteTerminalDisposition::NormalClose) => {
-                        self.children
+                        children
                             .get_mut(&link.sink_child)
                             .ok_or_else(|| {
                                 KernelCompositeError::StaleChild(link.sink_child.clone())
                             })?
                             .remote_close(link.sink_endpoint, link.sink_cord)
                             .map_err(|reason| execution(&link.sink_child, reason))?;
-                        self.links[index].closed = true;
+                        link.closed = true;
                     }
                     Some(RemoteTerminalDisposition::Abnormal) => {
-                        let abnormal = self
-                            .children
+                        let abnormal = children
                             .get(&link.source_child)
                             .ok_or_else(|| {
                                 KernelCompositeError::StaleChild(link.source_child.clone())
@@ -758,14 +762,14 @@ impl KernelCompositeHost {
                                     "abnormal internal terminal omitted its exact value".into(),
                                 )
                             })?;
-                        self.children
+                        children
                             .get_mut(&link.sink_child)
                             .ok_or_else(|| {
                                 KernelCompositeError::StaleChild(link.sink_child.clone())
                             })?
                             .remote_close_abnormal(link.sink_endpoint, link.sink_cord, abnormal)
                             .map_err(|reason| execution(&link.sink_child, reason))?;
-                        self.links[index].closed = true;
+                        link.closed = true;
                     }
                     None => {}
                 }
@@ -825,14 +829,22 @@ fn host_call_obligation_identity(
 fn internal_links(
     preparation: &KernelCompositePreparation,
 ) -> Result<Vec<InternalLink>, KernelCompositeError> {
-    type Endpoint = (HostId, RemoteEndpointId, conduit_kernel::CordId);
+    type Endpoint = (HostId, RemoteEndpointId, conduit_kernel::CordId, usize);
     let mut rows = BTreeMap::<ConnectionId, (Option<Endpoint>, Option<Endpoint>)>::new();
     for (child, lowered) in preparation.children() {
         for endpoint in &lowered.remote_endpoints {
             let row = rows
                 .entry(endpoint.connection_id.clone())
                 .or_insert((None, None));
-            let value = (child.clone(), endpoint.endpoint, endpoint.cord);
+            let maximum = lowered
+                .cords
+                .iter()
+                .find(|cord| cord.spec.cord == endpoint.cord)
+                .map(|cord| cord.spec.maximum_value_bytes as usize)
+                .ok_or_else(|| {
+                    KernelCompositeError::InvalidBoundary("remote endpoint Cord is absent".into())
+                })?;
+            let value = (child.clone(), endpoint.endpoint, endpoint.cord, maximum);
             match endpoint.direction {
                 RemoteCordDirection::Egress => row.0 = Some(value),
                 RemoteCordDirection::Ingress => row.1 = Some(value),
@@ -841,13 +853,14 @@ fn internal_links(
     }
     rows.into_iter()
         .map(|(connection_id, (source, sink))| {
-            let (source_child, source_endpoint, source_cord) = source.ok_or_else(|| {
-                KernelCompositeError::InvalidBoundary(format!(
-                    "internal Cord '{}' has no source child",
-                    connection_id.as_str()
-                ))
-            })?;
-            let (sink_child, sink_endpoint, sink_cord) = sink.ok_or_else(|| {
+            let (source_child, source_endpoint, source_cord, maximum_value_bytes) = source
+                .ok_or_else(|| {
+                    KernelCompositeError::InvalidBoundary(format!(
+                        "internal Cord '{}' has no source child",
+                        connection_id.as_str()
+                    ))
+                })?;
+            let (sink_child, sink_endpoint, sink_cord, _) = sink.ok_or_else(|| {
                 KernelCompositeError::InvalidBoundary(format!(
                     "internal Cord '{}' has no sink child",
                     connection_id.as_str()
@@ -862,6 +875,7 @@ fn internal_links(
                 sink_endpoint,
                 sink_cord,
                 closed: false,
+                transfer: Vec::with_capacity(maximum_value_bytes),
             })
         })
         .collect()

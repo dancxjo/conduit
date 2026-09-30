@@ -93,6 +93,25 @@ pub struct FlowSelectCoordinator {
 }
 
 impl FlowSelectCoordinator {
+    pub fn from_prepared_activation(
+        activation: BoundedActivationHost,
+    ) -> Result<Self, FlowSelectError> {
+        if activation.contract().output_value_kind.as_str() != BOOL_INFO_ID {
+            return Err(FlowSelectError::PredicateOutputIsNotCanonicalBoolean {
+                actual: activation.contract().output_value_kind.clone(),
+            });
+        }
+        Ok(Self {
+            activation,
+            active_item: None,
+            queued_item: None,
+            predicate_decision: None,
+            output: None,
+            pending_terminal: None,
+            state: FlowSelectState::Idle,
+        })
+    }
+
     pub fn prepare_planned(
         planned: &PlannedActivation,
         definition: KernelCompositeDefinition,
@@ -103,15 +122,9 @@ impl FlowSelectCoordinator {
                 actual: planned.output.value_kind.clone(),
             });
         }
-        Ok(Self {
-            activation: BoundedActivationHost::prepare_planned(planned, definition, registry)?,
-            active_item: None,
-            queued_item: None,
-            predicate_decision: None,
-            output: None,
-            pending_terminal: None,
-            state: FlowSelectState::Idle,
-        })
+        Self::from_prepared_activation(BoundedActivationHost::prepare_planned(
+            planned, definition, registry,
+        )?)
     }
 
     pub fn state(&self) -> &FlowSelectState {
@@ -340,20 +353,24 @@ impl FlowSelectCoordinator {
 
     pub fn cancel(&mut self) -> Result<(), FlowSelectError> {
         let sequence = self.active_item.as_ref().map(|(sequence, _)| *sequence);
-        if matches!(
+        let cancellation = if matches!(
             self.activation.state(),
             BoundedActivationState::Idle | BoundedActivationState::Active { .. }
         ) {
-            self.activation.cancel()?;
+            self.activation
+                .cancel()
+                .map_err(FlowSelectError::Activation)
         } else if !matches!(
             self.activation.state(),
             BoundedActivationState::Succeeded { .. }
         ) {
             return Err(FlowSelectError::InvalidLifecycle);
-        }
+        } else {
+            Ok(())
+        };
         self.clear_retained();
         self.state = FlowSelectState::Cancelled { sequence };
-        Ok(())
+        cancellation
     }
 
     fn clear_retained(&mut self) {
@@ -366,6 +383,10 @@ impl FlowSelectCoordinator {
 
     pub fn next_host_request(&mut self) -> Option<KernelCompositeHostRequest> {
         self.activation.next_host_request()
+    }
+
+    pub fn last_cancellation_failures(&self) -> &[(conduit_core::HostId, String)] {
+        self.activation.last_cancellation_failures()
     }
 
     pub fn host_request_obligation(

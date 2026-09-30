@@ -1,7 +1,7 @@
 use conduit_composite::{
-    KernelCompositeDefinition, KernelOperationBudget, KernelOperationFactory,
-    KernelOperationRegistry, PlannedActivationChildPoolHost, PreparedActivationChildPool,
-    PreparedPlannedActivationComposite,
+    FlowSelectCoordinator, KernelCompositeDefinition, KernelOperationBudget,
+    KernelOperationFactory, KernelOperationRegistry, PlannedActivationChildPoolHost,
+    PreparedActivationChildPool, PreparedPlannedActivationComposite,
 };
 use conduit_core::{
     prepare_plan_on_hosts, ActivePlayId, HostPreparationRefusal, Plan, PlanFragment,
@@ -108,6 +108,30 @@ impl PlanPreparationHost for Host {
 }
 
 struct PreparedFactory(Arc<AtomicUsize>);
+struct PlainFactory;
+
+impl KernelOperationFactory for PlainFactory {
+    fn implementation_id(&self) -> &conduit_core::ImplementationId {
+        static ID: std::sync::OnceLock<conduit_core::ImplementationId> = std::sync::OnceLock::new();
+        ID.get_or_init(|| conduit_core::ImplementationId::from("state@1"))
+    }
+    fn budget(&self, _: &conduit_core::PlannedGear) -> Result<KernelOperationBudget, String> {
+        Ok(KernelOperationBudget {
+            value_items: 2,
+            value_bytes: 2,
+            maximum_value_bytes: 1,
+            host_requests: 0,
+            sign_items: 2,
+        })
+    }
+    fn prepare(
+        &self,
+        _: &conduit_core::PlannedGear,
+        _: &mut HostedValueStore,
+    ) -> Result<Box<dyn StepBack<{ FIXED_KERNEL_STORAGE_PORTS_PER_NODE }> + Send>, String> {
+        Ok(Box::new(PreparedBack))
+    }
+}
 
 impl KernelOperationFactory for PreparedFactory {
     fn implementation_id(&self) -> &conduit_core::ImplementationId {
@@ -147,10 +171,22 @@ struct PreparedBack;
 impl StepBack<{ FIXED_KERNEL_STORAGE_PORTS_PER_NODE }> for PreparedBack {
     fn step(
         &mut self,
-        _: &mut StepIo<{ FIXED_KERNEL_STORAGE_PORTS_PER_NODE }>,
+        io: &mut StepIo<{ FIXED_KERNEL_STORAGE_PORTS_PER_NODE }>,
         _: &StepInputBytes<'_, { FIXED_KERNEL_STORAGE_PORTS_PER_NODE }>,
     ) -> StepOutcome {
-        StepOutcome::Complete
+        if let Some(value) = io.input(PortId(0)) {
+            if !io.output_ready(PortId(0)) {
+                return StepOutcome::Await;
+            }
+            io.consume(PortId(0)).unwrap();
+            io.send(PortId(0), value).unwrap();
+            StepOutcome::Progress
+        } else if io.input_closed(PortId(0)) {
+            io.consume_closed(PortId(0)).unwrap();
+            StepOutcome::Complete
+        } else {
+            StepOutcome::Await
+        }
     }
 }
 
@@ -212,6 +248,10 @@ impl StepBack<{ FIXED_KERNEL_STORAGE_PORTS_PER_NODE }> for HostCallBack {
 
 fn activation_plan() -> Plan {
     let mut child_fragment = common::fragment();
+    let bool_kind = conduit_core::kind_id(conduit_core::BOOL_INFO_ID);
+    child_fragment.states[0].value_kind = bool_kind.clone();
+    child_fragment.placements[0].inputs[0].value_kind = bool_kind.clone();
+    child_fragment.placements[0].outputs[0].value_kind = bool_kind.clone();
     child_fragment.states.clear();
     child_fragment.expected_sign = vec![
         conduit_core::ExpectedSign::PlanFragmentReceived,
@@ -249,7 +289,7 @@ fn activation_plan() -> Plan {
             direction: conduit_core::PortDirection::Input,
             placement_id: conduit_core::PlacementId::from("placement"),
             gear_port_id: conduit_core::port_id("next"),
-            value_kind: conduit_core::kind_id("fixture/byte@1"),
+            value_kind: bool_kind.clone(),
             value_contract: None,
             abnormal_kind: None,
             track: conduit_core::ConnectionTrack::Payload,
@@ -263,7 +303,7 @@ fn activation_plan() -> Plan {
             direction: conduit_core::PortDirection::Output,
             placement_id: conduit_core::PlacementId::from("placement"),
             gear_port_id: conduit_core::port_id("current"),
-            value_kind: conduit_core::kind_id("fixture/byte@1"),
+            value_kind: bool_kind.clone(),
             value_contract: None,
             abnormal_kind: None,
             track: conduit_core::ConnectionTrack::Payload,
@@ -291,12 +331,12 @@ fn activation_plan() -> Plan {
             selected_plan: Box::new(child),
             input: conduit_core::PlannedActivationFront {
                 front_port_id: conduit_core::port_id("in"),
-                value_kind: conduit_core::kind_id("fixture/byte@1"),
+                value_kind: bool_kind.clone(),
                 abnormal_kind: None,
             },
             output: conduit_core::PlannedActivationFront {
                 front_port_id: conduit_core::port_id("out"),
-                value_kind: conduit_core::kind_id("fixture/byte@1"),
+                value_kind: bool_kind,
                 abnormal_kind: None,
             },
             limits: conduit_core::PlannedActivationLimits {
@@ -313,6 +353,111 @@ fn activation_plan() -> Plan {
                 conduit_core::PlannedActivationEffectMultiplicity::OncePerAcceptedInput,
             per_activation_sign_budget: child_sign_budget,
         }],
+        vec![outer],
+    )
+}
+
+fn fold_or_scan_plan(scan: bool) -> Plan {
+    let mut child_fragment = common::fragment();
+    child_fragment.states.clear();
+    let mut item = child_fragment.placements[0].inputs[0].clone();
+    item.port_id = conduit_core::port_id("item");
+    child_fragment.placements[0].inputs.push(item);
+    child_fragment.expected_sign = vec![
+        conduit_core::ExpectedSign::PlanFragmentReceived,
+        conduit_core::ExpectedSign::PlanTerminal,
+    ];
+    child_fragment.sign_storage_budget =
+        conduit_core::mandatory_sign_storage_requirement(&child_fragment.expected_sign).unwrap();
+    let front = |name: &str, direction, gear_port: &str| conduit_core::PlannedForePort {
+        front_port_id: conduit_core::port_id(name),
+        direction,
+        placement_id: conduit_core::PlacementId::from("placement"),
+        gear_port_id: conduit_core::port_id(gear_port),
+        value_kind: conduit_core::kind_id("fixture/byte@1"),
+        value_contract: None,
+        abnormal_kind: None,
+        track: conduit_core::ConnectionTrack::Payload,
+        temporal: conduit_core::PortTemporal::Value,
+        pressure_policy: conduit_core::DeliveryPressurePolicy::PreserveOrder,
+        item_capacity: 1,
+        byte_capacity: 1,
+    };
+    child_fragment.fore_ports = vec![
+        front("accumulator", conduit_core::PortDirection::Input, "next"),
+        front("item", conduit_core::PortDirection::Input, "item"),
+        front("combined", conduit_core::PortDirection::Output, "current"),
+    ];
+    let child = common::seal(child_fragment);
+    let sign_budget = child.fragments[0].sign_storage_budget;
+    let activation_front = |name| conduit_core::PlannedActivationFront {
+        front_port_id: conduit_core::port_id(name),
+        value_kind: conduit_core::kind_id("fixture/byte@1"),
+        abnormal_kind: None,
+    };
+    let limits = conduit_core::PlannedActivationLimits {
+        maximum_active: 1,
+        maximum_queue_items: 1,
+        maximum_queue_bytes: 4,
+        maximum_items: 2,
+    };
+    let entry = if scan {
+        conduit_core::PlannedActivationEntry::Scan(conduit_core::PlannedScanActivation {
+            activation_id: "scan".into(),
+            owner_placement_id: conduit_core::PlacementId::from("placement"),
+            selected_plan_id: child.plan_id.clone(),
+            selected_plan: Box::new(child),
+            accumulator_input: activation_front("accumulator"),
+            item_input: activation_front("item"),
+            output: activation_front("combined"),
+            initial_accumulator: vec![0],
+            retained_accumulator_bytes: 1,
+            retained_item_bytes: 1,
+            limits,
+            terminal_policy:
+                conduit_core::PlannedScanTerminalPolicy::DrainThenCloseWithoutExtraEmission,
+            abnormal_policy:
+                conduit_core::PlannedScanAbnormalPolicy::DiscardAccumulatorAndPropagateExact,
+            cancellation_policy:
+                conduit_core::PlannedScanCancellationPolicy::DiscardAccumulatorWithoutEmission,
+            effect_multiplicity:
+                conduit_core::PlannedActivationEffectMultiplicity::OncePerAcceptedInput,
+            per_activation_sign_budget: sign_budget,
+        })
+    } else {
+        conduit_core::PlannedActivationEntry::Fold(conduit_core::PlannedFoldActivation {
+            activation_id: "fold".into(),
+            owner_placement_id: conduit_core::PlacementId::from("placement"),
+            selected_plan_id: child.plan_id.clone(),
+            selected_plan: Box::new(child),
+            accumulator_input: activation_front("accumulator"),
+            item_input: activation_front("item"),
+            output: activation_front("combined"),
+            initial_accumulator: vec![0],
+            retained_accumulator_bytes: 1,
+            retained_item_bytes: 1,
+            limits,
+            terminal_policy:
+                conduit_core::PlannedFoldTerminalPolicy::DrainThenEmitAccumulatorExactlyOnce,
+            abnormal_policy:
+                conduit_core::PlannedFoldAbnormalPolicy::DiscardAccumulatorAndPropagateExact,
+            cancellation_policy:
+                conduit_core::PlannedFoldCancellationPolicy::DiscardAccumulatorWithoutEmission,
+            effect_multiplicity:
+                conduit_core::PlannedActivationEffectMultiplicity::OncePerAcceptedInput,
+            per_activation_sign_budget: sign_budget,
+        })
+    };
+    let outer = common::fragment();
+    conduit_core::seal_plan_with_activation_entries(
+        conduit_core::FormIdentity {
+            source_document_id: outer.source_document_id.clone(),
+            checked_form_id: outer.checked_form_id.clone(),
+            expanded_form_id: outer.expanded_form_id.clone(),
+        },
+        conduit_core::PlanCompletionPolicy::Live,
+        vec![],
+        vec![entry],
         vec![outer],
     )
 }
@@ -432,7 +577,7 @@ fn invalid_completion_retains_dispatch_then_corrected_completion_consumes_it_onc
             &conduit_core::port_id("in"),
             0,
             &conduit_core::ValuePayload {
-                value_kind: conduit_core::kind_id("fixture/byte@1"),
+                value_kind: conduit_core::kind_id(conduit_core::BOOL_INFO_ID),
                 encoded: vec![7],
             },
         )
@@ -458,4 +603,53 @@ fn invalid_completion_retains_dispatch_then_corrected_completion_consumes_it_onc
     child.complete_host_call_bytes(&admitted, &[9]).unwrap();
     assert!(child.complete_host_call_bytes(&admitted, &[9]).is_err());
     assert!(child.host_request_input(&admitted).is_err());
+}
+
+#[test]
+fn select_executes_through_the_receipt_backed_unary_pool() {
+    let plan = activation_plan();
+    let mut host = Host::new();
+    let prepared = prepare_plan_on_hosts(&plan, &mut [&mut host]).unwrap();
+    host.registry
+        .install(PreparedFactory(Arc::new(AtomicUsize::new(0))))
+        .unwrap();
+    let pool =
+        PreparedActivationChildPool::prepare_on_host(&plan, &prepared, "each", &mut host).unwrap();
+    let unary = PreparedPlannedActivationComposite::prepare(&plan, &prepared, "each", pool)
+        .unwrap()
+        .into_unary()
+        .unwrap();
+    let mut select = FlowSelectCoordinator::from_prepared_activation(unary).unwrap();
+    let original = conduit_core::ValuePayload {
+        value_kind: conduit_core::kind_id(conduit_core::BOOL_INFO_ID),
+        encoded: vec![1],
+    };
+    select.admit(7, original.clone()).unwrap();
+    for _ in 0..32 {
+        select.step().unwrap();
+        if let Some((sequence, output)) = select.output() {
+            assert_eq!((sequence, output), (7, &original));
+            return;
+        }
+    }
+    panic!("receipt-backed select did not produce its selected item")
+}
+
+#[test]
+fn fold_and_scan_are_reachable_only_through_their_receipt_backed_variants() {
+    for (scan, id) in [(false, "fold"), (true, "scan")] {
+        let plan = fold_or_scan_plan(scan);
+        let mut host = Host::new();
+        let prepared = prepare_plan_on_hosts(&plan, &mut [&mut host]).unwrap();
+        host.registry.install(PlainFactory).unwrap();
+        let pool =
+            PreparedActivationChildPool::prepare_on_host(&plan, &prepared, id, &mut host).unwrap();
+        let prepared =
+            PreparedPlannedActivationComposite::prepare(&plan, &prepared, id, pool).unwrap();
+        if scan {
+            assert!(prepared.into_scan().is_ok());
+        } else {
+            assert!(prepared.into_fold().is_ok());
+        }
+    }
 }

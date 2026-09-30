@@ -226,16 +226,18 @@ impl BoundedFoldActivationHost {
         if self.planned.item_input.abnormal_kind.as_ref() != Some(&terminal.value_kind) {
             return Err(BoundedFoldError::PlannedContractMismatch);
         }
-        if let Some(active) = &mut self.active {
-            active.cancel().map_err(BoundedFoldError::Refused)?;
-        }
+        self.state = BoundedFoldState::Abnormal(terminal.clone());
+        let cancellation = self
+            .active
+            .as_mut()
+            .map(KernelCompositeHost::cancel)
+            .transpose();
         if let Some(terminated) = self.active.take() {
             self.receipts.push(terminated);
         }
         self.queued_ready = false;
         self.candidate_ready = false;
-        self.state = BoundedFoldState::Abnormal(terminal);
-        Ok(())
+        cancellation.map(|_| ()).map_err(BoundedFoldError::Refused)
     }
 
     pub fn step(&mut self) -> Result<&BoundedFoldState, BoundedFoldError> {
@@ -316,19 +318,26 @@ impl BoundedFoldActivationHost {
     }
 
     pub fn cancel(&mut self) -> Result<(), BoundedFoldError> {
-        if let Some(active) = &mut self.active {
-            active.cancel().map_err(BoundedFoldError::Refused)?;
-        }
+        self.state = BoundedFoldState::Cancelled;
+        let cancellation = self
+            .active
+            .as_mut()
+            .map(KernelCompositeHost::cancel)
+            .transpose();
         if let Some(cancelled) = self.active.take() {
             self.receipts.push(cancelled);
         }
         self.queued_ready = false;
         self.candidate_ready = false;
-        self.state = BoundedFoldState::Cancelled;
-        Ok(())
+        cancellation.map(|_| ()).map_err(BoundedFoldError::Refused)
     }
     pub fn allocation_capacities(&self) -> (usize, usize) {
         (self.ready.capacity(), self.receipts.capacity())
+    }
+    pub fn last_cancellation_failures(&self) -> &[(conduit_core::HostId, String)] {
+        self.receipts
+            .last()
+            .map_or(&[], KernelCompositeHost::cancellation_failures)
     }
     pub fn next_host_request(&mut self) -> Option<KernelCompositeHostRequest> {
         self.active.as_mut()?.next_host_request()
