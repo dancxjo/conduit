@@ -95,6 +95,15 @@ type SampledSignalRefusal =
     | noncontiguous_signals
     | too_many_parts
 
+type SignalContinuity =
+    continuous
+    | discontinuous {
+        gap-identity: Text <= 128B not in [""]
+    }
+    | clock-reset {
+        prior-clock: Text <= 128B not in [""]
+    }
+
 type DataSaveTextTerminal =
     value_too_large
     | generation_capacity_exhausted

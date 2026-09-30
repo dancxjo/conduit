@@ -3,7 +3,8 @@ use conduit_data::{
     ClockRelationQuality, DataLoadTextTerminal, DataSaveTextTerminal, FullWindowPolicy,
     MeasurementPlotOverflowPolicy, MeasurementPlotRefusal, MeasurementSummaryRefusal,
     MeasurementThresholdRefusal, MeasurementThresholdState, MeasurementThresholdTransition,
-    MeasurementWindowRefusal, SampledSignalRefusal, TensorAxisRole, TensorElement,
+    MeasurementWindowRefusal, SampledSignalRefusal, SignalContinuity, TensorAxisRole,
+    TensorElement,
 };
 use conduit_form::rust_binding::NativeRustBinding;
 
@@ -12,6 +13,14 @@ where
     T: NativeRustBinding + Copy + core::fmt::Debug + PartialEq,
 {
     let structured = value.into_structured().unwrap();
+    assert_eq!(T::from_structured(structured).unwrap(), value);
+}
+
+fn assert_owned_round_trip<T>(value: T)
+where
+    T: NativeRustBinding + Clone + core::fmt::Debug + PartialEq,
+{
+    let structured = value.clone().into_structured().unwrap();
     assert_eq!(T::from_structured(structured).unwrap(), value);
 }
 
@@ -79,6 +88,16 @@ fn sampled_signal_terminal_round_trips_through_its_exact_native_type() {
     ] {
         assert_round_trip(value);
     }
+}
+
+#[test]
+fn sampled_signal_continuity_owns_its_identity_bounds() {
+    assert_owned_round_trip(SignalContinuity::Continuous);
+    assert_owned_round_trip(SignalContinuity::discontinuous("capture-gap".into()).unwrap());
+    assert_owned_round_trip(SignalContinuity::clock_reset("clock/prior".into()).unwrap());
+
+    assert!(SignalContinuity::discontinuous(String::new()).is_err());
+    assert!(SignalContinuity::clock_reset("x".repeat(129)).is_err());
 }
 
 #[test]
