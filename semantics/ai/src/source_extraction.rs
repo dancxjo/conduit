@@ -5,18 +5,13 @@ use conduit_core::{
     ResourceDereferenceRequirement, ResourceReferenceAccessRefusal, ResourceReferenceBinding,
 };
 
-use crate::{Chunk, ExtractionLineage, SourceRef, SourceSpan, SourceSpanUnit};
+use crate::{
+    Chunk, ExtractionLineage, SourceExtractionProfile, SourceRef, SourceSpan, SourceSpanUnit,
+};
 
 pub const TEXT_UTF8_EXTRACTION_PROFILE: &str = "extract/text-utf8@1";
 pub const STRUCTURED_ITEMS_EXTRACTION_PROFILE: &str = "extract/structured-items@1";
 pub const RESOURCE_METADATA_EXTRACTION_PROFILE: &str = "extract/resource-metadata@1";
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum SourceExtractionProfile {
-    TextUtf8 { overlap_bytes: u32 },
-    StructuredItems { overlap_items: u32 },
-    ResourceMetadata { overlap_items: u32 },
-}
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct SourceExtractionLimits {
@@ -124,25 +119,37 @@ pub fn extract_source(
         return Err(SourceExtractionRefusal::WorkBoundExceeded);
     }
     match (profile, payload) {
-        (SourceExtractionProfile::TextUtf8 { overlap_bytes }, SourcePayload::Text(value)) => {
-            extract_text(source, value, overlap_bytes, limits, &mut receipt)?;
+        (SourceExtractionProfile::TextUtf8(profile), SourcePayload::Text(value)) => {
+            extract_text(
+                source,
+                value,
+                *profile.overlap_bytes(),
+                limits,
+                &mut receipt,
+            )?;
         }
         (
-            SourceExtractionProfile::StructuredItems { overlap_items },
+            SourceExtractionProfile::StructuredItems(profile),
             SourcePayload::StructuredItems(items),
         ) => extract_items(
             source,
             items,
-            overlap_items,
+            *profile.overlap_items(),
             STRUCTURED_ITEMS_EXTRACTION_PROFILE,
             limits,
             &mut receipt,
             ExtractedSourceValue::StructuredItems,
         )?,
         (
-            SourceExtractionProfile::ResourceMetadata { overlap_items },
+            SourceExtractionProfile::ResourceMetadata(profile),
             SourcePayload::ResourceMetadata(items),
-        ) => extract_metadata(source, items, overlap_items, limits, &mut receipt)?,
+        ) => extract_metadata(
+            source,
+            items,
+            *profile.overlap_items(),
+            limits,
+            &mut receipt,
+        )?,
         _ => return Err(SourceExtractionRefusal::PayloadProfileMismatch),
     }
     Ok(receipt)

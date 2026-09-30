@@ -26,6 +26,7 @@ conduit-planner = { path = "../../architecture/planner" }
 conduit-signal = { path = "../signal", features = ["host-profile"] }
 conduit-signal-conformance = { path = "../../proof/conformance/signal" }
 conduit-presentation = { path = "../presentation" }
+postcard = { version = "1", features = ["alloc"] }
 
 [build-dependencies]
 conduit-form = { path = "../../architecture/form" }

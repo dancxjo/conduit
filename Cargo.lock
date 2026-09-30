@@ -700,6 +700,7 @@ dependencies = [
  "conduit-time",
  "conduit-web",
  "libm",
+ "postcard",
  "serde",
  "serde_json",
  "sha2 0.10.9",
