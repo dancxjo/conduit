@@ -4,7 +4,7 @@
 
 **Language owner:** [Conduitese canon #4109](https://github.com/dancxjo/conduit/issues/4109)
 
-**Native type and binding prerequisites:** [#4376](https://github.com/dancxjo/conduit/issues/4376), [#4381](https://github.com/dancxjo/conduit/issues/4381)
+**Completed native type and binding foundations:** [#4376](https://github.com/dancxjo/conduit/issues/4376), [#4381](https://github.com/dancxjo/conduit/issues/4381)
 
 This inventory classifies current Rust type *families*. It is not a claim that
 the migrations are already complete. Its purpose is to prevent a Rust struct,
@@ -56,20 +56,20 @@ families are explicit exceptions.
 
 | Scope | P payloads to migrate | Non-P exceptions and class | Current blocker |
 |---|---|---|---|
-| `semantics/audio/**` | pitch, note/control events, tone intent, PCM semantic profile/frame/clip, channel layout, gate and terminal meaning | prepared renderers and implementation state are M; codec-only errors are W | native declarations and generated bounded PCM bindings (#4376, #4381) |
-| `semantics/chat/**` | chat roles, messages/history, prompt/summary, delivery and presentation state | browser-family installers and state machines are M; fixtures are C | #4376, #4381 |
-| `semantics/data/**` | observations, provenance, measurements, windows, thresholds, plots, tensors, datasets, cadence/continuity and data-reference domain values | stores/prepared stores and operators are M; wire/codec refusals are W; corpus fixtures are C | #4376, #4381 |
-| `semantics/finance/**` | currency, fixed decimal, money, rates | fixtures are C | #4376, #4381 |
-| `semantics/human/**` | input events, modifiers, regions, visual/text/object/motion observations, experience and interaction values | acquisition offers/plans/reservations and active instances are R; initialized implementations are M; codecs are W; conformance vectors are C | #4376, #4381 |
-| `semantics/language/**` | typed linguistic terminal payloads | parser/recognizer machinery is M | #4376, #4381 |
-| `semantics/net/**` | addresses, endpoints, DNS, attachment info, record-delivery observations and transcript entries | sockets/connections/queues/trackers are M; protocol frames and typed-record codecs are W | #4376, #4381 |
-| `semantics/presentation/**` | Face subjects, roles, relationships, properties, content, actions, interaction arguments, navigation, composition, temporal facts, graphics commands and Show-visible semantic values | mask plans/admission/lifecycle/sign correlation are R; renderers, queues, ledgers and generators are M; bitmap/graphics encodings are W; migration-era `ApplicationView` scaffolding is C until removed | #4376, #4381 and staged Face-family migration |
-| `semantics/robotics/**` | acceleration, battery, beacon, button, charging, cliff, contact, odometry, orientation, proximity, range and wheel-drop observations | fixture/catalog builders are C | #4376, #4381 |
-| `semantics/signal/**` | Signal, Trigger and finite pulse/toggle/trigger configurations | encoders are M/W according to the exact carrier | #4376, #4381 |
-| `semantics/text/**` | addresses, Morse patterns/segments/transitions and text configuration values | interpreters are M; Kind contracts are C; provider errors remain M unless exported as a typed terminal | #4376, #4381 |
-| `semantics/time/**` | instants, intervals, civil recurrence, calendar/reminder/meeting values, replay commands/results, temporal windows and policies | stores/controllers and `*Back` executors are M; codec forms are W; Kind configuration/checker contracts are C | #4376, #4381 |
-| `semantics/tongues/**` | acoustic/utterance/speech values, recognition results, language evidence and finite research result values when they cross reviewed Fores | recognizers, committers and training machinery are M; dataset/model file representations are W; research harness reports are C unless intentionally exported | #4376, #4381 plus Fore-by-Fore review |
-| `semantics/web/**` | HTTP method/target/header/request/response/body and bounded JSON meaning | server transaction machinery is M; HTTP/JSON byte codecs are W; Kind contracts are C | #4376, #4381 |
+| `semantics/audio/**` | pitch, note/control events, tone intent, PCM semantic profile/frame/clip, channel layout, gate and terminal meaning | prepared renderers and implementation state are M; codec-only errors are W | remaining payload records and bounded PCM shapes |
+| `semantics/chat/**` | chat roles, messages/history, prompt/summary, delivery and presentation state | browser-family installers and state machines are M; fixtures are C | payload-bearing variants, bounded records and terminal review |
+| `semantics/data/**` | observations, provenance, measurements, windows, thresholds, plots, tensors, datasets, cadence/continuity and data-reference domain values | stores/prepared stores and operators are M; wire/codec refusals are W; corpus fixtures are C | remaining payload records, bounded collections and references |
+| `semantics/finance/**` | currency, fixed decimal, money, rates | fixtures are C | rates and remaining typed terminal families |
+| `semantics/human/**` | input events, modifiers, regions, visual/text/object/motion observations, experience and interaction values | acquisition offers/plans/reservations and active instances are R; initialized implementations are M; codecs are W; conformance vectors are C | bounded strings/collections and payload-bearing variants |
+| `semantics/language/**` | typed linguistic terminal payloads | parser/recognizer machinery is M | remaining typed terminal payload review |
+| `semantics/net/**` | addresses, endpoints, DNS, attachment info, record-delivery observations and transcript entries | sockets/connections/queues/trackers are M; protocol frames and typed-record codecs are W | payload-bearing variants, records and bounded network values |
+| `semantics/presentation/**` | Face subjects, roles, relationships, properties, content, actions, interaction arguments, navigation, composition, temporal facts, graphics commands and Show-visible semantic values | mask plans/admission/lifecycle/sign correlation are R; renderers, queues, ledgers and generators are M; bitmap/graphics encodings are W; migration-era `ApplicationView` scaffolding is C until removed | staged Face-family grammar and migration |
+| `semantics/robotics/**` | acceleration, battery, beacon, button, charging, cliff, contact, odometry, orientation, proximity, range and wheel-drop observations | fixture/catalog builders are C | observation records and bounded payloads |
+| `semantics/signal/**` | Signal, Trigger and finite pulse/toggle/trigger configurations | encoders are M/W according to the exact carrier | record bindings compatible with fixed no-std carriers |
+| `semantics/text/**` | addresses, Morse patterns/segments/transitions and text configuration values | interpreters are M; Kind contracts are C; provider errors remain M unless exported as a typed terminal | bounded text records, payload variants and terminal review |
+| `semantics/time/**` | instants, intervals, civil recurrence, calendar/reminder/meeting values, replay commands/results, temporal windows and policies | stores/controllers and `*Back` executors are M; codec forms are W; Kind configuration/checker contracts are C | payload-bearing recurrence, calendar and replay families |
+| `semantics/tongues/**` | acoustic/utterance/speech values, recognition results, language evidence and finite research result values when they cross reviewed Fores | recognizers, committers and training machinery are M; dataset/model file representations are W; research harness reports are C unless intentionally exported | Fore-by-Fore ownership review and bounded payload generation |
+| `semantics/web/**` | HTTP method/target/header/request/response/body and bounded JSON meaning | server transaction machinery is M; HTTP/JSON byte codecs are W; Kind contracts are C | bounded headers/bodies, request/response records and JSON payloads |
 
 ### Mixed research and catalog crates
 
@@ -78,8 +78,8 @@ stated separately rather than treating the entire crate as portable data.
 
 | Scope | Classification |
 |---|---|
-| `semantics/ai/**` | Request/result, finite probability, retrieval, grounding, model-description, training-description, relation, citation and typed terminal families that cross Fores are P. Provider sessions, caches, mutable model state, compute offers/runtime identities, vector-index handles/authority, prepared search, lifecycle controllers and host integration are M or R. Provider protocol payloads and model artifact formats are W. Candidate-Form/checker records and fixtures are C. Each P family remains blocked on #4376/#4381 and must migrate before its handwritten declaration is removed. |
-| `semantics/alife/**` | Field/cell/parameter/boundary/partition/work/result values are P. Engines, workers, assemblers and distributed realization state are M. Chunk/line transfer frames are W. Migration is blocked on #4376/#4381 and bounded-array generation. |
+| `semantics/ai/**` | Request/result, finite probability, retrieval, grounding, model-description, training-description, relation, citation and typed terminal families that cross Fores are P. Provider sessions, caches, mutable model state, compute offers/runtime identities, vector-index handles/authority, prepared search, lifecycle controllers and host integration are M or R. Provider protocol payloads and model artifact formats are W. Candidate-Form/checker records and fixtures are C. Remaining work is Fore-by-Fore classification plus bounded payload generation; no language or binding prerequisite remains. |
+| `semantics/alife/**` | Field/cell/parameter/boundary/partition/work/result values are P. Engines, workers, assemblers and distributed realization state are M. Chunk/line transfer frames are W. Remaining migration depends on bounded-array generation and exact payload review. |
 | `semantics/catalog/**` | Catalog installers, `*KindContract`, `*Back`, `Prepared*`, fixtures and conformance helpers are C or M. Domain values currently declared here—navigation goals/poses/routes/trajectories, image/text records, jobs, education/schedule/vision values, garden observations/state, button attempts, palette/pixel regions and typed terminal outcomes—are P and must move to domain-owned `.conduit` source. |
 | `semantics/system-continuity/**` | Reboot request/decision/denial and transition causes exposed through reviewed Fores are P. Host instances, assignments, grants, replacement observations, progress state and acceptance receipts are R. Persistence/wire records are W. |
 
@@ -100,12 +100,20 @@ are satisfied.
 
 | Family | Native source | Generated binding | Consumers switched | Duplicate removed | Proof |
 |---|---|---|---|---|---|
-| Native Type language specimens | blocked on #4376 | blocked on #4381 | — | — | scalar/refined, record, variant, sequence and reference conformance required |
-| Remaining P families in `semantics/**` | blocked on #4376 | blocked on #4381 | not started | not started | exact std/browser/ConduitOS/embedded applicability per family |
+| Finance currency, comparison, pair, fixed decimal and money | `semantics/finance/types.conduit` | generated at build time | yes | yes | native binding and finance behavior suites |
+| Linguistic offset basis | `semantics/language/types.conduit` | generated at build time | yes | yes | native binding and linguistic suites |
+| Audio tone terminal | `semantics/audio/types.conduit` | generated at build time | yes | yes | exact terminal round trip and audio suites |
+| Robotics beacon/charging, chat connection/presence, HTTP method/failures | domain `types.conduit` sources | generated at build time | yes | yes | exact native round trips plus std/no-std domain suites |
+| Network transport, DNS record kind, frame protocol/direction and chunk shape | `semantics/net/types.conduit` | generated at build time | yes | yes | exact native round trips plus network suites |
+| Morse key phase | `semantics/text/types.conduit` | generated at build time | yes | yes | exact native round trip plus text suites |
+| Measurement window/plot policies and threshold state/transitions | `semantics/data/types.conduit` | generated at build time | yes | yes | exact native round trips plus data and wire suites |
+| Remaining P families in `semantics/**` | family-owned `.conduit` source required | binding machinery available | in progress | in progress | exact std/browser/ConduitOS/embedded applicability per family |
 
-“Blocked” here is an honest dependency record, not acceptance of permanent
-handwritten ownership. As migrations land, replace each broad row with reviewed
-family receipts and keep the old classification history rather than erasing it.
+The completed foundations remove any general “language support” excuse for a
+handwritten P declaration. A remaining blocker must now name the exact payload
+shape, bound, target constraint or unresolved Fore ownership question. As
+migrations land, add reviewed family receipts and keep the classification
+history rather than erasing it.
 
 ## Enforcement rules
 

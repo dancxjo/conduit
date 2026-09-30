@@ -1,0 +1,17 @@
+# Authoritative portable data meaning. Rust consumes generated bindings.
+
+type FullWindowPolicy =
+    reject
+    | drop_oldest
+
+type MeasurementPlotOverflowPolicy =
+    reject
+    | evenly_spaced
+
+type MeasurementThresholdState =
+    below
+    | above
+
+type MeasurementThresholdTransition =
+    rose_above
+    | fell_below

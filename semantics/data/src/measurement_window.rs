@@ -5,6 +5,8 @@ use conduit_core::{
     Quantity, QuantityUnit, TemporalInstant, TemporalRelation, TemporalRelationError,
 };
 
+use crate::FullWindowPolicy;
+
 pub const MEASUREMENT_SAMPLE_INFO_ID: &str = "data/measurement-sample@1";
 pub const MEASUREMENT_WINDOW_PROFILE_INFO_ID: &str = "data/measurement-window-profile@1";
 pub const MEASUREMENT_WINDOW_INFO_ID: &str = "data/measurement-window@1";
@@ -21,12 +23,6 @@ pub struct MeasurementSample {
 pub struct MeasurementRange {
     pub minimum: Quantity,
     pub maximum: Quantity,
-}
-
-#[derive(Debug, Copy, Clone, PartialEq, Eq)]
-pub enum FullWindowPolicy {
-    Reject,
-    DropOldest,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]

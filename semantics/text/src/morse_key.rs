@@ -3,18 +3,12 @@
 use alloc::{string::String, vec::Vec};
 
 use crate::{
-    MorseError, MorsePattern, MorseSegment, MAXIMUM_MORSE_SEGMENTS, MAXIMUM_MORSE_UNIT_MILLIS,
-    MINIMUM_MORSE_UNIT_MILLIS,
+    MorseError, MorseKeyPhase, MorsePattern, MorseSegment, MAXIMUM_MORSE_SEGMENTS,
+    MAXIMUM_MORSE_UNIT_MILLIS, MINIMUM_MORSE_UNIT_MILLIS,
 };
 
 pub const MAXIMUM_MORSE_CLOCK_BASIS_BYTES: usize = 96;
 pub const MAXIMUM_MORSE_KEY_TRANSITIONS: u16 = (MAXIMUM_MORSE_SEGMENTS as u16) * 2;
-
-#[derive(Clone, Copy, Debug, PartialEq, Eq)]
-pub enum MorseKeyPhase {
-    Pressed,
-    Released,
-}
 
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct MorseKeyTransition {

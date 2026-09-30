@@ -2,6 +2,16 @@
 
 extern crate alloc;
 
+#[allow(dead_code)]
+mod generated {
+    include!(concat!(env!("OUT_DIR"), "/semantic_types.rs"));
+}
+
+pub use generated::{
+    FullWindowPolicy, MeasurementPlotOverflowPolicy, MeasurementThresholdState,
+    MeasurementThresholdTransition,
+};
+
 mod data_catalog;
 mod data_generation;
 mod data_reference;

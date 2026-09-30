@@ -1,5 +1,8 @@
 //! Portable application-network Info below HTTP and separate from Conduit Lines.
 
+use crate::{
+    DnsRecordKind, NetworkChunkShape, NetworkFrameDirection, NetworkFrameProtocol, NetworkTransport,
+};
 use alloc::{string::String, vec, vec::Vec};
 use conduit_core::{
     kind_id, BoundedResourceRef, StructuredFieldType, StructuredInfoType, StructuredVariantCase,
@@ -16,12 +19,6 @@ pub const NETWORK_MAXIMUM_CANDIDATES: usize = 4;
 pub const NETWORK_MAXIMUM_NAME_BYTES: usize = 253;
 pub const NETWORK_MAXIMUM_INLINE_PAYLOAD_BYTES: usize = 4_096;
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum NetworkTransport {
-    Tcp,
-    Udp,
-}
-
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord)]
 pub enum NetworkAddress {
     DnsName(String),
@@ -34,13 +31,6 @@ pub struct NetworkEndpoint {
     pub address: NetworkAddress,
     pub port: u16,
     pub transport: NetworkTransport,
-}
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum DnsRecordKind {
-    A,
-    Aaaa,
-    Address,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -106,27 +96,10 @@ pub enum NetworkConnectionState {
     Closed,
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum NetworkFrameProtocol {
-    EchoV1,
-}
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum NetworkFrameDirection {
-    Received,
-    Sent,
-}
-
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum NetworkFramePayload {
     Inline(Vec<u8>),
     Resource(BoundedResourceRef),
-}
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum NetworkChunkShape {
-    Datagram,
-    StreamChunk,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
