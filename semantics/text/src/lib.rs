@@ -14,7 +14,7 @@ mod generated {
     include!(concat!(env!("OUT_DIR"), "/semantic_types.rs"));
 }
 
-pub use generated::MorseKeyPhase;
+pub use generated::{AddressDetectionRefusal, MorseKeyPhase};
 
 mod addressed_utterance;
 mod morse;

@@ -107,6 +107,7 @@ are satisfied.
 | Robotics beacon/charging, chat connection/presence, HTTP method/failures | domain `types.conduit` sources | generated at build time | yes | yes | exact native round trips plus std/no-std domain suites |
 | Network transport, DNS record kind, frame protocol/direction and chunk shape | `semantics/net/types.conduit` | generated at build time | yes | yes | exact native round trips plus network suites |
 | Morse key phase | `semantics/text/types.conduit` | generated at build time | yes | yes | exact native round trip plus text suites |
+| Address-detection typed terminal | `semantics/text/types.conduit` | generated at build time | yes | yes | exact native round trip plus address-detection behavior suite |
 | Measurement window/plot policies and threshold state/transitions | `semantics/data/types.conduit` | generated at build time | yes | yes | exact native round trips plus data and wire suites |
 | Sampled-signal typed terminal | `semantics/data/types.conduit` | generated at build time | yes | yes | exact native round trip plus sampled-signal behavior suite |
 | System-continuity reboot denial | `semantics/system-continuity/types.conduit` | generated at build time | yes | yes | exact native round trip plus continuity and no-std suites |

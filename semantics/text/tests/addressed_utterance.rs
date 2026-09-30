@@ -4,7 +4,7 @@ use conduit_form::{
 };
 use conduit_text::{
     decode_address_detection, decode_address_set, encode_address_detection, encode_address_set,
-    install_text_catalogs, AddressConfigurationError, AddressDetection, AddressDetectionError,
+    install_text_catalogs, AddressConfigurationError, AddressDetection, AddressDetectionRefusal,
     AddressSet, AddressValueError, ADDRESS_DETECTION_VALUE_KIND, ADDRESS_DETECT_KIND,
     ADDRESS_SET_VALUE_KIND, MAX_ADDRESS_NAMES, MAX_ADDRESS_NAME_BYTES, MAX_TEXT_BYTES,
 };
@@ -93,7 +93,7 @@ fn configuration_and_recognized_text_are_finite_and_unambiguous() {
     let addresses = AddressSet::new(&["Rosehip House"]).unwrap();
     assert_eq!(
         addresses.detect(&"x".repeat(MAX_TEXT_BYTES as usize + 1)),
-        Err(AddressDetectionError::RecognizedTextTooLarge)
+        Err(AddressDetectionRefusal::RecognizedTextTooLarge)
     );
 }
 

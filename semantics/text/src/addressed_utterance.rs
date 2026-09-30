@@ -3,7 +3,7 @@
 use alloc::{string::String, vec::Vec};
 use serde::{Deserialize, Serialize};
 
-use crate::MAX_TEXT_BYTES;
+use crate::{AddressDetectionRefusal, MAX_TEXT_BYTES};
 
 pub const MAX_ADDRESS_NAMES: usize = 8;
 pub const MAX_ADDRESS_NAME_BYTES: usize = 64;
@@ -26,11 +26,6 @@ pub enum AddressConfigurationError {
     NameTooLarge,
     InvalidName,
     DuplicateName,
-}
-
-#[derive(Clone, Debug, Eq, PartialEq)]
-pub enum AddressDetectionError {
-    RecognizedTextTooLarge,
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -102,9 +97,9 @@ impl AddressSet {
         &self.names
     }
 
-    pub fn detect(&self, recognized: &str) -> Result<AddressDetection, AddressDetectionError> {
+    pub fn detect(&self, recognized: &str) -> Result<AddressDetection, AddressDetectionRefusal> {
         if recognized.len() > MAX_TEXT_BYTES as usize {
-            return Err(AddressDetectionError::RecognizedTextTooLarge);
+            return Err(AddressDetectionRefusal::RecognizedTextTooLarge);
         }
         let candidate = recognized.trim_start();
         for (index, name) in self.names.iter().enumerate() {
