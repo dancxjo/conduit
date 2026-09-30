@@ -1,7 +1,7 @@
 //! Exact initial workset and naming handoff from the shared Crèche.
 use super::*;
+use conduit_birth_form::BirthSelection;
 use conduit_body::{AuthenticatedHostObservation, BodyWorkset, MembershipProofId, ResidentForm};
-use conduit_creche_model::birth::BirthSelection;
 use sha2::{Digest, Sha256};
 
 impl ProductJourney {

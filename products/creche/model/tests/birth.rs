@@ -1,6 +1,6 @@
+use conduit_birth_form::{BirthDraft, BirthDraftRefusal, BirthFormChoice};
 use conduit_body::ResidentForm;
-use conduit_creche_model::birth::BirthActionOutcome;
-use conduit_creche_model::birth::{BirthDraft, BirthDraftRefusal, BirthFormChoice};
+use conduit_creche_model::birth::{BirthActionOutcome, BirthActions, BirthPresentation};
 use conduit_presentation::ApplicationEventKind;
 
 fn draft() -> BirthDraft {
@@ -27,19 +27,9 @@ fn draft() -> BirthDraft {
 }
 
 #[test]
-fn naming_and_selection_produce_a_reviewable_workset_without_inventing_a_body() {
+fn current_birth_widget_projects_the_reviewed_friendly_name_and_birth_action() {
     let mut draft = draft();
-    assert_eq!(draft.friendly_name(), "Gonçalo Pacheco Guerreiro");
     draft.edit_name(draft.revision(), "Roseau".into()).unwrap();
-    let chosen = draft.selection(draft.revision()).unwrap();
-    assert_eq!(chosen.friendly_name, "Roseau");
-    assert_eq!(
-        chosen.workset.forms(),
-        &[ResidentForm::new(
-            "source/scratch".into(),
-            "checked/scratch".into()
-        )]
-    );
     let view = draft.presentation().unwrap().lower().unwrap();
     assert!(
         view.actions
@@ -47,38 +37,6 @@ fn naming_and_selection_produce_a_reviewable_workset_without_inventing_a_body() 
             .any(|action| action.id == "creche.birth")
     );
     assert!(view.nodes.iter().any(|node| node.value == "Roseau"));
-}
-
-#[test]
-fn stale_input_empty_names_and_unavailable_forms_refuse_without_changing_selection() {
-    let mut draft = draft();
-    let old_revision = draft.revision();
-    draft.suggest(old_revision, "roman").unwrap();
-    let selected = draft.selection(draft.revision()).unwrap();
-    assert_eq!(
-        draft.edit_name(old_revision, "Stale".into()),
-        Err(BirthDraftRefusal::StalePresentation)
-    );
-    assert_eq!(
-        draft.select(draft.revision(), 1, true),
-        Err(BirthDraftRefusal::UnavailableForm)
-    );
-    assert_eq!(draft.selection(draft.revision()).unwrap(), selected);
-    assert_eq!(
-        draft.edit_name(draft.revision(), "é".repeat(33)),
-        Err(BirthDraftRefusal::InvalidName)
-    );
-    draft.edit_name(draft.revision(), " ".into()).unwrap();
-    assert_eq!(
-        draft.selection(draft.revision()),
-        Err(BirthDraftRefusal::InvalidName)
-    );
-    draft.edit_name(draft.revision(), "Roseau".into()).unwrap();
-    draft.select(draft.revision(), 0, false).unwrap();
-    assert_eq!(
-        draft.selection(draft.revision()),
-        Err(BirthDraftRefusal::EmptySelection)
-    );
 }
 
 #[test]
@@ -213,16 +171,10 @@ fn search_preserves_selection_and_empty_search_results_remain_presentable() {
             .any(|node| node.text.starts_with("No Forms match"))
     );
     assert_eq!(draft.selection(draft.revision()).unwrap().workset.len(), 1);
-    let revision = draft.revision();
-    assert_eq!(
-        draft.search_forms(revision, "bad\nsearch"),
-        Err(BirthDraftRefusal::InvalidSearch)
-    );
-    assert_eq!(draft.revision(), revision);
 }
 
 #[test]
-fn full_inventory_and_every_tradition_fit_one_shared_view_and_idle_birth_is_explicit() {
+fn full_inventory_and_every_tradition_fit_the_current_widget_view() {
     let choices = (0..conduit_body::MAX_BODY_FORMS)
         .map(|index| BirthFormChoice {
             title: format!("Form {index}"),
@@ -237,18 +189,7 @@ fn full_inventory_and_every_tradition_fit_one_shared_view_and_idle_birth_is_expl
         .collect();
     let mut draft =
         BirthDraft::new("11111111-2222-4333-8444-555555555555".into(), choices).unwrap();
-    assert_eq!(
-        draft.selection(draft.revision()),
-        Err(BirthDraftRefusal::EmptySelection)
-    );
     draft = draft.allow_idle_body();
-    assert!(
-        draft
-            .selection(draft.revision())
-            .unwrap()
-            .workset
-            .is_empty()
-    );
     let view = draft.presentation().unwrap().lower().unwrap();
     assert_eq!(
         view.nodes
@@ -265,4 +206,133 @@ fn full_inventory_and_every_tradition_fit_one_shared_view_and_idle_birth_is_expl
         16
     );
     view.encode().unwrap();
+}
+
+#[test]
+fn widget_protocol_bounds_and_stale_events_refuse_before_mutation() {
+    let mut draft = draft();
+    let revision = draft.revision();
+    let selected = draft.selection(revision).unwrap();
+    let oversized_action = "x".repeat(65);
+    let oversized_value = "x".repeat(129);
+    let oversized_name = "é".repeat(33);
+    for (expected, action, event, value, refusal) in [
+        (
+            revision - 1,
+            oversized_action.as_str(),
+            ApplicationEventKind::Input,
+            oversized_value.as_str(),
+            BirthDraftRefusal::StalePresentation,
+        ),
+        (
+            revision,
+            oversized_action.as_str(),
+            ApplicationEventKind::Input,
+            "",
+            BirthDraftRefusal::InvalidActionValue,
+        ),
+        (
+            revision,
+            "creche.name",
+            ApplicationEventKind::Input,
+            oversized_value.as_str(),
+            BirthDraftRefusal::InvalidActionValue,
+        ),
+        (
+            revision,
+            "creche.name",
+            ApplicationEventKind::Input,
+            oversized_name.as_str(),
+            BirthDraftRefusal::InvalidName,
+        ),
+        (
+            revision,
+            "creche.birth",
+            ApplicationEventKind::Activate,
+            "payload",
+            BirthDraftRefusal::UnknownAction,
+        ),
+        (
+            revision,
+            "creche.suggest",
+            ApplicationEventKind::Activate,
+            "payload",
+            BirthDraftRefusal::UnknownAction,
+        ),
+    ] {
+        assert_eq!(
+            draft.apply_event(expected, action, event, value),
+            Err(refusal)
+        );
+        assert_eq!(draft.revision(), revision);
+        assert_eq!(draft.selection(revision).unwrap(), selected);
+    }
+}
+
+#[test]
+fn widget_control_order_and_single_choice_search_gate_stay_adapter_owned() {
+    use conduit_presentation::PresentationMechanism;
+
+    let draft = draft();
+    let view = draft.presentation().unwrap();
+    let mut controls = Vec::new();
+    // Native arrival consumes this order to route keyboard focus.
+    for node in &view.root.children {
+        match &node.mechanism {
+            PresentationMechanism::FormField(field) => {
+                controls.push(field.input_action.identity.as_str());
+            }
+            PresentationMechanism::Action(action) => controls.push(action.identity.as_str()),
+            PresentationMechanism::ChoiceGroup { options, .. } => {
+                controls.extend(
+                    options
+                        .iter()
+                        .map(|choice| choice.change_action.identity.as_str()),
+                );
+            }
+            _ => {}
+        }
+    }
+    assert_eq!(
+        controls,
+        [
+            "creche.name",
+            "creche.naming",
+            "creche.suggest",
+            "creche.search",
+            "creche.form.0",
+            "creche.form.1",
+            "creche.birth",
+        ]
+    );
+    let mut single = BirthDraft::new(
+        "550e8400-e29b-41d4-a716-446655440000".into(),
+        vec![draft.choices()[0].clone()],
+    )
+    .unwrap();
+    assert!(
+        !single
+            .presentation()
+            .unwrap()
+            .lower()
+            .unwrap()
+            .actions
+            .iter()
+            .any(|action| action.id == "creche.search")
+    );
+    let revision = single.revision();
+    assert_eq!(
+        single.apply_event(
+            revision,
+            "creche.search",
+            ApplicationEventKind::Input,
+            "form"
+        ),
+        Err(BirthDraftRefusal::UnknownAction)
+    );
+    assert_eq!(single.revision(), revision);
+    assert_eq!(single.search(), "");
+    // The renderer-neutral draft still accepts bounded search state directly.
+    single.search_forms(revision, "form").unwrap();
+    assert_eq!(single.search(), "form");
 }

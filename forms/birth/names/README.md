@@ -1,9 +1,10 @@
 # Birth naming corpus
 
 This resident birth-encounter data is shared by the current browser naming
-adapter and `conduit_creche_model::names::NamingCatalog`. The adapters remain
-in their existing packages while extraction continues; this directory owns
-the single version 7 catalog, not a second birth runtime or presentation model.
+adapter and `conduit_birth_form::names::NamingCatalog`. The live widget adapters
+remain in their existing packages while extraction continues; the Birth form
+owns the Rust naming contract and this single version 7 catalog, not a second
+body lifecycle or presentation model.
 Birth surfaces can offer the existing 23 naming traditions, “Surprise me,” and
 later variations. A UUID seeds the suggestion; it is not replaced by the
 friendly name.

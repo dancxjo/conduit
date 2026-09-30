@@ -6,8 +6,8 @@ use crate::{
         test_support::{fixture, invoke, key},
     },
 };
+use conduit_birth_form::BirthSelection;
 use conduit_body::BodyWorkset;
-use conduit_creche_model::birth::BirthSelection;
 use conduit_presentation::PresentationPropertyValue;
 
 pub(super) fn listening() -> (ProductJourney, FrontDoor) {

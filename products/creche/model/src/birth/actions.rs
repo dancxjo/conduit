@@ -1,7 +1,7 @@
 //! One action boundary for the browser and native Crèche Presenters.
 
-use super::{BirthDraft, BirthDraftRefusal, BirthSelection};
 use alloc::{format, string::String};
+use conduit_birth_form::{BirthDraft, BirthDraftRefusal, BirthSelection};
 use conduit_presentation::ApplicationEventKind;
 
 #[derive(Clone, Debug, PartialEq, Eq)]
@@ -11,8 +11,19 @@ pub enum BirthActionOutcome {
     Birth(BirthSelection),
 }
 
-impl BirthDraft {
-    pub fn apply_event(
+/// The current widget event protocol, explicitly layered over the Birth draft.
+pub trait BirthActions {
+    fn apply_event(
+        &mut self,
+        revision: u32,
+        action: &str,
+        event: ApplicationEventKind,
+        value: &str,
+    ) -> Result<BirthActionOutcome, BirthDraftRefusal>;
+}
+
+impl BirthActions for BirthDraft {
+    fn apply_event(
         &mut self,
         revision: u32,
         action: &str,
@@ -27,7 +38,7 @@ impl BirthDraft {
         }
         match (action, event) {
             ("creche.name", ApplicationEventKind::Input) => {
-                if value.len() > crate::names::MAX_FRIENDLY_NAME_BYTES {
+                if value.len() > conduit_birth_form::names::MAX_FRIENDLY_NAME_BYTES {
                     return Err(BirthDraftRefusal::InvalidName);
                 }
                 self.edit_name(revision, value.into())?;

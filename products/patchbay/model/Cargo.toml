@@ -18,7 +18,7 @@ conduit-presentation = { path = "../../../semantics/presentation" }
 conduit-plan-lowering = { path = "../../../architecture/plan-lowering", default-features = false }
 conduit-body = { path = "../../../architecture/body" }
 conduit-chat = { path = "../../../semantics/chat" }
-conduit-creche-model = { path = "../../creche/model" }
+conduit-birth-form = { path = "../../../forms/birth" }
 conduit-browser-runtime = { path = "../../../targets/browser/runtime" }
 conduit-data = { path = "../../../semantics/data" }
 conduit-little-seismograph-fixture = { path = "../../../forms/little-seismograph/fixture" }

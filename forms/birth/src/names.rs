@@ -1,10 +1,10 @@
-//! The Crèche's existing versioned persona catalog, shared with native Hosts.
+//! The Birth form's versioned persona catalog, shared across its consumers.
 //! Friendly suggestions are collision-tolerant metadata, never Body identity.
 use alloc::{format, string::String, vec::Vec};
 use serde::Deserialize;
 use sha2::{Digest, Sha256};
 
-const CATALOG: &str = include_str!("../../../../forms/birth/names/catalog.mjs");
+const CATALOG: &str = include_str!("../names/catalog.mjs");
 pub const MAX_FRIENDLY_NAME_BYTES: usize = 64;
 
 #[derive(Deserialize)]

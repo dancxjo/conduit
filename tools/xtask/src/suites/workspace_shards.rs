@@ -58,6 +58,7 @@ package_test_shard!(
         "conduit-protected-line",
         "conduit-robotics",
         "conduit-body",
+        "conduit-birth-form",
         "conduit-body-fabrication",
         "conduit-net",
         "conduit-rp2040-network-realization",
