@@ -10,7 +10,7 @@ use crate::{
 use alloc::string::{String, ToString};
 use alloc::{vec, vec::Vec};
 use conduit_audio::{
-    AUDIO_PCM_INFO_ID, AUDIO_RENDER_DEMAND_INFO_ID, AUDIO_TONE_TERMINAL_INFO_ID,
+    audio_tone_terminal_kind_id, AUDIO_PCM_INFO_ID, AUDIO_RENDER_DEMAND_INFO_ID,
     MUSIC_CONTROL_INFO_ID, MUSIC_NOTE_INFO_ID, PCM_FRAME_HEADER_ENCODED_LEN, SOUND_TONE_INFO_ID,
 };
 use conduit_core::{
@@ -260,7 +260,7 @@ pub fn audio_tone_contract() -> StandardKindContract {
             value_kind: kind_id(AUDIO_PCM_INFO_ID),
             direction: PortDirection::Output,
             temporal: PortTemporal::Flow { closes: true },
-            abnormal_kind: Some(kind_id(AUDIO_TONE_TERMINAL_INFO_ID)),
+            abnormal_kind: Some(audio_tone_terminal_kind_id()),
         }],
         configuration: Vec::new(),
         limits: CapabilityLimits {
@@ -287,7 +287,7 @@ pub fn audio_tone_semantic_contract() -> Kind {
                 normal_close: NormalCloseTransduction::NotAccepted,
                 abnormal: AbnormalTerminalTransduction::NotAccepted,
                 cancellation: CancellationTransduction::Request {
-                    disposition_kind: kind_id(AUDIO_TONE_TERMINAL_INFO_ID),
+                    disposition_kind: audio_tone_terminal_kind_id(),
                 },
             },
         ));

@@ -40,7 +40,9 @@ impl<const PORTS: usize> StepBack<PORTS> for AudioToneBack {
                 input: PortId(1),
                 disposition_kind: conduit_core::semantic_digest(
                     "conduit/kind-identity",
-                    conduit_audio::AUDIO_TONE_TERMINAL_INFO_ID.as_bytes(),
+                    conduit_audio::audio_tone_terminal_kind_id()
+                        .as_str()
+                        .as_bytes(),
                 ),
             },
         })

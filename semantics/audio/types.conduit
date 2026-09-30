@@ -1,0 +1,4 @@
+# Authoritative portable audio meaning. Rust consumes generated bindings.
+
+type AudioToneTerminal =
+    cancelled

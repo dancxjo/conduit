@@ -1,13 +1,20 @@
 //! Exact terminal information for the portable `audio/tone` transform.
 
-use crate::SoundInfoError;
+use crate::{AudioToneTerminal, SoundInfoError};
+use conduit_core::{KindId, StructuredInfoType, StructuredInfoTypeShape};
 
-pub const AUDIO_TONE_TERMINAL_INFO_ID: &str = "audio/tone-terminal@1";
 pub const AUDIO_TONE_TERMINAL_ENCODED_LEN: usize = 1;
 
-#[derive(Debug, Copy, Clone, PartialEq, Eq)]
-pub enum AudioToneTerminal {
-    Cancelled,
+pub fn audio_tone_terminal_type() -> StructuredInfoType {
+    AudioToneTerminal::semantic_type().expect("generated audio terminal Type is checked")
+}
+
+pub fn audio_tone_terminal_kind_id() -> KindId {
+    let semantic = audio_tone_terminal_type();
+    let StructuredInfoTypeShape::Variant { schema, .. } = semantic.shape() else {
+        unreachable!("checked AudioToneTerminal is a semantic variant")
+    };
+    schema.clone()
 }
 
 impl AudioToneTerminal {
