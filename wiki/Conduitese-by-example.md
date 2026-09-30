@@ -1,5 +1,3 @@
-# Conduitese by example
-
 This page starts with source that exists in the current `dev` tree, then moves into newer canonical surfaces.
 
 ## Hello: a finite pipeline
