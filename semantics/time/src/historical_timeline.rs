@@ -6,18 +6,14 @@ use conduit_core::{
     MAXIMUM_RESOURCE_REFERENCE_IDENTITY_BYTES,
 };
 
+use crate::{HistoricalEntryOrigin, HistoricalOverflowPolicy};
+
 pub const MAXIMUM_HISTORICAL_TIMELINE_ENTRIES: usize = 64;
 pub const MAXIMUM_HISTORICAL_ENTRY_IDENTITY_BYTES: usize = 128;
 pub const MAXIMUM_HISTORICAL_REFERENCED_BYTES: u64 = 64 * 1024 * 1024;
 
 pub const HISTORICAL_TIMELINE_KIND: &str = "history/bounded-typed";
 pub const HISTORICAL_TIMELINE_CONTRACT_REVISION: &str = "conduit.history/bounded-typed@1";
-
-#[derive(Debug, Copy, Clone, PartialEq, Eq)]
-pub enum HistoricalEntryOrigin {
-    MachineObservation,
-    OperatorAuthored,
-}
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct HistoricalTimelineEntry {
@@ -26,12 +22,6 @@ pub struct HistoricalTimelineEntry {
     pub event_time: TemporalInstant,
     pub origin: HistoricalEntryOrigin,
     pub value: BoundedResourceRef,
-}
-
-#[derive(Debug, Copy, Clone, PartialEq, Eq)]
-pub enum HistoricalOverflowPolicy {
-    Refuse,
-    EvictOldestWithGap,
 }
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]

@@ -16,3 +16,6 @@ serde = { version = "1", default-features = false, features = ["alloc", "derive"
 
 [build-dependencies]
 conduit-form = { path = "../../architecture/form" }
+
+[dev-dependencies]
+serde_json = "1"
