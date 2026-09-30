@@ -282,6 +282,10 @@ pub struct CheckedActivation {
     pub output: conduit_core::PortDescriptor,
     pub initial_accumulator: Option<CanonicalStartupValue>,
     pub initial_accumulator_bytes: Option<Vec<u8>>,
+    pub input_contract: conduit_core::CheckedValueContract,
+    pub output_contract: conduit_core::CheckedValueContract,
+    pub abnormal_contract: Option<conduit_core::CheckedValueContract>,
+    pub accumulator_contract: Option<conduit_core::CheckedValueContract>,
 }
 
 /// Canonical checked meaning of one authored `keep` declaration.
@@ -531,6 +535,10 @@ pub struct ExpandedActivation {
     pub output: conduit_core::PortDescriptor,
     pub initial_accumulator: Option<CanonicalStartupValue>,
     pub initial_accumulator_bytes: Option<Vec<u8>>,
+    pub input_contract: conduit_core::CheckedValueContract,
+    pub output_contract: conduit_core::CheckedValueContract,
+    pub abnormal_contract: Option<conduit_core::CheckedValueContract>,
+    pub accumulator_contract: Option<conduit_core::CheckedValueContract>,
     pub source_span: Span,
 }
 

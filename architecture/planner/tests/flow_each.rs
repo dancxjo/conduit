@@ -1,15 +1,15 @@
 use conduit_core::{
-    ArtifactId, BaseImplementationId, BootId, CapabilityId, CapabilityLimits, ExecutionProfileId,
-    HostAdvertisement, HostId, HostProfileId, ImplementationId, KindIdentity, OfferGeneration,
-    PROTOCOL_VERSION, PlannedActivationEffectMultiplicity, PortDescriptor, PortDirection,
-    PortTemporal, kind_id, port_id, verify_plan,
+    kind_id, port_id, verify_plan, ArtifactId, BaseImplementationId, BootId, CapabilityId,
+    CapabilityLimits, ExecutionProfileId, HostAdvertisement, HostId, HostProfileId,
+    ImplementationId, KindIdentity, OfferGeneration, PlannedActivationEffectMultiplicity,
+    PortDescriptor, PortDirection, PortTemporal, PROTOCOL_VERSION,
 };
 use conduit_form::{
-    CanonicalBackCatalog, KindProjection, KindSignature, ProfileCatalog, StartupCatalog,
     check_syntax_document, expand_canonical_form_for_authoring, parse_syntax_document,
+    CanonicalBackCatalog, KindProjection, KindSignature, ProfileCatalog, StartupCatalog,
 };
 use conduit_planner::{
-    PlanningOptions, default_expanded_placements, plan_expanded_canonical_with_activations,
+    default_expanded_placements, plan_expanded_canonical_with_activations, PlanningOptions,
 };
 use std::collections::BTreeMap;
 
@@ -33,7 +33,7 @@ form flow/each (
  >> values: item...|
  mapped: result...| >>
 ) {
- each: activate(maximum-items = 4) transform()
+ each: activate(maximum-items = 3) transform()
  values >> each.value
  each.mapped >> mapped
 }
@@ -85,8 +85,26 @@ fn catalogs() -> (StartupCatalog, ProfileCatalog) {
 fn host() -> HostAdvertisement {
     let capability =
         |id: &str, kind: &str, revision: &str, input: PortDescriptor, output: PortDescriptor| {
+            let semantic_contract = if kind == "flow/each" {
+                let input_contract =
+                    conduit_core::CheckedValueContract::new(input.value_kind.clone(), 256, vec![])
+                        .unwrap();
+                let output_contract =
+                    conduit_core::CheckedValueContract::new(output.value_kind.clone(), 256, vec![])
+                        .unwrap();
+                conduit_core::flow_each_activation_contract(
+                    &input_contract,
+                    &output_contract,
+                    None,
+                    input.port_id.clone(),
+                    output.port_id.clone(),
+                    4,
+                )
+            } else {
+                Default::default()
+            };
             conduit_core::capability_offer_from_parts! {
-                semantic_contract: Default::default(),
+                semantic_contract: semantic_contract,
                 startup_parameters: vec![],
                 shorthand: None,
                 capability_id: CapabilityId::from(id),
@@ -151,6 +169,10 @@ fn authored_each_plans_one_exact_ordinary_child_plan() {
     let document = check_syntax_document(&parse_syntax_document(SOURCE), &startup).unwrap();
     let authoring = expand_canonical_form_for_authoring(&document, "main", &profile).unwrap();
     let hosts = [host()];
+    eprintln!(
+        "gear={:?}\noffer={:?}",
+        authoring.expanded.gears, hosts[0].capabilities
+    );
     let placements = default_expanded_placements(&authoring.expanded, &hosts).unwrap();
     let empty_bases = BTreeMap::new();
     let empty_lines = BTreeMap::new();
@@ -187,14 +209,13 @@ fn authored_each_plans_one_exact_ordinary_child_plan() {
     );
     assert_eq!(activation.limits.maximum_active, 1);
     assert_eq!(activation.limits.maximum_queue_items, 1);
-    assert!(
-        activation
-            .selected_plan
-            .fragments
-            .iter()
-            .flat_map(|fragment| &fragment.placements)
-            .any(|placement| placement.kind_id == kind_id("test/normalize"))
-    );
+    assert_eq!(activation.limits.maximum_items, 4);
+    assert!(activation
+        .selected_plan
+        .fragments
+        .iter()
+        .flat_map(|fragment| &fragment.placements)
+        .any(|placement| placement.kind_id == kind_id("test/normalize")));
     assert_eq!(
         activation
             .selected_plan

@@ -1,11 +1,10 @@
 use crate::prelude::*;
 use crate::{
-    AuthoringFrontBinding, CanonicalBackCatalog, CanonicalExpansionDiagnostic,
+    hash_string, AuthoringFrontBinding, CanonicalBackCatalog, CanonicalExpansionDiagnostic,
     CanonicalStartupValue, CheckedCanonicalForm, CheckedCanonicalGear, CheckedConnection,
     CheckedCordStage, CheckedGear, CheckedSyntaxDocument, ConfigurationValue, ExpandedActivation,
     ExpandedAuthoringForm, ExpandedCanonicalForm, ExpandedGearProvenance, ExpandedSharedPool,
-    KindConfigurationRule, MAXIMUM_FORM_NESTING_DEPTH, ProfileCatalog, RuntimePortDirection,
-    hash_string,
+    KindConfigurationRule, ProfileCatalog, RuntimePortDirection, MAXIMUM_FORM_NESTING_DEPTH,
 };
 use alloc::collections::{BTreeMap, BTreeSet};
 use conduit_core::{GearId, KindId, PortDescriptor};
@@ -538,7 +537,11 @@ fn instantiate_gear(
             shorthand: Some((input.port_id.clone(), output.port_id.clone())),
             inputs: vec![input.clone()],
             outputs: vec![output.clone()],
-            semantic_contract: conduit_core::KindSemanticContract::default(),
+            semantic_contract: match &activation.mode {
+                crate::ActivationSyntax::Each { maximum_items } => conduit_core::flow_each_activation_contract(&activation.input_contract, &activation.output_contract, activation.abnormal_contract.as_ref(), input.port_id.clone(), output.port_id.clone(), *maximum_items),
+                crate::ActivationSyntax::Select { maximum_items } => conduit_core::flow_select_activation_contract(&activation.input_contract, activation.abnormal_contract.as_ref(), input.port_id.clone(), output.port_id.clone(), *maximum_items),
+                crate::ActivationSyntax::Fold { maximum_items, .. } => conduit_core::flow_fold_activation_contract(&activation.input_contract, activation.accumulator_contract.as_ref().expect("checked fold accumulator contract"), initial_accumulator_bytes.clone().expect("expanded fold initial bytes"), activation.abnormal_contract.as_ref(), input.port_id.clone(), output.port_id.clone(), conduit_core::port_id("accumulator"), conduit_core::port_id("item"), conduit_core::port_id("combined"), *maximum_items),
+            },
             terminal_transductions: Vec::new(),
             resource_ports: Vec::new(),
             configuration: Vec::new(),
@@ -562,6 +565,10 @@ fn instantiate_gear(
             output: activation.output.clone(),
             initial_accumulator,
             initial_accumulator_bytes,
+            input_contract: activation.input_contract.clone(),
+            output_contract: activation.output_contract.clone(),
+            abnormal_contract: activation.abnormal_contract.clone(),
+            accumulator_contract: activation.accumulator_contract.clone(),
             source_span: gear.source_span,
         });
         return Ok(Instance {
