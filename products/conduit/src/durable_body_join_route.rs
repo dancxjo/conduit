@@ -8,7 +8,9 @@ use super::invitation::{
 use super::membership::complete_body_join_document;
 use super::{bounded_read, current_time_millis, MAXIMUM_BODY_ADMISSION_BYTES};
 use conduit_body::{RendezvousAuthentication, RendezvousCandidate, RendezvousLineFamily};
-use conduit_std_host::secure_websocket::{SecureWebSocketClientLine, SecureWebSocketListener};
+use conduit_std_host::secure_websocket::{
+    SecureWebSocketClientLine, SecureWebSocketError, SecureWebSocketListener,
+};
 use serde::{Deserialize, Serialize};
 use std::io::{Read, Write};
 use std::net::{SocketAddr, ToSocketAddrs};
@@ -32,7 +34,7 @@ struct RoutedAdmissionRequest {
 enum RoutedAdmissionResponse {
     Admitted {
         schema: String,
-        receipt: PortableAdmissionReceipt,
+        receipt: Box<PortableAdmissionReceipt>,
     },
     Refused {
         schema: String,
@@ -119,7 +121,7 @@ pub(crate) fn serve_body_invitation_route(
             &mut line,
             &RoutedAdmissionResponse::Admitted {
                 schema: ROUTE_RESPONSE_SCHEMA.into(),
-                receipt,
+                receipt: Box::new(receipt),
             },
         ),
         Err(error) => {
@@ -212,7 +214,7 @@ fn attempt_candidate(
         timeout,
         MAXIMUM_ROUTE_FRAME_BYTES as u32,
     )
-    .map_err(|error| format!("unreachable-or-authentication-failed:{error:?}"))?;
+    .map_err(route_connect_refusal)?;
     send(
         &mut line,
         &RoutedAdmissionRequest {
@@ -225,13 +227,36 @@ fn attempt_candidate(
         RoutedAdmissionResponse::Admitted { schema, receipt }
             if schema == ROUTE_RESPONSE_SCHEMA =>
         {
-            Ok(receipt)
+            Ok(*receipt)
         }
         RoutedAdmissionResponse::Refused { schema, code } if schema == ROUTE_RESPONSE_SCHEMA => {
             Err(format!("admission-refused:{code}"))
         }
         _ => Err("owner-response-schema".into()),
     }
+}
+
+fn route_connect_refusal(error: SecureWebSocketError) -> String {
+    let code = match error {
+        SecureWebSocketError::Transport(std::io::ErrorKind::TimedOut)
+        | SecureWebSocketError::AcceptDeadline => "route-timeout",
+        SecureWebSocketError::Transport(_) => "owner-unreachable",
+        SecureWebSocketError::Tls | SecureWebSocketError::Handshake => {
+            "endpoint-authentication-failed"
+        }
+        SecureWebSocketError::InvalidConfiguration => "invalid-route",
+        SecureWebSocketError::Disconnected => "owner-disconnected",
+        SecureWebSocketError::OversizedMessage | SecureWebSocketError::OutputTooSmall => {
+            "route-frame-bound"
+        }
+        SecureWebSocketError::Protocol | SecureWebSocketError::TextMessageRejected => {
+            "route-protocol"
+        }
+        SecureWebSocketError::Identity(_)
+        | SecureWebSocketError::Bind(_)
+        | SecureWebSocketError::Accept(_) => "route-mechanism",
+    };
+    format!("{code}:{error:?}")
 }
 
 trait BinaryRoute {
@@ -322,5 +347,26 @@ fn admission_refusal_code(error: &str) -> &'static str {
         "stale-host-boot"
     } else {
         "admission-refused"
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn reachability_and_endpoint_authentication_refusals_remain_distinct() {
+        assert!(route_connect_refusal(SecureWebSocketError::Transport(
+            std::io::ErrorKind::ConnectionRefused
+        ))
+        .starts_with("owner-unreachable:"));
+        assert!(route_connect_refusal(SecureWebSocketError::Transport(
+            std::io::ErrorKind::TimedOut
+        ))
+        .starts_with("route-timeout:"));
+        assert!(route_connect_refusal(SecureWebSocketError::Tls)
+            .starts_with("endpoint-authentication-failed:"));
+        assert!(route_connect_refusal(SecureWebSocketError::Handshake)
+            .starts_with("endpoint-authentication-failed:"));
     }
 }
