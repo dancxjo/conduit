@@ -10,7 +10,7 @@ use serde::{Deserialize, Serialize};
 
 use crate::{
     llm_contract, ModelDerivedResult, ModelResultDisposition, ModelResultInvalidity,
-    ModelResultProvenance, LLM_INTERPRET_KIND,
+    ModelResultProvenance, TemporalInterpretationRefusal, LLM_INTERPRET_KIND,
 };
 
 pub const MAXIMUM_TEMPORAL_INTENT_BYTES: usize = 2_048;
@@ -85,23 +85,6 @@ pub struct TemporalProposal {
 pub struct TemporalResolutionTruth {
     pub reference: ZonedResolution,
     pub candidate_starts: Vec<ZonedResolution>,
-}
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum TemporalInterpretationRefusal {
-    InvalidRequest,
-    InvalidModelEnvelope,
-    InvalidProposal,
-    MalformedDuration,
-    OverBroadRecurrence,
-    UnknownParticipant,
-    UnresolvedAmbiguity,
-    HallucinatedExistingEvent,
-    ReferenceResolutionMismatch,
-    MissingCivilResolution,
-    AmbiguousCivilTime,
-    NonexistentCivilTime,
-    ArithmeticOverflow,
 }
 
 /// The portable `llm/interpret` gear boundary: correlate a bounded model result

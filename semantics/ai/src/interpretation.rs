@@ -3,7 +3,8 @@ use conduit_core::SignId;
 use serde::{Deserialize, Serialize};
 
 use crate::{
-    InterpretationDisposition, InterpretationProvenance, TemporalReference, TemporalRetrievalIntent,
+    InterpretationDisposition, InterpretationInvalidity, InterpretationProvenance,
+    TemporalReference, TemporalRetrievalIntent,
 };
 
 pub const MAXIMUM_INTERPRETATION_EVIDENCE: usize = 16;
@@ -39,21 +40,6 @@ pub struct ModelInterpretation {
     pub confidence: Option<ProfileReportedConfidence>,
     pub implications: Vec<String>,
     pub disposition: InterpretationDisposition,
-}
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
-pub enum InterpretationInvalidity {
-    EmptyEvidence,
-    TooMuchEvidence,
-    EmptySignIdentity,
-    DuplicateSignIdentity,
-    TextBoundExceeded,
-    MissingHypothesis,
-    TooManyImplications,
-    InvalidConfidence,
-    FabricatedEvidenceReference,
-    ResolvedEvidenceMarkedUnresolved,
-    InvalidTemporalContext,
 }
 
 impl InterpretationRequest {

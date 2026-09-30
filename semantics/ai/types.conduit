@@ -534,3 +534,43 @@ type LocalModelOfferInvalidity =
     | duplicate_profile
     | not_ready
     | deterministic_claim
+
+type TemporalEvidenceSelectionRefusal =
+    empty_candidates
+    | too_many_candidates
+    | empty_identity
+    | identity_too_large
+    | duplicate_identity
+    | invalid_reference
+    | invalid_intent
+    | invalid_provenance
+    | reference_mismatch
+    | missing_source_time
+
+type TemporalInterpretationRefusal =
+    invalid_request
+    | invalid_model_envelope
+    | invalid_proposal
+    | malformed_duration
+    | over_broad_recurrence
+    | unknown_participant
+    | unresolved_ambiguity
+    | hallucinated_existing_event
+    | reference_resolution_mismatch
+    | missing_civil_resolution
+    | ambiguous_civil_time
+    | nonexistent_civil_time
+    | arithmetic_overflow
+
+type InterpretationInvalidity =
+    empty_evidence
+    | too_much_evidence
+    | empty_sign_identity
+    | duplicate_sign_identity
+    | text_bound_exceeded
+    | missing_hypothesis
+    | too_many_implications
+    | invalid_confidence
+    | fabricated_evidence_reference
+    | resolved_evidence_marked_unresolved
+    | invalid_temporal_context
