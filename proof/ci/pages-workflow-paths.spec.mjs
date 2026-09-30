@@ -27,7 +27,7 @@ test("affected product proof begins after cheap PR entry while promotion stays p
 test("every browser product admits the complete shared presentation theme", () => {
   const themeBytes = readFileSync("products/shared/browser/conduit.css").byteLength;
   for (const path of [
-    "products/creche/browser/creche.application.template.json",
+    "products/workspace/browser/workspace.application.template.json",
     "products/patchbay/html/assets/patchbay.application.template.json",
   ]) {
     const manifest = JSON.parse(readFileSync(path, "utf8"));
@@ -62,13 +62,14 @@ test("product jobs build the immutable PR head and deployments queue", () => {
   assert.match(productWorkflow, /name: browser-proof-\$\{\{ matrix\.shard \}\}/);
   assert.doesNotMatch(productWorkflow, /shard: tour/);
   assert.match(productWorkflow, /shard: browser-host/);
-  assert.match(productWorkflow, /shard: creche-machines/);
+  assert.match(productWorkflow, /shard: workspace-machines/);
   assert.match(productWorkflow, /shard: pages/);
   assert.match(productWorkflow, /browser-admission-stage:\n    needs: \[plan, browser-runtimes, browser-release\]/);
   assert.match(productWorkflow, /browser-release:\n    needs: plan\n    if: needs\.plan\.outputs\.browser_release_required == 'true'/);
-  assert.match(productWorkflow, /browser_release_required:.*contains\(steps\.impact\.outputs\.browser_admission_matrix, 'creche-workspace'\).*contains\(steps\.impact\.outputs\.browser_admission_matrix, 'pages'\)/);
+  assert.match(productWorkflow, /browser_release_required:.*contains\(steps\.impact\.outputs\.browser_admission_matrix, 'workspace'\).*contains\(steps\.impact\.outputs\.browser_admission_matrix, 'pages'\)/);
   assert.match(productWorkflow, /if: needs\.plan\.outputs\.browser_release_required == 'true'\n        uses: \.\/\.github\/actions\/download-artifact-retry/);
-  assert.match(productWorkflow, /stage-creche-product\.sh[^\n]+unused browser-proof/);
+  assert.doesNotMatch(productWorkflow, /stage-creche-product|target\/creche-product|creche-runtime/);
+  assert.match(productWorkflow, /stage-workspace-product\.sh/);
   assert.match(productWorkflow, /name: browser-admission-\$\{\{ matrix\.shard \}\}/);
   assert.match(
     productWorkflow,
@@ -98,7 +99,7 @@ test("product jobs build the immutable PR head and deployments queue", () => {
   assert.match(productWorkflow, /--retries 0/);
   assert.match(
     productWorkflow,
-    /browser_admission_matrix: \$\{\{ \(!inputs\.development_admission \|\| inputs\.full_suite\) && '\["browser-host","creche-workspace","pages"\]'/,
+    /browser_admission_matrix: \$\{\{ \(!inputs\.development_admission \|\| inputs\.full_suite\) && '\["browser-host","workspace","pages"\]'/,
   );
   assert.match(
     productWorkflow,
@@ -114,19 +115,19 @@ test("product jobs build the immutable PR head and deployments queue", () => {
   );
   assert.match(
     productWorkflow,
-    /if \[\[ "\$BROWSER_ADMISSION_MATRIX" == \*'"creche-workspace"'\* \|\| "\$BROWSER_ADMISSION_MATRIX" == \*'"pages"'\* \]\]; then\n\s+cargo build --locked -p conduit-browser-runtime[^\n]+--features creche-surface,form-runner/,
+    /if \[\[ "\$BROWSER_ADMISSION_MATRIX" == \*'"workspace"'\* \|\| "\$BROWSER_ADMISSION_MATRIX" == \*'"pages"'\* \]\]; then\n\s+cargo build --locked -p conduit-browser-runtime[^\n]+--features creche-surface,form-runner/,
   );
   assert.match(
     productWorkflow,
-    /if \[\[ "\$BROWSER_ADMISSION_MATRIX" == \*'"browser-host"'\* \|\| "\$BROWSER_ADMISSION_MATRIX" == \*'"creche-workspace"'\* \|\| "\$BROWSER_ADMISSION_MATRIX" == \*'"pages"'\* \]\]; then\n\s+cargo build --locked -p conduit-browser-runtime --target wasm32-unknown-unknown --release\n\s+cp target\/wasm32-unknown-unknown\/release\/conduit_browser_runtime\.wasm target\/browser-product-runtimes\/patchbay-runtime\.wasm/,
+    /if \[\[ "\$BROWSER_ADMISSION_MATRIX" == \*'"browser-host"'\* \|\| "\$BROWSER_ADMISSION_MATRIX" == \*'"workspace"'\* \|\| "\$BROWSER_ADMISSION_MATRIX" == \*'"pages"'\* \]\]; then\n\s+cargo build --locked -p conduit-browser-runtime --target wasm32-unknown-unknown --release\n\s+cp target\/wasm32-unknown-unknown\/release\/conduit_browser_runtime\.wasm target\/browser-product-runtimes\/patchbay-runtime\.wasm/,
   );
   assert.match(
     productWorkflow,
-    /if \[\[ "\$BROWSER_ADMISSION_MATRIX" == \*'"browser-host"'\* \|\| "\$BROWSER_ADMISSION_MATRIX" == \*'"creche-workspace"'\* \|\| "\$BROWSER_ADMISSION_MATRIX" == \*'"pages"'\* \]\]; then\n\s+cp target\/browser-product-runtimes\/patchbay-runtime\.wasm target\/wasm32-unknown-unknown\/release\/conduit_browser_runtime\.wasm/,
+    /if \[\[ "\$BROWSER_ADMISSION_MATRIX" == \*'"browser-host"'\* \|\| "\$BROWSER_ADMISSION_MATRIX" == \*'"workspace"'\* \|\| "\$BROWSER_ADMISSION_MATRIX" == \*'"pages"'\* \]\]; then\n\s+cp target\/browser-product-runtimes\/patchbay-runtime\.wasm target\/wasm32-unknown-unknown\/release\/conduit_browser_runtime\.wasm/,
   );
   assert.match(
     productWorkflow,
-    /Retain the browser two-profile make report\n        if: matrix\.shard == 'creche-machines'/,
+    /Retain the browser two-profile make report\n        if: matrix\.shard == 'workspace-machines'/,
   );
   assert.match(productWorkflow, /name: conduitos-release-\$\{\{ matrix\.architecture \}\}/);
   for (const architecture of ["x86_64", "aarch64", "ia32", "riscv64", "loongarch64"]) {
@@ -252,7 +253,7 @@ test("permanent Pages automation contains no completed deploy-first rescue", () 
 });
 
 
-test("Crèche/Workspace admission receives its Host prerequisites without selecting Pages", () => {
+test("Workspace admission receives its Host prerequisites without selecting Pages", () => {
   const workflow = readFileSync(".github/workflows/product-carrier.yml", "utf8");
   const build = workflow.split("  browser-runtimes:\n")[1].split("\n  standalone-locks:")[0];
   const stage = workflow.split("  browser-admission-stage:\n")[1].split("\n  browser-admission-proof:")[0];
@@ -260,10 +261,10 @@ test("Crèche/Workspace admission receives its Host prerequisites without select
     [[], false, false, false],
     [["unrelated"], false, false, false],
     [["browser-host"], false, false, true],
-    [["creche-workspace"], true, false, true],
+    [["workspace"], true, false, true],
     [["pages"], true, true, true],
-    [["browser-host", "creche-workspace"], true, false, true],
-    [["browser-host", "creche-workspace", "pages"], true, true, true],
+    [["browser-host", "workspace"], true, false, true],
+    [["browser-host", "workspace", "pages"], true, true, true],
   ];
   for (const [source, command, kind] of [
     [build, "cargo build --locked -p patchbay-html", "binaries"],

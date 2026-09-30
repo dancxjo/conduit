@@ -27,7 +27,7 @@ Root Cargo metadata, toolchain/configuration files, licensing and contributor gu
 the primary body-centered product surface, including zero-body bootstrap and
 reviewed initial-workset selection. `forms/tour` owns the resident tutorial
 meaning while `docs/journeys/tour` owns its authored journey;
-`products/creche` owns target preparation and its retained compatibility route,
+`products/workspace` owns the browser Body encounter and target preparation,
 not another bootstrap state model; `products/patchbay` owns specialized
 inspection/editing implementations and compatibility entrances while Patchbay
 also runs as a resident form. These package boundaries do not create separate

@@ -429,13 +429,9 @@ fn product_stage_joins_exact_required_results_after_optional_skips() {
     assert!(stage.contains("cargo +1.98.1 xtask check forms bundle-workspace-catalog"));
     assert!(stage.contains("target/reviewed-form-bundles/initial-body.conduit"));
     assert!(stage.contains("target/reviewed-form-bundles/workspace-catalog.json"));
-    assert!(stage.contains("products/creche/tools/stage-creche-product.sh"));
-    let creche_stage =
-        fs::read_to_string(root.join("products/creche/tools/stage-creche-product.sh"))
-            .expect("read Creche staging contract");
-    assert!(creche_stage.contains("browser-relay-line.mjs"));
-    assert!(creche_stage.contains("release) test \"$file_count\" -le 132"));
-    assert!(creche_stage.contains("browser-proof) test \"$file_count\" -le 128"));
+    assert!(stage.contains("products/workspace/tools/stage-workspace-product.sh"));
+    assert!(!stage.contains("stage-creche-product"));
+    assert!(!stage.contains("target/creche-product"));
     assert!(stage.contains("--root target/creche-release-artifacts"));
     assert!(stage.contains("--generation \"${{ github.run_number }}\""));
 }
@@ -834,13 +830,9 @@ fn browser_proof_reuses_the_staged_carrier_and_retains_its_own_journey_track() {
     assert!(workflow.contains("--output \"$CONDUIT_BROWSER_PROOF_OUTPUT\""));
     assert!(workflow.contains("body-journey-track"));
     assert!(workflow.contains("conduit-browser-body-journey-"));
-    assert!(workflow.contains("name: Deduplicate the staged release catalog for transport"));
-    assert_eq!(
-        workflow
-            .matches("tools/ci/restore-workspace-product-artifacts.sh target")
-            .count(),
-        2
-    );
+    assert!(!workflow.contains("Deduplicate the staged release catalog for transport"));
+    assert!(!workflow.contains("restore-workspace-product-artifacts.sh"));
+    assert!(!workflow.contains("target/creche-product"));
     let staged = workflow
         .split("name: conduit-staged-browser-products")
         .nth(1)

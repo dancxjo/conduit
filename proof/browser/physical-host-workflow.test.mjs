@@ -4,8 +4,8 @@ import { setImmediate as nextTurn } from "node:timers/promises";
 import {
   createPhysicalHostTargetCatalog,
   PHYSICAL_HOST_EVIDENCE_MAXIMA,
-} from "../../products/creche/browser/creche-target-catalog.mjs";
-import { createPhysicalHostRunner } from "../../products/creche/browser/creche-physical.mjs";
+} from "../../products/workspace/browser/creche-target-catalog.mjs";
+import { createPhysicalHostRunner } from "../../products/workspace/browser/creche-physical.mjs";
 
 // Deterministic contract proof through the live catalog, workflow, and physical
 // presentation helpers. These test-only document, presentation, and current-Body

@@ -369,7 +369,7 @@ mod tests {
 
     #[test]
     fn gallery_view_uses_the_product_semantic_model_and_exact_handoffs() {
-        let encoded = reviewed_gallery_view("", None, "/conduit/creche/", 4).unwrap();
+        let encoded = reviewed_gallery_view("", None, "/conduit/workspace/", 4).unwrap();
         let view = conduit_presentation::ApplicationView::decode(&encoded).unwrap();
         assert_eq!(view.revision, 4);
         assert_eq!(
@@ -387,7 +387,7 @@ mod tests {
             .unwrap();
         assert!(handoff
             .value
-            .starts_with("/conduit/creche/?form=memory_lantern"));
+            .starts_with("/conduit/workspace/?form=memory_lantern"));
         assert!(handoff.value.contains("checked_form_id="));
     }
 

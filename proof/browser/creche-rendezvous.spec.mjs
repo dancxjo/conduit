@@ -6,7 +6,7 @@ import { startStaticProduct } from "./static-product-server.mjs";
 let entrance;
 
 test.beforeEach(async () => {
-  entrance = await startStaticProduct(process.env.CONDUIT_CRECHE_RENDEZVOUS_PRODUCT ?? "target/creche-rendezvous-product", "/conduit/creche/");
+  entrance = await startStaticProduct(process.env.CONDUIT_CRECHE_RENDEZVOUS_PRODUCT ?? "target/creche-rendezvous-product", "/conduit/workspace/");
 });
 
 test.afterEach(() => entrance?.child.kill());

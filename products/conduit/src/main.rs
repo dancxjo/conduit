@@ -77,7 +77,7 @@ fn enter_birth() -> Result<(), String> {
     let application = conduit
         .parent()
         .ok_or("the installed Conduit entrance has no parent directory")?
-        .join("conduit-creche");
+        .join("conduit-workspace");
     if !application.join("index.html").is_file() {
         return Err(format!(
             "the admitted birth encounter is unavailable at {}; install it alongside the Conduit executables",
@@ -87,7 +87,7 @@ fn enter_birth() -> Result<(), String> {
     let status = std::process::Command::new(executable)
         .arg("--application")
         .arg(application)
-        .args(["--mount", "/creche/"])
+        .args(["--mount", "/workspace/"])
         .status()
         .map_err(|error| {
             format!(

@@ -399,7 +399,7 @@ fn browser_admission_runs_only_the_owned_product_shards() {
     .unwrap();
     assert_eq!(
         creche.browser_admission_shards,
-        ["browser-host", "creche-workspace"]
+        ["browser-host", "workspace"]
     );
 
     let presentation = plan_for_paths(
@@ -614,7 +614,7 @@ fn acceptance_diff_classes_keep_exact_obligation_boundaries() {
     let partial_pi_zero_creche = plan_for_paths(
         &root,
         vec![
-            "products/creche/tools/stage-creche-product.sh".to_owned(),
+            "products/workspace/tools/stage-workspace-product.sh".to_owned(),
             "targets/raspberry-pi/make/src/lib.rs".to_owned(),
         ],
         &packages,
@@ -634,7 +634,7 @@ fn acceptance_diff_classes_keep_exact_obligation_boundaries() {
             "proof/browser/pages-front-door.spec.mjs".to_owned(),
             "targets/browser/tools/render-product-masthead.mjs".to_owned(),
             "docs/journeys/tour/chapter-1.md".to_owned(),
-            "products/creche/tools/stage-creche-product.sh".to_owned(),
+            "products/workspace/tools/stage-workspace-product.sh".to_owned(),
             "site/tools/stage-pages-root.sh".to_owned(),
             "products/patchbay/tools/stage-patchbay-product.sh".to_owned(),
             "semantics/presentation/assets/product-masthead.mjs".to_owned(),
@@ -658,11 +658,11 @@ fn acceptance_diff_classes_keep_exact_obligation_boundaries() {
         &root,
         vec![
             "proof/browser/creche-browser-configuration.spec.mjs".to_owned(),
-            "products/creche/tools/stage-creche-product.sh".to_owned(),
-            "products/creche/browser/creche-target-catalog.mjs".to_owned(),
-            "products/creche/browser/creche.css".to_owned(),
-            "products/creche/browser/creche.html".to_owned(),
-            "products/creche/browser/creche.mjs".to_owned(),
+            "products/workspace/tools/stage-workspace-product.sh".to_owned(),
+            "products/workspace/browser/creche-target-catalog.mjs".to_owned(),
+            "products/workspace/browser/workspace.css".to_owned(),
+            "products/workspace/browser/workspace.html".to_owned(),
+            "products/workspace/browser/workspace.mjs".to_owned(),
             "targets/browser/host/src/server.rs".to_owned(),
         ],
         &packages,
@@ -677,7 +677,7 @@ fn acceptance_diff_classes_keep_exact_obligation_boundaries() {
 
     let unproved_creche_presentation = plan_for_paths(
         &root,
-        vec!["products/creche/browser/creche.mjs".to_owned()],
+        vec!["products/workspace/browser/creche-target-catalog.mjs".to_owned()],
         &packages,
     )
     .unwrap();
@@ -709,7 +709,7 @@ fn acceptance_diff_classes_keep_exact_obligation_boundaries() {
         &root,
         vec![
             ".github/workflows/check.yml".to_owned(),
-            "products/creche/browser/creche.css".to_owned(),
+            "products/workspace/browser/workspace.css".to_owned(),
         ],
         &packages,
     )

@@ -48,7 +48,7 @@ The Crèche birth step must:
 - retain that same body independently of Tour navigation or closure.
 
 The current Crèche uses its deterministic persona-name catalog in
-`products/creche/browser/creche-names.mjs`. Generated names are editable labels,
+`products/workspace/browser/creche-names.mjs`. Generated names are editable labels,
 never body identity.
 
 ## The biography is stateful

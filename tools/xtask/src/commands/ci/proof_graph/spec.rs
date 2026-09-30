@@ -229,7 +229,7 @@ pub(super) const PROOFS: &[ProofSpec] = &[
         // Fingerprint complete owning domains so a trusted controller can
         // validate a candidate that renames proof, staging, or workflow files.
         // Paths and bytes remain hashed; renames invalidate prior receipts.
-        implementation_inputs: &["proof/browser", "proof/ci", "tools/ci", "tools", "proof/browser/package.json", "proof/browser/package-lock.json", "targets/browser/tools", "products/creche/tools", "products/patchbay/tools", "site/tools", ".github/workflows"],
+        implementation_inputs: &["proof/browser", "proof/ci", "tools/ci", "tools", "proof/browser/package.json", "proof/browser/package-lock.json", "targets/browser/tools", "products/workspace/tools", "products/patchbay/tools", "site/tools", ".github/workflows"],
         consumed_artifacts: &[],
         environment: "pages-carrier-v1",
         applicability: Applicability::CandidateAndIntegration,

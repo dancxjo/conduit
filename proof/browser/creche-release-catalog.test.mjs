@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { openReleaseCatalog, createMemoryReleaseCache } from "../../products/creche/browser/creche-release-catalog.mjs";
+import { openReleaseCatalog, createMemoryReleaseCache } from "../../products/workspace/browser/creche-release-catalog.mjs";
 
 const encoder = new TextEncoder();
 
