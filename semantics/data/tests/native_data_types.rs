@@ -3,8 +3,8 @@ use conduit_data::{
     ClockRelationQuality, DataLoadTextTerminal, DataSaveTextTerminal, FullWindowPolicy,
     MeasurementPlotOverflowPolicy, MeasurementPlotRefusal, MeasurementSummaryRefusal,
     MeasurementThresholdRefusal, MeasurementThresholdState, MeasurementThresholdTransition,
-    MeasurementWindowRefusal, SampledSignalRefusal, SignalContinuity, TensorAxisRole,
-    TensorElement,
+    MeasurementWindowRefusal, QuantityMappingRefusal, QuantizationPolicy, RangePolicy,
+    SampledSignalRefusal, SignalContinuity, TensorAxisRole, TensorElement,
 };
 use conduit_form::rust_binding::NativeRustBinding;
 
@@ -143,6 +143,24 @@ fn measurement_policy_variants_round_trip_through_exact_native_types() {
     for value in [
         MeasurementThresholdTransition::RoseAbove,
         MeasurementThresholdTransition::FellBelow,
+    ] {
+        assert_round_trip(value);
+    }
+}
+
+#[test]
+fn quantity_mapping_vocabulary_round_trips_through_exact_native_types() {
+    for value in [RangePolicy::Refuse, RangePolicy::Clamp] {
+        assert_round_trip(value);
+    }
+    for value in [QuantizationPolicy::Exact, QuantizationPolicy::Nearest] {
+        assert_round_trip(value);
+    }
+    for value in [
+        QuantityMappingRefusal::InvalidRange,
+        QuantityMappingRefusal::OutOfRange,
+        QuantityMappingRefusal::Inexact,
+        QuantityMappingRefusal::Overflow,
     ] {
         assert_round_trip(value);
     }

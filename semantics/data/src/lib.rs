@@ -13,7 +13,8 @@ pub use generated::{
     DataSaveTextTerminal, DataSaveTextTerminalRepresentation, FullWindowPolicy,
     MeasurementPlotOverflowPolicy, MeasurementPlotRefusal, MeasurementSummaryRefusal,
     MeasurementThresholdRefusal, MeasurementThresholdState, MeasurementThresholdTransition,
-    MeasurementWindowRefusal, SampledSignalRefusal, ScientificObservationRefusal, SignalContinuity,
+    MeasurementWindowRefusal, QuantityMappingRefusal, QuantizationPolicy, RangePolicy,
+    SampledSignalRefusal, ScientificObservationRefusal, SignalContinuity,
     SignalContinuityClockReset, SignalContinuityDiscontinuous, TensorAxisRole, TensorAxisRoleOther,
     TensorElement, TensorRefusal,
 };

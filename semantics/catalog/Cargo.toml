@@ -8,6 +8,7 @@ conduit-kernel = { path = "../../architecture/kernel", optional = true, features
 conduit-alife = { path = "../alife" }
 conduit-audio = { path = "../audio" }
 conduit-core = { path = "../../architecture/core" }
+conduit-data = { path = "../data" }
 conduit-human = { path = "../human" }
 conduit-midi = { path = "../../mechanisms/protocols/midi" }
 conduit-net = { path = "../net", default-features = false, features = ["form-catalog"] }
