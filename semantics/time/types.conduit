@@ -53,6 +53,14 @@ type HistoricalOverflowPolicy =
     refuse
     | evict_oldest_with_gap
 
+type ReplayPolicy =
+    step
+    | original-timing
+    | rate {
+        numerator: U32 in 1..=1000
+        denominator: U32 in 1..=1000
+    }
+
 type TemporalBoundary =
     inclusive
     | exclusive

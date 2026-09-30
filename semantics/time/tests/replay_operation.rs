@@ -176,14 +176,8 @@ fn malformed_control_and_active_timeline_replacement_fail_without_mutation() {
 }
 
 #[test]
-fn missing_or_invalid_timeline_and_policy_remain_distinct() {
-    assert!(matches!(
-        BoundedReplayOperation::new(ReplayPolicy::Rate {
-            numerator: 0,
-            denominator: 1,
-        }),
-        Err(ReplayOperationRefusal::InvalidPolicy)
-    ));
+fn missing_timeline_and_invalid_duration_remain_distinct() {
+    assert!(ReplayPolicy::rate(1, 0).is_err());
     assert!(matches!(
         BoundedReplayOperation::new_with_maximum_duration(ReplayPolicy::Step, 0),
         Err(ReplayOperationRefusal::InvalidDurationLimit)

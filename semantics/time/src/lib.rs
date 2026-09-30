@@ -9,8 +9,9 @@ mod generated {
 pub use generated::{
     AvailabilityState, CalendarRefusal, CivilFoldPolicy, CivilGapPolicy, CivilResolutionChoice,
     ClockChangeBehavior, HistoricalEntryOrigin, HistoricalOverflowPolicy, InvitationState,
-    MeetingProposalRefusal, ParticipantRole, RecurrenceRefusal, ScheduledIntentRefusal,
-    SuspendBehavior, TemporalBoundary, TemporalWindowPosition, TemporalWindowRefusal,
+    MeetingProposalRefusal, ParticipantRole, RecurrenceRefusal, ReplayPolicy, ReplayPolicyRate,
+    ScheduledIntentRefusal, SuspendBehavior, TemporalBoundary, TemporalWindowPosition,
+    TemporalWindowRefusal,
 };
 
 mod tick;
