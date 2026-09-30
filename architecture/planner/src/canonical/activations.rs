@@ -213,9 +213,10 @@ fn attach_activations(
                     _ => None,
                 });
         if offered_maximum != Some(limits.maximum_items) {
-            return Err(PlannerError::InvalidFormIdentity(
-                "activation maximum-items differs from its coordinator law".into(),
-            ));
+            return Err(PlannerError::InvalidFormIdentity(format!(
+                "activation maximum-items {} differs from its coordinator law {:?}",
+                limits.maximum_items, offered_maximum
+            )));
         }
         planned.push(PlannedActivationEntry::Unary(PlannedActivation {
             activation_id: activation.activation_id.clone(),

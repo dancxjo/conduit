@@ -727,7 +727,7 @@ pub enum StateRetentionSupportError {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::{PortDirection, PortTemporal, kind_id, port_id};
+    use crate::{kind_id, port_id, PortDirection, PortTemporal};
     use alloc::{format, string::ToString, vec};
 
     fn contract() -> Kind {
@@ -1218,12 +1218,10 @@ mod tests {
             ordinary.clone().with_state_retention(support),
             Err(StateRetentionSupportError::WrongSemanticKind)
         );
-        assert!(
-            serde_json::to_value(&ordinary)
-                .unwrap()
-                .get("state_retention")
-                .is_none()
-        );
+        assert!(serde_json::to_value(&ordinary)
+            .unwrap()
+            .get("state_retention")
+            .is_none());
 
         let mut state_contract = contract();
         state_contract.kind_id = crate::kind_id(crate::STATE_VALUE_KIND);

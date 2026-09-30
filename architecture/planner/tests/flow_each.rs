@@ -33,7 +33,7 @@ form flow/each (
  >> values: item...|
  mapped: result...| >>
 ) {
- each: activate(maximum-items = 3) transform()
+ each: activate(maximum-items = 4) transform()
  values >> each.value
  each.mapped >> mapped
 }
@@ -169,10 +169,6 @@ fn authored_each_plans_one_exact_ordinary_child_plan() {
     let document = check_syntax_document(&parse_syntax_document(SOURCE), &startup).unwrap();
     let authoring = expand_canonical_form_for_authoring(&document, "main", &profile).unwrap();
     let hosts = [host()];
-    eprintln!(
-        "gear={:?}\noffer={:?}",
-        authoring.expanded.gears, hosts[0].capabilities
-    );
     let placements = default_expanded_placements(&authoring.expanded, &hosts).unwrap();
     let empty_bases = BTreeMap::new();
     let empty_lines = BTreeMap::new();

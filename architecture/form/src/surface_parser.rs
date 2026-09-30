@@ -1,7 +1,8 @@
 use crate::prelude::*;
 use crate::surface_lex::{
-    SourceLine, delimiters_are_balanced, is_name, is_reference, is_source_import_path, location,
+    delimiters_are_balanced, is_name, is_reference, is_source_import_path, location,
     split_top_level, split_top_level_token, top_level_positions, top_level_token_positions,
+    SourceLine,
 };
 use crate::syntax::{
     ActivationSyntax, Argument, BackStatement, CodeSyntax, ConstructionRole, ConstructionSyntax,
@@ -11,8 +12,8 @@ use crate::syntax::{
     SyntaxDocument, TypeSyntax, UseDeclaration,
 };
 use crate::{
-    FormError, MAXIMUM_FORM_SOURCE_BYTES, MAXIMUM_USE_DECLARATIONS, Span, diagnostic, eof_span,
-    tokenize_losslessly,
+    diagnostic, eof_span, tokenize_losslessly, FormError, Span, MAXIMUM_FORM_SOURCE_BYTES,
+    MAXIMUM_USE_DECLARATIONS,
 };
 
 mod code_declaration;
