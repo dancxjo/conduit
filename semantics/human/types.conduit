@@ -1,5 +1,11 @@
 # Authoritative portable human-experience meaning. Rust consumes generated bindings.
 
+type KeyTransition =
+    pressed
+    | released
+
+representation human/key-transition = KeyTransition as u8
+
 type ExperienceDomain =
     visual
     | auditory

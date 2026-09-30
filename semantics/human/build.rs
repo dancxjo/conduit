@@ -1,4 +1,4 @@
-use conduit_form::rust_binding::{generate_rust_bindings, RustBindingOptions};
+use conduit_form::rust_binding::{generate_rust_bindings_with_representations, RustBindingOptions};
 use conduit_form::{check_syntax_document, parse_syntax_document, StartupCatalog};
 use std::{env, fs, path::PathBuf};
 
@@ -9,8 +9,12 @@ fn main() {
         &StartupCatalog::new(),
     )
     .expect("human semantic Types must check");
-    let generated = generate_rust_bindings(&checked.native_types, &RustBindingOptions::default())
-        .expect("human semantic Types must generate exact Rust bindings");
+    let generated = generate_rust_bindings_with_representations(
+        &checked.native_types,
+        &checked.representations,
+        &RustBindingOptions::default(),
+    )
+    .expect("human semantic Types and representations must generate exact Rust bindings");
     let output = PathBuf::from(env::var_os("OUT_DIR").expect("Cargo supplies OUT_DIR"))
         .join("semantic_types.rs");
     fs::write(output, generated.source).expect("write generated human bindings");

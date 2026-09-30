@@ -8,8 +8,8 @@ mod generated {
 }
 pub use generated::{
     ExperienceAvailability, ExperienceCertainty, ExperienceDomain, ExperienceOrigin,
-    ExperienceRelationKind, ExperienceTemporalRole, SourceAvailability, VisualEvidenceClass,
-    VisualExperienceRelationKind,
+    ExperienceRelationKind, ExperienceTemporalRole, KeyTransition, KeyTransitionRepresentation,
+    SourceAvailability, VisualEvidenceClass, VisualExperienceRelationKind,
 };
 
 mod current_experience;
