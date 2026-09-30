@@ -832,6 +832,7 @@ pub(crate) fn compute_plan_id(
             push_u32(&mut canonical, activation.limits.maximum_queue_bytes);
             canonical.push(activation.terminal_policy as u8);
             canonical.push(activation.cancellation_policy as u8);
+            canonical.push(activation.effect_multiplicity as u8);
             canonical.extend_from_slice(
                 &activation
                     .per_activation_sign_budget

@@ -500,6 +500,8 @@ fn planned_activation(definition: &KernelCompositeDefinition) -> PlannedActivati
         terminal_policy: PlannedActivationTerminalPolicy::DrainThenPropagateExact,
         cancellation_policy:
             PlannedActivationCancellationPolicy::CancelActiveAndRejectLateCompletion,
+        effect_multiplicity:
+            conduit_core::PlannedActivationEffectMultiplicity::OncePerAcceptedInput,
         per_activation_sign_budget: sign_budget,
     }
 }

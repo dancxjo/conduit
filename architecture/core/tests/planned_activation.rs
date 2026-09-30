@@ -64,6 +64,7 @@ fn activation(selected_plan: Plan) -> PlannedActivation {
         terminal_policy: PlannedActivationTerminalPolicy::DrainThenPropagateExact,
         cancellation_policy:
             PlannedActivationCancellationPolicy::CancelActiveAndRejectLateCompletion,
+        effect_multiplicity: PlannedActivationEffectMultiplicity::OncePerAcceptedInput,
         per_activation_sign_budget: SignStorageBudget {
             item_capacity: 2,
             byte_capacity: 64,

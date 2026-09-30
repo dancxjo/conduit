@@ -32,6 +32,11 @@ pub enum PlannedActivationCancellationPolicy {
     CancelActiveAndRejectLateCompletion,
 }
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+pub enum PlannedActivationEffectMultiplicity {
+    OncePerAcceptedInput,
+}
+
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct PlannedActivation {
     pub activation_id: String,
@@ -43,6 +48,7 @@ pub struct PlannedActivation {
     pub limits: PlannedActivationLimits,
     pub terminal_policy: PlannedActivationTerminalPolicy,
     pub cancellation_policy: PlannedActivationCancellationPolicy,
+    pub effect_multiplicity: PlannedActivationEffectMultiplicity,
     pub per_activation_sign_budget: SignStorageBudget,
 }
 
@@ -69,6 +75,8 @@ pub(crate) fn verify_planned_activations(plan: &Plan, depth: u8) -> bool {
             && activation.limits.maximum_queue_items == 1
             && activation.limits.maximum_queue_bytes > 0
             && activation.input.abnormal_kind == activation.output.abnormal_kind
+            && activation.effect_multiplicity
+                == PlannedActivationEffectMultiplicity::OncePerAcceptedInput
             && exact_sign_budget(activation)
     })
 }
