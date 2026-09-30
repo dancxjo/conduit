@@ -1,9 +1,10 @@
-use crate::child::{BoundaryEndpoint, ChildKernel};
+use crate::child::{BoundaryEndpoint, BoundaryTerminal, ChildKernel};
 use crate::{KernelCompositeDefinition, KernelOperationRegistry};
 use conduit_core::{
     bind_active_play, ActivePlayId, ConnectionId, HostId, Plan, PortDirection, PortId, ValuePayload,
 };
 use conduit_kernel::scheduler::{HostCallRequest, RemoteIngressOutcome, SchedulerStatus};
+use conduit_kernel::RemoteTerminalDisposition;
 use conduit_kernel::{HostCallOutcome, KernelEvent, RemoteEndpointId};
 use conduit_plan_lowering::lowering::{
     lower_plan_fragment, LoweredPlanFragment, LoweringError, RemoteCordDirection,
@@ -102,6 +103,12 @@ pub enum KernelCompositeStatus {
     Cancelled,
 }
 
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum KernelCompositeTerminal {
+    Normal,
+    Abnormal(ValuePayload),
+}
+
 pub struct KernelCompositeHost {
     definition: KernelCompositeDefinition,
     children: BTreeMap<HostId, ChildKernel>,
@@ -167,6 +174,7 @@ impl KernelCompositeHost {
                     cord,
                     direction: front.external_port.direction,
                     value_kind: front.external_port.value_kind.clone(),
+                    abnormal_kind: front.external_port.abnormal_kind.clone(),
                     item_capacity: definition.external_capability.limits.max_queue_items,
                     byte_capacity: definition.external_capability.limits.max_queue_bytes,
                 });
@@ -264,6 +272,20 @@ impl KernelCompositeHost {
             .map_err(|reason| execution(&route.child, reason))
     }
 
+    pub fn close_input_abnormal(
+        &mut self,
+        port_id: &PortId,
+        terminal: &ValuePayload,
+    ) -> Result<(), KernelCompositeError> {
+        self.require_started()?;
+        let route = self.front(port_id, PortDirection::Input)?.clone();
+        self.children
+            .get_mut(&route.child)
+            .ok_or_else(|| KernelCompositeError::StaleChild(route.child.clone()))?
+            .close_boundary_abnormal(port_id, terminal)
+            .map_err(|reason| execution(&route.child, reason))
+    }
+
     pub fn output(
         &mut self,
         port_id: &PortId,
@@ -288,6 +310,25 @@ impl KernelCompositeHost {
             .get_mut(&route.child)
             .ok_or_else(|| KernelCompositeError::StaleChild(route.child.clone()))?
             .deliver_boundary(port_id, sequence)
+            .map_err(|reason| execution(&route.child, reason))
+    }
+
+    pub fn output_terminal(
+        &self,
+        port_id: &PortId,
+    ) -> Result<Option<KernelCompositeTerminal>, KernelCompositeError> {
+        self.require_started()?;
+        let route = self.front(port_id, PortDirection::Output)?.clone();
+        self.children
+            .get(&route.child)
+            .ok_or_else(|| KernelCompositeError::StaleChild(route.child.clone()))?
+            .boundary_terminal(port_id)
+            .map(|terminal| {
+                terminal.map(|terminal| match terminal {
+                    BoundaryTerminal::Normal => KernelCompositeTerminal::Normal,
+                    BoundaryTerminal::Abnormal(value) => KernelCompositeTerminal::Abnormal(value),
+                })
+            })
             .map_err(|reason| execution(&route.child, reason))
     }
 
@@ -444,15 +485,44 @@ impl KernelCompositeHost {
                     .children
                     .get(&link.source_child)
                     .ok_or_else(|| KernelCompositeError::StaleChild(link.source_child.clone()))?
-                    .remote_terminal(link.source_endpoint, link.source_cord)
+                    .remote_terminal_disposition(link.source_endpoint, link.source_cord)
                     .map_err(|reason| execution(&link.source_child, reason))?;
-                if terminal {
-                    self.children
-                        .get_mut(&link.sink_child)
-                        .ok_or_else(|| KernelCompositeError::StaleChild(link.sink_child.clone()))?
-                        .remote_close(link.sink_endpoint, link.sink_cord)
-                        .map_err(|reason| execution(&link.sink_child, reason))?;
-                    self.links[index].closed = true;
+                match terminal {
+                    Some(RemoteTerminalDisposition::NormalClose) => {
+                        self.children
+                            .get_mut(&link.sink_child)
+                            .ok_or_else(|| {
+                                KernelCompositeError::StaleChild(link.sink_child.clone())
+                            })?
+                            .remote_close(link.sink_endpoint, link.sink_cord)
+                            .map_err(|reason| execution(&link.sink_child, reason))?;
+                        self.links[index].closed = true;
+                    }
+                    Some(RemoteTerminalDisposition::Abnormal) => {
+                        let abnormal = self
+                            .children
+                            .get(&link.source_child)
+                            .ok_or_else(|| {
+                                KernelCompositeError::StaleChild(link.source_child.clone())
+                            })?
+                            .remote_abnormal_terminal(link.source_endpoint, link.source_cord)
+                            .map_err(|reason| execution(&link.source_child, reason))?
+                            .ok_or_else(|| {
+                                execution(
+                                    &link.source_child,
+                                    "abnormal internal terminal omitted its exact value".into(),
+                                )
+                            })?;
+                        self.children
+                            .get_mut(&link.sink_child)
+                            .ok_or_else(|| {
+                                KernelCompositeError::StaleChild(link.sink_child.clone())
+                            })?
+                            .remote_close_abnormal(link.sink_endpoint, link.sink_cord, abnormal)
+                            .map_err(|reason| execution(&link.sink_child, reason))?;
+                        self.links[index].closed = true;
+                    }
+                    None => {}
                 }
             }
         }
