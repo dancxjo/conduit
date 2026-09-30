@@ -27,6 +27,7 @@ pub(super) fn validate(
         completion: crate::FormCompletionPolicy::Live,
         local_forms: Vec::new(),
         back: Vec::new(),
+        expression_body: None,
         span: parameter.span,
     };
     for port in &mut expected_syntax.front.runtime_ports {

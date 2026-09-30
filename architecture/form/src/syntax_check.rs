@@ -102,6 +102,7 @@ pub(crate) fn check_document(
     checked_forms.sort_by(|left, right| left.name.cmp(&right.name));
     let source_sugar_expansions = pending_source_sugar_expansions
         .into_iter()
+        .chain(forms.iter().filter_map(expression_body_expansion))
         .map(|expansion| SourceSugarExpansion {
             checked_form_id: checked_forms
                 .iter()
@@ -205,6 +206,38 @@ pub(crate) fn check_document(
         forms: checked_forms,
         source_sugar_expansions,
         structured_types,
+    })
+}
+
+fn expression_body_expansion(form: &FormSyntax) -> Option<PendingSourceSugarExpansion> {
+    let body = form.expression_body.as_ref()?;
+    let input = form
+        .front
+        .runtime_ports
+        .iter()
+        .find(|port| port.direction == crate::RuntimePortDirection::Input)?;
+    let output = form
+        .front
+        .runtime_ports
+        .iter()
+        .find(|port| port.direction == crate::RuntimePortDirection::Output)?;
+    Some(PendingSourceSugarExpansion {
+        form: form.name.text.clone(),
+        authored: alloc::format!("= {}", body.expression.text),
+        source_span: body.span,
+        ordinary_kind: "conduitese/pure-expression-operation@1".into(),
+        input_ports: alloc::vec![input.name.text.clone()],
+        output_ports: alloc::vec![output.name.text.clone()],
+        operand_bindings: alloc::vec![SourceSugarOperandBinding {
+            source: input.name.text.clone(),
+            input_port: "value".into(),
+        }],
+        canonical_replacement: Some(alloc::format!(
+            "{{\n    {} >> {} >> {}\n}}",
+            input.name.text,
+            body.expression.text,
+            output.name.text
+        )),
     })
 }
 
