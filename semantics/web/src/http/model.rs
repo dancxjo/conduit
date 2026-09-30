@@ -3,6 +3,13 @@ use alloc::vec::Vec;
 use conduit_core::BoundedResourceRef;
 use serde::{Deserialize, Serialize};
 
+#[allow(dead_code)]
+mod generated {
+    include!(concat!(env!("OUT_DIR"), "/semantic_types.rs"));
+}
+
+pub use generated::{HttpExchangeFailure, HttpMethod, HttpServerResponseRefusal};
+
 pub const HTTP_MAXIMUM_IN_FLIGHT: u16 = 4;
 pub const HTTP_MAXIMUM_HEADERS: usize = 16;
 pub const HTTP_MAXIMUM_HEADER_NAME_BYTES: usize = 64;
@@ -26,17 +33,6 @@ pub const HTTP_IMPLICIT_DECOMPRESSION: bool = false;
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct HttpTransactionId(pub u64);
-
-#[derive(Debug, Copy, Clone, PartialEq, Eq, Serialize, Deserialize)]
-pub enum HttpMethod {
-    Get,
-    Head,
-    Post,
-    Put,
-    Patch,
-    Delete,
-    Options,
-}
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct HttpTarget {
@@ -88,37 +84,6 @@ pub struct HttpResponse {
     /// Ordered and duplicate-preserving. Header names must be lowercase ASCII.
     pub headers: Vec<HttpHeader>,
     pub body: HttpBody,
-}
-
-#[derive(Debug, Copy, Clone, PartialEq, Eq, Serialize, Deserialize)]
-pub enum HttpExchangeFailure {
-    NameResolution,
-    RouteUnavailable,
-    Connect,
-    Tls,
-    ProviderLost,
-    RequestOverflow,
-    ResponseHeaderOverflow,
-    ResponseBodyOverflow,
-    ResourceUnavailable,
-    Capacity,
-    AuthorityDenied,
-    Cancelled,
-}
-
-#[derive(Debug, Copy, Clone, PartialEq, Eq, Serialize, Deserialize)]
-pub enum HttpServerResponseRefusal {
-    UnknownTransaction,
-    StaleTransaction,
-    DuplicateResponse,
-    LateResponse,
-    ResponseHeaderOverflow,
-    ResponseBodyOverflow,
-    ResourceUnavailable,
-    ListenerLost,
-    Capacity,
-    AuthorityDenied,
-    Cancelled,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -251,4 +216,32 @@ fn is_header_name_byte(byte: u8) -> bool {
                 | b'|'
                 | b'~'
         )
+}
+
+#[cfg(test)]
+mod native_type_tests {
+    use super::{HttpExchangeFailure, HttpMethod, HttpServerResponseRefusal};
+    use conduit_form::rust_binding::NativeRustBinding;
+
+    fn assert_round_trip<T>(value: T)
+    where
+        T: NativeRustBinding + Copy + core::fmt::Debug + PartialEq,
+    {
+        let structured = value.into_structured().expect("native value encodes");
+        assert_eq!(
+            structured.value_type(),
+            &T::semantic_type().expect("native semantic type checks")
+        );
+        assert_eq!(
+            T::from_structured(structured).expect("native value decodes"),
+            value
+        );
+    }
+
+    #[test]
+    fn http_method_and_terminal_families_are_native_semantic_types() {
+        assert_round_trip(HttpMethod::Patch);
+        assert_round_trip(HttpExchangeFailure::AuthorityDenied);
+        assert_round_trip(HttpServerResponseRefusal::StaleTransaction);
+    }
 }

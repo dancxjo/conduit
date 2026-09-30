@@ -8,6 +8,9 @@ conduit-core = { path = "../../architecture/core" }
 conduit-form = { path = "../../architecture/form", optional = true }
 serde = { version = "1", default-features = false, features = ["alloc", "derive"] }
 
+[build-dependencies]
+conduit-form = { path = "../../architecture/form" }
+
 [features]
 default = ["form-catalog"]
 form-catalog = ["dep:conduit-form"]
