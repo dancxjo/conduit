@@ -4,9 +4,10 @@ use alloc::{string::String, vec::Vec};
 use conduit_core::{semantic_digest, BoundedResourceRef, KindId, TemporalInstant, TemporalScale};
 
 use crate::{
-    BoundedHistoricalTimeline, HistoricalEntryOriginRepresentation, HistoricalOverflowPolicy,
-    HistoricalRetentionGap, HistoricalTimelineEntry, HistoricalTimelineRefusal,
-    MAXIMUM_HISTORICAL_ENTRY_IDENTITY_BYTES, MAXIMUM_HISTORICAL_TIMELINE_ENTRIES,
+    BoundedHistoricalTimeline, HistoricalEntryOriginRepresentation,
+    HistoricalOverflowPolicyRepresentation, HistoricalRetentionGap, HistoricalTimelineEntry,
+    HistoricalTimelineRefusal, MAXIMUM_HISTORICAL_ENTRY_IDENTITY_BYTES,
+    MAXIMUM_HISTORICAL_TIMELINE_ENTRIES,
 };
 
 pub const HISTORICAL_TIMELINE_SNAPSHOT_VERSION: u8 = 1;
@@ -46,10 +47,7 @@ pub fn encode_historical_timeline_into(
     writer.u8(encode_scale(scale))?;
     writer.u16(maximum_entries as u16)?;
     writer.u64(maximum_bytes)?;
-    writer.u8(match overflow {
-        HistoricalOverflowPolicy::Refuse => 0,
-        HistoricalOverflowPolicy::EvictOldestWithGap => 1,
-    })?;
+    writer.u8(HistoricalOverflowPolicyRepresentation::encode(overflow)[0])?;
     writer.u64(next)?;
     writer.u64(clear)?;
     match timeline.retention_gap() {
@@ -112,11 +110,8 @@ pub fn decode_historical_timeline(
     let scale = decode_scale(cursor.u8()?)?;
     let maximum_entries = usize::from(cursor.u16()?);
     let maximum_bytes = cursor.u64()?;
-    let overflow = match cursor.u8()? {
-        0 => HistoricalOverflowPolicy::Refuse,
-        1 => HistoricalOverflowPolicy::EvictOldestWithGap,
-        _ => return Err(HistoricalTimelineCodecRefusal::InvalidEnum),
-    };
+    let overflow = HistoricalOverflowPolicyRepresentation::decode(&[cursor.u8()?])
+        .map_err(|_| HistoricalTimelineCodecRefusal::InvalidEnum)?;
     let next = cursor.u64()?;
     let clear = cursor.u64()?;
     let gap = match cursor.u8()? {
