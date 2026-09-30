@@ -106,7 +106,7 @@ impl ModelRelationSignature {
             evidence_identities,
             targets: query.targets.clone(),
             mode: query.mode,
-            requested_result: query.requested_result,
+            requested_result: query.requested_result.clone(),
             randomness: query.randomness.clone(),
             admitted_work_units: query.admitted_work_units,
             consumed_work_units: candidate.consumed_work_units,
@@ -150,8 +150,8 @@ impl SupportedRelationQuery {
             }
         }
         if matches!(
-            self.result_profile,
-            RelationResultProfile::Probabilistic { maximum_samples: 0 }
+            &self.result_profile,
+            RelationResultProfile::Probabilistic(profile) if *profile.maximum_samples() == 0
         ) {
             return Err(RelationRefusal::InvalidPattern);
         }
@@ -215,8 +215,8 @@ impl RelationQuery {
         }
         match (&self.requested_result, &self.randomness) {
             (RelationResultProfile::Deterministic, RandomnessProfile::Deterministic) => {}
-            (RelationResultProfile::Probabilistic { maximum_samples }, _)
-                if *maximum_samples > 0
+            (RelationResultProfile::Probabilistic(profile), _)
+                if *profile.maximum_samples() > 0
                     && !matches!(self.randomness, RandomnessProfile::Deterministic) => {}
             _ => return Err(RelationRefusal::DeterminismMismatch),
         }
@@ -247,8 +247,9 @@ impl RelationCandidate {
             match (&query.requested_result, &output.disposition) {
                 (RelationResultProfile::Deterministic, ProbabilisticDisposition::Exact)
                     if output.sample_count == 1 => {}
-                (RelationResultProfile::Probabilistic { maximum_samples }, _)
-                    if output.sample_count > 0 && output.sample_count <= *maximum_samples => {}
+                (RelationResultProfile::Probabilistic(profile), _)
+                    if output.sample_count > 0
+                        && output.sample_count <= *profile.maximum_samples() => {}
                 _ => return Err(RelationRefusal::DeterminismMismatch),
             }
         }
