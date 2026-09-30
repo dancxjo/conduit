@@ -1158,6 +1158,19 @@ dependencies = [
 ]
 
 [[package]]
+name = "conduit-patchbay-workbench-conformance"
+version = "0.1.0"
+dependencies = [
+ "conduit-core",
+ "conduit-form",
+ "conduit-planner",
+ "conduit-presentation",
+ "conduit-semantic-catalog",
+ "conduit-std-offers",
+ "conduit-text",
+]
+
+[[package]]
 name = "conduit-pete"
 version = "0.1.0"
 dependencies = [
@@ -3900,6 +3913,7 @@ dependencies = [
  "conduit-little-seismograph-fixture",
  "conduit-net",
  "conduit-observatory",
+ "conduit-patchbay-workbench-conformance",
  "conduit-plan-lowering",
  "conduit-planner",
  "conduit-presentation",
@@ -6600,6 +6614,7 @@ dependencies = [
  "conduit-midi",
  "conduit-net",
  "conduit-observatory",
+ "conduit-patchbay-workbench-conformance",
  "conduit-pete",
  "conduit-plan-lowering",
  "conduit-planner",
@@ -6626,7 +6641,6 @@ dependencies = [
  "flate2",
  "httparse",
  "libc",
- "patchbay-model",
  "resvg",
  "rustls",
  "serde",

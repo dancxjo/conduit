@@ -10,7 +10,7 @@ pub(crate) struct Coverage {
 }
 
 pub(crate) fn derive() -> Result<Vec<Coverage>, CatalogError> {
-    let proof = patchbay_model::patchbay_mask_plans()
+    let proof = conduit_patchbay_workbench_conformance::patchbay_mask_plans()
         .map_err(|error| CatalogError::new("patchbay-recursive-profile-invalid", error))?;
     let conduitos = conduitos::presentation_nucleus::prepare(
         "catalog-conduitos-reference",

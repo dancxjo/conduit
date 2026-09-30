@@ -88,6 +88,7 @@ members = [
 	"proof/conformance/alife-distributed",
 	"proof/conformance/body-lifecycle",
 	"proof/conformance/network-r1",
+	"proof/conformance/patchbay-workbench",
 	"proof/conformance/pete-workload",
 	"proof/conformance/signal",
 	"proof/fixtures/rp2040-pio-audio-extension",
