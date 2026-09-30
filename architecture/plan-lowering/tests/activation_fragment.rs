@@ -167,7 +167,21 @@ fn named_fragment(host: &str, placement: &str) -> PlanFragment {
 }
 
 fn unary_for(owner: &str, id: &str) -> PlannedActivationEntry {
-    let child = selected_plan();
+    let mut child = selected_plan();
+    let host = owner.split('-').next().unwrap();
+    child.fragments[0].host_id = HostId::from(host);
+    child.fragments[0].boot_id = BootId::from(format!("{host}-boot"));
+    child.fragments[0].placements[0].host_id = HostId::from(host);
+    child.fragments[0].placements[0].boot_id = BootId::from(format!("{host}-boot"));
+    child = seal_plan_with_completion(
+        FormIdentity {
+            source_document_id: child.source_document_id,
+            checked_form_id: child.checked_form_id,
+            expanded_form_id: child.expanded_form_id,
+        },
+        child.completion_policy,
+        child.fragments,
+    );
     let mut value = match plan().activations[0].clone() {
         PlannedActivationEntry::Unary(value) => value,
         _ => unreachable!(),
@@ -186,6 +200,11 @@ fn progression_for(owner: &str, id: &str, scan: bool) -> PlannedActivationEntry 
     item.front_port_id = port_id("item");
     child.fragments[0].fore_ports.push(item);
     child.fragments[0].fore_ports[1].front_port_id = port_id("combined");
+    let host = owner.split('-').next().unwrap();
+    child.fragments[0].host_id = HostId::from(host);
+    child.fragments[0].boot_id = BootId::from(format!("{host}-boot"));
+    child.fragments[0].placements[0].host_id = HostId::from(host);
+    child.fragments[0].placements[0].boot_id = BootId::from(format!("{host}-boot"));
     child = seal_plan_with_completion(
         FormIdentity {
             source_document_id: child.source_document_id,

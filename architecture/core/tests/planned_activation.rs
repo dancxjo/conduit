@@ -154,6 +154,41 @@ fn activation_owner_is_unique_even_when_ids_and_variants_differ() {
 }
 
 #[test]
+fn activation_preparation_binding_refuses_missing_extra_stale_and_nonlocal_truth() {
+    let plan = outer_plan(selected_plan("preparation"));
+    assert!(verify_plan(&plan));
+    assert_eq!(plan.activation_preparations.len(), 1);
+
+    let mut missing = plan.clone();
+    missing.activation_preparations.clear();
+    assert!(!verify_plan(&missing));
+
+    let mut extra = plan.clone();
+    extra
+        .activation_preparations
+        .push(extra.activation_preparations[0].clone());
+    assert!(!verify_plan(&extra));
+
+    let mut stale = plan.clone();
+    stale.activation_preparations[0].child_fragments[0].obligation_digest[0] ^= 1;
+    assert!(!verify_plan(&stale));
+
+    let mut child = selected_plan("foreign-host");
+    child.fragments[0].host_id = HostId::from("foreign");
+    child.fragments[0].placements[0].host_id = HostId::from("foreign");
+    child = seal_plan_with_completion(
+        FormIdentity {
+            source_document_id: child.source_document_id,
+            checked_form_id: child.checked_form_id,
+            expanded_form_id: child.expanded_form_id,
+        },
+        child.completion_policy,
+        child.fragments,
+    );
+    assert!(!verify_plan(&outer_plan(child)));
+}
+
+#[test]
 fn fold_activation_seals_two_inputs_initial_storage_and_child_plan() {
     let mut child = selected_plan("fold");
     let fragment = &mut child.fragments[0];
