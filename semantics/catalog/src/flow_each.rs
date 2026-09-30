@@ -12,7 +12,7 @@ use conduit_core::{
 
 pub const FLOW_EACH_KIND: &str = "flow/each";
 pub const FLOW_EACH_CONTRACT_REVISION: &str = "conduit.flow/each@1";
-pub const FLOW_EACH_INPUT_PORT: &str = "values";
+pub const FLOW_EACH_INPUT_PORT: &str = "value";
 pub const FLOW_EACH_OUTPUT_PORT: &str = "mapped";
 
 /// Specializes `flow/each` over the exact checked fronts of one reviewed
@@ -157,6 +157,8 @@ mod tests {
 
         assert_eq!(contract.inputs.len(), 1);
         assert_eq!(contract.outputs.len(), 1);
+        assert_eq!(contract.inputs[0].port_id, port_id("value"));
+        assert_eq!(contract.outputs[0].port_id, port_id("mapped"));
         assert_eq!(contract.inputs[0].value_kind, input.value_kind);
         assert_eq!(contract.outputs[0].value_kind, output.value_kind);
         assert_eq!(

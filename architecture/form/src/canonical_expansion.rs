@@ -492,9 +492,7 @@ fn instantiate_gear(
         gears.push(CheckedGear {
             gear_id: gear_id.clone(),
             kind_id: KindId::from("flow/each"),
-            kind_contract_revision: conduit_core::KindIdentity::from(
-                "conduit.form/bounded-each-coordinator@1",
-            ),
+            kind_contract_revision: conduit_core::KindIdentity::from("conduit.flow/each@1"),
             startup_parameters: Vec::new(),
             shorthand: Some((input.port_id.clone(), output.port_id.clone())),
             inputs: vec![input.clone()],
