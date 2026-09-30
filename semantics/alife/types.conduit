@@ -3,6 +3,12 @@
 type LeniaBoundary =
     wrap
 
+type LeniaRegionChunkKind =
+    work
+    | result
+
+representation alife/lenia-region-chunk-kind = LeniaRegionChunkKind as u8 from 1
+
 type ReactionDiffusionBoundaryEdge =
     north
     | south
