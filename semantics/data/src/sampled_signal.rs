@@ -3,6 +3,7 @@
 use alloc::{boxed::Box, string::String, vec::Vec};
 use conduit_core::{semantic_digest, Quantity, QuantityUnit, TemporalInstant, TemporalScale};
 
+use crate::SampledSignalRefusal;
 use crate::{TensorAxisRole, TensorValue};
 
 pub const SAMPLED_SIGNAL_INFO_ID: &str = "data/sampled-signal@1";
@@ -70,23 +71,6 @@ pub struct SignalSummary {
     pub shape: Vec<u64>,
     pub bytes: u64,
     pub content_digest: [u8; 32],
-}
-
-#[derive(Debug, Clone, PartialEq, Eq)]
-pub enum SampledSignalRefusal {
-    InvalidClock,
-    InvalidStart,
-    InvalidCadence,
-    InvalidContinuity,
-    EmptySignal,
-    TensorInvalid,
-    SampleCountMismatch,
-    MissingSampleAxis,
-    WindowOutOfBounds,
-    TemporalOverflow,
-    IncompatibleSignals,
-    NoncontiguousSignals,
-    TooManyParts,
 }
 
 impl SampledSignal {
