@@ -825,3 +825,27 @@ type ExactVectorSearchRefusal =
     | temporal_provenance_required
     | earlier_history_required
     | temporal_boundary_unavailable
+
+type RelationTerminal =
+    cancelled
+    | resource_exhausted
+    | provider_lost
+    | failed
+
+type TrainStepFailure =
+    cancelled
+    | resource_exhausted
+    | provider_lost
+    | failed
+
+type IntegrationTerminal =
+    work_limit_exhausted
+    | cancelled
+    | discontinuity
+    | provider_lost
+    | failed
+
+type EmbodimentStage =
+    perception_only
+    | expressive
+    | authorized_effect

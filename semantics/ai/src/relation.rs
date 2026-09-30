@@ -5,7 +5,7 @@ use conduit_data::{SampledSignal, TensorValue};
 
 use crate::{
     ModelValueConstraint, ProbabilisticDisposition, RandomnessProfile, RelationQueryMode,
-    RelationRefusal,
+    RelationRefusal, RelationTerminal,
 };
 
 #[path = "relation_digest.rs"]
@@ -99,14 +99,6 @@ pub struct RelationCandidateOutput {
     pub value_identity: [u8; 32],
     pub disposition: ProbabilisticDisposition,
     pub sample_count: u32,
-}
-
-#[derive(Debug, Copy, Clone, PartialEq, Eq)]
-pub enum RelationTerminal {
-    Cancelled,
-    ResourceExhausted,
-    ProviderLost,
-    Failed,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]

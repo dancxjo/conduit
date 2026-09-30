@@ -6,7 +6,7 @@ use conduit_data::{DatasetDescriptor, DatasetSplitMembership};
 
 use crate::{
     BatchOrder, ModelArtifact, MutableModelState, ObjectiveParticipation, RandomnessProfile,
-    TrainingRefusal,
+    TrainStepFailure, TrainingRefusal,
 };
 
 #[path = "training_request.rs"]
@@ -145,14 +145,6 @@ pub struct HostStepCandidate {
     pub generation: u64,
     pub metrics: Vec<TrainingMetric>,
     pub consumed_work_units: u64,
-}
-
-#[derive(Debug, Copy, Clone, PartialEq, Eq)]
-pub enum TrainStepFailure {
-    Cancelled,
-    ResourceExhausted,
-    ProviderLost,
-    Failed,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
