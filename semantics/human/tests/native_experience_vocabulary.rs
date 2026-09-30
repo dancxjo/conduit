@@ -3,13 +3,14 @@ use conduit_human::{
     ExperienceAvailability, ExperienceCertainty, ExperienceDomain, ExperienceOrigin,
     ExperienceRelationKind, ExperienceTemporalRole, HumanMediaKind, KeymapRefusal,
     SourceAvailability, VisualEvidenceClass, VisualExperienceRelationKind,
+    VisualImpressionDisposition,
 };
 
 fn assert_round_trip<T>(value: T)
 where
-    T: NativeRustBinding + Copy + core::fmt::Debug + PartialEq,
+    T: NativeRustBinding + Clone + core::fmt::Debug + PartialEq,
 {
-    let structured = value.into_structured().unwrap();
+    let structured = value.clone().into_structured().unwrap();
     assert_eq!(T::from_structured(structured).unwrap(), value);
 }
 
@@ -28,6 +29,16 @@ fn keymap_refusals_round_trip_through_the_exact_native_type() {
 #[test]
 fn human_media_kinds_round_trip_through_the_exact_native_type() {
     for value in [HumanMediaKind::Camera, HumanMediaKind::Microphone] {
+        assert_round_trip(value);
+    }
+}
+
+#[test]
+fn visual_impression_dispositions_round_trip_through_the_exact_native_type() {
+    for value in [
+        VisualImpressionDisposition::Complete,
+        VisualImpressionDisposition::truncated(4_096).unwrap(),
+    ] {
         assert_round_trip(value);
     }
 }

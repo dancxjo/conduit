@@ -112,11 +112,11 @@ pub fn visual_impression_experience(
     field(&mut content, impression.text.as_bytes());
     field(&mut content, impression.model_id.as_bytes());
     field(&mut content, impression.prompt_contract_revision.as_bytes());
-    match impression.disposition {
+    match &impression.disposition {
         crate::VisualImpressionDisposition::Complete => content.push(0),
-        crate::VisualImpressionDisposition::Truncated { original_bytes } => {
+        crate::VisualImpressionDisposition::Truncated(truncated) => {
             content.push(1);
-            content.extend_from_slice(&original_bytes.to_le_bytes());
+            content.extend_from_slice(&truncated.original_bytes().to_le_bytes());
         }
     }
     let mut sources = Vec::with_capacity(impression.selected_observation_sign_ids.len() + 3);

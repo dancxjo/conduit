@@ -11,6 +11,7 @@ pub use generated::{
     ExperienceCertainty, ExperienceDomain, ExperienceOrigin, ExperienceRelationKind,
     ExperienceTemporalRole, HumanMediaKind, KeyTransition, KeyTransitionCode, KeymapRefusal,
     SourceAvailability, VisualEvidenceClass, VisualExperienceRelationKind,
+    VisualImpressionDisposition, VisualImpressionDispositionTruncated,
 };
 
 mod current_experience;
