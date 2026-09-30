@@ -1,6 +1,7 @@
 use conduit_data::{
     DataLoadTextTerminal, DataSaveTextTerminal, FullWindowPolicy, MeasurementPlotOverflowPolicy,
-    MeasurementThresholdState, MeasurementThresholdTransition, SampledSignalRefusal, TensorElement,
+    MeasurementThresholdState, MeasurementThresholdTransition, SampledSignalRefusal,
+    TensorAxisRole, TensorElement,
 };
 use conduit_form::rust_binding::NativeRustBinding;
 
@@ -97,5 +98,32 @@ fn tensor_elements_round_trip_through_their_exact_native_type() {
         TensorElement::F64,
     ] {
         assert_round_trip(value);
+    }
+}
+
+#[test]
+fn tensor_axis_roles_keep_bounded_other_meaning_in_the_native_type() {
+    let other = TensorAxisRole::other("articulatory-coordinate".into()).unwrap();
+    let TensorAxisRole::Other(payload) = &other else {
+        panic!("other axis retains its exact identity")
+    };
+    assert_eq!(payload.identity(), "articulatory-coordinate");
+    let structured = other.clone().into_structured().unwrap();
+    assert_eq!(TensorAxisRole::from_structured(structured).unwrap(), other);
+
+    assert!(TensorAxisRole::other(String::new()).is_err());
+    assert!(TensorAxisRole::other("x".repeat(65)).is_err());
+
+    for role in [
+        TensorAxisRole::Batch,
+        TensorAxisRole::Time,
+        TensorAxisRole::Feature,
+        TensorAxisRole::Sensor,
+        TensorAxisRole::SpatialCoordinate,
+        TensorAxisRole::Frequency,
+        TensorAxisRole::Channel,
+    ] {
+        let structured = role.clone().into_structured().unwrap();
+        assert_eq!(TensorAxisRole::from_structured(structured).unwrap(), role);
     }
 }

@@ -3,7 +3,7 @@
 use alloc::{string::ToString, vec, vec::Vec};
 use conduit_core::{semantic_digest, BoundedResourceRef, QuantityUnit};
 
-use crate::{tensor::*, TensorElement};
+use crate::{tensor::*, TensorAxisRole, TensorElement};
 
 impl TensorValue {
     pub fn encode(&self) -> Result<Vec<u8>, TensorRefusal> {
@@ -138,7 +138,7 @@ fn encode_axis(output: &mut Vec<u8>, axis: &TensorAxis) -> Result<(), TensorRefu
         TensorAxisRole::Channel => output.push(6),
         TensorAxisRole::Other(role) => {
             output.push(7);
-            push_text(output, role)?;
+            push_text(output, role.identity())?;
         }
     }
     push_optional_text(output, axis.identity.as_deref())?;
@@ -160,7 +160,8 @@ fn decode_axis(cursor: &mut Cursor<'_>) -> Result<TensorAxis, TensorRefusal> {
         4 => TensorAxisRole::SpatialCoordinate,
         5 => TensorAxisRole::Frequency,
         6 => TensorAxisRole::Channel,
-        7 => TensorAxisRole::Other(cursor.text()?.to_string()),
+        7 => TensorAxisRole::other(cursor.text()?.to_string())
+            .map_err(|_| TensorRefusal::AxisIdentityInvalid)?,
         _ => return Err(TensorRefusal::UnsupportedAxisRole),
     };
     let identity = match cursor.u8()? {
