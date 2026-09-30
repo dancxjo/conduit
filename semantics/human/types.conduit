@@ -10,6 +10,10 @@ type KeymapRefusal =
     | unicode_entry_overflow
     | invalid_unicode_scalar
 
+type HumanMediaKind =
+    camera
+    | microphone
+
 code human/key-transition = KeyTransition as u8
 
 type ChordPhase =

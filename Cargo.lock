@@ -1083,7 +1083,9 @@ version = "0.1.0"
 dependencies = [
  "conduit-core",
  "conduit-form",
+ "postcard",
  "serde",
+ "serde_json",
  "sha2 0.10.9",
 ]
 
@@ -2633,6 +2635,7 @@ dependencies = [
  "atomic-polyfill",
  "hash32 0.2.1",
  "rustc_version",
+ "serde",
  "spin",
  "stable_deref_trait",
 ]
@@ -4139,6 +4142,7 @@ dependencies = [
  "cobs",
  "embedded-io 0.4.0",
  "embedded-io 0.6.1",
+ "heapless 0.7.17",
  "serde",
 ]
 

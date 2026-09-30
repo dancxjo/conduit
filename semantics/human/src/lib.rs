@@ -9,8 +9,8 @@ mod generated {
 pub use generated::{
     ChordPhase, ChordPhaseCode, CoreChordId, CoreChordIdCode, ExperienceAvailability,
     ExperienceCertainty, ExperienceDomain, ExperienceOrigin, ExperienceRelationKind,
-    ExperienceTemporalRole, KeyTransition, KeyTransitionCode, KeymapRefusal, SourceAvailability,
-    VisualEvidenceClass, VisualExperienceRelationKind,
+    ExperienceTemporalRole, HumanMediaKind, KeyTransition, KeyTransitionCode, KeymapRefusal,
+    SourceAvailability, VisualEvidenceClass, VisualExperienceRelationKind,
 };
 
 mod current_experience;
