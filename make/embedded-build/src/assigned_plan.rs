@@ -2,8 +2,8 @@ use conduit_core::{
     assigned_plan_magic, assigned_plan_payload_digest, AssignedIdentity, AssignedPlanMaxima,
     ASSIGNED_CONFIGURATION, ASSIGNED_CORD, ASSIGNED_HOST_CALL, ASSIGNED_NODE,
     ASSIGNED_PLAN_HEADER_BYTES, ASSIGNED_PLAN_SCHEMA, ASSIGNED_PORT, ASSIGNED_REMOTE_ENDPOINT,
-    ASSIGNED_RESOURCE, ASSIGNED_ROUTE, ASSIGNED_ROUTE_TARGET, ASSIGNED_SIGN, ASSIGNED_STARTUP,
-    ASSIGNED_TERMINAL,
+    ASSIGNED_RESOURCE, ASSIGNED_RESOURCE_CORD, ASSIGNED_ROUTE, ASSIGNED_ROUTE_TARGET,
+    ASSIGNED_SIGN, ASSIGNED_STARTUP, ASSIGNED_TERMINAL,
 };
 use conduit_plan_lowering::lowering::RemoteCordDirection;
 
@@ -19,7 +19,7 @@ pub fn encode_assigned_plan(
     maxima: AssignedPlanMaxima,
 ) -> Result<Vec<u8>, GenerationError> {
     let mut payload = Vec::new();
-    let mut counts = [0_u8; 12];
+    let mut counts = [0_u8; conduit_core::ASSIGNED_PLAN_COUNT_KINDS];
     let mut record = |tag: u8, value: Vec<u8>| -> Result<(), GenerationError> {
         let index = usize::from(tag - 1);
         counts[index] = counts[index]
@@ -129,6 +129,24 @@ pub fn encode_assigned_plan(
         u32_to(&mut value, resource.units);
         record(ASSIGNED_RESOURCE, value)?;
     }
+    for cord in &plan.resource_cords {
+        let mut value = Vec::new();
+        u16_to(&mut value, cord.source_node);
+        u16_to(&mut value, cord.source_port);
+        u16_to(&mut value, cord.sink_node);
+        u16_to(&mut value, cord.sink_port);
+        u16_to(&mut value, cord.resource);
+        value.push(match cord.ownership {
+            conduit_core::ResourcePortOwnership::Move => 0,
+            conduit_core::ResourcePortOwnership::Shared => 1,
+        });
+        value.push(match cord.lifecycle {
+            conduit_core::ResourcePortLifecycle::Play => 0,
+            conduit_core::ResourcePortLifecycle::Plan => 1,
+            conduit_core::ResourcePortLifecycle::Boot => 2,
+        });
+        record(ASSIGNED_RESOURCE_CORD, value)?;
+    }
     for sign in &plan.signs {
         let mut value = Vec::new();
         u16_to(&mut value, sign.expectation);
@@ -146,6 +164,11 @@ pub fn encode_assigned_plan(
             GeneratedSignTarget::Cord(cord) => {
                 value.push(2);
                 u16_to(&mut value, cord);
+            }
+            GeneratedSignTarget::Resource { node, resource } => {
+                value.push(3);
+                u16_to(&mut value, node);
+                u16_to(&mut value, resource);
             }
         }
         record(ASSIGNED_SIGN, value)?;
@@ -263,6 +286,7 @@ fn runtime_state_bytes(plan: &GeneratedEmbeddedPlan) -> Result<u16, GenerationEr
         + plan.cords.len() * 12
         + plan.route_targets.len() * 6
         + plan.host_calls.len() * 12
+        + plan.resource_cords.len() * 8
         + plan.resources.len() * 8
         + plan.remote_endpoints.len() * 16;
     let total = usize::try_from(plan.cord_value_bytes)

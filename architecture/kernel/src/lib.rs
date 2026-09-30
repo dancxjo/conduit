@@ -74,6 +74,11 @@ pub enum SignExpectationTarget {
     Fragment,
     Node(NodeId),
     Cord(CordId),
+    /// A non-byte resource Cord owned by the Host's capability table.
+    Resource {
+        node: NodeId,
+        resource: ResourceId,
+    },
 }
 
 /// Opaque reference into a plan-accounted value store.

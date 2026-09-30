@@ -274,6 +274,7 @@ fn renderer_emits_fixed_current_kernel_tables() {
         route_targets: Vec::new(),
         host_calls: Vec::new(),
         resources: Vec::new(),
+        resource_cords: Vec::new(),
         signs: Vec::new(),
         startup_dependencies: Vec::new(),
         startup_order: vec![0],

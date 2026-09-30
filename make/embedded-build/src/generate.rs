@@ -9,8 +9,8 @@ use crate::model::{
     GeneratedCordEndpoint, GeneratedEmbeddedPlan, GeneratedExpectedTerminal, GeneratedHostCall,
     GeneratedPort, GeneratedSignTarget, GeneratedStartupDependency, GeneratedStaticCord,
     GeneratedStaticNode, GeneratedStaticRemoteEndpoint, GeneratedStaticResource,
-    GeneratedStaticRoute, GeneratedStaticRouteTarget, GeneratedStaticSign, GenerationError,
-    UnsupportedPlanFeature,
+    GeneratedStaticResourceCord, GeneratedStaticRoute, GeneratedStaticRouteTarget,
+    GeneratedStaticSign, GenerationError, UnsupportedPlanFeature,
 };
 use crate::validate::validate_shape;
 use crate::GENERATED_EMBEDDED_PLAN_SCHEMA_VERSION;
@@ -73,6 +73,19 @@ pub fn generate_embedded_plan(
             units: resource.binding.units,
         })
         .collect();
+    let resource_cords = lowered
+        .resource_cords
+        .iter()
+        .map(|cord| GeneratedStaticResourceCord {
+            source_node: cord.source_node.0,
+            source_port: cord.source_port.0,
+            sink_node: cord.sink_node.0,
+            sink_port: cord.sink_port.0,
+            resource: cord.resource.0,
+            ownership: cord.contract.ownership,
+            lifecycle: cord.contract.lifecycle,
+        })
+        .collect();
     let signs = lowered.signs.iter().map(generate_sign).collect();
     let startup_dependencies = generate_startup_dependencies(fragment, lowered)?;
     let startup_order = fragment
@@ -111,6 +124,7 @@ pub fn generate_embedded_plan(
         route_targets,
         host_calls,
         resources,
+        resource_cords,
         signs,
         startup_dependencies,
         startup_order,
@@ -398,6 +412,10 @@ fn generate_sign(sign: &conduit_plan_lowering::lowering::LoweredSign) -> Generat
         SignExpectationTarget::Fragment => GeneratedSignTarget::Fragment,
         SignExpectationTarget::Node(node) => GeneratedSignTarget::Node(node.0),
         SignExpectationTarget::Cord(cord) => GeneratedSignTarget::Cord(cord.0),
+        SignExpectationTarget::Resource { node, resource } => GeneratedSignTarget::Resource {
+            node: node.0,
+            resource: resource.0,
+        },
     };
     GeneratedStaticSign {
         expectation: sign.expectation.0,
