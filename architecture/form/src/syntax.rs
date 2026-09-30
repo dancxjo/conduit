@@ -172,6 +172,11 @@ pub struct FormSyntax {
     pub name: SpannedText,
     pub front: FormFront,
     pub completion: FormCompletionPolicy,
+    /// Lexically private Forms declared in this Form's back.
+    ///
+    /// Checking lowers these to ordinary source Forms with unspellable scoped
+    /// identities before Fore checking and canonical expansion.
+    pub local_forms: Vec<FormSyntax>,
     pub back: Vec<BackStatement>,
     pub span: Span,
 }

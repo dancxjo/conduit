@@ -1585,6 +1585,32 @@ fn nested_expansion_and_source_reordering_have_deterministic_identity() {
 }
 
 #[test]
+fn lexical_local_form_expands_as_an_ordinary_nested_form_with_exact_provenance() {
+    let source = "form main {\n form relay (\n  input: test/value >> output: test/value\n ) {\n  pass: test/pass\n  input >> pass >> output\n }\n source: test/source\n relay: relay\n sink: test/sink\n source >> relay >> sink\n}\n";
+    let expanded = expand(source, "main");
+    let local = expanded
+        .provenance
+        .iter()
+        .find(|item| item.source_form == "$local/main/relay")
+        .unwrap();
+    assert_eq!(local.gear_id, "main/relay/pass");
+    assert_eq!(local.form_path, ["main", "relay"]);
+    expanded.validate_expansion().unwrap();
+}
+
+#[test]
+fn local_form_cycles_refuse_before_any_privileged_nested_runtime_exists() {
+    let source =
+        "form main {\n form a {\n  child: b\n }\n form b {\n  child: a\n }\n child: a\n}\n";
+    let (startup, profile) = catalogs();
+    let checked = check_syntax_document(&parse_syntax_document(source), &startup).unwrap();
+    let error = expand_canonical_form(&checked, "main", &profile).unwrap_err();
+    assert_eq!(error.code, "CND-FRM-035");
+    assert!(error.message.contains("$local/main/a"));
+    assert!(error.message.contains("$local/main/b"));
+}
+
+#[test]
 fn two_uses_share_one_form_definition_but_have_distinct_occurrence_paths() {
     let source = "form relay (\n input: test/value >> output: test/value\n) {\n pass: test/pass\n input >> pass >> output\n}\n\nform main {\n source: test/source\n left: relay\n right: relay\n left_sink: test/sink\n right_sink: test/sink\n source >> left >> left_sink\n source >> right >> right_sink\n}\n";
     let expanded = expand(source, "main");

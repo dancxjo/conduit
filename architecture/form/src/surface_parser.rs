@@ -93,6 +93,12 @@ struct ParsedSurface {
     packages: Vec<crate::syntax::PackageSyntax>,
 }
 
+struct ParsedBack {
+    statements: Vec<BackStatement>,
+    local_forms: Vec<FormSyntax>,
+    completion: FormCompletionPolicy,
+}
+
 impl<'a> Parser<'a> {
     fn new(source: &'a str) -> Self {
         let mut lines = Vec::new();
@@ -318,6 +324,7 @@ impl<'a> Parser<'a> {
                     )?],
                     front,
                     completion: FormCompletionPolicy::Live,
+                    local_forms: Vec::new(),
                     span: self.span(form_start, close.start + close.text.len()),
                 });
             }
@@ -330,21 +337,25 @@ impl<'a> Parser<'a> {
             }
             self.index += 1;
         }
-        let (back, completion) = self.parse_back()?;
+        let ParsedBack {
+            statements: back,
+            local_forms,
+            completion,
+        } = self.parse_back()?;
         let close = self.lines[self.index - 1];
         Ok(FormSyntax {
             name,
             front,
             completion,
+            local_forms,
             back,
             span: self.span(form_start, close.start + close.text.len()),
         })
     }
 
-    fn parse_back(
-        &mut self,
-    ) -> Result<(Vec<BackStatement>, FormCompletionPolicy), (FormError, Span)> {
+    fn parse_back(&mut self) -> Result<ParsedBack, (FormError, Span)> {
         let mut statements = Vec::new();
+        let mut local_forms = Vec::new();
         while self.index < self.lines.len() {
             let line = self.lines[self.index];
             let (text, start) = line.statement();
@@ -355,7 +366,11 @@ impl<'a> Parser<'a> {
                     FormCompletionPolicy::Live
                 };
                 self.index += 1;
-                return Ok((statements, completion));
+                return Ok(ParsedBack {
+                    statements,
+                    local_forms,
+                    completion,
+                });
             }
             if text.is_empty() || text.starts_with('#') {
                 self.index += 1;
@@ -382,6 +397,10 @@ impl<'a> Parser<'a> {
                     ),
                     self.span(start, start + text.len()),
                 ));
+            }
+            if text.starts_with("form ") {
+                local_forms.push(self.parse_form()?);
+                continue;
             }
             if let Some(source) = text.strip_suffix(">> ? {").map(str::trim) {
                 statements.push(BackStatement::MatchedRoute(
