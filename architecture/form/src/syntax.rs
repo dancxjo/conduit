@@ -385,10 +385,11 @@ pub struct NamedGear {
     pub span: Span,
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub enum ActivationSyntax {
     Each,
     Select,
+    Fold { initial: Box<Expression> },
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]

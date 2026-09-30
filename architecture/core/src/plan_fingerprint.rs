@@ -624,6 +624,24 @@ fn push_semantic_contract(canonical: &mut Vec<u8>, contract: &crate::KindSemanti
                 canonical.push(select.true_disposition as u8);
                 canonical.push(select.false_disposition as u8);
             }
+            Law::FlowFold(fold) => {
+                canonical.push(14);
+                push_string(canonical, fold.input_port_id.as_str());
+                push_string(canonical, fold.output_port_id.as_str());
+                push_value_contract(canonical, &fold.item);
+                push_value_contract(canonical, &fold.accumulator);
+                push_u32(canonical, fold.initial_accumulator.len() as u32);
+                canonical.extend_from_slice(&fold.initial_accumulator);
+                push_string(canonical, fold.combine_accumulator_port_id.as_str());
+                push_string(canonical, fold.combine_item_port_id.as_str());
+                push_string(canonical, fold.combine_output_port_id.as_str());
+                canonical.extend_from_slice(&fold.maximum_active.to_le_bytes());
+                canonical.extend_from_slice(&fold.maximum_queued.to_le_bytes());
+                canonical.push(fold.invocation as u8);
+                canonical.push(fold.close as u8);
+                canonical.push(fold.abnormal as u8);
+                canonical.push(fold.cancellation as u8);
+            }
         }
     }
 }

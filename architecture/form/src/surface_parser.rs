@@ -635,22 +635,41 @@ impl<'a> Parser<'a> {
                     span: self.span(start, start + text.len()),
                 }));
             }
-            let (activation, invoked, invoked_start) =
-                if let Some(selected) = invoked.strip_prefix("activate ") {
-                    (
-                        Some(ActivationSyntax::Each),
-                        selected,
-                        invoked_start + "activate ".len(),
-                    )
-                } else if let Some(selected) = invoked.strip_prefix("select ") {
-                    (
-                        Some(ActivationSyntax::Select),
-                        selected,
-                        invoked_start + "select ".len(),
-                    )
-                } else {
-                    (None, invoked, invoked_start)
+            let (activation, invoked, invoked_start) = if let Some(selected) =
+                invoked.strip_prefix("activate ")
+            {
+                (
+                    Some(ActivationSyntax::Each),
+                    selected,
+                    invoked_start + "activate ".len(),
+                )
+            } else if let Some(selected) = invoked.strip_prefix("select ") {
+                (
+                    Some(ActivationSyntax::Select),
+                    selected,
+                    invoked_start + "select ".len(),
+                )
+            } else if let Some(rest) = invoked.strip_prefix("fold(") {
+                let Some((initial, selected)) = rest.split_once(") ") else {
+                    return Err((
+                        FormError::InvalidSyntax(
+                            "fold requires 'fold(initial) combine-form()'".into(),
+                        ),
+                        self.span(invoked_start, start + text.len()),
+                    ));
                 };
+                let initial_start = invoked_start + "fold(".len();
+                let selected_start = initial_start + initial.len() + ") ".len();
+                (
+                    Some(ActivationSyntax::Fold {
+                        initial: Box::new(self.expression_at(initial, initial, initial_start)?),
+                    }),
+                    selected,
+                    selected_start,
+                )
+            } else {
+                (None, invoked, invoked_start)
+            };
             let invocation = self.parse_invocation(invoked, invoked_start)?;
             return Ok(BackStatement::NamedGear(NamedGear {
                 name: self.spanned_at(name, text, start),

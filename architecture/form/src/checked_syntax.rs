@@ -278,7 +278,9 @@ pub struct CheckedActivation {
     pub mode: crate::ActivationSyntax,
     pub selected_form: String,
     pub input: conduit_core::PortDescriptor,
+    pub accumulator_input: Option<conduit_core::PortDescriptor>,
     pub output: conduit_core::PortDescriptor,
+    pub initial_accumulator: Option<CanonicalStartupValue>,
 }
 
 /// Canonical checked meaning of one authored `keep` declaration.
@@ -524,7 +526,9 @@ pub struct ExpandedActivation {
     pub selected_form: String,
     pub selected_checked_form_id: CheckedFormId,
     pub input: conduit_core::PortDescriptor,
+    pub accumulator_input: Option<conduit_core::PortDescriptor>,
     pub output: conduit_core::PortDescriptor,
+    pub initial_accumulator: Option<CanonicalStartupValue>,
     pub source_span: Span,
 }
 

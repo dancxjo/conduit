@@ -468,6 +468,11 @@ fn instantiate_gear(
     let mut child_path = path.to_vec();
     child_path.push(instance_name.to_string());
     if let Some(activation) = &gear.activation {
+        let initial_accumulator = activation
+            .initial_accumulator
+            .as_ref()
+            .map(|initial| substitute(initial, environment))
+            .transpose()?;
         let child = forms
             .get(activation.selected_form.as_str())
             .copied()
@@ -506,13 +511,18 @@ fn instantiate_gear(
                 }
                 output.clone()
             }
+            crate::ActivationSyntax::Fold { .. } => activation.output.clone(),
         };
-        output.temporal = conduit_core::PortTemporal::Flow { closes: true };
+        output.temporal = if matches!(activation.mode, crate::ActivationSyntax::Fold { .. }) {
+            conduit_core::PortTemporal::Value
+        } else {
+            conduit_core::PortTemporal::Flow { closes: true }
+        };
         let activation_id = format!("{}/activation", gear_id.as_str());
         gears.push(crate::checked_gear_from_parts! {
             gear_id: gear_id.clone(),
-            kind_id: KindId::from(match activation.mode { crate::ActivationSyntax::Each => "flow/each", crate::ActivationSyntax::Select => "flow/select" }),
-            kind_contract_revision: conduit_core::KindIdentity::from(match activation.mode { crate::ActivationSyntax::Each => "conduit.flow/each@1", crate::ActivationSyntax::Select => "conduit.flow/select@1" }),
+            kind_id: KindId::from(match activation.mode { crate::ActivationSyntax::Each => "flow/each", crate::ActivationSyntax::Select => "flow/select", crate::ActivationSyntax::Fold { .. } => "flow/fold" }),
+            kind_contract_revision: conduit_core::KindIdentity::from(match activation.mode { crate::ActivationSyntax::Each => "conduit.flow/each@1", crate::ActivationSyntax::Select => "conduit.flow/select@1", crate::ActivationSyntax::Fold { .. } => "conduit.flow/fold@1" }),
             startup_parameters: Vec::new(),
             shorthand: Some((input.port_id.clone(), output.port_id.clone())),
             inputs: vec![input.clone()],
@@ -533,11 +543,13 @@ fn instantiate_gear(
         activations.push(ExpandedActivation {
             activation_id,
             owner_gear_id: gear_id.clone(),
-            mode: activation.mode,
+            mode: activation.mode.clone(),
             selected_form: activation.selected_form.clone(),
             selected_checked_form_id: child.checked_form_id.clone(),
             input: activation.input.clone(),
+            accumulator_input: activation.accumulator_input.clone(),
             output: activation.output.clone(),
+            initial_accumulator,
             source_span: gear.source_span,
         });
         return Ok(Instance {

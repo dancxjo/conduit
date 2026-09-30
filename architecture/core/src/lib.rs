@@ -70,13 +70,14 @@ pub use conduit_assigned_plan::*;
 pub use configuration::{
     AbnormalTerminalTransduction, BoundedCollectSemanticLaw, CancellationTransduction,
     ConfigurationEntry, ConfigurationValue, ExternalEffectBehavior, FiniteTerminalEmission,
-    FlowSelectFalseDisposition, FlowSelectInvocation, FlowSelectRetainedInput,
-    FlowSelectSemanticLaw, FlowSelectTrueDisposition, KeyedJoinCapacityBehavior,
-    KeyedJoinOutputOrder, KeyedJoinPairing, KeyedJoinSemanticLaw, KeyedJoinUnmatchedCloseBehavior,
-    KindConfigurationField, KindConfigurationRule, KindSemanticContract, KindSemanticLaw,
-    KindTerminalBehavior, NormalCloseTransduction, ReplayBehavior, SemanticDependence,
-    StructuredConfigurationValue, SuspensionBehavior, TemporalStateBehavior,
-    TerminalTransductionProfile, VariabilityBehavior,
+    FlowFoldAbnormalDisposition, FlowFoldCancellationDisposition, FlowFoldCloseDisposition,
+    FlowFoldInvocation, FlowFoldSemanticLaw, FlowSelectFalseDisposition, FlowSelectInvocation,
+    FlowSelectRetainedInput, FlowSelectSemanticLaw, FlowSelectTrueDisposition,
+    KeyedJoinCapacityBehavior, KeyedJoinOutputOrder, KeyedJoinPairing, KeyedJoinSemanticLaw,
+    KeyedJoinUnmatchedCloseBehavior, KindConfigurationField, KindConfigurationRule,
+    KindSemanticContract, KindSemanticLaw, KindTerminalBehavior, NormalCloseTransduction,
+    ReplayBehavior, SemanticDependence, StructuredConfigurationValue, SuspensionBehavior,
+    TemporalStateBehavior, TerminalTransductionProfile, VariabilityBehavior,
 };
 pub use consequential_effect::*;
 pub use control_loop::*;

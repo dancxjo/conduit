@@ -301,6 +301,47 @@ pub enum KindSemanticLaw {
     BoundedCollect(BoundedCollectSemanticLaw),
     /// Exact bounded lifting of one Value-to-Boolean predicate over a closing Flow.
     FlowSelect(FlowSelectSemanticLaw),
+    /// Exact bounded left fold of one closing Flow through a reviewed combine Form.
+    FlowFold(FlowFoldSemanticLaw),
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct FlowFoldSemanticLaw {
+    pub input_port_id: PortId,
+    pub output_port_id: PortId,
+    pub item: crate::CheckedValueContract,
+    pub accumulator: crate::CheckedValueContract,
+    /// Exact canonical accumulator value retained before the first item.
+    pub initial_accumulator: Vec<u8>,
+    pub combine_accumulator_port_id: PortId,
+    pub combine_item_port_id: PortId,
+    pub combine_output_port_id: PortId,
+    pub maximum_active: u16,
+    pub maximum_queued: u16,
+    pub invocation: FlowFoldInvocation,
+    pub close: FlowFoldCloseDisposition,
+    pub abnormal: FlowFoldAbnormalDisposition,
+    pub cancellation: FlowFoldCancellationDisposition,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+pub enum FlowFoldInvocation {
+    OncePerAcceptedInput,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+pub enum FlowFoldCloseDisposition {
+    DrainThenEmitAccumulatorExactlyOnce,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+pub enum FlowFoldAbnormalDisposition {
+    DiscardAccumulatorAndPropagateExact,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+pub enum FlowFoldCancellationDisposition {
+    DiscardAccumulatorWithoutEmission,
 }
 
 /// Exact portable law for collecting one closing Flow.
