@@ -137,8 +137,8 @@ fn presentation() -> Presentation {
                         COUNT_INFO_ID.into(),
                         COUNT_ENCODED_LEN as u32,
                         vec![ValueConstraint::UnsignedRange {
-                            minimum: 2,
-                            maximum: 4,
+                            minimum: Some(2),
+                            maximum: Some(4),
                             minimum_endpoint: IntervalEndpoint::Inclusive,
                             maximum_endpoint: IntervalEndpoint::Inclusive,
                         }],
@@ -152,8 +152,8 @@ fn presentation() -> Presentation {
                         DISTANCE_INFO_ID.into(),
                         QUANTITY_ENCODED_LEN as u32,
                         vec![ValueConstraint::QuantityRange {
-                            minimum: Quantity::new(1, QuantityUnit::Meter),
-                            maximum: Quantity::new(2, QuantityUnit::Meter),
+                            minimum: Some(Quantity::new(1, QuantityUnit::Meter)),
+                            maximum: Some(Quantity::new(2, QuantityUnit::Meter)),
                             minimum_endpoint: IntervalEndpoint::Inclusive,
                             maximum_endpoint: IntervalEndpoint::Inclusive,
                         }],
