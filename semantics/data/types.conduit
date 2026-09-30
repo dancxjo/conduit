@@ -104,6 +104,37 @@ type SignalContinuity =
         prior-clock: Text <= 128B not in [""]
     }
 
+type RangePolicy =
+    refuse
+    | clamp
+
+type QuantizationPolicy =
+    exact
+    | nearest
+
+type QuantityMappingRefusal =
+    invalid-range
+    | out-of-range
+    | inexact
+    | overflow
+
+type ScalarComparison =
+    less
+    | less-or-equal
+    | equal
+    | not-equal
+    | greater-or-equal
+    | greater
+
+type MathScalarRefusal =
+    invalid-configuration
+    | overflow
+
+type NormalizedQuantityRefusal =
+    malformed-or-wrong-type
+    | incompatible-unit
+    | out-of-domain
+
 type DataSaveTextTerminal =
     value_too_large
     | generation_capacity_exhausted

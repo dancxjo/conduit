@@ -8,6 +8,7 @@ use conduit_core::{
     kind_id, port_id, CapabilityLimits, ConfigurationValue, PortDescriptor, PortDirection,
     PortTemporal, BOOL_INFO_ID, SCALAR_INFO_ID,
 };
+pub use conduit_data::ScalarComparison;
 
 pub const LOGIC_COMPARE_KIND: &str = "logic/compare";
 pub const LOGIC_NOT_KIND: &str = "logic/not";
@@ -17,38 +18,15 @@ pub const LOGIC_COMPARE_SCALAR_CONTRACT_REVISION: &str = "conduit.std/logic-comp
 pub const LOGIC_NOT_CONTRACT_REVISION: &str = "conduit.std/logic-not@1";
 pub const LOGIC_SELECT_SCALAR_CONTRACT_REVISION: &str = "conduit.std/logic-select-scalar@1";
 
-#[derive(Clone, Copy, Debug, Eq, PartialEq)]
-pub enum ScalarComparison {
-    Less,
-    LessOrEqual,
-    Equal,
-    NotEqual,
-    GreaterOrEqual,
-    Greater,
-}
-
-impl ScalarComparison {
-    pub fn parse(value: &str) -> Option<Self> {
-        match value {
-            "lt" => Some(Self::Less),
-            "le" => Some(Self::LessOrEqual),
-            "eq" => Some(Self::Equal),
-            "ne" => Some(Self::NotEqual),
-            "ge" => Some(Self::GreaterOrEqual),
-            "gt" => Some(Self::Greater),
-            _ => None,
-        }
-    }
-
-    pub const fn evaluate(self, left: conduit_core::Scalar, right: conduit_core::Scalar) -> bool {
-        match self {
-            Self::Less => left.raw_microunits() < right.raw_microunits(),
-            Self::LessOrEqual => left.raw_microunits() <= right.raw_microunits(),
-            Self::Equal => left.raw_microunits() == right.raw_microunits(),
-            Self::NotEqual => left.raw_microunits() != right.raw_microunits(),
-            Self::GreaterOrEqual => left.raw_microunits() >= right.raw_microunits(),
-            Self::Greater => left.raw_microunits() > right.raw_microunits(),
-        }
+pub fn parse_scalar_comparison(value: &str) -> Option<ScalarComparison> {
+    match value {
+        "lt" => Some(ScalarComparison::Less),
+        "le" => Some(ScalarComparison::LessOrEqual),
+        "eq" => Some(ScalarComparison::Equal),
+        "ne" => Some(ScalarComparison::NotEqual),
+        "ge" => Some(ScalarComparison::GreaterOrEqual),
+        "gt" => Some(ScalarComparison::Greater),
+        _ => None,
     }
 }
 

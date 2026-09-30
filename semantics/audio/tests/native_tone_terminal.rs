@@ -1,6 +1,7 @@
 use conduit_audio::{
     audio_tone_terminal_kind_id, AudioToneTerminal, CancellationDisposition, Gate,
-    ModulationDestination, PressureDisposition, SoundSeam, SoundStreamState, SoundTerminalBehavior,
+    ModulationDestination, MusicalControl, PressureDisposition, SoundSeam, SoundStreamState,
+    SoundTerminalBehavior,
 };
 use conduit_core::StructuredInfoTypeShape;
 use conduit_form::rust_binding::NativeRustBinding;
@@ -24,6 +25,25 @@ fn native_tone_terminal_owns_semantic_identity_while_wire_codec_stays_explicit()
         AudioToneTerminal::decode(&[0]).unwrap(),
         AudioToneTerminal::Cancelled
     );
+}
+
+#[test]
+fn musical_control_payloads_round_trip_and_own_their_refinements() {
+    for control in [
+        MusicalControl::sustain(true).unwrap(),
+        MusicalControl::pitch_bend(-1_000_000, 2_400_000_000).unwrap(),
+        MusicalControl::modulation(1_000_000, ModulationDestination::Amplitude).unwrap(),
+    ] {
+        let structured = control.clone().into_structured().unwrap();
+        assert_eq!(
+            MusicalControl::from_structured(structured).unwrap(),
+            control
+        );
+    }
+
+    assert!(MusicalControl::pitch_bend(-1_000_001, 0).is_err());
+    assert!(MusicalControl::pitch_bend(0, 2_400_000_001).is_err());
+    assert!(MusicalControl::modulation(1_000_001, ModulationDestination::Pitch).is_err());
 }
 
 #[test]

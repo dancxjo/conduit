@@ -5,7 +5,7 @@
 
 use conduit_core::{semantic_digest, Quantity, QuantityConversionRefusal, QuantityUnit};
 
-use crate::{Gate, ModulationDestination};
+use crate::{Gate, ModulationDestination, MusicalControl};
 
 pub const SOUND_TONE_INFO_ID: &str = "sound/tone-intent@1";
 pub const MUSIC_NOTE_INFO_ID: &str = "music/note-event@1";
@@ -240,22 +240,7 @@ impl Gate {
     }
 }
 
-#[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
-pub enum MusicalControl {
-    Sustain {
-        down: bool,
-    },
-    PitchBend {
-        amount_millionths: i32,
-        range_microcents: u32,
-    },
-    Modulation {
-        amount_millionths: u32,
-        destination: ModulationDestination,
-    },
-}
-
-#[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub struct MusicalControlEvent {
     pub control: MusicalControl,
     pub event_time_micros: u64,
@@ -271,22 +256,6 @@ impl MusicalControlEvent {
         if event_time_micros > MAXIMUM_EVENT_TIME_MICROS {
             return Err(SoundInfoError::OutOfRange("event-time-micros"));
         }
-        match control {
-            MusicalControl::PitchBend {
-                amount_millionths,
-                range_microcents,
-            } if !(-1_000_000..=1_000_000).contains(&amount_millionths)
-                || range_microcents > MAXIMUM_PITCH_BEND_RANGE_MICROCENTS =>
-            {
-                return Err(SoundInfoError::OutOfRange("pitch-bend"))
-            }
-            MusicalControl::Modulation {
-                amount_millionths, ..
-            } if amount_millionths > 1_000_000 => {
-                return Err(SoundInfoError::OutOfRange("modulation"))
-            }
-            _ => {}
-        }
         Ok(Self {
             control,
             event_time_micros,
@@ -294,28 +263,22 @@ impl MusicalControlEvent {
         })
     }
 
-    pub fn encode(self) -> [u8; CONTROL_EVENT_ENCODED_LEN] {
+    pub fn encode(&self) -> [u8; CONTROL_EVENT_ENCODED_LEN] {
         let mut out = [0; CONTROL_EVENT_ENCODED_LEN];
-        match self.control {
-            MusicalControl::Sustain { down } => {
+        match &self.control {
+            MusicalControl::Sustain(payload) => {
                 out[0] = 0;
-                out[1] = u8::from(down);
+                out[1] = u8::from(*payload.down());
             }
-            MusicalControl::PitchBend {
-                amount_millionths,
-                range_microcents,
-            } => {
+            MusicalControl::PitchBend(payload) => {
                 out[0] = 1;
-                out[1..5].copy_from_slice(&amount_millionths.to_le_bytes());
-                out[5..9].copy_from_slice(&range_microcents.to_le_bytes());
+                out[1..5].copy_from_slice(&payload.amount_millionths().to_le_bytes());
+                out[5..9].copy_from_slice(&payload.range_microcents().to_le_bytes());
             }
-            MusicalControl::Modulation {
-                amount_millionths,
-                destination,
-            } => {
+            MusicalControl::Modulation(payload) => {
                 out[0] = 2;
-                out[1..5].copy_from_slice(&amount_millionths.to_le_bytes());
-                out[9] = destination.tag();
+                out[1..5].copy_from_slice(&payload.amount_millionths().to_le_bytes());
+                out[9] = payload.destination().tag();
             }
         }
         out[10..18].copy_from_slice(&self.event_time_micros.to_le_bytes());
@@ -323,7 +286,7 @@ impl MusicalControlEvent {
         out
     }
 
-    pub fn semantic_digest(self) -> [u8; 32] {
+    pub fn semantic_digest(&self) -> [u8; 32] {
         semantic_digest(MUSIC_CONTROL_INFO_ID, &self.encode())
     }
 
@@ -333,8 +296,8 @@ impl MusicalControlEvent {
             0 => {
                 require_zero(&encoded[2..10], "sustain-reserved")?;
                 match encoded[1] {
-                    0 => MusicalControl::Sustain { down: false },
-                    1 => MusicalControl::Sustain { down: true },
+                    0 => MusicalControl::sustain(false).expect("boolean control is valid"),
+                    1 => MusicalControl::sustain(true).expect("boolean control is valid"),
                     actual => {
                         return Err(SoundInfoError::InvalidTag {
                             field: "sustain",
@@ -345,17 +308,19 @@ impl MusicalControlEvent {
             }
             1 => {
                 require_zero(&encoded[9..10], "pitch-bend-reserved")?;
-                MusicalControl::PitchBend {
-                    amount_millionths: i32::from_le_bytes(array(encoded, 1)?),
-                    range_microcents: u32::from_le_bytes(array(encoded, 5)?),
-                }
+                MusicalControl::pitch_bend(
+                    i32::from_le_bytes(array(encoded, 1)?),
+                    u32::from_le_bytes(array(encoded, 5)?),
+                )
+                .map_err(|_| SoundInfoError::OutOfRange("pitch-bend"))?
             }
             2 => {
                 require_zero(&encoded[5..9], "modulation-reserved")?;
-                MusicalControl::Modulation {
-                    amount_millionths: u32::from_le_bytes(array(encoded, 1)?),
-                    destination: ModulationDestination::decode(encoded[9])?,
-                }
+                MusicalControl::modulation(
+                    u32::from_le_bytes(array(encoded, 1)?),
+                    ModulationDestination::decode(encoded[9])?,
+                )
+                .map_err(|_| SoundInfoError::OutOfRange("modulation"))?
             }
             actual => {
                 return Err(SoundInfoError::InvalidTag {

@@ -1,6 +1,4 @@
-use super::{
-    CompareOperator, DecisionValues, LogicCompareScalarBack, LogicNotBack, LogicSelectScalarBack,
-};
+use super::{DecisionValues, LogicCompareScalarBack, LogicNotBack, LogicSelectScalarBack};
 use conduit_core::{InfoBool, Scalar, BOOL_ENCODED_LEN, SCALAR_ENCODED_LEN};
 use conduit_kernel::{
     scheduler::{StepBack, StepInputBytes, StepIo, StepOutcome},
@@ -21,7 +19,8 @@ fn store() -> HostedValueStore {
 
 fn test_compare(operator: &str, store: &mut HostedValueStore) -> LogicCompareScalarBack {
     LogicCompareScalarBack {
-        operator: CompareOperator::parse(operator).expect("test operator is supported"),
+        operator: conduit_semantic_catalog::parse_scalar_comparison(operator)
+            .expect("test operator is supported"),
         operands: [None; 2],
         decisions: DecisionValues::prepare(store).expect("test decision values fit"),
     }

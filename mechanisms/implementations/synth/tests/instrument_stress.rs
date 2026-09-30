@@ -49,10 +49,11 @@ fn bounded_musician_stress_ends_in_immediate_silence() {
         synth
             .apply_control(
                 MusicalControlEvent::new(
-                    MusicalControl::PitchBend {
-                        amount_millionths: if round % 2 == 0 { 500_000 } else { -500_000 },
-                        range_microcents: 200_000_000,
-                    },
+                    MusicalControl::pitch_bend(
+                        if round % 2 == 0 { 500_000 } else { -500_000 },
+                        200_000_000,
+                    )
+                    .unwrap(),
                     now,
                     order,
                 )
@@ -63,10 +64,11 @@ fn bounded_musician_stress_ends_in_immediate_silence() {
         synth
             .apply_control(
                 MusicalControlEvent::new(
-                    MusicalControl::Modulation {
-                        amount_millionths: ((round % 11) * 100_000) as u32,
-                        destination: ModulationDestination::FilterCutoff,
-                    },
+                    MusicalControl::modulation(
+                        ((round % 11) * 100_000) as u32,
+                        ModulationDestination::FilterCutoff,
+                    )
+                    .unwrap(),
                     now,
                     order,
                 )
@@ -77,9 +79,7 @@ fn bounded_musician_stress_ends_in_immediate_silence() {
         synth
             .apply_control(
                 MusicalControlEvent::new(
-                    MusicalControl::Sustain {
-                        down: round % 2 == 0,
-                    },
+                    MusicalControl::sustain(round % 2 == 0).unwrap(),
                     now,
                     order,
                 )

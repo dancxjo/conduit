@@ -10,8 +10,8 @@ use sha2::{Digest, Sha256};
 use conduit_core::{IntervalEndpoint, ValueConstraint};
 
 use crate::{
-    Presentation, PresentationActionAvailability, PresentationCompositionKind, PresentationError,
-    PresentationRelationshipKind, PresentationRole,
+    FaceUtteranceClauseKind, Presentation, PresentationActionAvailability,
+    PresentationCompositionKind, PresentationError, PresentationRelationshipKind, PresentationRole,
 };
 
 pub const MAX_FACE_UTTERANCE_CLAUSES: usize = 10_256;
@@ -43,17 +43,6 @@ pub enum FaceUtteranceProvenance {
         action_identity: String,
         argument_name: String,
     },
-}
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum FaceUtteranceClauseKind {
-    Subject,
-    Relationship,
-    Property,
-    Composition,
-    Text,
-    Action,
-    ActionArgument,
 }
 
 /// One bounded sentence or exact Face wording item.

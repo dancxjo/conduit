@@ -7,7 +7,7 @@ mod generated {
     include!(concat!(env!("OUT_DIR"), "/semantic_types.rs"));
 }
 
-pub use generated::{BeaconKind, ChargingState};
+pub use generated::{BeaconKind, ChargingState, RoboticsSimulationAvailability};
 
 mod hazard_info;
 mod info;

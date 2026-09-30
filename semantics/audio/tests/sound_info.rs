@@ -36,7 +36,7 @@ fn sustain_hold_and_release_are_distinct_ordered_events() {
             .unwrap()
             .encode()
             .to_vec(),
-        MusicalControlEvent::new(MusicalControl::Sustain { down: true }, 1_100, 1)
+        MusicalControlEvent::new(MusicalControl::sustain(true).unwrap(), 1_100, 1)
             .unwrap()
             .encode()
             .to_vec(),
@@ -44,7 +44,7 @@ fn sustain_hold_and_release_are_distinct_ordered_events() {
             .unwrap()
             .encode()
             .to_vec(),
-        MusicalControlEvent::new(MusicalControl::Sustain { down: false }, 1_300, 3)
+        MusicalControlEvent::new(MusicalControl::sustain(false).unwrap(), 1_300, 3)
             .unwrap()
             .encode()
             .to_vec(),
@@ -53,12 +53,12 @@ fn sustain_hold_and_release_are_distinct_ordered_events() {
     assert_eq!(MusicalNoteEvent::decode(&sequence[0]).unwrap().order, 0);
     assert_eq!(
         MusicalControlEvent::decode(&sequence[1]).unwrap().control,
-        MusicalControl::Sustain { down: true }
+        MusicalControl::sustain(true).unwrap()
     );
     assert_eq!(MusicalNoteEvent::decode(&sequence[2]).unwrap().order, 2);
     assert_eq!(
         MusicalControlEvent::decode(&sequence[3]).unwrap().control,
-        MusicalControl::Sustain { down: false }
+        MusicalControl::sustain(false).unwrap()
     );
 }
 
@@ -115,21 +115,18 @@ fn every_portable_event_round_trips_and_reserved_bytes_refuse() {
         MusicalNoteEvent::new(NoteOccurrenceId(11), pitch, Gate::Off, 65_535, 13, 4).unwrap();
     assert_eq!(MusicalNoteEvent::decode(&note.encode()), Ok(note));
     for control in [
-        MusicalControl::Sustain { down: true },
-        MusicalControl::PitchBend {
-            amount_millionths: -500_000,
-            range_microcents: 200_000_000,
-        },
-        MusicalControl::Modulation {
-            amount_millionths: 750_000,
-            destination: ModulationDestination::FilterCutoff,
-        },
+        MusicalControl::sustain(true).unwrap(),
+        MusicalControl::pitch_bend(-500_000, 200_000_000).unwrap(),
+        MusicalControl::modulation(750_000, ModulationDestination::FilterCutoff).unwrap(),
     ] {
         let event = MusicalControlEvent::new(control, 14, 5).unwrap();
-        assert_eq!(MusicalControlEvent::decode(&event.encode()), Ok(event));
+        assert_eq!(
+            MusicalControlEvent::decode(&event.encode()),
+            Ok(event.clone())
+        );
         assert_ne!(event.semantic_digest(), [0; 32]);
     }
-    let mut noncanonical = MusicalControlEvent::new(MusicalControl::Sustain { down: false }, 0, 0)
+    let mut noncanonical = MusicalControlEvent::new(MusicalControl::sustain(false).unwrap(), 0, 0)
         .unwrap()
         .encode();
     noncanonical[5] = 1;
@@ -157,25 +154,12 @@ fn velocity_and_pitch_bend_cover_their_exact_extrema() {
     }
     for amount in [-1_000_000, 0, 1_000_000] {
         let bend = MusicalControlEvent::new(
-            MusicalControl::PitchBend {
-                amount_millionths: amount,
-                range_microcents: 200_000_000,
-            },
+            MusicalControl::pitch_bend(amount, 200_000_000).unwrap(),
             0,
             0,
         )
         .unwrap();
         assert_eq!(MusicalControlEvent::decode(&bend.encode()), Ok(bend));
     }
-    assert_eq!(
-        MusicalControlEvent::new(
-            MusicalControl::PitchBend {
-                amount_millionths: 1_000_001,
-                range_microcents: 200_000_000,
-            },
-            0,
-            0,
-        ),
-        Err(SoundInfoError::OutOfRange("pitch-bend"))
-    );
+    assert!(MusicalControl::pitch_bend(1_000_001, 200_000_000).is_err());
 }

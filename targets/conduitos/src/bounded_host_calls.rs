@@ -144,14 +144,14 @@ impl BoundedHostCalls {
     fn math(
         &self,
         input: &[u8],
-        transform: impl FnOnce(Scalar) -> Result<Scalar, conduit_semantic_catalog::MathScalarError>,
+        transform: impl FnOnce(Scalar) -> Result<Scalar, conduit_semantic_catalog::MathScalarRefusal>,
     ) -> Result<BoundedOutput, BoundedHostCallError> {
         let value = Scalar::decode(input).map_err(|_| BoundedHostCallError::InvalidInput)?;
         let output = transform(value).map_err(|error| match error {
-            conduit_semantic_catalog::MathScalarError::InvalidConfiguration => {
+            conduit_semantic_catalog::MathScalarRefusal::InvalidConfiguration => {
                 BoundedHostCallError::InvalidConfiguration
             }
-            conduit_semantic_catalog::MathScalarError::Overflow => BoundedHostCallError::Overflow,
+            conduit_semantic_catalog::MathScalarRefusal::Overflow => BoundedHostCallError::Overflow,
         })?;
         BoundedOutput::from_slice(&output.encode())
     }

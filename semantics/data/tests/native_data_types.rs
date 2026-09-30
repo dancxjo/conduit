@@ -1,10 +1,11 @@
 use conduit_core::{Quantity, QuantityUnit};
 use conduit_data::{
     ClockRelationQuality, DataLoadTextTerminal, DataSaveTextTerminal, FullWindowPolicy,
-    MeasurementPlotOverflowPolicy, MeasurementPlotRefusal, MeasurementSummaryRefusal,
-    MeasurementThresholdRefusal, MeasurementThresholdState, MeasurementThresholdTransition,
-    MeasurementWindowRefusal, SampledSignalRefusal, SignalContinuity, TensorAxisRole,
-    TensorElement,
+    MathScalarRefusal, MeasurementPlotOverflowPolicy, MeasurementPlotRefusal,
+    MeasurementSummaryRefusal, MeasurementThresholdRefusal, MeasurementThresholdState,
+    MeasurementThresholdTransition, MeasurementWindowRefusal, NormalizedQuantityRefusal,
+    QuantityMappingRefusal, QuantizationPolicy, RangePolicy, SampledSignalRefusal,
+    ScalarComparison, SignalContinuity, TensorAxisRole, TensorElement,
 };
 use conduit_form::rust_binding::NativeRustBinding;
 
@@ -143,6 +144,59 @@ fn measurement_policy_variants_round_trip_through_exact_native_types() {
     for value in [
         MeasurementThresholdTransition::RoseAbove,
         MeasurementThresholdTransition::FellBelow,
+    ] {
+        assert_round_trip(value);
+    }
+}
+
+#[test]
+fn quantity_mapping_vocabulary_round_trips_through_exact_native_types() {
+    for value in [RangePolicy::Refuse, RangePolicy::Clamp] {
+        assert_round_trip(value);
+    }
+    for value in [QuantizationPolicy::Exact, QuantizationPolicy::Nearest] {
+        assert_round_trip(value);
+    }
+    for value in [
+        QuantityMappingRefusal::InvalidRange,
+        QuantityMappingRefusal::OutOfRange,
+        QuantityMappingRefusal::Inexact,
+        QuantityMappingRefusal::Overflow,
+    ] {
+        assert_round_trip(value);
+    }
+}
+
+#[test]
+fn scalar_comparisons_round_trip_through_their_exact_native_type() {
+    for value in [
+        ScalarComparison::Less,
+        ScalarComparison::LessOrEqual,
+        ScalarComparison::Equal,
+        ScalarComparison::NotEqual,
+        ScalarComparison::GreaterOrEqual,
+        ScalarComparison::Greater,
+    ] {
+        assert_round_trip(value);
+    }
+}
+
+#[test]
+fn math_scalar_refusals_round_trip_through_their_exact_native_type() {
+    for value in [
+        MathScalarRefusal::InvalidConfiguration,
+        MathScalarRefusal::Overflow,
+    ] {
+        assert_round_trip(value);
+    }
+}
+
+#[test]
+fn normalized_quantity_refusals_round_trip_through_their_exact_native_type() {
+    for value in [
+        NormalizedQuantityRefusal::MalformedOrWrongType,
+        NormalizedQuantityRefusal::IncompatibleUnit,
+        NormalizedQuantityRefusal::OutOfDomain,
     ] {
         assert_round_trip(value);
     }

@@ -185,10 +185,8 @@ impl ToggleDistributedSink {
                 .bind_request(&lowered.identity, show_node, request, HostCallId(0))
                 .map_err(|_| ERROR_PREPARE)?;
             // Canonical toggle emits its configured initial value, then flips for every Tick.
-            let signal = conduit_signal::Signal {
-                sequence: index as u64,
-                level: index % 2 == 0,
-            };
+            let signal = conduit_signal::Signal::new(index % 2 == 0, index as u64)
+                .expect("toggle Signal fields are valid");
             let presentation = bind_presentation(
                 &active_play.active_play_id,
                 &placement.placement_id,
@@ -484,8 +482,8 @@ impl ToggleDistributedSink {
             .map_err(|_| ERROR_PRESENTATION)?
             .get();
         if projection.node != request.node
-            || projection.signal.sequence != self.receipts as u64
-            || projection.signal.level != level
+            || *projection.signal.sequence() != self.receipts as u64
+            || *projection.signal.level() != level
             || request_identity.call != request.call
         {
             return Err(ERROR_PRESENTATION);

@@ -10,12 +10,14 @@ mod generated {
 pub use generated::{
     ClockRelationQuality, ClockRelationQualityEstimated, DataGenerationNamespaceRefusal,
     DataLoadTextTerminal, DataLoadTextTerminalRepresentation, DataReferenceRefusal,
-    DataSaveTextTerminal, DataSaveTextTerminalRepresentation, FullWindowPolicy,
+    DataSaveTextTerminal, DataSaveTextTerminalRepresentation, FullWindowPolicy, MathScalarRefusal,
     MeasurementPlotOverflowPolicy, MeasurementPlotRefusal, MeasurementSummaryRefusal,
     MeasurementThresholdRefusal, MeasurementThresholdState, MeasurementThresholdTransition,
-    MeasurementWindowRefusal, SampledSignalRefusal, ScientificObservationRefusal, SignalContinuity,
-    SignalContinuityClockReset, SignalContinuityDiscontinuous, TensorAxisRole, TensorAxisRoleOther,
-    TensorElement, TensorRefusal,
+    MeasurementWindowRefusal, NormalizedQuantityRefusal, QuantityMappingRefusal,
+    QuantizationPolicy, RangePolicy, SampledSignalRefusal, ScalarComparison,
+    ScientificObservationRefusal, SignalContinuity, SignalContinuityClockReset,
+    SignalContinuityDiscontinuous, TensorAxisRole, TensorAxisRoleOther, TensorElement,
+    TensorRefusal,
 };
 
 mod data_catalog;
@@ -36,6 +38,7 @@ mod measurement_window;
 mod measurement_window_catalog;
 mod measurement_wire;
 mod sampled_signal;
+mod scalar_comparison;
 mod scientific_alignment;
 mod scientific_corpus;
 mod scientific_digest;

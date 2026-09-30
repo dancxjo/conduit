@@ -7,7 +7,7 @@ use sha2::{Digest, Sha256};
 
 use crate::identity::hash_string;
 use crate::presentation::{validate_id, validate_text};
-use crate::{Presentation, PresentationError};
+use crate::{Presentation, PresentationDisclosureLevel, PresentationError};
 
 pub const MAX_PRESENTATION_ACTIONS: usize = 1_024;
 pub const MAX_PRESENTATION_DISCLOSURES: usize = 1_024;
@@ -79,16 +79,6 @@ impl PresentationActionAvailability {
     pub fn is_available(&self) -> bool {
         matches!(self, Self::Available)
     }
-}
-
-/// Semantic information priority, independent of visual position or visibility.
-#[derive(Debug, Copy, Clone, PartialEq, Eq, Serialize, Deserialize)]
-pub enum PresentationDisclosureLevel {
-    Primary,
-    CurrentAction,
-    Context,
-    SelectedDetail,
-    ExactProvenance,
 }
 
 /// The disclosure level assigned to one exact Presentation subject.

@@ -122,9 +122,58 @@ type TemporalWindowRefusal =
     | indeterminate_boundary_order
     | empty
 
+type SequenceNormalizationRefusal =
+    malformed
+    | empty
+    | too-many-values
+    | zero-duration
+
+type PatternComparisonRefusal =
+    malformed
+    | unsupported-metric
+    | tolerance-out-of-range
+    | algorithm-mismatch
+    | length-mismatch
+
 type TimedPatternRefusal =
     malformed
     | too-few-events
     | too-many-events
     | reordered-or-duplicate-event
     | interval-overflow
+
+type WorkflowLifecycle =
+    pending
+    | running
+    | completed
+    | failed
+    | cancelled
+    | expired
+
+type ScheduleRefusal =
+    non-temporal-quantity
+    | negative-quantity
+    | inconsistent-lifecycle
+
+type WorkflowTimingOutcome =
+    awaiting
+    | on-time
+    | late {
+        lateness: Duration
+    }
+    | missed-window
+    | clock-uncertain {
+        uncertainty: Duration
+    }
+    | failed
+    | cancelled
+    | expired
+
+type TemplateCollectionRefusal =
+    malformed
+    | name-empty
+    | name-too-long
+    | duplicate-name
+    | collection-full
+    | not-found
+    | corrupt-template

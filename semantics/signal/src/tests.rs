@@ -12,13 +12,10 @@ use super::{
 #[cfg(feature = "host-profile")]
 #[test]
 fn round_trips_signal_payload() {
-    let payload = encode_signal(&Signal {
-        sequence: 7,
-        level: true,
-    });
+    let payload = encode_signal(&Signal::new(true, 7).unwrap());
     let decoded = decode_signal(&payload).expect("signal payload should decode");
-    assert_eq!(decoded.sequence, 7);
-    assert!(decoded.level);
+    assert_eq!(*decoded.sequence(), 7);
+    assert!(*decoded.level());
     assert_eq!(
         decode_signal_bytes(&payload.encoded).expect("fixed bytes should decode"),
         decoded
@@ -27,10 +24,7 @@ fn round_trips_signal_payload() {
 
 #[test]
 fn fixed_signal_helpers_do_not_require_payload_allocation() {
-    let signal = Signal {
-        sequence: 9,
-        level: true,
-    };
+    let signal = Signal::new(true, 9).unwrap();
     let encoded = encode_signal_fixed(&signal);
     assert_eq!(encoded.len(), SIGNAL_ENCODED_LEN_USIZE);
     assert_eq!(decode_signal_fixed(&encoded), signal);
@@ -65,11 +59,7 @@ fn signal_level_matches_portable_sixteen_value_profile() {
 #[cfg(feature = "host-profile")]
 #[test]
 fn round_trips_pulse_configuration_entries() {
-    let config = PulseConfiguration {
-        count: 3,
-        period_ms: 0,
-        initial_level: false,
-    };
+    let config = PulseConfiguration::new(3, false, 0).unwrap();
     let parsed = parse_pulse_configuration(&pulse_configuration_entries(&config))
         .expect("pulse configuration should parse");
     assert_eq!(parsed, config);

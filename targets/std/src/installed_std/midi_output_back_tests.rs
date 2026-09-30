@@ -101,7 +101,7 @@ fn exact_portable_events_cross_the_bounded_host_boundary_in_order() {
         conduit_audio::MusicalNoteEvent::new(NoteOccurrenceId(9), pitch, Gate::On, u16::MAX, 10, 0)
             .unwrap();
     let sustain = conduit_audio::MusicalControlEvent::new(
-        conduit_audio::MusicalControl::Sustain { down: true },
+        conduit_audio::MusicalControl::sustain(true).unwrap(),
         11,
         1,
     )

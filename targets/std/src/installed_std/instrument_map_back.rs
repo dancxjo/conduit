@@ -119,9 +119,13 @@ fn map_control(
             let event_time = count(field(fields, "event_time_micros", 182)?, 183)?;
             let occurrence = count(field(fields, "occurrence", 184)?, 185)?;
             if index == mapping.sustain_button {
-                MusicalControlEvent::new(MusicalControl::Sustain { down }, event_time, order)
-                    .map(MappedEvent::Control)
-                    .map_err(|_| 186)
+                MusicalControlEvent::new(
+                    MusicalControl::sustain(down).expect("boolean control is valid"),
+                    event_time,
+                    order,
+                )
+                .map(MappedEvent::Control)
+                .map_err(|_| 186)
             } else {
                 let pitch = usize::try_from(index)
                     .ok()
@@ -155,10 +159,8 @@ fn map_control(
                 return Err(197);
             };
             MusicalControlEvent::new(
-                MusicalControl::Modulation {
-                    amount_millionths: amount,
-                    destination,
-                },
+                MusicalControl::modulation(amount, destination)
+                    .expect("mapped modulation is within native bounds"),
                 event_time,
                 order,
             )

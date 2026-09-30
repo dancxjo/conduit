@@ -16,10 +16,10 @@ fn trigger(sink: &mut DistributedSink) {
 }
 
 fn offered(binding: &SessionBinding, sequence: u64) -> Vec<u8> {
-    let payload = conduit_signal::encode_signal(&conduit_signal::Signal {
-        sequence,
-        level: sequence % 2 == 1,
-    });
+    let payload = conduit_signal::encode_signal(
+        &conduit_signal::Signal::new(sequence % 2 == 1, sequence)
+            .expect("fixture Signal fields are valid"),
+    );
     let mut frame = [0_u8; FRAME_CAPACITY];
     let length = encode_session_frame_into(
         binding.frame(SessionMessage::Offered {

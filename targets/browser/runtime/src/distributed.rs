@@ -262,10 +262,8 @@ impl DistributedSink {
             identity
                 .bind_request(&lowered.identity, show_node, request, HostCallId(0))
                 .map_err(|_| ERROR_PREPARE)?;
-            let signal = conduit_signal::Signal {
-                sequence: index as u64,
-                level: index % 2 == 1,
-            };
+            let signal = conduit_signal::Signal::new(index % 2 == 1, index as u64)
+                .expect("fixture Signal fields are valid");
             let presentation = bind_presentation(
                 &active_play.active_play_id,
                 &placement.placement_id,
@@ -411,7 +409,7 @@ impl DistributedSink {
             }
             SessionMessage::Offered { sequence, payload } => {
                 let signal = decode_signal_bytes(payload).map_err(|_| ERROR_SESSION)?;
-                if signal.sequence != sequence || signal.level != (sequence % 2 == 1) {
+                if *signal.sequence() != sequence || *signal.level() != (sequence % 2 == 1) {
                     return self.fail_session(21, ERROR_SESSION);
                 }
                 let (endpoint, cord) = self.remote();

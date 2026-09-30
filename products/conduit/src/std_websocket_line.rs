@@ -387,10 +387,10 @@ fn run_source(
         *slot = Some(
             values
                 .store(
-                    &encode_signal(&Signal {
-                        sequence: sequence as u64,
-                        level: sequence % 2 == 1,
-                    })
+                    &encode_signal(
+                        &Signal::new(sequence % 2 == 1, sequence as u64)
+                            .expect("fixture Signal fields are valid"),
+                    )
                     .encoded,
                 )
                 .map_err(|error| format!("{error:?}"))?,

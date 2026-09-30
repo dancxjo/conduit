@@ -106,7 +106,7 @@ impl DistributedToggleSource {
             .map_err(|error| error.to_string())?;
         let toggle_config = parse_toggle_configuration(&toggle_placement.configuration)
             .map_err(|error| error.to_string())?;
-        if trigger_config.count != MAXIMUM_WAITS as u64 {
+        if *trigger_config.count() != MAXIMUM_WAITS as u64 {
             return Err("toggle form trigger count is not the S4 vector".to_string());
         }
 
@@ -118,7 +118,7 @@ impl DistributedToggleSource {
         .map_err(|error| format!("{error:?}"))?;
 
         let mut trigger_values = Vec::with_capacity(MAXIMUM_WAITS);
-        for sequence in 0..trigger_config.count {
+        for sequence in 0..*trigger_config.count() {
             trigger_values.push(
                 store
                     .store(&sequence.to_le_bytes())
@@ -138,9 +138,9 @@ impl DistributedToggleSource {
         let mut toggle_values = Vec::with_capacity(MAXIMUM_VALUES);
         for index in 0..MAXIMUM_VALUES {
             let level = if index.is_multiple_of(2) {
-                toggle_config.initial
+                *toggle_config.initial()
             } else {
-                !toggle_config.initial
+                !*toggle_config.initial()
             };
             toggle_values.push(
                 store

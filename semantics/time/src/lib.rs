@@ -9,9 +9,11 @@ mod generated {
 pub use generated::{
     AvailabilityState, CalendarRefusal, CivilFoldPolicy, CivilGapPolicy, CivilResolutionChoice,
     ClockChangeBehavior, HistoricalEntryOrigin, HistoricalOverflowPolicy, InvitationState,
-    MeetingProposalRefusal, ParticipantRole, RecurrenceRefusal, ReplayPolicy, ReplayPolicyRate,
-    ScheduledIntentRefusal, SuspendBehavior, TemporalBoundary, TemporalWindowPosition,
-    TemporalWindowRefusal, TimedPatternRefusal,
+    MeetingProposalRefusal, ParticipantRole, PatternComparisonRefusal, RecurrenceRefusal,
+    ReplayPolicy, ReplayPolicyRate, ScheduleRefusal, ScheduledIntentRefusal,
+    SequenceNormalizationRefusal, SuspendBehavior, TemplateCollectionRefusal, TemporalBoundary,
+    TemporalWindowPosition, TemporalWindowRefusal, TimedPatternRefusal, WorkflowLifecycle,
+    WorkflowTimingOutcome, WorkflowTimingOutcomeClockUncertain, WorkflowTimingOutcomeLate,
 };
 
 mod timed_pattern_refusal;

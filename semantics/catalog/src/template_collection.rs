@@ -5,23 +5,13 @@ use conduit_core::{
     kind_id, StructuredFieldType, StructuredFieldValue, StructuredInfoType, StructuredInfoValue,
     StructuredInfoValueShape,
 };
+pub use conduit_time::TemplateCollectionRefusal;
 
 pub const MAXIMUM_NAMED_TEMPLATES: u16 = 8;
 pub const MAXIMUM_TEMPLATE_NAME_BYTES: usize = 64;
 pub const TEMPLATE_COLLECTION_SCHEMA: &str = "sequence/named-pattern-template-collection@1";
 pub const TEMPLATE_SLOT_SCHEMA: &str = "sequence/named-pattern-template-slot@1";
 pub const TEMPLATE_NAME_INFO_ID: &str = "sequence/pattern-template-name@1";
-
-#[derive(Debug, Clone, PartialEq, Eq)]
-pub enum TemplateCollectionRefusal {
-    Malformed,
-    NameEmpty,
-    NameTooLong,
-    DuplicateName,
-    CollectionFull,
-    NotFound,
-    CorruptTemplate,
-}
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 struct DecodedSlot {

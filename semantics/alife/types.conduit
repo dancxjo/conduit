@@ -12,3 +12,11 @@ type ReactionDiffusionBoundaryEdge =
 type FieldBitmapRefusal =
     invalid-field
     | invalid-bitmap
+
+type GardenEvolutionRefusal =
+    malformed-state
+    | malformed-clock-observation
+    | malformed-contact-observation
+    | malformed-enriched-observation
+    | step-capacity-exceeded
+    | arithmetic-overflow

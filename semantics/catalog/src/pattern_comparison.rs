@@ -15,21 +15,13 @@ use conduit_form::{
     KindConfigurationField, KindConfigurationRule, KindProjection, KindSignature,
     StartupParameterSignature,
 };
+pub use conduit_time::PatternComparisonRefusal;
 
 pub const PATTERN_COMPARISON_TYPE: &str = "PatternComparison";
 pub const COMPARE_PATTERN_KIND: &str = "sequence/compare-normalized-pattern";
 pub const COMPARE_PATTERN_REVISION: &str = "conduit.std/compare-normalized-pattern@2";
 pub const MAXIMUM_ABSOLUTE_METRIC: &str = "maximum-absolute-millionths@1";
 pub const DEFAULT_PATTERN_TOLERANCE: u64 = 100_000;
-
-#[derive(Debug, Clone, PartialEq, Eq)]
-pub enum PatternComparisonRefusal {
-    Malformed,
-    UnsupportedMetric,
-    ToleranceOutOfRange,
-    AlgorithmMismatch,
-    LengthMismatch,
-}
 
 pub fn pattern_comparison_type() -> StructuredInfoType {
     StructuredInfoType::record(

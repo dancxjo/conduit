@@ -94,8 +94,8 @@ impl<'a> PhysicalInputSign<'a> {
                 "keyup"
             },
             requested_level: merged.input.level,
-            merged_sequence: merged.signal.sequence,
-            physical_led_result: if merged.signal.level { "on" } else { "off" },
+            merged_sequence: *merged.signal.sequence(),
+            physical_led_result: if *merged.signal.level() { "on" } else { "off" },
             receipt_basis: "verified-pico-receipt",
         }
     }
@@ -162,10 +162,7 @@ mod tests {
                 peer_sequence: 1,
                 level: false,
             },
-            signal: Signal {
-                sequence: 5,
-                level: false,
-            },
+            signal: Signal::new(false, 5).expect("fixture Signal fields are valid"),
         };
         let sign = serde_json::to_value(PhysicalInputSign::new(&plan, &merged)).unwrap();
         assert_eq!(sign["plan_id"], plan.plan_id.as_str());
