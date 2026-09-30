@@ -235,8 +235,7 @@ impl BoundedActivationHost {
     ) -> Result<Self, BoundedActivationError> {
         // Refuse an unavailable or over-budget exact subgraph before any input
         // can become owed work. Each activation is prepared afresh below.
-        let maximum_items = usize::try_from(contract.maximum_items)
-            .map_err(|_| BoundedActivationError::PlannedContractMismatch)?;
+        let maximum_items = usize::from(contract.maximum_items);
         let mut ready = Vec::with_capacity(maximum_items);
         for _ in 0..maximum_items {
             ready.push(
