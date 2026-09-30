@@ -985,6 +985,8 @@ name = "conduit-form-library"
 version = "0.1.0"
 dependencies = [
  "conduit-body",
+ "conduit-core",
+ "conduit-form",
  "conduit-presentation",
 ]
 
