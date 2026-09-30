@@ -11,3 +11,12 @@ type ModulationDestination =
     pitch
     | filter-cutoff
     | amplitude
+
+type PcmSampleRepresentation =
+    signed16-little-endian
+    | signed24-little-endian
+    | float32-little-endian
+
+type PcmChannelLayout =
+    mono
+    | stereo-left-right

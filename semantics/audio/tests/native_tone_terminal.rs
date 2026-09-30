@@ -24,6 +24,30 @@ fn native_tone_terminal_owns_semantic_identity_while_wire_codec_stays_explicit()
 }
 
 #[test]
+fn pcm_unit_variants_have_native_semantic_identity_and_exact_round_trips() {
+    use conduit_audio::{PcmChannelLayout, PcmSampleRepresentation};
+
+    for representation in [
+        PcmSampleRepresentation::Signed16LittleEndian,
+        PcmSampleRepresentation::Signed24LittleEndian,
+        PcmSampleRepresentation::Float32LittleEndian,
+    ] {
+        let structured = representation.into_structured().unwrap();
+        assert_eq!(
+            PcmSampleRepresentation::from_structured(structured).unwrap(),
+            representation
+        );
+    }
+    for layout in [PcmChannelLayout::Mono, PcmChannelLayout::StereoLeftRight] {
+        let structured = layout.into_structured().unwrap();
+        assert_eq!(
+            PcmChannelLayout::from_structured(structured).unwrap(),
+            layout
+        );
+    }
+}
+
+#[test]
 fn musical_unit_variants_have_native_semantic_identity_and_exact_round_trips() {
     for gate in [Gate::On, Gate::Off] {
         let structured = gate.into_structured().unwrap();
