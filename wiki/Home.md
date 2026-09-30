@@ -15,7 +15,7 @@ Learn the nouns in small groups; they are deliberately not one giant hierarchy.
 | cluster | vocabulary | distinction |
 |---|---|---|
 | information | **type / form** | what a value means / one concrete portable representation |
-| semantic work | **kind / fore / back** | what work means / its checked outward boundary / one realization |
+| semantic work | **kind / fore / back** | what work means / its user-visible callable signature / one realization |
 | authored execution | **plot / plan / play** | intended happening / admitted realization / realization in motion |
 | graph realization | **gear / port / cord / line** | occurrence / endpoint / semantic connection / concrete carriage |
 | continuity | **body / part / host / boot / wake / lull** | enduring computer / membership / machinery / incarnation / activity / repose |
@@ -54,7 +54,7 @@ kind  → back
 
 A **type** says what a value means; a **form** says how values of that type may be carried or stored.
 
-A **kind** says what work means; a **back** is one concrete way to realize it. The **fore** is the checked boundary through which the kind meets the rest of the plot.
+A **kind** says what work means; a **back** is one concrete way to realize it. The **fore** is the function-like signature presented to the author: the startup parameters and typed ports through which that kind or plot is called.
 
 This symmetry is central to Conduit: compatibility facts, machine layouts, libraries, devices, and transports should not become semantic identity merely because they were convenient first implementations.
 
