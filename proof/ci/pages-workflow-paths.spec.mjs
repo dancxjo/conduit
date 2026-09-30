@@ -1,4 +1,5 @@
 import assert from "node:assert/strict";
+import { spawnSync } from "node:child_process";
 import { readFileSync } from "node:fs";
 import test from "node:test";
 
@@ -116,11 +117,11 @@ test("product jobs build the immutable PR head and deployments queue", () => {
   );
   assert.match(
     productWorkflow,
-    /if \[\[ "\$BROWSER_ADMISSION_MATRIX" == \*'"browser-host"'\* \|\| "\$BROWSER_ADMISSION_MATRIX" == \*'"pages"'\* \]\]; then\n\s+cargo build --locked -p conduit-browser-runtime --target wasm32-unknown-unknown --release\n\s+cp target\/wasm32-unknown-unknown\/release\/conduit_browser_runtime\.wasm target\/browser-product-runtimes\/patchbay-runtime\.wasm/,
+    /if \[\[ "\$BROWSER_ADMISSION_MATRIX" == \*'"browser-host"'\* \|\| "\$BROWSER_ADMISSION_MATRIX" == \*'"creche-workspace"'\* \|\| "\$BROWSER_ADMISSION_MATRIX" == \*'"pages"'\* \]\]; then\n\s+cargo build --locked -p conduit-browser-runtime --target wasm32-unknown-unknown --release\n\s+cp target\/wasm32-unknown-unknown\/release\/conduit_browser_runtime\.wasm target\/browser-product-runtimes\/patchbay-runtime\.wasm/,
   );
   assert.match(
     productWorkflow,
-    /if \[\[ "\$BROWSER_ADMISSION_MATRIX" == \*'"browser-host"'\* \|\| "\$BROWSER_ADMISSION_MATRIX" == \*'"pages"'\* \]\]; then\n\s+cp target\/browser-product-runtimes\/patchbay-runtime\.wasm target\/wasm32-unknown-unknown\/release\/conduit_browser_runtime\.wasm/,
+    /if \[\[ "\$BROWSER_ADMISSION_MATRIX" == \*'"browser-host"'\* \|\| "\$BROWSER_ADMISSION_MATRIX" == \*'"creche-workspace"'\* \|\| "\$BROWSER_ADMISSION_MATRIX" == \*'"pages"'\* \]\]; then\n\s+cp target\/browser-product-runtimes\/patchbay-runtime\.wasm target\/wasm32-unknown-unknown\/release\/conduit_browser_runtime\.wasm/,
   );
   assert.match(
     productWorkflow,
@@ -247,4 +248,46 @@ test("permanent Pages automation contains no completed deploy-first rescue", () 
   assert.doesNotMatch(source, /^  deploy-first-rescue:/m);
   assert.doesNotMatch(source, /47372b96|34522795014|EXPECTED_MAIN_SHA|RELEASE_SOURCE_SHA/);
   assert.doesNotMatch(resolver, /deployFirstMerge|47372b96/);
+});
+
+
+test("Crèche/Workspace admission receives its Host prerequisites without selecting Pages", () => {
+  const workflow = readFileSync(".github/workflows/tour-products.yml", "utf8");
+  const build = workflow.split("  browser-runtimes:\n")[1].split("\n  standalone-locks:")[0];
+  const stage = workflow.split("  browser-admission-stage:\n")[1].split("\n  browser-admission-proof:")[0];
+  const cases = [
+    [[], false, false, false],
+    [["unrelated"], false, false, false],
+    [["browser-host"], false, false, true],
+    [["creche-workspace"], true, false, true],
+    [["pages"], true, true, true],
+    [["browser-host", "creche-workspace"], true, false, true],
+    [["browser-host", "creche-workspace", "pages"], true, true, true],
+  ];
+  for (const [source, command, kind] of [
+    [build, "cargo build --locked -p patchbay-html", "binaries"],
+    [stage, "cp target/browser-product-runtimes/patchbay-html", "binaries"],
+    [stage, "products/patchbay/tools/stage-patchbay-product.sh", "pages"],
+    [build, "cargo build --locked -p conduit-browser-runtime --target wasm32-unknown-unknown --release\n", "runtime"],
+    [stage, "cp target/browser-product-runtimes/patchbay-runtime.wasm", "runtime"],
+  ]) {
+    const blocks = [...source.matchAll(/^          if \[\[ ([^\n]+) \]\]; then\n([\s\S]*?)^          fi$/gm)]
+      .filter(([, , body]) => body.includes(command));
+    assert.equal(blocks.length, 1, `one explicit admission gate for ${command}`);
+    const [, condition, body] = blocks[0];
+    if (kind === "binaries" && command.startsWith("cp ")) {
+      assert.match(body, /target\/browser-product-runtimes\/browser-parts-capstone target\/debug\//);
+      assert.match(body, /chmod 755 target\/debug\/patchbay-html target\/debug\/browser-parts-capstone/);
+    }
+    for (const [matrix, binaries, pages, runtime] of cases) {
+      const result = spawnSync("bash", ["-c", `if [[ ${condition} ]]; then printf selected; fi`], {
+        encoding: "utf8",
+        env: { ...process.env, BROWSER_ADMISSION_MATRIX: JSON.stringify(matrix) },
+      });
+      assert.equal(result.status, 0, result.stderr);
+      const selected = { binaries, pages, runtime }[kind];
+      assert.equal(result.stdout, selected ? "selected" : "",
+        `${command} for ${JSON.stringify(matrix)}`);
+    }
+  }
 });
