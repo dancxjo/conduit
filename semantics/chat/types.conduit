@@ -5,6 +5,14 @@ type ChatConnectionState =
     | connecting
     | disconnected
 
+type ChatStateRefusal =
+    invalid_configuration
+    | empty_message
+    | oversize_message
+    | malformed_message
+    | sequence_exhausted
+    | invalid_presentation
+
 type PresenceState =
     available
     | away
@@ -21,3 +29,13 @@ type BodyChatHistoryItem = {
     role: BodyChatRole
     text: BodyChatMessage
 }
+
+type BodyChatRefusal =
+    empty_message
+    | message_bound_exceeded
+    | context_bound_exceeded
+    | malformed_context
+    | wrong_context_schema
+    | history_bound_exceeded
+    | prompt_bound_exceeded
+    | encoding

@@ -138,6 +138,7 @@ are satisfied.
 | Artificial-life Lenia and reaction-diffusion boundary vocabularies | `semantics/alife/types.conduit` | generated at build time | yes | yes | exact native round trips plus artificial-life behavior and conformance suites |
 | Robotics beacon/charging, chat connection/presence, HTTP method/failures | domain `types.conduit` sources | generated at build time | yes | yes | exact native round trips plus std/no-std domain suites |
 | Body Chat role, bounded message and history record | `semantics/chat/types.conduit` | generated at build time | yes | yes | exact native round trip plus Chat, prompt and std Host suites |
+| Chat presentation-state and Body Chat refusal vocabularies | `semantics/chat/types.conduit` | generated at build time | yes | yes | exact native round trips plus presentation, prompt and codec suites |
 | Network transport, DNS record/TTL, application refusal and transcript direction | `semantics/net/types.conduit` | generated at build time | yes | yes | exact native round trips plus network and std Host suites |
 | Morse key phase | `semantics/text/types.conduit` | generated at build time | yes | yes | exact native round trip plus text suites |
 | Morse key transition record | `semantics/text/types.conduit` | generated at build time | yes | yes | exact native record round trip plus interpreter and ESP32 tooling suites |
