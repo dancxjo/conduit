@@ -782,3 +782,14 @@ type VectorIndexResourceRefusal =
     | result_limit_exceeded
     | query_concurrency_exceeded
     | invalid_resource_binding
+
+type ExactVectorSearchRefusal =
+    vector VectorRefusal
+    | resource VectorIndexResourceRefusal
+    | temporal TemporalEvidenceSelectionRefusal
+    | too_many_candidates
+    | index_membership_mismatch
+    | work_accounting_overflow
+    | temporal_provenance_required
+    | earlier_history_required
+    | temporal_boundary_unavailable

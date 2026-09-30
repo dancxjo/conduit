@@ -189,6 +189,7 @@ are satisfied.
 | Context-selection, reranking and wired-house-context refusals | `semantics/ai/types.conduit` | generated at build time | yes | yes | exact native round trips plus selection, reranking and house-context suites |
 | Generated-text-flow and continuous-dynamics refusals | `semantics/ai/types.conduit` | generated at build time | yes | yes | exact native round trips plus streaming-generation and dynamics suites |
 | Relation query/refusal, training refusal and vector/index-resource refusal vocabularies | `semantics/ai/types.conduit` | generated at build time | yes | yes | exact native round trips plus relation, training and vector-resource behavior suites |
+| Exact-vector-search payload-bearing refusal | `semantics/ai/types.conduit` | generated at build time with direct Type payloads | yes | yes | exact native round trips plus bounded exact-search behavior suite |
 | AI planning, interruption, candidate and training lifecycle vocabularies | `semantics/ai/types.conduit` | generated at build time | yes | yes | exact native round trips plus cross-host, composition and training lifecycle suites |
 | Reranking strategy and its bounded observed-score payload | `semantics/ai/types.conduit` | generated at build time | yes | yes | exact native payload round trip plus retrieval and context-selection suites |
 | Model operation and port-presence vocabularies | `semantics/ai/types.conduit` | generated at build time | yes | yes | exact native round trips plus AI model-signature suite |

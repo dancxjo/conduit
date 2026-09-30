@@ -252,11 +252,15 @@ fn emit_type(
                         case.payload_type(),
                         names,
                         options.derive_serde_for_variants,
-                        copy_type(case.payload_type()),
                     )?;
                 }
             }
-            let copy_payloads = cases.iter().all(|case| copy_type(case.payload_type()));
+            let copy_payloads = cases.iter().all(|case| {
+                !matches!(
+                    case.payload_type().shape(),
+                    StructuredInfoTypeShape::Record { .. }
+                ) && copy_type(case.payload_type())
+            });
             let derives = if unit_only && options.derive_serde_for_variants {
                 "Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, serde::Serialize, serde::Deserialize"
             } else if unit_only {
@@ -306,17 +310,12 @@ fn emit_payload_struct(
     value_type: &StructuredInfoType,
     names: &BTreeMap<String, String>,
     derive_serde: bool,
-    derive_copy: bool,
 ) -> Result<(), RustBindingGenerationError> {
     let StructuredInfoTypeShape::Record { fields, .. } = value_type.shape() else {
         return Err(RustBindingGenerationError::InvalidSemanticType);
     };
-    let derives = if derive_serde && derive_copy {
-        "Debug, Clone, Copy, PartialEq, Eq, serde::Serialize, serde::Deserialize"
-    } else if derive_serde {
+    let derives = if derive_serde {
         "Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize"
-    } else if derive_copy {
-        "Debug, Clone, Copy, PartialEq, Eq"
     } else {
         "Debug, Clone, PartialEq, Eq"
     };
@@ -345,7 +344,7 @@ fn emit_payload_struct(
     Ok(())
 }
 
-fn copy_type(value_type: &StructuredInfoType) -> bool {
+pub(super) fn copy_type(value_type: &StructuredInfoType) -> bool {
     match value_type.shape() {
         StructuredInfoTypeShape::Leaf(kind) => !matches!(
             conduit_core::primitive_info_kind(kind.as_str()),
