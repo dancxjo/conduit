@@ -235,7 +235,7 @@ impl BoundedScanActivationHost {
         if self.planned.item_input.abnormal_kind.as_ref() != Some(&terminal.value_kind) {
             return Err(BoundedScanError::PlannedContractMismatch);
         }
-        self.state = BoundedScanState::Abnormal(terminal.clone());
+        self.state = BoundedScanState::Abnormal(terminal);
         let cancellation = self
             .active
             .as_mut()

@@ -11,7 +11,7 @@ use conduit_core::{
 pub struct PreparedActivationChildPool {
     outer_plan_id: PlanId,
     activation_id: String,
-    preparation_identity: [u8; 32],
+    _preparation_identity: [u8; 32],
     definition: KernelCompositeDefinition,
     ready: Vec<KernelCompositeHost>,
 }
@@ -52,7 +52,7 @@ impl PreparedActivationChildPool {
     /// consumed to initialize the finite child pool before coordinator play.
     pub fn prepare_on_host(
         outer: &Plan,
-        prepared: &PreparedPlan,
+        prepared: &mut PreparedPlan,
         activation_id: &str,
         host: &mut dyn PlannedActivationChildPoolHost,
     ) -> Result<Self, PlannedActivationCompositeError> {
@@ -68,12 +68,11 @@ impl PreparedActivationChildPool {
         {
             return Err(PlannedActivationCompositeError::StaleOrSubstitutedHandoff);
         }
-        let receipts = prepared
-            .subordinate_receipts()
-            .iter()
-            .filter(|(id, _)| id == activation_id)
-            .map(|(_, receipt)| receipt.clone())
-            .collect::<Vec<_>>();
+        let preparation_identity = preparation_identity(outer, prepared, activation_id)?;
+        let receipts = prepared.take_subordinate_receipts(activation_id);
+        if receipts.is_empty() {
+            return Err(PlannedActivationCompositeError::StaleOrSubstitutedHandoff);
+        }
         let mut returned = host
             .take_activation_child_pool(&receipts, &definition, maximum_items)
             .map_err(PlannedActivationCompositeError::HostPreparation)?;
@@ -85,7 +84,7 @@ impl PreparedActivationChildPool {
         Ok(Self {
             outer_plan_id: outer.plan_id.clone(),
             activation_id: activation_id.into(),
-            preparation_identity: preparation_identity(outer, prepared, activation_id)?,
+            _preparation_identity: preparation_identity,
             definition,
             ready,
         })
@@ -97,14 +96,10 @@ impl PreparedPlannedActivationComposite {
     /// at this boundary or during play.
     pub fn prepare(
         outer: &Plan,
-        prepared: &PreparedPlan,
         activation_id: &str,
         handoff: PreparedActivationChildPool,
     ) -> Result<Self, PlannedActivationCompositeError> {
-        if handoff.outer_plan_id != outer.plan_id
-            || handoff.activation_id != activation_id
-            || handoff.preparation_identity != preparation_identity(outer, prepared, activation_id)?
-        {
+        if handoff.outer_plan_id != outer.plan_id || handoff.activation_id != activation_id {
             return Err(PlannedActivationCompositeError::StaleOrSubstitutedHandoff);
         }
         let entry = activation(outer, activation_id)

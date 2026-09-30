@@ -117,6 +117,26 @@ impl PreparedPlan {
     pub fn subordinate_receipts(&self) -> &[(alloc::string::String, PreparedFragmentReceipt)] {
         &self.subordinate_receipts
     }
+
+    /// Irreversibly transfers one activation's exact subordinate reservations.
+    /// A second take is empty, so borrowed or copied receipt data cannot replay
+    /// the core-owned preparation authority.
+    pub fn take_subordinate_receipts(
+        &mut self,
+        activation_id: &str,
+    ) -> Vec<PreparedFragmentReceipt> {
+        let mut taken = Vec::new();
+        let mut retained = Vec::with_capacity(self.subordinate_receipts.len());
+        for (id, receipt) in self.subordinate_receipts.drain(..) {
+            if id == activation_id {
+                taken.push(receipt);
+            } else {
+                retained.push((id, receipt));
+            }
+        }
+        self.subordinate_receipts = retained;
+        taken
+    }
 }
 
 pub fn verify_prepared_plan(prepared: &PreparedPlan, plan: &Plan) -> bool {

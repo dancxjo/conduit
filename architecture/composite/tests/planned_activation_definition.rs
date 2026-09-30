@@ -497,18 +497,20 @@ fn definition_is_derived_only_from_verified_plan_and_subordinate_receipt() {
 fn receipted_child_pool_is_initialized_exactly_n_then_consumed_without_registry() {
     let plan = activation_plan();
     let mut host = Host::new();
-    let prepared = prepare_plan_on_hosts(&plan, &mut [&mut host]).unwrap();
+    let mut prepared = prepare_plan_on_hosts(&plan, &mut [&mut host]).unwrap();
     let count = Arc::new(AtomicUsize::new(0));
     host.registry
         .install(PreparedFactory(count.clone()))
         .unwrap();
     let pool =
-        PreparedActivationChildPool::prepare_on_host(&plan, &prepared, "each", &mut host).unwrap();
+        PreparedActivationChildPool::prepare_on_host(&plan, &mut prepared, "each", &mut host)
+            .unwrap();
     assert_eq!(count.load(Ordering::SeqCst), 2);
     assert!(
-        PreparedActivationChildPool::prepare_on_host(&plan, &prepared, "each", &mut host).is_err()
+        PreparedActivationChildPool::prepare_on_host(&plan, &mut prepared, "each", &mut host)
+            .is_err()
     );
-    let composite = PreparedPlannedActivationComposite::prepare(&plan, &prepared, "each", pool);
+    let composite = PreparedPlannedActivationComposite::prepare(&plan, "each", pool);
     assert!(composite.is_ok(), "{:?}", composite.err());
     assert_eq!(count.load(Ordering::SeqCst), 2);
 }
@@ -517,9 +519,10 @@ fn receipted_child_pool_is_initialized_exactly_n_then_consumed_without_registry(
 fn missing_factory_is_refused_during_receipted_host_preparation() {
     let plan = activation_plan();
     let mut host = Host::new();
-    let prepared = prepare_plan_on_hosts(&plan, &mut [&mut host]).unwrap();
+    let mut prepared = prepare_plan_on_hosts(&plan, &mut [&mut host]).unwrap();
     assert!(
-        PreparedActivationChildPool::prepare_on_host(&plan, &prepared, "each", &mut host,).is_err()
+        PreparedActivationChildPool::prepare_on_host(&plan, &mut prepared, "each", &mut host,)
+            .is_err()
     );
 }
 
@@ -527,14 +530,15 @@ fn missing_factory_is_refused_during_receipted_host_preparation() {
 fn child_pool_refuses_current_boot_and_offer_drift_before_consuming_receipts() {
     let plan = activation_plan();
     let mut host = Host::new();
-    let prepared = prepare_plan_on_hosts(&plan, &mut [&mut host]).unwrap();
+    let mut prepared = prepare_plan_on_hosts(&plan, &mut [&mut host]).unwrap();
     host.registry
         .install(PreparedFactory(Arc::new(AtomicUsize::new(0))))
         .unwrap();
     let retained = host.receipts.len();
     host.identity.boot_id = conduit_core::BootId::from("replacement-boot");
     assert!(
-        PreparedActivationChildPool::prepare_on_host(&plan, &prepared, "each", &mut host).is_err()
+        PreparedActivationChildPool::prepare_on_host(&plan, &mut prepared, "each", &mut host)
+            .is_err()
     );
     assert_eq!(host.receipts.len(), retained);
     host.identity = PreparationHostIdentity {
@@ -543,7 +547,8 @@ fn child_pool_refuses_current_boot_and_offer_drift_before_consuming_receipts() {
         offer_generation: conduit_core::OfferGeneration(99),
     };
     assert!(
-        PreparedActivationChildPool::prepare_on_host(&plan, &prepared, "each", &mut host).is_err()
+        PreparedActivationChildPool::prepare_on_host(&plan, &mut prepared, "each", &mut host)
+            .is_err()
     );
     assert_eq!(host.receipts.len(), retained);
 }
@@ -552,13 +557,14 @@ fn child_pool_refuses_current_boot_and_offer_drift_before_consuming_receipts() {
 fn child_pool_cannot_be_substituted_for_another_activation_identity() {
     let plan = activation_plan();
     let mut host = Host::new();
-    let prepared = prepare_plan_on_hosts(&plan, &mut [&mut host]).unwrap();
+    let mut prepared = prepare_plan_on_hosts(&plan, &mut [&mut host]).unwrap();
     host.registry
         .install(PreparedFactory(Arc::new(AtomicUsize::new(0))))
         .unwrap();
     let pool =
-        PreparedActivationChildPool::prepare_on_host(&plan, &prepared, "each", &mut host).unwrap();
-    assert!(PreparedPlannedActivationComposite::prepare(&plan, &prepared, "other", pool,).is_err());
+        PreparedActivationChildPool::prepare_on_host(&plan, &mut prepared, "each", &mut host)
+            .unwrap();
+    assert!(PreparedPlannedActivationComposite::prepare(&plan, "other", pool,).is_err());
 }
 
 #[test]
@@ -609,13 +615,14 @@ fn invalid_completion_retains_dispatch_then_corrected_completion_consumes_it_onc
 fn select_executes_through_the_receipt_backed_unary_pool() {
     let plan = activation_plan();
     let mut host = Host::new();
-    let prepared = prepare_plan_on_hosts(&plan, &mut [&mut host]).unwrap();
+    let mut prepared = prepare_plan_on_hosts(&plan, &mut [&mut host]).unwrap();
     host.registry
         .install(PreparedFactory(Arc::new(AtomicUsize::new(0))))
         .unwrap();
     let pool =
-        PreparedActivationChildPool::prepare_on_host(&plan, &prepared, "each", &mut host).unwrap();
-    let unary = PreparedPlannedActivationComposite::prepare(&plan, &prepared, "each", pool)
+        PreparedActivationChildPool::prepare_on_host(&plan, &mut prepared, "each", &mut host)
+            .unwrap();
+    let unary = PreparedPlannedActivationComposite::prepare(&plan, "each", pool)
         .unwrap()
         .into_unary()
         .unwrap();
@@ -640,12 +647,12 @@ fn fold_and_scan_are_reachable_only_through_their_receipt_backed_variants() {
     for (scan, id) in [(false, "fold"), (true, "scan")] {
         let plan = fold_or_scan_plan(scan);
         let mut host = Host::new();
-        let prepared = prepare_plan_on_hosts(&plan, &mut [&mut host]).unwrap();
+        let mut prepared = prepare_plan_on_hosts(&plan, &mut [&mut host]).unwrap();
         host.registry.install(PlainFactory).unwrap();
         let pool =
-            PreparedActivationChildPool::prepare_on_host(&plan, &prepared, id, &mut host).unwrap();
-        let prepared =
-            PreparedPlannedActivationComposite::prepare(&plan, &prepared, id, pool).unwrap();
+            PreparedActivationChildPool::prepare_on_host(&plan, &mut prepared, id, &mut host)
+                .unwrap();
+        let prepared = PreparedPlannedActivationComposite::prepare(&plan, id, pool).unwrap();
         if scan {
             assert!(prepared.into_scan().is_ok());
         } else {

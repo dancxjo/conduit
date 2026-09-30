@@ -229,7 +229,7 @@ impl BoundedFoldActivationHost {
         if self.planned.item_input.abnormal_kind.as_ref() != Some(&terminal.value_kind) {
             return Err(BoundedFoldError::PlannedContractMismatch);
         }
-        self.state = BoundedFoldState::Abnormal(terminal.clone());
+        self.state = BoundedFoldState::Abnormal(terminal);
         let cancellation = self
             .active
             .as_mut()
