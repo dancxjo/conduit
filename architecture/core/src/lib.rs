@@ -29,6 +29,7 @@ mod info;
 mod interop;
 mod kind_effects;
 mod plan_realization;
+mod planned_activation;
 mod port;
 mod preparation;
 mod primitive_info;
@@ -91,6 +92,7 @@ pub use info::*;
 pub use interop::*;
 pub use kind_effects::*;
 pub use plan_realization::FormBack;
+pub use planned_activation::*;
 pub use port::{PortDescriptor, PortDirection, PortTemporal};
 pub use preparation::*;
 pub use primitive_info::*;
@@ -806,6 +808,8 @@ pub struct Plan {
     /// Empty means the checked form reached primitive implementations directly.
     #[serde(default)]
     pub realization_backs: Vec<FormBack>,
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub activations: Vec<PlannedActivation>,
     pub fragments: Vec<PlanFragment>,
 }
 
@@ -842,7 +846,23 @@ pub fn seal_plan_with_realization_backs(
 pub fn seal_plan_with_realization_backs_and_completion(
     form_identity: FormIdentity,
     completion_policy: PlanCompletionPolicy,
+    realization_backs: Vec<FormBack>,
+    fragments: Vec<PlanFragment>,
+) -> Plan {
+    seal_plan_with_activations(
+        form_identity,
+        completion_policy,
+        realization_backs,
+        Vec::new(),
+        fragments,
+    )
+}
+
+pub fn seal_plan_with_activations(
+    form_identity: FormIdentity,
+    completion_policy: PlanCompletionPolicy,
     mut realization_backs: Vec<FormBack>,
+    activations: Vec<PlannedActivation>,
     mut fragments: Vec<PlanFragment>,
 ) -> Plan {
     realization_backs.sort();
@@ -864,7 +884,12 @@ pub fn seal_plan_with_realization_backs_and_completion(
         })
         .collect::<Vec<_>>();
     commitments.sort();
-    let plan_id = compute_plan_id(&form_identity, &realization_backs, &commitments);
+    let plan_id = compute_plan_id(
+        &form_identity,
+        &realization_backs,
+        &activations,
+        &commitments,
+    );
     for fragment in &mut fragments {
         fragment.plan_id = plan_id.clone();
         fragment.plan_fragments = commitments.clone();
@@ -876,11 +901,16 @@ pub fn seal_plan_with_realization_backs_and_completion(
         expanded_form_id: form_identity.expanded_form_id,
         completion_policy,
         realization_backs,
+        activations,
         fragments,
     }
 }
 
 pub fn verify_plan(plan: &Plan) -> bool {
+    verify_plan_at_depth(plan, 0)
+}
+
+pub(crate) fn verify_plan_at_depth(plan: &Plan, depth: u8) -> bool {
     let form_identity = FormIdentity {
         source_document_id: plan.source_document_id.clone(),
         checked_form_id: plan.checked_form_id.clone(),
@@ -905,8 +935,14 @@ pub fn verify_plan(plan: &Plan) -> bool {
                 && !back.source_document_id.as_str().is_empty()
                 && !back.checked_form_id.as_str().is_empty()
         })
-        && plan.plan_id == compute_plan_id(&form_identity, &plan.realization_backs, &commitments)
-        && plan.fragments.iter().all(verify_plan_fragment)
+        && plan.plan_id
+            == compute_plan_id(
+                &form_identity,
+                &plan.realization_backs,
+                &plan.activations,
+                &commitments,
+            )
+        && plan.fragments.iter().all(verify_plan_fragment_contents)
         && plan.fragments.iter().all(|fragment| {
             fragment.plan_id == plan.plan_id
                 && fragment.source_document_id == plan.source_document_id
@@ -932,6 +968,7 @@ pub fn verify_plan(plan: &Plan) -> bool {
         && state_delay::verify_plan_states(plan)
         && verify_plan_shared_pools(plan)
         && verify_plan_connections(plan)
+        && planned_activation::verify_planned_activations(plan, depth)
 }
 
 fn verify_plan_shared_pools(plan: &Plan) -> bool {
@@ -1134,6 +1171,24 @@ fn invalid_admitted_line(
 }
 
 pub fn verify_plan_fragment(fragment: &PlanFragment) -> bool {
+    if !verify_plan_fragment_contents(fragment) {
+        return false;
+    }
+    let mut commitments = fragment.plan_fragments.clone();
+    commitments.sort();
+    compute_plan_id(
+        &FormIdentity {
+            source_document_id: fragment.source_document_id.clone(),
+            checked_form_id: fragment.checked_form_id.clone(),
+            expanded_form_id: fragment.expanded_form_id.clone(),
+        },
+        &fragment.realization_backs,
+        &[],
+        &commitments,
+    ) == fragment.plan_id
+}
+
+fn verify_plan_fragment_contents(fragment: &PlanFragment) -> bool {
     if compute_fragment_id(fragment) != fragment.fragment_id {
         return false;
     }
@@ -1165,15 +1220,6 @@ pub fn verify_plan_fragment(fragment: &PlanFragment) -> bool {
         && state_delay::verify_fragment_state(fragment)
         && execution::verify_execution_regions(fragment)
         && execution_fusion::verify(fragment)
-        && compute_plan_id(
-            &FormIdentity {
-                source_document_id: fragment.source_document_id.clone(),
-                checked_form_id: fragment.checked_form_id.clone(),
-                expanded_form_id: fragment.expanded_form_id.clone(),
-            },
-            &fragment.realization_backs,
-            &commitments,
-        ) == fragment.plan_id
 }
 
 fn verify_fragment_fore_ports(fragment: &PlanFragment) -> bool {

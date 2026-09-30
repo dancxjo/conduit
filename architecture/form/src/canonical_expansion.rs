@@ -2,7 +2,7 @@ use crate::prelude::*;
 use crate::{
     hash_string, AuthoringFrontBinding, CanonicalBackCatalog, CanonicalExpansionDiagnostic,
     CanonicalStartupValue, CheckedCanonicalForm, CheckedCanonicalGear, CheckedConnection,
-    CheckedCordStage, CheckedGear, CheckedSyntaxDocument, ConfigurationValue,
+    CheckedCordStage, CheckedGear, CheckedSyntaxDocument, ConfigurationValue, ExpandedActivation,
     ExpandedAuthoringForm, ExpandedCanonicalForm, ExpandedGearProvenance, ExpandedSharedPool,
     KindConfigurationRule, ProfileCatalog, RuntimePortDirection, MAXIMUM_FORM_NESTING_DEPTH,
 };
@@ -60,6 +60,7 @@ struct Fragment {
     connections: Vec<CheckedConnection>,
     shared_pools: Vec<ExpandedSharedPool>,
     provenance: Vec<ExpandedGearProvenance>,
+    activations: Vec<ExpandedActivation>,
     inputs: BTreeMap<String, Vec<TrackedEndpoint>>,
     outputs: BTreeMap<String, TrackedEndpoint>,
     abnormal: Option<TrackedEndpoint>,
@@ -168,6 +169,7 @@ fn expand_instance_inner(
     let mut connections = Vec::new();
     let mut shared_pools = expanded_pool_declarations(form, path);
     let mut provenance = Vec::new();
+    let mut activations = Vec::new();
     let mut instances = BTreeMap::new();
     let mut gear_ids = BTreeSet::new();
     for gear in form.gears.iter().filter(|gear| gear.name.is_some()) {
@@ -190,6 +192,7 @@ fn expand_instance_inner(
             &mut connections,
             &mut shared_pools,
             &mut provenance,
+            &mut activations,
             &mut gear_ids,
         )?;
         instances.insert(name.to_string(), instance);
@@ -235,6 +238,7 @@ fn expand_instance_inner(
                         &mut connections,
                         &mut shared_pools,
                         &mut provenance,
+                        &mut activations,
                         &mut gear_ids,
                     )?;
                     for (operand, input_port) in operands.iter().zip(input_ports) {
@@ -332,6 +336,7 @@ fn expand_instance_inner(
                         &mut connections,
                         &mut shared_pools,
                         &mut provenance,
+                        &mut activations,
                         &mut gear_ids,
                     )?;
                     structured_selector::PendingStage::Ready(stage_for_instance(
@@ -430,6 +435,7 @@ fn expand_instance_inner(
         connections,
         shared_pools,
         provenance,
+        activations,
         inputs,
         outputs,
         abnormal,
@@ -456,10 +462,91 @@ fn instantiate_gear(
     connections: &mut Vec<CheckedConnection>,
     shared_pools: &mut Vec<ExpandedSharedPool>,
     provenance: &mut Vec<ExpandedGearProvenance>,
+    activations: &mut Vec<ExpandedActivation>,
     gear_ids: &mut BTreeSet<GearId>,
 ) -> Result<Instance, CanonicalExpansionDiagnostic> {
     let mut child_path = path.to_vec();
     child_path.push(instance_name.to_string());
+    if let Some(activation) = &gear.activation {
+        let child = forms
+            .get(activation.selected_form.as_str())
+            .copied()
+            .ok_or_else(|| {
+                CanonicalExpansionDiagnostic::new(
+                    "CND-FRM-062",
+                    "activation selected source Form disappeared after checking".into(),
+                )
+            })?;
+        let gear_id = GearId::from(child_path.join("/"));
+        if !gear_ids.insert(gear_id.clone()) {
+            return Err(CanonicalExpansionDiagnostic::new(
+                "CND-FRM-038",
+                format!("expanded gear path '{}' is not unique", gear_id.as_str()),
+            ));
+        }
+        let mut input = activation.input.clone();
+        input.temporal = conduit_core::PortTemporal::Flow { closes: true };
+        let mut output = activation.output.clone();
+        output.temporal = conduit_core::PortTemporal::Flow { closes: true };
+        let activation_id = format!("{}/activation", gear_id.as_str());
+        gears.push(crate::checked_gear_from_parts! {
+            gear_id: gear_id.clone(),
+            kind_id: KindId::from("flow/each"),
+            kind_contract_revision: conduit_core::KindIdentity::from("conduit.flow/each@1"),
+            startup_parameters: Vec::new(),
+            shorthand: Some((input.port_id.clone(), output.port_id.clone())),
+            inputs: vec![input.clone()],
+            outputs: vec![output.clone()],
+            semantic_contract: conduit_core::KindSemanticContract::default(),
+            terminal_transductions: Vec::new(),
+            resource_ports: Vec::new(),
+            configuration: Vec::new(),
+            pool_references: Vec::new(),
+        });
+        provenance.push(ExpandedGearProvenance {
+            gear_id: gear_id.as_str().to_string(),
+            form_path: path.to_vec(),
+            source_form: source_form.name.clone(),
+            source_gear: instance_name.to_string(),
+            source_span: gear.source_span,
+        });
+        activations.push(ExpandedActivation {
+            activation_id,
+            owner_gear_id: gear_id.clone(),
+            selected_form: activation.selected_form.clone(),
+            selected_checked_form_id: child.checked_form_id.clone(),
+            input: activation.input.clone(),
+            output: activation.output.clone(),
+            source_span: gear.source_span,
+        });
+        return Ok(Instance {
+            inputs: BTreeMap::from([(
+                input.port_id.as_str().to_string(),
+                vec![TrackedEndpoint::payload(Endpoint {
+                    gear_id: gear_id.clone(),
+                    port: input.clone(),
+                })],
+            )]),
+            outputs: BTreeMap::from([(
+                output.port_id.as_str().to_string(),
+                TrackedEndpoint::payload(Endpoint {
+                    gear_id,
+                    port: output.clone(),
+                }),
+            )]),
+            abnormal: output.abnormal_kind.as_ref().map(|_| {
+                TrackedEndpoint::payload(Endpoint {
+                    gear_id: GearId::from(child_path.join("/")),
+                    port: output.clone(),
+                })
+            }),
+            bare_ports: Some((
+                Some(input.port_id.as_str().to_string()),
+                Some(output.port_id.as_str().to_string()),
+            )),
+            terminal_transductions: Vec::new(),
+        });
+    }
     if let Some(child) = forms.get(gear.kind.as_str()).copied() {
         let child_environment = bind_child_environment(gear, environment)?;
         let fragment = expand_instance(
@@ -480,6 +567,7 @@ fn instantiate_gear(
         connections.extend(fragment.connections);
         shared_pools.extend(fragment.shared_pools);
         provenance.extend(fragment.provenance);
+        activations.extend(fragment.activations);
         return Ok(Instance {
             inputs: fragment.inputs,
             outputs: fragment.outputs,

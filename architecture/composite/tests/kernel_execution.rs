@@ -6,7 +6,9 @@ use conduit_composite::{
 use conduit_core::{
     kind_id, process_owned_line_offer, ArtifactId, BaseImplementationId, BootId, CapabilityId,
     CapabilityLimits, FailureReason, GearId, HostAdvertisement, HostId, HostProfileId,
-    ImplementationId, KindIdentity, OfferGeneration, PlannedGear, PortDescriptor, PortDirection,
+    ImplementationId, KindIdentity, OfferGeneration, PlacementId, PlannedActivation,
+    PlannedActivationCancellationPolicy, PlannedActivationFront, PlannedActivationLimits,
+    PlannedActivationTerminalPolicy, PlannedGear, PortDescriptor, PortDirection, SignStorageBudget,
     ValuePayload, PROTOCOL_VERSION,
 };
 use conduit_form::{parse, KindProjection, ProfileCatalog};
@@ -461,6 +463,66 @@ fn bounded_activation_owes_one_fresh_exact_execution_per_accepted_value() {
         activations.activate(8, &value(b"second")).unwrap(),
         BoundedActivationAdmission::Accepted { sequence: 8 }
     );
+}
+
+fn planned_activation(definition: &KernelCompositeDefinition) -> PlannedActivation {
+    let sign_budget = definition.internal_plan.fragments.iter().fold(
+        SignStorageBudget {
+            item_capacity: 0,
+            byte_capacity: 0,
+        },
+        |mut total, fragment| {
+            total.item_capacity += fragment.sign_storage_budget.item_capacity;
+            total.byte_capacity += fragment.sign_storage_budget.byte_capacity;
+            total
+        },
+    );
+    PlannedActivation {
+        activation_id: "flow/each-transform".into(),
+        owner_placement_id: PlacementId::from("flow/each"),
+        selected_plan_id: definition.internal_plan.plan_id.clone(),
+        selected_plan: Box::new(definition.internal_plan.clone()),
+        input: PlannedActivationFront {
+            front_port_id: conduit_core::port_id("input"),
+            value_kind: kind_id(VALUE_KIND),
+            abnormal_kind: None,
+        },
+        output: PlannedActivationFront {
+            front_port_id: conduit_core::port_id("output"),
+            value_kind: kind_id(VALUE_KIND),
+            abnormal_kind: None,
+        },
+        limits: PlannedActivationLimits {
+            maximum_active: 1,
+            maximum_queue_items: 1,
+            maximum_queue_bytes: 16,
+        },
+        terminal_policy: PlannedActivationTerminalPolicy::DrainThenPropagateExact,
+        cancellation_policy:
+            PlannedActivationCancellationPolicy::CancelActiveAndRejectLateCompletion,
+        effect_multiplicity:
+            conduit_core::PlannedActivationEffectMultiplicity::OncePerAcceptedInput,
+        per_activation_sign_budget: sign_budget,
+    }
+}
+
+#[test]
+fn bounded_activation_prepares_only_the_exact_planned_subgraph() {
+    let definition = definition();
+    let planned = planned_activation(&definition);
+    let prepared =
+        BoundedActivationHost::prepare_planned(&planned, definition.clone(), &registry()).unwrap();
+    assert_eq!(
+        prepared.contract().selected_plan_id,
+        planned.selected_plan_id
+    );
+
+    let mut widened = planned.clone();
+    widened.limits.maximum_queue_bytes += 1;
+    assert!(matches!(
+        BoundedActivationHost::prepare_planned(&widened, definition, &registry()),
+        Err(conduit_composite::BoundedActivationError::PlannedContractMismatch)
+    ));
 }
 
 #[test]

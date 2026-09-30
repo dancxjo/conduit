@@ -88,6 +88,7 @@ fn graph_projection_exposes_the_ordinary_gear_behind_a_relational_glyph() {
                 startup_parameters: vec![],
                 startup_bindings: vec![],
                 retained: None,
+                activation: None,
                 source_span: span,
             },
             input_ports: vec!["left".into(), "right".into()],

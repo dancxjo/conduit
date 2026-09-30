@@ -242,6 +242,8 @@ mod combine_latest;
 pub use combine_latest::*;
 mod flow_zip;
 pub use flow_zip::*;
+mod flow_each;
+pub use flow_each::*;
 mod flow_join_by_key;
 pub use flow_join_by_key::*;
 mod flow_state;
