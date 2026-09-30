@@ -3,7 +3,7 @@
 use alloc::{boxed::Box, string::String, vec::Vec};
 use conduit_core::BoundedResourceRef;
 
-use crate::{SampledSignal, TensorElement, TensorValue};
+use crate::{SampledSignal, ScientificObservationRefusal, TensorElement, TensorValue};
 
 pub const MAXIMUM_OBSERVATIONS_PER_SET: usize = 64;
 pub const MAXIMUM_OBSERVATION_SOURCES: usize = 16;
@@ -52,23 +52,6 @@ pub struct ObservationSet {
     pub subject_identity: Option<String>,
     pub observations: Vec<ScientificObservation>,
     pub missing_data: Vec<MissingDataMask>,
-}
-
-#[derive(Debug, Copy, Clone, PartialEq, Eq)]
-pub enum ScientificObservationRefusal {
-    MissingIdentity,
-    InvalidIdentity,
-    InvalidValue,
-    ClockMismatch,
-    MissingSource,
-    TooManySources,
-    EmptyObservationSet,
-    TooManyObservations,
-    DuplicateObservation,
-    InvalidMask,
-    MaskShapeMismatch,
-    UnknownMaskedObservation,
-    DuplicateMask,
 }
 
 impl ScientificObservation {

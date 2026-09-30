@@ -110,6 +110,52 @@ type DataLoadTextTerminal =
     | generation_not_retained
     | extent_mismatch
 
+type TensorRefusal =
+    rank_out_of_bounds
+    | zero_dimension
+    | axis_count_mismatch
+    | axis_identity_invalid
+    | shape_overflow
+    | byte_bound_exceeded
+    | inline_payload_too_large
+    | payload_length_mismatch
+    | resource_profile_mismatch
+    | resource_extent_mismatch
+    | content_identity_mismatch
+    | invalid_resource
+    | unsupported_encoding_version
+    | unsupported_element
+    | unsupported_axis_role
+    | unsupported_unit
+    | malformed_encoding
+
+type ScientificObservationRefusal =
+    missing_identity
+    | invalid_identity
+    | invalid_value
+    | clock_mismatch
+    | missing_source
+    | too_many_sources
+    | empty_observation_set
+    | too_many_observations
+    | duplicate_observation
+    | invalid_mask
+    | mask_shape_mismatch
+    | unknown_masked_observation
+    | duplicate_mask
+
+type DataReferenceRefusal =
+    malformed
+    | wrong_reference_kind
+    | wrong_content_kind
+    | wrong_access_class
+    | expiring_generation
+    | item_extent
+
+type DataGenerationNamespaceRefusal =
+    empty
+    | too_large
+
 representation data/save-text-terminal = DataSaveTextTerminal as u8
 
 representation data/load-text-terminal = DataLoadTextTerminal as u8
