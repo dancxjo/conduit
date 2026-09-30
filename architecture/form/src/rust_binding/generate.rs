@@ -8,10 +8,11 @@ use core::fmt::Write;
 pub struct RustBindingOptions {
     /// A Rust-only spelling prefix. It never participates in semantic identity.
     pub type_prefix: String,
-    /// Adds code-only Serde derives to payload-free variants.
+    /// Adds code-only Serde derives to variants whose generated Rust payloads
+    /// also support Serde.
     /// This never participates in semantic identity and requires the consuming
     /// crate to provide `serde` with derive support.
-    pub derive_serde_for_unit_variants: bool,
+    pub derive_serde_for_variants: bool,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -240,16 +241,26 @@ fn emit_type(
         StructuredInfoTypeShape::Variant { cases, .. } => {
             let unit_only = cases.iter().all(|case| unit_type(case.payload_type()));
             for case in cases {
-                if unit_type(case.payload_type()) {
-                    continue;
+                if matches!(
+                    case.payload_type().shape(),
+                    StructuredInfoTypeShape::Record { .. }
+                ) {
+                    let payload = format!("{rust_name}{}", rust_pascal_identifier(case.tag())?);
+                    emit_payload_struct(
+                        out,
+                        &payload,
+                        case.payload_type(),
+                        names,
+                        options.derive_serde_for_variants,
+                    )?;
                 }
-                let payload = format!("{rust_name}{}", rust_pascal_identifier(case.tag())?);
-                emit_payload_struct(out, &payload, case.payload_type(), names)?;
             }
-            let derives = if unit_only && options.derive_serde_for_unit_variants {
+            let derives = if unit_only && options.derive_serde_for_variants {
                 "Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, serde::Serialize, serde::Deserialize"
             } else if unit_only {
                 "Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash"
+            } else if options.derive_serde_for_variants {
+                "Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize"
             } else {
                 "Debug, Clone, PartialEq, Eq"
             };
@@ -259,9 +270,19 @@ fn emit_type(
                 let variant = rust_pascal_identifier(case.tag())?;
                 if unit_type(case.payload_type()) {
                     writeln!(out, "    {variant},").expect("String writing is infallible");
-                } else {
+                } else if matches!(
+                    case.payload_type().shape(),
+                    StructuredInfoTypeShape::Record { .. }
+                ) {
                     writeln!(out, "    {variant}({rust_name}{variant}),")
                         .expect("String writing is infallible");
+                } else {
+                    writeln!(
+                        out,
+                        "    {variant}({}),",
+                        rust_type(case.payload_type(), names)?
+                    )
+                    .expect("String writing is infallible");
                 }
             }
             writeln!(out, "}}\n").expect("String writing is infallible");
@@ -278,15 +299,18 @@ fn emit_payload_struct(
     name: &str,
     value_type: &StructuredInfoType,
     names: &BTreeMap<String, String>,
+    derive_serde: bool,
 ) -> Result<(), RustBindingGenerationError> {
     let StructuredInfoTypeShape::Record { fields, .. } = value_type.shape() else {
         return Err(RustBindingGenerationError::InvalidSemanticType);
     };
-    writeln!(
-        out,
-        "#[derive(Debug, Clone, PartialEq, Eq)]\npub struct {name} {{"
-    )
-    .expect("String writing is infallible");
+    let derives = if derive_serde {
+        "Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize"
+    } else {
+        "Debug, Clone, PartialEq, Eq"
+    };
+    writeln!(out, "#[derive({derives})]\npub struct {name} {{")
+        .expect("String writing is infallible");
     for field in fields {
         writeln!(
             out,

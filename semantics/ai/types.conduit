@@ -523,6 +523,14 @@ type LocalModelFailure =
     | resource_exhausted
     | shutdown
 
+type LocalModelTerminal =
+    produced
+    | truncated
+    | refused LocalModelRefusal
+    | failed LocalModelFailure
+    | cancelled
+    | provider_lost
+
 type LocalModelOfferInvalidity =
     missing_identity
     | identity_overflow

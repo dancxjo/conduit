@@ -74,6 +74,20 @@ pub(super) fn emit_variant_binding(
                 .expect("String writing is infallible");
             writeln!(out, "                let payload_type = conduit_form::rust_binding::variant_payload_type(&semantic, {:?})?;", case.tag())
                 .expect("String writing is infallible");
+            if !matches!(
+                case.payload_type().shape(),
+                StructuredInfoTypeShape::Record { .. }
+            ) {
+                let encoded =
+                    encode_expression(case.payload_type(), "payload", "payload_type", names)?;
+                writeln!(out, "                let _ = &payload_type;")
+                    .expect("String writing is infallible");
+                writeln!(out, "                let payload = {encoded};")
+                    .expect("String writing is infallible");
+                writeln!(out, "                StructuredInfoValue::variant(semantic, {:?}, payload).map_err(NativeBindingRefusal::InvalidValue)\n            }}", case.tag())
+                    .expect("String writing is infallible");
+                continue;
+            }
             writeln!(out, "                let mut fields = Vec::new();")
                 .expect("String writing is infallible");
             let StructuredInfoTypeShape::Record { fields, .. } = case.payload_type().shape() else {
@@ -118,6 +132,19 @@ pub(super) fn emit_variant_binding(
             writeln!(out, "            {:?} => Ok(Self::{variant}),", case.tag())
                 .expect("String writing is infallible");
         } else {
+            if !matches!(
+                case.payload_type().shape(),
+                StructuredInfoTypeShape::Record { .. }
+            ) {
+                let decoded = decode_expression(case.payload_type(), "payload.clone()", names)?;
+                writeln!(
+                    out,
+                    "            {:?} => Ok(Self::{variant}({decoded})),",
+                    case.tag()
+                )
+                .expect("String writing is infallible");
+                continue;
+            }
             let payload_name = format!("{rust_name}{variant}");
             let StructuredInfoTypeShape::Record { fields, .. } = case.payload_type().shape() else {
                 return Err(RustBindingGenerationError::InvalidSemanticType);

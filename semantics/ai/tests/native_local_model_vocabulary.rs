@@ -1,14 +1,14 @@
 use conduit_ai::{
     LocalModelCachePolicy, LocalModelFailure, LocalModelKindProfile, LocalModelLifecycleState,
-    LocalModelOfferInvalidity, LocalModelRefusal,
+    LocalModelOfferInvalidity, LocalModelRefusal, LocalModelTerminal,
 };
 use conduit_form::rust_binding::NativeRustBinding;
 
 fn assert_round_trip<T>(value: T)
 where
-    T: NativeRustBinding + Copy + core::fmt::Debug + PartialEq,
+    T: NativeRustBinding + Clone + core::fmt::Debug + PartialEq,
 {
-    let structured = value.into_structured().unwrap();
+    let structured = value.clone().into_structured().unwrap();
     assert_eq!(T::from_structured(structured).unwrap(), value);
 }
 
@@ -47,6 +47,14 @@ fn local_model_vocabularies_round_trip_through_native_types() {
         LocalModelOfferInvalidity::MissingIdentity,
         LocalModelOfferInvalidity::InvalidQueue,
         LocalModelOfferInvalidity::DeterministicClaim,
+    ] {
+        assert_round_trip(value);
+    }
+    for value in [
+        LocalModelTerminal::Produced,
+        LocalModelTerminal::Refused(LocalModelRefusal::QueueFull),
+        LocalModelTerminal::Failed(LocalModelFailure::Inference),
+        LocalModelTerminal::ProviderLost,
     ] {
         assert_round_trip(value);
     }

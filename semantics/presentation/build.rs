@@ -13,7 +13,7 @@ fn main() {
         &checked.native_types,
         &checked.codes,
         &RustBindingOptions {
-            derive_serde_for_unit_variants: true,
+            derive_serde_for_variants: true,
             ..RustBindingOptions::default()
         },
     )

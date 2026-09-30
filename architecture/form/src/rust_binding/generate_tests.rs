@@ -40,6 +40,13 @@ type Timing =
         uncertainty: Duration
     }
     | exact
+
+type Refusal =
+    unavailable
+
+type Outcome =
+    completed
+    | refused Refusal
 "#;
     crate::check_syntax_document(
         &crate::parse_syntax_document(source),
@@ -125,7 +132,7 @@ fn generation_is_deterministic_and_keeps_rust_spelling_out_of_identity() {
     let serde_unit_variants = generate_rust_bindings(
         &types,
         &RustBindingOptions {
-            derive_serde_for_unit_variants: true,
+            derive_serde_for_variants: true,
             ..RustBindingOptions::default()
         },
     )
@@ -156,6 +163,11 @@ fn generation_is_deterministic_and_keeps_rust_spelling_out_of_identity() {
     assert!(plain.source.contains(
         "pub fn estimated(uncertainty: conduit_core::Quantity) -> Result<Self, NativeBindingRefusal> { let candidate = Self::Estimated"
     ));
+    assert!(plain.source.contains("Refused(Refusal),"));
+    assert!(plain
+        .source
+        .contains("pub fn refused(payload: Refusal) -> Result<Self, NativeBindingRefusal>"));
+    assert!(!plain.source.contains("struct OutcomeRefused"));
     assert!(plain.source.contains(
         "#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]\npub enum Direction"
     ));
@@ -163,6 +175,9 @@ fn generation_is_deterministic_and_keeps_rust_spelling_out_of_identity() {
     assert!(serde_unit_variants
         .source
         .contains("Hash, serde::Serialize, serde::Deserialize)]\npub enum Direction"));
+    assert!(serde_unit_variants.source.contains(
+        "#[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]\npub enum Outcome"
+    ));
     assert!(!serde_unit_variants
         .source
         .contains("serde::Serialize)]\npub struct Position"));

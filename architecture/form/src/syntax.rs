@@ -123,8 +123,15 @@ pub struct TypeFieldSyntax {
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct TypeVariantCaseSyntax {
     pub tag: SpannedText,
-    pub fields: Vec<TypeFieldSyntax>,
+    pub payload: TypeVariantPayloadSyntax,
     pub span: Span,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum TypeVariantPayloadSyntax {
+    Unit,
+    Type(TypeExpressionSyntax),
+    Record(Vec<TypeFieldSyntax>),
 }
 
 /// Finite structural representation used inside one nominal Type.

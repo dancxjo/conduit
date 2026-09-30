@@ -17,8 +17,9 @@ use serde::{Deserialize, Serialize};
 use crate::{
     llm_contract, LlmDeterminismProfile, LlmWorkBounds, LocalModelCachePolicy, LocalModelFailure,
     LocalModelKindProfile, LocalModelLifecycleState, LocalModelOfferInvalidity, LocalModelRefusal,
-    LLM_CLASSIFY_KIND, LLM_EMBED_KIND, LLM_EXTRACT_KIND, LLM_GENERATE_FLOW_KIND, LLM_GENERATE_KIND,
-    LLM_INTERPRET_KIND, LLM_PRESENT_KIND, LLM_STREAM_GENERATE_KIND,
+    LocalModelTerminal, LLM_CLASSIFY_KIND, LLM_EMBED_KIND, LLM_EXTRACT_KIND,
+    LLM_GENERATE_FLOW_KIND, LLM_GENERATE_KIND, LLM_INTERPRET_KIND, LLM_PRESENT_KIND,
+    LLM_STREAM_GENERATE_KIND,
 };
 
 pub const LOCAL_MODEL_OPERATION: &str = "conduit.host/local-model-inference@1";
@@ -48,16 +49,6 @@ impl LocalModelKindProfile {
             Self::PresentSemanticFront => LLM_PRESENT_KIND,
         }
     }
-}
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
-pub enum LocalModelTerminal {
-    Produced,
-    Truncated,
-    Refused(LocalModelRefusal),
-    Failed(LocalModelFailure),
-    Cancelled,
-    ProviderLost,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]

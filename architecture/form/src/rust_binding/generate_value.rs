@@ -212,10 +212,13 @@ fn emit_variant_constructors(
             writeln!(out, "    pub fn {function}() -> Self {{ Self::{variant} }}")
                 .expect("String writing is infallible");
         } else {
-            let payload = format!("{rust_name}{variant}");
             let StructuredInfoTypeShape::Record { fields, .. } = case.payload_type().shape() else {
-                return Err(RustBindingGenerationError::InvalidSemanticType);
+                let payload_type = rust_type(case.payload_type(), names)?;
+                writeln!(out, "    pub fn {function}(payload: {payload_type}) -> Result<Self, NativeBindingRefusal> {{ let candidate = Self::{variant}(payload); let structured = candidate.clone().into_structured()?; conduit_form::rust_binding::validate_native_contracts(&structured, &Self::value_contracts())?; Ok(candidate) }}")
+                    .expect("String writing is infallible");
+                continue;
             };
+            let payload = format!("{rust_name}{variant}");
             let contract_prefix = format!("|{}.", case.tag());
             let is_unconstrained = contracts.iter().all(|contract| {
                 !contract.representation_path.is_empty()

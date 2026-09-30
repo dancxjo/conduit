@@ -67,6 +67,20 @@ Any future arbitrary-precision code must admit and charge its actual
 encoded extent. Sequence cardinality, stream backlog, and retained state remain
 explicitly bounded or governed independently of the element domain.
 
+Variants may carry another semantic Type directly:
+
+```conduit
+type LocalModelTerminal =
+    produced
+    | refused LocalModelRefusal
+    | failed LocalModelFailure
+    | cancelled
+```
+
+The payload remains the named Type; Conduitese does not invent an anonymous
+record or make Rust own the relationship. Use `{ ... }` only when the variant
+itself owns a record payload.
+
 For an interactive authoring surface, open the native Text Lab:
 
 ```bash
