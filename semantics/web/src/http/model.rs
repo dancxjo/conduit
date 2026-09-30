@@ -8,7 +8,9 @@ mod generated {
     include!(concat!(env!("OUT_DIR"), "/semantic_types.rs"));
 }
 
-pub use generated::{HttpExchangeFailure, HttpMethod, HttpServerResponseRefusal};
+pub use generated::{
+    HttpContractError, HttpExchangeFailure, HttpMethod, HttpServerResponseRefusal,
+};
 
 pub const HTTP_MAXIMUM_IN_FLIGHT: u16 = 4;
 pub const HTTP_MAXIMUM_HEADERS: usize = 16;
@@ -84,26 +86,6 @@ pub struct HttpResponse {
     /// Ordered and duplicate-preserving. Header names must be lowercase ASCII.
     pub headers: Vec<HttpHeader>,
     pub body: HttpBody,
-}
-
-#[derive(Debug, Clone, PartialEq, Eq)]
-pub enum HttpContractError {
-    EmptyAuthority,
-    InvalidScheme,
-    InvalidTarget,
-    TooManyHeaders,
-    EmptyHeaderName,
-    InvalidHeaderName,
-    SensitiveHeaderRequiresProtectedPath,
-    FramingHeaderIsDerived,
-    HeaderNameOverflow,
-    HeaderValueOverflow,
-    RequestBodyOverflow,
-    ResponseBodyOverflow,
-    InvalidStatus,
-    MalformedEncoding,
-    EncodedValueOverflow,
-    TrailingBytes,
 }
 
 impl HttpRequest {

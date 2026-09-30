@@ -35,3 +35,21 @@ type HttpServerResponseRefusal =
     | capacity
     | authority_denied
     | cancelled
+
+type HttpContractError =
+    empty_authority
+    | invalid_scheme
+    | invalid_target
+    | too_many_headers
+    | empty_header_name
+    | invalid_header_name
+    | sensitive_header_requires_protected_path
+    | framing_header_is_derived
+    | header_name_overflow
+    | header_value_overflow
+    | request_body_overflow
+    | response_body_overflow
+    | invalid_status
+    | malformed_encoding
+    | encoded_value_overflow
+    | trailing_bytes
