@@ -9,6 +9,8 @@ use conduit_core::{
     RESOURCE_REFERENCE_INFO_ID,
 };
 
+use crate::PresenceState;
+
 pub const PORTABLE_MESSAGE_TYPE: &str = "PortableMessage";
 pub const DELIVERY_REQUEST_TYPE: &str = "DeliveryRequest";
 pub const DELIVERY_UPDATE_TYPE: &str = "DeliveryUpdate";
@@ -234,16 +236,7 @@ pub fn notification_event_type() -> StructuredInfoType {
 }
 
 pub fn presence_state_type() -> StructuredInfoType {
-    StructuredInfoType::variant(
-        kind_id("presence/state@1"),
-        vec![
-            case("available", unit_type()),
-            case("away", unit_type()),
-            case("offline", unit_type()),
-            case("unknown", unit_type()),
-        ],
-    )
-    .expect("reviewed presence states")
+    PresenceState::semantic_type().expect("checked native presence state is finite")
 }
 
 pub fn presence_event_type() -> StructuredInfoType {

@@ -215,7 +215,7 @@ fn expect(master: &mut std::fs::File, expected: &[u8]) {
 fn observation_frame(distance_delta_mm: i16) -> Vec<u8> {
     let mut group = [0_u8; 26];
     group[12..14].copy_from_slice(&distance_delta_mm.to_be_bytes());
-    group[16] = ChargingState::NotCharging as u8;
+    group[16] = ChargingState::NotCharging.wire_tag();
     let mut frame = vec![19, 29, 0];
     frame.extend_from_slice(&group);
     frame.extend_from_slice(&[34, 0]);

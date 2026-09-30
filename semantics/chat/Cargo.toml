@@ -7,7 +7,7 @@ edition = "2021"
 conduit-ai = { path = "../ai", optional = true, default-features = false }
 conduit-body = { path = "../../architecture/body", default-features = false }
 conduit-core = { path = "../../architecture/core" }
-conduit-form = { path = "../../architecture/form", optional = true }
+conduit-form = { path = "../../architecture/form" }
 conduit-net = { path = "../net" }
 conduit-presentation = { path = "../presentation", default-features = false }
 conduit-text = { path = "../text" }
@@ -20,17 +20,26 @@ sha2 = { version = "0.10", default-features = false }
 default = []
 form-catalog = [
     "dep:conduit-ai",
-    "dep:conduit-form",
     "conduit-ai/form-catalog",
     "conduit-net/form-catalog",
     "conduit-presentation/form-catalog",
 ]
 
-[dev-dependencies]
+[build-dependencies]
 conduit-form = { path = "../../architecture/form" }
+
+[dev-dependencies]
 conduit-planner = { path = "../../architecture/planner" }
 conduit-semantic-catalog = { path = "../catalog" }
 
 [[test]]
 name = "body_chat"
+required-features = ["form-catalog"]
+
+[[test]]
+name = "browser_chat"
+required-features = ["form-catalog"]
+
+[[test]]
+name = "shared_pool_chat"
 required-features = ["form-catalog"]

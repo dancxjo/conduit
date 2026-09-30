@@ -1,0 +1,13 @@
+# Authoritative portable robotics meaning. Mechanism codecs remain explicit.
+
+type BeaconKind =
+    virtual_wall
+    | infrared_code
+
+type ChargingState =
+    not_charging
+    | reconditioning
+    | full
+    | trickle
+    | waiting
+    | fault

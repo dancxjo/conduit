@@ -6,6 +6,13 @@
 
 extern crate alloc;
 
+#[allow(dead_code)]
+mod generated {
+    include!(concat!(env!("OUT_DIR"), "/semantic_types.rs"));
+}
+
+pub use generated::{ChatConnectionState, PresenceState};
+
 mod body_chat;
 pub use body_chat::*;
 
@@ -27,3 +34,30 @@ pub use messaging_view::*;
 mod messaging_catalog;
 #[cfg(feature = "form-catalog")]
 pub use messaging_catalog::*;
+
+#[cfg(test)]
+mod native_type_tests {
+    use super::{ChatConnectionState, PresenceState};
+    use conduit_form::rust_binding::NativeRustBinding;
+
+    fn assert_round_trip<T>(value: T)
+    where
+        T: NativeRustBinding + Copy + core::fmt::Debug + PartialEq,
+    {
+        let structured = value.into_structured().expect("native value encodes");
+        assert_eq!(
+            structured.value_type(),
+            &T::semantic_type().expect("native semantic type checks")
+        );
+        assert_eq!(
+            T::from_structured(structured).expect("native value decodes"),
+            value
+        );
+    }
+
+    #[test]
+    fn chat_connection_and_presence_are_native_semantic_types() {
+        assert_round_trip(ChatConnectionState::Connected);
+        assert_round_trip(PresenceState::Away);
+    }
+}

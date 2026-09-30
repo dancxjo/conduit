@@ -1,13 +1,10 @@
 //! Provider-neutral, bounded Body Chat prompt and conversation state.
 
 #[cfg(feature = "form-catalog")]
+use alloc::string::ToString;
+#[cfg(feature = "form-catalog")]
 use alloc::vec;
-use alloc::{
-    collections::VecDeque,
-    format,
-    string::{String, ToString},
-    vec::Vec,
-};
+use alloc::{collections::VecDeque, format, string::String, vec::Vec};
 use conduit_core::CapabilityLimits;
 #[cfg(feature = "form-catalog")]
 use conduit_core::{
