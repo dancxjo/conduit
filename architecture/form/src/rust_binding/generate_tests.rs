@@ -20,6 +20,10 @@ type MusicEvent =
         pitches: sequence Note <= 16
     }
     | rest
+
+type Direction =
+    north
+    | south
 "#;
     crate::check_syntax_document(
         &crate::parse_syntax_document(source),
@@ -52,6 +56,9 @@ fn generation_is_deterministic_and_keeps_rust_spelling_out_of_identity() {
     assert!(plain.source.contains("pitches: BoundedSequence<Note, 16>"));
     assert!(plain.source.contains("Note(MusicEventNote)"));
     assert!(plain.source.contains("Rest,"));
+    assert!(plain.source.contains(
+        "#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]\npub enum Direction"
+    ));
     assert!(prefixed.source.contains("pub struct FixtureNote(u8);"));
 }
 
@@ -117,6 +124,10 @@ mod generated_round_trip {
 
     #[test]
     fn refinements_and_canonical_round_trip_are_exact() {
+        fn requires_unit_variant_traits<T: Copy + Ord + core::hash::Hash>() {}
+        requires_unit_variant_traits::<Direction>();
+        assert!(Direction::North < Direction::South);
+
         let note = Note::new(60).unwrap();
         assert!(Note::new(200).is_err());
         let encoded = note.clone().encode().unwrap();
