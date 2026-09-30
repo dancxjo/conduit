@@ -602,6 +602,19 @@ fn push_semantic_contract(canonical: &mut Vec<u8>, contract: &crate::KindSemanti
                 canonical.push(join.capacity as u8);
                 canonical.push(join.unmatched_on_close as u8);
             }
+            Law::FlowSelect(select) => {
+                canonical.push(13);
+                push_string(canonical, select.input_port_id.as_str());
+                push_string(canonical, select.output_port_id.as_str());
+                push_string(canonical, select.predicate_input_kind.as_str());
+                push_string(canonical, select.predicate_output_kind.as_str());
+                canonical.extend_from_slice(&select.maximum_active.to_le_bytes());
+                canonical.extend_from_slice(&select.maximum_queued.to_le_bytes());
+                canonical.push(select.invocation as u8);
+                canonical.push(select.retained_input as u8);
+                canonical.push(select.true_disposition as u8);
+                canonical.push(select.false_disposition as u8);
+            }
         }
     }
 }

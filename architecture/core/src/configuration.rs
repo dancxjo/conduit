@@ -290,6 +290,42 @@ pub enum KindSemanticLaw {
     ValueContracts(Vec<crate::FrontValueContract>),
     /// Finite correlation semantics for a two-sided one-to-one keyed join.
     KeyedJoin(KeyedJoinSemanticLaw),
+    /// Exact bounded lifting of one Value-to-Boolean predicate over a closing Flow.
+    FlowSelect(FlowSelectSemanticLaw),
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct FlowSelectSemanticLaw {
+    pub input_port_id: PortId,
+    pub output_port_id: PortId,
+    pub predicate_input_kind: KindId,
+    pub predicate_output_kind: KindId,
+    pub maximum_active: u16,
+    pub maximum_queued: u16,
+    pub invocation: FlowSelectInvocation,
+    pub retained_input: FlowSelectRetainedInput,
+    pub true_disposition: FlowSelectTrueDisposition,
+    pub false_disposition: FlowSelectFalseDisposition,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+pub enum FlowSelectInvocation {
+    OncePerAcceptedInput,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+pub enum FlowSelectRetainedInput {
+    UntilPredicateCompletion,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+pub enum FlowSelectFalseDisposition {
+    EmitNothing,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+pub enum FlowSelectTrueDisposition {
+    EmitRetainedInputExactlyOnce,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]

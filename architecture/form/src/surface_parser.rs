@@ -642,6 +642,12 @@ impl<'a> Parser<'a> {
                         selected,
                         invoked_start + "activate ".len(),
                     )
+                } else if let Some(selected) = invoked.strip_prefix("select ") {
+                    (
+                        Some(ActivationSyntax::Select),
+                        selected,
+                        invoked_start + "select ".len(),
+                    )
                 } else {
                     (None, invoked, invoked_start)
                 };
