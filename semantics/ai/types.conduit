@@ -216,6 +216,11 @@ type SourceExtractionProfile =
         overlap_items: U32
     }
 
+type FusionStrategy =
+    reciprocal_rank {
+        rank_constant: U16 in 1..=65535
+    }
+
 type ContextSelectionRationale =
     exact_match
     | semantic_candidate
