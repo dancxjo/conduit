@@ -7,8 +7,8 @@ use conduit_body::{
 use conduit_core::{
     ArtifactId, BaseImplementationId, CapabilityId, CapabilityLimits, ExecutionProfileId,
     HostAdvertisement, HostCallContractId, HostCallRequirement, HostId, HostProfileId,
-    ImplementationId, ImplementationOffer, OfferGeneration, PROTOCOL_VERSION, SignId, kind_id,
-    resource_offer, resource_requirement,
+    ImplementationId, ImplementationOffer, OfferGeneration, PROTOCOL_VERSION, SignId,
+    authority_grant, kind_id, present_authority_requirement, resource_offer, resource_requirement,
 };
 use conduit_form::{
     KindSignature, ProfileCatalog, StartupCatalog, check_syntax_document,
@@ -22,9 +22,11 @@ use conduit_presentation::{
     BodyMaskWardrobe, FaceInteractionRealizationOffer, MAX_RENDERER_VALUE_BYTES,
     ManifestationLifecycle, MaskForm, MaskShow, MaskWardrobe, MaskWardrobeLifetime,
     PlannedMaskForm, Presentation, PresentationBasis, PresentationRole, PresentationSubject,
-    RendererRealizationOffer, face_interaction_kind_projection, face_interaction_offer,
-    install_mask_form_value_aliases, presentation_tee_kind_projection, presentation_tee_offer,
-    renderer_kind_projection, renderer_offer,
+    RendererRealizationOffer, ResourceRendererRealizationOffer, ShowResourceSourceOffer,
+    face_interaction_kind_projection, face_interaction_offer, install_mask_form_value_aliases,
+    presentation_tee_kind_projection, presentation_tee_offer, renderer_kind_projection,
+    renderer_offer, resource_renderer_kind, resource_renderer_offer, show_resource_source_kind,
+    show_resource_source_offer,
 };
 use patchbay_application::{PatchbayMaskMode, PatchbayMaskStage, PatchbayMaskTopology};
 use serde::Serialize;
@@ -61,6 +63,8 @@ pub struct NativeMaskShowCorrelation {
     pub show_value_id: String,
     pub mask_show_id: String,
     pub manifestation_id: String,
+    pub surface_possession:
+        Option<crate::native_surface_possession::NativeSurfacePossessionReceipt>,
 }
 
 #[derive(Clone)]
@@ -73,6 +77,7 @@ pub(super) struct MaskControl {
     presentation: Option<Presentation>,
     shows: Vec<MaskShow>,
     evidence: Option<NativeMaskEvidence>,
+    surface_provider: Option<crate::product_bases::NativeSurfaceProvider>,
 }
 
 #[derive(Clone)]
@@ -82,13 +87,21 @@ pub(super) struct MaskStage {
 }
 
 impl MaskControl {
-    pub(super) fn graphical(host_id: HostId, boot_id: conduit_core::BootId) -> Result<Self, ()> {
+    pub(super) fn graphical(
+        host_id: HostId,
+        boot_id: conduit_core::BootId,
+        surface_provider: Option<crate::product_bases::NativeSurfaceProvider>,
+    ) -> Result<Self, ()> {
+        #[cfg(test)]
+        let surface_provider =
+            surface_provider.or_else(|| Some(crate::product_bases::fixture_surface_provider()));
         let graphical = prepare_stage(
             Adapter::Native,
             &host_id,
             &boot_id,
             1,
             "conduitos/native-patchbay",
+            surface_provider.as_ref().map(|provider| &provider.entry),
         )?;
         Ok(Self {
             host_id,
@@ -99,6 +112,7 @@ impl MaskControl {
             presentation: None,
             shows: Vec::new(),
             evidence: None,
+            surface_provider,
         })
     }
 
@@ -114,6 +128,9 @@ impl MaskControl {
                 &self.boot_id,
                 self.sequence,
                 "conduitos/native-patchbay-restored",
+                self.surface_provider
+                    .as_ref()
+                    .map(|provider| &provider.entry),
             )?);
             self.sequence = self.sequence.checked_add(1).ok_or(())?;
         }
@@ -128,6 +145,7 @@ impl MaskControl {
                 &self.boot_id,
                 self.sequence,
                 "conduitos/test-speech",
+                None,
             )?);
             self.sequence = self.sequence.checked_add(1).ok_or(())?;
         }
@@ -205,6 +223,7 @@ impl MaskControl {
         .map_err(|_| ())?;
         let mut shows = Vec::new();
         let mut execution_receipts = Vec::new();
+        let mut surface_receipts = Vec::new();
         for (index, stage) in self.graphical.iter().chain(self.speech.iter()).enumerate() {
             let fragment = stage.planned_mask.plan.fragments.first().ok_or(())?;
             let active = conduit_core::bind_active_play(
@@ -213,6 +232,25 @@ impl MaskControl {
                 &fragment.boot_id,
                 play.play_sequence,
             );
+            let mut surface = if stage
+                .planned_mask
+                .plan
+                .fragments
+                .iter()
+                .flat_map(|fragment| &fragment.connections)
+                .any(|connection| connection.resource.is_some())
+            {
+                let mut possession =
+                    crate::native_surface_possession::ActiveNativeSurfacePossession::begin(
+                        self.surface_provider.as_ref().ok_or(())?,
+                        &stage.planned_mask.plan,
+                        active.active_play_id.clone(),
+                    )?;
+                possession.authorize()?;
+                Some(possession)
+            } else {
+                None
+            };
             let execution = crate::native_mask_play::run(
                 &stage.planned_mask,
                 &presentation,
@@ -222,6 +260,10 @@ impl MaskControl {
             if execution.active_play_id != active.active_play_id {
                 return Err(());
             }
+            surface_receipts.push(match surface.take() {
+                Some(possession) => Some(possession.complete_and_retire()?),
+                None => None,
+            });
             let prepared = MaskShow::prepared(
                 &stage.planned_mask,
                 &presentation,
@@ -267,7 +309,19 @@ impl MaskControl {
                         .find(|placement| placement.placement_id == manifestation.placement_id)
                 })
                 .ok_or(())?;
-            let resource = planned.resources.first().ok_or(())?;
+            let resource = planned
+                .resources
+                .first()
+                .or_else(|| {
+                    self.graphical
+                        .iter()
+                        .chain(self.speech.iter())
+                        .flat_map(|stage| &stage.planned_mask.plan.fragments)
+                        .flat_map(|fragment| &fragment.connections)
+                        .find_map(|connection| connection.resource.as_ref())
+                        .map(|resource| &resource.source_binding)
+                })
+                .ok_or(())?;
             stages.push(PatchbayMaskStage {
                 manifestation_id: manifestation.manifestation_id.as_str().into(),
                 implementation_id: manifestation.presenter_implementation_id.as_str().into(),
@@ -325,6 +379,9 @@ impl MaskControl {
                 &self.boot_id,
                 self.sequence,
                 "conduitos/native-patchbay-unselected",
+                self.surface_provider
+                    .as_ref()
+                    .map(|provider| &provider.entry),
             )?
             .planned_mask
             .mask
@@ -374,15 +431,19 @@ impl MaskControl {
             shows: execution_receipts
                 .iter()
                 .zip(&self.shows)
-                .map(|(receipt, show)| NativeMaskShowCorrelation {
-                    mask_plan_id: receipt.mask_plan_id.clone(),
-                    mask_active_play_id: receipt.active_play_id.as_str().into(),
-                    presentation_id: receipt.presentation_id.clone(),
-                    presentation_revision: receipt.presentation_revision,
-                    show_value_id: receipt.show_value_id.clone(),
-                    mask_show_id: show.show_id.as_str().into(),
-                    manifestation_id: show.show.manifestation_id.as_str().into(),
-                })
+                .zip(&surface_receipts)
+                .map(
+                    |((receipt, show), surface_possession)| NativeMaskShowCorrelation {
+                        mask_plan_id: receipt.mask_plan_id.clone(),
+                        mask_active_play_id: receipt.active_play_id.as_str().into(),
+                        presentation_id: receipt.presentation_id.clone(),
+                        presentation_revision: receipt.presentation_revision,
+                        show_value_id: receipt.show_value_id.clone(),
+                        mask_show_id: show.show_id.as_str().into(),
+                        manifestation_id: show.show.manifestation_id.as_str().into(),
+                        surface_possession: surface_possession.clone(),
+                    },
+                )
                 .collect(),
             kernel_signs: execution_receipts
                 .iter()
@@ -440,6 +501,7 @@ pub(super) fn prepare_stage(
     boot_id: &conduit_core::BootId,
     generation: u64,
     target: &str,
+    surface_provider: Option<&conduit_core::BaseProviderEntry>,
 ) -> Result<MaskStage, ()> {
     let mut startup = StartupCatalog::new();
     let mut catalog = ProfileCatalog::new();
@@ -457,6 +519,15 @@ pub(super) fn prepare_stage(
             .map_err(|_| ())?;
         catalog.insert(projection).map_err(|_| ())?;
     }
+    for kind in [show_resource_source_kind(), resource_renderer_kind()] {
+        startup
+            .insert(KindSignature {
+                kind: kind.kind_id.as_str().into(),
+                startup_parameters: Vec::new(),
+            })
+            .map_err(|_| ())?;
+        catalog.insert_kind(kind).map_err(|_| ())?;
+    }
     let (source, entry) = match adapter {
         Adapter::Native => (
             include_str!("../../../forms/native-graphical-mask/main.conduit"),
@@ -472,7 +543,7 @@ pub(super) fn prepare_stage(
     let authoring =
         expand_canonical_form_for_authoring(&checked, entry, &catalog).map_err(|_| ())?;
     let mask = MaskForm::admit(&authoring).map_err(|_| ())?;
-    let advertisement = renderer_host(adapter, host_id, boot_id, generation);
+    let advertisement = renderer_host(adapter, host_id, boot_id, generation, surface_provider);
     let placements =
         default_expanded_placements(&authoring.expanded, core::slice::from_ref(&advertisement))
             .map_err(|_| ())?;
@@ -502,6 +573,19 @@ pub(super) fn prepare_stage(
     .collect();
     let empty_connections = alloc::collections::BTreeMap::new();
     let empty_lines = alloc::collections::BTreeMap::new();
+    let authority_grants = if matches!(adapter, Adapter::Native) {
+        let requirement =
+            present_authority_requirement(kind_id("presentation/base/conduitos-surface@1"));
+        vec![authority_grant(
+            "conduitos/native-mask/present",
+            &requirement,
+            host_id.clone(),
+            boot_id.clone(),
+            CapabilityId::from("renderer-conduitos"),
+        )]
+    } else {
+        Vec::new()
+    };
     let plan = plan_expanded_authoring_with_options(
         &authoring,
         &[advertisement],
@@ -512,7 +596,7 @@ pub(super) fn prepare_stage(
             line_candidates: &empty_lines,
             connection_item_capacity: 1,
             connection_byte_capacity: crate::native_mask_play::MAX_MASK_VALUE_BYTES as u32,
-            authority_grants: &[],
+            authority_grants: &authority_grants,
             protected_resource_grants: &[],
             line_offers: &[],
         },
@@ -530,6 +614,7 @@ fn renderer_host(
     host_id: &HostId,
     boot_id: &conduit_core::BootId,
     generation: u64,
+    surface_provider: Option<&conduit_core::BaseProviderEntry>,
 ) -> HostAdvertisement {
     let (capability, implementation, artifact, target_kind, resource_class, input_resource) =
         match adapter {
@@ -550,40 +635,39 @@ fn renderer_host(
                 "conduit.resource/test-speech-input@1",
             ),
         };
-    HostAdvertisement {
-        protocol_version: PROTOCOL_VERSION,
-        host_id: host_id.clone(),
-        boot_id: boot_id.clone(),
-        offer_generation: OfferGeneration(generation),
-        profile: HostProfileId::from("conduitos/mask-host@1"),
-        bases: vec![],
-        resources: vec![
-            resource_offer(
-                &format!("{}/{capability}", host_id.as_str()),
-                resource_class,
-                1,
-            ),
-            resource_offer(
-                &format!("{}/{capability}-input", host_id.as_str()),
-                input_resource,
-                1,
-            ),
-        ],
-        capabilities: vec![
-            presentation_tee_offer(
-                CapabilityId::from(format!("{capability}-tee")),
-                ImplementationOffer {
-                    execution_profile_id: ExecutionProfileId::from("conduitos/bounded-mask@1"),
-                    implementation_id: ImplementationId::from("conduit.presentation/tee-kernel@1"),
-                    artifact_id: ArtifactId::from("conduitos/presentation-tee@1"),
-                },
-                CapabilityLimits {
+    let mut capabilities = vec![presentation_tee_offer(
+        CapabilityId::from(format!("{capability}-tee")),
+        ImplementationOffer {
+            execution_profile_id: ExecutionProfileId::from("conduitos/bounded-mask@1"),
+            implementation_id: ImplementationId::from("conduit.presentation/tee-kernel@1"),
+            artifact_id: ArtifactId::from("conduitos/presentation-tee@1"),
+        },
+        CapabilityLimits {
+            max_active_instances: 1,
+            max_queue_items: 1,
+            max_queue_bytes: MAX_RENDERER_VALUE_BYTES,
+        },
+    )];
+    match adapter {
+        Adapter::Native => {
+            capabilities.push(show_resource_source_offer(ShowResourceSourceOffer {
+                capability_id: CapabilityId::from("renderer-conduitos-resource-source"),
+                execution_profile_id: ExecutionProfileId::from("conduitos/bounded-mask@1"),
+                implementation_id: ImplementationId::from(
+                    "presentation/conduitos-surface-source@1",
+                ),
+                artifact_id: ArtifactId::from("conduitos/native-compositor@1"),
+                resource_requirement: resource_requirement(
+                    conduit_presentation::SHOW_RESOURCE_CLASS,
+                    1,
+                ),
+                limits: CapabilityLimits {
                     max_active_instances: 1,
                     max_queue_items: 1,
                     max_queue_bytes: MAX_RENDERER_VALUE_BYTES,
                 },
-            ),
-            renderer_offer(RendererRealizationOffer {
+            }));
+            capabilities.push(resource_renderer_offer(ResourceRendererRealizationOffer {
                 capability_id: CapabilityId::from(capability),
                 execution_profile_id: ExecutionProfileId::from("conduitos/bounded-mask@1"),
                 implementation_id: ImplementationId::from(implementation),
@@ -595,41 +679,125 @@ fn renderer_host(
                     maximum_input_bytes: MAX_RENDERER_VALUE_BYTES,
                     maximum_output_bytes: MAX_RENDERER_VALUE_BYTES,
                 },
-                resource_requirement: resource_requirement(resource_class, 1),
+                authority_requirement: present_authority_requirement(kind_id(target_kind)),
                 limits: CapabilityLimits {
                     max_active_instances: 1,
                     max_queue_items: 1,
                     max_queue_bytes: MAX_RENDERER_VALUE_BYTES,
                 },
-            }),
-            face_interaction_offer(FaceInteractionRealizationOffer {
-                capability_id: CapabilityId::from(format!("{capability}-input")),
-                execution_profile_id: ExecutionProfileId::from("conduitos/bounded-interaction@1"),
-                implementation_id: ImplementationId::from(match adapter {
-                    Adapter::Native => "presentation/conduitos-human-input@1",
-                    Adapter::Speech => "presentation/test-speech-input@1",
-                }),
-                artifact_id: ArtifactId::from(match adapter {
-                    Adapter::Native => "conduitos/native-compositor-input@1",
-                    Adapter::Speech => "conduitos/test-speech-input@1",
-                }),
-                host_call: HostCallRequirement {
-                    contract_id: HostCallContractId::from(
-                        "conduit.host/presentation-interaction@1",
-                    ),
-                    target_kind: Some(kind_id(conduit_presentation::FACE_INTERACTION_VALUE_KIND)),
-                    maximum_in_flight: 1,
-                    maximum_input_bytes: MAX_RENDERER_VALUE_BYTES,
-                    maximum_output_bytes: conduit_presentation::MAX_FACE_INTERACTION_BYTES as u32,
-                },
-                resource_requirement: resource_requirement(input_resource, 1),
-                limits: CapabilityLimits {
-                    max_active_instances: 1,
-                    max_queue_items: 8,
-                    max_queue_bytes: conduit_presentation::MAX_FACE_INTERACTION_BYTES as u32 * 8,
-                },
-            }),
-        ],
+            }));
+        }
+        Adapter::Speech => capabilities.push(renderer_offer(RendererRealizationOffer {
+            capability_id: CapabilityId::from(capability),
+            execution_profile_id: ExecutionProfileId::from("conduitos/bounded-mask@1"),
+            implementation_id: ImplementationId::from(implementation),
+            artifact_id: ArtifactId::from(artifact),
+            host_call: HostCallRequirement {
+                contract_id: HostCallContractId::from("conduit.host/present@1"),
+                target_kind: Some(kind_id(target_kind)),
+                maximum_in_flight: 1,
+                maximum_input_bytes: MAX_RENDERER_VALUE_BYTES,
+                maximum_output_bytes: MAX_RENDERER_VALUE_BYTES,
+            },
+            resource_requirement: resource_requirement(resource_class, 1),
+            limits: CapabilityLimits {
+                max_active_instances: 1,
+                max_queue_items: 1,
+                max_queue_bytes: MAX_RENDERER_VALUE_BYTES,
+            },
+        })),
+    }
+    capabilities.push(face_interaction_offer(FaceInteractionRealizationOffer {
+        capability_id: CapabilityId::from(format!("{capability}-input")),
+        execution_profile_id: ExecutionProfileId::from("conduitos/bounded-interaction@1"),
+        implementation_id: ImplementationId::from(match adapter {
+            Adapter::Native => "presentation/conduitos-human-input@1",
+            Adapter::Speech => "presentation/test-speech-input@1",
+        }),
+        artifact_id: ArtifactId::from(match adapter {
+            Adapter::Native => "conduitos/native-compositor-input@1",
+            Adapter::Speech => "conduitos/test-speech-input@1",
+        }),
+        host_call: HostCallRequirement {
+            contract_id: HostCallContractId::from("conduit.host/presentation-interaction@1"),
+            target_kind: Some(kind_id(conduit_presentation::FACE_INTERACTION_VALUE_KIND)),
+            maximum_in_flight: 1,
+            maximum_input_bytes: MAX_RENDERER_VALUE_BYTES,
+            maximum_output_bytes: conduit_presentation::MAX_FACE_INTERACTION_BYTES as u32,
+        },
+        resource_requirement: resource_requirement(input_resource, 1),
+        limits: CapabilityLimits {
+            max_active_instances: 1,
+            max_queue_items: 8,
+            max_queue_bytes: conduit_presentation::MAX_FACE_INTERACTION_BYTES as u32 * 8,
+        },
+    }));
+    let (surface_resource, bases) = if matches!(adapter, Adapter::Native) {
+        if let Some(provider) = surface_provider {
+            let resource = provider
+                .resources
+                .iter()
+                .find(|resource| {
+                    resource.class_id.as_str() == conduit_presentation::SHOW_RESOURCE_CLASS
+                })
+                .cloned()
+                .unwrap_or_else(|| {
+                    resource_offer(
+                        &format!("{}/{capability}", host_id.as_str()),
+                        conduit_presentation::SHOW_RESOURCE_CLASS,
+                        1,
+                    )
+                });
+            let base = conduit_core::BaseProviderAdvertisement {
+                base_id: provider.base_id.clone(),
+                provider_instance_id: provider.provider_instance_id.clone(),
+                provider_generation: provider.provider_generation,
+                implementation_id: provider.implementation_id.clone(),
+                mechanism_family: provider.mechanism_family.clone(),
+                enforcement_class: provider.enforcement_class,
+                lifecycle: provider.lifecycle,
+                capability_ids: vec![CapabilityId::from("renderer-conduitos-resource-source")],
+                resource_pool_ids: vec![resource.pool_id.clone()],
+            };
+            (resource, vec![base])
+        } else {
+            (
+                resource_offer(
+                    &format!("{}/{capability}", host_id.as_str()),
+                    conduit_presentation::SHOW_RESOURCE_CLASS,
+                    1,
+                ),
+                Vec::new(),
+            )
+        }
+    } else {
+        (
+            resource_offer(
+                &format!("{}/{capability}", host_id.as_str()),
+                resource_class,
+                1,
+            ),
+            Vec::new(),
+        )
+    };
+    let mut resources = vec![
+        surface_resource,
+        resource_offer(
+            &format!("{}/{capability}-input", host_id.as_str()),
+            input_resource,
+            1,
+        ),
+    ];
+    resources.sort_by(|left, right| left.pool_id.cmp(&right.pool_id));
+    HostAdvertisement {
+        protocol_version: PROTOCOL_VERSION,
+        host_id: host_id.clone(),
+        boot_id: boot_id.clone(),
+        offer_generation: OfferGeneration(generation),
+        profile: HostProfileId::from("conduitos/mask-host@1"),
+        bases,
+        resources,
+        capabilities,
         planner_capabilities: Vec::new(),
     }
 }
@@ -640,7 +808,7 @@ pub fn native_host_advertisement(
     boot_id: &conduit_core::BootId,
     generation: u64,
 ) -> HostAdvertisement {
-    renderer_host(Adapter::Native, host_id, boot_id, generation)
+    renderer_host(Adapter::Native, host_id, boot_id, generation, None)
 }
 
 #[cfg(test)]
@@ -651,7 +819,7 @@ mod tests {
     fn native_mask_is_the_exact_ordinary_mask_form_and_keeps_its_branched_plan() {
         let host = HostId::from("conduitos/test-host");
         let boot = conduit_core::BootId::from("conduitos/test-boot");
-        let control = MaskControl::graphical(host, boot).unwrap();
+        let control = MaskControl::graphical(host, boot, None).unwrap();
         let stage = control.graphical.as_ref().unwrap();
 
         assert_eq!(stage.planned_mask.mask.form_name, "native-graphical");
@@ -685,8 +853,27 @@ mod tests {
                 .iter()
                 .map(|fragment| fragment.connections.len())
                 .sum::<usize>(),
-            3,
-            "the planned Mask retains both Presentation branches and the renderer-to-interaction Show correlation"
+            4,
+            "the planned Mask retains both Presentation branches, Show correlation, and the local show-resource Cord"
+        );
+        let resource_connections = stage
+            .planned_mask
+            .plan
+            .fragments
+            .iter()
+            .flat_map(|fragment| &fragment.connections)
+            .filter(|connection| connection.resource.is_some())
+            .collect::<Vec<_>>();
+        assert_eq!(resource_connections.len(), 1);
+        assert_eq!(
+            resource_connections[0]
+                .resource
+                .as_ref()
+                .unwrap()
+                .source_binding
+                .class_id
+                .as_str(),
+            conduit_presentation::SHOW_RESOURCE_CLASS
         );
 
         let topology = control
@@ -710,7 +897,7 @@ mod tests {
     fn spoken_mask_is_the_exact_ordinary_mask_form_and_keeps_its_branched_plan() {
         let host = HostId::from("conduitos/test-host");
         let boot = conduit_core::BootId::from("conduitos/test-boot");
-        let mut control = MaskControl::graphical(host, boot).unwrap();
+        let mut control = MaskControl::graphical(host, boot, None).unwrap();
         control.request(PatchbayMaskMode::Speech).unwrap();
         let stage = control.speech.as_ref().unwrap();
 

@@ -43,6 +43,7 @@ pub(super) fn actualize(
         boot_id,
         sequence,
         "conduitos/journey-spoken",
+        None,
     )?;
     let alternate_is_speech =
         speech_alternate.planned_mask.mask.form_identity != initial.planned_mask.mask.form_identity;
@@ -55,6 +56,7 @@ pub(super) fn actualize(
             boot_id,
             sequence,
             "conduitos/journey-native",
+            None,
         )?
     };
     let replacement_host = HostId::from(format!("{}/presentation-replacement", host_id.as_str()));
@@ -68,6 +70,7 @@ pub(super) fn actualize(
         boot_id,
         sequence.checked_add(1).ok_or(())?,
         "conduitos/journey-spoken-replacement",
+        None,
     )?;
     let restored = prepare_stage(
         if alternate_is_speech {
@@ -79,6 +82,7 @@ pub(super) fn actualize(
         boot_id,
         sequence.checked_add(2).ok_or(())?,
         "conduitos/journey-native-restored",
+        None,
     )?;
     let mut embodiment = NativeJourney::new(
         wake,
