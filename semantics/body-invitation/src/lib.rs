@@ -1,4 +1,7 @@
+#![no_std]
 //! Portable presentation of one finite Body invitation.
+
+extern crate alloc;
 use alloc::{format, vec, vec::Vec};
 use conduit_presentation::{
     ActionAvailability, ApplicationEventKind, PresentationMechanism, SemanticAction,

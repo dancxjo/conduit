@@ -458,7 +458,7 @@ fn host() -> HostId {
 fn invitation_transfer_methods_share_one_revision_bound_semantic_identity() {
     let transfer_uri =
         "https://example.invalid/workspace/#body-invitation=header.payload.signature";
-    let semantic = conduit_workspace_model::invitation::InvitationPresentation {
+    let semantic = conduit_body_invitation_form::InvitationPresentation {
         invitation_id: "invitation/one",
         body_id: "body/one",
         body_name: "Orifina",
