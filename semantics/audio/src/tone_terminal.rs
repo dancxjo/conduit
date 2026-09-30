@@ -1,9 +1,11 @@
 //! Exact terminal information for the portable `audio/tone` transform.
 
-use crate::{AudioToneTerminal, SoundInfoError};
+use crate::{AudioToneTerminal, AudioToneTerminalRepresentation};
 use conduit_core::{KindId, StructuredInfoType, StructuredInfoTypeShape};
 
-pub const AUDIO_TONE_TERMINAL_ENCODED_LEN: usize = 1;
+pub const AUDIO_TONE_TERMINAL_INFO_ID: &str = AudioToneTerminalRepresentation::IDENTITY;
+pub const AUDIO_TONE_TERMINAL_ENCODED_LEN: usize = AudioToneTerminalRepresentation::EXACT_BYTES;
+pub use conduit_form::rust_binding::NativeRepresentationRefusal as AudioToneTerminalCodecRefusal;
 
 pub fn audio_tone_terminal_type() -> StructuredInfoType {
     AudioToneTerminal::semantic_type().expect("generated audio terminal Type is checked")
@@ -19,21 +21,11 @@ pub fn audio_tone_terminal_kind_id() -> KindId {
 
 impl AudioToneTerminal {
     pub const fn encode(self) -> [u8; AUDIO_TONE_TERMINAL_ENCODED_LEN] {
-        [0]
+        AudioToneTerminalRepresentation::encode(self)
     }
 
-    pub fn decode(encoded: &[u8]) -> Result<Self, SoundInfoError> {
-        match encoded {
-            [0] => Ok(Self::Cancelled),
-            [actual] => Err(SoundInfoError::InvalidTag {
-                field: "audio-tone-terminal",
-                actual: *actual,
-            }),
-            actual => Err(SoundInfoError::WrongLength {
-                expected: AUDIO_TONE_TERMINAL_ENCODED_LEN,
-                actual: actual.len(),
-            }),
-        }
+    pub fn decode(encoded: &[u8]) -> Result<Self, AudioToneTerminalCodecRefusal> {
+        AudioToneTerminalRepresentation::decode(encoded)
     }
 }
 
