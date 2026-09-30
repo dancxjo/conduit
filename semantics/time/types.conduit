@@ -8,3 +8,20 @@ type SuspendBehavior =
 type ClockChangeBehavior =
     reevaluate_window
     | refuse_after_change
+
+type ParticipantRole =
+    organizer
+    | required
+    | optional
+
+type InvitationState =
+    needs_action
+    | accepted
+    | declined
+    | tentative
+
+type AvailabilityState =
+    free
+    | tentative
+    | busy
+    | unavailable

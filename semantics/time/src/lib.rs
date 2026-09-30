@@ -6,7 +6,9 @@ extern crate alloc;
 mod generated {
     include!(concat!(env!("OUT_DIR"), "/semantic_types.rs"));
 }
-pub use generated::{ClockChangeBehavior, SuspendBehavior};
+pub use generated::{
+    AvailabilityState, ClockChangeBehavior, InvitationState, ParticipantRole, SuspendBehavior,
+};
 
 mod tick;
 pub use tick::*;
