@@ -167,6 +167,9 @@ pub(crate) fn factory(
     if implementation_id.as_str() == super::time_window::IMPLEMENTATION {
         return Some(&super::time_window::INSTALLATION);
     }
+    if implementation_id.as_str() == super::time_sample::IMPLEMENTATION {
+        return Some(&super::time_sample::INSTALLATION);
+    }
     if let Some(resource) = super::resource::factory(implementation_id.as_str()) {
         return Some(resource);
     }

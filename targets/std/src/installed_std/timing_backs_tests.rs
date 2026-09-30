@@ -73,14 +73,7 @@ fn timeout() -> TimeoutBack {
 }
 
 fn deadline() -> DeadlineBack {
-    DeadlineBack {
-        duration: Some(value(60, 8)),
-        request_value: Some(value(61, 0)),
-        pending: false,
-        armed: false,
-        input_closed: false,
-        closing_unarmed: false,
-    }
+    DeadlineBack::prepare(value(60, 8), value(61, 0))
 }
 
 #[test]

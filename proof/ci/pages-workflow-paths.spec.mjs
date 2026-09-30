@@ -104,6 +104,7 @@ test("product jobs build the immutable PR head and deployments queue", () => {
   );
   const admissionJob = productWorkflow.split("  browser-admission-proof:\n")[1]
     .split("\n  avr-release:\n")[0];
+  assert.match(admissionJob, /timeout-minutes: 15/);
   assert.doesNotMatch(admissionJob, /matrix:\n\s+include:/);
   assert.match(
     productWorkflow,
@@ -115,7 +116,11 @@ test("product jobs build the immutable PR head and deployments queue", () => {
   );
   assert.match(
     productWorkflow,
-    /if \[\[ "\$BROWSER_ADMISSION_MATRIX" == \*'"pages"'\* \]\]; then\n\s+cargo build --locked -p conduit-browser-runtime --target wasm32-unknown-unknown --release\n/,
+    /if \[\[ "\$BROWSER_ADMISSION_MATRIX" == \*'"browser-host"'\* \|\| "\$BROWSER_ADMISSION_MATRIX" == \*'"pages"'\* \]\]; then\n\s+cargo build --locked -p conduit-browser-runtime --target wasm32-unknown-unknown --release\n\s+cp target\/wasm32-unknown-unknown\/release\/conduit_browser_runtime\.wasm target\/browser-product-runtimes\/patchbay-runtime\.wasm/,
+  );
+  assert.match(
+    productWorkflow,
+    /if \[\[ "\$BROWSER_ADMISSION_MATRIX" == \*'"browser-host"'\* \|\| "\$BROWSER_ADMISSION_MATRIX" == \*'"pages"'\* \]\]; then\n\s+cp target\/browser-product-runtimes\/patchbay-runtime\.wasm target\/wasm32-unknown-unknown\/release\/conduit_browser_runtime\.wasm/,
   );
   assert.match(
     productWorkflow,

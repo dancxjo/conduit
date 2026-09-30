@@ -79,6 +79,16 @@ mod debounce_back;
 pub use debounce_back::{DebouncePreparationError, TrailingDebounceBack};
 
 #[cfg(feature = "kernel-step")]
+mod sample_back;
+#[cfg(feature = "kernel-step")]
+pub use sample_back::CadenceSampleBack;
+
+#[cfg(feature = "kernel-step")]
+mod deadline_back;
+#[cfg(feature = "kernel-step")]
+pub use deadline_back::CancellationDeadlineBack;
+
+#[cfg(feature = "kernel-step")]
 mod window_back;
 #[cfg(feature = "kernel-step")]
 pub use window_back::ProcessingTimeWindowBack;

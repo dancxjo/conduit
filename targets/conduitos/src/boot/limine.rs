@@ -72,7 +72,7 @@ static EXECUTABLE_CMDLINE: ExecutableCmdlineRequest = ExecutableCmdlineRequest::
 #[used]
 #[cfg_attr(target_os = "none", unsafe(link_section = ".requests"))]
 #[cfg(target_arch = "aarch64")]
-static AARCH64_STACK_SIZE: StackSizeRequest = StackSizeRequest::new().with_size(128 * 1024);
+static AARCH64_STACK_SIZE: StackSizeRequest = StackSizeRequest::new().with_size(1024 * 1024);
 #[used]
 #[cfg_attr(target_os = "none", unsafe(link_section = ".requests"))]
 #[cfg(target_arch = "riscv64")]
