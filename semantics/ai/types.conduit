@@ -248,3 +248,64 @@ type ProbabilityRefusal =
     | invalid_covariance
     | covariance_dimension_overflow
     | invalid_log_probability
+
+type ModelResultInvalidity =
+    missing_exact_identity
+    | unsupported_payload_kind
+    | invalid_confidence
+    | input_bound_exceeded
+    | context_bound_exceeded
+    | output_bound_exceeded
+    | work_bound_exceeded
+    | history_bound_exceeded
+    | payload_length_mismatch
+    | terminal_payload_present
+    | produced_payload_missing
+
+type StructuredResultInvalidity =
+    empty
+    | too_many_members
+    | member_too_large
+    | duplicate_member
+    | label_not_allowed
+    | dimension_mismatch
+    | non_finite_value
+
+type RagAnswerOfferInvalidity =
+    empty_process_identity
+    | process_identity_too_large
+
+type R3OfferInvalidity =
+    empty_process_identity
+    | process_identity_too_large
+
+type VectorSearchOfferInvalidity =
+    empty_process_identity
+    | process_identity_too_large
+
+type SourceExtractionOfferInvalidity =
+    empty_process_identity
+    | process_identity_too_large
+
+type HybridRetrievalOfferInvalidity =
+    empty_process_identity
+    | process_identity_too_large
+
+type TemporalContextRefusal =
+    empty_clock_identity
+    | clock_identity_too_large
+    | reversed_validity_interval
+    | retrieval_after_reference
+    | clock_basis_mismatch
+    | source_unavailable
+    | source_after_reference
+    | reversed_query_window
+    | arithmetic_overflow
+    | uncertain_age
+
+type VectorSearchExecutionProofClass =
+    deterministic_exact
+    | approximate
+
+type VectorSearchProofClass =
+    deterministic_exact_oracle

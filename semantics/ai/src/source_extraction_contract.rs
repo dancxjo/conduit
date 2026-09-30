@@ -10,6 +10,8 @@ use conduit_core::{
 };
 use serde::{Deserialize, Serialize};
 
+use crate::SourceExtractionOfferInvalidity;
+
 pub const SOURCE_EXTRACTION_KIND: &str = "retrieval/extract-source";
 pub const SOURCE_EXTRACTION_REVISION: &str = "conduit.ai/extract-source@1";
 pub const SOURCE_REFERENCE_VALUE_KIND: &str = conduit_core::RESOURCE_REFERENCE_INFO_ID;
@@ -44,12 +46,6 @@ pub struct SourceExtractionContract {
     pub maximum_chunks: u32,
     pub maximum_work_units: u32,
     pub limits: CapabilityLimits,
-}
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum SourceExtractionOfferInvalidity {
-    EmptyProcessIdentity,
-    ProcessIdentityTooLarge,
 }
 
 pub fn source_extraction_contract() -> SourceExtractionContract {

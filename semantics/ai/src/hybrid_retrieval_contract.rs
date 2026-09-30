@@ -1,5 +1,6 @@
 //! Portable four-path hybrid retrieval front and deterministic fusion offer.
 
+use crate::HybridRetrievalOfferInvalidity;
 use alloc::{vec, vec::Vec};
 use conduit_core::{
     kind_id, port_id, ArtifactId, CapabilityId, CapabilityLimits, CapabilityOffer,
@@ -29,12 +30,6 @@ pub struct HybridRetrievalContract {
     pub maximum_output_candidates: u16,
     pub maximum_work_units: u32,
     pub limits: CapabilityLimits,
-}
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum HybridRetrievalOfferInvalidity {
-    EmptyProcessIdentity,
-    ProcessIdentityTooLarge,
 }
 
 pub fn hybrid_retrieval_contract() -> HybridRetrievalContract {

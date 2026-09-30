@@ -3,7 +3,7 @@ use serde::{Deserialize, Serialize};
 
 use crate::{
     LlmDeterminismProfile, LlmSemanticContract, LlmTerminalOutcome, ModelFailure, ModelRefusal,
-    ModelResultProvenance,
+    ModelResultInvalidity, ModelResultProvenance,
 };
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
@@ -53,21 +53,6 @@ pub struct ModelDerivedResult {
     pub disposition: ModelResultDisposition,
     pub determinism: LlmDeterminismProfile,
     pub accounting: ModelWorkAccounting,
-}
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
-pub enum ModelResultInvalidity {
-    MissingExactIdentity,
-    UnsupportedPayloadKind,
-    InvalidConfidence,
-    InputBoundExceeded,
-    ContextBoundExceeded,
-    OutputBoundExceeded,
-    WorkBoundExceeded,
-    HistoryBoundExceeded,
-    PayloadLengthMismatch,
-    TerminalPayloadPresent,
-    ProducedPayloadMissing,
 }
 
 impl ModelDerivedResult {

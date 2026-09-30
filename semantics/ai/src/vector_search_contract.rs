@@ -9,7 +9,10 @@ use conduit_core::{
 };
 use serde::{Deserialize, Serialize};
 
-use crate::{MAXIMUM_SIMILARITY_TOP_K, MAXIMUM_VECTOR_INDEX_QUERY_WORK_UNITS};
+use crate::{
+    VectorSearchExecutionProofClass, VectorSearchOfferInvalidity, MAXIMUM_SIMILARITY_TOP_K,
+    MAXIMUM_VECTOR_INDEX_QUERY_WORK_UNITS,
+};
 
 pub const VECTOR_SEARCH_KIND: &str = "retrieval/vector-search";
 pub const VECTOR_SEARCH_REVISION: &str = "conduit.ai/vector-search@1";
@@ -35,18 +38,6 @@ pub struct VectorSearchContract {
     pub maximum_query_work_units: u32,
     pub maximum_results: u32,
     pub limits: CapabilityLimits,
-}
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum VectorSearchOfferInvalidity {
-    EmptyProcessIdentity,
-    ProcessIdentityTooLarge,
-}
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
-pub enum VectorSearchExecutionProofClass {
-    DeterministicExact,
-    Approximate,
 }
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]

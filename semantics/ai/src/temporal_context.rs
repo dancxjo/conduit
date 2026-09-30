@@ -3,7 +3,8 @@ use conduit_core::{TemporalInstant, TemporalRelation, TemporalRelationError, Tem
 use serde::{Deserialize, Serialize};
 
 use crate::{
-    EntityBoundary, TemporalSource, TemporalValidity, TemporalWindowRelation, TransitionDirection,
+    EntityBoundary, TemporalContextRefusal, TemporalSource, TemporalValidity,
+    TemporalWindowRelation, TransitionDirection,
 };
 
 pub const MAXIMUM_CLOCK_IDENTITY_BYTES: usize = 128;
@@ -51,20 +52,6 @@ pub struct TemporalContext {
     pub relation: TemporalRelation,
     pub validity: TemporalValidity,
     pub relation_to_query_window: Option<TemporalWindowRelation>,
-}
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
-pub enum TemporalContextRefusal {
-    EmptyClockIdentity,
-    ClockIdentityTooLarge,
-    ReversedValidityInterval,
-    RetrievalAfterReference,
-    ClockBasisMismatch,
-    SourceUnavailable,
-    SourceAfterReference,
-    ReversedQueryWindow,
-    ArithmeticOverflow,
-    UncertainAge,
 }
 
 impl TemporalProvenance {

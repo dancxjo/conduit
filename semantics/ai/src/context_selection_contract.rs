@@ -1,5 +1,6 @@
 //! Portable R3 reranking and structured context-selection fronts.
 
+use crate::R3OfferInvalidity;
 use alloc::{vec, vec::Vec};
 use conduit_core::{
     kind_id, port_id, ArtifactId, CapabilityId, CapabilityLimits, CapabilityOffer,
@@ -27,12 +28,6 @@ pub struct R3Contract {
     pub inputs: Vec<PortDescriptor>,
     pub outputs: Vec<PortDescriptor>,
     pub limits: CapabilityLimits,
-}
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum R3OfferInvalidity {
-    EmptyProcessIdentity,
-    ProcessIdentityTooLarge,
 }
 
 pub fn rerank_contract() -> R3Contract {
