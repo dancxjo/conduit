@@ -67,14 +67,8 @@ fn count_type() -> StructuredInfoType {
 }
 
 pub fn offset_basis_type() -> StructuredInfoType {
-    StructuredInfoType::variant(
-        kind_id("language/offset-basis@1"),
-        vec![
-            case("unicode_scalar", unit_type()),
-            case("utf8_byte", unit_type()),
-        ],
-    )
-    .expect("reviewed offset bases")
+    crate::LinguisticOffsetBasis::semantic_type()
+        .expect("checked native linguistic offset-basis Type")
 }
 
 pub fn text_span_type() -> StructuredInfoType {
