@@ -12,7 +12,9 @@ mod generated {
     include!(concat!(env!("OUT_DIR"), "/semantic_types.rs"));
 }
 
-pub use generated::{AudioToneTerminal, Gate, ModulationDestination};
+pub use generated::{
+    AudioToneTerminal, Gate, ModulationDestination, PcmChannelLayout, PcmSampleRepresentation,
+};
 
 mod audio_info;
 mod audio_render_demand;

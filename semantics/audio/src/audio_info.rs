@@ -1,21 +1,13 @@
 //! Canonical bounded PCM frame information.
 
-use crate::SoundInfoError;
+use crate::{PcmChannelLayout, PcmSampleRepresentation, SoundInfoError};
 use alloc::vec::Vec;
 use conduit_core::semantic_digest;
-use serde::{Deserialize, Serialize};
 
 pub const AUDIO_PCM_INFO_ID: &str = "audio/pcm-frames@1";
 pub const PCM_FRAME_HEADER_ENCODED_LEN: usize = 29;
 pub const MAXIMUM_PCM_FRAME_BYTES: u32 = 65_536;
 pub const MAXIMUM_PCM_FRAMES_PER_BLOCK: u16 = 2_048;
-
-#[derive(Debug, Copy, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
-pub enum PcmSampleRepresentation {
-    Signed16LittleEndian,
-    Signed24LittleEndian,
-    Float32LittleEndian,
-}
 
 impl PcmSampleRepresentation {
     pub const fn bytes_per_sample(self) -> u8 {
@@ -43,12 +35,6 @@ impl PcmSampleRepresentation {
             }),
         }
     }
-}
-
-#[derive(Debug, Copy, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
-pub enum PcmChannelLayout {
-    Mono,
-    StereoLeftRight,
 }
 
 impl PcmChannelLayout {
