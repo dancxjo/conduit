@@ -4,7 +4,7 @@ use crate::{
     decode_replay_command, decode_replay_timeline, encode_replay_event_into,
     encode_replay_state_into, BoundedReplayController, ReplayCommandCodecRefusal, ReplayPolicy,
     ReplayRefusal, ReplayState, ReplayTimelineCodecRefusal, MAXIMUM_REPLAY_DURATION_SECONDS,
-    MAXIMUM_REPLAY_EVENT_BYTES, MAXIMUM_REPLAY_RATE_TERM, MAXIMUM_REPLAY_STATE_BYTES,
+    MAXIMUM_REPLAY_EVENT_BYTES, MAXIMUM_REPLAY_STATE_BYTES,
 };
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
@@ -15,7 +15,6 @@ pub struct ReplayOperationOutput {
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
 pub enum ReplayOperationRefusal {
-    InvalidPolicy,
     InvalidDurationLimit,
     TimelineWhileActive,
     Timeline(ReplayTimelineCodecRefusal),
@@ -43,19 +42,6 @@ impl BoundedReplayOperation {
         policy: ReplayPolicy,
         maximum_duration_seconds: u64,
     ) -> Result<Self, ReplayOperationRefusal> {
-        if let ReplayPolicy::Rate {
-            numerator,
-            denominator,
-        } = policy
-        {
-            if numerator == 0
-                || denominator == 0
-                || numerator > MAXIMUM_REPLAY_RATE_TERM
-                || denominator > MAXIMUM_REPLAY_RATE_TERM
-            {
-                return Err(ReplayOperationRefusal::InvalidPolicy);
-            }
-        }
         if maximum_duration_seconds == 0
             || maximum_duration_seconds > MAXIMUM_REPLAY_DURATION_SECONDS
         {
@@ -80,7 +66,7 @@ impl BoundedReplayOperation {
         let entries = decode_replay_timeline(encoded).map_err(ReplayOperationRefusal::Timeline)?;
         let controller = BoundedReplayController::new_with_maximum_duration(
             &entries,
-            self.policy,
+            self.policy.clone(),
             self.maximum_duration_seconds,
         )
         .map_err(ReplayOperationRefusal::Replay)?;
