@@ -185,6 +185,7 @@ pub fn verify_prepared_plan(prepared: &PreparedPlan, plan: &Plan) -> bool {
 pub struct StartedPlan {
     plan_id: PlanId,
     active_plays: Vec<(HostId, ActivePlayId)>,
+    subordinate_receipts: Vec<(alloc::string::String, PreparedFragmentReceipt)>,
 }
 
 impl StartedPlan {
@@ -194,6 +195,9 @@ impl StartedPlan {
 
     pub fn active_plays(&self) -> &[(HostId, ActivePlayId)] {
         &self.active_plays
+    }
+    pub fn subordinate_receipts(&self) -> &[(alloc::string::String, PreparedFragmentReceipt)] {
+        &self.subordinate_receipts
     }
 }
 
@@ -495,6 +499,7 @@ pub fn start_prepared_plan(
     Ok(StartedPlan {
         plan_id: prepared.plan_id,
         active_plays,
+        subordinate_receipts: prepared.subordinate_receipts,
     })
 }
 
