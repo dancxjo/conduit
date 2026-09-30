@@ -1,4 +1,7 @@
-use conduit_ai::{ModelOperation, ModelPortPresence};
+use conduit_ai::{
+    ModelOperation, ModelOperationRepresentation, ModelPortPresence,
+    ModelPortPresenceRepresentation,
+};
 use conduit_form::rust_binding::NativeRustBinding;
 
 fn assert_round_trip<T>(value: T)
@@ -7,6 +10,34 @@ where
 {
     let structured = value.into_structured().unwrap();
     assert_eq!(T::from_structured(structured).unwrap(), value);
+}
+
+#[test]
+fn model_signature_representations_preserve_the_established_digest_tags() {
+    let operations = [
+        ModelOperation::Infer,
+        ModelOperation::Encode,
+        ModelOperation::Decode,
+        ModelOperation::Sample,
+        ModelOperation::LogProbability,
+        ModelOperation::Evaluate,
+        ModelOperation::Train,
+    ];
+    for (tag, operation) in (0_u8..).zip(operations) {
+        assert_eq!(ModelOperationRepresentation::encode(operation), [tag]);
+        assert_eq!(ModelOperationRepresentation::decode(&[tag]), Ok(operation));
+    }
+    assert!(ModelOperationRepresentation::decode(&[7]).is_err());
+
+    assert_eq!(
+        ModelPortPresenceRepresentation::encode(ModelPortPresence::Required),
+        [0]
+    );
+    assert_eq!(
+        ModelPortPresenceRepresentation::encode(ModelPortPresence::Optional),
+        [1]
+    );
+    assert!(ModelPortPresenceRepresentation::decode(&[2]).is_err());
 }
 
 #[test]
