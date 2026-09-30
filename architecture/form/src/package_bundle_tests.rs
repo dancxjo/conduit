@@ -180,6 +180,21 @@ fn package_bundle_refuses_missing_exports_members_and_forms() {
 }
 
 #[test]
+fn lexical_local_form_cannot_become_a_pack_export() {
+    let (manifest_source, manifest) = package_manifest(&["helper"]);
+    let error = CheckedPackageBundle::from_sources(
+        &manifest_source,
+        &manifest,
+        &[PackageMemberSource {
+            path: "main",
+            source: "form public {\n form helper {\n }\n child: helper\n}\n",
+        }],
+    )
+    .unwrap_err();
+    assert_eq!(error, PackageBundleError::MissingExport("helper".into()));
+}
+
+#[test]
 fn package_bundle_refuses_local_module_cycles_and_duplicate_forms() {
     let (manifest_source, manifest) = package_manifest(&["left"]);
     let cycle = CheckedPackageBundle::from_sources(

@@ -384,7 +384,22 @@ fn instantiate(template: &FormSyntax, request: &SpecializationRequest) -> FormSy
             BackStatement::Pool(_) | BackStatement::LocalValue(_) => {}
         }
     }
+    for local in &mut form.local_forms {
+        substitute_form(local, &request.substitutions);
+    }
     form
+}
+
+fn substitute_form(form: &mut FormSyntax, substitutions: &BTreeMap<String, String>) {
+    for parameter in &mut form.front.startup_parameters {
+        substitute(&mut parameter.value_type, substitutions);
+    }
+    for port in &mut form.front.runtime_ports {
+        substitute(&mut port.value_type, substitutions);
+    }
+    for local in &mut form.local_forms {
+        substitute_form(local, substitutions);
+    }
 }
 
 fn substitute_stages(stages: &mut [CordStage], substitutions: &BTreeMap<String, String>) {

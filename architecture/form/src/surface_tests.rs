@@ -6,6 +6,22 @@ use crate::{
 use alloc::vec::Vec;
 
 #[test]
+fn local_forms_are_lossless_nested_source_syntax() {
+    let source = "form outer {\n form helper (\n  >> value: Count\n  mapped: Count >>\n ) = (. + 1)\n child: helper\n}\n";
+    let document = parse_syntax_document(source);
+    assert!(
+        document.diagnostics.is_empty(),
+        "{:?}",
+        document.diagnostics
+    );
+    assert_eq!(document.round_trip(), source);
+    assert_eq!(document.forms.len(), 1);
+    assert_eq!(document.forms[0].local_forms.len(), 1);
+    assert_eq!(document.forms[0].local_forms[0].name.text, "helper");
+    assert!(document.forms[0].local_forms[0].local_forms.is_empty());
+}
+
+#[test]
 fn checked_pattern_refinement_is_lossless_front_syntax() {
     let source = "form code (\n >> value: Text <= 16B ~ /[A-Z]{2}[0-9]{4}/\n) {\n}\n";
     let document = parse_syntax_document(source);

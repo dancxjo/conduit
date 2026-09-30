@@ -17,6 +17,7 @@ use conduit_core::{
     UnmatchedVariantDisposition,
 };
 
+mod lexical_forms;
 mod matched_route;
 mod resolution;
 mod shared_pool;
@@ -25,6 +26,10 @@ mod structured_selector;
 use resolution::{is_atomic_literal, Resolver};
 use shared_pool::{check_pool_declarations, checked_pool};
 use specialization::specialize_named_type_parameters;
+
+pub(crate) fn is_local_form_identity(name: &str) -> bool {
+    lexical_forms::is_local_identity(name)
+}
 
 const STANDARD_GLYPH_BINDINGS: [(&str, &str); 5] = [
     ("><", "flow/merge"),
@@ -60,10 +65,10 @@ pub(crate) fn check_document(
     let (native_types, checked_catalog) =
         crate::native_type::check_native_types(&document.types, &aliased_catalog)?;
     let catalog = &checked_catalog;
-    let unresolved_form_signatures = form_signatures(&document.forms)?;
+    let lexical_forms = lexical_forms::lower(&document.forms)?;
+    let unresolved_form_signatures = form_signatures(&lexical_forms)?;
     let mut form_fronts = BTreeMap::new();
-    for form in document
-        .forms
+    for form in lexical_forms
         .iter()
         .filter(|form| form.front.type_parameters.is_empty())
     {
@@ -72,8 +77,10 @@ pub(crate) fn check_document(
             crate::value_type::checked_front(form, catalog)?,
         );
     }
+    let mut lexical_document = document.clone();
+    lexical_document.forms = lexical_forms;
     let (forms, pending_source_sugar_expansions) = resolve_use_declarations(
-        document,
+        &lexical_document,
         catalog,
         &BTreeMap::new(),
         &unresolved_form_signatures,
@@ -270,41 +277,13 @@ pub(crate) fn resolve_use_declarations(
     let mut resolved = document.forms.clone();
     let mut source_sugar_expansions = Vec::new();
     for form in &mut resolved {
-        reject_alias_shadowing(form, &aliases)?;
-        for statement in &mut form.back {
-            match statement {
-                BackStatement::NamedGear(gear) => {
-                    resolve_invocation_alias(&mut gear.invocation, &mut aliases)
-                }
-                BackStatement::Cord(cord) => resolve_stage_aliases(
-                    &form.name.text,
-                    &mut cord.stages,
-                    &mut aliases,
-                    catalog,
-                    form_fronts,
-                    &mut source_sugar_expansions,
-                )?,
-                BackStatement::MatchedRoute(route) => {
-                    for arm in &mut route.arms {
-                        resolve_stage_aliases(
-                            &form.name.text,
-                            &mut arm.stages,
-                            &mut aliases,
-                            catalog,
-                            form_fronts,
-                            &mut source_sugar_expansions,
-                        )?;
-                    }
-                }
-                BackStatement::Pool(pool) => {
-                    if let Some((canonical, _, used)) = aliases.get_mut(&pool.member_form.text) {
-                        pool.member_form.text.clone_from(canonical);
-                        *used = true;
-                    }
-                }
-                BackStatement::LocalValue(_) => {}
-            }
-        }
+        resolve_form_aliases(
+            form,
+            &mut aliases,
+            catalog,
+            form_fronts,
+            &mut source_sugar_expansions,
+        )?;
     }
     if let Some((alias, (_, span, _))) = aliases.iter().find(|(_, (_, _, used))| !*used) {
         return Err(use_diagnostic(
@@ -313,6 +292,60 @@ pub(crate) fn resolve_use_declarations(
         ));
     }
     Ok((resolved, source_sugar_expansions))
+}
+
+fn resolve_form_aliases(
+    form: &mut FormSyntax,
+    aliases: &mut BTreeMap<String, (String, crate::Span, bool)>,
+    catalog: &StartupCatalog,
+    form_fronts: &BTreeMap<String, CheckedFront>,
+    source_sugar_expansions: &mut Vec<PendingSourceSugarExpansion>,
+) -> Result<(), SyntaxCheckDiagnostic> {
+    reject_alias_shadowing(form, aliases)?;
+    for statement in &mut form.back {
+        match statement {
+            BackStatement::NamedGear(gear) => {
+                resolve_invocation_alias(&mut gear.invocation, aliases)
+            }
+            BackStatement::Cord(cord) => resolve_stage_aliases(
+                &form.name.text,
+                &mut cord.stages,
+                aliases,
+                catalog,
+                form_fronts,
+                source_sugar_expansions,
+            )?,
+            BackStatement::MatchedRoute(route) => {
+                for arm in &mut route.arms {
+                    resolve_stage_aliases(
+                        &form.name.text,
+                        &mut arm.stages,
+                        aliases,
+                        catalog,
+                        form_fronts,
+                        source_sugar_expansions,
+                    )?;
+                }
+            }
+            BackStatement::Pool(pool) => {
+                if let Some((canonical, _, used)) = aliases.get_mut(&pool.member_form.text) {
+                    pool.member_form.text.clone_from(canonical);
+                    *used = true;
+                }
+            }
+            BackStatement::LocalValue(_) => {}
+        }
+    }
+    for local in &mut form.local_forms {
+        resolve_form_aliases(
+            local,
+            aliases,
+            catalog,
+            form_fronts,
+            source_sugar_expansions,
+        )?;
+    }
+    Ok(())
 }
 
 fn source_start_span() -> crate::Span {
@@ -535,6 +568,11 @@ fn reject_alias_shadowing(
             BackStatement::LocalValue(local) => Some((&local.name.text, local.name.span)),
             BackStatement::Cord(_) | BackStatement::MatchedRoute(_) => None,
         }))
+        .chain(
+            form.local_forms
+                .iter()
+                .map(|local| (&local.name.text, local.name.span)),
+        )
     {
         if aliases.contains_key(name.0) {
             return Err(use_diagnostic(

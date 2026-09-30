@@ -55,6 +55,13 @@ pub fn expand_canonical_form_for_authoring_with_backs(
             format!("canonical form '{form_name}' is not defined"),
         )
     })?;
+    if crate::syntax_check::is_local_form_identity(form_name) {
+        return Err(CanonicalExpansionDiagnostic::new(
+            "CND-FRM-061",
+            "a local Form is private to its containing source scope and cannot be expanded as a root"
+                .into(),
+        ));
+    }
     let mut environment = BTreeMap::new();
     for parameter in &form.startup_parameters {
         let value = parameter.default.clone().ok_or_else(|| {

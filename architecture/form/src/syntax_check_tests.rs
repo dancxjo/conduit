@@ -64,6 +64,61 @@ fn check(source: &str) -> crate::CheckedSyntaxDocument {
     check_syntax_document(&parsed, &catalog()).expect("canonical syntax checks")
 }
 
+#[test]
+fn local_form_is_checked_through_one_private_ordinary_form_seam() {
+    let checked = check("form outer {\n form helper {\n }\n child: helper\n}\n");
+    assert_eq!(checked.forms.len(), 2);
+    let outer = checked
+        .forms
+        .iter()
+        .find(|form| form.name == "outer")
+        .unwrap();
+    let helper = checked
+        .forms
+        .iter()
+        .find(|form| form.name.ends_with("/outer/helper"))
+        .unwrap();
+    assert_eq!(outer.gears[0].kind, helper.name);
+    assert!(helper.name.starts_with("$local/"));
+}
+
+#[test]
+fn local_form_privacy_and_implicit_capture_fail_closed() {
+    let private = parse_syntax_document(
+        "form owner {\n form helper {\n }\n child: helper\n}\n\nform thief {\n stolen: helper\n}\n",
+    );
+    let error = check_syntax_document(&private, &catalog()).unwrap_err();
+    assert_eq!(error.code, "CND-FRM-028");
+    assert!(error.message.contains("helper"));
+
+    let capture = parse_syntax_document(
+        "form outer (\n limit: Count = 3\n >> value: Count\n) {\n form helper (\n  >> inner: Count\n  mapped: Count >>\n ) = (. + limit)\n child: helper\n}\n",
+    );
+    let error = check_syntax_document(&capture, &catalog()).unwrap_err();
+    assert_eq!(error.code, "CND-FRM-061");
+    assert!(error.message.contains("cannot implicitly capture"));
+    assert!(error.message.contains("limit"));
+}
+
+#[test]
+fn local_form_captures_outer_type_parameters_only_as_exact_compile_time_identity() {
+    let checked = check(
+        "form outer (\n item: type\n >> value: item\n mapped: item >>\n) {\n form helper (\n  >> inner: item\n  mapped: item >>\n ) {\n  inner >> mapped\n }\n helper: helper\n value >> helper >> mapped\n}\n\nform main {\n child: outer(item = Count)\n}\n",
+    );
+    let outer = checked
+        .forms
+        .iter()
+        .find(|form| form.name.starts_with("outer["))
+        .unwrap();
+    let helper = checked
+        .forms
+        .iter()
+        .find(|form| form.name.starts_with("$local/outer/helper["))
+        .unwrap();
+    assert_eq!(outer.gears[0].kind, helper.name);
+    assert!(helper.name.contains("item=value/count"));
+}
+
 fn text_port(name: &str, direction: PortDirection) -> PortDescriptor {
     PortDescriptor {
         port_id: port_id(name),
