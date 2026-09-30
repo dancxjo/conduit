@@ -9,6 +9,25 @@ type ClockChangeBehavior =
     reevaluate_window
     | refuse_after_change
 
+type CivilGapPolicy =
+    skip
+    | use_before
+    | use_after
+    | refuse
+
+type CivilFoldPolicy =
+    earlier
+    | later
+    | both
+    | refuse
+
+type CivilResolutionChoice =
+    unique
+    | gap_before
+    | gap_after
+    | fold_earlier
+    | fold_later
+
 type ParticipantRole =
     organizer
     | required

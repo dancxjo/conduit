@@ -4,42 +4,18 @@ use alloc::vec::Vec;
 use serde::{Deserialize, Serialize};
 
 use crate::{
-    date_key, LocalDate, LocalDateTime, OccurrenceInstant, RecurrenceDefinition,
-    RecurrenceExpansion, RecurrenceOccurrence, RecurrenceRefusal, RecurrenceRule, RecurrenceUntil,
-    RecurrenceWindow, TemporalInstant, WeekdaySet, ZonedResolution,
+    date_key, CivilFoldPolicy, CivilGapPolicy, CivilResolutionChoice, LocalDate, LocalDateTime,
+    OccurrenceInstant, RecurrenceDefinition, RecurrenceExpansion, RecurrenceOccurrence,
+    RecurrenceRefusal, RecurrenceRule, RecurrenceUntil, RecurrenceWindow, TemporalInstant,
+    WeekdaySet, ZonedResolution,
 };
 
 pub const MAXIMUM_CIVIL_RECURRENCE_SCAN_DAYS: u32 = 36_600;
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Serialize, Deserialize)]
-pub enum CivilGapPolicy {
-    Skip,
-    UseBefore,
-    UseAfter,
-    Refuse,
-}
-
-#[derive(Debug, Copy, Clone, PartialEq, Eq, Serialize, Deserialize)]
-pub enum CivilFoldPolicy {
-    Earlier,
-    Later,
-    Both,
-    Refuse,
-}
-
-#[derive(Debug, Copy, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct CivilResolutionPolicy {
     pub gap: CivilGapPolicy,
     pub fold: CivilFoldPolicy,
-}
-
-#[derive(Debug, Copy, Clone, PartialEq, Eq, Serialize, Deserialize)]
-pub enum CivilResolutionChoice {
-    Unique,
-    GapBefore,
-    GapAfter,
-    FoldEarlier,
-    FoldLater,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
