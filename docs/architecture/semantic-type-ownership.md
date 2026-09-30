@@ -147,6 +147,7 @@ are satisfied.
 | Tensor element and axis-role vocabularies | `semantics/data/types.conduit` | generated at build time | yes | yes | exact native round trips and bounds plus canonical tensor codec and behavior suites |
 | Scientific clock-relation quality | `semantics/data/types.conduit` | generated at build time | yes | yes | exact native payload round trip plus scientific corpus and digest suites |
 | LLM determinism, terminal-outcome, and implementation-control vocabularies | `semantics/ai/types.conduit` | generated at build time | yes | yes | exact native round trips plus AI semantic-contract suite |
+| AI planning, interruption, candidate and training lifecycle vocabularies | `semantics/ai/types.conduit` | generated at build time | yes | yes | exact native round trips plus cross-host, composition and training lifecycle suites |
 | Reranking strategy and its bounded observed-score payload | `semantics/ai/types.conduit` | generated at build time | yes | yes | exact native payload round trip plus retrieval and context-selection suites |
 | Model operation and port-presence vocabularies | `semantics/ai/types.conduit` | generated at build time | yes | yes | exact native round trips plus AI model-signature suite |
 | Vector similarity and embedding-normalization vocabularies | `semantics/ai/types.conduit` | generated at build time | yes | yes | exact native round trips plus vector retrieval and canonical serialization suites |

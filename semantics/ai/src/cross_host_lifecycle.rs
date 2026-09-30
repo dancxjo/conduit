@@ -7,16 +7,7 @@ use conduit_core::{
 };
 use serde::{Deserialize, Serialize};
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
-pub enum LlmInterruptionReason {
-    ModelProviderLost,
-    PartOrLineLost,
-}
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
-pub enum LlmPlanningRefusal {
-    MissingLlmRealization,
-}
+use crate::{LlmInterruptionReason, LlmPlanningRefusal};
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct LlmRealizationPart {

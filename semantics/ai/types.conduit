@@ -31,6 +31,29 @@ type LlmImplementationControl =
     | chat_role_encoding
     | provider_function_json
 
+type LlmInterruptionReason =
+    model_provider_lost
+    | part_or_line_lost
+
+type LlmPlanningRefusal =
+    missing_llm_realization
+
+type CandidateLifecycle =
+    awaiting_explicit_validation_plan_and_play
+
+type TrainingLifecyclePhase =
+    unloaded
+    | loading
+    | ready
+    | active_step {
+        step: U64
+    }
+    | evaluating
+    | checkpointing
+    | cancelled
+    | provider_lost
+    | failed
+
 type ModelOperation =
     infer
     | encode

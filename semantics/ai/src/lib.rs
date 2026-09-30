@@ -7,15 +7,16 @@ mod generated {
     include!(concat!(env!("OUT_DIR"), "/semantic_types.rs"));
 }
 pub use generated::{
-    ContextOmissionReason, ContextOrderingPolicy, ContextRedundancyPolicy,
+    CandidateLifecycle, ContextOmissionReason, ContextOrderingPolicy, ContextRedundancyPolicy,
     ContextSelectionRationale, ContextTruncationReason, EmbeddingNormalization, EntityBoundary,
     GeneratedTextFlowTerminal, GroundedAnswerDisposition, GroundingDisposition,
     HouseContextProvenanceClass, InterpretationDisposition, InterpretationProvenance,
-    LlmDeterminismProfile, LlmImplementationControl, LlmTerminalOutcome, ModelFailure,
-    ModelOperation, ModelPortPresence, ModelRefusal, ModelResultProvenance, RerankingProofClass,
-    RerankingStrategy, RerankingStrategyObservedScores, RetrievalMechanism,
-    SelectedContextRationale, SimilarityMetric, SourceSpanUnit, TemporalSource, TemporalValidity,
-    TemporalWindowRelation, TransitionDirection,
+    LlmDeterminismProfile, LlmImplementationControl, LlmInterruptionReason, LlmPlanningRefusal,
+    LlmTerminalOutcome, ModelFailure, ModelOperation, ModelPortPresence, ModelRefusal,
+    ModelResultProvenance, RerankingProofClass, RerankingStrategy, RerankingStrategyObservedScores,
+    RetrievalMechanism, SelectedContextRationale, SimilarityMetric, SourceSpanUnit, TemporalSource,
+    TemporalValidity, TemporalWindowRelation, TrainingLifecyclePhase,
+    TrainingLifecyclePhaseActiveStep, TransitionDirection,
 };
 
 mod bases;
