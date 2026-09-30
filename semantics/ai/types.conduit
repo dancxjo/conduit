@@ -1,0 +1,9 @@
+# Authoritative portable AI meaning. Rust consumes generated bindings.
+
+type GeneratedTextFlowTerminal =
+    completed
+    | output_bound_exhausted
+    | backpressured
+    | cancelled
+    | provider_lost
+    | non_monotonic
