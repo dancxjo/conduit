@@ -111,7 +111,7 @@ package_test_shard!(
         "conduit-tongues",
         "conduit-creche-model",
         "conduit-home-model",
-        "conduit-workspace-model",
+        "conduit-body-lifecycle-conformance",
         "conduit-tour-model",
         "conduit",
         "conduit-xtask-dispatch",

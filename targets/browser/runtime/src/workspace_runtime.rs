@@ -658,7 +658,7 @@ fn dispatch(request: Request) -> Result<Vec<u8>, Refusal> {
             }
             Request::InvitationView { invitation_id, body_id, body_name, expires_at_millis,
                 transfer_uri, revision, clipboard_available, share_available } => {
-                let semantic = conduit_workspace_model::invitation::InvitationPresentation {
+                let semantic = conduit_body_invitation_form::InvitationPresentation {
                     invitation_id: &invitation_id, body_id: &body_id, body_name: &body_name,
                     expires_at_millis, transfer_uri: &transfer_uri, clipboard_available, share_available,
                 }.view(revision).map_err(|error| Refusal::new("InvitationPresentation", format!("{error:?}")))?;
@@ -786,7 +786,7 @@ fn dispatch(request: Request) -> Result<Vec<u8>, Refusal> {
 
 fn invitation_qr(transfer_uri: &str) -> Result<Vec<u8>, Refusal> {
     if transfer_uri.is_empty()
-        || transfer_uri.len() > conduit_workspace_model::invitation::MAX_INVITATION_TRANSFER_BYTES
+        || transfer_uri.len() > conduit_body_invitation_form::MAX_INVITATION_TRANSFER_BYTES
         || !transfer_uri.contains('#')
     {
         return Err(Refusal::new(
