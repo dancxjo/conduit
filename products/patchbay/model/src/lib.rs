@@ -14,7 +14,6 @@ use conduit_observatory::{
 mod body_biography;
 mod body_biography_entrance;
 mod body_planning_session;
-mod body_workload_session;
 mod build_birth;
 mod control;
 mod conversation_request_evidence;
@@ -128,10 +127,6 @@ pub use body_biography::{
 pub use body_biography_entrance::{
     PatchbayBodyApplicationEntrance, PatchbayBodyAttachment, PatchbayBodyEntranceError,
     MAX_PATCHBAY_BODY_EVIDENCE_BYTES,
-};
-pub use body_workload_session::{
-    BodyWorkloadChange, BodyWorkloadChangeKind, PatchbayBodyWorkloadError,
-    PatchbayBodyWorkloadSession,
 };
 pub use build_birth::{
     BirthSigns, BuildBirthController, BuildBirthDocument, BuildBirthError, BuildRevisionStatus,

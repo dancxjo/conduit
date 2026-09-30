@@ -1,14 +1,14 @@
 use crate::{server::ServerError, RendererSnapshot};
 use conduit_body::BodyPlanningSession;
-use patchbay_model::PatchbayBodyWorkloadSession;
+use conduit_body_make::BodyWorkloadSession;
 
 /// Build a candidate projection from the same retained lifecycle as planning.
 /// Nothing is committed until the caller has encoded its whole next snapshot.
 pub(in crate::server) fn retain(
     prior: &RendererSnapshot,
-    session: &PatchbayBodyWorkloadSession,
+    session: &BodyWorkloadSession,
     planning: &BodyPlanningSession,
-) -> Result<(PatchbayBodyWorkloadSession, RendererSnapshot), ServerError> {
+) -> Result<(BodyWorkloadSession, RendererSnapshot), ServerError> {
     let evidence = session.evidence();
     if (&evidence.body == planning.body()
         || (planning.wake().lifecycle == conduit_body::WakeLifecycle::Lulled
