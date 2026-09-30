@@ -1,5 +1,5 @@
 import { expect } from "@playwright/test";
-import { startStaticProduct } from "./tour-test-server.mjs";
+import { startStaticProduct } from "./static-product-server.mjs";
 
 export function startWorkspaceMachineProduct() {
   return startStaticProduct("target/workspace-product", "/conduit/workspace/");

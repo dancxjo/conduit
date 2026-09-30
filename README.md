@@ -27,7 +27,7 @@ Those choices belong to realization.
 
 > **[See ConduitOS running through the current illustrated journey](https://dancxjo.github.io/conduit/current/conduitos/x86_64/)**
 
-**[Try the Tour](https://dancxjo.github.io/conduit/tour/)** ·
+**[Open the body Workspace](https://dancxjo.github.io/conduit/workspace/)** ·
 **[Current status](STATUS.md)** ·
 **[Architecture](docs/conduit-canon.md)** ·
 **[Contributing](CONTRIBUTING.md)**
@@ -796,11 +796,12 @@ cargo xtask fabricate host std
 
 That builds and runs the local example through the repository development tooling.
 
-For the browser Tour, install Node.js and npm and add the WebAssembly target:
+For the browser SDK and workbench proofs, install Node.js and npm and add the
+WebAssembly target:
 
 ```sh
 rustup target add wasm32-unknown-unknown
-cargo xtask prove journey tour
+cargo xtask prove journey patchbay --on browser
 ```
 
 To inspect your environment:
@@ -819,11 +820,10 @@ See [Try Conduit](docs/try-conduit.md) for additional examples and [the target g
 
 ## Exploring the system
 
-### Tour
+### Resident forms
 
-Tour teaches Conduit through running examples.
-
-**[Open Tour](https://dancxjo.github.io/conduit/tour/)**
+The body Workspace and ConduitOS expose reviewed forms without a separate
+tutorial application runtime.
 
 ### Patchbay
 

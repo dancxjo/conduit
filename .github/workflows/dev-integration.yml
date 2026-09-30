@@ -54,7 +54,7 @@ jobs:
 
   products:
     needs: baseline
-    uses: ./.github/workflows/tour-products.yml
+    uses: ./.github/workflows/product-carrier.yml
     with:
       base_sha: ${{ needs.baseline.outputs.base_sha }}
       candidate_sha: ${{ github.event_name == 'workflow_dispatch' && inputs.candidate_sha || github.sha }}

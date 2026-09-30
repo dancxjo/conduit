@@ -7,7 +7,6 @@ current capabilities, practical workflows, and detailed design references.
 
 - [Project introduction](../README.md): the idea, working products, and a first command.
 - [body Workspace](https://dancxjo.github.io/conduit/workspace/): birth or return to a body and use its resident tutorial and inspection forms.
-- [Interactive Tour compatibility entrance](https://dancxjo.github.io/conduit/tour/): learn by running real forms in a browser.
 - [ConduitOS visual journey](https://dancxjo.github.io/conduit/current/conduitos/x86_64/): 17 narrated emulator screenshots with runtime evidence.
 - [Current status](../STATUS.md): what exists and the limits of its proof.
 - [Roadmap](roadmap.md): current open work and paused campaigns.

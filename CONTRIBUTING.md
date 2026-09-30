@@ -6,7 +6,7 @@ capability. You do not need to understand the whole system first.
 
 ## Get something running
 
-Start with the [browser Tour](https://dancxjo.github.io/conduit/tour/) or the
+Start with the [body Workspace](https://dancxjo.github.io/conduit/workspace/) or the
 [ConduitOS visual journey](https://dancxjo.github.io/conduit/current/conduitos/x86_64/)
 to see what we are building.
 
@@ -22,7 +22,7 @@ cargo xtask fabricate host std
 
 The last command builds the product CLI and runs the checked-in Hello form.
 For a browser or native interface, follow [Try Conduit](docs/try-conduit.md).
-Rust needs a working native linker. Running Tour also needs Node.js, npm, and
+Rust needs a working native linker. Browser proof also needs Node.js, npm, and
 the WASM target (`rustup target add wasm32-unknown-unknown`). Browser conformance
 uses the additional pinned tools described in the [browser proof guide](proof/browser/README.md).
 `cargo xtask doctor` reports prerequisites across targets and can fail for

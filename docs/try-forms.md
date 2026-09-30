@@ -50,8 +50,8 @@ cargo xtask prove journey text-lab
 ```
 
 It begins with an effect-free rehearsal; inspect the selected environment and
-use the explicit execution controls when ready. The [Tour](https://dancxjo.github.io/conduit/tour/)
-and its form Gallery provide another route through the examples.
+use the explicit execution controls when ready. The body Workspace provides
+the current browser route through reviewed resident forms.
 
 ## Run the declared proofs
 

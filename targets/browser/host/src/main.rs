@@ -97,9 +97,9 @@ mod tests {
             parse_arguments(
                 [
                     "--application".to_owned(),
-                    "target/tour-product".to_owned(),
+                    "target/workspace-product".to_owned(),
                     "--mount".to_owned(),
-                    "/tour/".to_owned(),
+                    "/workspace/".to_owned(),
                     "--no-open".to_owned(),
                 ]
                 .into_iter()
@@ -107,8 +107,8 @@ mod tests {
             Ok(Entrance {
                 launch: false,
                 application: Some(ApplicationEntrance {
-                    directory: "target/tour-product".into(),
-                    mount: "/tour/".into(),
+                    directory: "target/workspace-product".into(),
+                    mount: "/workspace/".into(),
                 }),
             })
         );

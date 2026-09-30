@@ -1,19 +1,9 @@
 # The Conduit Tour
 
-The repository-development Tour teaches Conduit by running and changing
-ordinary forms. A Markdown fence marked `conduit run` is sent unchanged to the browser host's Rust/WASM
-parser, checker, planner, lowering layer, and production kernel.
-
-From a repository checkout, open it with:
-
-```sh
-cargo xtask prove journey tour
-```
-
-Tour owns the bounded `conduit.application/tour-reading-state` storage identity
-and refuses malformed or over-capacity state. It is not a public Pages product;
-the retired Book and Tour routes and the Book saved-state dialect are not part
-of the pre-v1 product contract.
+The Tour is canonical journey content plus a portable semantic model consumed
+by resident Forms. The former standalone browser application, storage identity,
+and product route were retired before v1; browser HTML participates through
+`@conduit/browser` rather than owning a private runtime bridge.
 
 Tour does not own body lifecycle truth, a compiler, simulator, scheduler,
 or alternate runtime.
@@ -24,15 +14,13 @@ The [project introduction](../../README.md) explains the motivation. Each lesson
 before asking architectural precision or evidence to carry the explanation:
 problem or desire, Conduit idea, executable demonstration, then payoff.
 
-`content/` owns the lessons, `model/` the portable application model, and
-`browser/` the reader and lesson interactions. Executable fences and front
-matter are consumed by the application; keep their canonical form identities
-and stage declarations aligned when changing a lesson.
+`docs/journeys/tour/` owns the lessons and `model/` owns the portable semantic
+model. Keep canonical Form identities and stage declarations aligned when
+changing a lesson.
 
-The native ConduitOS Tour consumes the same seven-page application port,
-chapter/stage catalog, form source identities, and semantic actions as the
-browser Tour. It uses the bounded ConduitOS compositor instead of the browser
-DOM. Focus the left pane and use Page Up, Page Down, Home, or End to read it;
+The native ConduitOS Tour consumes the seven-page semantic port, chapter/stage
+catalog, Form source identities, and semantic actions. Focus the left pane and
+use Page Up, Page Down, Home, or End to read it;
 scrolling leaves the laboratory in place. `F3`/`F4` select stages, `F5`/`F6`
 select chapters, `F10` runs the current exercise, and `F11` opens the resident
 Patchbay over the active forms on the same body.

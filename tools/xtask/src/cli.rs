@@ -616,7 +616,7 @@ mod tests {
                 )
         ));
 
-        for command in ["tour", "std", "triple", "patchbay", "body-membership"] {
+        for command in ["std", "triple", "patchbay", "body-membership"] {
             Cli::try_parse_from(["xtask", "prove", "journey", command])
                 .unwrap_or_else(|error| panic!("journey {command} must parse: {error}"));
         }

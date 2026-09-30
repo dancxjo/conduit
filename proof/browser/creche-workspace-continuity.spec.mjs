@@ -2,14 +2,13 @@ import { expect, test } from "@playwright/test";
 import { mkdtemp, symlink, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
-import { startStaticProduct } from "./tour-test-server.mjs";
+import { startStaticProduct } from "./static-product-server.mjs";
 
 let root, entrance;
 test.beforeAll(async () => {
   root = await mkdtemp(join(tmpdir(), "conduit-workspace-continuity-"));
   await symlink(resolve("target/workspace-product"), join(root, "workspace"));
   await symlink(resolve("target/creche-product"), join(root, "creche"));
-  await symlink(resolve("target/tour-product"), join(root, "tour"));
 });
 test.afterAll(async () => { if (root) await rm(root, { recursive: true }); });
 test.beforeEach(async () => { entrance = await startStaticProduct(root, "/conduit/"); });
@@ -36,32 +35,4 @@ test("Crèche respects the live Body owner and returns a retained body to its fo
   expect(returned.active_play_id).not.toBe(first.active_play_id);
   await creche.keyboard.press("r");
   await expect(creche.locator("[data-form-output] output:visible")).toHaveText("r");
-});
-
-
-test('the actual Gallery Use link returns to the same body with the selected form listening', async ({ page }) => {
-  await page.goto(new URL('workspace/', entrance.url).href);
-  await page.getByRole('checkbox', { name: 'Startup Chime', exact: true }).uncheck();
-  await page.getByRole('button', { name: 'Birth Body', exact: true }).click();
-  await page.getByRole('button', { name: 'wake body', exact: true }).click();
-  await expect(page.locator('[data-play-state]')).toHaveText('Playing');
-  const original = await page.evaluate(() => globalThis.__conduitWorkspace.current());
-  await page.evaluate(() => globalThis.__conduitWorkspace.settled());
-  await page.goto(new URL('tour/', entrance.url).href);
-  await page.getByRole('button', { name: 'form Gallery', exact: true }).click();
-  const entry = page.locator('[data-application-key="gallery-cards"] > [data-application-component="panel"]')
-    .filter({ has: page.getByRole('heading', { name: 'Desk Telegraph', exact: true }) });
-  await entry.getByRole('link', { name: 'Use in your body', exact: true }).click();
-  await expect(page.locator('#surface-title')).toHaveText('Desk Telegraph');
-  await expect(page.locator('[data-play-state]')).toHaveText('Playing');
-  const arrived = await page.evaluate(() => globalThis.__conduitWorkspace.current());
-  expect(arrived.body_id).toBe(original.body_id);
-  expect(arrived.initial_forms).toHaveLength(original.initial_forms.length + 1);
-  for (const retained of original.initial_forms) {
-    expect(arrived.initial_forms).toContainEqual(retained);
-  }
-  expect(new URL(page.url()).pathname).toBe(new URL('workspace/', entrance.url).pathname);
-  expect(new URL(page.url()).search).toBe('');
-  await page.keyboard.type('home'); await page.keyboard.press('Enter');
-  await expect(page.locator('[data-form-output] output:visible')).toHaveText('home');
 });

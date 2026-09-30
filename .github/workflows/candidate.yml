@@ -62,7 +62,7 @@ jobs:
   products:
     needs: admission
     if: github.event.pull_request.draft == false
-    uses: ./.github/workflows/tour-products.yml
+    uses: ./.github/workflows/product-carrier.yml
     with:
       base_sha: ${{ github.event.pull_request.base.sha }}
       candidate_sha: ${{ github.event.pull_request.head.sha }}

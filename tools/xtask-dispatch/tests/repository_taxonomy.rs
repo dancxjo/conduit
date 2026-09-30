@@ -211,7 +211,7 @@ fn product_source_cannot_return_to_the_generic_browser_host() {
     }
     validate_owners(&paths(&[
         "targets/browser/host/assets/application-presentation.mjs",
-        "products/tour/browser/tour.mjs",
+        "docs/journeys/tour/chapter-1.md",
         "products/patchbay/html/assets/app.js",
     ]))
     .unwrap();

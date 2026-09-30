@@ -147,6 +147,7 @@ pub fn run(args: &WorkspaceArgs, opts: &GlobalOpts) -> Result<(), Box<dyn std::e
                     "proof/browser/browser-body-host.test.mjs",
                     "proof/browser/workspace-handoff.test.mjs",
                     "proof/browser/browser-form-effects.test.mjs",
+                    "proof/browser/browser-pitch-tone.test.mjs",
                 ],
             ),
             &root,

@@ -1,7 +1,7 @@
 import { stageLegacyCrecheRoute } from "../../products/creche/tools/stage-legacy-routes.mjs";
 import { cp, mkdir, rm } from "node:fs/promises";
 import { expect, test } from "@playwright/test";
-import { startStaticProduct } from "./tour-test-server.mjs";
+import { startStaticProduct } from "./static-product-server.mjs";
 
 const pagesRoot = "target/pages-front-door-proof";
 let entrance;
