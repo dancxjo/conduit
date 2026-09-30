@@ -9,6 +9,8 @@ type ReactionDiffusionBoundaryEdge =
     | west
     | east
 
+representation alife/reaction-diffusion-boundary-edge = ReactionDiffusionBoundaryEdge as u8
+
 type FieldBitmapRefusal =
     invalid-field
     | invalid-bitmap

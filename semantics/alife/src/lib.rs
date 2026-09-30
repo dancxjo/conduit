@@ -8,6 +8,7 @@ mod generated {
 }
 pub use generated::{
     FieldBitmapRefusal, GardenEvolutionRefusal, LeniaBoundary, ReactionDiffusionBoundaryEdge,
+    ReactionDiffusionBoundaryEdgeRepresentation,
 };
 
 mod distributed_catalog;
