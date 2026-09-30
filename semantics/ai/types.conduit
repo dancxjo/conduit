@@ -87,3 +87,22 @@ type TemporalWindowRelation =
     | after
     | overlaps
     | unknown
+
+type ContextRedundancyPolicy =
+    keep_all
+    | one_per_reviewed_group
+
+type ContextOrderingPolicy =
+    reranked
+    | chronological_oldest_first
+
+type SelectedContextRationale =
+    reranked
+    | temporal_chronology
+
+type ContextOmissionReason =
+    reviewed_redundancy
+    | item_budget
+    | byte_budget
+    | token_budget
+    | work_budget

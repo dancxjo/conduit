@@ -7,8 +7,9 @@ mod generated {
     include!(concat!(env!("OUT_DIR"), "/semantic_types.rs"));
 }
 pub use generated::{
-    EmbeddingNormalization, EntityBoundary, GeneratedTextFlowTerminal, LlmDeterminismProfile,
-    LlmImplementationControl, LlmTerminalOutcome, ModelOperation, ModelPortPresence,
+    ContextOmissionReason, ContextOrderingPolicy, ContextRedundancyPolicy, EmbeddingNormalization,
+    EntityBoundary, GeneratedTextFlowTerminal, LlmDeterminismProfile, LlmImplementationControl,
+    LlmTerminalOutcome, ModelOperation, ModelPortPresence, SelectedContextRationale,
     SimilarityMetric, TemporalSource, TemporalValidity, TemporalWindowRelation,
     TransitionDirection,
 };
