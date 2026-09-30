@@ -4,7 +4,10 @@ use alloc::{string::String, vec::Vec};
 use conduit_core::semantic_digest;
 use conduit_data::{TensorAxisRole, TensorElement};
 
-use crate::{ModelOperation, ModelOperationCode, ModelPortPresence, ModelPortPresenceCode};
+use crate::{
+    ModelOperation, ModelOperationCode, ModelPortPresence, ModelPortPresenceCode,
+    ModelSignatureRefusal,
+};
 
 pub const MODEL_SIGNATURE_INFO_ID: &str = "model/signature@1";
 pub const MAXIMUM_MODEL_PORTS: usize = 32;
@@ -55,20 +58,6 @@ pub struct ModelSignature {
     pub operations: Vec<ModelOperation>,
     pub inputs: Vec<ModelPortConstraint>,
     pub outputs: Vec<ModelPortConstraint>,
-}
-
-#[derive(Debug, Copy, Clone, PartialEq, Eq)]
-pub enum ModelSignatureRefusal {
-    InvalidIdentity,
-    InvalidCompatibilityVersion,
-    MissingOperation,
-    TooManyOperations,
-    DuplicateOperation,
-    MissingPort,
-    TooManyPorts,
-    DuplicatePort,
-    InvalidTensorConstraint,
-    InvalidSignalConstraint,
 }
 
 impl ModelSignature {

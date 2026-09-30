@@ -415,3 +415,32 @@ type VectorIndexHealth =
 type VectorIndexMaintenanceKind =
     rebuild
     | compaction
+
+type ModelComputeRefusal =
+    invalid_offer
+    | missing_identity
+    | unsupported_operation
+    | unsupported_format
+    | unsupported_element
+    | unsupported_shape
+    | unsupported_compute_class
+    | unsupported_solver
+    | unsupported_determinism
+    | unsupported_checkpoint
+    | resource_bound_exceeded
+    | queue_full
+    | cancellation_unsupported
+    | invalid_lifecycle_transition
+    | provider_unavailable
+
+type ModelSignatureRefusal =
+    invalid_identity
+    | invalid_compatibility_version
+    | missing_operation
+    | too_many_operations
+    | duplicate_operation
+    | missing_port
+    | too_many_ports
+    | duplicate_port
+    | invalid_tensor_constraint
+    | invalid_signal_constraint

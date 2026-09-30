@@ -1,6 +1,6 @@
 use conduit_ai::{
-    BatchOrder, ModelComputeOperation, ObjectiveParticipation, PortableComputeClass,
-    VectorIndexHealth, VectorIndexMaintenanceKind,
+    BatchOrder, ModelComputeOperation, ModelComputeRefusal, ModelSignatureRefusal,
+    ObjectiveParticipation, PortableComputeClass, VectorIndexHealth, VectorIndexMaintenanceKind,
 };
 use conduit_form::rust_binding::NativeRustBinding;
 
@@ -52,5 +52,20 @@ fn training_vocabularies_round_trip_through_native_types() {
         VectorIndexMaintenanceKind::Compaction,
     ] {
         assert_round_trip(kind);
+    }
+    for refusal in [
+        ModelComputeRefusal::InvalidOffer,
+        ModelComputeRefusal::UnsupportedOperation,
+        ModelComputeRefusal::ResourceBoundExceeded,
+        ModelComputeRefusal::ProviderUnavailable,
+    ] {
+        assert_round_trip(refusal);
+    }
+    for refusal in [
+        ModelSignatureRefusal::InvalidIdentity,
+        ModelSignatureRefusal::DuplicateOperation,
+        ModelSignatureRefusal::InvalidSignalConstraint,
+    ] {
+        assert_round_trip(refusal);
     }
 }

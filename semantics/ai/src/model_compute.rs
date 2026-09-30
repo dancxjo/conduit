@@ -4,7 +4,7 @@ use alloc::{string::String, vec::Vec};
 use conduit_core::ComputeServiceGuarantee;
 use conduit_data::TensorElement;
 
-use crate::{ModelComputeOperation, PortableComputeClass};
+use crate::{ModelComputeOperation, ModelComputeRefusal, PortableComputeClass};
 
 pub const MAXIMUM_MODEL_COMPUTE_PROFILES: usize = 16;
 pub const MAXIMUM_MODEL_COMPUTE_FORMATS: usize = 16;
@@ -114,25 +114,6 @@ pub struct ModelComputeSession {
     loaded_model_bytes: u64,
     queued_items: u16,
     queued_bytes: u64,
-}
-
-#[derive(Debug, Copy, Clone, PartialEq, Eq)]
-pub enum ModelComputeRefusal {
-    InvalidOffer,
-    MissingIdentity,
-    UnsupportedOperation,
-    UnsupportedFormat,
-    UnsupportedElement,
-    UnsupportedShape,
-    UnsupportedComputeClass,
-    UnsupportedSolver,
-    UnsupportedDeterminism,
-    UnsupportedCheckpoint,
-    ResourceBoundExceeded,
-    QueueFull,
-    CancellationUnsupported,
-    InvalidLifecycleTransition,
-    ProviderUnavailable,
 }
 
 impl ModelComputeOffer {
