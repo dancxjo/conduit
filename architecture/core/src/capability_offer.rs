@@ -137,6 +137,7 @@ impl Kind {
         let mut value_contracts = None;
         let mut keyed_join = None;
         let mut bounded_collect = None;
+        let mut flow_select = None;
         for law in &self.semantic_laws {
             match law {
                 KindSemanticLaw::TerminalTransduction(profile) => {
@@ -200,6 +201,30 @@ impl Kind {
                         return Err(KindValidationError::DuplicateBoundedCollect);
                     }
                     validate_bounded_collect(self, contract)?;
+                }
+                KindSemanticLaw::FlowSelect(contract) => {
+                    if flow_select.replace(contract).is_some() {
+                        return Err(KindValidationError::DuplicateFlowSelect);
+                    }
+                    let input = self
+                        .inputs
+                        .iter()
+                        .find(|port| port.port_id == contract.input_port_id);
+                    let output = self
+                        .outputs
+                        .iter()
+                        .find(|port| port.port_id == contract.output_port_id);
+                    if !matches!((input, output), (Some(input), Some(output))
+                        if input.temporal == crate::PortTemporal::Flow { closes: true }
+                            && output.temporal == crate::PortTemporal::Flow { closes: true }
+                            && input.value_kind == output.value_kind
+                            && input.value_kind == contract.predicate_input_kind
+                            && contract.predicate_output_kind.as_str() == crate::BOOL_INFO_ID
+                            && contract.maximum_active == 1
+                            && contract.maximum_queued == 1)
+                    {
+                        return Err(KindValidationError::InvalidFlowSelect);
+                    }
                 }
                 _ => {}
             }
@@ -461,6 +486,8 @@ pub enum KindValidationError {
     InvalidKeyedJoin,
     DuplicateBoundedCollect,
     InvalidBoundedCollect,
+    DuplicateFlowSelect,
+    InvalidFlowSelect,
     InvalidValueBound,
     UnknownValueBoundLocation,
 }

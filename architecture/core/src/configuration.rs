@@ -299,6 +299,8 @@ pub enum KindSemanticLaw {
     KeyedJoin(KeyedJoinSemanticLaw),
     /// Finite collection of one closing Flow into exactly one sequence Value.
     BoundedCollect(BoundedCollectSemanticLaw),
+    /// Exact bounded lifting of one Value-to-Boolean predicate over a closing Flow.
+    FlowSelect(FlowSelectSemanticLaw),
 }
 
 /// Exact portable law for collecting one closing Flow.
@@ -314,6 +316,40 @@ pub struct BoundedCollectSemanticLaw {
     pub collection: crate::CheckedValueContract,
     pub maximum_items: u16,
     pub overflow_disposition: crate::CheckedValueContract,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct FlowSelectSemanticLaw {
+    pub input_port_id: PortId,
+    pub output_port_id: PortId,
+    pub predicate_input_kind: KindId,
+    pub predicate_output_kind: KindId,
+    pub maximum_active: u16,
+    pub maximum_queued: u16,
+    pub invocation: FlowSelectInvocation,
+    pub retained_input: FlowSelectRetainedInput,
+    pub true_disposition: FlowSelectTrueDisposition,
+    pub false_disposition: FlowSelectFalseDisposition,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+pub enum FlowSelectInvocation {
+    OncePerAcceptedInput,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+pub enum FlowSelectRetainedInput {
+    UntilPredicateCompletion,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+pub enum FlowSelectFalseDisposition {
+    EmitNothing,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+pub enum FlowSelectTrueDisposition {
+    EmitRetainedInputExactlyOnce,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
