@@ -1,5 +1,3 @@
-# Packs, hosts and bodies
-
 > **Canonical reference.** These pages were migrated from issue [#4109](https://github.com/dancxjo/conduit/issues/4109) on 2026-09-29. The wiki is now the readable language reference; implementation tickets remain evidence of conformance and provenance.
 
 ## One Conduit language for form, host, body and pack source
