@@ -2,8 +2,8 @@ use alloc::{string::String, vec::Vec};
 use serde::{Deserialize, Serialize};
 
 use crate::{
-    FiniteEmbedding, StructuredResultInvalidity, TemporalProvenance, TemporalRetrievalIntent,
-    MAXIMUM_EMBEDDING_DIMENSIONS,
+    EmbeddingNormalization, FiniteEmbedding, SimilarityMetric, StructuredResultInvalidity,
+    TemporalProvenance, TemporalRetrievalIntent, MAXIMUM_EMBEDDING_DIMENSIONS,
 };
 
 pub const MAXIMUM_VECTOR_IDENTITY_BYTES: usize = 256;
@@ -13,18 +13,6 @@ pub const MAXIMUM_VECTOR_METADATA_KEY_BYTES: usize = 64;
 pub const MAXIMUM_VECTOR_METADATA_VALUE_BYTES: usize = 1_024;
 pub const MAXIMUM_SIMILARITY_TOP_K: u32 = 1_024;
 const UNIT_NORM_TOLERANCE: f32 = 0.000_01;
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
-pub enum SimilarityMetric {
-    CosineSimilarity,
-    DotProductSimilarity,
-    SquaredEuclideanDistance,
-}
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
-pub enum EmbeddingNormalization {
-    None,
-    UnitLength,
-}
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 pub struct CompatibleMetrics {
     pub cosine_similarity: bool,
