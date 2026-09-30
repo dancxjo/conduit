@@ -103,6 +103,7 @@ pub trait PlanPreparationHost {
 pub struct PreparedPlan {
     plan_id: PlanId,
     receipts: Vec<PreparedFragmentReceipt>,
+    subordinate_receipts: Vec<(alloc::string::String, PreparedFragmentReceipt)>,
 }
 
 impl PreparedPlan {
@@ -113,12 +114,78 @@ impl PreparedPlan {
     pub fn receipts(&self) -> &[PreparedFragmentReceipt] {
         &self.receipts
     }
+    pub fn subordinate_receipts(&self) -> &[(alloc::string::String, PreparedFragmentReceipt)] {
+        &self.subordinate_receipts
+    }
+}
+
+pub fn verify_prepared_plan(prepared: &PreparedPlan, plan: &Plan) -> bool {
+    if !verify_plan(plan)
+        || prepared.plan_id != plan.plan_id
+        || prepared.receipts.len() != plan.fragments.len()
+    {
+        return false;
+    }
+    if !prepared
+        .receipts
+        .iter()
+        .zip(&plan.fragments)
+        .all(|(receipt, fragment)| receipt_matches_fragment(receipt, fragment))
+    {
+        return false;
+    }
+    let expected = plan
+        .activation_preparations
+        .iter()
+        .map(|binding| binding.child_fragments.len())
+        .sum::<usize>();
+    prepared.subordinate_receipts.len() == expected
+        && plan.activation_preparations.iter().all(|binding| {
+            let selected = plan.activations.iter().find_map(|entry| match entry {
+                crate::PlannedActivationEntry::Unary(v)
+                    if v.activation_id == binding.activation_id =>
+                {
+                    Some(v.selected_plan.as_ref())
+                }
+                crate::PlannedActivationEntry::Fold(v)
+                    if v.activation_id == binding.activation_id =>
+                {
+                    Some(v.selected_plan.as_ref())
+                }
+                crate::PlannedActivationEntry::Scan(v)
+                    if v.activation_id == binding.activation_id =>
+                {
+                    Some(v.selected_plan.as_ref())
+                }
+                _ => None,
+            });
+            selected.is_some_and(|selected| {
+                binding.child_fragments.iter().all(|child| {
+                    let fragment = selected
+                        .fragments
+                        .iter()
+                        .find(|fragment| fragment.fragment_id == child.fragment_id);
+                    fragment.is_some_and(|fragment| {
+                        prepared
+                            .subordinate_receipts
+                            .iter()
+                            .filter(|(activation, receipt)| {
+                                activation == &binding.activation_id
+                                    && receipt_matches_fragment(receipt, fragment)
+                            })
+                            .count()
+                            == 1
+                    })
+                })
+            })
+        })
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct StartedPlan {
     plan_id: PlanId,
     active_plays: Vec<(HostId, ActivePlayId)>,
+    subordinate_receipts: Vec<(alloc::string::String, PreparedFragmentReceipt)>,
 }
 
 impl StartedPlan {
@@ -128,6 +195,9 @@ impl StartedPlan {
 
     pub fn active_plays(&self) -> &[(HostId, ActivePlayId)] {
         &self.active_plays
+    }
+    pub fn subordinate_receipts(&self) -> &[(alloc::string::String, PreparedFragmentReceipt)] {
+        &self.subordinate_receipts
     }
 }
 
@@ -180,7 +250,18 @@ pub fn prepare_plan_on_hosts(
     if plan.fragments.is_empty() {
         return Err(PlanPreparationError::EmptyPlan);
     }
-    if plan.fragments.len() > MAX_PREPARATION_HOSTS || hosts.len() > MAX_PREPARATION_HOSTS {
+    let subordinate_count = plan
+        .activation_preparations
+        .iter()
+        .try_fold(0usize, |n, b| n.checked_add(b.child_fragments.len()))
+        .ok_or(PlanPreparationError::HostCapacityExceeded)?;
+    if plan
+        .fragments
+        .len()
+        .checked_add(subordinate_count)
+        .is_none_or(|n| n > MAX_PREPARATION_HOSTS)
+        || hosts.len() > MAX_PREPARATION_HOSTS
+    {
         return Err(PlanPreparationError::HostCapacityExceeded);
     }
 
@@ -253,9 +334,94 @@ pub fn prepare_plan_on_hosts(
             }
         }
     }
+    let mut subordinate_receipts: Vec<(alloc::string::String, PreparedFragmentReceipt)> =
+        Vec::with_capacity(subordinate_count);
+    for binding in &plan.activation_preparations {
+        let selected = plan
+            .activations
+            .iter()
+            .find_map(|entry| match entry {
+                crate::PlannedActivationEntry::Unary(v)
+                    if v.activation_id == binding.activation_id =>
+                {
+                    Some(v.selected_plan.as_ref())
+                }
+                crate::PlannedActivationEntry::Fold(v)
+                    if v.activation_id == binding.activation_id =>
+                {
+                    Some(v.selected_plan.as_ref())
+                }
+                crate::PlannedActivationEntry::Scan(v)
+                    if v.activation_id == binding.activation_id =>
+                {
+                    Some(v.selected_plan.as_ref())
+                }
+                _ => None,
+            })
+            .ok_or(PlanPreparationError::InvalidPlan)?;
+        for child_binding in &binding.child_fragments {
+            let child = selected
+                .fragments
+                .iter()
+                .find(|f| f.fragment_id == child_binding.fragment_id)
+                .ok_or(PlanPreparationError::InvalidPlan)?;
+            let matching = hosts
+                .iter()
+                .enumerate()
+                .filter(|(_, h)| h.preparation_identity().host_id == child.host_id)
+                .map(|(i, _)| i)
+                .collect::<Vec<_>>();
+            let [host_index] = matching.as_slice() else {
+                let mut all = receipts.clone();
+                all.extend(subordinate_receipts.iter().map(|(_, r)| r.clone()));
+                let rollback_failures = rollback_receipts(&mut all, hosts);
+                return Err(PlanPreparationError::HostSelectionFailed {
+                    fragment_id: child.fragment_id.clone(),
+                    reason: if matching.is_empty() {
+                        HostSelectionFailure::Missing
+                    } else {
+                        HostSelectionFailure::Ambiguous
+                    },
+                    rollback_failures,
+                });
+            };
+            match hosts[*host_index].prepare_fragment(child) {
+                Ok(receipt) if receipt_matches_fragment(&receipt, child) => {
+                    subordinate_receipts.push((binding.activation_id.clone(), receipt))
+                }
+                Ok(receipt) => {
+                    let mut rollback_failures = Vec::new();
+                    if let Err(reason) = hosts[*host_index].release_fragment(&receipt) {
+                        rollback_failures.push(PreparationRollbackFailure {
+                            fragment_id: child.fragment_id.clone(),
+                            reason,
+                        });
+                    }
+                    let mut all = receipts.clone();
+                    all.extend(subordinate_receipts.iter().map(|(_, r)| r.clone()));
+                    rollback_failures.extend(rollback_receipts(&mut all, hosts));
+                    return Err(PlanPreparationError::InvalidReceipt {
+                        fragment_id: child.fragment_id.clone(),
+                        rollback_failures,
+                    });
+                }
+                Err(reason) => {
+                    let mut all = receipts.clone();
+                    all.extend(subordinate_receipts.iter().map(|(_, r)| r.clone()));
+                    let rollback_failures = rollback_receipts(&mut all, hosts);
+                    return Err(PlanPreparationError::HostRefused {
+                        fragment_id: child.fragment_id.clone(),
+                        reason,
+                        rollback_failures,
+                    });
+                }
+            }
+        }
+    }
     Ok(PreparedPlan {
         plan_id: plan.plan_id.clone(),
         receipts,
+        subordinate_receipts,
     })
 }
 
@@ -268,6 +434,39 @@ pub fn start_prepared_plan(
         return Err(PlanPreparationError::EmptyPlan);
     }
     let mut indexes = Vec::with_capacity(prepared.receipts.len());
+    for (_, receipt) in &prepared.subordinate_receipts {
+        let matching = hosts
+            .iter()
+            .enumerate()
+            .filter(|(_, host)| host.preparation_identity().host_id == receipt.host().host_id)
+            .map(|(index, _)| index)
+            .collect::<Vec<_>>();
+        let [index] = matching.as_slice() else {
+            return Err(PlanPreparationError::StartRefused {
+                fragment_id: receipt.fragment_id().clone(),
+                reason: HostPreparationRefusal::PreparedBindingMismatch,
+            });
+        };
+        let identity = hosts[*index].preparation_identity();
+        if identity.boot_id != receipt.host().boot_id {
+            return Err(PlanPreparationError::StartRefused {
+                fragment_id: receipt.fragment_id().clone(),
+                reason: HostPreparationRefusal::StaleBoot,
+            });
+        }
+        if identity.offer_generation != receipt.host().offer_generation {
+            return Err(PlanPreparationError::StartRefused {
+                fragment_id: receipt.fragment_id().clone(),
+                reason: HostPreparationRefusal::StaleOffer,
+            });
+        }
+        hosts[*index].validate_start(receipt).map_err(|reason| {
+            PlanPreparationError::StartRefused {
+                fragment_id: receipt.fragment_id().clone(),
+                reason,
+            }
+        })?;
+    }
     for receipt in &prepared.receipts {
         let matching = hosts
             .iter()
@@ -322,6 +521,7 @@ pub fn start_prepared_plan(
     Ok(StartedPlan {
         plan_id: prepared.plan_id,
         active_plays,
+        subordinate_receipts: prepared.subordinate_receipts,
     })
 }
 

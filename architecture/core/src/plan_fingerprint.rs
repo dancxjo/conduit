@@ -8,7 +8,8 @@ use crate::{
     push_string, push_u32, push_u64, AdmittedLine, BoundLink, CancellationPolicy, CheckedFront,
     ConfigurationValue, ExpectedSign, ExpectedTerminal, FormBack, FormIdentity, FragmentCommitment,
     FragmentId, LinkAuthorityReference, LinkCredentialReference, PlanFragment, PlanId,
-    PlannedActivationEntry, PortDescriptor, PortDirection, PortTemporal, TerminalPolicy,
+    PlannedActivationEntry, PlannedActivationPreparationBinding, PortDescriptor, PortDirection,
+    PortTemporal, TerminalPolicy,
 };
 use alloc::string::String;
 use alloc::vec::Vec;
@@ -879,6 +880,7 @@ pub(crate) fn compute_plan_id(
     realization_backs: &[FormBack],
     activations: &[PlannedActivationEntry],
     commitments: &[FragmentCommitment],
+    activation_preparations: &[PlannedActivationPreparationBinding],
 ) -> PlanId {
     let mut canonical = Vec::new();
     push_string(&mut canonical, form_identity.source_document_id.as_str());
@@ -886,6 +888,26 @@ pub(crate) fn compute_plan_id(
     push_string(&mut canonical, form_identity.expanded_form_id.as_str());
     if !realization_backs.is_empty() {
         plan_realization::push_canonical(&mut canonical, realization_backs);
+    }
+    if !activation_preparations.is_empty() {
+        push_u32(&mut canonical, activation_preparations.len() as u32);
+        for binding in activation_preparations {
+            push_string(&mut canonical, &binding.activation_id);
+            push_string(&mut canonical, binding.owner_placement_id.as_str());
+            push_string(&mut canonical, binding.owner_fragment_id.as_str());
+            push_string(&mut canonical, binding.owner_host_id.as_str());
+            push_string(&mut canonical, binding.owner_boot_id.as_str());
+            canonical.extend_from_slice(&binding.owner_offer_generation.0.to_le_bytes());
+            push_string(&mut canonical, binding.selected_plan_id.as_str());
+            push_u32(&mut canonical, binding.child_fragments.len() as u32);
+            for child in &binding.child_fragments {
+                push_string(&mut canonical, child.fragment_id.as_str());
+                push_string(&mut canonical, child.host_id.as_str());
+                push_string(&mut canonical, child.boot_id.as_str());
+                canonical.extend_from_slice(&child.offer_generation.0.to_le_bytes());
+                canonical.extend_from_slice(&child.obligation_digest);
+            }
+        }
     }
     if !activations.is_empty() {
         push_u32(&mut canonical, activations.len() as u32);
