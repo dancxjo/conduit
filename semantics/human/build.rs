@@ -14,7 +14,30 @@ fn main() {
         &checked.codes,
         &RustBindingOptions {
             derive_serde_for_variants: true,
-            copy_record_types: ["ExperienceTemporalPolicy".into(), "ImageRegion".into()].into(),
+            copy_record_types: [
+                "ExperienceTemporalPolicy".into(),
+                "ImageRegion".into(),
+                "KeyEvent".into(),
+            ]
+            .into(),
+            copy_record_value_getters: ["KeyEvent".into()].into(),
+            record_constructor_orders: [(
+                "KeyEvent".into(),
+                vec![
+                    "usage".into(),
+                    "transition".into(),
+                    "left_control_after".into(),
+                    "left_shift_after".into(),
+                    "left_alt_after".into(),
+                    "left_gui_after".into(),
+                    "right_control_after".into(),
+                    "right_shift_after".into(),
+                    "right_alt_after".into(),
+                    "right_gui_after".into(),
+                ],
+            )]
+            .into(),
+            record_constructor_names: [("KeyEvent".into(), "new_native".into())].into(),
             ..RustBindingOptions::default()
         },
     )

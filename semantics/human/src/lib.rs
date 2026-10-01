@@ -2,7 +2,7 @@
 
 extern crate alloc;
 
-#[allow(clippy::clone_on_copy, dead_code)]
+#[allow(clippy::clone_on_copy, clippy::too_many_arguments, dead_code)]
 mod generated {
     include!(concat!(env!("OUT_DIR"), "/semantic_types.rs"));
 
@@ -59,7 +59,7 @@ pub use generated::{
     ExperienceTemporalPolicy, ExperienceTemporalRole, HumanMediaKind, ImageRegion,
     ImageTextMetadata, InteractionApplicationOutcome, InteractionApplicationOutcomeAccepted,
     InteractionApplicationOutcomeFailed, InteractionApplicationOutcomeRefused,
-    InteractionBoundKind as BoundKind, InteractionRefusal, KeyModifiers, KeyTransition,
+    InteractionBoundKind as BoundKind, InteractionRefusal, KeyEvent, KeyModifiers, KeyTransition,
     KeyTransitionCode, KeymapRefusal, OptionAvailability, OptionAvailabilityUnavailable,
     RealizationRangePolicy, ScalarQuantization, SourceAvailability, VisualEvidenceClass,
     VisualExperienceRelationKind, VisualImpressionDisposition,

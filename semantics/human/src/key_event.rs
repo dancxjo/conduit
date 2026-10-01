@@ -35,19 +35,12 @@ pub const KEY_EVENT_CONFORMANCE_VECTORS: [KeyEventConformanceVector; 8] = [
     vector("simultaneous-b-second", 0x05, 0, 0),
 ];
 
-use crate::{KeyModifiers, KeyTransition, KeyTransitionCode};
+use crate::{KeyEvent, KeyModifiers, KeyTransition, KeyTransitionCode};
 
 /// One exact keyboard transition with the modifier state *after* the transition.
 ///
 /// Usage numbers use the USB HID Keyboard/Keypad page as a host-neutral
 /// vocabulary. That choice does not imply a USB device or transport.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
-pub struct KeyEvent {
-    usage: u8,
-    transition: KeyTransition,
-    modifiers_after: KeyModifiers,
-}
-
 impl KeyEvent {
     pub fn new(
         usage: u8,
@@ -67,30 +60,43 @@ impl KeyEvent {
                 "modifier-after-transition",
             ));
         }
-        Ok(Self {
+        let contains = |modifier: KeyModifiers| modifiers_after.bits() & modifier.bits() != 0;
+        Ok(Self::new_native(
             usage,
             transition,
-            modifiers_after,
-        })
+            contains(KeyModifiers::LEFT_CONTROL),
+            contains(KeyModifiers::LEFT_SHIFT),
+            contains(KeyModifiers::LEFT_ALT),
+            contains(KeyModifiers::LEFT_GUI),
+            contains(KeyModifiers::RIGHT_CONTROL),
+            contains(KeyModifiers::RIGHT_SHIFT),
+            contains(KeyModifiers::RIGHT_ALT),
+            contains(KeyModifiers::RIGHT_GUI),
+        )
+        .expect("explicit keyboard checks match generated contract"))
     }
 
-    pub const fn usage(self) -> u8 {
-        self.usage
+    pub fn modifiers_after(&self) -> KeyModifiers {
+        let fields = [
+            (self.left_control_after(), KeyModifiers::LEFT_CONTROL),
+            (self.left_shift_after(), KeyModifiers::LEFT_SHIFT),
+            (self.left_alt_after(), KeyModifiers::LEFT_ALT),
+            (self.left_gui_after(), KeyModifiers::LEFT_GUI),
+            (self.right_control_after(), KeyModifiers::RIGHT_CONTROL),
+            (self.right_shift_after(), KeyModifiers::RIGHT_SHIFT),
+            (self.right_alt_after(), KeyModifiers::RIGHT_ALT),
+            (self.right_gui_after(), KeyModifiers::RIGHT_GUI),
+        ];
+        KeyModifiers::from_bits(fields.into_iter().fold(0, |bits, (present, modifier)| {
+            bits | if present { modifier.bits() } else { 0 }
+        }))
     }
 
-    pub const fn transition(self) -> KeyTransition {
-        self.transition
-    }
-
-    pub const fn modifiers_after(self) -> KeyModifiers {
-        self.modifiers_after
-    }
-
-    pub const fn encode(self) -> [u8; KEY_EVENT_ENCODED_LEN] {
+    pub fn encode(self) -> [u8; KEY_EVENT_ENCODED_LEN] {
         [
-            self.usage,
-            KeyTransitionCode::encode(self.transition)[0],
-            self.modifiers_after.bits(),
+            self.usage(),
+            KeyTransitionCode::encode(self.transition())[0],
+            self.modifiers_after().bits(),
         ]
     }
 
@@ -108,6 +114,30 @@ impl KeyEvent {
 
     pub fn semantic_digest(self) -> [u8; 32] {
         semantic_digest(KEY_EVENT_INFO_ID, &self.encode())
+    }
+}
+
+impl PartialOrd for KeyEvent {
+    fn partial_cmp(&self, other: &Self) -> Option<core::cmp::Ordering> {
+        Some(self.cmp(other))
+    }
+}
+
+impl Ord for KeyEvent {
+    fn cmp(&self, other: &Self) -> core::cmp::Ordering {
+        (self.usage(), self.transition(), self.modifiers_after()).cmp(&(
+            other.usage(),
+            other.transition(),
+            other.modifiers_after(),
+        ))
+    }
+}
+
+impl core::hash::Hash for KeyEvent {
+    fn hash<H: core::hash::Hasher>(&self, state: &mut H) {
+        self.usage().hash(state);
+        self.transition().hash(state);
+        self.modifiers_after().hash(state);
     }
 }
 
