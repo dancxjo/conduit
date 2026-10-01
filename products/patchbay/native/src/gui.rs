@@ -25,8 +25,9 @@ use embedded_graphics::{
     prelude::{DrawTarget, Point, Size},
     primitives::Rectangle,
 };
+use patchbay_application::DebuggerPresentation;
 use patchbay_graph::{PatchbayGear, PatchbayGraph};
-use patchbay_model::{ApplicationTheme, DebuggerPresentation, CONDUIT_APPLICATION_THEME};
+use patchbay_model::{ApplicationTheme, CONDUIT_APPLICATION_THEME};
 
 pub use crate::gui_hit::{GuiAction, HitTarget};
 

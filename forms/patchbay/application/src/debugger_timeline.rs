@@ -5,6 +5,7 @@ use crate::{
     DebuggerExecutionIdentity, DebuggerGapPresentation, DebuggerValuePresentation,
     DebuggerWatchHistoryEntry, DebuggerWatchSet, MAX_DEBUGGER_SUMMARY_BYTES,
 };
+use alloc::{borrow::ToOwned, string::String, vec, vec::Vec};
 use conduit_kernel::debug_observation::{
     DebugExecutionIdentity, DebugObservationGap, DebugObservationRecord, DebugSubject,
 };

@@ -132,7 +132,7 @@ struct PatchbayApplication {
     graphical_form: Option<patchbay_graph::PatchbayGraph>,
     body_workbench: native_body_workbench::NativeBodyWorkbenchSlot,
     layout: patchbay_model::PatchbayLayout,
-    debugger: Option<patchbay_model::DebuggerPresentation>,
+    debugger: Option<patchbay_application::DebuggerPresentation>,
     interaction: Option<PatchbayInteraction>,
     entrance: Option<front_door::NativeFrontDoorPresentation>,
     zero_body_front_door: Option<patchbay_model::ZeroBodyFrontDoor>,

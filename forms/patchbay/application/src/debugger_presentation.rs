@@ -3,6 +3,7 @@
 //! This state annotates exact canonical subjects. It never owns or mutates the
 //! Patchbay graph, execution, or Plan truth.
 
+use alloc::{borrow::ToOwned, format, string::String, vec::Vec};
 use conduit_kernel::debug_observation::{
     DebugEventKind, DebugExecutionIdentity, DebugObservationGap, DebugObservationRecord,
     DebugSubject,

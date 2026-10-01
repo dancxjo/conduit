@@ -1,6 +1,7 @@
 //! Finite presentation of scheduler-owned debugger execution control.
 
 use crate::DebuggerExecutionIdentity;
+use alloc::{borrow::ToOwned, string::String, vec::Vec};
 use serde::{Deserialize, Serialize};
 
 pub const DEBUGGER_CONTROL_SCHEMA: &str = "conduit.patchbay.debugger-control/v1";

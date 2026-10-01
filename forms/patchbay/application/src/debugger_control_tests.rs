@@ -1,3 +1,5 @@
+use alloc::vec;
+
 use super::{DebuggerExecutionControl, DebuggerExecutionControlState, DebuggerExecutionIdentity};
 
 fn execution(byte: u8) -> DebuggerExecutionIdentity {

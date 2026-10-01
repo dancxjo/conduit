@@ -3847,12 +3847,14 @@ dependencies = [
  "conduit-body",
  "conduit-core",
  "conduit-form",
+ "conduit-kernel",
  "conduit-patchbay-workbench-conformance",
  "conduit-presentation",
  "conduit-semantic-catalog",
  "patchbay-control",
  "patchbay-graph",
  "serde",
+ "serde_json",
 ]
 
 [[package]]
@@ -3966,6 +3968,7 @@ dependencies = [
  "conduit-wire",
  "conduitos",
  "embedded-graphics",
+ "patchbay-application",
  "patchbay-graph",
  "patchbay-hosted",
  "patchbay-model",

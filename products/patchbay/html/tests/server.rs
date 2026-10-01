@@ -144,7 +144,7 @@ fn debugger_timeline_pause_and_event_selection_mutate_only_playback_state() {
     );
     assert_eq!(
         selected.timeline_projection.as_ref().unwrap().mode,
-        patchbay_model::DebuggerTimelineMode::Replay
+        patchbay_application::DebuggerTimelineMode::Replay
     );
 }
 
@@ -218,7 +218,7 @@ fn debugger_break_and_resume_cross_the_real_kernel_control_contract() {
     .unwrap();
     assert_eq!(
         suspended.debugger_control.as_ref().unwrap().state,
-        patchbay_model::DebuggerExecutionControlState::Suspended
+        patchbay_application::DebuggerExecutionControlState::Suspended
     );
     assert_eq!(suspended.presentation, presentation);
     let resumed_response = post_to(
@@ -243,7 +243,7 @@ fn debugger_break_and_resume_cross_the_real_kernel_control_contract() {
     .unwrap();
     assert_eq!(
         resumed.debugger_control.as_ref().unwrap().state,
-        patchbay_model::DebuggerExecutionControlState::Running
+        patchbay_application::DebuggerExecutionControlState::Running
     );
     assert_eq!(resumed.presentation, presentation);
     worker.join().unwrap().unwrap();
@@ -257,7 +257,7 @@ fn debugger_watch_mutation_is_exact_revisioned_and_topology_immutable() {
     let subject = watches
         .eligible_subjects
         .iter()
-        .find(|(_, role)| *role == patchbay_model::DebuggerWatchSubjectRole::Cord)
+        .find(|(_, role)| *role == patchbay_application::DebuggerWatchSubjectRole::Cord)
         .unwrap()
         .0
         .clone();

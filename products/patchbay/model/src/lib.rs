@@ -15,18 +15,6 @@ mod build_birth;
 mod control;
 mod conversation_request_evidence;
 mod cross_host_renderer;
-mod debugger_control;
-#[cfg(test)]
-mod debugger_control_tests;
-mod debugger_presentation;
-#[cfg(test)]
-mod debugger_presentation_tests;
-mod debugger_timeline;
-#[cfg(test)]
-mod debugger_timeline_tests;
-mod debugger_watch;
-#[cfg(test)]
-mod debugger_watch_tests;
 mod form_editor;
 mod form_editor_catalogs;
 mod form_editor_error;
@@ -41,9 +29,6 @@ mod gear_realization;
 mod host_adapter;
 mod interaction;
 mod layout;
-mod learned_watch;
-#[cfg(test)]
-mod learned_watch_tests;
 mod live_conversation_flow;
 mod llm_documentary;
 mod llm_embodiment_presentation;
@@ -114,29 +99,6 @@ pub use cross_host_renderer::{
     CROSS_HOST_RENDERER_GEAR, CROSS_HOST_SOURCE_GEAR, PRESENTATION_PROJECT_CAPABILITY,
     PRESENTATION_PROJECT_KIND,
 };
-pub use debugger_control::{
-    DebuggerExecutionControl, DebuggerExecutionControlState, DEBUGGER_CONTROL_SCHEMA,
-    MAX_DEBUGGER_BREAKPOINT_SUBJECTS, MAX_DEBUGGER_CONTROL_REASON_BYTES,
-};
-pub use debugger_presentation::{
-    DebuggerActivityPhase, DebuggerExecutionIdentity, DebuggerGapPresentation,
-    DebuggerPresentation, DebuggerPresentationError, DebuggerSubjectActivity,
-    DebuggerSubjectBinding, DebuggerValueKind, DebuggerValuePresentation,
-    DEBUGGER_PRESENTATION_SCHEMA, MAX_DEBUGGER_SUBJECTS, MAX_DEBUGGER_SUMMARY_BYTES,
-    RECENT_ACTIVITY_TICKS,
-};
-pub use debugger_timeline::{
-    DebuggerCausalTrace, DebuggerTimeline, DebuggerTimelineBinding, DebuggerTimelineError,
-    DebuggerTimelineEvent, DebuggerTimelineMode, DebuggerTimelineProjection,
-    DebuggerTimelineSubjectState, DebuggerTimelineWatchState, DebuggerTraceDirection,
-    DebuggerTraceStep, DEBUGGER_TIMELINE_SCHEMA, MAX_DEBUGGER_TIMELINE_BYTES,
-    MAX_DEBUGGER_TIMELINE_EVENTS,
-};
-pub use debugger_watch::{
-    DebuggerWatch, DebuggerWatchBinding, DebuggerWatchError, DebuggerWatchHistoryEntry,
-    DebuggerWatchLifecycle, DebuggerWatchRate, DebuggerWatchSet, DebuggerWatchSubjectRole,
-    DEBUGGER_WATCH_SCHEMA, MAX_DEBUGGER_WATCHES, MAX_WATCH_HISTORY_RECORDS,
-};
 pub use form_editor::{
     CheckedRevision, EditorDiagnostic, FormDocumentView, FormEditor, FormEditorError, GraphCord,
     GraphCordStage, GraphForm, GraphItem, GraphItemKind, SourceSelection,
@@ -161,15 +123,6 @@ pub use interaction::{
 pub use layout::{
     CordRoute, GearPlacement, PatchbayLayout, PatchbayLayoutError, MAX_GROUP_NAME_BYTES,
     MAX_LAYOUT_COORDINATE, PATCHBAY_LAYOUT_VERSION,
-};
-pub use learned_watch::{
-    ClockAlignment, DynamicsWatch, LearnedLifecyclePhase, LearnedLifecycleWatch,
-    LearnedWatchProjection, LearnedWatchProjectionKind, ObjectiveComponent,
-    ProbabilisticAlternative, ProbabilisticDisposition, ProbabilisticWatch, SignalContinuity,
-    SignalPoint, SignalStreamRole, SignalWatch, StateTransition, StateWatch, TensorAxis,
-    TensorWatch, TrainingPhase, TrainingWatch, MAX_LEARNED_WATCH_PROJECTIONS,
-    MAX_OBJECTIVE_COMPONENTS, MAX_PROBABILISTIC_ALTERNATIVES, MAX_SIGNAL_POINTS, MAX_TENSOR_AXES,
-    MAX_TENSOR_SLICE_VALUES,
 };
 pub use live_conversation_flow::*;
 #[cfg(test)]

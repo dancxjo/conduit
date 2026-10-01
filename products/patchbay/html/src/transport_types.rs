@@ -1,9 +1,8 @@
 //! Finite delivery envelope for one portable Conduit Presentation.
 
 use conduit_presentation::{ModelTemporalContextFact, Presentation, RendererSelfInspection};
-use patchbay_model::{
-    DebuggerPresentation, PartsView, PatchbayEntranceState, PatchbayNavigationProjection,
-};
+use patchbay_application::DebuggerPresentation;
+use patchbay_model::{PartsView, PatchbayEntranceState, PatchbayNavigationProjection};
 use serde::{Deserialize, Serialize};
 
 pub const MAX_BROWSER_PALETTE_ENTRIES: usize = patchbay_model::MAX_PALETTE_ENTRIES;
@@ -82,13 +81,13 @@ pub struct RendererSnapshot {
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub debugger: Option<DebuggerPresentation>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub watches: Option<patchbay_model::DebuggerWatchSet>,
+    pub watches: Option<patchbay_application::DebuggerWatchSet>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub timeline: Option<patchbay_model::DebuggerTimeline>,
+    pub timeline: Option<patchbay_application::DebuggerTimeline>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub timeline_projection: Option<patchbay_model::DebuggerTimelineProjection>,
+    pub timeline_projection: Option<patchbay_application::DebuggerTimelineProjection>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub debugger_control: Option<patchbay_model::DebuggerExecutionControl>,
+    pub debugger_control: Option<patchbay_application::DebuggerExecutionControl>,
     pub interaction: HtmlInteractionState,
 }
 
