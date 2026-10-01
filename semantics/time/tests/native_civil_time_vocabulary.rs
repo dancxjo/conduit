@@ -1,5 +1,5 @@
 use conduit_form::rust_binding::NativeRustBinding;
-use conduit_time::{CivilFoldPolicy, CivilGapPolicy, CivilResolutionChoice};
+use conduit_time::{CivilFoldPolicy, CivilGapPolicy, CivilResolutionChoice, CivilResolutionPolicy};
 
 fn assert_round_trip<T>(value: T)
 where
@@ -36,4 +36,11 @@ fn civil_resolution_vocabulary_round_trips_through_exact_native_types() {
     ] {
         assert_round_trip(choice);
     }
+
+    let policy = CivilResolutionPolicy::new(CivilFoldPolicy::Both, CivilGapPolicy::Skip).unwrap();
+    let structured = policy.into_structured().unwrap();
+    assert_eq!(
+        CivilResolutionPolicy::from_structured(structured).unwrap(),
+        policy
+    );
 }

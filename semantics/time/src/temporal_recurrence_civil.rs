@@ -4,19 +4,13 @@ use alloc::vec::Vec;
 use serde::{Deserialize, Serialize};
 
 use crate::{
-    date_key, CivilFoldPolicy, CivilGapPolicy, CivilResolutionChoice, LocalDate, LocalDateTime,
-    OccurrenceInstant, RecurrenceDefinition, RecurrenceExpansion, RecurrenceOccurrence,
-    RecurrenceRefusal, RecurrenceRule, RecurrenceUntil, RecurrenceWindow, TemporalInstant,
-    WeekdaySet, ZonedResolution,
+    date_key, CivilFoldPolicy, CivilGapPolicy, CivilResolutionChoice, CivilResolutionPolicy,
+    LocalDate, LocalDateTime, OccurrenceInstant, RecurrenceDefinition, RecurrenceExpansion,
+    RecurrenceOccurrence, RecurrenceRefusal, RecurrenceRule, RecurrenceUntil, RecurrenceWindow,
+    TemporalInstant, WeekdaySet, ZonedResolution,
 };
 
 pub const MAXIMUM_CIVIL_RECURRENCE_SCAN_DAYS: u32 = 36_600;
-
-#[derive(Debug, Copy, Clone, PartialEq, Eq, Serialize, Deserialize)]
-pub struct CivilResolutionPolicy {
-    pub gap: CivilGapPolicy,
-    pub fold: CivilFoldPolicy,
-}
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct CivilOccurrenceResolution {
@@ -141,7 +135,7 @@ fn choose_resolution<'a>(
         ZonedResolution::Unique { instant, .. } => {
             selected.push((instant.clone(), CivilResolutionChoice::Unique, ""));
         }
-        ZonedResolution::Ambiguous { earlier, later, .. } => match policy.fold {
+        ZonedResolution::Ambiguous { earlier, later, .. } => match policy.fold() {
             CivilFoldPolicy::Earlier => selected.push((
                 earlier.clone(),
                 CivilResolutionChoice::FoldEarlier,
@@ -170,7 +164,7 @@ fn choose_resolution<'a>(
             gap_before,
             gap_after,
             ..
-        } => match policy.gap {
+        } => match policy.gap() {
             CivilGapPolicy::Skip => {}
             CivilGapPolicy::UseBefore => selected.push((
                 gap_before.clone(),

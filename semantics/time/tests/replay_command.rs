@@ -117,5 +117,5 @@ fn explicit_commands_drive_step_stop_restart_and_failure() {
     assert_eq!(replay.cursor(), 0);
     assert_eq!(replay.apply(ReplayCommand::Start, 300).unwrap(), None);
     assert_eq!(replay.apply(ReplayCommand::fail(9).unwrap(), 301), Ok(None));
-    assert_eq!(replay.state(), ReplayState::Failed { code: 9 });
+    assert_eq!(replay.state(), ReplayState::failed(9).unwrap());
 }

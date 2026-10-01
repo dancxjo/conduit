@@ -53,7 +53,7 @@ fn every_replay_state_has_an_exact_round_trip() {
         ReplayState::Running,
         ReplayState::Paused,
         ReplayState::Completed,
-        ReplayState::Failed { code: 77 },
+        ReplayState::failed(77).unwrap(),
     ] {
         let mut encoded = [0; MAXIMUM_REPLAY_STATE_BYTES];
         let length = encode_replay_state_into(state, &mut encoded).unwrap();
