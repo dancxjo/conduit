@@ -10,7 +10,7 @@ use embedded_graphics::{
     pixelcolor::Rgb888,
     prelude::{DrawTarget, Point},
 };
-use patchbay_model::{PartPresentationState, PartsAction, PartsView};
+use patchbay_application::{PartPresentationState, PartsAction, PartsView};
 
 pub(super) struct PartsSelection<'a> {
     pub(super) part: Option<&'a PartId>,

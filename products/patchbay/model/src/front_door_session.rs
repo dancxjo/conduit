@@ -10,11 +10,12 @@ use conduit_core::{
     LineOffer, OfferGeneration, PlanId, SignId,
 };
 use conduit_presentation::Presentation;
+use patchbay_application::PartsView;
 use std::sync::Arc;
 
 use crate::{
-    front_door_topology::FrontDoorTopology, FormEditor, PartsView, PatchbayModel,
-    PatchbayRequestId, PlanDocument, PlayDocument, RetainedBirthEvidence,
+    front_door_topology::FrontDoorTopology, FormEditor, PatchbayModel, PatchbayRequestId,
+    PlanDocument, PlayDocument, RetainedBirthEvidence,
 };
 
 #[derive(Debug, Clone, PartialEq, Eq)]

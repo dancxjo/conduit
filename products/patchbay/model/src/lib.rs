@@ -40,7 +40,6 @@ mod mask_plans_tests;
 mod mask_product_tests;
 #[cfg(test)]
 mod parts_truth_explanation_tests;
-mod parts_view;
 mod patchbay_backs;
 mod portable_content;
 mod portable_correlations;
@@ -122,7 +121,6 @@ pub use maker_environment::{
     MAX_ENVIRONMENT_COORDINATE, MAX_ENVIRONMENT_ID_BYTES, MAX_PART_NAME_BYTES,
 };
 pub use mask_control::*;
-pub use parts_view::*;
 pub use patchbay_backs::*;
 pub use patchbay_graph::{
     project_recursive_form_gear, RecursiveFormGearProjection, RecursiveFormProjectionError,

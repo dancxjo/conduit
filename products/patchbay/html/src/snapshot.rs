@@ -106,7 +106,10 @@ impl RendererSnapshot {
         self.validate()
     }
 
-    pub fn attach_parts(&mut self, parts: patchbay_model::PartsView) -> Result<(), SnapshotError> {
+    pub fn attach_parts(
+        &mut self,
+        parts: patchbay_application::PartsView,
+    ) -> Result<(), SnapshotError> {
         if self.presentation.basis.body_id.as_ref() != Some(&parts.body_id) {
             return Err(SnapshotError::InvalidIdentity);
         }
@@ -240,8 +243,8 @@ impl RendererSnapshot {
     fn validate(&self) -> Result<(), SnapshotError> {
         let invalid_parts = self.parts.as_ref().is_some_and(|parts| {
             self.presentation.basis.body_id.as_ref() != Some(&parts.body_id)
-                || parts.parts.len() > patchbay_model::MAX_PARTS_VIEW_ROWS
-                || parts.wants_to_join.len() > patchbay_model::MAX_WANTS_TO_JOIN_ROWS
+                || parts.parts.len() > patchbay_application::MAX_PARTS_VIEW_ROWS
+                || parts.wants_to_join.len() > patchbay_application::MAX_WANTS_TO_JOIN_ROWS
         });
         let invalid_navigation = self.navigation_observation().is_err();
         let invalid_authoring = self.authoring.as_ref().is_some_and(|authoring| {
