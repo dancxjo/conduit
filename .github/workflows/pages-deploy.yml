@@ -173,12 +173,15 @@ jobs:
             "$ACCEPTED_MAIN_SHA" "$source_tree"
           node tools/ci/verify-pages-carrier.mjs target/pages-carrier-with-truth "$source_tree"
       - name: Upload the already-proven Pages carrier
+        if: needs.resolve.outputs.direct_main == 'true'
         uses: actions/upload-pages-artifact@v5
         with:
-          path: ${{ needs.resolve.outputs.direct_main == 'true' && 'target/pages-carrier/site' || 'target/pages-carrier-with-truth/site' }}
+          path: target/pages-carrier/site
       - name: Configure GitHub Pages
+        if: needs.resolve.outputs.direct_main == 'true'
         uses: actions/configure-pages@v6
       - name: Deploy Conduit Pages
+        if: needs.resolve.outputs.direct_main == 'true'
         id: deployment
         uses: actions/deploy-pages@v5
       - name: Retain the exact accepted base carrier for downstream documentary work
@@ -224,7 +227,7 @@ jobs:
           path: target/release-publication-context/context.json
           if-no-files-found: error
           retention-days: 14
-      - name: Dispatch documentary publication after software deployment
+      - name: Dispatch the atomic release publication
         if: needs.resolve.outputs.direct_main != 'true'
         env:
           GH_TOKEN: ${{ github.token }}

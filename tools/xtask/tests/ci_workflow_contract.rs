@@ -575,6 +575,28 @@ fn sibling_gallery_is_rendered_only_after_release_admission() {
 }
 
 #[test]
+fn accepted_release_waits_for_the_complete_documentary_carrier_before_pages_deploy() {
+    let root = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../..");
+    let base = fs::read_to_string(root.join(".github/workflows/pages-deploy.yml"))
+        .expect("read base Pages workflow");
+    let documentary = fs::read_to_string(root.join(".github/workflows/journey-publication.yml"))
+        .expect("read documentary Pages workflow");
+
+    assert!(base.contains("name: Upload the already-proven Pages carrier\n        if: needs.resolve.outputs.direct_main == 'true'"));
+    assert!(base.contains(
+        "name: Deploy Conduit Pages\n        if: needs.resolve.outputs.direct_main == 'true'"
+    ));
+    assert!(base.contains("name: Dispatch the atomic release publication"));
+    assert!(
+        documentary.contains("name: Publish only the independently verified documentary carrier")
+    );
+    assert_eq!(
+        documentary.matches("uses: actions/deploy-pages@v5").count(),
+        1
+    );
+}
+
+#[test]
 fn stacked_diff_base_does_not_select_the_controller_version() {
     let root = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../..");
     let workflow =

@@ -15,7 +15,15 @@ pub(super) fn validate_existing_tree(root: &Path, index: &GalleryIndex) -> Resul
         let name = entry.file_name();
         if !matches!(
             name.to_str(),
-            Some(".nojekyll" | "index.html" | "gallery.json" | "current" | "commits")
+            Some(
+                ".nojekyll"
+                    | "index.html"
+                    | "gallery.json"
+                    | "catalogue.json"
+                    | "verticals"
+                    | "current"
+                    | "commits"
+            )
         ) {
             return Err(format!(
                 "existing gallery contains undeclared root entry {}",

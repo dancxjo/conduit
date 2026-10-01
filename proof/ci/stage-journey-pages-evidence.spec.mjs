@@ -11,6 +11,14 @@ const inventories = new Map([
   ["one-form-two-fronts", ["index.html", "manifest.json", "native.png", "native.json", "browser.png", "browser.json"]],
   ["little-life", ["index.html", "manifest.json", "t000.png", "t001.png", "t008.png", "t032.png", "presentation.txt", "execution.json"]],
 ]);
+const verticals = [
+  ["field-station-clock", "accepted", "08c5ad83e8bebe9dc195c5d77772ffb8ee67aa30"],
+  ["durable-notebook", "accepted", "75bc7d7b535b8c7df8ad17a5fc27b33c3c3812a0"],
+  ["bare-metal-to-show", "accepted", "36c9be63f0d3dd6e7a8bfc09e7afe1a06d6d96cd"],
+  ["pocket-theremin", "planned"],
+  ["two-ollamas", "planned"],
+  ["three-bodies", "planned"],
+];
 
 test("stages only the exact sealed sibling gallery behind the authored entrance", () => {
   const root = mkdtempSync(path.join(os.tmpdir(), "conduit-journey-stage-"));
@@ -78,6 +86,21 @@ function fixture(root) {
     retention_commits: 32,
     commits: [commit],
   })}\n`);
+  writeFileSync(path.join(root, "catalogue.json"), `${JSON.stringify({
+    schema: "conduit.vertical-journey-catalogue/v1",
+    publication_commit: commit,
+    verticals: verticals.map(([slug, state, accepted_source]) => ({
+      slug,
+      state,
+      ...(accepted_source ? { accepted_source } : {}),
+    })),
+  })}\n`);
+  mkdirSync(path.join(root, "verticals"));
+  writeFileSync(path.join(root, "verticals/index.html"), "<!doctype html><body>verticals</body>");
+  for (const [slug] of verticals) {
+    mkdirSync(path.join(root, "verticals", slug));
+    writeFileSync(path.join(root, "verticals", slug, "index.html"), `<!doctype html><body>${slug}</body>`);
+  }
   for (const [journey, files] of inventories) {
     for (const prefix of [path.join("current", journey), path.join("commits", commit, journey)]) {
       const directory = path.join(root, prefix);
