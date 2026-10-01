@@ -120,7 +120,7 @@ fn portable_front_and_provider_protocol_keep_realization_and_failures_distinct()
     let response = conduit_web::HttpResponse {
         transaction_id: conduit_web::HttpTransactionId::new(7).unwrap(),
         status: 200,
-        headers: vec![],
+        headers: Default::default(),
         body: conduit_web::HttpBody::inline(br#"{"output":"world"}"#.to_vec()),
     };
     let decoded =

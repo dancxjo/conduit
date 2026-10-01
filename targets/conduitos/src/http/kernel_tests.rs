@@ -420,7 +420,7 @@ fn run_ordinary_form() {
             conduit_web::HttpScheme::Http,
         )
         .unwrap(),
-        headers: Vec::new(),
+        headers: Default::default(),
         body: conduit_web::HttpBody::inline(Vec::new()),
     })
     .unwrap();

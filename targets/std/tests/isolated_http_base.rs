@@ -241,7 +241,7 @@ fn request(authority: &str, path: &str) -> HttpRequest {
         method: HttpMethod::Get,
         target: HttpTarget::new(authority.into(), path.into(), conduit_web::HttpScheme::Http)
             .unwrap(),
-        headers: Vec::new(),
+        headers: Default::default(),
         body: HttpBody::inline(Vec::new()),
     }
 }

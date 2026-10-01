@@ -1,14 +1,11 @@
-use alloc::vec::Vec;
-use conduit_core::BoundedResourceRef;
-
-#[allow(dead_code)]
+#[allow(dead_code, clippy::large_enum_variant)]
 mod generated {
     include!(concat!(env!("OUT_DIR"), "/semantic_types.rs"));
 }
 
 pub use generated::{
-    HttpContractError, HttpExchangeFailure, HttpHeader, HttpMethod, HttpScheme,
-    HttpServerResponseRefusal, HttpTarget, HttpTransactionId,
+    HttpBody, HttpContractError, HttpExchangeFailure, HttpHeader, HttpMethod, HttpRequest,
+    HttpResponse, HttpScheme, HttpServerResponseRefusal, HttpTarget, HttpTransactionId,
 };
 
 pub const HTTP_MAXIMUM_IN_FLIGHT: u16 = 4;
@@ -31,6 +28,25 @@ pub const HTTP_AMBIENT_CREDENTIALS: bool = false;
 pub const HTTP_IMPLICIT_CACHING: bool = false;
 pub const HTTP_IMPLICIT_DECOMPRESSION: bool = false;
 
+pub type HttpHeaders =
+    conduit_form::rust_binding::BoundedSequence<HttpHeader, HTTP_MAXIMUM_HEADERS>;
+
+pub fn http_headers(
+    values: impl IntoIterator<Item = HttpHeader>,
+) -> Result<HttpHeaders, HttpContractError> {
+    HttpHeaders::try_from_iter(values).map_err(|_| HttpContractError::TooManyHeaders)
+}
+
+pub fn http_request_type() -> conduit_core::StructuredInfoType {
+    <HttpRequest as conduit_form::rust_binding::NativeRustBinding>::semantic_type()
+        .expect("checked HTTP request Type is finite")
+}
+
+pub fn http_response_type() -> conduit_core::StructuredInfoType {
+    <HttpResponse as conduit_form::rust_binding::NativeRustBinding>::semantic_type()
+        .expect("checked HTTP response Type is finite")
+}
+
 impl HttpScheme {
     pub const fn as_str(self) -> &'static str {
         match self {
@@ -40,43 +56,20 @@ impl HttpScheme {
     }
 }
 
-#[derive(Debug, Clone, PartialEq, Eq)]
-pub enum HttpBody {
-    Inline(Vec<u8>),
-    Resource(BoundedResourceRef),
-}
-
 impl HttpBody {
-    pub fn inline(bytes: impl Into<Vec<u8>>) -> Self {
-        Self::Inline(bytes.into())
+    pub fn inline(bytes: impl AsRef<[u8]>) -> Self {
+        Self::InlineBytes(
+            conduit_form::rust_binding::BoundedBytes::new(bytes.as_ref())
+                .expect("HTTP inline body must fit its semantic bound"),
+        )
     }
 
     pub fn as_inline(&self) -> Option<&[u8]> {
         match self {
-            Self::Inline(bytes) => Some(bytes),
+            Self::InlineBytes(bytes) => Some(bytes.as_slice()),
             Self::Resource(_) => None,
         }
     }
-}
-
-#[derive(Debug, Clone, PartialEq, Eq)]
-pub struct HttpRequest {
-    pub transaction_id: HttpTransactionId,
-    pub method: HttpMethod,
-    pub target: HttpTarget,
-    /// Ordered and duplicate-preserving. Header names must be lowercase ASCII.
-    pub headers: Vec<HttpHeader>,
-    pub body: HttpBody,
-}
-
-#[derive(Debug, Clone, PartialEq, Eq)]
-pub struct HttpResponse {
-    pub transaction_id: HttpTransactionId,
-    /// HTTP status is exchange data, never a transport failure disposition.
-    pub status: u16,
-    /// Ordered and duplicate-preserving. Header names must be lowercase ASCII.
-    pub headers: Vec<HttpHeader>,
-    pub body: HttpBody,
 }
 
 impl HttpRequest {
@@ -103,8 +96,8 @@ impl HttpResponse {
 
 fn validate_body(body: &HttpBody, maximum_inline_bytes: usize) -> Result<(), ()> {
     match body {
-        HttpBody::Inline(bytes) if bytes.len() <= maximum_inline_bytes => Ok(()),
-        HttpBody::Inline(_) => Err(()),
+        HttpBody::InlineBytes(bytes) if bytes.as_slice().len() <= maximum_inline_bytes => Ok(()),
+        HttpBody::InlineBytes(_) => Err(()),
         HttpBody::Resource(reference) => reference.validate().map_err(|_| ()),
     }
 }
@@ -123,11 +116,11 @@ fn validate_target(target: &HttpTarget) -> Result<(), HttpContractError> {
     Ok(())
 }
 
-fn validate_headers(headers: &[HttpHeader]) -> Result<(), HttpContractError> {
+fn validate_headers(headers: &HttpHeaders) -> Result<(), HttpContractError> {
     if headers.len() > HTTP_MAXIMUM_HEADERS {
         return Err(HttpContractError::TooManyHeaders);
     }
-    for header in headers {
+    for header in headers.iter() {
         if header.name().is_empty() {
             return Err(HttpContractError::EmptyHeaderName);
         }
@@ -189,8 +182,8 @@ fn is_header_name_byte(byte: u8) -> bool {
 #[cfg(test)]
 mod native_type_tests {
     use super::{
-        HttpExchangeFailure, HttpHeader, HttpMethod, HttpScheme, HttpServerResponseRefusal,
-        HttpTarget, HttpTransactionId,
+        HttpBody, HttpExchangeFailure, HttpHeader, HttpMethod, HttpRequest, HttpResponse,
+        HttpScheme, HttpServerResponseRefusal, HttpTarget, HttpTransactionId,
     };
     use conduit_form::rust_binding::NativeRustBinding;
 
@@ -230,12 +223,31 @@ mod native_type_tests {
             )
             .unwrap(),
         );
-        assert_round_trip(
-            HttpHeader::new(
-                "content-type".into(),
-                conduit_form::rust_binding::BoundedBytes::new(b"application/json").unwrap(),
+        let header = HttpHeader::new(
+            "content-type".into(),
+            conduit_form::rust_binding::BoundedBytes::new(b"application/json").unwrap(),
+        )
+        .unwrap();
+        assert_round_trip(header.clone());
+        let body = HttpBody::inline(b"{}".as_slice());
+        assert_round_trip(body.clone());
+        assert_round_trip(HttpRequest {
+            transaction_id: HttpTransactionId::new(42).unwrap(),
+            method: HttpMethod::Post,
+            target: HttpTarget::new(
+                "api.example.test".into(),
+                "/v1/items".into(),
+                HttpScheme::Https,
             )
             .unwrap(),
-        );
+            headers: super::http_headers([header]).unwrap(),
+            body: body.clone(),
+        });
+        assert_round_trip(HttpResponse {
+            transaction_id: HttpTransactionId::new(42).unwrap(),
+            status: 200,
+            headers: Default::default(),
+            body,
+        });
     }
 }

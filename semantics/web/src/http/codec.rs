@@ -1,13 +1,17 @@
 use super::{
-    schema::{request_from_value, request_value, response_from_value, response_value},
     HttpContractError, HttpRequest, HttpResponse, HTTP_MAXIMUM_ENCODED_REQUEST_BYTES,
     HTTP_MAXIMUM_ENCODED_RESPONSE_BYTES,
 };
 use alloc::vec::Vec;
 use conduit_core::StructuredInfoValue;
+use conduit_form::rust_binding::NativeRustBinding;
 
 pub fn encode_request(value: &HttpRequest) -> Result<Vec<u8>, HttpContractError> {
-    let encoded = request_value(value)?
+    value.validate()?;
+    let encoded = value
+        .clone()
+        .into_structured()
+        .map_err(|_| HttpContractError::MalformedEncoding)?
         .canonical_bytes()
         .map_err(|_| HttpContractError::EncodedValueOverflow)?;
     bounded(encoded, HTTP_MAXIMUM_ENCODED_REQUEST_BYTES)
@@ -17,13 +21,18 @@ pub fn decode_request(encoded: &[u8]) -> Result<HttpRequest, HttpContractError> 
     check_bound(encoded, HTTP_MAXIMUM_ENCODED_REQUEST_BYTES)?;
     let structured = StructuredInfoValue::from_canonical_bytes(encoded)
         .map_err(|_| HttpContractError::MalformedEncoding)?;
-    let value = request_from_value(&structured)?;
+    let value = HttpRequest::from_structured(structured)
+        .map_err(|_| HttpContractError::MalformedEncoding)?;
     value.validate()?;
     Ok(value)
 }
 
 pub fn encode_response(value: &HttpResponse) -> Result<Vec<u8>, HttpContractError> {
-    let encoded = response_value(value)?
+    value.validate()?;
+    let encoded = value
+        .clone()
+        .into_structured()
+        .map_err(|_| HttpContractError::MalformedEncoding)?
         .canonical_bytes()
         .map_err(|_| HttpContractError::EncodedValueOverflow)?;
     bounded(encoded, HTTP_MAXIMUM_ENCODED_RESPONSE_BYTES)
@@ -33,7 +42,8 @@ pub fn decode_response(encoded: &[u8]) -> Result<HttpResponse, HttpContractError
     check_bound(encoded, HTTP_MAXIMUM_ENCODED_RESPONSE_BYTES)?;
     let structured = StructuredInfoValue::from_canonical_bytes(encoded)
         .map_err(|_| HttpContractError::MalformedEncoding)?;
-    let value = response_from_value(&structured)?;
+    let value = HttpResponse::from_structured(structured)
+        .map_err(|_| HttpContractError::MalformedEncoding)?;
     value.validate()?;
     Ok(value)
 }
@@ -61,7 +71,6 @@ mod tests {
     use conduit_core::{
         kind_id, BoundedResourceRef, ResourceClassId, ResourceExtent, ResourceLifetime,
         ResourceSemanticIdentity, ResourceVersionIdentity, StructuredSelection, StructuredSelector,
-        UnmatchedVariantDisposition,
     };
 
     fn transaction_id(value: u64) -> HttpTransactionId {
@@ -86,8 +95,12 @@ mod tests {
                 crate::HttpScheme::Https,
             )
             .unwrap(),
-            headers: vec![header("x-order", b"first"), header("x-order", b"second")],
-            body: HttpBody::inline(b"bounded".to_vec()),
+            headers: crate::http_headers([
+                header("x-order", b"first"),
+                header("x-order", b"second"),
+            ])
+            .unwrap(),
+            body: HttpBody::inline(b"bounded"),
         }
     }
 
@@ -111,26 +124,14 @@ mod tests {
                 .select(&structured)
                 .unwrap(),
         );
-        let first = matched(
-            StructuredSelector::index(headers.value_type().clone(), 0)
-                .unwrap()
-                .select(&headers)
-                .unwrap(),
-        );
-        let header = matched(
-            StructuredSelector::variant(
-                first.value_type().clone(),
-                "header",
-                UnmatchedVariantDisposition::Refuse,
-            )
-            .unwrap()
-            .select(&first)
-            .unwrap(),
-        );
+        let conduit_core::StructuredInfoValueShape::Collection(items) = headers.shape() else {
+            panic!("HTTP headers remain a finite structured sequence")
+        };
+        let first = items[0].clone();
         let name = matched(
-            StructuredSelector::field(header.value_type().clone(), "name")
+            StructuredSelector::field(first.value_type().clone(), "name")
                 .unwrap()
-                .select(&header)
+                .select(&first)
                 .unwrap(),
         );
         assert!(matches!(
@@ -151,8 +152,8 @@ mod tests {
         let value = HttpResponse {
             transaction_id: transaction_id(42),
             status: 500,
-            headers: Vec::new(),
-            body: HttpBody::inline(b"error document".to_vec()),
+            headers: Default::default(),
+            body: HttpBody::inline(b"error document"),
         };
         assert_eq!(
             decode_response(&encode_response(&value).unwrap()).unwrap(),
@@ -200,14 +201,13 @@ mod tests {
     #[test]
     fn invalid_headers_and_inline_body_overflow_refuse() {
         let mut value = request();
-        value.headers[0] = header("Upper", b"first");
+        value.headers =
+            crate::http_headers([header("Upper", b"first"), header("x-order", b"second")]).unwrap();
         assert_eq!(value.validate(), Err(HttpContractError::InvalidHeaderName));
-        value = request();
-        value.body = HttpBody::Inline(vec![0; crate::HTTP_MAXIMUM_REQUEST_BODY_BYTES + 1]);
-        assert_eq!(
-            value.validate(),
-            Err(HttpContractError::RequestBodyOverflow)
-        );
+        assert!(conduit_form::rust_binding::BoundedBytes::<
+            { crate::HTTP_MAXIMUM_REQUEST_BODY_BYTES },
+        >::new(&vec![0; crate::HTTP_MAXIMUM_REQUEST_BODY_BYTES + 1])
+        .is_none());
     }
 
     #[test]
@@ -219,7 +219,9 @@ mod tests {
             "set-cookie",
         ] {
             let mut value = request();
-            value.headers[0] = header(name, b"first");
+            value.headers =
+                crate::http_headers([header(name, b"first"), header("x-order", b"second")])
+                    .unwrap();
             assert_eq!(
                 value.validate(),
                 Err(HttpContractError::SensitiveHeaderRequiresProtectedPath)
@@ -227,7 +229,9 @@ mod tests {
         }
         for name in ["content-length", "transfer-encoding"] {
             let mut value = request();
-            value.headers[0] = header(name, b"first");
+            value.headers =
+                crate::http_headers([header(name, b"first"), header("x-order", b"second")])
+                    .unwrap();
             assert_eq!(
                 value.validate(),
                 Err(HttpContractError::FramingHeaderIsDerived)
