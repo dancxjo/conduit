@@ -2,19 +2,11 @@
 
 use conduit_core::{BoundedResourceRef, KindId};
 
-use crate::ImageObservationReference;
+use crate::{ImageObservationReference, ImageObservationRefusal};
 
 pub const MAXIMUM_IMAGE_OBSERVATION_WIDTH: u16 = 4_096;
 pub const MAXIMUM_IMAGE_OBSERVATION_HEIGHT: u16 = 4_096;
 pub const MAXIMUM_IMAGE_OBSERVATION_BYTES: u64 = 16 * 1024 * 1024;
-
-#[derive(Debug, Copy, Clone, PartialEq, Eq)]
-pub enum ImageObservationRefusal {
-    InvalidResource,
-    WrongProfile,
-    InvalidDimensions,
-    ContentTooLarge,
-}
 
 impl ImageObservationReference {
     pub fn new(

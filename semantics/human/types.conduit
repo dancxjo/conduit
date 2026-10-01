@@ -62,6 +62,12 @@ type ImageObservationReference = {
     height: U16 in 1..=4096
 }
 
+type ImageObservationRefusal =
+    invalid_resource
+    | wrong_profile
+    | invalid_dimensions
+    | content_too_large
+
 type ImageTextMetadataEntries = sequence ImageTextMetadata <= 8
 
 type ImageTextContentDigest = collection U8 = 32
