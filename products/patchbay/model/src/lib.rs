@@ -27,7 +27,6 @@ mod debugger_timeline_tests;
 mod debugger_watch;
 #[cfg(test)]
 mod debugger_watch_tests;
-mod degraded_profile_explanation;
 mod form_editor;
 mod form_editor_catalogs;
 mod form_editor_error;
@@ -141,11 +140,6 @@ pub use debugger_watch::{
     DebuggerWatch, DebuggerWatchBinding, DebuggerWatchError, DebuggerWatchHistoryEntry,
     DebuggerWatchLifecycle, DebuggerWatchRate, DebuggerWatchSet, DebuggerWatchSubjectRole,
     DEBUGGER_WATCH_SCHEMA, MAX_DEBUGGER_WATCHES, MAX_WATCH_HISTORY_RECORDS,
-};
-pub use degraded_profile_explanation::{
-    explain_degraded_profile, explain_degraded_profile_refusal, DegradedProfileExplanation,
-    DegradedProfileExplanationError, DegradedProfileState, ProfileDimensionExplanation,
-    MAX_DEGRADED_PROFILE_EXPLANATION_BYTES,
 };
 pub use form_editor::{
     CheckedRevision, EditorDiagnostic, FormDocumentView, FormEditor, FormEditorError, GraphCord,

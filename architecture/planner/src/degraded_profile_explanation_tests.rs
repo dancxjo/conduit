@@ -3,13 +3,12 @@ use conduit_core::{
     BaseImplementationId, CharacteristicId, CharacteristicUnit, ResourceHealth,
     ResourceObservation, SignId,
 };
-use conduit_planner::{
+
+use crate::{
+    explain_degraded_profile, explain_degraded_profile_refusal, prelude::*,
     seal_reviewed_service_profile_plan, select_reviewed_service_profile, DegradationDirection,
-    DegradedDimension, HardRealizationRequirements, PlannerFactRef, PlannerFactValue,
-    PlannerPredicate, RealizationPolicy, ReviewedServiceProfile, SurvivalPolicy,
-};
-use patchbay_model::{
-    explain_degraded_profile, explain_degraded_profile_refusal, DegradedProfileState,
+    DegradedDimension, DegradedProfileState, HardRealizationRequirements, PlannerFactRef,
+    PlannerFactValue, PlannerPredicate, RealizationPolicy, ReviewedServiceProfile, SurvivalPolicy,
 };
 
 fn observations(hosts: &[conduit_core::HostAdvertisement]) -> Vec<ResourceObservation> {
@@ -81,7 +80,7 @@ fn policy() -> SurvivalPolicy {
 }
 
 #[test]
-fn patchbay_names_requested_surviving_policy_plan_and_current_signs() {
+fn names_requested_surviving_policy_plan_and_current_signs() {
     let form = form();
     let fixtures = conduit_ai::llm_generate_base_fixtures();
     let hosts = fixtures
@@ -153,7 +152,7 @@ fn patchbay_names_requested_surviving_policy_plan_and_current_signs() {
         .contains("Hard requirements were not relaxed"));
 
     let (text, state) = explain_degraded_profile_refusal(
-        &conduit_planner::DegradedProfileRefusal::HardRequirementUnsatisfied,
+        &crate::DegradedProfileRefusal::HardRequirementUnsatisfied,
     );
     assert_eq!(state, DegradedProfileState::Unrealizable);
     assert_eq!(text, "hard requirement unsatisfied");
