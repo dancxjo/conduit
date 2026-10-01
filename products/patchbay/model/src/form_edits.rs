@@ -20,7 +20,7 @@ impl FormEditor {
                 offered: offered_revision,
             });
         }
-        let palette = crate::GearPalette::standard()
+        let palette = conduit_semantic_catalog::GearPalette::standard()
             .map_err(|error| FormEditorError::Catalog(format!("{error:?}")))?;
         let Some(entry) = palette.find(kind_id) else {
             return Err(FormEditorError::UnknownPaletteKind(kind_id.as_str().into()));

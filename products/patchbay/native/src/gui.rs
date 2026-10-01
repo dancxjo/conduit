@@ -38,7 +38,7 @@ pub const MAX_HIT_TARGETS: usize = patchbay_graph::MAX_PATCHBAY_GEARS
     + patchbay_graph::MAX_PATCHBAY_PORTS
     + patchbay_graph::MAX_PATCHBAY_PORTS
     + patchbay_graph::MAX_PATCHBAY_CORDS
-    + patchbay_model::MAX_PALETTE_ENTRIES
+    + conduit_semantic_catalog::MAX_PALETTE_ENTRIES
     + patchbay_graph::MAX_PATCHBAY_GEARS * patchbay_graph::MAX_FACE_CONTROLS * 2
     + 9
     + conduit_body::MAX_BODY_PARTS

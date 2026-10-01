@@ -1,6 +1,6 @@
 //! Finite renderer-local state for the authoritative Gear chooser.
 
-use patchbay_model::{GearPalette, PaletteError, MAX_PALETTE_QUERY_BYTES};
+use conduit_semantic_catalog::{GearPalette, PaletteError, MAX_PALETTE_QUERY_BYTES};
 
 pub(super) const MAX_VISIBLE_PALETTE_RESULTS: usize = 3;
 pub(super) const MAX_VISIBLE_PLACEMENT_SLOTS: usize = 8;

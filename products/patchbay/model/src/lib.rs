@@ -40,7 +40,6 @@ mod mask_control_tests;
 mod mask_plans_tests;
 #[cfg(test)]
 mod mask_product_tests;
-mod palette;
 #[cfg(test)]
 mod parts_truth_explanation_tests;
 mod parts_view;
@@ -141,10 +140,6 @@ pub use maker_environment::{
     MAX_ENVIRONMENT_COORDINATE, MAX_ENVIRONMENT_ID_BYTES, MAX_PART_NAME_BYTES,
 };
 pub use mask_control::*;
-pub use palette::{
-    GearPalette, PaletteCategory, PaletteConfigurationSummary, PaletteEntry, PaletteError,
-    PaletteIconKey, MAX_PALETTE_ENTRIES, MAX_PALETTE_QUERY_BYTES,
-};
 pub use parts_view::*;
 pub use patchbay_backs::*;
 pub use patchbay_graph::{

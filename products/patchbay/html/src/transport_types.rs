@@ -5,7 +5,7 @@ use patchbay_application::DebuggerPresentation;
 use patchbay_model::{PartsView, PatchbayEntranceState, PatchbayNavigationProjection};
 use serde::{Deserialize, Serialize};
 
-pub const MAX_BROWSER_PALETTE_ENTRIES: usize = patchbay_model::MAX_PALETTE_ENTRIES;
+pub const MAX_BROWSER_PALETTE_ENTRIES: usize = conduit_semantic_catalog::MAX_PALETTE_ENTRIES;
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
