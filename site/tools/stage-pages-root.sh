@@ -7,7 +7,7 @@ test ! -e "$destination"
 mkdir -p "$destination"
 node targets/browser/tools/render-product-masthead.mjs site/index.html "$destination/index.html" home "The body is the computer."
 cp site/site.css "$destination/site.css"
-cp products/shared/browser/conduit.css "$destination/conduit.css"
+cp targets/browser/host/assets/conduit.css "$destination/conduit.css"
 cp site/current-product.html "$destination/current-product.html"
 cp site/current-product.mjs "$destination/current-product.mjs"
 

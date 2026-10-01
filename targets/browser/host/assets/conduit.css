@@ -15,7 +15,7 @@
   --conduit-failure: #ff7272;
   --conduit-success: #63d69b;
   --conduit-muted: #8c4c19;
-  /* Short aliases remain available while product layout styles migrate to semantic names. */
+  /* Short aliases remain available while browser layout styles migrate to semantic names. */
   --ink: var(--conduit-text-primary);
   --muted: var(--conduit-text-secondary);
   --paper: var(--conduit-background);
