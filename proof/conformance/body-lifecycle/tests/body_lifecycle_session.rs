@@ -148,10 +148,11 @@ fn production_tutorial_face_keeps_one_constraint_across_encounters_and_validatio
         .iter()
         .find(|clause| {
             clause.provenance
-                == conduit_presentation::FaceUtteranceProvenance::ActionArgument {
-                    action_identity: action.identity.clone(),
-                    argument_name: argument.name.clone(),
-                }
+                == conduit_presentation::FaceUtteranceProvenance::action_argument(
+                    action.identity.clone(),
+                    argument.name.clone(),
+                )
+                .unwrap()
         })
         .expect("aural projection retains the production Face argument");
     assert!(spoken_argument.text.contains("kind value/text"));
