@@ -311,7 +311,11 @@ are satisfied.
 | Remaining P families in `semantics/**` | family-owned `.conduit` source required | binding machinery available | in progress | in progress | exact std/browser/ConduitOS/embedded applicability per family |
 
 The completed foundations remove any general “language support” excuse for a
-handwritten P declaration. A remaining blocker must now name the exact payload
+handwritten P declaration. Two exact binding-generation gaps remain recorded:
+open generic Types such as AI retrieval candidates cannot yet produce generic
+Rust bindings, and a checked `Bytes <= 65536B` leaf still receives the fixed
+`BoundedBytes<4096>` storage type, which prevents the Job family from retaining
+its accepted output bound. Other remaining blockers must name the exact payload
 shape, bound, target constraint or unresolved Fore ownership question. As
 migrations land, add reviewed family receipts and keep the classification
 history rather than erasing it.
