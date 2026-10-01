@@ -49,6 +49,7 @@ pub use deadline_reactor::{
 };
 pub mod external_signal;
 pub mod external_websocket;
+pub mod flow_activation;
 mod host_execution;
 pub mod hosted_audio;
 mod hosted_body_conversation_context;
