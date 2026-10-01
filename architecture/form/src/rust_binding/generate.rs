@@ -25,6 +25,12 @@ pub struct RustBindingOptions {
     /// Authored record Type names whose entirely-copyable Rust bindings retain
     /// a pre-existing `Copy` API.
     pub copy_record_types: BTreeSet<String>,
+    /// Authored nominal Type names whose copyable Rust representations retain
+    /// a `Copy` binding. This target trait never changes semantic identity.
+    pub copy_nominal_types: BTreeSet<String>,
+    /// Authored nominal Type names whose hashable Rust representations retain
+    /// a `Hash` binding. This target trait never changes semantic identity.
+    pub hash_nominal_types: BTreeSet<String>,
     /// Authored constrained record Types whose generated constructor validates
     /// direct primitive field bounds without materializing a structured value.
     /// Nested generated fields retain their own construction invariants.
@@ -265,13 +271,29 @@ fn emit_type(
     match value_type.value_type.shape() {
         StructuredInfoTypeShape::Nominal { representation, .. } => {
             let inner = rust_type(representation, names)?;
+            let derive_copy = options.copy_nominal_types.contains(&value_type.name);
+            let derive_hash = options.hash_nominal_types.contains(&value_type.name);
+            if derive_copy && !copy_type(representation)
+                || derive_hash && !hash_type(representation)
+            {
+                return Err(RustBindingGenerationError::InvalidSemanticType);
+            }
+            let derives = if derive_copy && derive_hash {
+                "Debug, Clone, Copy, PartialEq, Eq, Hash"
+            } else if derive_copy {
+                "Debug, Clone, Copy, PartialEq, Eq"
+            } else if derive_hash {
+                "Debug, Clone, PartialEq, Eq, Hash"
+            } else {
+                "Debug, Clone, PartialEq, Eq"
+            };
             writeln!(
                 out,
-                "#[derive(Debug, Clone, PartialEq, Eq)]\npub struct {rust_name}({inner});"
+                "#[derive({derives})]\npub struct {rust_name}({inner});"
             )
             .expect("String writing is infallible");
             writeln!(out, "impl {rust_name} {{").expect("String writing is infallible");
-            writeln!(out, "    pub fn get(&self) -> &{inner} {{ &self.0 }}")
+            writeln!(out, "    pub const fn get(&self) -> &{inner} {{ &self.0 }}")
                 .expect("String writing is infallible");
             writeln!(out, "}}\n").expect("String writing is infallible");
         }
@@ -414,6 +436,7 @@ fn emit_type(
         names,
         owned_identities,
         super::generate_value::RecordBindingOptions {
+            nominal_copy: options.copy_nominal_types.contains(&value_type.name),
             copy: options.copy_record_types.contains(&value_type.name),
             value_getters: options.copy_record_value_getters.contains(&value_type.name),
             direct_checked: options
@@ -519,9 +542,38 @@ pub(super) fn copy_type(value_type: &StructuredInfoType) -> bool {
         StructuredInfoTypeShape::Variant { cases, .. } => {
             cases.iter().all(|case| copy_type(case.payload_type()))
         }
-        StructuredInfoTypeShape::Sequence { .. } | StructuredInfoTypeShape::Collection { .. } => {
-            false
-        }
+        StructuredInfoTypeShape::Sequence { .. } => false,
+        StructuredInfoTypeShape::Collection { element, .. } => copy_type(element),
+    }
+}
+
+fn hash_type(value_type: &StructuredInfoType) -> bool {
+    match value_type.shape() {
+        StructuredInfoTypeShape::Leaf(kind) => matches!(
+            conduit_core::primitive_info_kind(kind.as_str()),
+            Some(
+                PrimitiveInfoKind::Unit
+                    | PrimitiveInfoKind::CancellationRequest
+                    | PrimitiveInfoKind::Bool
+                    | PrimitiveInfoKind::Count
+                    | PrimitiveInfoKind::Text
+                    | PrimitiveInfoKind::I8
+                    | PrimitiveInfoKind::U8
+                    | PrimitiveInfoKind::I16
+                    | PrimitiveInfoKind::U16
+                    | PrimitiveInfoKind::I32
+                    | PrimitiveInfoKind::U32
+                    | PrimitiveInfoKind::I64
+                    | PrimitiveInfoKind::U64
+                    | PrimitiveInfoKind::I128
+                    | PrimitiveInfoKind::U128
+            )
+        ),
+        StructuredInfoTypeShape::Nominal { representation, .. } => hash_type(representation),
+        StructuredInfoTypeShape::Collection { element, .. } => hash_type(element),
+        StructuredInfoTypeShape::Record { .. }
+        | StructuredInfoTypeShape::Variant { .. }
+        | StructuredInfoTypeShape::Sequence { .. } => false,
     }
 }
 

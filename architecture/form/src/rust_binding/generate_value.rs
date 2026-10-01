@@ -13,6 +13,7 @@ use super::generate::{
 };
 
 pub(super) struct RecordBindingOptions<'a> {
+    pub nominal_copy: bool,
     pub copy: bool,
     pub value_getters: bool,
     pub direct_checked: bool,
@@ -36,13 +37,14 @@ pub(super) fn emit_value_impl(
         &value_type.invariants,
     );
     match value_type.value_type.shape() {
-        StructuredInfoTypeShape::Nominal { representation, .. } => emit_scalar(
+        StructuredInfoTypeShape::Nominal { representation, .. } => emit_nominal(
             out,
             rust_name,
             constant,
             representation,
             names,
             &value_type.value_contracts,
+            record_options.nominal_copy,
         )?,
         StructuredInfoTypeShape::Record { fields, .. } => {
             emit_record_constructor(
@@ -120,18 +122,16 @@ fn emit_contracts(
     writeln!(out, "}}\n").expect("String writing is infallible");
 }
 
-fn emit_scalar(
+fn emit_nominal(
     out: &mut String,
     rust_name: &str,
     constant: &str,
     representation: &StructuredInfoType,
     names: &BTreeMap<String, String>,
     contracts: &[NativeTypeValueContract],
+    copy: bool,
 ) -> Result<(), RustBindingGenerationError> {
-    let StructuredInfoTypeShape::Leaf(kind) = representation.shape() else {
-        return Err(RustBindingGenerationError::InvalidSemanticType);
-    };
-    let inner = primitive_rust_type(kind.as_str())?;
+    let inner = rust_type(representation, names)?;
     writeln!(out, "impl {rust_name} {{").expect("String writing is infallible");
     writeln!(
         out,
@@ -139,19 +139,25 @@ fn emit_scalar(
     )
     .expect("String writing is infallible");
     writeln!(out, "        let candidate = Self(value);").expect("String writing is infallible");
-    if contracts.iter().all(|contract| {
-        contract.representation_path.is_empty()
-            && contract
-                .contract
-                .constraints
-                .iter()
-                .all(|constraint| matches!(constraint, ValueConstraint::FixedIntegerRange { .. }))
-    }) {
-        emit_direct_integer_checks(out, "value", &inner, contracts)?;
+    let directly_checked_integer =
+        contracts.iter().all(|contract| {
+            contract.representation_path.is_empty()
+                && contract.contract.constraints.iter().all(|constraint| {
+                    matches!(constraint, ValueConstraint::FixedIntegerRange { .. })
+                })
+        });
+    let direct_kind = match representation.shape() {
+        StructuredInfoTypeShape::Leaf(kind) if directly_checked_integer => Some(kind),
+        _ => None,
+    };
+    if let Some(kind) = direct_kind {
+        let primitive = primitive_rust_type(kind.as_str())?;
+        emit_direct_integer_checks(out, "value", &primitive, contracts)?;
     } else {
         writeln!(
             out,
-            "        let structured = candidate.clone().into_structured()?;"
+            "        let structured = candidate{}.into_structured()?;",
+            if copy { "" } else { ".clone()" }
         )
         .expect("String writing is infallible");
         writeln!(out, "        conduit_form::rust_binding::validate_native_contracts(&structured, &Self::value_contracts())?;")
@@ -172,19 +178,25 @@ fn emit_scalar(
         .expect("String writing is infallible");
     writeln!(out, "        let representation = conduit_form::rust_binding::nominal_representation_type(&semantic)?;")
         .expect("String writing is infallible");
-    writeln!(out, "        let value = conduit_form::rust_binding::primitive_into_structured(representation, &self.0)?;")
-        .expect("String writing is infallible");
+    let encoded = super::generate_conversion::encode_expression(
+        representation,
+        "self.0",
+        "representation.clone()",
+        names,
+    )?;
+    writeln!(out, "        let value = {encoded};").expect("String writing is infallible");
     writeln!(out, "        StructuredInfoValue::nominal(semantic, value).map_err(NativeBindingRefusal::InvalidValue)\n    }}")
         .expect("String writing is infallible");
     writeln!(out, "    fn from_structured(value: StructuredInfoValue) -> Result<Self, NativeBindingRefusal> {{")
         .expect("String writing is infallible");
     writeln!(out, "        if value.value_type() != &Self::semantic_type()? {{ return Err(NativeBindingRefusal::InvalidValue(conduit_core::StructuredInfoRefusal::WrongType)); }}")
         .expect("String writing is infallible");
-    writeln!(out, "        let primitive = conduit_form::rust_binding::primitive_from_structured::<{inner}>(&value)?;")
+    writeln!(out, "        let representation = conduit_form::rust_binding::nominal_representation_type(&Self::semantic_type()?)?;")
         .expect("String writing is infallible");
-    writeln!(out, "        Self::new(primitive)\n    }}\n}}\n")
+    writeln!(out, "        let _ = &representation;").expect("String writing is infallible");
+    let decoded = super::generate_conversion::decode_expression(representation, "value", names)?;
+    writeln!(out, "        Self::new({decoded})\n    }}\n}}\n")
         .expect("String writing is infallible");
-    let _ = names;
     Ok(())
 }
 

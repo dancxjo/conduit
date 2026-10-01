@@ -7,16 +7,13 @@ use conduit_core::{
 };
 
 use crate::{
-    data_access_class, maximum_data_reference_encoded_bytes, DataGenerationNamespaceRefusal,
-    DataReference, DataReferenceRefusal,
+    data_access_class, maximum_data_reference_encoded_bytes, DataGenerationDigest,
+    DataGenerationNamespace, DataGenerationNamespaceRefusal, DataReference, DataReferenceRefusal,
 };
 
 const DATA_VERSION_DIGEST_DOMAIN: &str = "data/immutable-generation-version@1";
 const DATA_NAMESPACE_DIGEST_DOMAIN: &str = "data/generation-namespace@1";
 pub const MAXIMUM_DATA_GENERATION_NAMESPACE_BYTES: usize = 128;
-
-#[derive(Debug, Copy, Clone, PartialEq, Eq)]
-pub struct DataGenerationNamespace([u8; 32]);
 
 impl DataGenerationNamespace {
     /// Names one semantic publication scope. This identity is deliberately
@@ -28,14 +25,16 @@ impl DataGenerationNamespace {
         if semantic_identity.len() > MAXIMUM_DATA_GENERATION_NAMESPACE_BYTES {
             return Err(DataGenerationNamespaceRefusal::TooLarge);
         }
-        Ok(Self(semantic_digest(
-            DATA_NAMESPACE_DIGEST_DOMAIN,
-            semantic_identity.as_bytes(),
-        )))
+        let digest = semantic_digest(DATA_NAMESPACE_DIGEST_DOMAIN, semantic_identity.as_bytes());
+        Self::from_digest(
+            DataGenerationDigest::new(digest)
+                .expect("a 32-byte digest satisfies its exact authored collection"),
+        )
+        .map_err(|_| DataGenerationNamespaceRefusal::TooLarge)
     }
 
     pub const fn digest(self) -> [u8; 32] {
-        self.0
+        *self.identity().get()
     }
 }
 

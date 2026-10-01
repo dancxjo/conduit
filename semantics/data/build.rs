@@ -16,10 +16,16 @@ fn main() {
         &checked.codes,
         &RustBindingOptions {
             copy_record_types: [
+                "DataGenerationNamespace".into(),
                 "MeasurementPlotPoint".into(),
                 "MeasurementThresholdPolicy".into(),
             ]
             .into(),
+            copy_nominal_types: ["DataGenerationDigest".into()].into(),
+            hash_nominal_types: ["DataGenerationDigest".into()].into(),
+            copy_record_value_getters: ["DataGenerationNamespace".into()].into(),
+            record_constructor_names: [("DataGenerationNamespace".into(), "from_digest".into())]
+                .into(),
             ..RustBindingOptions::default()
         },
     )

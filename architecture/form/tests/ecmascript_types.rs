@@ -13,6 +13,12 @@ fn ecmascript_inspects_records_references_optionals_and_bounds() {
              type Reading = {\n\
                  unit: UnitCode\n\
                  note: Text <= 16B?\n\
+             }\n\
+             type Digest = collection U8 = 32\n\
+             type DigestEnvelope = {\n\
+                 identity: Digest\n\
+                 prior: Digest?\n\
+                 ancestors: sequence Digest <= 16\n\
              }\n",
         ),
         &StartupCatalog::new(),
@@ -38,6 +44,16 @@ if (reading.canonicalType.length === 0 || reading.contracts[0].identity.length =
 try { types.lookupType('Missing'); process.exit(18); }
 catch (error) { if (!(error instanceof types.TypeRefusal)) process.exit(19); }
 if (!Object.isFrozen(reading) || !Object.isFrozen(reading.shape.fields)) process.exit(20);
+const digest = types.lookupType('Digest');
+if (digest.shape.kind !== 'nominal' || digest.shape.representation.kind !== 'collection') process.exit(21);
+if (digest.shape.representation.length !== 32) process.exit(22);
+if (digest.shape.representation.element.identity !== 'value/u8') process.exit(23);
+const envelope = types.lookupType('DigestEnvelope');
+const fields = Object.fromEntries(envelope.shape.fields.map(field => [field.name, field.value]));
+if (fields.identity.name !== 'Digest') process.exit(24);
+if (fields.prior.kind !== 'optional' || fields.prior.value.name !== 'Digest') process.exit(25);
+if (fields.ancestors.kind !== 'sequence' || fields.ancestors.maximumItems !== 16) process.exit(26);
+if (fields.ancestors.element.name !== 'Digest') process.exit(27);
 "#;
     let output = Command::new("node")
         .args([
