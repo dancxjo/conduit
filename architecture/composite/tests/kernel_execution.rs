@@ -22,6 +22,10 @@ use conduit_plan_lowering::lowering::FIXED_KERNEL_STORAGE_PORTS_PER_NODE;
 use conduit_planner::{plan_with_line_offers, PlacementChoice, PlacementChoices};
 use std::collections::BTreeMap;
 
+#[path = "support/allocation.rs"]
+mod allocation;
+use allocation::allocations_during;
+
 const ECHO_KIND: &str = "test/kernel-composite-echo";
 const VALUE_KIND: &str = "value/bytes";
 const IMPLEMENTATION: &str = "test/kernel-composite-echo-v1";
@@ -551,21 +555,44 @@ fn bounded_fold_abnormal_and_cancel_discard_without_partial_value() {
 
     let mut host =
         BoundedFoldActivationHost::prepare(&planned, definition.clone(), &fold_registry()).unwrap();
-    host.admit(&value(b"1")).unwrap();
-    host.cancel().unwrap();
-    assert_eq!(*host.step().unwrap(), BoundedFoldState::Cancelled);
-    assert_eq!(host.final_value().unwrap(), None);
+    let one = value(b"1");
+    let late = value(b"late");
+    let allocations = allocations_during(|| {
+        host.admit(&one).unwrap();
+        host.cancel().unwrap();
+        assert_eq!(*host.step().unwrap(), BoundedFoldState::Cancelled);
+        assert_eq!(host.final_value().unwrap(), None);
+        assert!(host.admit(&late).is_err());
+        assert!(host.next_host_request().is_none());
+    });
+    assert_eq!(
+        allocations, 0,
+        "fold cancellation allocated {allocations} times"
+    );
 
     let mut host =
         BoundedFoldActivationHost::prepare(&planned, definition, &fold_registry()).unwrap();
-    host.admit(&value(b"1")).unwrap();
+    host.admit(&one).unwrap();
     let terminal = ValuePayload {
         value_kind: abnormal,
         encoded: b"exact".to_vec(),
     };
-    host.terminate_input(terminal.clone()).unwrap();
-    assert_eq!(*host.step().unwrap(), BoundedFoldState::Abnormal(terminal));
-    assert_eq!(host.final_value().unwrap(), None);
+    let expected = terminal.clone();
+    let allocations = allocations_during(|| {
+        host.terminate_input(terminal).unwrap();
+        assert!(matches!(
+            host.step().unwrap(),
+            BoundedFoldState::Abnormal(_)
+        ));
+        assert_eq!(host.final_value().unwrap(), None);
+        assert!(host.admit(&late).is_err());
+        assert!(host.next_host_request().is_none());
+    });
+    assert_eq!(
+        allocations, 0,
+        "fold abnormal allocated {allocations} times"
+    );
+    assert_eq!(*host.step().unwrap(), BoundedFoldState::Abnormal(expected));
 }
 
 fn planned_scan(
@@ -688,23 +715,146 @@ fn bounded_scan_abnormal_and_cancel_discard_pending_output() {
     planned.output.abnormal_kind = Some(abnormal.clone());
     let mut cancelled =
         BoundedScanActivationHost::prepare(&planned, definition.clone(), &fold_registry()).unwrap();
-    cancelled.admit(&value(b"1")).unwrap();
-    cancelled.cancel().unwrap();
-    assert_eq!(*cancelled.step().unwrap(), BoundedScanState::Cancelled);
-    assert!(!cancelled.output_into(&mut value(b"")).unwrap());
+    let one = value(b"1");
+    let late = value(b"late");
+    let mut empty = ValuePayload {
+        value_kind: kind_id(VALUE_KIND),
+        encoded: Vec::with_capacity(16),
+    };
+    let allocations = allocations_during(|| {
+        cancelled.admit(&one).unwrap();
+        cancelled.cancel().unwrap();
+        assert_eq!(*cancelled.step().unwrap(), BoundedScanState::Cancelled);
+        assert!(!cancelled.output_into(&mut empty).unwrap());
+        assert!(cancelled.admit(&late).is_err());
+        assert!(cancelled.next_host_request().is_none());
+    });
+    assert_eq!(
+        allocations, 0,
+        "scan cancellation allocated {allocations} times"
+    );
     let mut failed =
         BoundedScanActivationHost::prepare(&planned, definition, &fold_registry()).unwrap();
-    failed.admit(&value(b"1")).unwrap();
+    failed.admit(&one).unwrap();
     let terminal = ValuePayload {
         value_kind: abnormal,
         encoded: b"exact".to_vec(),
     };
-    failed.terminate_input(terminal.clone()).unwrap();
+    let expected = terminal.clone();
+    let allocations = allocations_during(|| {
+        failed.terminate_input(terminal).unwrap();
+        assert!(matches!(
+            failed.step().unwrap(),
+            BoundedScanState::Abnormal(value) if value == &expected
+        ));
+        assert!(!failed.output_into(&mut empty).unwrap());
+        assert!(failed.admit(&late).is_err());
+        assert!(failed.next_host_request().is_none());
+    });
     assert_eq!(
-        *failed.step().unwrap(),
-        BoundedScanState::Abnormal(terminal)
+        allocations, 0,
+        "scan abnormal allocated {allocations} times"
     );
-    assert!(!failed.output_into(&mut value(b"")).unwrap());
+}
+
+#[test]
+fn scan_success_pressure_terminal_cancel_and_late_refusal_are_allocation_free() {
+    let definition = fold_definition();
+    let mut scan = BoundedScanActivationHost::prepare(
+        &planned_scan(&definition, 2),
+        definition,
+        &fold_registry(),
+    )
+    .unwrap();
+    let one = value(b"1");
+    let two = value(b"2");
+    let full = value(b"3");
+    let mut output = ValuePayload {
+        value_kind: kind_id(VALUE_KIND),
+        encoded: Vec::with_capacity(16),
+    };
+    let allocations = allocations_during(|| {
+        let mut completed = 0;
+        assert_eq!(scan.admit(&one).unwrap(), BoundedScanAdmission::Accepted);
+        assert_eq!(scan.admit(&two).unwrap(), BoundedScanAdmission::Accepted);
+        assert_eq!(scan.admit(&full).unwrap(), BoundedScanAdmission::Full);
+        for _ in 0..128 {
+            if *scan.step().unwrap() == BoundedScanState::OutputReady {
+                assert!(scan.output_into(&mut output).unwrap());
+                scan.complete_output().unwrap();
+                output.encoded.clear();
+                completed += 1;
+            }
+            if completed == 2 {
+                break;
+            }
+        }
+        scan.close_input().unwrap();
+        assert_eq!(*scan.step().unwrap(), BoundedScanState::Complete);
+    });
+    assert_eq!(allocations, 0, "scan matrix allocated {allocations} times");
+
+    let definition = fold_definition();
+    let mut cancelled = BoundedScanActivationHost::prepare(
+        &planned_scan(&definition, 2),
+        definition,
+        &fold_registry(),
+    )
+    .unwrap();
+    let active = value(b"1");
+    let late = value(b"late");
+    let allocations = allocations_during(|| {
+        cancelled.admit(&active).unwrap();
+        cancelled.cancel().unwrap();
+        assert_eq!(*cancelled.step().unwrap(), BoundedScanState::Cancelled);
+        assert!(cancelled.admit(&late).is_err());
+    });
+    assert_eq!(
+        allocations, 0,
+        "scan cancellation matrix allocated {allocations} times"
+    );
+}
+
+#[test]
+fn fold_success_pressure_and_normal_completion_are_allocation_free() {
+    let definition = fold_definition();
+    let mut fold = BoundedFoldActivationHost::prepare(
+        &planned_fold(&definition),
+        definition,
+        &fold_registry(),
+    )
+    .unwrap();
+    let one = value(b"1");
+    let two = value(b"2");
+    let full = value(b"3");
+    let mut final_value = ValuePayload {
+        value_kind: kind_id(VALUE_KIND),
+        encoded: Vec::with_capacity(16),
+    };
+    let allocations = allocations_during(|| {
+        assert_eq!(
+            fold.admit(&one).unwrap(),
+            conduit_composite::BoundedFoldAdmission::Accepted
+        );
+        assert_eq!(
+            fold.admit(&two).unwrap(),
+            conduit_composite::BoundedFoldAdmission::Accepted
+        );
+        assert_eq!(
+            fold.admit(&full).unwrap(),
+            conduit_composite::BoundedFoldAdmission::Full
+        );
+        for _ in 0..128 {
+            if *fold.step().unwrap() == BoundedFoldState::Idle {
+                break;
+            }
+        }
+        fold.close_input().unwrap();
+        run_fold_to_ready(&mut fold);
+        assert!(fold.final_value_into(&mut final_value).unwrap());
+        assert!(!fold.final_value_into(&mut final_value).unwrap());
+    });
+    assert_eq!(allocations, 0, "fold matrix allocated {allocations} times");
 }
 
 fn run_until_output(host: &mut KernelCompositeHost) -> (u64, ValuePayload) {
@@ -745,6 +895,7 @@ fn success_preserves_two_child_kernel_delivery_and_terminal_propagation() {
         })
         .collect::<BTreeMap<_, _>>();
     let mut host = KernelCompositeHost::prepare(definition, &registry()).unwrap();
+    let transfer_capacities = host.internal_transfer_capacities();
     assert_eq!(host.definition().internal_plan.plan_id, expected_plan);
     assert_eq!(
         host.definition()
@@ -762,12 +913,14 @@ fn success_preserves_two_child_kernel_delivery_and_terminal_propagation() {
         Ok(conduit_kernel::scheduler::RemoteIngressOutcome::Accepted { sequence: 0 })
     ));
     let (sequence, output) = run_until_output(&mut host);
+    assert_eq!(host.internal_transfer_capacities(), transfer_capacities);
     assert_eq!((sequence, output), (0, value(b"exact")));
     host.complete_output(&conduit_core::port_id("output"), sequence)
         .unwrap();
     host.close_input(&conduit_core::port_id("input")).unwrap();
     for _ in 0..64 {
         if host.step().unwrap() == KernelCompositeStatus::Complete {
+            assert_eq!(host.internal_transfer_capacities(), transfer_capacities);
             assert!(host.signs().values().all(|events| !events.is_empty()));
             return;
         }
@@ -801,6 +954,62 @@ fn pressure_is_finite_and_retry_keeps_the_exact_sequence() {
         host.admit_input(&conduit_core::port_id("input"), 2, &value(b"blocked")),
         Ok(conduit_kernel::scheduler::RemoteIngressOutcome::Accepted { sequence: 2 })
     ));
+}
+
+#[test]
+fn direct_composite_successful_play_allocates_nothing_after_preparation() {
+    let mut host = KernelCompositeHost::prepare(definition(), &registry()).unwrap();
+    let input_port = conduit_core::port_id("input");
+    let output_port = conduit_core::port_id("output");
+    let input = value(b"exact");
+    let mut output = value(b"12345678");
+    output.encoded.clear();
+
+    let allocations = allocations_during(|| {
+        host.start().unwrap();
+        assert!(matches!(
+            host.admit_input(&input_port, 0, &input).unwrap(),
+            conduit_kernel::scheduler::RemoteIngressOutcome::Accepted { sequence: 0 }
+        ));
+        let sequence = loop {
+            host.step().unwrap();
+            if let Some(sequence) = host.output_into(&output_port, &mut output).unwrap() {
+                break sequence;
+            }
+        };
+        host.complete_output(&output_port, sequence).unwrap();
+    });
+    assert_eq!(allocations, 0, "play allocated {allocations} times");
+    assert_eq!(output.encoded, b"exact");
+}
+
+#[test]
+fn direct_composite_pressure_and_retry_allocate_nothing_during_play() {
+    let mut host = KernelCompositeHost::prepare(definition(), &registry()).unwrap();
+    let input_port = conduit_core::port_id("input");
+    let first = value(b"12345678");
+    let second = value(b"abcdefgh");
+    let blocked = value(b"blocked");
+    host.start().unwrap();
+
+    let allocations = allocations_during(|| {
+        assert!(matches!(
+            host.admit_input(&input_port, 0, &first).unwrap(),
+            conduit_kernel::scheduler::RemoteIngressOutcome::Accepted { sequence: 0 }
+        ));
+        assert!(matches!(
+            host.admit_input(&input_port, 1, &second).unwrap(),
+            conduit_kernel::scheduler::RemoteIngressOutcome::Accepted { sequence: 1 }
+        ));
+        assert!(matches!(
+            host.admit_input(&input_port, 2, &blocked).unwrap(),
+            conduit_kernel::scheduler::RemoteIngressOutcome::Full { sequence: 2 }
+        ));
+    });
+    assert_eq!(
+        allocations, 0,
+        "pressure path allocated {allocations} times"
+    );
 }
 
 #[test]
@@ -859,12 +1068,18 @@ fn malformed_boundary_binding_and_value_kind_refuse_distinctly() {
 #[test]
 fn cancellation_is_terminal_and_rejects_late_kernel_work() {
     let mut host = KernelCompositeHost::prepare(definition(), &registry()).unwrap();
-    host.cancel().unwrap();
-    assert_eq!(host.step().unwrap(), KernelCompositeStatus::Cancelled);
-    assert!(matches!(
-        host.admit_input(&conduit_core::port_id("input"), 0, &value(b"late")),
-        Err(KernelCompositeError::InvalidLifecycle)
-    ));
+    let input_port = conduit_core::port_id("input");
+    let late = value(b"late");
+    host.start().unwrap();
+    let allocations = allocations_during(|| {
+        host.cancel().unwrap();
+        assert_eq!(host.step().unwrap(), KernelCompositeStatus::Cancelled);
+        assert!(matches!(
+            host.admit_input(&input_port, 0, &late),
+            Err(KernelCompositeError::InvalidLifecycle)
+        ));
+    });
+    assert_eq!(allocations, 0, "cancellation allocated {allocations} times");
 }
 
 #[test]
@@ -1029,11 +1244,20 @@ fn bounded_activation_fault_and_cancellation_are_not_success() {
         2,
     )
     .unwrap();
-    cancelled.activate(4, &value(b"cancel")).unwrap();
-    cancelled.cancel().unwrap();
+    let active = value(b"cancel");
+    let late = value(b"late");
+    let allocations = allocations_during(|| {
+        cancelled.activate(4, &active).unwrap();
+        cancelled.cancel().unwrap();
+        assert_eq!(
+            cancelled.state(),
+            &BoundedActivationState::Cancelled { sequence: Some(4) }
+        );
+        assert!(cancelled.activate(5, &late).is_err());
+    });
     assert_eq!(
-        cancelled.state(),
-        &BoundedActivationState::Cancelled { sequence: Some(4) }
+        allocations, 0,
+        "each cancellation allocated {allocations} times"
     );
 }
 
@@ -1047,31 +1271,40 @@ fn bounded_activation_drains_one_owed_value_before_normal_close() {
         2,
     )
     .unwrap();
-    assert_eq!(
-        each.activate(11, &value(b"owed")).unwrap(),
-        BoundedActivationAdmission::Accepted { sequence: 11 }
-    );
-    each.close_input().unwrap();
-    assert_eq!(
-        each.activate(12, &value(b"late")),
-        Err(conduit_composite::BoundedActivationError::InvalidLifecycle)
-    );
+    let owed = value(b"owed");
+    let late = value(b"late");
+    let allocations = allocations_during(|| {
+        assert_eq!(
+            each.activate(11, &owed).unwrap(),
+            BoundedActivationAdmission::Accepted { sequence: 11 }
+        );
+        each.close_input().unwrap();
+        assert_eq!(
+            each.activate(12, &late),
+            Err(conduit_composite::BoundedActivationError::InvalidLifecycle)
+        );
 
-    for _ in 0..64 {
-        each.step().unwrap();
-        if let Some((sequence, output)) = each.output().unwrap() {
-            assert_eq!((sequence, output), (11, &value(b"owed")));
-            each.complete_output(sequence).unwrap();
-            break;
+        for _ in 0..64 {
+            each.step().unwrap();
+            if let Some((sequence, output)) = each.output().unwrap() {
+                assert_eq!(sequence, 11);
+                assert_eq!(output.encoded, b"owed");
+                each.complete_output(sequence).unwrap();
+                break;
+            }
         }
-    }
-    for _ in 0..64 {
-        if matches!(
-            each.step().unwrap(),
-            BoundedActivationState::Succeeded { sequence: 11 }
-        ) {
-            break;
+        for _ in 0..64 {
+            if matches!(
+                each.step().unwrap(),
+                BoundedActivationState::Succeeded { sequence: 11 }
+            ) {
+                break;
+            }
         }
-    }
-    assert_eq!(each.step().unwrap(), &BoundedActivationState::Drained);
+        assert_eq!(each.step().unwrap(), &BoundedActivationState::Drained);
+    });
+    assert_eq!(
+        allocations, 0,
+        "each completion allocated {allocations} times"
+    );
 }

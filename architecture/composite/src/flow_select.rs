@@ -1,8 +1,10 @@
+#[cfg_attr(not(feature = "fixture-registry-preparation"), allow(unused_imports))]
 use crate::{
-    BoundedActivationAdmission, BoundedActivationError, BoundedActivationHost,
-    BoundedActivationState, KernelCompositeDefinition, KernelCompositeHostRequest,
-    KernelOperationRegistry,
+    AdmittedKernelCompositeHostRequest, BoundedActivationAdmission, BoundedActivationError,
+    BoundedActivationHost, BoundedActivationState, KernelCompositeDefinition,
+    KernelCompositeHostRequest, KernelOperationRegistry,
 };
+#[cfg_attr(not(feature = "fixture-registry-preparation"), allow(unused_imports))]
 use conduit_core::{InfoBool, KindId, PlannedActivation, ValuePayload, BOOL_INFO_ID};
 use conduit_kernel::HostCallOutcome;
 
@@ -93,6 +95,26 @@ pub struct FlowSelectCoordinator {
 }
 
 impl FlowSelectCoordinator {
+    pub fn from_prepared_activation(
+        activation: BoundedActivationHost,
+    ) -> Result<Self, FlowSelectError> {
+        if activation.contract().output_value_kind.as_str() != BOOL_INFO_ID {
+            return Err(FlowSelectError::PredicateOutputIsNotCanonicalBoolean {
+                actual: activation.contract().output_value_kind.clone(),
+            });
+        }
+        Ok(Self {
+            activation,
+            active_item: None,
+            queued_item: None,
+            predicate_decision: None,
+            output: None,
+            pending_terminal: None,
+            state: FlowSelectState::Idle,
+        })
+    }
+
+    #[cfg(feature = "fixture-registry-preparation")]
     pub fn prepare_planned(
         planned: &PlannedActivation,
         definition: KernelCompositeDefinition,
@@ -103,15 +125,9 @@ impl FlowSelectCoordinator {
                 actual: planned.output.value_kind.clone(),
             });
         }
-        Ok(Self {
-            activation: BoundedActivationHost::prepare_planned(planned, definition, registry)?,
-            active_item: None,
-            queued_item: None,
-            predicate_decision: None,
-            output: None,
-            pending_terminal: None,
-            state: FlowSelectState::Idle,
-        })
+        Self::from_prepared_activation(BoundedActivationHost::prepare_planned(
+            planned, definition, registry,
+        )?)
     }
 
     pub fn state(&self) -> &FlowSelectState {
@@ -340,20 +356,24 @@ impl FlowSelectCoordinator {
 
     pub fn cancel(&mut self) -> Result<(), FlowSelectError> {
         let sequence = self.active_item.as_ref().map(|(sequence, _)| *sequence);
-        if matches!(
+        let cancellation = if matches!(
             self.activation.state(),
             BoundedActivationState::Idle | BoundedActivationState::Active { .. }
         ) {
-            self.activation.cancel()?;
+            self.activation
+                .cancel()
+                .map_err(FlowSelectError::Activation)
         } else if !matches!(
             self.activation.state(),
             BoundedActivationState::Succeeded { .. }
         ) {
             return Err(FlowSelectError::InvalidLifecycle);
-        }
+        } else {
+            Ok(())
+        };
         self.clear_retained();
         self.state = FlowSelectState::Cancelled { sequence };
-        Ok(())
+        cancellation
     }
 
     fn clear_retained(&mut self) {
@@ -368,12 +388,64 @@ impl FlowSelectCoordinator {
         self.activation.next_host_request()
     }
 
+    pub fn last_cancellation_failures(&self) -> &[(conduit_core::HostId, String)] {
+        self.activation.last_cancellation_failures()
+    }
+
+    pub fn host_request_obligation(
+        &self,
+        request: &KernelCompositeHostRequest,
+    ) -> Result<&crate::KernelCompositeHostCallObligation, FlowSelectError> {
+        self.activation
+            .host_request_obligation(request)
+            .map_err(FlowSelectError::Activation)
+    }
+    pub fn host_request_view(
+        &self,
+        request: &KernelCompositeHostRequest,
+    ) -> Result<crate::KernelCompositeHostRequestView<'_>, FlowSelectError> {
+        self.activation
+            .host_request_view(request)
+            .map_err(FlowSelectError::Activation)
+    }
+
+    pub fn admit_host_request(
+        &self,
+        request: &KernelCompositeHostRequest,
+        host: &conduit_core::PreparationHostIdentity,
+        resources: &[conduit_core::ResourceBinding],
+        authorities: &[conduit_core::AuthorityBinding],
+    ) -> Result<AdmittedKernelCompositeHostRequest, FlowSelectError> {
+        self.activation
+            .admit_host_request(request, host, resources, authorities)
+            .map_err(FlowSelectError::Activation)
+    }
+
     pub fn complete_host_call(
         &mut self,
-        request: &KernelCompositeHostRequest,
+        request: &AdmittedKernelCompositeHostRequest,
         outcome: HostCallOutcome,
     ) -> Result<(), FlowSelectError> {
         self.activation.complete_host_call(request, outcome)?;
         Ok(())
+    }
+
+    pub fn host_request_input(
+        &self,
+        request: &AdmittedKernelCompositeHostRequest,
+    ) -> Result<&[u8], FlowSelectError> {
+        self.activation
+            .host_request_input(request)
+            .map_err(FlowSelectError::Activation)
+    }
+
+    pub fn complete_host_call_bytes(
+        &mut self,
+        request: &AdmittedKernelCompositeHostRequest,
+        bytes: &[u8],
+    ) -> Result<(), FlowSelectError> {
+        self.activation
+            .complete_host_call_bytes(request, bytes)
+            .map_err(FlowSelectError::Activation)
     }
 }

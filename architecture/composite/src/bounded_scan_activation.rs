@@ -1,10 +1,12 @@
 //! Kernel-backed execution of one exact planned bounded scan.
 
+#[cfg_attr(not(feature = "fixture-registry-preparation"), allow(unused_imports))]
 use crate::{
-    KernelCompositeDefinition, KernelCompositeError, KernelCompositeHost,
-    KernelCompositeHostRequest, KernelCompositeStatus, KernelCompositeTerminal,
-    KernelOperationRegistry,
+    AdmittedKernelCompositeHostRequest, KernelCompositeDefinition, KernelCompositeError,
+    KernelCompositeHost, KernelCompositeHostRequest, KernelCompositeStatus,
+    KernelCompositeTerminal, KernelOperationRegistry,
 };
+#[cfg_attr(not(feature = "fixture-registry-preparation"), allow(unused_imports))]
 use conduit_core::{
     verify_plan, PlannedActivationEffectMultiplicity, PlannedActivationFront,
     PlannedScanAbnormalPolicy, PlannedScanActivation, PlannedScanCancellationPolicy,
@@ -47,6 +49,7 @@ pub struct BoundedScanActivationHost {
     admission: ValuePayload,
     active: Option<KernelCompositeHost>,
     candidate: ValuePayload,
+    abnormal_buffer: Option<ValuePayload>,
     candidate_ready: bool,
     output_ready: bool,
     closing: bool,
@@ -54,6 +57,7 @@ pub struct BoundedScanActivationHost {
 }
 
 impl BoundedScanActivationHost {
+    #[cfg(feature = "fixture-registry-preparation")]
     pub fn prepare(
         planned: &PlannedScanActivation,
         definition: KernelCompositeDefinition,
@@ -84,6 +88,32 @@ impl BoundedScanActivationHost {
         {
             return Err(BoundedScanError::PlannedContractMismatch);
         }
+        let maximum_items = usize::from(planned.limits.maximum_items);
+        if maximum_items == 0 {
+            return Err(BoundedScanError::PlannedContractMismatch);
+        }
+        let mut ready = Vec::with_capacity(maximum_items);
+        for _ in 0..maximum_items {
+            ready.push(
+                KernelCompositeHost::prepare(definition.clone(), registry)
+                    .map_err(BoundedScanError::Refused)?,
+            );
+        }
+        Self::prepare_with_ready(planned, definition, ready)
+    }
+
+    pub(crate) fn prepare_with_ready(
+        planned: &PlannedScanActivation,
+        definition: KernelCompositeDefinition,
+        ready: Vec<KernelCompositeHost>,
+    ) -> Result<Self, BoundedScanError> {
+        if planned.selected_plan.as_ref() != &definition.internal_plan
+            || !verify_plan(&planned.selected_plan)
+            || ready.len() != usize::from(planned.limits.maximum_items)
+            || ready.capacity() != usize::from(planned.limits.maximum_items)
+        {
+            return Err(BoundedScanError::PlannedContractMismatch);
+        }
         let mut accumulator_bytes = Vec::with_capacity(planned.retained_accumulator_bytes as usize);
         accumulator_bytes.extend_from_slice(&planned.initial_accumulator);
         let accumulator = ValuePayload {
@@ -102,17 +132,15 @@ impl BoundedScanActivationHost {
             value_kind: planned.item_input.value_kind.clone(),
             encoded: Vec::with_capacity(planned.retained_item_bytes as usize),
         };
-        let maximum_items = usize::from(planned.limits.maximum_items);
-        if maximum_items == 0 {
-            return Err(BoundedScanError::PlannedContractMismatch);
-        }
-        let mut ready = Vec::with_capacity(maximum_items);
-        for _ in 0..maximum_items {
-            ready.push(
-                KernelCompositeHost::prepare(definition.clone(), registry)
-                    .map_err(BoundedScanError::Refused)?,
-            );
-        }
+        let maximum_items = ready.len();
+        let abnormal_buffer = planned
+            .output
+            .abnormal_kind
+            .clone()
+            .map(|value_kind| ValuePayload {
+                value_kind,
+                encoded: Vec::with_capacity(planned.retained_accumulator_bytes as usize),
+            });
         Ok(Self {
             planned: planned.clone(),
             ready,
@@ -123,6 +151,7 @@ impl BoundedScanActivationHost {
             admission,
             active: None,
             candidate,
+            abnormal_buffer,
             candidate_ready: false,
             output_ready: false,
             closing: false,
@@ -216,17 +245,19 @@ impl BoundedScanActivationHost {
         if self.planned.item_input.abnormal_kind.as_ref() != Some(&terminal.value_kind) {
             return Err(BoundedScanError::PlannedContractMismatch);
         }
-        if let Some(active) = &mut self.active {
-            active.cancel().map_err(BoundedScanError::Refused)?;
-        }
+        self.state = BoundedScanState::Abnormal(terminal);
+        let cancellation = self
+            .active
+            .as_mut()
+            .map(KernelCompositeHost::cancel)
+            .transpose();
         if let Some(terminated) = self.active.take() {
             self.receipts.push(terminated);
         }
         self.queued_ready = false;
         self.candidate_ready = false;
         self.output_ready = false;
-        self.state = BoundedScanState::Abnormal(terminal);
-        Ok(())
+        cancellation.map(|_| ()).map_err(BoundedScanError::Refused)
     }
 
     pub fn step(&mut self) -> Result<&BoundedScanState, BoundedScanError> {
@@ -247,13 +278,15 @@ impl BoundedScanActivationHost {
         match active.step().map_err(BoundedScanError::Refused)? {
             KernelCompositeStatus::Active => {}
             KernelCompositeStatus::Complete => {
+                let terminal_buffer = self.abnormal_buffer.as_mut().unwrap_or(&mut self.candidate);
                 let terminal = active
-                    .output_terminal(&self.planned.output.front_port_id)
+                    .output_terminal_into(&self.planned.output.front_port_id, terminal_buffer)
                     .map_err(BoundedScanError::Refused)?;
-                if let Some(KernelCompositeTerminal::Abnormal(terminal)) = terminal {
-                    if self.planned.output.abnormal_kind.as_ref() != Some(&terminal.value_kind) {
-                        return Err(BoundedScanError::PlannedContractMismatch);
-                    }
+                if let Some(KernelCompositeTerminal::Abnormal) = terminal {
+                    let terminal = self
+                        .abnormal_buffer
+                        .take()
+                        .ok_or(BoundedScanError::PlannedContractMismatch)?;
                     let completed = self.active.take().expect("active scan child was borrowed");
                     self.receipts.push(completed);
                     self.queued_ready = false;
@@ -325,20 +358,27 @@ impl BoundedScanActivationHost {
     }
 
     pub fn cancel(&mut self) -> Result<(), BoundedScanError> {
-        if let Some(active) = &mut self.active {
-            active.cancel().map_err(BoundedScanError::Refused)?;
-        }
+        self.state = BoundedScanState::Cancelled;
+        let cancellation = self
+            .active
+            .as_mut()
+            .map(KernelCompositeHost::cancel)
+            .transpose();
         if let Some(cancelled) = self.active.take() {
             self.receipts.push(cancelled);
         }
         self.queued_ready = false;
         self.candidate_ready = false;
         self.output_ready = false;
-        self.state = BoundedScanState::Cancelled;
-        Ok(())
+        cancellation.map(|_| ()).map_err(BoundedScanError::Refused)
     }
     pub fn allocation_capacities(&self) -> (usize, usize) {
         (self.ready.capacity(), self.receipts.capacity())
+    }
+    pub fn last_cancellation_failures(&self) -> &[(conduit_core::HostId, String)] {
+        self.receipts
+            .last()
+            .map_or(&[], KernelCompositeHost::cancellation_failures)
     }
     pub fn storage_capacities(&self) -> (usize, usize, usize, usize) {
         (
@@ -351,9 +391,42 @@ impl BoundedScanActivationHost {
     pub fn next_host_request(&mut self) -> Option<KernelCompositeHostRequest> {
         self.active.as_mut()?.next_host_request()
     }
+    pub fn host_request_obligation(
+        &self,
+        request: &KernelCompositeHostRequest,
+    ) -> Result<&crate::KernelCompositeHostCallObligation, BoundedScanError> {
+        self.active
+            .as_ref()
+            .ok_or(BoundedScanError::InvalidLifecycle)?
+            .host_request_obligation(request)
+            .map_err(BoundedScanError::Refused)
+    }
+    pub fn host_request_view(
+        &self,
+        request: &KernelCompositeHostRequest,
+    ) -> Result<crate::KernelCompositeHostRequestView<'_>, BoundedScanError> {
+        self.active
+            .as_ref()
+            .ok_or(BoundedScanError::InvalidLifecycle)?
+            .host_request_view(request)
+            .map_err(BoundedScanError::Refused)
+    }
+    pub fn admit_host_request(
+        &self,
+        request: &KernelCompositeHostRequest,
+        host: &conduit_core::PreparationHostIdentity,
+        resources: &[conduit_core::ResourceBinding],
+        authorities: &[conduit_core::AuthorityBinding],
+    ) -> Result<AdmittedKernelCompositeHostRequest, BoundedScanError> {
+        self.active
+            .as_ref()
+            .ok_or(BoundedScanError::InvalidLifecycle)?
+            .admit_host_request(request, host, resources, authorities)
+            .map_err(BoundedScanError::Refused)
+    }
     pub fn complete_host_call(
         &mut self,
-        request: &KernelCompositeHostRequest,
+        request: &AdmittedKernelCompositeHostRequest,
         outcome: HostCallOutcome,
     ) -> Result<(), BoundedScanError> {
         self.active
@@ -362,8 +435,30 @@ impl BoundedScanActivationHost {
             .complete_host_call(request, outcome)
             .map_err(BoundedScanError::Refused)
     }
+    pub fn host_request_input(
+        &self,
+        request: &AdmittedKernelCompositeHostRequest,
+    ) -> Result<&[u8], BoundedScanError> {
+        self.active
+            .as_ref()
+            .ok_or(BoundedScanError::InvalidLifecycle)?
+            .host_request_input(request)
+            .map_err(BoundedScanError::Refused)
+    }
+    pub fn complete_host_call_bytes(
+        &mut self,
+        request: &AdmittedKernelCompositeHostRequest,
+        bytes: &[u8],
+    ) -> Result<(), BoundedScanError> {
+        self.active
+            .as_mut()
+            .ok_or(BoundedScanError::InvalidLifecycle)?
+            .complete_host_call_bytes(request, bytes)
+            .map_err(BoundedScanError::Refused)
+    }
 }
 
+#[cfg(feature = "fixture-registry-preparation")]
 fn front_matches(
     definition: &KernelCompositeDefinition,
     expected: &PlannedActivationFront,

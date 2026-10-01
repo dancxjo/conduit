@@ -1,10 +1,12 @@
 //! Kernel-backed execution of one exact planned bounded fold.
 
+#[cfg_attr(not(feature = "fixture-registry-preparation"), allow(unused_imports))]
 use crate::{
-    KernelCompositeDefinition, KernelCompositeError, KernelCompositeHost,
-    KernelCompositeHostRequest, KernelCompositeStatus, KernelCompositeTerminal,
-    KernelOperationRegistry,
+    AdmittedKernelCompositeHostRequest, KernelCompositeDefinition, KernelCompositeError,
+    KernelCompositeHost, KernelCompositeHostRequest, KernelCompositeStatus,
+    KernelCompositeTerminal, KernelOperationRegistry,
 };
+#[cfg_attr(not(feature = "fixture-registry-preparation"), allow(unused_imports))]
 use conduit_core::{
     verify_plan, PlannedActivationEffectMultiplicity, PlannedActivationFront,
     PlannedFoldAbnormalPolicy, PlannedFoldActivation, PlannedFoldCancellationPolicy,
@@ -47,12 +49,14 @@ pub struct BoundedFoldActivationHost {
     admission: ValuePayload,
     active: Option<KernelCompositeHost>,
     candidate: ValuePayload,
+    abnormal_buffer: Option<ValuePayload>,
     candidate_ready: bool,
     closing: bool,
     state: BoundedFoldState,
 }
 
 impl BoundedFoldActivationHost {
+    #[cfg(feature = "fixture-registry-preparation")]
     pub fn prepare(
         planned: &PlannedFoldActivation,
         definition: KernelCompositeDefinition,
@@ -83,6 +87,32 @@ impl BoundedFoldActivationHost {
         {
             return Err(BoundedFoldError::PlannedContractMismatch);
         }
+        let maximum_items = usize::from(planned.limits.maximum_items);
+        if maximum_items == 0 {
+            return Err(BoundedFoldError::PlannedContractMismatch);
+        }
+        let mut ready = Vec::with_capacity(maximum_items);
+        for _ in 0..maximum_items {
+            ready.push(
+                KernelCompositeHost::prepare(definition.clone(), registry)
+                    .map_err(BoundedFoldError::Refused)?,
+            );
+        }
+        Self::prepare_with_ready(planned, definition, ready)
+    }
+
+    pub(crate) fn prepare_with_ready(
+        planned: &PlannedFoldActivation,
+        definition: KernelCompositeDefinition,
+        ready: Vec<KernelCompositeHost>,
+    ) -> Result<Self, BoundedFoldError> {
+        if planned.selected_plan.as_ref() != &definition.internal_plan
+            || !verify_plan(&planned.selected_plan)
+            || ready.len() != usize::from(planned.limits.maximum_items)
+            || ready.capacity() != usize::from(planned.limits.maximum_items)
+        {
+            return Err(BoundedFoldError::PlannedContractMismatch);
+        }
         let mut accumulator_bytes = Vec::with_capacity(planned.retained_accumulator_bytes as usize);
         accumulator_bytes.extend_from_slice(&planned.initial_accumulator);
         let accumulator = ValuePayload {
@@ -101,17 +131,15 @@ impl BoundedFoldActivationHost {
             value_kind: planned.item_input.value_kind.clone(),
             encoded: Vec::with_capacity(planned.retained_item_bytes as usize),
         };
-        let maximum_items = usize::from(planned.limits.maximum_items);
-        if maximum_items == 0 {
-            return Err(BoundedFoldError::PlannedContractMismatch);
-        }
-        let mut ready = Vec::with_capacity(maximum_items);
-        for _ in 0..maximum_items {
-            ready.push(
-                KernelCompositeHost::prepare(definition.clone(), registry)
-                    .map_err(BoundedFoldError::Refused)?,
-            );
-        }
+        let maximum_items = ready.len();
+        let abnormal_buffer = planned
+            .output
+            .abnormal_kind
+            .clone()
+            .map(|value_kind| ValuePayload {
+                value_kind,
+                encoded: Vec::with_capacity(planned.retained_accumulator_bytes as usize),
+            });
         Ok(Self {
             planned: planned.clone(),
             ready,
@@ -122,6 +150,7 @@ impl BoundedFoldActivationHost {
             admission,
             active: None,
             candidate,
+            abnormal_buffer,
             candidate_ready: false,
             closing: false,
             state: BoundedFoldState::Idle,
@@ -210,16 +239,18 @@ impl BoundedFoldActivationHost {
         if self.planned.item_input.abnormal_kind.as_ref() != Some(&terminal.value_kind) {
             return Err(BoundedFoldError::PlannedContractMismatch);
         }
-        if let Some(active) = &mut self.active {
-            active.cancel().map_err(BoundedFoldError::Refused)?;
-        }
+        self.state = BoundedFoldState::Abnormal(terminal);
+        let cancellation = self
+            .active
+            .as_mut()
+            .map(KernelCompositeHost::cancel)
+            .transpose();
         if let Some(terminated) = self.active.take() {
             self.receipts.push(terminated);
         }
         self.queued_ready = false;
         self.candidate_ready = false;
-        self.state = BoundedFoldState::Abnormal(terminal);
-        Ok(())
+        cancellation.map(|_| ()).map_err(BoundedFoldError::Refused)
     }
 
     pub fn step(&mut self) -> Result<&BoundedFoldState, BoundedFoldError> {
@@ -240,13 +271,15 @@ impl BoundedFoldActivationHost {
         match active.step().map_err(BoundedFoldError::Refused)? {
             KernelCompositeStatus::Active => {}
             KernelCompositeStatus::Complete => {
+                let terminal_buffer = self.abnormal_buffer.as_mut().unwrap_or(&mut self.candidate);
                 let terminal = active
-                    .output_terminal(&self.planned.output.front_port_id)
+                    .output_terminal_into(&self.planned.output.front_port_id, terminal_buffer)
                     .map_err(BoundedFoldError::Refused)?;
-                if let Some(KernelCompositeTerminal::Abnormal(terminal)) = terminal {
-                    if self.planned.output.abnormal_kind.as_ref() != Some(&terminal.value_kind) {
-                        return Err(BoundedFoldError::PlannedContractMismatch);
-                    }
+                if let Some(KernelCompositeTerminal::Abnormal) = terminal {
+                    let terminal = self
+                        .abnormal_buffer
+                        .take()
+                        .ok_or(BoundedFoldError::PlannedContractMismatch)?;
                     let completed = self.active.take().expect("active fold child was borrowed");
                     self.receipts.push(completed);
                     self.queued_ready = false;
@@ -299,27 +332,87 @@ impl BoundedFoldActivationHost {
         Ok(Some(self.accumulator.clone()))
     }
 
-    pub fn cancel(&mut self) -> Result<(), BoundedFoldError> {
-        if let Some(active) = &mut self.active {
-            active.cancel().map_err(BoundedFoldError::Refused)?;
+    pub fn final_value_into(
+        &mut self,
+        destination: &mut ValuePayload,
+    ) -> Result<bool, BoundedFoldError> {
+        if self.state != BoundedFoldState::FinalReady {
+            return Ok(false);
         }
+        if destination.value_kind != self.accumulator.value_kind
+            || destination.encoded.capacity() < self.accumulator.encoded.len()
+        {
+            return Err(BoundedFoldError::PlannedContractMismatch);
+        }
+        destination.encoded.clear();
+        destination
+            .encoded
+            .extend_from_slice(&self.accumulator.encoded);
+        self.state = BoundedFoldState::Complete;
+        Ok(true)
+    }
+
+    pub fn cancel(&mut self) -> Result<(), BoundedFoldError> {
+        self.state = BoundedFoldState::Cancelled;
+        let cancellation = self
+            .active
+            .as_mut()
+            .map(KernelCompositeHost::cancel)
+            .transpose();
         if let Some(cancelled) = self.active.take() {
             self.receipts.push(cancelled);
         }
         self.queued_ready = false;
         self.candidate_ready = false;
-        self.state = BoundedFoldState::Cancelled;
-        Ok(())
+        cancellation.map(|_| ()).map_err(BoundedFoldError::Refused)
     }
     pub fn allocation_capacities(&self) -> (usize, usize) {
         (self.ready.capacity(), self.receipts.capacity())
     }
+    pub fn last_cancellation_failures(&self) -> &[(conduit_core::HostId, String)] {
+        self.receipts
+            .last()
+            .map_or(&[], KernelCompositeHost::cancellation_failures)
+    }
     pub fn next_host_request(&mut self) -> Option<KernelCompositeHostRequest> {
         self.active.as_mut()?.next_host_request()
     }
+    pub fn host_request_obligation(
+        &self,
+        request: &KernelCompositeHostRequest,
+    ) -> Result<&crate::KernelCompositeHostCallObligation, BoundedFoldError> {
+        self.active
+            .as_ref()
+            .ok_or(BoundedFoldError::InvalidLifecycle)?
+            .host_request_obligation(request)
+            .map_err(BoundedFoldError::Refused)
+    }
+    pub fn host_request_view(
+        &self,
+        request: &KernelCompositeHostRequest,
+    ) -> Result<crate::KernelCompositeHostRequestView<'_>, BoundedFoldError> {
+        self.active
+            .as_ref()
+            .ok_or(BoundedFoldError::InvalidLifecycle)?
+            .host_request_view(request)
+            .map_err(BoundedFoldError::Refused)
+    }
+    pub fn admit_host_request(
+        &self,
+        request: &KernelCompositeHostRequest,
+        host: &conduit_core::PreparationHostIdentity,
+        resources: &[conduit_core::ResourceBinding],
+        authorities: &[conduit_core::AuthorityBinding],
+    ) -> Result<AdmittedKernelCompositeHostRequest, BoundedFoldError> {
+        self.active
+            .as_ref()
+            .ok_or(BoundedFoldError::InvalidLifecycle)?
+            .admit_host_request(request, host, resources, authorities)
+            .map_err(BoundedFoldError::Refused)
+    }
     pub fn complete_host_call(
         &mut self,
-        request: &KernelCompositeHostRequest,
+        request: &AdmittedKernelCompositeHostRequest,
         outcome: HostCallOutcome,
     ) -> Result<(), BoundedFoldError> {
         self.active
@@ -328,8 +421,30 @@ impl BoundedFoldActivationHost {
             .complete_host_call(request, outcome)
             .map_err(BoundedFoldError::Refused)
     }
+    pub fn host_request_input(
+        &self,
+        request: &AdmittedKernelCompositeHostRequest,
+    ) -> Result<&[u8], BoundedFoldError> {
+        self.active
+            .as_ref()
+            .ok_or(BoundedFoldError::InvalidLifecycle)?
+            .host_request_input(request)
+            .map_err(BoundedFoldError::Refused)
+    }
+    pub fn complete_host_call_bytes(
+        &mut self,
+        request: &AdmittedKernelCompositeHostRequest,
+        bytes: &[u8],
+    ) -> Result<(), BoundedFoldError> {
+        self.active
+            .as_mut()
+            .ok_or(BoundedFoldError::InvalidLifecycle)?
+            .complete_host_call_bytes(request, bytes)
+            .map_err(BoundedFoldError::Refused)
+    }
 }
 
+#[cfg(feature = "fixture-registry-preparation")]
 fn front_matches(
     definition: &KernelCompositeDefinition,
     expected: &PlannedActivationFront,

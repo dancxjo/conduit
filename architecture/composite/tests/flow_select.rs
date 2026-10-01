@@ -18,6 +18,10 @@ use conduit_plan_lowering::lowering::FIXED_KERNEL_STORAGE_PORTS_PER_NODE;
 use conduit_planner::{plan_with_line_offers, PlacementChoice, PlacementChoices};
 use std::collections::BTreeMap;
 
+#[path = "support/allocation.rs"]
+mod allocation;
+use allocation::assert_no_allocations;
+
 const VALUE_KIND: &str = "value/bytes";
 const PREDICATE_KIND: &str = "test/kernel-composite-predicate";
 const PREDICATE_IMPLEMENTATION: &str = "test/kernel-composite-predicate-v1";
@@ -250,66 +254,85 @@ fn coordinator() -> FlowSelectCoordinator {
 #[test]
 fn emits_original_once_for_true_and_nothing_for_false() {
     let mut select = coordinator();
-    select.admit(1, value(b"true-original")).unwrap();
-    for _ in 0..64 {
-        select.step().unwrap();
-        if let Some((sequence, selected)) = select.output() {
-            assert_eq!((sequence, selected), (1, &value(b"true-original")));
-            select.complete_output(sequence).unwrap();
-            break;
+    let accepted = value(b"true-original");
+    let rejected = value(b"false-original");
+    assert_no_allocations("select success and normal completion", || {
+        select.admit(1, accepted).unwrap();
+        for _ in 0..64 {
+            select.step().unwrap();
+            if let Some((sequence, selected)) = select.output() {
+                assert_eq!(sequence, 1);
+                assert_eq!(selected.encoded, b"true-original");
+                select.complete_output(sequence).unwrap();
+                break;
+            }
         }
-    }
-    assert_eq!(select.state(), &FlowSelectState::Idle);
-    select.admit(2, value(b"false-original")).unwrap();
-    for _ in 0..64 {
-        select.step().unwrap();
-        if select.state() == &FlowSelectState::Idle {
-            break;
+        assert_eq!(select.state(), &FlowSelectState::Idle);
+        select.admit(2, rejected).unwrap();
+        for _ in 0..64 {
+            select.step().unwrap();
+            if select.state() == &FlowSelectState::Idle {
+                break;
+            }
         }
-    }
-    assert_eq!(select.output(), None);
+        assert_eq!(select.output(), None);
+        select.close_input().unwrap();
+        assert_eq!(select.state(), &FlowSelectState::Drained);
+    });
 }
 
 #[test]
 fn one_active_one_queued_drain_before_close() {
     let mut select = coordinator();
-    assert_eq!(
-        select.admit(10, value(b"true-first")).unwrap(),
-        FlowSelectAdmission::Accepted { sequence: 10 }
-    );
-    assert_eq!(
-        select.admit(11, value(b"false-second")).unwrap(),
-        FlowSelectAdmission::Accepted { sequence: 11 }
-    );
-    assert_eq!(
-        select.admit(12, value(b"true-full")).unwrap(),
-        FlowSelectAdmission::Full { sequence: 12 }
-    );
-    select.close_input().unwrap();
-    assert!(select.admit(13, value(b"true-late")).is_err());
-    for _ in 0..128 {
-        select.step().unwrap();
-        if let Some((sequence, selected)) = select.output() {
-            assert_eq!((sequence, selected), (10, &value(b"true-first")));
-            select.complete_output(sequence).unwrap();
+    let first = value(b"true-first");
+    let second = value(b"false-second");
+    let full = value(b"true-full");
+    let late = value(b"true-late");
+    assert_no_allocations("select pressure and drain", || {
+        assert_eq!(
+            select.admit(10, first).unwrap(),
+            FlowSelectAdmission::Accepted { sequence: 10 }
+        );
+        assert_eq!(
+            select.admit(11, second).unwrap(),
+            FlowSelectAdmission::Accepted { sequence: 11 }
+        );
+        assert_eq!(
+            select.admit(12, full).unwrap(),
+            FlowSelectAdmission::Full { sequence: 12 }
+        );
+        select.close_input().unwrap();
+        assert!(select.admit(13, late).is_err());
+        for _ in 0..128 {
+            select.step().unwrap();
+            if let Some((sequence, selected)) = select.output() {
+                assert_eq!(sequence, 10);
+                assert_eq!(selected.encoded, b"true-first");
+                select.complete_output(sequence).unwrap();
+            }
+            if select.state() == &FlowSelectState::Drained {
+                break;
+            }
         }
-        if select.state() == &FlowSelectState::Drained {
-            return;
-        }
-    }
-    panic!("select did not drain admitted work")
+        assert_eq!(select.state(), &FlowSelectState::Drained);
+    });
 }
 
 #[test]
 fn cancellation_drops_retained_work_and_rejects_late_completion() {
     let mut select = coordinator();
-    select.admit(20, value(b"true-active")).unwrap();
-    select.admit(21, value(b"true-queued")).unwrap();
-    select.cancel().unwrap();
-    assert_eq!(
-        select.state(),
-        &FlowSelectState::Cancelled { sequence: Some(20) }
-    );
-    assert!(select.complete_output(20).is_err());
-    assert!(select.admit(22, value(b"true-late")).is_err());
+    let active = value(b"true-active");
+    let queued = value(b"true-queued");
+    let late = value(b"true-late");
+    assert_no_allocations("select cancellation and late refusal", || {
+        select.admit(20, active).unwrap();
+        select.admit(21, queued).unwrap();
+        select.cancel().unwrap();
+        assert_eq!(
+            select.state(),
+            &FlowSelectState::Cancelled { sequence: Some(20) }
+        );
+        assert!(select.complete_output(20).is_err());
+        assert!(select.admit(22, late).is_err());
+    });
 }
