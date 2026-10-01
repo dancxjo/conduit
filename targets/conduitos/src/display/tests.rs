@@ -44,10 +44,10 @@ fn format() -> DisplayFormat {
 fn routed_path_rasterizes_only_its_clipped_axis_aligned_segments() {
     use conduit_presentation::{GraphicsPath, GraphicsPoint};
     let path = GraphicsPath::new(&[
-        GraphicsPoint { x: -4, y: 4 },
-        GraphicsPoint { x: 10, y: 4 },
-        GraphicsPoint { x: 10, y: 20 },
-        GraphicsPoint { x: 24, y: 20 },
+        GraphicsPoint::new(-4, 4).unwrap(),
+        GraphicsPoint::new(10, 4).unwrap(),
+        GraphicsPoint::new(10, 20).unwrap(),
+        GraphicsPoint::new(24, 20).unwrap(),
     ])
     .unwrap();
     let clip = LayoutRect {

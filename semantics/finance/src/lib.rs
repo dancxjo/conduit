@@ -9,7 +9,10 @@ mod generated {
 
 pub use generated::{
     FinanceCurrency, FinanceCurrencyPair, FinanceFixedDecimal, FinanceMoney,
-    FinanceMoneyComparison, FinanceRateObservation, FinanceRateProfile, FinanceRateSource,
+    FinanceMoneyComparison, FinanceObservedInstant, FinanceOrderIdentity, FinanceQuote,
+    FinanceQuoteFreshness, FinanceQuoteSource, FinanceRateObservation, FinanceRateProfile,
+    FinanceRateSource, FinanceRejectionReason, FinanceTransactionEvent,
+    FinanceTransactionEventsThree,
 };
 
 mod catalog;

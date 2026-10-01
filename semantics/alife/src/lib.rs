@@ -8,10 +8,10 @@ mod generated {
 }
 pub use generated::{
     FieldBitmapRefusal, GardenClockObservation, GardenContactObservation,
-    GardenEnrichedObservation, GardenEvolutionRefusal, GardenState, LeniaBoundary,
-    LeniaRegionChunkKind, LeniaRegionChunkKindCode, ReactionDiffusionBoundaryEdge,
-    ReactionDiffusionBoundaryEdgeCode, ReactionDiffusionPartition, ReactionDiffusionRegion,
-    ReactionDiffusionRegionId,
+    GardenEnrichedObservation, GardenEvolutionRefusal, GardenState, GrayScottParameters,
+    LeniaBoundary, LeniaParameters, LeniaRegionChunkKind, LeniaRegionChunkKindCode,
+    ReactionDiffusionBoundaryEdge, ReactionDiffusionBoundaryEdgeCode, ReactionDiffusionPartition,
+    ReactionDiffusionRegion, ReactionDiffusionRegionId,
 };
 
 mod distributed_catalog;

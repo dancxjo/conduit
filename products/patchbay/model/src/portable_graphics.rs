@@ -73,9 +73,9 @@ mod tests {
     fn path_geometry_survives_normalization_without_becoming_text() {
         use conduit_presentation::{GraphicsPath, GraphicsPoint};
         let path = GraphicsPath::new(&[
-            GraphicsPoint { x: 1, y: 2 },
-            GraphicsPoint { x: 8, y: 2 },
-            GraphicsPoint { x: 8, y: 9 },
+            GraphicsPoint::new(1, 2).unwrap(),
+            GraphicsPoint::new(8, 2).unwrap(),
+            GraphicsPoint::new(8, 9).unwrap(),
         ])
         .unwrap();
         let clip = LayoutRect {

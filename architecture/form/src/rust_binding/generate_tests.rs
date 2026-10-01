@@ -71,6 +71,23 @@ type Outcome =
 }
 
 #[test]
+fn selected_record_can_retain_established_public_fields() {
+    let generated = generate_rust_bindings(
+        &checked_types(),
+        &RustBindingOptions {
+            public_record_fields: ["Position".into()].into(),
+            ..RustBindingOptions::default()
+        },
+    )
+    .unwrap();
+    assert!(generated
+        .source
+        .contains("pub struct Position {\n    pub x:"));
+    assert!(generated.source.contains("    pub y:"));
+    assert!(generated.source.contains("pub struct Chord {\n    notes:"));
+}
+
+#[test]
 fn checked_code_generates_the_only_rust_discriminant_table() {
     let source = "type Outcome =\n    ready\n    | refused\n\ncode test/outcome = Outcome as u8\n";
     let checked = crate::check_syntax_document(
@@ -312,7 +329,7 @@ fn selected_constrained_record_validates_direct_integer_bounds_without_structure
     )
     .unwrap();
 
-    assert!(generated.source.contains("value >= 1u64 && value <= 8u64"));
+    assert!(generated.source.contains("(1u64..=8u64).contains(&value)"));
     assert!(generated
         .source
         .contains("ValueConstraintRefusal::FixedIntegerRange"));

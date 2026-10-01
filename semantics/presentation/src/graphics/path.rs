@@ -1,12 +1,13 @@
 //! Finite orthogonal geometry; semantic Cord identity remains above this leaf.
 use super::{validate_rect, GraphicsError, LayoutRect};
+use crate::GraphicsPoint;
 
 pub const MAX_GRAPHICS_PATH_POINTS: usize = 8;
 
-#[derive(Debug, Clone, Copy, Default, PartialEq, Eq)]
-pub struct GraphicsPoint {
-    pub x: i16,
-    pub y: i16,
+impl Default for GraphicsPoint {
+    fn default() -> Self {
+        Self::new(0, 0).expect("zero is an exact graphics coordinate")
+    }
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -20,10 +21,9 @@ impl GraphicsPath {
         if !(2..=MAX_GRAPHICS_PATH_POINTS).contains(&points.len()) {
             return Err(GraphicsError::InvalidGeometry);
         }
-        if points
-            .windows(2)
-            .any(|pair| pair[0] == pair[1] || (pair[0].x != pair[1].x && pair[0].y != pair[1].y))
-        {
+        if points.windows(2).any(|pair| {
+            pair[0] == pair[1] || (pair[0].x() != pair[1].x() && pair[0].y() != pair[1].y())
+        }) {
             return Err(GraphicsError::InvalidGeometry);
         }
         let mut stored = [GraphicsPoint::default(); MAX_GRAPHICS_PATH_POINTS];
@@ -42,12 +42,13 @@ impl GraphicsPath {
 
     pub fn bounds(&self) -> Result<LayoutRect, GraphicsError> {
         let first = self.points[0];
-        let (mut left, mut right, mut top, mut bottom) = (first.x, first.x, first.y, first.y);
+        let (mut left, mut right, mut top, mut bottom) =
+            (*first.x(), *first.x(), *first.y(), *first.y());
         for point in self.points() {
-            left = left.min(point.x);
-            right = right.max(point.x);
-            top = top.min(point.y);
-            bottom = bottom.max(point.y);
+            left = left.min(*point.x());
+            right = right.max(*point.x());
+            top = top.min(*point.y());
+            bottom = bottom.max(*point.y());
         }
         let bounds = LayoutRect {
             x: left,
@@ -68,8 +69,8 @@ impl GraphicsPath {
             .iter()
             .zip(bytes.as_chunks_mut::<4>().0.iter_mut())
         {
-            output[..2].copy_from_slice(&point.x.to_le_bytes());
-            output[2..].copy_from_slice(&point.y.to_le_bytes());
+            output[..2].copy_from_slice(&point.x().to_le_bytes());
+            output[2..].copy_from_slice(&point.y().to_le_bytes());
         }
         (bytes, usize::from(self.count) * 4)
     }
@@ -82,10 +83,11 @@ impl GraphicsPath {
         }
         let mut points = [GraphicsPoint::default(); MAX_GRAPHICS_PATH_POINTS];
         for (input, point) in bytes.as_chunks::<4>().0.iter().zip(points.iter_mut()) {
-            *point = GraphicsPoint {
-                x: i16::from_le_bytes([input[0], input[1]]),
-                y: i16::from_le_bytes([input[2], input[3]]),
-            };
+            *point = GraphicsPoint::new(
+                i16::from_le_bytes([input[0], input[1]]),
+                i16::from_le_bytes([input[2], input[3]]),
+            )
+            .map_err(|_| GraphicsError::InvalidGeometry)?;
         }
         Self::new(&points[..bytes.len() / 4])
     }
@@ -99,12 +101,20 @@ mod tests {
     #[test]
     fn a_path_round_trips_as_one_bounded_command() {
         let path = GraphicsPath::new(&[
-            GraphicsPoint { x: -4, y: 4 },
-            GraphicsPoint { x: 10, y: 4 },
-            GraphicsPoint { x: 10, y: 20 },
-            GraphicsPoint { x: 24, y: 20 },
+            GraphicsPoint::new(-4, 4).unwrap(),
+            GraphicsPoint::new(10, 4).unwrap(),
+            GraphicsPoint::new(10, 20).unwrap(),
+            GraphicsPoint::new(24, 20).unwrap(),
         ])
         .unwrap();
+        let (point_bytes, point_bytes_len) = path.encode();
+        assert_eq!(
+            &point_bytes[..point_bytes_len],
+            &[
+                0xfc, 0xff, 0x04, 0x00, 0x0a, 0x00, 0x04, 0x00, 0x0a, 0x00, 0x14, 0x00, 0x18, 0x00,
+                0x14, 0x00,
+            ]
+        );
         let clip = LayoutRect {
             x: 0,
             y: 0,
@@ -132,13 +142,13 @@ mod tests {
 
     #[test]
     fn malformed_diagonal_degenerate_and_excess_geometry_refuse() {
-        let a = GraphicsPoint { x: 0, y: 0 };
+        let a = GraphicsPoint::new(0, 0).unwrap();
         assert!(GraphicsPath::new(&[]).is_err());
         assert!(GraphicsPath::new(&[a]).is_err());
         assert!(GraphicsPath::new(&[a, a]).is_err());
-        assert!(GraphicsPath::new(&[a, GraphicsPoint { x: 1, y: 1 }]).is_err());
+        assert!(GraphicsPath::new(&[a, GraphicsPoint::new(1, 1).unwrap()]).is_err());
         assert!(GraphicsPath::new(&[a; MAX_GRAPHICS_PATH_POINTS + 1]).is_err());
-        assert!(GraphicsPath::new(&[a, GraphicsPoint { x: i16::MAX, y: 0 }]).is_err());
+        assert!(GraphicsPath::new(&[a, GraphicsPoint::new(i16::MAX, 0).unwrap()]).is_err());
         assert!(GraphicsPath::decode(&[0; 9]).is_err());
         assert!(GraphicsPath::decode(&[0; 36]).is_err());
     }

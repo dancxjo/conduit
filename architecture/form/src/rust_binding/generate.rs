@@ -32,8 +32,9 @@ pub struct RustBindingOptions {
     /// Copy record bindings whose generated getters retain an established
     /// by-value Rust API instead of returning references.
     pub copy_record_value_getters: BTreeSet<String>,
-    /// Authored record Types whose generated fields retain an established
-    /// public Rust API. This visibility is binding-only compatibility truth.
+    /// Authored record Type names whose generated fields retain an established
+    /// public struct-literal API. Public fields are Rust binding compatibility,
+    /// never permission to skip the semantic owner's validation boundary.
     pub public_record_fields: BTreeSet<String>,
     /// Optional Rust constructor argument order for retaining an established
     /// record API. Semantic record identity remains canonically field-ordered.

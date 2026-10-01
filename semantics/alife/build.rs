@@ -18,27 +18,61 @@ fn main() {
                 "GardenContactObservation".into(),
                 "GardenEnrichedObservation".into(),
                 "GardenState".into(),
+                "GrayScottParameters".into(),
+                "LeniaParameters".into(),
                 "ReactionDiffusionRegion".into(),
             ]
             .into(),
+            copy_record_value_getters: [
+                "GrayScottParameters".into(),
+                "LeniaParameters".into(),
+                "ReactionDiffusionRegion".into(),
+            ]
+            .into(),
+            direct_checked_record_constructors: ["LeniaParameters".into()].into(),
             public_record_fields: [
                 "GardenClockObservation".into(),
                 "GardenContactObservation".into(),
                 "GardenEnrichedObservation".into(),
                 "GardenState".into(),
+                "GrayScottParameters".into(),
+                "LeniaParameters".into(),
             ]
             .into(),
-            copy_record_value_getters: ["ReactionDiffusionRegion".into()].into(),
-            record_constructor_orders: [(
-                "ReactionDiffusionRegion".into(),
-                vec![
-                    "region-id".into(),
-                    "origin-x".into(),
-                    "origin-y".into(),
-                    "width".into(),
-                    "height".into(),
-                ],
-            )]
+            record_constructor_orders: [
+                (
+                    "ReactionDiffusionRegion".into(),
+                    vec![
+                        "region-id".into(),
+                        "origin-x".into(),
+                        "origin-y".into(),
+                        "width".into(),
+                        "height".into(),
+                    ],
+                ),
+                (
+                    "LeniaParameters".into(),
+                    vec![
+                        "kernel-radius".into(),
+                        "kernel-mu-q16".into(),
+                        "kernel-sigma-q16".into(),
+                        "growth-mu-q16".into(),
+                        "growth-sigma-q16".into(),
+                        "dt-q16".into(),
+                        "boundary".into(),
+                    ],
+                ),
+                (
+                    "GrayScottParameters".into(),
+                    vec![
+                        "diffusion-u-ppm".into(),
+                        "diffusion-v-ppm".into(),
+                        "feed-ppm".into(),
+                        "kill-ppm".into(),
+                        "time-step-ppm".into(),
+                    ],
+                ),
+            ]
             .into(),
             ..RustBindingOptions::default()
         },

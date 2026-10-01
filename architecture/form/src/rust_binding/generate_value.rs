@@ -299,6 +299,21 @@ fn emit_direct_record_checks(
             else {
                 return Err(RustBindingGenerationError::InvalidSemanticType);
             };
+            if let (Some(minimum), Some(maximum)) = (minimum, maximum) {
+                if matches!(minimum_endpoint, conduit_core::IntervalEndpoint::Inclusive)
+                    && matches!(maximum_endpoint, conduit_core::IntervalEndpoint::Inclusive)
+                {
+                    let minimum = fixed_integer_literal(minimum, &primitive)?;
+                    let maximum = fixed_integer_literal(maximum, &primitive)?;
+                    writeln!(
+                        out,
+                        "        if !({minimum}..={maximum}).contains(&{field_name}) {{ return Err(NativeBindingRefusal::ViolatedConstraint {{ representation_path: {:?}.into(), refusal: conduit_core::ValueConstraintRefusal::FixedIntegerRange }}); }}",
+                        contract.representation_path,
+                    )
+                    .expect("String writing is infallible");
+                    continue;
+                }
+            }
             let mut predicates = Vec::new();
             if let Some(minimum) = minimum {
                 if !matches!(minimum_endpoint, conduit_core::IntervalEndpoint::Inclusive)
