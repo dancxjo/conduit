@@ -1578,6 +1578,7 @@ dependencies = [
 name = "conduit-workspace-make"
 version = "0.1.0"
 dependencies = [
+ "conduit-core",
  "conduit-host-avr-make",
  "conduit-host-browser-make",
  "conduit-host-conduitos-make",
@@ -1588,6 +1589,9 @@ dependencies = [
  "conduit-host-raspberry-pi",
  "conduit-host-rp2040",
  "conduit-linear-framebuffer-make",
+ "conduit-observatory",
+ "serde",
+ "serde_json",
 ]
 
 [[package]]
@@ -3946,6 +3950,7 @@ dependencies = [
  "conduit-text",
  "conduit-time",
  "conduit-wire",
+ "conduit-workspace-make",
  "patchbay-application",
  "patchbay-control",
  "patchbay-graph",
@@ -3975,6 +3980,7 @@ dependencies = [
  "conduit-std-offers",
  "conduit-text",
  "conduit-wire",
+ "conduit-workspace-make",
  "conduitos",
  "embedded-graphics",
  "patchbay-application",
