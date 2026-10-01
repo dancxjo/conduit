@@ -217,6 +217,16 @@ type NormalizedDurationSequence = {
     values: Text
 }
 
+type TimedEventSequence = {
+    clock_basis: Text
+    event_times: Text
+}
+
+type IntervalSequence = {
+    clock_basis: Text
+    intervals: Text
+}
+
 type NamedPatternTemplateSlot = {
     active: Boolean
     name: Text
