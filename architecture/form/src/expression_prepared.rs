@@ -4,15 +4,16 @@ use crate::{
     BinaryOperator, PortableExpressionEvaluationRefusal as Refusal, PortableExpressionNode,
     PortableExpressionOperation, PortableExpressionProgram, UnaryOperator,
 };
-use alloc::{boxed::Box, string::ToString, vec::Vec};
+use alloc::{boxed::Box, vec::Vec};
 use conduit_core::{
     decode_count, encode_count, primitive_info_kind, FixedInteger, InfoBool, PrimitiveInfoKind,
-    Quantity, QuantityUnit, Scalar, StructuredCanonicalSelection, StructuredInfoType,
-    StructuredInfoTypeShape, StructuredSelector, BOOL_INFO_ID, COUNT_INFO_ID,
-    MAXIMUM_STRUCTURED_CANONICAL_BYTES, MAXIMUM_STRUCTURED_LEAF_BYTES, SCALAR_INFO_ID,
+    Quantity, Scalar, StructuredCanonicalSelection, StructuredInfoType, StructuredInfoTypeShape,
+    StructuredSelector, BOOL_INFO_ID, COUNT_INFO_ID, MAXIMUM_STRUCTURED_CANONICAL_BYTES,
+    MAXIMUM_STRUCTURED_LEAF_BYTES, SCALAR_INFO_ID,
 };
 use core::cmp::Ordering;
 
+mod nominal;
 mod structured;
 use structured::PreparedStructuredExpression;
 
@@ -25,12 +26,18 @@ pub struct PreparedPortableExpressionEvaluator {
 }
 
 enum PreparedInput {
-    Primitive(PrimitiveInfoKind),
+    Primitive {
+        kind: PrimitiveInfoKind,
+        nominal_type: Option<Vec<u8>>,
+    },
     Structured(Vec<u8>),
 }
 
 enum PreparedRoot {
-    Primitive(PreparedNode),
+    Primitive {
+        node: PreparedNode,
+        nominal_type: Option<Vec<u8>>,
+    },
     Structured(PreparedStructuredExpression),
 }
 
@@ -48,6 +55,7 @@ enum PreparedOperation {
     },
     Binary {
         operator: BinaryOperator,
+        proven: bool,
         left: Box<PreparedNode>,
         right: Box<PreparedNode>,
     },
@@ -99,8 +107,22 @@ impl PrimitiveValue {
 impl PreparedPortableExpressionEvaluator {
     pub fn new(program: &PortableExpressionProgram) -> Result<Self, Refusal> {
         let input = match program.input_type.shape() {
-            StructuredInfoTypeShape::Leaf(_) => {
-                PreparedInput::Primitive(leaf_kind(&program.input_type)?)
+            StructuredInfoTypeShape::Leaf(_) => PreparedInput::Primitive {
+                kind: leaf_kind(&program.input_type)?,
+                nominal_type: None,
+            },
+            StructuredInfoTypeShape::Nominal { representation, .. }
+                if matches!(representation.shape(), StructuredInfoTypeShape::Leaf(_)) =>
+            {
+                PreparedInput::Primitive {
+                    kind: leaf_kind(&program.input_type)?,
+                    nominal_type: Some(
+                        program
+                            .input_type
+                            .canonical_bytes()
+                            .map_err(|_| Refusal::InvalidProgram)?,
+                    ),
+                }
             }
             _ => PreparedInput::Structured(
                 program
@@ -110,12 +132,25 @@ impl PreparedPortableExpressionEvaluator {
             ),
         };
         let root = match program.output_type.shape() {
-            StructuredInfoTypeShape::Leaf(_) => {
+            StructuredInfoTypeShape::Leaf(_) | StructuredInfoTypeShape::Nominal { .. } => {
                 let root = prepare_node(&program.root)?;
                 if root.kind != leaf_kind(&program.output_type)? {
                     return Err(Refusal::InvalidProgram);
                 }
-                PreparedRoot::Primitive(root)
+                PreparedRoot::Primitive {
+                    node: root,
+                    nominal_type: matches!(
+                        program.output_type.shape(),
+                        StructuredInfoTypeShape::Nominal { .. }
+                    )
+                    .then(|| {
+                        program
+                            .output_type
+                            .canonical_bytes()
+                            .map_err(|_| Refusal::InvalidProgram)
+                    })
+                    .transpose()?,
+                }
             }
             _ => PreparedRoot::Structured(PreparedStructuredExpression::new(program)?),
         };
@@ -127,9 +162,13 @@ impl PreparedPortableExpressionEvaluator {
     }
 
     pub fn evaluate(&mut self, input: &[u8]) -> Result<&[u8], Refusal> {
+        let mut primitive_bytes = input;
         let primitive_input = match &self.input {
-            PreparedInput::Primitive(kind) => {
-                conduit_core::validate_primitive_info(kind_name(*kind), input)
+            PreparedInput::Primitive { kind, nominal_type } => {
+                if let Some(expected) = nominal_type {
+                    primitive_bytes = nominal::input_payload(input, expected)?;
+                }
+                conduit_core::validate_primitive_info(kind_name(*kind), primitive_bytes)
                     .map_err(|_| Refusal::InvalidInput)?;
                 Some(*kind)
             }
@@ -144,9 +183,13 @@ impl PreparedPortableExpressionEvaluator {
         };
         self.output.clear();
         match &mut self.root {
-            PreparedRoot::Primitive(root) => {
-                let value = evaluate_node(root, input, primitive_input)?;
-                self.output.extend_from_slice(value.as_slice());
+            PreparedRoot::Primitive { node, nominal_type } => {
+                let value = evaluate_node(node, primitive_bytes, primitive_input)?;
+                if let Some(value_type) = nominal_type {
+                    nominal::append_output(&mut self.output, value_type, &value);
+                } else {
+                    self.output.extend_from_slice(value.as_slice());
+                }
             }
             PreparedRoot::Structured(root) => root.evaluate(input, &mut self.output)?,
         }
@@ -162,24 +205,21 @@ fn prepare_node(node: &PortableExpressionNode) -> Result<PreparedNode, Refusal> 
     let kind = leaf_kind(&node.value_type)?;
     let operation = match &node.operation {
         PortableExpressionOperation::Input => PreparedOperation::Input,
-        PortableExpressionOperation::Literal(literal) => {
-            let one = PortableExpressionProgram {
-                input_type: node.value_type.clone(),
-                output_type: node.value_type.clone(),
-                root: node.clone(),
-            };
-            PreparedOperation::Literal(one.evaluate(&canonical_zero(kind, literal)?)?)
-        }
+        PortableExpressionOperation::Literal(literal) => PreparedOperation::Literal(
+            crate::expression_evaluate::literal_primitive_bytes(&node.value_type, literal)?,
+        ),
         PortableExpressionOperation::Unary { operator, operand } => PreparedOperation::Unary {
             operator: *operator,
             operand: Box::new(prepare_node(operand)?),
         },
         PortableExpressionOperation::Binary {
             operator,
+            proven,
             left,
             right,
         } => PreparedOperation::Binary {
             operator: *operator,
+            proven: *proven,
             left: Box::new(prepare_node(left)?),
             right: Box::new(prepare_node(right)?),
         },
@@ -297,26 +337,6 @@ impl PreparedProjection {
     }
 }
 
-// Literal evaluation ignores the program input, but the allocating conformance
-// entrance still validates it. Supply one valid value of the exact leaf kind.
-fn canonical_zero(kind: PrimitiveInfoKind, literal: &str) -> Result<Vec<u8>, Refusal> {
-    let value = match kind {
-        PrimitiveInfoKind::Bool => InfoBool::FALSE.encode().to_vec(),
-        PrimitiveInfoKind::Text => Vec::new(),
-        PrimitiveInfoKind::Count => encode_count(0).to_vec(),
-        PrimitiveInfoKind::Scalar => Scalar::from_raw_microunits(0).encode().to_vec(),
-        kind if quantity_kind(kind) => Quantity::new(0, quantity_unit(kind)).encode().to_vec(),
-        kind if fixed_integer(kind) => {
-            let encoded = FixedInteger::from_unsigned(kind, 0)
-                .map_err(|_| Refusal::InvalidLiteral)?
-                .encode();
-            encoded.0[..encoded.1].to_vec()
-        }
-        _ => return Err(Refusal::UnsupportedType(literal.to_string())),
-    };
-    Ok(value)
-}
-
 fn evaluate_node(
     node: &mut PreparedNode,
     input: &[u8],
@@ -337,12 +357,13 @@ fn evaluate_node(
         }
         PreparedOperation::Binary {
             operator,
+            proven,
             left,
             right,
         } => {
             let left = evaluate_node(left, input, input_kind)?;
             let right = evaluate_node(right, input, input_kind)?;
-            evaluate_binary(*operator, expected, &left, &right)?
+            evaluate_binary(*operator, *proven, expected, &left, &right)?
         }
         PreparedOperation::Conditional {
             condition,
@@ -397,6 +418,7 @@ fn evaluate_unary(
 
 fn evaluate_binary(
     operator: BinaryOperator,
+    proven: bool,
     expected: PrimitiveInfoKind,
     left: &PrimitiveValue,
     right: &PrimitiveValue,
@@ -466,17 +488,20 @@ fn evaluate_binary(
     }
     let left = decode_integer(left)?;
     let right = decode_integer(right)?;
-    let result = match operator {
-        BinaryOperator::Multiply => left.checked_mul(right),
-        BinaryOperator::Divide => left.checked_div(right),
-        BinaryOperator::Remainder => left.checked_rem(right),
-        BinaryOperator::Add => left.checked_add(right),
-        BinaryOperator::Subtract => left.checked_sub(right),
-        BinaryOperator::BitAnd => left.bit_and(right),
-        BinaryOperator::BitXor => left.bit_xor(right),
-        BinaryOperator::BitOr => left.bit_or(right),
-        BinaryOperator::ShiftLeft => left.checked_shift_left(shift_count(right)?),
-        BinaryOperator::ShiftRight => left.checked_shift_right(shift_count(right)?),
+    let result = match (operator, proven) {
+        (BinaryOperator::Multiply, true) => left.wrapping_mul(right),
+        (BinaryOperator::Add, true) => left.wrapping_add(right),
+        (BinaryOperator::Subtract, true) => left.wrapping_sub(right),
+        (BinaryOperator::Multiply, false) => left.checked_mul(right),
+        (BinaryOperator::Divide, _) => left.checked_div(right),
+        (BinaryOperator::Remainder, _) => left.checked_rem(right),
+        (BinaryOperator::Add, false) => left.checked_add(right),
+        (BinaryOperator::Subtract, false) => left.checked_sub(right),
+        (BinaryOperator::BitAnd, _) => left.bit_and(right),
+        (BinaryOperator::BitXor, _) => left.bit_xor(right),
+        (BinaryOperator::BitOr, _) => left.bit_or(right),
+        (BinaryOperator::ShiftLeft, _) => left.checked_shift_left(shift_count(right)?),
+        (BinaryOperator::ShiftRight, _) => left.checked_shift_right(shift_count(right)?),
         _ => return Err(Refusal::InvalidProgram),
     }
     .map_err(|_| Refusal::Arithmetic)?;
@@ -533,12 +558,14 @@ fn shift_count(value: FixedInteger) -> Result<u32, Refusal> {
 }
 
 fn leaf_kind(value_type: &conduit_core::StructuredInfoType) -> Result<PrimitiveInfoKind, Refusal> {
-    let StructuredInfoTypeShape::Leaf(kind) = value_type.shape() else {
-        return Err(Refusal::UnsupportedType(
+    match value_type.shape() {
+        StructuredInfoTypeShape::Leaf(kind) => primitive_info_kind(kind.as_str())
+            .ok_or_else(|| Refusal::UnsupportedType(kind.as_str().into())),
+        StructuredInfoTypeShape::Nominal { representation, .. } => leaf_kind(representation),
+        _ => Err(Refusal::UnsupportedType(
             "structured expression runtime".into(),
-        ));
-    };
-    primitive_info_kind(kind.as_str()).ok_or_else(|| Refusal::UnsupportedType(kind.as_str().into()))
+        )),
+    }
 }
 
 const fn fixed_integer(kind: PrimitiveInfoKind) -> bool {
@@ -581,21 +608,6 @@ const fn quantity_kind(kind: PrimitiveInfoKind) -> bool {
             | PrimitiveInfoKind::Ratio
             | PrimitiveInfoKind::PixelCount
     )
-}
-
-const fn quantity_unit(kind: PrimitiveInfoKind) -> QuantityUnit {
-    match kind {
-        PrimitiveInfoKind::Quantity => QuantityUnit::One,
-        PrimitiveInfoKind::Distance => QuantityUnit::Millimeter,
-        PrimitiveInfoKind::Frequency => QuantityUnit::Hertz,
-        PrimitiveInfoKind::Duration => QuantityUnit::Millisecond,
-        PrimitiveInfoKind::Voltage => QuantityUnit::Volt,
-        PrimitiveInfoKind::Temperature => QuantityUnit::Celsius,
-        PrimitiveInfoKind::Angle => QuantityUnit::Degree,
-        PrimitiveInfoKind::Ratio => QuantityUnit::Percent,
-        PrimitiveInfoKind::PixelCount => QuantityUnit::Pixel,
-        _ => QuantityUnit::One,
-    }
 }
 
 const fn kind_name(kind: PrimitiveInfoKind) -> &'static str {

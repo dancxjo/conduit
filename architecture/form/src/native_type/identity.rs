@@ -61,6 +61,7 @@ pub(super) fn schema_identity(
     generic_context: Option<&str>,
     representation: &StructuredInfoType,
     contracts: &[NativeTypeValueContract],
+    invariants: &[crate::Expression],
 ) -> KindId {
     let mut canonical = b"conduit.native-type.scalar@1\0".to_vec();
     push(&mut canonical, name.as_bytes());
@@ -72,7 +73,19 @@ pub(super) fn schema_identity(
             .expect("checked representation"),
     );
     push_contracts(&mut canonical, contracts);
+    push_invariants(&mut canonical, invariants);
     semantic_id(name, &canonical)
+}
+
+fn push_invariants(canonical: &mut Vec<u8>, invariants: &[crate::Expression]) {
+    let mut meanings = invariants
+        .iter()
+        .map(|invariant| crate::syntax_identity::canonical_expression(&invariant.syntax))
+        .collect::<Vec<_>>();
+    meanings.sort();
+    for meaning in meanings {
+        push(canonical, meaning.as_bytes());
+    }
 }
 
 fn push_generic_context(canonical: &mut Vec<u8>, generic_context: Option<&str>) {

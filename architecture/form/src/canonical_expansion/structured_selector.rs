@@ -301,7 +301,7 @@ fn expand_expression(
             StageSink::FaceOutput(_, kind, _, _) => kind.clone(),
         })
         .map(crate::CheckedExpressionType::Semantic);
-    let checked = crate::expression_check::check_expression_as(
+    let mut checked = crate::expression_check::check_expression_as(
         &expression,
         expected_output.as_ref(),
         &crate::ExpressionTypeContext {
@@ -322,6 +322,14 @@ fn expand_expression(
             ),
         )
     })?;
+    if let Some(invariants) = catalog.type_invariants(
+        checked
+            .input_type
+            .value_kind()
+            .expect("Cord input has one exact semantic Kind"),
+    ) {
+        crate::expression_proof::apply(&mut checked, invariants);
+    }
     if temporal == PortTemporal::Value && contains_semantic_call(&expression) {
         return expand_semantic_call_graph(
             &expression,

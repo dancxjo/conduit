@@ -77,11 +77,13 @@ pub fn expand_canonical_form_for_authoring_with_backs(
     }
     let mut stack = Vec::new();
     let mut realization_backs = Vec::new();
+    let mut catalog = catalog.clone();
+    catalog.install_type_invariants(&document.native_types);
     let fragment = expand_instance(
         form,
         &forms,
         document.structured_types(),
-        catalog,
+        &catalog,
         backs,
         &environment,
         core::slice::from_ref(&form.name),

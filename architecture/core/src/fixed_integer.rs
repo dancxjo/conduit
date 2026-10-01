@@ -109,6 +109,16 @@ impl FixedInteger {
         }
     }
 
+    /// Exact-width machine addition for an operation already proven in range.
+    pub fn wrapping_add(self, right: Self) -> Result<Self, FixedIntegerRefusal> {
+        self.same_kind(right)?;
+        let width = integer_width(self.kind).ok_or(FixedIntegerRefusal::NotIntegerKind)?;
+        Ok(Self {
+            kind: self.kind,
+            bits: self.bits.wrapping_add(right.bits) & width_mask(width),
+        })
+    }
+
     pub fn checked_sub(self, right: Self) -> Result<Self, FixedIntegerRefusal> {
         self.same_kind(right)?;
         if is_signed(self.kind) {
@@ -126,6 +136,16 @@ impl FixedInteger {
         }
     }
 
+    /// Exact-width machine subtraction for an operation already proven in range.
+    pub fn wrapping_sub(self, right: Self) -> Result<Self, FixedIntegerRefusal> {
+        self.same_kind(right)?;
+        let width = integer_width(self.kind).ok_or(FixedIntegerRefusal::NotIntegerKind)?;
+        Ok(Self {
+            kind: self.kind,
+            bits: self.bits.wrapping_sub(right.bits) & width_mask(width),
+        })
+    }
+
     pub fn checked_mul(self, right: Self) -> Result<Self, FixedIntegerRefusal> {
         self.same_kind(right)?;
         if is_signed(self.kind) {
@@ -141,6 +161,16 @@ impl FixedInteger {
                 .ok_or(FixedIntegerRefusal::Overflow)?;
             Self::from_unsigned(self.kind, value).map_err(out_of_range_as_overflow)
         }
+    }
+
+    /// Exact-width machine multiplication for an operation already proven in range.
+    pub fn wrapping_mul(self, right: Self) -> Result<Self, FixedIntegerRefusal> {
+        self.same_kind(right)?;
+        let width = integer_width(self.kind).ok_or(FixedIntegerRefusal::NotIntegerKind)?;
+        Ok(Self {
+            kind: self.kind,
+            bits: self.bits.wrapping_mul(right.bits) & width_mask(width),
+        })
     }
 
     pub fn checked_div(self, right: Self) -> Result<Self, FixedIntegerRefusal> {
