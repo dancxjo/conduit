@@ -894,7 +894,12 @@ pub(super) fn primitive_rust_type(identity: &str) -> Result<String, RustBindingG
         None if identity == conduit_core::RESOURCE_REFERENCE_INFO_ID => {
             "conduit_core::BoundedResourceRef"
         }
-        Some(PrimitiveInfoKind::Bytes) => "BoundedBytes<4096>",
+        // A generated primitive carrier must be able to retain every byte
+        // value admitted by the checked semantic contract. Per-field and
+        // nominal limits are still enforced by generated value contracts;
+        // this binding capacity is the structured substrate's finite ceiling,
+        // not an additional 4 KiB semantic restriction.
+        Some(PrimitiveInfoKind::Bytes) => "BoundedBytes<65536>",
         Some(
             PrimitiveInfoKind::Quantity
             | PrimitiveInfoKind::Distance

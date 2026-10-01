@@ -126,6 +126,21 @@ fn selected_record_can_retain_established_public_fields() {
 }
 
 #[test]
+fn byte_bindings_retain_the_full_checked_structured_capacity() {
+    let checked = crate::check_syntax_document(
+        &crate::parse_syntax_document("type JobOutput = Bytes <= 65536B\n"),
+        &crate::StartupCatalog::new(),
+    )
+    .unwrap();
+    let generated =
+        generate_rust_bindings(&checked.native_types, &RustBindingOptions::default()).unwrap();
+
+    assert!(generated
+        .source
+        .contains("pub struct JobOutput(BoundedBytes<65536>)"));
+}
+
+#[test]
 fn exact_float_law_generates_semantic_wrappers_and_checked_refinements() {
     let generated = generate_rust_bindings(
         &checked_types(),
@@ -688,7 +703,7 @@ mod generated_round_trip {
         let encoded = interval.clone().encode().unwrap();
         assert_eq!(Interval::decode(&encoded).unwrap(), interval);
 
-        let evidence = BoundedBytes::<4096>::new(b"sha256:truth").unwrap();
+        let evidence = BoundedBytes::<65536>::new(b"sha256:truth").unwrap();
         let observation = EvidenceObservation::new(evidence, Some(Note::new(64).unwrap())).unwrap();
         let encoded = observation.clone().encode().unwrap();
         assert_eq!(EvidenceObservation::decode(&encoded).unwrap(), observation);
