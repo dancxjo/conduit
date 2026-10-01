@@ -3,7 +3,9 @@
 use alloc::{format, string::String, vec, vec::Vec};
 
 use crate::{
-    NAVIGATION_MAXIMUM_IDENTITY_BYTES, NAVIGATION_MAXIMUM_SEGMENTS, NAVIGATION_MAXIMUM_WAYPOINTS,
+    NAVIGATION_MAXIMUM_PLANNING_INPUT_IDENTITY_BYTES, NAVIGATION_MAXIMUM_ROUTE_IDENTITY_BYTES,
+    NAVIGATION_MAXIMUM_SEGMENTS, NAVIGATION_MAXIMUM_SOURCE_IDENTITY_BYTES,
+    NAVIGATION_MAXIMUM_WAYPOINTS,
 };
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
@@ -151,9 +153,16 @@ pub enum NavigationRefusal {
 }
 
 pub fn validate_identity(value: &str) -> Result<(), NavigationRefusal> {
+    validate_identity_with_bound(value, NAVIGATION_MAXIMUM_SOURCE_IDENTITY_BYTES)
+}
+
+fn validate_identity_with_bound(
+    value: &str,
+    maximum_bytes: usize,
+) -> Result<(), NavigationRefusal> {
     if value.is_empty() {
         Err(NavigationRefusal::EmptyIdentity)
-    } else if value.len() > NAVIGATION_MAXIMUM_IDENTITY_BYTES {
+    } else if value.len() > maximum_bytes {
         Err(NavigationRefusal::IdentityTooLong)
     } else {
         Ok(())
@@ -182,6 +191,9 @@ pub fn route_grid4(
         time.clock_identity.as_str(),
     ] {
         validate_identity(identity)?;
+    }
+    if let GoalTarget::Reach { frame, .. } = &goal.target {
+        validate_identity(frame)?;
     }
     if pose.validity.observed_at_ms > pose.validity.valid_until_ms
         || grid.validity.observed_at_ms > grid.validity.valid_until_ms
@@ -385,8 +397,14 @@ pub fn time_parameterize(
     maximum_linear_step_mm: u32,
     maximum_angular_step_microdegrees: u32,
 ) -> Result<NavigationTrajectory, NavigationRefusal> {
-    validate_identity(&route.identity)?;
+    validate_identity_with_bound(&route.identity, NAVIGATION_MAXIMUM_ROUTE_IDENTITY_BYTES)?;
     validate_identity(&route.goal_identity)?;
+    validate_identity(&route.planner_identity)?;
+    validate_identity_with_bound(
+        &route.planning_input_identity,
+        NAVIGATION_MAXIMUM_PLANNING_INPUT_IDENTITY_BYTES,
+    )?;
+    validate_identity(&route.frame)?;
     validate_identity(&time.clock_identity)?;
     if route.waypoints.len() < 2
         || route.waypoints.len() > NAVIGATION_MAXIMUM_WAYPOINTS

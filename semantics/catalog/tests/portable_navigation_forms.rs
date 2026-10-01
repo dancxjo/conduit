@@ -241,6 +241,57 @@ fn invalid_grid_bounds_refuse_before_coordinate_arithmetic() {
 }
 
 #[test]
+fn maximum_source_identities_remain_closed_through_trajectory_planning() {
+    let identity = "x".repeat(64);
+    let mut pose = pose(50, 50, 0);
+    pose.source_identity = identity.clone();
+    pose.clock_identity = identity.clone();
+    pose.frame = identity.clone();
+    pose.sample_sequence = u64::MAX;
+    let mut goal = goal(250, 250, 0);
+    goal.identity = identity.clone();
+    goal.clock_identity = identity.clone();
+    let GoalTarget::Reach { frame, .. } = &mut goal.target else {
+        unreachable!()
+    };
+    *frame = identity.clone();
+    let mut grid = grid(TraversabilityCell::Free);
+    grid.source_identity = identity.clone();
+    grid.clock_identity = identity.clone();
+    grid.frame = identity.clone();
+    grid.sample_sequence = u64::MAX;
+    let time = NavigationTime {
+        clock_identity: identity,
+        now_ms: 500,
+    };
+
+    let RouteDecision::Route(route) = route_grid4(&pose, &goal, &grid, &time).unwrap() else {
+        panic!("maximal valid identities must still produce a route")
+    };
+    assert_eq!(route.identity.len(), 70);
+    assert_eq!(route.planning_input_identity.len(), 251);
+    assert!(time_parameterize(&route, &time, 100, 50, 30_000_000).is_ok());
+}
+
+#[test]
+fn reach_frame_obeys_the_same_source_identity_bound() {
+    let mut goal = goal(250, 250, 0);
+    let GoalTarget::Reach { frame, .. } = &mut goal.target else {
+        unreachable!()
+    };
+    *frame = "x".repeat(65);
+    assert_eq!(
+        route_grid4(
+            &pose(50, 50, 0),
+            &goal,
+            &grid(TraversabilityCell::Free),
+            &time(500),
+        ),
+        Err(NavigationRefusal::IdentityTooLong)
+    );
+}
+
+#[test]
 fn structured_route_trajectory_and_control_codecs_preserve_exact_profiles() {
     let time = time(500);
     let start = pose(50, 50, 0);
