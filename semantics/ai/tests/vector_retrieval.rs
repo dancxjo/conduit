@@ -58,11 +58,11 @@ fn exact_cosine_dot_and_squared_l2_semantics_are_distinct() {
     let candidate = embedding([2.0, 0.0, 1.0]);
     assert_eq!(
         query(SimilarityMetric::DotProductSimilarity).score(&candidate),
-        Ok(SimilarityScore::Similarity(4.0))
+        Ok(SimilarityScore::from_similarity(4.0).unwrap())
     );
     assert_eq!(
         query(SimilarityMetric::SquaredEuclideanDistance).score(&candidate),
-        Ok(SimilarityScore::SquaredDistance(6.0))
+        Ok(SimilarityScore::from_squared_distance(6.0).unwrap())
     );
     let SimilarityScore::Similarity(cosine) = query(SimilarityMetric::CosineSimilarity)
         .score(&candidate)
@@ -70,7 +70,7 @@ fn exact_cosine_dot_and_squared_l2_semantics_are_distinct() {
     else {
         panic!("cosine has similarity semantics")
     };
-    assert!((cosine - 4.0 / (9.0_f32 * 5.0).sqrt()).abs() < 0.000_001);
+    assert!((cosine.get().value() - 4.0 / (9.0_f32 * 5.0).sqrt()).abs() < 0.000_001);
 }
 
 #[test]
@@ -182,7 +182,7 @@ fn records_and_hits_preserve_exact_source_resource_and_temporal_provenance() {
     record.validate().unwrap();
     let hit = SimilarityHit {
         value: record.value,
-        score: SimilarityScore::Similarity(0.75),
+        score: SimilarityScore::from_similarity(0.75).unwrap(),
         rank: 1,
         index_generation: 12,
         source_identity: record.source_identity,
@@ -200,14 +200,14 @@ fn thresholds_do_not_turn_similarity_into_probability_or_truth() {
     let mut query = query(SimilarityMetric::CosineSimilarity);
     query.threshold = Some(SimilarityThreshold::minimum(0.8).unwrap());
     assert_eq!(
-        query.admits_score(SimilarityScore::Similarity(0.79)),
+        query.admits_score(SimilarityScore::from_similarity(0.79).unwrap()),
         Ok(false)
     );
     assert_eq!(
-        query.admits_score(SimilarityScore::SquaredDistance(0.1)),
+        query.admits_score(SimilarityScore::from_squared_distance(0.1).unwrap()),
         Err(VectorRefusal::ThresholdMetricMismatch)
     );
-    let encoded = serde_json::to_string(&SimilarityScore::Similarity(0.9)).unwrap();
+    let encoded = serde_json::to_string(&SimilarityScore::from_similarity(0.9).unwrap()).unwrap();
     assert!(!encoded.contains("probability"));
     assert!(!encoded.contains("truth"));
 }
@@ -216,7 +216,7 @@ fn thresholds_do_not_turn_similarity_into_probability_or_truth() {
 fn equal_scores_have_canonical_source_then_resource_order() {
     let hit = |source: &str, resource: &str| SimilarityHit {
         value: (),
-        score: SimilarityScore::Similarity(0.5),
+        score: SimilarityScore::from_similarity(0.5).unwrap(),
         rank: 1,
         index_generation: 1,
         source_identity: source.into(),

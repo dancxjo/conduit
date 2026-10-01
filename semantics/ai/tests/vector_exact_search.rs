@@ -396,5 +396,8 @@ fn score_values_remain_metric_values_not_probabilities() {
         &[candidate("source/a", "resource/a", [0.0, 1.0, 0.0], 100)],
     )
     .unwrap();
-    assert_eq!(result.hits[0].score, SimilarityScore::SquaredDistance(2.0));
+    assert_eq!(
+        result.hits[0].score,
+        SimilarityScore::from_squared_distance(2.0).unwrap()
+    );
 }
