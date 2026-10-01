@@ -14,6 +14,7 @@ fn main() {
         &RustBindingOptions {
             copy_record_types: ["LiveConversationSpeechRequirements".into()].into(),
             copy_record_value_getters: ["LiveConversationSpeechRequirements".into()].into(),
+            public_record_fields: ["HouseGenerationRequest".into()].into(),
             ..RustBindingOptions::default()
         },
     )

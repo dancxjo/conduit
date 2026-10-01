@@ -12,6 +12,8 @@ use conduit_form::{KindProjection, KindSignature, ProfileCatalog, StartupCatalog
 use conduit_text::{AddressDetection, ADDRESS_DETECTION_VALUE_KIND};
 use serde::{Deserialize, Serialize};
 
+use crate::HouseGenerationRequest;
+
 pub const HOUSE_CONTEXT_TO_PROMPT_KIND: &str = "house/context-to-prompt";
 pub const HOUSE_CONTEXT_TO_PROMPT_REVISION: &str = "conduit.house/context-to-prompt@1";
 pub const HOUSE_CONVERSATION_FORM_KIND: &str = "house-conversation";
@@ -141,13 +143,6 @@ impl HousePromptContract {
             limits: self.limits,
         }
     }
-}
-
-#[derive(Clone, Debug, Eq, PartialEq)]
-pub struct HouseGenerationRequest {
-    pub request_identity: String,
-    pub encoded_request: String,
-    pub maximum_output_bytes: u64,
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
