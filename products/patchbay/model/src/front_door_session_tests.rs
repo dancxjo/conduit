@@ -1,4 +1,4 @@
-use crate::{LocalFrontDoor, PartPresentationState};
+use crate::LocalFrontDoor;
 use conduit_body::{AdmissionSigns, CandidateObservation, DiscoveryProofId};
 use conduit_browser_runtime::membership::BrowserAdmissionIdentity;
 use conduit_core::{
@@ -8,7 +8,9 @@ use conduit_core::{
 };
 use conduit_presentation::PresentationRole;
 use conduit_presentation::{NavigationOperation, NavigationState, PresentationPlace};
-use patchbay_application::{EntranceAction, EntranceUpdateDisposition, PatchbayEntranceState};
+use patchbay_application::{
+    EntranceAction, EntranceUpdateDisposition, PartPresentationState, PatchbayEntranceState,
+};
 
 fn browser_advertisement(identity: &BrowserAdmissionIdentity) -> HostAdvertisement {
     HostAdvertisement {

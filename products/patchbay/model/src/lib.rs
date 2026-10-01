@@ -26,7 +26,6 @@ mod front_door_transition;
 mod gear_realization;
 mod host_adapter;
 mod interaction;
-mod live_conversation_flow;
 mod llm_documentary;
 mod llm_embodiment_presentation;
 mod llm_presentation;
@@ -40,8 +39,6 @@ mod mask_plans_tests;
 mod mask_product_tests;
 #[cfg(test)]
 mod parts_truth_explanation_tests;
-mod parts_view;
-mod patchbay_backs;
 mod portable_content;
 mod portable_correlations;
 mod portable_demo;
@@ -79,10 +76,6 @@ pub use conduit_body::WakeLifecycle;
 pub use conduit_patchbay_workbench_conformance::{
     patchbay_mask_plans, PatchbayMaskPlans, PATCHBAY_PRESENTATION_KIND,
 };
-pub use conduit_presentation::{
-    ApplicationTheme, MaskWardrobeAction, MaskWardrobeControl, MaskWardrobeControlError,
-    MaskWardrobeControlEvidence, ThemeColor, CONDUIT_APPLICATION_THEME,
-};
 pub use control::{admit_run, ControlError, PatchbayRequestId, PlanDocument, PlayDocument};
 pub use cross_host_renderer::{
     cross_host_renderer_plan, CrossHostRendererPlan, CROSS_HOST_MAXIMUM_FRAME_BYTES,
@@ -106,7 +99,6 @@ pub use interaction::{
     PatchbayInteractionRequestId, PatchbayInvocation, PatchbayInvocationOutcome, PatchbayRefusal,
     MAX_INTERACTION_HISTORY, MAX_INTERACTION_ID_BYTES, MAX_INTERACTION_VALUE_BYTES,
 };
-pub use live_conversation_flow::*;
 #[cfg(test)]
 pub use llm_documentary::llm_documentary_presentation;
 pub use llm_documentary::llm_documentary_presentation_with_adapter;
@@ -126,8 +118,6 @@ pub use maker_environment::{
     MAX_ENVIRONMENT_COORDINATE, MAX_ENVIRONMENT_ID_BYTES, MAX_PART_NAME_BYTES,
 };
 pub use mask_control::*;
-pub use parts_view::*;
-pub use patchbay_backs::*;
 pub use patchbay_graph::{
     project_recursive_form_gear, RecursiveFormGearProjection, RecursiveFormProjectionError,
 };

@@ -38,5 +38,5 @@ pub use snapshot::{SnapshotError, MAX_SNAPSHOT_BYTES, SNAPSHOT_SCHEMA};
 pub use transport_types::*;
 
 pub fn application_theme_css() -> Vec<u8> {
-    theme::render_theme_css(&patchbay_model::CONDUIT_APPLICATION_THEME)
+    theme::render_theme_css(&conduit_presentation::CONDUIT_APPLICATION_THEME)
 }

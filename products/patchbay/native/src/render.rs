@@ -2,8 +2,8 @@
 
 use crate::canvas::{softbuffer_to_rgb888, SoftwareCanvas};
 use crate::font::{BitmapFont, GLYPH_HEIGHT};
+use conduit_presentation::{ApplicationTheme, CONDUIT_APPLICATION_THEME};
 use embedded_graphics::prelude::Point;
-use patchbay_model::{ApplicationTheme, CONDUIT_APPLICATION_THEME};
 
 pub const BACKGROUND: u32 = CONDUIT_APPLICATION_THEME.background.packed_rgb();
 const LEFT_MARGIN: usize = 16;

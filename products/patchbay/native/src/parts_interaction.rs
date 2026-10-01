@@ -1,7 +1,7 @@
 //! Read-only native Parts mode over canonical Body membership truth.
 
 use crate::{gui::GuiAction, PatchbayApplication};
-use patchbay_model::PartsView;
+use patchbay_application::{PartPresentationState, PartsAction, PartsView};
 
 impl PatchbayApplication {
     pub(super) fn parts_projection(&self) -> Result<Option<PartsView>, String> {
@@ -118,7 +118,7 @@ impl PatchbayApplication {
                     .iter()
                     .find(|row| row.candidate_id == candidate_id)
                     .ok_or("candidate is not awaiting a body decision")?;
-                if !row.actions.contains(&patchbay_model::PartsAction::Admit) {
+                if !row.actions.contains(&PartsAction::Admit) {
                     return Err("candidate cannot be admitted in its current state".into());
                 }
                 let mut nonce = [0; 32];
@@ -174,7 +174,7 @@ impl PatchbayApplication {
                     .iter()
                     .find(|row| row.candidate_id == candidate_id)
                     .ok_or("candidate is not awaiting a body decision")?;
-                if !row.actions.contains(&patchbay_model::PartsAction::Refuse) {
+                if !row.actions.contains(&PartsAction::Refuse) {
                     return Err("candidate cannot be refused in its current state".into());
                 }
                 if let Some(ambient) = self
@@ -213,7 +213,7 @@ impl PatchbayApplication {
                     .iter()
                     .find(|row| row.details.part_id == part_id)
                     .ok_or("Part is not in the current body projection")?;
-                if row.state == patchbay_model::PartPresentationState::Here {
+                if row.state == PartPresentationState::Here {
                     return Err("the Here Part cannot revoke itself from this Patchbay".into());
                 }
                 self.pending_revoke = Some(part_id.clone());
@@ -488,10 +488,7 @@ mod tests {
         let view = application.parts_projection().unwrap().unwrap();
         assert_eq!(view.parts.len(), 1);
         assert_eq!(view.parts[0].label, "This computer");
-        assert_eq!(
-            view.parts[0].state,
-            patchbay_model::PartPresentationState::Here
-        );
+        assert_eq!(view.parts[0].state, PartPresentationState::Here);
         assert!(view.parts[0].available);
         let part_id = view.parts[0].details.part_id.clone();
         let mut pixels = vec![crate::BACKGROUND; 1_100 * 720];
@@ -556,7 +553,11 @@ mod tests {
         assert!(cancel_targets
             .iter()
             .any(|target| target.action == GuiAction::CancelBrowserPartSpawn));
-        assert!(pixels.contains(&patchbay_model::CONDUIT_APPLICATION_THEME.focus.packed_rgb()));
+        assert!(pixels.contains(
+            &conduit_presentation::CONDUIT_APPLICATION_THEME
+                .focus
+                .packed_rgb()
+        ));
         application
             .handle_parts_action(GuiAction::InspectPart(part_id.clone()))
             .unwrap();

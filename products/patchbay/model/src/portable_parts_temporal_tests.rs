@@ -7,8 +7,9 @@ use conduit_presentation::{
     render_linear_presentation, PresentationError, PresentationTemporalRole, TemporalInstant,
     TemporalReference, TemporalRelation, TemporalScale,
 };
+use patchbay_application::PartsView;
 
-use crate::{FormEditor, PartsView, PatchbayPresentation, PortableProjectionError};
+use crate::{FormEditor, PatchbayPresentation, PortableProjectionError};
 
 fn fixture() -> (
     PatchbayPresentation,

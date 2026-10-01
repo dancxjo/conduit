@@ -34,6 +34,7 @@ mod learned_watch;
 mod learned_watch_tests;
 mod mask;
 mod navigation_projection;
+mod parts_projection;
 mod portable_composition;
 mod portable_graphics;
 mod portable_layout;
@@ -84,6 +85,7 @@ pub use learned_watch::{
     MAX_TENSOR_SLICE_VALUES,
 };
 pub use navigation_projection::PatchbayNavigationProjection;
+pub use parts_projection::*;
 pub use portable_composition::{
     constrained_frame_layout, constrained_graphics_scene, DirectObligation, DirectPresentation,
 };

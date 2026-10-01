@@ -9,11 +9,11 @@ use crate::{
     palette_state::PaletteChooser,
     palette_view::draw_palette,
 };
+use conduit_presentation::ApplicationTheme;
 use embedded_graphics::{
     pixelcolor::Rgb888,
     prelude::{DrawTarget, Point},
 };
-use patchbay_model::ApplicationTheme;
 
 pub(super) struct FormsNavigatorView<'a> {
     pub(super) entries: &'a [FormNavigatorEntry],
