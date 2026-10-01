@@ -1,10 +1,11 @@
-//! Privacy-preserving Patchbay projection of the live conversation commit seams.
+//! Privacy-preserving chat projection of the live conversation commit seams.
 
+use alloc::string::String;
 use conduit_ai::GeneratedTextFlowEvidence;
 
-use conduit_chat::ConversationRequestEvidence;
+use crate::ConversationRequestEvidence;
 
-pub const LIVE_CONVERSATION_FLOW_SCHEMA: &str = "conduit.patchbay/live-conversation-flow@1";
+pub const LIVE_CONVERSATION_FLOW_SCHEMA: &str = "conduit.chat/live-conversation-flow@1";
 pub const MAXIMUM_PRESENTED_RECOGNITION_EVENTS: usize = 32;
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
@@ -80,7 +81,7 @@ pub enum LiveConversationProjectionError {
     InvalidSpeechEvidence,
 }
 
-pub struct LiveConversationPatchbayTruth<'a> {
+pub struct LiveConversationTruth<'a> {
     pub recognition: &'a [RecognitionEvidenceView],
     pub committed_turn_identity: Option<&'a str>,
     pub context: Option<&'a ConversationRequestEvidence>,
@@ -89,7 +90,7 @@ pub struct LiveConversationPatchbayTruth<'a> {
 }
 
 pub fn project_live_conversation_flow(
-    truth: &LiveConversationPatchbayTruth<'_>,
+    truth: &LiveConversationTruth<'_>,
 ) -> Result<LiveConversationFlowProjection, LiveConversationProjectionError> {
     if truth.recognition.len() > MAXIMUM_PRESENTED_RECOGNITION_EVENTS {
         return Err(LiveConversationProjectionError::RecognitionBoundExceeded);
@@ -303,7 +304,7 @@ mod tests {
             pcm_extent_bytes: 8_192,
             cancelled: false,
         };
-        let projection = project_live_conversation_flow(&LiveConversationPatchbayTruth {
+        let projection = project_live_conversation_flow(&LiveConversationTruth {
             recognition: &recognition,
             committed_turn_identity: Some("turn/live-1"),
             context: Some(&context),
@@ -330,7 +331,7 @@ mod tests {
     fn refuses_a_turn_claim_without_matching_committed_evidence() {
         let evidence = [recognition(RecognitionEvidenceStatus::Provisional)];
         assert_eq!(
-            project_live_conversation_flow(&LiveConversationPatchbayTruth {
+            project_live_conversation_flow(&LiveConversationTruth {
                 recognition: &evidence,
                 committed_turn_identity: Some("turn/invented"),
                 context: None,
@@ -350,7 +351,7 @@ mod tests {
             pcm_extent_bytes: 0,
             cancelled: true,
         };
-        let projection = project_live_conversation_flow(&LiveConversationPatchbayTruth {
+        let projection = project_live_conversation_flow(&LiveConversationTruth {
             recognition: &[],
             committed_turn_identity: None,
             context: None,

@@ -18,8 +18,9 @@ sha2 = { version = "0.10", default-features = false }
 
 [features]
 default = []
+conversation-flow = ["dep:conduit-ai"]
 form-catalog = [
-    "dep:conduit-ai",
+    "conversation-flow",
     "conduit-ai/form-catalog",
     "conduit-net/form-catalog",
     "conduit-presentation/form-catalog",

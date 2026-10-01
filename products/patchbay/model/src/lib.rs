@@ -26,7 +26,6 @@ mod front_door_transition;
 mod gear_realization;
 mod host_adapter;
 mod interaction;
-mod live_conversation_flow;
 mod llm_documentary;
 mod llm_embodiment_presentation;
 mod llm_presentation;
@@ -100,7 +99,6 @@ pub use interaction::{
     PatchbayInteractionRequestId, PatchbayInvocation, PatchbayInvocationOutcome, PatchbayRefusal,
     MAX_INTERACTION_HISTORY, MAX_INTERACTION_ID_BYTES, MAX_INTERACTION_VALUE_BYTES,
 };
-pub use live_conversation_flow::*;
 #[cfg(test)]
 pub use llm_documentary::llm_documentary_presentation;
 pub use llm_documentary::llm_documentary_presentation_with_adapter;
