@@ -1,33 +1,33 @@
-### Start
+### Learn
 
 - [[Home]]
 - [[Why Conduit|Why-Conduit]]
-- [[Start here|Start-here]]
 - [[Architecture tour|Architecture-tour]]
-- [[Glossary]]
-
-### Learn Conduitese
-
 - [[Conduitese]]
 - [[Conduitese by example|Conduitese-by-example]]
-- [[State, time and data|State-time-and-data]]
+- [[Glossary]]
 
-### Learn the system
+### Use
 
+- [[Start here|Start-here]]
 - [[Bodies, hosts, plans and plays|Bodies-hosts-plans-and-plays]]
-- [[Face, Mask and Show|Face-Mask-and-Show]]
+- [[State, time and data|State-time-and-data]]
 - [[Lines, networking and replanning|Lines-networking-and-replanning]]
+- [[Face, mask and show|Face-Mask-and-Show]]
 - [[ConduitOS and real machines|ConduitOS-and-real-machines]]
-- [[Evidence and proof|Evidence-and-proof]]
-- [[Project status and roadmap|Project-status-and-roadmap]]
 
-### Canon reference
+### Reference
 
 - [[Current language surface|Current-language-surface]]
-- [[Architecture reference|Architecture]]
+- [[Architecture]]
 - [[Forms and flow|Forms-and-flow]]
 - [[Types and state|Types-and-state]]
 - [[Terminals and concurrency|Terminals-and-concurrency]]
 - [[Effects and realization|Effects-and-realization]]
 - [[Packs, hosts and bodies|Packs-hosts-and-bodies]]
+
+### Status and governance
+
+- [[Evidence and proof|Evidence-and-proof]]
+- [[Project status and roadmap|Project-status-and-roadmap]]
 - [[Canon governance|Canon-governance]]

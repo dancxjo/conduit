@@ -88,7 +88,7 @@ the lower-level fixture. Patchbay-safe inspection reports opaque resource
 handles, provider generation, enforcement class, attempt, and terminal result;
 it exposes neither paths nor capability bearer material.
 
-The original `std/copy-file@1` realization remains available only as an
+The original `std/kernel-file-copy@1` realization remains available only as an
 explicitly `Cooperative` compatibility profile. It must not be used for hostile
 confinement claims. Its removal path is: adopt the isolated provider in shipped
 Linux profiles, establish platform-specific equivalents where required, move

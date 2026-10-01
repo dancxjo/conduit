@@ -1,5 +1,3 @@
-> **Canonical reference.** These pages were migrated from issue [#4109](https://github.com/dancxjo/conduit/issues/4109) on 2026-09-29. The wiki is now the readable language reference; implementation tickets remain evidence of conformance and provenance.
-
 ## Normal close and abnormal terminal projections
 
 For closing flow:
@@ -30,11 +28,9 @@ Provenance: #3970, #3999, #4001.
 
 ---
 
----
-
 ## Terminal transduction and default abnormal propagation
 
-Gears/Forms transform **values plus terminal truth**.
+gears/forms transform **values plus terminal truth**.
 
 Reusable terminal laws must distinguish at least:
 
@@ -44,7 +40,7 @@ Reusable terminal laws must distinguish at least:
 - buffered/framing transform;
 - domain-specific terminal behavior.
 
-A closing-flow consumer whose Fore declares `T...|` receives normal-close semantics as part of that port contract. Authors should not need to wire `items|` merely so a collector knows its input ended.
+A closing-flow consumer whose fore declares `T...|` receives normal-close semantics as part of that port contract. Authors should not need to wire `items|` merely so a collector knows its input ended.
 
 Normal close may trigger finite flushing before downstream close when the exact contract says so. Abnormal terminal must **not** masquerade as normal-close flushing unless a reviewed fault-finalization law explicitly permits it.
 
@@ -52,9 +48,9 @@ Do not universally copy the last payload into close. Retain last-value context e
 
 Default abnormal composition rule:
 
-> **An unhandled abnormal terminal in a child Gear/Form propagates as abnormal terminal truth of the containing Form.**
+> **An unhandled abnormal terminal in a child gear/form propagates as abnormal terminal truth of the containing form.**
 
-Catching/routing `x!` is not by itself successful recovery. The containing Form must still satisfy its checked obligations. If recovery faults, the unrecovered terminal propagates.
+Catching/routing `x!` is not by itself successful recovery. The containing form must still satisfy its checked obligations. If recovery faults, the unrecovered terminal propagates.
 
 Keep three layers distinct:
 
@@ -67,8 +63,6 @@ semantic endpoint abnormal termination
 Successful internal recovery remains evidence and must not manufacture semantic `!`.
 
 Provenance: #3999, #4000, #4047.
-
----
 
 ---
 
@@ -95,8 +89,6 @@ Provenance: #4049.
 
 ---
 
----
-
 ## Multi-input temporal relationships must be explicit
 
 A pure expression never secretly synchronizes two independent runtime inputs.
@@ -120,7 +112,7 @@ Independent producers may not silently write the same ordinary single-producer i
 
 Merge/race/join must be explicit.
 
-The comma-list merge sketch is rejected. Canonical concise merge uses the standard `><` Gear glyph from #4335, e.g. `a >< b >> merged`; checked expansion still contains one ordinary `flow/merge` Gear.
+The comma-list merge sketch is rejected. Canonical concise merge uses the standard `><` gear glyph from #4335, e.g. `a >< b >> merged`; checked expansion still contains one ordinary `flow/merge` gear.
 
 ## Arbitration
 
@@ -132,9 +124,7 @@ Provenance: #4046, #4050, #4064.
 
 ---
 
----
-
-## Cord delivery, fan-out and pressure
+## cord delivery, fan-out and pressure
 
 Ordinary fan-out remains boring source:
 
@@ -144,7 +134,7 @@ temperature >> history
 temperature >> safety
 ~~~
 
-Its behavior belongs to checked Cord/Port contracts, not source order or a hidden dispatcher.
+Its behavior belongs to checked cord/port contracts, not source order or a hidden dispatcher.
 
 Relevant contracts must define:
 

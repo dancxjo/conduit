@@ -41,7 +41,7 @@ host source / profile
 
 A compiled driver does not prove a device initialized. An image is not a body. A boot is not a plan. A profile does not grant authority by listing a capability.
 
-## Forms all the way down
+## forms all the way down
 
 Above a small irreducible machine membrane, the architectural preference is ordinary semantic forms/backs instead of a monolithic driver runtime.
 

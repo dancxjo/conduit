@@ -1,7 +1,7 @@
 # Portable host Architecture
 
-> Historical reboot proposal for #347. The current host overview is [hosts and execution](hosts.md). The later canon supersedes the composite-host/SOUL model, nominal revision matching, speculative grammar, and early browser-test policy below. This record preserves the original rationale, not current acceptance requirements.
-> Current capabilities and remaining proof: [STATUS.md](../../STATUS.md).
+> Historical reboot proposal for #347. The current host overview is [hosts and execution](../../architecture/hosts.md). The later canon supersedes the composite-host/SOUL model, nominal revision matching, speculative grammar, and early browser-test policy below. This record preserves the original rationale, not current acceptance requirements.
+> Current capabilities and remaining proof: [STATUS.md](../../../STATUS.md).
 
 **Status:** historical reboot proposal
 **Implementation issue:** [#347](https://github.com/dancxjo/conduit/issues/347)
@@ -57,11 +57,11 @@ A planning scope is the set of host instances currently visible to one planning 
 
 For the first implementation, planning scope membership may be explicit and development-oriented. A host can register with the local operator or planner and become available for placement.
 
-The original development membership table was retired. Current durable membership is described in [body lifecycle contracts](body-lifecycle-waists.md).
+The original development membership table was retired. Current durable membership is described in [body lifecycle contracts](../../architecture/body-lifecycle-waists.md).
 
-The first read-only operational projection is recorded in [host Observatory readiness](host-observatory.md).
+The first read-only operational projection is recorded in [host Observatory readiness](../../architecture/host-observatory.md).
 
-The host-neutral portable catalog is recorded in [Portable catalog and hosted std offer boundary](semantic-catalog.md).
+The host-neutral portable catalog is recorded in [Portable catalog and hosted std offer boundary](../../architecture/semantic-catalog.md).
 
 A planning scope records or observes:
 

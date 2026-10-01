@@ -6,10 +6,10 @@ Nearly every important noun exists to protect one side of that boundary.
 
 ## Begin with the authored happening
 
-The user authors a **plot**: a portable description of the intended course of semantic work.
+The user authors a **form**: a portable description of the intended course of semantic work.
 
 ```conduit
-plot hello {
+form hello {
     upper: text/upper
     show: presentation/text
 
@@ -17,21 +17,21 @@ plot hello {
 }.
 ```
 
-A plot is not a deployment recipe. It does not have to say which process, operating system, transport, device, library, or machine performs each piece of work.
+A form is not a deployment recipe. It does not have to say which process, operating system, transport, device, library, or machine performs each piece of work.
 
 It says what work is required and how that work relates.
 
-During the current terminology migration, repository source may still spell this declaration `form`; [[Current language surface|Current-language-surface]] records exact implemented syntax.
+The declaration is executable `form` source. [[Current language surface|Current-language-surface]] records the supported grammar and separates proposals from implemented behavior.
 
 ## Read the semantic graph
 
-Inside the plot, each named **gear** is one occurrence of a semantic **kind**.
+Inside the form, each named **gear** is one occurrence of a semantic **kind**.
 
 ```text
 literal → text/upper → presentation/text
 ```
 
-A kind says what reusable work means. Its **fore** is the function-like signature presented to authors: startup parameters and typed runtime ports, including their direction, value type, and temporal shape. **Cords** connect compatible ports named by those fores.
+A kind says what reusable work means. Its **fore** is the function-like signature presented to authors: startup parameters and typed runtime ports, including their direction, value type, and temporal shape. **cords** connect compatible ports named by those fores.
 
 At this altitude, the graph says nothing about where the gears will run.
 
@@ -67,10 +67,10 @@ The planner may then consider:
 
 ## Planning is the meeting point
 
-The plot supplies enduring intent; the world supplies current facts.
+The form supplies enduring intent; the world supplies current facts.
 
 ```text
-plot
+form
   +
 body / hosts / boots / backs / resources / authority / lines
   ↓
@@ -93,15 +93,15 @@ effects → this exact authority
 
 Once sealed, the plan becomes history. A later change produces explicit fallback already admitted by that plan or a replacement plan; the old plan is not silently edited.
 
-## Play is execution, not selection
+## play is execution, not selection
 
 A **play** is one active execution of one exact plan.
 
 ```text
-plot ≠ plan ≠ play
+form ≠ plan ≠ play
 ```
 
-A plan can exist without being played. The same plan may be played more than once. A replacement plan may realize the same plot after the world changes.
+A plan can exist without being played. The same plan may be played more than once. A replacement plan may realize the same form after the world changes.
 
 Execution advances through bounded **steps**. A step may move info, invoke a back, make a bounded host call, observe pressure, quiesce, complete, or terminate abnormally according to the checked meaning and sealed realization.
 
@@ -115,15 +115,15 @@ Conduit names that **quiescence** rather than pretending the computation has end
 active → quiescent → active
 ```
 
-A live play may later continue when new admitted work arrives. Semantic completion is different: the plot must explicitly establish that the relevant drain is sufficient evidence that the authored work is finished.
+A live play may later continue when new admitted work arrives. Semantic completion is different: the form must explicitly establish that the relevant drain is sufficient evidence that the authored work is finished.
 
 This is one reason Conduit can model always-on/reactive systems without turning “the event loop is currently idle” into “the program terminated.”
 
-## Cords are not lines
+## cords are not lines
 
 A **cord** is semantic composition. A **line** is concrete carriage.
 
-Suppose one plot contains:
+Suppose one form contains:
 
 ```text
 sensor → classify → display
@@ -132,7 +132,7 @@ sensor → classify → display
 Planning may put all three gears on one host, or place the sensor and classifier on different hosts:
 
 ```text
-plot:
+form:
   sensor >> classify >> display
 
 plan:
@@ -144,20 +144,20 @@ realization:
   sensor→classify cord uses Line L
 ```
 
-If Line L disappears, the cord did not become semantically different. The realization became invalid. Planning is the place to reconcile that new truth.
+If line L disappears, the cord did not become semantically different. The realization became invalid. Planning is the place to reconcile that new truth.
 
 ## A body is the thing that continues
 
 A **body** is the durable logical computer.
 
-Hosts come and go; hosts reboot; lines appear and vanish; plans are replaced; plays begin and end. The body can remain the same continuant across those changes.
+hosts come and go; hosts reboot; lines appear and vanish; plans are replaced; plays begin and end. The body can remain the same continuant across those changes.
 
 ```text
 body
   ├─ durable parts
   ├─ current hosts
   │    └─ current boots
-  ├─ resident plots
+  ├─ resident forms
   ├─ current plan
   └─ active play
 ```
@@ -166,20 +166,20 @@ A **wake** is a period of active availability. A **lull** preserves the body's c
 
 This distinction lets the architecture answer “what stayed the same?” without using process lifetime as a proxy for identity.
 
-## Information has meaning and form
+## Information has meaning and code
 
-Work is not the only place Conduit separates semantics from realization.
-
-A **type** says what a value means. A **form** says one concrete portable representation of values of that type.
+A **type** says what a value means; **info** is one value of that type.
+A **code** states an exact portable encoding without changing the meaning.
 
 ```text
 type = meaning
-form = carried/stored shape
+info = typed value
+code = encoding contract
 ```
 
-A semantic variant may be encoded as a byte in one form and differently in another. The byte assignment is a compatibility fact, not the meaning of the variant itself.
-
-This keeps wire/storage/ABI details available for exact checking without making them semantic identity.
+For example, a finite variant can use a compact byte code. The assigned tag is
+a compatibility fact, not the meaning of the variant itself. Current support
+and examples belong in [[the language reference|Current-language-surface]].
 
 ## Time has several different promises
 
@@ -211,7 +211,7 @@ The **face** contains the humanly relevant meaning and agency. A **mask** realiz
 
 A browser DOM, a spoken interaction, a native surface, and a terminal transcript can therefore be different shows of the same face without any one rendering becoming the application truth.
 
-## Signs make adaptation explainable
+## signs make adaptation explainable
 
 A **sign** is bounded evidence that something was selected, attempted, observed, completed, refused, lost, or replaced.
 
@@ -232,9 +232,9 @@ A sign is evidence, never authority.
 ```text
 AUTHORED MEANING
 
-type → form
+type → info
 kind → fore
-plot containing gears, ports, and cords
+form containing gears, ports, and cords
         │
         │ meets current truth
         ▼

@@ -23,9 +23,9 @@ it does not execute all those proofs.
 | form | What to look for | Current example result |
 | --- | --- | --- |
 | [Hello](../forms/hello/main.conduit) | A literal flows through `text/upper` to presentation | `HELLO, WORLD.` |
-| [Greet](../forms/greet/main.conduit) | A reusable form with parameters and a checked front | Explicit positional binding produces `WelcomeTravis` |
-| [Clock](../forms/clock/main.conduit) | A finite time source and duration arguments | Four admitted ticks |
-| [Count](../forms/count/main.conduit) | Startup value, closing input flow, and current value | Values 2 through 6 |
+| [Greet](../forms/greet/main.conduit) | A reusable form with parameters and a checked fore | Explicit positional binding produces `WelcomeTravis` |
+| [Clock](../forms/clock/main.conduit) | A standing time source and duration argument | Live between ticks; no completion full stop |
+| [Count](../forms/count/main.conduit) | Startup value, closing input flow, and current value | Current count evolves from the configured startup value |
 | [Webchat](../forms/webchat/main.conduit) | Bounded chat state and semantic WebSocket operations | A two-page browser proof exercises delivery and disconnect |
 | [Signal demo](../forms/signal-demo/main.conduit) | The same source can be planned across different hosts | Native/browser proof produces sixteen receipts |
 

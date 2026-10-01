@@ -12,14 +12,18 @@ The Workspace exposes resident forms. The ConduitOS journey is evidence from a r
 
 ## 2. Run the first hosted form
 
-From a checkout of `dev`:
+Install Git and Rust through rustup, then use the pinned toolchain in a
+checkout of `dev`. A native linker is needed. See
+[contributor setup](https://github.com/dancxjo/conduit/blob/dev/CONTRIBUTING.md)
+for prerequisites. `cargo xtask doctor` is an optional cross-target diagnostic;
+missing browser or Pico tools do not block the hosted example.
+
 
 ```bash
-cargo xtask doctor
 cargo xtask make host std
 ```
 
-The second command checks, plans, and executes [forms/hello/main.conduit](https://github.com/dancxjo/conduit/blob/dev/forms/hello/main.conduit) through the production kernel.
+The command checks, plans, and executes [forms/hello/main.conduit](https://github.com/dancxjo/conduit/blob/dev/forms/hello/main.conduit) through the production kernel.
 
 ```conduit
 form hello {
@@ -64,7 +68,7 @@ cargo xtask prove journey patchbay --on browser
 
 Patchbay is a projection over real body and execution truth. It is not another scheduler.
 
-## 5. Boot ConduitOS
+## 5. boot ConduitOS
 
 ```bash
 cargo xtask make conduitos live x86_64
@@ -84,7 +88,7 @@ A good beginner sequence is:
 3. [Memory Lantern](https://github.com/dancxjo/conduit/blob/dev/forms/memory-lantern/main.conduit)
 4. [Pocket Theremin](https://github.com/dancxjo/conduit/blob/dev/forms/pocket-theremin/main.conduit)
 5. [Desk Telegraph](https://github.com/dancxjo/conduit/blob/dev/forms/desk-telegraph/main.conduit)
-6. [Body Chat](https://github.com/dancxjo/conduit/blob/dev/forms/body-chat/main.conduit)
+6. [body Chat](https://github.com/dancxjo/conduit/blob/dev/forms/body-chat/main.conduit)
 
 Then read [[Conduitese by example|Conduitese-by-example]].
 

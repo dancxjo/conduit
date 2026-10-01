@@ -1,7 +1,7 @@
 # CI impact planning benchmark (historical)
 
 This note preserves a historical benchmark, not current CI timing or PR policy.
-Use [the CI guide](contributing/ci.md) for today's workflow.
+Use [the CI guide](../contributing/ci.md) for today's workflow.
 
 This note records the acceptance benchmark for issue [#1833]. It compares an
 exhaustive pre-change run with three marker-only pull requests. The marker

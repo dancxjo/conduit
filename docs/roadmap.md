@@ -20,9 +20,16 @@ The language can author payload-rich semantic Types, checked reusable Forms,
 behavioral parameters, concise pure Forms, compact codes, and generated
 bindings. [#4375](https://github.com/dancxjo/conduit/issues/4375) now tracks the
 finite audited migration tail and current-truth reconciliation rather than a
-new edition. [#4378](https://github.com/dancxjo/conduit/issues/4378) remains
-open for bounded flow target integration; it does not authorize a general loop
-runtime, runtime closures, or unbounded collections.
+new edition. Bounded each/select/fold/scan and collection completed
+[#4378](https://github.com/dancxjo/conduit/issues/4378), with exact std/browser
+runtime proof and an explicit embedded applicability limit in the
+[language reference](../wiki/Current-language-surface.md).
+
+Record `where` laws are enforced at construction boundaries.
+[#4639](https://github.com/dancxjo/conduit/issues/4639) remains open for carrying
+those laws into consuming-form arithmetic proofs. The executable `plot` and
+representation `form` rename in [#4513](https://github.com/dancxjo/conduit/issues/4513)
+remains proposed; current source uses executable `form` and encoding `code`.
 
 ## ConduitOS shell
 

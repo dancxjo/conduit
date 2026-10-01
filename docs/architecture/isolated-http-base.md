@@ -4,7 +4,7 @@ Status: production-selectable Linux profile and adversarial proof for #3089
 under epic #3069. Entrance: `cargo xtask check isolated-http-base`.
 
 The authored operation remains `http/client`. Planning selects
-`std/isolated-http-client-http1@1`; endpoint, provider, and operating-system
+`std/isolated-http-client-http1`; endpoint, provider, and operating-system
 facts do not enter the form. A minimal host does not install the profile. A
 target explicitly supplies the provider executable, base instance and
 generation, authored HTTP authority, exact resolved socket address, and

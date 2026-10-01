@@ -1,92 +1,86 @@
-# Architecture guide
+# Architecture reference
 
-Start with [hosts and execution](hosts.md) for the working model, then the
-[canon](../conduit-canon.md) for durable intent and invariants. You do not need
-to read this entire directory to contribute. Choose the reference for the
-boundary you are changing; the [contribution guide](../../CONTRIBUTING.md)
-explains how to get started.
+Start with [hosts and execution](hosts.md) for the working model, or the
+[handbook tour](../../wiki/Architecture-tour.md) for a first introduction.
+The [canon](../conduit-canon.md) owns enduring intent; [STATUS](../../STATUS.md)
+separates development implementation from its proof limits. A design contract
+is not itself evidence that every target implements it.
 
-[Current status](../../STATUS.md) separates implemented behavior from its proof
-limits. The [roadmap](../roadmap.md) links active work. To see the native system
-in use, visit the [ConduitOS visual evidence](../visual-evidence.md).
+## Execution, planning, and identity
 
-These documents have different jobs: references explain contracts, design notes
-preserve decisions, and milestone records preserve evidence for a particular
-slice. A historical stop line or command is not a new contributor requirement.
-Source and focused conformance tests are the reference for exact APIs; old
-proposals do not override the current canon.
-
-## Execution and planning
-
-- [hosts and execution](hosts.md)
-- [Functional compatibility: the front is the contract](functional-compatibility.md)
-- [plan-to-kernel lowering](plan-kernel-lowering.md)
-- [Portable planner capability](portable-planner-capability.md)
-- [Continuous execution over finite plays](continuous-execution.md)
-- [Explicit state/delay contract](explicit-state-delay.md)
-- [General-purpose computation under explicit finite bounds](decidable-default-universal-extension.md)
+- [Hosts and execution](hosts.md)
+- [Callable compatibility and semantic realization](functional-compatibility.md)
+- [Identity classes and stability](identity-classes.md)
+- [Plan-to-kernel lowering](plan-kernel-lowering.md)
+- [Portable planner](portable-planner-capability.md)
+- [Continuous execution](continuous-execution.md)
+- [Explicit state and delay](explicit-state-delay.md)
+- [Finite lifetime and capacity audit](finite-lifetime-capacity-audit.md)
+- [Finite computation and universal extension](decidable-default-universal-extension.md)
 - [Deadline and WCET regions](deadline-wcet-regions.md)
-- [Implementation confinement and admitted authority](implementation-confinement.md)
-- [ConduitOS x86_64 protection domains](conduitos-protection-domains.md)
-- [Portable catalog and hosted std offer boundary](semantic-catalog.md)
-- [Semantic type ownership inventory](semantic-type-ownership.md)
+- [Compute resources](../r2-compute-resources.md) and [timing profiles](../timing-profile.md)
 
-## body, resources, and effects
+## Bodies, resources, and lifecycle
 
-- [body lifecycle architectural waists](body-lifecycle-waists.md)
-- [Embodied experience, perception, character, and Fulfillment](embodied-experience.md)
-- [Optional pre-play HOLD](pre-play-hold.md)
-- [Durable system continuity](durable-continuity.md)
+- [Body lifecycle boundaries](body-lifecycle-waists.md)
+- [Durable continuity](durable-continuity.md)
+- [Optional pre-play hold](pre-play-hold.md)
 - [Bounded addressable resources](resources.md)
 - [Protected resource bindings](protected-resource-bindings.md)
-- [Bounded Copy-a-file execution](bounded-copy-task.md)
+- [Bounded copy task](bounded-copy-task.md)
 - [Emergency authority reduction](emergency-control.md)
 
-## lines and observation
+## Authority, effects, and confinement
 
-- [plan-sealed lines](route-candidates.md)
-- [Logical sessions and line attachments](session-route-attachment.md)
-- [Deterministic lines and bounded session resume](route-machine-session-resume.md)
+- [Base capabilities](base-capabilities.md)
+- [Consequential effects](consequential-effects.md)
+- [Implementation confinement](implementation-confinement.md)
+- [Confined gear profile](confined-gear-profile.md)
+- [Hosted base confinement](hosted-base-confinement.md)
+- [Isolated HTTP base](isolated-http-base.md)
+- [ConduitOS protection domains](conduitos-protection-domains.md)
+- [Federation security](federation-security.md)
+- [Adversarial acceptance](../security/adversarial-acceptance.md)
+
+## Lines, interoperability, and observation
+
+- [Plan-sealed lines](route-candidates.md)
+- [Logical sessions and attachments](session-route-attachment.md)
+- [Bounded session resume](route-machine-session-resume.md)
+- [Protected line sessions](protected-line-session.md)
 - [Connection-envelope wire format](connection-envelope-wire.md)
-- [Observation, planning, realization, and execution control loop](topology-planning-play-control-loop.md)
-- [host Observatory](host-observatory.md)
-- [Structured diagnostics v1](structured-diagnostics.md)
+- [Interop membrane](interop-membrane.md)
+- [ROS 2 base](ros2-base.md)
+- [Observation, planning, and execution control loop](topology-planning-play-control-loop.md)
+- [Host observatory](host-observatory.md)
+- [Structured diagnostics](structured-diagnostics.md)
 - [Machine-readable proof classes](proof-classes.md)
 
-## Browser and Face
+## Hosts and human presentation
 
-- [Face, Mask, and Show](../presenter-hourglass.md)
-- [Universal Face grammar conformance](presentation-grammar-conformance.md)
-- [Browser host make inventory](browser-make-inventory.md)
-- [Browser host identity and body membership](browser-host-membership.md)
-- [Portable presentation renderer contract](presentation-renderer.md)
-- [Patchbay renderer theme contract](patchbay-theme.md)
-- [Native Patchbay protected file base](native-file-base.md)
-- [Optional network attachment capability](network-capability.md)
+- [Host composition](../host-architecture.md)
+- [Face, mask, and show](../presenter-hourglass.md)
+- [Portable input semantics](../input-semantics.md)
+- [Universal face grammar](presentation-grammar-conformance.md)
+- [Portable presentation renderer](presentation-renderer.md)
+- [Application theme in Patchbay](patchbay-theme.md)
+- [Browser make inventory](browser-make-inventory.md)
+- [Browser identity and membership](browser-host-membership.md)
+- [Native Patchbay file base](native-file-base.md)
+- [Optional network attachment](network-capability.md)
 
-## Domain migration and hardware records
+## Semantic ownership and domain work
 
-These retain provenance and physical proof boundaries. They do not establish
-the state of hardware attached today.
+- [Portable catalog and std offers](semantic-catalog.md)
+- [Semantic type ownership](semantic-type-ownership.md)
+- [Code ownership audit](code-ownership.md)
+- [Portable navigation](portable-navigation.md)
+- [Pete Brainstem migration](pete-brainstem-migration.md): retained provenance and remaining physical-proof gates
+- [Embodied experience](embodied-experience.md): architectural direction, not a completed capability list
 
-- [Pete Brainstem migration ledger](pete-brainstem-migration.md)
-- [Pete R23 carrier audit](pete-r23-carrier-audit.md)
+## Historical checkpoints
 
-## Historical milestones and design proposals
-
-Preserved at their existing URLs for issue and evidence links. These describe
-their named checkpoint, including superseded APIs, syntax, and implementation
-limits. Use the references above for new work.
-
-- [Portable host Architecture](portable-hosts.md)
-- [Conduit host Specification](host-specification.md)
-- [Reboot Kernel M0 sign](reboot-kernel-m0.md)
-- [Salvage S1 kernel](salvage-kernel-s1.md)
-- [Salvage S2 exact planning](salvage-planning-s2.md)
-- [Kernel takeover integration gate](kernel-takeover.md)
-- [Actual browser kernel host checkpoint](browser-host-s4.md)
-- [Native Patchbay shell](native-patchbay-shell.md)
-- [Native Patchbay topology projection](native-patchbay-topology.md)
-- [Native Patchbay canonical form editor](native-patchbay-form-editor.md)
-- [Native Patchbay plan and play control](native-patchbay-control.md)
-- [Native Patchbay primitive GUI](native-patchbay-gui.md)
+The [history index](../history/README.md) retains earlier host/kernel designs,
+Patchbay milestones, physical diagnostics, and CI records. Their APIs, commands,
+and stop lines describe their named checkpoint. Use current references above
+for new work; historical evidence does not change merely because code evolves.
