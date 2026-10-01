@@ -3,11 +3,9 @@
 use alloc::{
     string::{String, ToString},
     vec,
-    vec::Vec,
 };
 use conduit_core::{
-    kind_id, port_id, KindIdentity, PortDescriptor, PortDirection, PortTemporal,
-    StructuredFieldType, StructuredInfoType, StructuredVariantCase,
+    kind_id, port_id, KindIdentity, PortDescriptor, PortDirection, PortTemporal, StructuredInfoType,
 };
 use conduit_form::{KindProjection, KindSignature};
 
@@ -21,92 +19,34 @@ pub const EXPERIENCE_HYPOTHESIS_INPUT_TYPE: &str = "ExperienceHypothesisInput";
 pub const EXPERIENCE_SOURCE_STATUS_TYPE: &str = "ExperienceSourceStatus";
 pub const CURRENT_EXPERIENCE_TYPE: &str = "CurrentExperience";
 
-fn text() -> StructuredInfoType {
-    StructuredInfoType::leaf(kind_id("value/text")).expect("reviewed text")
-}
-
-fn count() -> StructuredInfoType {
-    StructuredInfoType::leaf(kind_id("value/count")).expect("reviewed count")
-}
-
-fn unit() -> StructuredInfoType {
-    StructuredInfoType::leaf(kind_id("value/unit")).expect("reviewed unit")
-}
-
-fn field(name: &str, value_type: StructuredInfoType) -> StructuredFieldType {
-    StructuredFieldType::new(name, value_type).expect("reviewed experience field")
-}
-
-fn record(kind: &str, fields: Vec<StructuredFieldType>) -> StructuredInfoType {
-    StructuredInfoType::record(kind_id(kind), fields).expect("reviewed experience record")
-}
-
-fn case(name: &str) -> StructuredVariantCase {
-    StructuredVariantCase::new(name, unit()).expect("reviewed experience case")
-}
-
-fn source_input(kind: &str) -> StructuredInfoType {
-    record(
-        kind,
-        vec![
-            field("item_identity", text()),
-            field("source_identity", text()),
-            field("observed_at", text()),
-            field("content", text()),
-        ],
-    )
-}
-
 pub fn experience_human_input_type() -> StructuredInfoType {
-    source_input("experience/human-input@1")
+    conduit_human::ExperienceHumanInput::semantic_type().expect("checked human input Type")
 }
 
 pub fn experience_body_input_type() -> StructuredInfoType {
-    source_input("experience/body-input@1")
+    conduit_human::ExperienceBodyInput::semantic_type().expect("checked body input Type")
 }
 
 pub fn experience_memory_input_type() -> StructuredInfoType {
-    source_input("experience/memory-input@1")
+    conduit_human::ExperienceMemoryInput::semantic_type().expect("checked memory input Type")
 }
 
 pub fn experience_inference_input_type() -> StructuredInfoType {
-    source_input("experience/model-inference-input@1")
+    conduit_human::ExperienceInferenceInput::semantic_type().expect("checked inference input Type")
 }
 
 pub fn experience_hypothesis_input_type() -> StructuredInfoType {
-    source_input("experience/hypothesis-input@1")
+    conduit_human::ExperienceHypothesisInput::semantic_type()
+        .expect("checked hypothesis input Type")
 }
 
 pub fn experience_source_status_type() -> StructuredInfoType {
-    record(
-        "experience/source-status@1",
-        vec![
-            field("source_identity", text()),
-            field(
-                "availability",
-                StructuredInfoType::variant(
-                    kind_id("experience/source-availability@1"),
-                    vec![case("present"), case("missing"), case("unavailable")],
-                )
-                .expect("reviewed source availability"),
-            ),
-        ],
-    )
+    conduit_human::ExperienceSourceStatus::semantic_type().expect("checked source status Type")
 }
 
 pub fn current_experience_type() -> StructuredInfoType {
-    record(
-        "experience/current@1",
-        vec![
-            field("revision", count()),
-            field(
-                "item_identities",
-                StructuredInfoType::collection(text(), Some(32))
-                    .expect("bounded current experience identities"),
-            ),
-            field("provenance_revision", text()),
-        ],
-    )
+    conduit_human::CurrentExperienceProjection::semantic_type()
+        .expect("checked current experience projection Type")
 }
 
 pub fn install_experience_catalogs(

@@ -55,17 +55,19 @@ mod generated {
 }
 pub use generated::{
     ChordInfo, ChordPhase, ChordPhaseCode, ControlChordModifier, CoreChordId, CoreChordIdCode,
-    ExperienceAvailability, ExperienceCertainty, ExperienceDomain, ExperienceOrigin,
-    ExperienceRelationKind, ExperienceTemporalPolicy, ExperienceTemporalRefusal,
-    ExperienceTemporalRole, HumanMediaKind, ImageObservationReference, ImageObservationRefusal,
-    ImageRegion, ImageTextContentDigest, ImageTextMetadata, ImageTextMetadataEntries,
-    ImageTextRecord, ImageTextRefusal, InteractionApplicationOutcome,
-    InteractionApplicationOutcomeAccepted, InteractionApplicationOutcomeFailed,
-    InteractionApplicationOutcomeRefused, InteractionBoundKind as BoundKind, InteractionRefusal,
-    KeyEvent, KeyModifiers, KeyTransition, KeyTransitionCode, KeymapDisposition, KeymapRefusal,
-    OptionAvailability, OptionAvailabilityUnavailable, RealizationRangePolicy, ScalarQuantization,
-    SourceAvailability, TextFragment, VisualEvidenceClass, VisualExperienceRelationKind,
-    VisualImpressionDisposition, VisualImpressionDispositionTruncated,
+    CurrentExperienceProjection, ExperienceAvailability, ExperienceBodyInput, ExperienceCertainty,
+    ExperienceDomain, ExperienceHumanInput, ExperienceHypothesisInput, ExperienceInferenceInput,
+    ExperienceMemoryInput, ExperienceOrigin, ExperienceRelationKind, ExperienceSourceStatus,
+    ExperienceTemporalPolicy, ExperienceTemporalRefusal, ExperienceTemporalRole, HumanMediaKind,
+    ImageObservationReference, ImageObservationRefusal, ImageRegion, ImageTextContentDigest,
+    ImageTextMetadata, ImageTextMetadataEntries, ImageTextRecord, ImageTextRefusal,
+    InteractionApplicationOutcome, InteractionApplicationOutcomeAccepted,
+    InteractionApplicationOutcomeFailed, InteractionApplicationOutcomeRefused,
+    InteractionBoundKind as BoundKind, InteractionRefusal, KeyEvent, KeyModifiers, KeyTransition,
+    KeyTransitionCode, KeymapDisposition, KeymapRefusal, OptionAvailability,
+    OptionAvailabilityUnavailable, RealizationRangePolicy, ScalarQuantization, SourceAvailability,
+    TextFragment, VisualEvidenceClass, VisualExperienceRelationKind, VisualImpressionDisposition,
+    VisualImpressionDispositionTruncated,
 };
 
 mod current_experience;

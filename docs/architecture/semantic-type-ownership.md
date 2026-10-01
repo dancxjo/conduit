@@ -242,6 +242,7 @@ are satisfied.
 | Address-detection typed terminal | `semantics/text/types.conduit` | generated at build time | yes | yes | exact native round trip plus address-detection behavior suite |
 | Address-detection result and bounded addressed payload | `semantics/text/types.conduit` | generated at build time | yes | yes | exact native round trips and index/text bounds plus text, speech and std Host suites |
 | Human experience, source-availability, visual-evidence and relation vocabularies | `semantics/human/types.conduit` | generated at build time | yes | yes | exact native round trips plus human experience and visual behavior suites |
+| Human experiencer source inputs, source status, and current projection | `semantics/human/types.conduit` | generated at build time; Catalog installs the generated nominal Types directly | yes | yes | nominal-distinction, finite-projection, and portable experiencer suites |
 | Human experience temporal policy and refusal | `semantics/human/types.conduit` | generated at build time | yes | yes | exact native U64 round trip with authored current-before-recent refinement plus experience classification suites |
 | Human keymap refusal vocabulary | `semantics/human/types.conduit` | generated at build time | yes | yes | exact native round trips plus keymap and std/browser/ConduitOS consumer suites |
 | Human key-modifier bitset scalar | `semantics/human/types.conduit` | generated at build time | yes | yes | exact native full-U8 round trips plus preserved const masks, key-event/chord codecs and semantic digests |

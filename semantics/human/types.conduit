@@ -194,6 +194,54 @@ type SourceAvailability =
     | missing
     | unavailable
 
+# Inputs remain nominally distinct because their provenance is meaning, even
+# though each source carries the same finite observation shape.
+type ExperienceHumanInput = {
+    item_identity: Text
+    source_identity: Text
+    observed_at: Text
+    content: Text
+}
+
+type ExperienceBodyInput = {
+    item_identity: Text
+    source_identity: Text
+    observed_at: Text
+    content: Text
+}
+
+type ExperienceMemoryInput = {
+    item_identity: Text
+    source_identity: Text
+    observed_at: Text
+    content: Text
+}
+
+type ExperienceInferenceInput = {
+    item_identity: Text
+    source_identity: Text
+    observed_at: Text
+    content: Text
+}
+
+type ExperienceHypothesisInput = {
+    item_identity: Text
+    source_identity: Text
+    observed_at: Text
+    content: Text
+}
+
+type ExperienceSourceStatus = {
+    source_identity: Text
+    availability: SourceAvailability
+}
+
+type CurrentExperienceProjection = {
+    revision: Count
+    item_identities: collection Text = 32
+    provenance_revision: Text
+}
+
 type VisualEvidenceClass =
     deterministic_derived
     | statistical_candidate
