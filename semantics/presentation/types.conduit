@@ -163,6 +163,27 @@ type LayoutAlignment =
     | center
     | end
 
+type LayoutRect = {
+    x: I16
+    y: I16
+    width: U16
+    height: U16
+}
+
+type LayoutFrame = {
+    viewport: LayoutRect
+    child_count: U8
+    children: collection LayoutRect = 8
+}
+
+type LayoutError =
+    too_many_children
+    | extent_out_of_bounds
+    | undersized_extent
+    | coordinate_overflow
+    | malformed_encoding
+    | non_canonical_encoding
+
 type GraphicsClipClass =
     fully_visible
     | partially_clipped

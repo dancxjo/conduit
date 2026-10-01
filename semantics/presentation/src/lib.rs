@@ -38,12 +38,12 @@ pub use generated::{
     GeneratedManifestationDisposition, GenerativeNarratorRole, GenerativeNarratorRoleCode,
     GraphicsClipClass, GraphicsCommandKind, GraphicsCommandKindCode, GraphicsPaintRole,
     GraphicsPaintRoleCode, GraphicsPoint, GraphicsShapeStyle, GraphicsShapeStyleCode,
-    GraphicsTextRole, GraphicsTextRoleCode, LayoutAlignment, LayoutAxis, MaskPlanningDisposition,
-    MaskPlanningDispositionCode, MaskWardrobeError, MaskWardrobeErrorCode, MaskWardrobeLifetime,
-    MaskWardrobeLifetimeCode, NavigationRefusal, NavigationRefusalCode, PresentationAspect,
-    PresentationAspectCode, PresentationDepth, PresentationDepthCode, PresentationDisclosureLevel,
-    PresentationMechanismKind, PresentationPlace, PresentationPlaceCode, PresentationTemporalRole,
-    StatusKind, ThemeColor,
+    GraphicsTextRole, GraphicsTextRoleCode, LayoutAlignment, LayoutAxis, LayoutError, LayoutFrame,
+    LayoutRect, MaskPlanningDisposition, MaskPlanningDispositionCode, MaskWardrobeError,
+    MaskWardrobeErrorCode, MaskWardrobeLifetime, MaskWardrobeLifetimeCode, NavigationRefusal,
+    NavigationRefusalCode, PresentationAspect, PresentationAspectCode, PresentationDepth,
+    PresentationDepthCode, PresentationDisclosureLevel, PresentationMechanismKind,
+    PresentationPlace, PresentationPlaceCode, PresentationTemporalRole, StatusKind, ThemeColor,
 };
 
 mod application_event;
