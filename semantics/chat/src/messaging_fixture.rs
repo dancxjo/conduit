@@ -5,10 +5,11 @@ use conduit_core::{kind_id, StructuredFieldValue, StructuredInfoType, Structured
 
 use crate::{
     deterministic_delivery_request, message_attachment_slot_type, message_attachments_type,
-    message_metadata_slot_type, message_metadata_type, message_recipient_slot_type,
-    message_recipient_type, message_recipients_type, messaging_optional_text_type,
-    portable_message_type, MessagingFixture, MessagingInfoRefusal, MAXIMUM_MESSAGE_ATTACHMENTS,
-    MAXIMUM_MESSAGE_METADATA, MAXIMUM_MESSAGE_RECIPIENTS,
+    message_metadata_slot_type, message_metadata_type, message_optional_display_name_type,
+    message_optional_sender_type, message_optional_subject_type, message_recipient_slot_type,
+    message_recipient_type, message_recipients_type, portable_message_type, MessagingFixture,
+    MessagingInfoRefusal, MAXIMUM_MESSAGE_ATTACHMENTS, MAXIMUM_MESSAGE_METADATA,
+    MAXIMUM_MESSAGE_RECIPIENTS,
 };
 
 pub struct TextMessagingFixtureSpec<'a> {
@@ -32,7 +33,7 @@ pub fn text_messaging_fixture(
             (
                 "display_name",
                 StructuredInfoValue::variant(
-                    messaging_optional_text_type("messaging/optional-display-name@1"),
+                    message_optional_display_name_type(),
                     "absent",
                     unit()?,
                 )?,
@@ -67,19 +68,11 @@ pub fn text_messaging_fixture(
             ("recipients", recipients),
             (
                 "sender",
-                StructuredInfoValue::variant(
-                    messaging_optional_text_type("messaging/optional-sender@1"),
-                    "absent",
-                    unit()?,
-                )?,
+                StructuredInfoValue::variant(message_optional_sender_type(), "absent", unit()?)?,
             ),
             (
                 "subject",
-                StructuredInfoValue::variant(
-                    messaging_optional_text_type("messaging/optional-subject@1"),
-                    "absent",
-                    unit()?,
-                )?,
+                StructuredInfoValue::variant(message_optional_subject_type(), "absent", unit()?)?,
             ),
         ],
     )?;

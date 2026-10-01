@@ -6,14 +6,18 @@
 
 extern crate alloc;
 
-#[allow(dead_code, clippy::too_many_arguments)]
+#[allow(dead_code, clippy::large_enum_variant, clippy::too_many_arguments)]
 mod generated {
     include!(concat!(env!("OUT_DIR"), "/semantic_types.rs"));
 }
 
 pub use generated::{
     BodyChatHistoryItem, BodyChatMessage, BodyChatRefusal, BodyChatRole, BodyChatRoleCode,
-    BodyConversationalSummary, ChatConnectionState, ChatStateRefusal, PresenceState,
+    BodyConversationalSummary, ChatConnectionState, ChatStateRefusal, DeliveryAuthority,
+    DeliveryEvidence, DeliveryRequest, DeliveryState, DeliveryUpdate, MessageAttachment,
+    MessageAttachmentSlot, MessageMetadataEntry, MessageMetadataSlot, MessageOptionalDisplayName,
+    MessageOptionalSender, MessageOptionalSubject, MessageRecipient, MessageRecipientSlot,
+    NotificationEvent, PortableMessage, PresenceEvent, PresenceState,
 };
 
 mod body_chat;
@@ -44,7 +48,11 @@ pub use messaging_catalog::*;
 mod native_type_tests {
     use super::{
         BodyChatHistoryItem, BodyChatMessage, BodyChatRefusal, BodyChatRole, ChatConnectionState,
-        ChatStateRefusal, PresenceState,
+        ChatStateRefusal, MessageAttachment, PresenceState,
+    };
+    use conduit_core::{
+        BoundedResourceRef, KindId, ResourceClassId, ResourceExtent, ResourceLifetime,
+        ResourceSemanticIdentity, ResourceVersionIdentity,
     };
     use conduit_form::rust_binding::NativeRustBinding;
 
@@ -106,5 +114,39 @@ mod native_type_tests {
         );
         assert!(BodyChatMessage::new(alloc::string::String::new()).is_err());
         assert!(BodyChatMessage::new("x".repeat(4_097)).is_err());
+    }
+
+    #[test]
+    fn message_attachments_keep_the_existing_leaf_bound_and_resource_contract() {
+        let reference = BoundedResourceRef {
+            identity: ResourceSemanticIdentity::from_digest([1; 32]),
+            content_profile: KindId::from("messaging/attachment-content@1"),
+            access_class: ResourceClassId::from("conduit.resource/message-attachment@1"),
+            extent: ResourceExtent {
+                bytes: 4_096,
+                items: Some(1),
+            },
+            lifetime: ResourceLifetime {
+                version: ResourceVersionIdentity::from_digest([2; 32]),
+                expires_at: None,
+            },
+        };
+        let attachment = MessageAttachment::new(
+            reference,
+            "f".repeat(conduit_core::MAXIMUM_STRUCTURED_LEAF_BYTES),
+            "text/plain".into(),
+        )
+        .unwrap();
+        let structured = attachment.clone().into_structured().unwrap();
+        assert_eq!(
+            MessageAttachment::from_structured(structured).unwrap(),
+            attachment
+        );
+        assert!(MessageAttachment::new(
+            attachment.content().clone(),
+            "f".repeat(conduit_core::MAXIMUM_STRUCTURED_LEAF_BYTES + 1),
+            "text/plain".into(),
+        )
+        .is_err());
     }
 }
