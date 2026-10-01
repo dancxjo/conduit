@@ -17,7 +17,10 @@ use conduit_pete::{
     BOUNDED_DRIVE_GRANT, CREATE_DRIVE_IMPLEMENTATION, CREATE_DRIVE_REDUCED_SAFETY_AUTHORITY,
     CREATE_DRIVE_REDUCED_SAFETY_PROFILE,
 };
-use conduit_robotics::ChargingState;
+use conduit_robotics::{
+    ChargingState, NavigationIdentity64, NavigationPlanningInputIdentity, NavigationRouteIdentity,
+    NavigationWaypoints,
+};
 use conduit_std_host::std_create_uart::{
     monotonic_millis, StdCreateUartBase, StdCreateUartObservation,
     MAXIMUM_CREATE_UART_WRITE_WAIT_MS,
@@ -395,69 +398,79 @@ fn navigation_intent(
     now_ms: u64,
     robot_id: &str,
 ) -> Result<(NavigationEvidence, Scalar, Scalar), Box<dyn std::error::Error>> {
+    use conduit_form::rust_binding::BoundedSequence;
     use conduit_semantic_catalog::{
-        local_control, time_parameterize, ControlDecision, NavigationPose, NavigationRoute,
+        local_control, time_parameterize_route, ControlDecision, NavigationPose, NavigationRoute,
         NavigationTime, Validity, Waypoint,
     };
 
     let clock_identity = "pete/create-monotonic-ms".to_owned();
-    let pose = NavigationPose {
-        source_identity: format!("{robot_id}/odometry"),
-        sample_sequence: 1,
-        clock_identity: clock_identity.clone(),
-        frame: "pete/start-local".into(),
-        x_mm: 0,
-        y_mm: 0,
-        heading_microdegrees: 0,
-        validity: Validity {
-            observed_at_ms: now_ms,
-            valid_until_ms: now_ms.saturating_add(1_000),
-        },
+    let identity = |value: String| {
+        NavigationIdentity64::new(value).map_err(|_| "navigation identity exceeds its bound")
     };
-    let route = NavigationRoute {
-        identity: format!("{robot_id}/reviewed-forward-route"),
-        goal_identity: format!("{robot_id}/reviewed-forward-goal"),
-        planner_identity: "conduit/navigation/reviewed-straight-route@1".into(),
-        planning_input_identity: format!("{robot_id}/attended-action-proposal"),
-        frame: pose.frame.clone(),
-        target_heading_microdegrees: 0,
-        position_tolerance_mm: 1,
-        heading_tolerance_microdegrees: 1_000_000,
-        waypoints: vec![
-            Waypoint { x_mm: 0, y_mm: 0 },
-            Waypoint { x_mm: 12, y_mm: 0 },
-        ],
-    };
-    let time = NavigationTime {
-        clock_identity: clock_identity.clone(),
-        now_ms,
-    };
-    let trajectory = time_parameterize(&route, &time, 250, 12, 1_000_000)
+    let clock = identity(clock_identity.clone())?;
+    let frame = identity("pete/start-local".into())?;
+    let pose = NavigationPose::new(
+        clock.clone(),
+        frame.clone(),
+        0,
+        1,
+        identity(format!("{robot_id}/odometry"))?,
+        Validity::new(now_ms, now_ms.saturating_add(1_000))
+            .map_err(|_| "invalid navigation validity")?,
+        0,
+        0,
+    )
+    .map_err(|_| "invalid navigation pose")?;
+    let waypoints = BoundedSequence::try_from_iter([
+        Waypoint::new(0, 0).map_err(|_| "invalid navigation waypoint")?,
+        Waypoint::new(12, 0).map_err(|_| "invalid navigation waypoint")?,
+    ])
+    .map_err(|_| "too many navigation waypoints")?;
+    let route = NavigationRoute::new(
+        frame,
+        identity(format!("{robot_id}/reviewed-forward-goal"))?,
+        1_000_000,
+        NavigationRouteIdentity::new(format!("{robot_id}/reviewed-forward-route"))
+            .map_err(|_| "navigation route identity exceeds its bound")?,
+        identity("conduit/navigation/reviewed-straight-route@1".into())?,
+        NavigationPlanningInputIdentity::new(format!("{robot_id}/attended-action-proposal"))
+            .map_err(|_| "navigation planning-input identity exceeds its bound")?,
+        1,
+        0,
+        NavigationWaypoints::new(waypoints).map_err(|_| "invalid navigation waypoints")?,
+    )
+    .map_err(|_| "invalid navigation route")?;
+    let time = NavigationTime::new(clock, now_ms).map_err(|_| "invalid navigation time")?;
+    let trajectory = time_parameterize_route(&route, &time, 250, 12, 1_000_000)
         .map_err(|error| format!("navigation time parameterization: {error:?}"))?;
     let ControlDecision::Motion(intent) = local_control(&pose, &trajectory, &time)
         .map_err(|error| format!("navigation local control: {error:?}"))?
     else {
         return Err("reviewed navigation did not produce a bounded motion intent".into());
     };
-    if intent.ttl_ms != 250 || intent.interval_ms != 250 || intent.angular_microdegrees != 0 {
+    if *intent.ttl_ms() != 250
+        || *intent.interval_ms() != 250
+        || *intent.angular_microdegrees() != 0
+    {
         return Err("reviewed straight navigation intent violated the drive proof shape".into());
     }
-    let linear_raw = i64::from(intent.linear_mm)
+    let linear_raw = i64::from(*intent.linear_mm())
         .checked_mul(1_000)
         .and_then(|value| value.checked_mul(Scalar::SCALE))
         .and_then(|value| {
-            value.checked_div(i64::from(intent.interval_ms) * CREATE_MAXIMUM_WHEEL_SPEED_MM_S)
+            value.checked_div(i64::from(*intent.interval_ms()) * CREATE_MAXIMUM_WHEEL_SPEED_MM_S)
         })
         .ok_or("navigation velocity normalization overflow")?;
     let evidence = NavigationEvidence {
-        route_identity: route.identity,
-        goal_identity: route.goal_identity,
-        pose_source_identity: pose.source_identity,
+        route_identity: route.identity().get().clone(),
+        goal_identity: route.goal_identity().get().clone(),
+        pose_source_identity: pose.source_identity().get().clone(),
         clock_identity,
-        linear_mm: intent.linear_mm,
-        angular_microdegrees: intent.angular_microdegrees,
-        interval_ms: intent.interval_ms,
-        ttl_ms: intent.ttl_ms,
+        linear_mm: *intent.linear_mm(),
+        angular_microdegrees: *intent.angular_microdegrees(),
+        interval_ms: *intent.interval_ms(),
+        ttl_ms: *intent.ttl_ms(),
     };
     Ok((
         evidence,

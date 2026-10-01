@@ -334,6 +334,23 @@ fn selected_record_can_retain_established_constructor_argument_order() {
 }
 
 #[test]
+fn wide_record_constructor_allows_its_generated_argument_shape() {
+    let checked = crate::check_syntax_document(
+        &crate::parse_syntax_document(
+            "type Wide = {\n    a: U8\n    b: U8\n    c: U8\n    d: U8\n    e: U8\n    f: U8\n    g: U8\n    h: U8\n}\n",
+        ),
+        &crate::StartupCatalog::new(),
+    )
+    .unwrap();
+    let generated =
+        generate_rust_bindings(&checked.native_types, &RustBindingOptions::default()).unwrap();
+
+    assert!(generated
+        .source
+        .contains("#[allow(clippy::too_many_arguments)]\n    pub fn new(a: u8, b: u8, c: u8"));
+}
+
+#[test]
 fn record_constructor_order_must_name_every_field_exactly_once() {
     let checked = crate::check_syntax_document(
         &crate::parse_syntax_document("type Pair = {\n    left: U32\n    right: U16\n}\n"),
