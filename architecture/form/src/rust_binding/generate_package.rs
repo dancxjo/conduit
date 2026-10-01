@@ -1,4 +1,6 @@
-use super::{RustBindingGenerationError, RustBindingModule, RustBindingOptions};
+use super::{
+    ExternalNativeRustBinding, RustBindingGenerationError, RustBindingModule, RustBindingOptions,
+};
 use crate::prelude::*;
 use crate::{
     check_package_bundle, CheckedPackageBundle, ConduitLock, PackageBundleError, PackageCheckError,
@@ -42,12 +44,6 @@ pub struct LockedPackageRustBindingInput<'a> {
     /// implement `NativeRustBinding` for them. Root-owned Types are never
     /// accepted here and dependency bindings are never generated again.
     pub external_bindings: &'a [ExternalNativeRustBinding<'a>],
-}
-
-#[derive(Clone, Copy, Debug, PartialEq, Eq)]
-pub struct ExternalNativeRustBinding<'a> {
-    pub semantic_identity: &'a str,
-    pub rust_type_path: &'a str,
 }
 
 /// Generates bindings only after every source bundle named by the lock has
@@ -223,7 +219,7 @@ fn referenced_schema_identities(value_type: &conduit_core::StructuredInfoType) -
     identities
 }
 
-fn valid_rust_type_path(path: &str) -> bool {
+pub(super) fn valid_rust_type_path(path: &str) -> bool {
     let path = path.strip_prefix("::").unwrap_or(path);
     !path.is_empty()
         && path.split("::").all(|segment| {
