@@ -23,6 +23,7 @@ fn main() {
         &checked.codes,
         &RustBindingOptions {
             derive_serde_for_variants: true,
+            serde_record_types: ["InputSurfacePoint".into()].into(),
             serde_variant_exclusions: [
                 "ChordInfo".into(),
                 "ControlChordModifier".into(),

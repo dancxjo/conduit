@@ -6,12 +6,19 @@ use sha2::{Digest, Sha256};
 
 use super::{
     canonical::{decode_type, Cursor},
-    validate_name, StructuredInfoRefusal, StructuredInfoType, StructuredInfoTypeNode,
+    validate_name, StructuredInfoRefusal, StructuredInfoType, StructuredInfoTypeShape,
     StructuredInfoValue, StructuredInfoValueNode, MAXIMUM_STRUCTURED_CANONICAL_BYTES,
 };
 
 mod canonical_selection;
 mod predicate;
+
+fn selection_shape(value_type: &StructuredInfoType) -> StructuredInfoTypeShape<'_> {
+    match value_type.shape() {
+        StructuredInfoTypeShape::Nominal { representation, .. } => selection_shape(representation),
+        shape => shape,
+    }
+}
 
 const SELECTOR_DIGEST_DOMAIN: &[u8] = b"conduit.structured-info.selector.v1";
 
@@ -214,13 +221,13 @@ impl StructuredSelector {
     ) -> Result<Self, StructuredSelectorRefusal> {
         let field = field.into();
         validate_name(&field).map_err(StructuredSelectorRefusal::InvalidName)?;
-        let StructuredInfoTypeNode::Record { fields, .. } = &input_type.0 else {
+        let StructuredInfoTypeShape::Record { fields, .. } = selection_shape(&input_type) else {
             return Err(StructuredSelectorRefusal::NotARecord);
         };
         let output_type = fields
             .iter()
-            .find(|candidate| candidate.name == field)
-            .map(|candidate| candidate.value_type.clone())
+            .find(|candidate| candidate.name() == field)
+            .map(|candidate| candidate.value_type().clone())
             .ok_or(StructuredSelectorRefusal::UnknownField)?;
         Ok(Self {
             input_type,
@@ -233,13 +240,14 @@ impl StructuredSelector {
         input_type: StructuredInfoType,
         index: u16,
     ) -> Result<Self, StructuredSelectorRefusal> {
-        let StructuredInfoTypeNode::Collection { element, length } = &input_type.0 else {
+        let StructuredInfoTypeShape::Collection { element, length } = selection_shape(&input_type)
+        else {
             return Err(StructuredSelectorRefusal::NotACollection);
         };
-        if index >= *length {
+        if index >= length {
             return Err(StructuredSelectorRefusal::IndexOutOfRange);
         }
-        let output_type = element.as_ref().clone();
+        let output_type = element.clone();
         Ok(Self {
             input_type,
             output_type,
@@ -254,13 +262,13 @@ impl StructuredSelector {
     ) -> Result<Self, StructuredSelectorRefusal> {
         let tag = tag.into();
         validate_name(&tag).map_err(StructuredSelectorRefusal::InvalidName)?;
-        let StructuredInfoTypeNode::Variant { cases, .. } = &input_type.0 else {
+        let StructuredInfoTypeShape::Variant { cases, .. } = selection_shape(&input_type) else {
             return Err(StructuredSelectorRefusal::NotAVariant);
         };
         let output_type = cases
             .iter()
-            .find(|candidate| candidate.tag == tag)
-            .map(|candidate| candidate.payload_type.clone())
+            .find(|candidate| candidate.tag() == tag)
+            .map(|candidate| candidate.payload_type().clone())
             .ok_or(StructuredSelectorRefusal::UnknownVariantTag)?;
         Ok(Self {
             input_type,

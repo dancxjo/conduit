@@ -1,8 +1,8 @@
 use alloc::vec::Vec;
 
 use super::{
-    StructuredCanonicalSelection, StructuredInfoRefusal, StructuredInfoType, StructuredSelector,
-    StructuredSelectorBack, StructuredSelectorRefusal,
+    selection_shape, StructuredCanonicalSelection, StructuredInfoRefusal, StructuredInfoType,
+    StructuredSelector, StructuredSelectorBack, StructuredSelectorRefusal,
 };
 use crate::structured_info::canonical::Cursor;
 
@@ -18,7 +18,7 @@ impl StructuredSelector {
             return Err(StructuredSelectorRefusal::WrongInputType);
         };
         let mut cursor = Cursor::new(node);
-        let selected = match (&self.operation, self.input_type.shape()) {
+        let selected = match (&self.operation, selection_shape(&self.input_type)) {
             (
                 StructuredSelectorBack::Field(wanted),
                 crate::StructuredInfoTypeShape::Record { fields, .. },

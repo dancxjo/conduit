@@ -1,6 +1,7 @@
 use super::{
-    StructuredInfoType, StructuredInfoTypeNode, StructuredInfoValue, StructuredSelector,
-    StructuredSelectorBack, StructuredSelectorRefusal, UnmatchedVariantDisposition,
+    selection_shape, StructuredInfoType, StructuredInfoTypeShape, StructuredInfoValue,
+    StructuredSelector, StructuredSelectorBack, StructuredSelectorRefusal,
+    UnmatchedVariantDisposition,
 };
 use crate::structured_info::{validate_name, MAXIMUM_STRUCTURED_RECORD_FIELDS};
 use alloc::{string::String, vec::Vec};
@@ -21,15 +22,18 @@ impl StructuredSelector {
         if expected.len() > MAXIMUM_STRUCTURED_RECORD_FIELDS {
             return Err(StructuredSelectorRefusal::TooManyPredicateValues);
         }
-        let StructuredInfoTypeNode::Record { fields, .. } = &input_type.0 else {
+        let StructuredInfoTypeShape::Record { fields, .. } = selection_shape(&input_type) else {
             return Err(StructuredSelectorRefusal::NotARecord);
         };
         let value_type = fields
             .iter()
-            .find(|candidate| candidate.name == field)
-            .map(|candidate| candidate.value_type.clone())
+            .find(|candidate| candidate.name() == field)
+            .map(|candidate| candidate.value_type().clone())
             .ok_or(StructuredSelectorRefusal::UnknownField)?;
-        if !matches!(value_type.0, StructuredInfoTypeNode::Leaf(_)) {
+        if !matches!(
+            selection_shape(&value_type),
+            StructuredInfoTypeShape::Leaf(_)
+        ) {
             return Err(StructuredSelectorRefusal::PredicateRequiresLeafField);
         }
         for value in &expected {
