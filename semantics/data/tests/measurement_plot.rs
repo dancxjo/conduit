@@ -48,12 +48,12 @@ fn bounded_projection_retains_endpoints_and_reports_omissions() {
     assert_eq!(series.source_samples(), 8);
     assert_eq!(series.omitted_samples(), 4);
     assert_eq!(series.points().len(), 4);
-    assert_eq!(series.points()[0].source_index, 0);
-    assert_eq!(series.points()[3].source_index, 7);
-    assert_eq!(series.points()[0].time_millionths, 0);
-    assert_eq!(series.points()[3].time_millionths, PLOT_AXIS_MILLIONTHS);
-    assert_eq!(series.points()[0].value_millionths, 0);
-    assert_eq!(series.points()[3].value_millionths, 875_000);
+    assert_eq!(*series.points()[0].source_index(), 0);
+    assert_eq!(*series.points()[3].source_index(), 7);
+    assert_eq!(*series.points()[0].time_millionths(), 0);
+    assert_eq!(*series.points()[3].time_millionths(), PLOT_AXIS_MILLIONTHS);
+    assert_eq!(*series.points()[0].value_millionths(), 0);
+    assert_eq!(*series.points()[3].value_millionths(), 875_000);
 }
 
 #[test]

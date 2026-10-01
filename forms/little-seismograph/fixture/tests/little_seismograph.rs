@@ -158,9 +158,9 @@ fn deterministic_source_runs_the_exact_processing_pipeline() {
         plot.points()
             .iter()
             .map(|point| (
-                point.source_index,
-                point.time_millionths,
-                point.value_millionths
+                *point.source_index(),
+                *point.time_millionths(),
+                *point.value_millionths()
             ))
             .collect::<Vec<_>>(),
         [

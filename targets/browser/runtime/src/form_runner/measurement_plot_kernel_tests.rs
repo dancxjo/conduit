@@ -228,7 +228,7 @@ fn planned_browser_plot_projects_through_the_production_kernel() {
         series
             .points()
             .iter()
-            .map(|point| point.source_index)
+            .map(|point| *point.source_index())
             .collect::<Vec<_>>(),
         [0, 2]
     );

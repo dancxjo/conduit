@@ -122,9 +122,9 @@ pub fn encode_measurement_plot_series(
     bytes.extend_from_slice(&(series.source_samples() as u64).to_le_bytes());
     bytes.extend_from_slice(&(series.omitted_samples() as u64).to_le_bytes());
     for point in series.points() {
-        bytes.extend_from_slice(&(point.source_index as u64).to_le_bytes());
-        bytes.extend_from_slice(&point.time_millionths.to_le_bytes());
-        bytes.extend_from_slice(&point.value_millionths.to_le_bytes());
+        bytes.extend_from_slice(&point.source_index().to_le_bytes());
+        bytes.extend_from_slice(&point.time_millionths().to_le_bytes());
+        bytes.extend_from_slice(&point.value_millionths().to_le_bytes());
     }
     if bytes.len() > MAXIMUM_MEASUREMENT_PLOT_SERIES_BYTES {
         return Err(MeasurementWireRefusal::CapacityExceeded);
@@ -234,12 +234,10 @@ pub fn decode_measurement_plot_series(
         usize::try_from(input.u64()?).map_err(|_| MeasurementWireRefusal::CapacityExceeded)?;
     let mut points = Vec::with_capacity(count);
     for _ in 0..count {
-        points.push(MeasurementPlotPoint {
-            source_index: usize::try_from(input.u64()?)
-                .map_err(|_| MeasurementWireRefusal::CapacityExceeded)?,
-            time_millionths: input.i64()?,
-            value_millionths: input.i64()?,
-        });
+        points.push(
+            MeasurementPlotPoint::new(input.u64()?, input.i64()?, input.i64()?)
+                .map_err(|_| MeasurementWireRefusal::Malformed)?,
+        );
     }
     if !input.finished() {
         return Err(MeasurementWireRefusal::Malformed);
