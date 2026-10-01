@@ -19,7 +19,8 @@ use conduit_presentation::{
     FACE_INTERACTION_VALUE_KIND, PRESENTATION_VALUE_KIND, SHOW_VALUE_KIND,
 };
 
-use crate::{project_mask_inspection, MaskWardrobeAction, MaskWardrobeControl};
+use crate::{MaskWardrobeAction, MaskWardrobeControl};
+use patchbay_application::project_mask_inspection;
 
 struct Fixture {
     mask: MaskForm,
