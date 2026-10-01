@@ -1,9 +1,10 @@
 use conduit_core::{BootId, HostId};
-use conduit_planner::RecursiveRecoveryEvidence;
-use patchbay_model::{explain_recursive_recovery, patchbay_mask_plans};
+use conduit_planner::{explain_recursive_recovery, RecursiveRecoveryEvidence};
+
+use super::patchbay_mask_plans;
 
 #[test]
-fn patchbay_reveals_the_scarred_graph_instead_of_flattening_it_to_fallback() {
+fn reveals_the_scarred_graph_instead_of_flattening_it_to_fallback() {
     let proof = patchbay_mask_plans().unwrap();
     let mut replacement = proof.recursive.clone();
     let mut second = replacement.fragments[0].clone();
