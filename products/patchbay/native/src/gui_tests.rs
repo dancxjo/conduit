@@ -33,9 +33,9 @@ fn composition_graph() -> PatchbayGraph {
 fn native_renderer_consumes_exact_shared_debugger_activity_without_topology_mutation() {
     let graph = graph();
     let subject = graph.gears[0].identity.clone();
-    let debugger: patchbay_model::DebuggerPresentation =
+    let debugger: patchbay_application::DebuggerPresentation =
         serde_json::from_value(serde_json::json!({
-            "schema": patchbay_model::DEBUGGER_PRESENTATION_SCHEMA,
+            "schema": patchbay_application::DEBUGGER_PRESENTATION_SCHEMA,
             "execution": { "body": vec![1; 32], "plan": vec![2; 32], "play": vec![3; 32] },
             "revision": 1,
             "tick": 0,

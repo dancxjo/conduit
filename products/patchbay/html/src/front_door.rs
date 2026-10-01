@@ -2,8 +2,9 @@
 
 use crate::RendererSnapshot;
 use conduit_core::{BootId, HostId, SignId};
+use conduit_semantic_catalog::GearPalette;
 use patchbay_model::{
-    GearPalette, LocalFrontDoor, RendererAdapterIdentity, RendererAdapterKind, RendererExecution,
+    LocalFrontDoor, RendererAdapterIdentity, RendererAdapterKind, RendererExecution,
     ZeroBodyFrontDoor,
 };
 

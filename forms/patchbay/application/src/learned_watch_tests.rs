@@ -1,3 +1,5 @@
+use alloc::{format, string::String, vec};
+
 use conduit_kernel::debug_observation::{
     DebugEventKind, DebugExecutionIdentity, DebugObservationRecord, DebugSubject,
     DEBUG_OBSERVATION_SCHEMA_VERSION, MAX_DEBUG_VALUE_PREVIEW_BYTES,

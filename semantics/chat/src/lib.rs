@@ -18,6 +18,8 @@ pub use generated::{
 
 mod body_chat;
 pub use body_chat::*;
+mod conversation_request_evidence;
+pub use conversation_request_evidence::ConversationRequestEvidence;
 
 mod shared_pool;
 pub use shared_pool::*;

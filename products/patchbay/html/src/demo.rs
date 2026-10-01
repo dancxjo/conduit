@@ -73,9 +73,9 @@ fn attach_documentary_debugger(snapshot: &mut RendererSnapshot) -> Result<(), St
     let execution = serde_json::json!({
         "body": vec![21; 32], "plan": vec![22; 32], "play": vec![23; 32]
     });
-    let debugger: patchbay_model::DebuggerPresentation = serde_json::from_value(
+    let debugger: patchbay_application::DebuggerPresentation = serde_json::from_value(
         serde_json::json!({
-            "schema": patchbay_model::DEBUGGER_PRESENTATION_SCHEMA,
+            "schema": patchbay_application::DEBUGGER_PRESENTATION_SCHEMA,
             "execution": execution,
             "revision": 3,
             "tick": 0,
@@ -89,15 +89,16 @@ fn attach_documentary_debugger(snapshot: &mut RendererSnapshot) -> Result<(), St
         }),
     )
     .map_err(|error| error.to_string())?;
-    let watches: patchbay_model::DebuggerWatchSet = serde_json::from_value(serde_json::json!({
-        "schema": patchbay_model::DEBUGGER_WATCH_SCHEMA,
-        "execution": debugger.execution,
-        "revision": 0,
-        "focused_subject": null,
-        "eligible_subjects": [[gear, "gear"], [port, "port"], [cord, "cord"]],
-        "watches": []
-    }))
-    .map_err(|error| error.to_string())?;
+    let watches: patchbay_application::DebuggerWatchSet =
+        serde_json::from_value(serde_json::json!({
+            "schema": patchbay_application::DEBUGGER_WATCH_SCHEMA,
+            "execution": debugger.execution,
+            "revision": 0,
+            "focused_subject": null,
+            "eligible_subjects": [[gear, "gear"], [port, "port"], [cord, "cord"]],
+            "watches": []
+        }))
+        .map_err(|error| error.to_string())?;
     let debugger_execution = debugger.execution.clone();
     snapshot
         .attach_debugger(debugger)
@@ -105,7 +106,7 @@ fn attach_documentary_debugger(snapshot: &mut RendererSnapshot) -> Result<(), St
     snapshot
         .attach_watches(watches)
         .map_err(|error| error.to_string())?;
-    let events: Vec<patchbay_model::DebuggerTimelineEvent> = serde_json::from_value(
+    let events: Vec<patchbay_application::DebuggerTimelineEvent> = serde_json::from_value(
         serde_json::json!([
             { "execution": execution, "sequence": 39, "host_sequence": 39, "host": 1, "form": 1, "subject": cord, "related_subject": null, "event": "value-sent", "value": { "kind": "scalar", "summary": "41", "type_identity": 12, "total_bytes": 2, "truncated": false }, "fault_code": null, "causal_parent_sequence": null, "invocation_sequence": 39 },
             { "execution": execution, "sequence": 40, "host_sequence": 40, "host": 1, "form": 1, "subject": gear, "related_subject": null, "event": "fault", "value": null, "fault_code": 17, "causal_parent_sequence": 39, "invocation_sequence": 39 },
@@ -116,26 +117,27 @@ fn attach_documentary_debugger(snapshot: &mut RendererSnapshot) -> Result<(), St
     .map_err(|error| error.to_string())?;
     let retained_bytes: usize = events
         .iter()
-        .map(patchbay_model::DebuggerTimelineEvent::retained_bytes)
+        .map(patchbay_application::DebuggerTimelineEvent::retained_bytes)
         .sum();
-    let timeline: patchbay_model::DebuggerTimeline = serde_json::from_value(serde_json::json!({
-        "schema": patchbay_model::DEBUGGER_TIMELINE_SCHEMA,
-        "revision": 4,
-        "mode": "live",
-        "cursor": 3,
-        "selected_event": null,
-        "subject_filter": null,
-        "events": events,
-        "retained_bytes": retained_bytes,
-        "evicted_events": 0,
-        "gap": { "dropped_records": 2, "first_retained_sequence": 39 }
-    }))
-    .map_err(|error| error.to_string())?;
+    let timeline: patchbay_application::DebuggerTimeline =
+        serde_json::from_value(serde_json::json!({
+            "schema": patchbay_application::DEBUGGER_TIMELINE_SCHEMA,
+            "revision": 4,
+            "mode": "live",
+            "cursor": 3,
+            "selected_event": null,
+            "subject_filter": null,
+            "events": events,
+            "retained_bytes": retained_bytes,
+            "evicted_events": 0,
+            "gap": { "dropped_records": 2, "first_retained_sequence": 39 }
+        }))
+        .map_err(|error| error.to_string())?;
     snapshot
         .attach_timeline(timeline)
         .map_err(|error| error.to_string())?;
     snapshot
-        .attach_debugger_control(patchbay_model::DebuggerExecutionControl::new(
+        .attach_debugger_control(patchbay_application::DebuggerExecutionControl::new(
             debugger_execution,
             vec![gear],
         ))

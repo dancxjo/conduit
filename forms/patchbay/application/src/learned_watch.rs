@@ -1,5 +1,6 @@
 //! Finite renderer-neutral projections for learned and dynamical runtime Watches.
 
+use alloc::{string::String, vec::Vec};
 use serde::{Deserialize, Serialize};
 
 pub const MAX_LEARNED_WATCH_PROJECTIONS: usize = 8;

@@ -25,8 +25,9 @@ use embedded_graphics::{
     prelude::{DrawTarget, Point, Size},
     primitives::Rectangle,
 };
+use patchbay_application::DebuggerPresentation;
 use patchbay_graph::{PatchbayGear, PatchbayGraph};
-use patchbay_model::{ApplicationTheme, DebuggerPresentation, CONDUIT_APPLICATION_THEME};
+use patchbay_model::{ApplicationTheme, CONDUIT_APPLICATION_THEME};
 
 pub use crate::gui_hit::{GuiAction, HitTarget};
 
@@ -37,7 +38,7 @@ pub const MAX_HIT_TARGETS: usize = patchbay_graph::MAX_PATCHBAY_GEARS
     + patchbay_graph::MAX_PATCHBAY_PORTS
     + patchbay_graph::MAX_PATCHBAY_PORTS
     + patchbay_graph::MAX_PATCHBAY_CORDS
-    + patchbay_model::MAX_PALETTE_ENTRIES
+    + conduit_semantic_catalog::MAX_PALETTE_ENTRIES
     + patchbay_graph::MAX_PATCHBAY_GEARS * patchbay_graph::MAX_FACE_CONTROLS * 2
     + 9
     + conduit_body::MAX_BODY_PARTS
@@ -154,7 +155,7 @@ pub fn draw_patchbay_with_debugger(
         .ok()
         .zip(u16::try_from(height).ok())
         .and_then(|(width, height)| {
-            patchbay_model::ResponsivePatchbayLayout::allocate(
+            patchbay_application::ResponsivePatchbayLayout::allocate(
                 width,
                 height,
                 100,
@@ -163,13 +164,13 @@ pub fn draw_patchbay_with_debugger(
             .ok()
         });
     let shell_region = |id| shell.as_ref().and_then(|layout| layout.region(id));
-    let header_height = shell_region(patchbay_model::PresentationRegionId::HeaderMeaning)
+    let header_height = shell_region(patchbay_application::PresentationRegionId::HeaderMeaning)
         .map_or(HEADER_HEIGHT, |region| i32::from(region.bounds.height));
-    let footer_height = shell_region(patchbay_model::PresentationRegionId::FooterMeaning)
+    let footer_height = shell_region(patchbay_application::PresentationRegionId::FooterMeaning)
         .map_or(FOOTER_HEIGHT, |region| i32::from(region.bounds.height));
-    let nav_width = shell_region(patchbay_model::PresentationRegionId::Navigator)
+    let nav_width = shell_region(patchbay_application::PresentationRegionId::Navigator)
         .map_or(NAV_WIDTH, |region| i32::from(region.bounds.width));
-    let inspector_width = shell_region(patchbay_model::PresentationRegionId::Inspector)
+    let inspector_width = shell_region(patchbay_application::PresentationRegionId::Inspector)
         .map_or(0, |region| i32::from(region.bounds.width));
     let mut targets = Vec::with_capacity(MAX_HIT_TARGETS);
     draw_regions(
