@@ -73,8 +73,6 @@ mod vision_local_cv;
 pub use vision_local_cv::*;
 mod vision_continuous_local;
 pub use vision_continuous_local::*;
-mod vision_local_observation;
-pub use vision_local_observation::*;
 mod vision_local_objects;
 pub use vision_local_objects::*;
 #[cfg(feature = "form-catalog")]
