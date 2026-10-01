@@ -4,16 +4,21 @@ use alloc::vec;
 use conduit_core::{
     kind_id, port_id, ArtifactId, Back, BackOfferBuilder, CapabilityId, CapabilityLimits,
     CapabilityOffer, ExecutionProfileId, HostCallRequirement, ImplementationId,
-    ImplementationOffer, Kind, KindIdentity, PortDescriptor, PortDirection, PortTemporal,
-    ResourceRequirement,
+    ImplementationOffer, Kind, KindIdentity, KindSemanticLaw, PortDescriptor, PortDirection,
+    PortTemporal, ResourcePortContract, ResourcePortLifecycle, ResourcePortMobility,
+    ResourcePortOwnership, ResourceRequirement,
 };
 
 pub const RENDERER_KIND: &str = "presentation/renderer";
 pub const FACE_INTERACTION_KIND: &str = "face/interaction";
 pub const PRESENTATION_TEE_KIND: &str = "presentation/tee";
 pub const PRESENTER_STAGE_KIND: &str = "presentation/presenter-stage";
+pub const SHOW_RESOURCE_SOURCE_KIND: &str = "presentation/show-resource-source";
+pub const RESOURCE_RENDERER_KIND: &str = "presentation/resource-renderer";
 pub const PRESENTATION_VALUE_KIND: &str = "presentation/presentation@1";
 pub const SHOW_VALUE_KIND: &str = "presentation/show@1";
+pub const SHOW_RESOURCE_VALUE_KIND: &str = "presentation/show-resource@1";
+pub const SHOW_RESOURCE_CLASS: &str = "presentation.resource/show@1";
 /// Compatibility name for Rust callers while the internal Manifestation type
 /// is migrated to the canonical Show vocabulary. It names the Show semantic
 /// value and does not preserve the superseded authored identity.
@@ -22,6 +27,9 @@ pub const RENDERER_CONTRACT_REVISION: &str = "conduit.presentation/renderer@1";
 pub const FACE_INTERACTION_CONTRACT_REVISION: &str = "conduit.face/interaction@2";
 pub const PRESENTATION_TEE_CONTRACT_REVISION: &str = "conduit.presentation/tee@1";
 pub const PRESENTER_STAGE_CONTRACT_REVISION: &str = "conduit.presentation/presenter-stage@1";
+pub const SHOW_RESOURCE_SOURCE_CONTRACT_REVISION: &str =
+    "conduit.presentation/show-resource-source@1";
+pub const RESOURCE_RENDERER_CONTRACT_REVISION: &str = "conduit.presentation/resource-renderer@1";
 pub const MAX_RENDERER_VALUE_BYTES: u32 = crate::MAX_PRESENTATION_TOTAL_BYTES as u32;
 pub const MAX_PRESENTATION_ACTIVE_INSTANCES: u16 = 8;
 pub const MAX_PRESENTATION_QUEUE_ITEMS: u16 = 8;
@@ -44,6 +52,36 @@ pub fn renderer_outputs() -> alloc::vec::Vec<PortDescriptor> {
         temporal: PortTemporal::Value,
         abnormal_kind: None,
     }]
+}
+
+fn show_resource_port(direction: PortDirection) -> PortDescriptor {
+    PortDescriptor {
+        port_id: port_id("show-resource"),
+        value_kind: kind_id(SHOW_RESOURCE_VALUE_KIND),
+        direction,
+        temporal: PortTemporal::Value,
+        abnormal_kind: None,
+    }
+}
+
+fn show_resource_contract() -> ResourcePortContract {
+    ResourcePortContract {
+        port_id: port_id("show-resource"),
+        class_id: conduit_core::ResourceClassId::from(SHOW_RESOURCE_CLASS),
+        ownership: ResourcePortOwnership::Move,
+        lifecycle: ResourcePortLifecycle::Play,
+        mobility: ResourcePortMobility::HostLocal,
+    }
+}
+
+pub fn resource_renderer_inputs() -> alloc::vec::Vec<PortDescriptor> {
+    let mut inputs = renderer_inputs();
+    inputs.push(show_resource_port(PortDirection::Input));
+    inputs
+}
+
+pub fn show_resource_source_outputs() -> alloc::vec::Vec<PortDescriptor> {
+    vec![show_resource_port(PortDirection::Output)]
 }
 
 pub fn interaction_inputs() -> alloc::vec::Vec<PortDescriptor> {
@@ -138,6 +176,27 @@ pub struct FaceInteractionRealizationOffer {
     pub limits: CapabilityLimits,
 }
 
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct ShowResourceSourceOffer {
+    pub capability_id: CapabilityId,
+    pub execution_profile_id: ExecutionProfileId,
+    pub implementation_id: ImplementationId,
+    pub artifact_id: ArtifactId,
+    pub resource_requirement: ResourceRequirement,
+    pub limits: CapabilityLimits,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct ResourceRendererRealizationOffer {
+    pub capability_id: CapabilityId,
+    pub execution_profile_id: ExecutionProfileId,
+    pub implementation_id: ImplementationId,
+    pub artifact_id: ArtifactId,
+    pub host_call: HostCallRequirement,
+    pub authority_requirement: conduit_core::AuthorityRequirement,
+    pub limits: CapabilityLimits,
+}
+
 pub fn renderer_offer(realization: RendererRealizationOffer) -> CapabilityOffer {
     build_offer(
         renderer_contract(),
@@ -151,6 +210,38 @@ pub fn renderer_offer(realization: RendererRealizationOffer) -> CapabilityOffer 
         vec![realization.resource_requirement],
         realization.limits,
     )
+}
+
+pub fn show_resource_source_offer(realization: ShowResourceSourceOffer) -> CapabilityOffer {
+    build_offer(
+        show_resource_source_contract(),
+        realization.capability_id,
+        ImplementationOffer {
+            execution_profile_id: realization.execution_profile_id,
+            implementation_id: realization.implementation_id,
+            artifact_id: realization.artifact_id,
+        },
+        vec![],
+        vec![realization.resource_requirement],
+        realization.limits,
+    )
+}
+
+pub fn resource_renderer_offer(realization: ResourceRendererRealizationOffer) -> CapabilityOffer {
+    let mut offer = build_offer(
+        resource_renderer_contract(),
+        realization.capability_id,
+        ImplementationOffer {
+            execution_profile_id: realization.execution_profile_id,
+            implementation_id: realization.implementation_id,
+            artifact_id: realization.artifact_id,
+        },
+        vec![realization.host_call],
+        vec![],
+        realization.limits,
+    );
+    offer.authority_requirements = vec![realization.authority_requirement];
+    offer
 }
 
 pub fn face_interaction_offer(realization: FaceInteractionRealizationOffer) -> CapabilityOffer {
@@ -215,6 +306,38 @@ fn renderer_contract() -> Kind {
         renderer_outputs(),
         MAX_RENDERER_VALUE_BYTES * u32::from(MAX_PRESENTATION_QUEUE_ITEMS),
     )
+}
+
+fn show_resource_source_contract() -> Kind {
+    let mut contract = semantic_contract(
+        SHOW_RESOURCE_SOURCE_KIND,
+        SHOW_RESOURCE_SOURCE_CONTRACT_REVISION,
+        alloc::vec::Vec::new(),
+        show_resource_source_outputs(),
+        MAX_RENDERER_VALUE_BYTES * u32::from(MAX_PRESENTATION_QUEUE_ITEMS),
+    );
+    contract
+        .semantic_laws
+        .push(KindSemanticLaw::ResourcePorts(vec![
+            show_resource_contract(),
+        ]));
+    contract
+}
+
+fn resource_renderer_contract() -> Kind {
+    let mut contract = semantic_contract(
+        RESOURCE_RENDERER_KIND,
+        RESOURCE_RENDERER_CONTRACT_REVISION,
+        resource_renderer_inputs(),
+        renderer_outputs(),
+        MAX_RENDERER_VALUE_BYTES * u32::from(MAX_PRESENTATION_QUEUE_ITEMS),
+    );
+    contract
+        .semantic_laws
+        .push(KindSemanticLaw::ResourcePorts(vec![
+            show_resource_contract(),
+        ]));
+    contract
 }
 
 fn interaction_contract() -> Kind {
@@ -284,6 +407,16 @@ pub fn renderer_kind_projection() -> conduit_form::KindProjection {
 }
 
 #[cfg(feature = "form-catalog")]
+pub fn show_resource_source_kind() -> Kind {
+    show_resource_source_contract()
+}
+
+#[cfg(feature = "form-catalog")]
+pub fn resource_renderer_kind() -> Kind {
+    resource_renderer_contract()
+}
+
+#[cfg(feature = "form-catalog")]
 pub fn face_interaction_kind_projection() -> conduit_form::KindProjection {
     conduit_form::KindProjection {
         kind_id: kind_id(FACE_INTERACTION_KIND),
@@ -336,6 +469,15 @@ pub fn install_mask_mechanism_catalog(
         })?;
         profiles
             .insert(projection)
+            .map_err(|error| alloc::format!("install Mask mechanism profile: {error:?}"))?;
+    }
+    for kind in [show_resource_source_kind(), resource_renderer_kind()] {
+        startup.insert(conduit_form::KindSignature {
+            kind: kind.kind_id.as_str().into(),
+            startup_parameters: alloc::vec::Vec::new(),
+        })?;
+        profiles
+            .insert_kind(kind)
             .map_err(|error| alloc::format!("install Mask mechanism profile: {error:?}"))?;
     }
     Ok(())

@@ -201,7 +201,8 @@ pub fn shared_relation_signature(signature: &ModelSignature) -> ModelRelationSig
     })
     .collect();
     let deterministic = RelationResultProfile::Deterministic;
-    let probabilistic = RelationResultProfile::Probabilistic { maximum_samples: 2 };
+    let probabilistic = RelationResultProfile::probabilistic(2)
+        .expect("the shared paired relation has a positive sample bound");
     ModelRelationSignature {
         identity: "conduit.tongues/shared-paired-relation@1".into(),
         compatibility_version: 1,
@@ -212,25 +213,25 @@ pub fn shared_relation_signature(signature: &ModelSignature) -> ModelRelationSig
                 "acoustic",
                 "latent",
                 RelationQueryMode::EncodeLatent,
-                deterministic,
+                deterministic.clone(),
             ),
             query(
                 "articulation",
                 "latent",
                 RelationQueryMode::EncodeLatent,
-                deterministic,
+                deterministic.clone(),
             ),
             query(
                 "acoustic",
                 "articulation",
                 RelationQueryMode::InferPosterior,
-                probabilistic,
+                probabilistic.clone(),
             ),
             query(
                 "articulation",
                 "acoustic",
                 RelationQueryMode::DecodeGenerate,
-                deterministic,
+                deterministic.clone(),
             ),
             query(
                 "latent",

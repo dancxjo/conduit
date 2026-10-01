@@ -66,7 +66,7 @@
         },
         {
           "role": "creche-release-catalog",
-          "specifier": "../../creche/browser/creche-release-catalog.mjs"
+          "specifier": "./creche-release-catalog.mjs"
         },
         {
           "role": "browser-host-calls",
@@ -195,7 +195,7 @@
       "dependencies": [
         {
           "role": "creche-rendezvous",
-          "specifier": "../../creche/browser/creche-rendezvous.mjs"
+          "specifier": "./creche-rendezvous.mjs"
         },
         {
           "role": "workspace-host-configuration",
@@ -203,15 +203,15 @@
         },
         {
           "role": "creche-physical",
-          "specifier": "../../creche/browser/creche-physical.mjs"
+          "specifier": "./creche-physical.mjs"
         },
         {
           "role": "creche-target-catalog",
-          "specifier": "../../creche/browser/creche-target-catalog.mjs"
+          "specifier": "./creche-target-catalog.mjs"
         },
         {
           "role": "creche-installed-targets",
-          "specifier": "../../creche/browser/creche-installed-targets.mjs"
+          "specifier": "./creche-installed-targets.mjs"
         },
         {
           "role": "browser-adapter",
@@ -227,7 +227,7 @@
       "dependencies": [
         {
           "role": "browser-host-configuration",
-          "specifier": "../../creche/browser/creche-browser-configuration.mjs"
+          "specifier": "./browser-host-configuration.mjs"
         }
       ]
     },
@@ -305,7 +305,7 @@
       "maximum_bytes": 12288,
       "dependencies": [
         { "role": "creche-existing-computer", "specifier": "../../../creche-existing-computer.mjs" },
-        { "role": "browser-host-configuration", "specifier": "../../../creche-browser-configuration.mjs" },
+        { "role": "browser-host-configuration", "specifier": "../../../browser-host-configuration.mjs" },
         { "role": "creche-release-bundle", "specifier": "../../../creche-release-bundle.mjs" },
         { "role": "browser-bundle-builder", "specifier": "./browser-bundle.mjs" }
       ]

@@ -67,6 +67,13 @@ impl Kind {
         })
     }
 
+    pub fn bounded_collect(&self) -> Option<&crate::BoundedCollectSemanticLaw> {
+        self.semantic_laws.iter().find_map(|law| match law {
+            KindSemanticLaw::BoundedCollect(contract) => Some(contract),
+            _ => None,
+        })
+    }
+
     pub fn checked_front(&self) -> CheckedFront {
         CheckedFront::new(
             self.startup_parameters.clone(),
@@ -129,6 +136,11 @@ impl Kind {
         let mut resource_ports = None;
         let mut value_contracts = None;
         let mut keyed_join = None;
+        let mut bounded_collect = None;
+        let mut flow_select = None;
+        let mut flow_fold = None;
+        let mut flow_each = None;
+        let mut flow_scan = None;
         for law in &self.semantic_laws {
             match law {
                 KindSemanticLaw::TerminalTransduction(profile) => {
@@ -187,11 +199,189 @@ impl Kind {
                         return Err(KindValidationError::InvalidKeyedJoin);
                     }
                 }
+                KindSemanticLaw::BoundedCollect(contract) => {
+                    if bounded_collect.replace(contract).is_some() {
+                        return Err(KindValidationError::DuplicateBoundedCollect);
+                    }
+                    validate_bounded_collect(self, contract)?;
+                }
+                KindSemanticLaw::FlowSelect(contract) => {
+                    if flow_select.replace(contract).is_some() {
+                        return Err(KindValidationError::DuplicateFlowSelect);
+                    }
+                    let input = self
+                        .inputs
+                        .iter()
+                        .find(|port| port.port_id == contract.input_port_id);
+                    let output = self
+                        .outputs
+                        .iter()
+                        .find(|port| port.port_id == contract.output_port_id);
+                    if !matches!((input, output), (Some(input), Some(output))
+                        if input.temporal == crate::PortTemporal::Flow { closes: true }
+                            && output.temporal == crate::PortTemporal::Flow { closes: true }
+                            && input.value_kind == output.value_kind
+                            && input.value_kind == contract.predicate_input_kind
+                            && contract.predicate_output_kind.as_str() == crate::BOOL_INFO_ID
+                            && contract.maximum_active == 1
+                            && contract.maximum_queued == 1
+                            && contract.maximum_items > 0)
+                    {
+                        return Err(KindValidationError::InvalidFlowSelect);
+                    }
+                }
+                KindSemanticLaw::FlowFold(contract) => {
+                    if flow_fold.replace(contract).is_some() {
+                        return Err(KindValidationError::DuplicateFlowFold);
+                    }
+                    let input = self
+                        .inputs
+                        .iter()
+                        .find(|port| port.port_id == contract.input_port_id);
+                    let output = self
+                        .outputs
+                        .iter()
+                        .find(|port| port.port_id == contract.output_port_id);
+                    if !matches!((input, output), (Some(input), Some(output))
+                        if input.temporal == crate::PortTemporal::Flow { closes: true }
+                            && output.temporal == crate::PortTemporal::Value
+                            && input.value_kind == contract.item.value_kind
+                            && output.value_kind == contract.accumulator.value_kind
+                            && contract.item.validate_definition().is_ok()
+                            && contract.accumulator.validate_definition().is_ok()
+                            && contract.accumulator.validate(&contract.initial_accumulator).is_ok()
+                            && contract.combine_accumulator_port_id.as_str() == "accumulator"
+                            && contract.combine_item_port_id.as_str() == "item"
+                            && contract.combine_output_port_id.as_str() == "combined"
+                            && contract.maximum_active == 1
+                            && contract.maximum_queued == 1
+                            && contract.maximum_items > 0)
+                    {
+                        return Err(KindValidationError::InvalidFlowFold);
+                    }
+                }
+                KindSemanticLaw::FlowScan(contract) => {
+                    if flow_scan.replace(contract).is_some() {
+                        return Err(KindValidationError::DuplicateFlowScan);
+                    }
+                    let input = self
+                        .inputs
+                        .iter()
+                        .find(|port| port.port_id == contract.input_port_id);
+                    let output = self
+                        .outputs
+                        .iter()
+                        .find(|port| port.port_id == contract.output_port_id);
+                    if !matches!((input, output), (Some(input), Some(output))
+                        if input.temporal == crate::PortTemporal::Flow { closes: true }
+                            && output.temporal == crate::PortTemporal::Flow { closes: true }
+                            && input.value_kind == contract.item.value_kind
+                            && output.value_kind == contract.accumulator.value_kind
+                            && contract.item.validate_definition().is_ok()
+                            && contract.accumulator.validate_definition().is_ok()
+                            && contract.accumulator.validate(&contract.initial_accumulator).is_ok()
+                            && contract.combine_accumulator_port_id.as_str() == "accumulator"
+                            && contract.combine_item_port_id.as_str() == "item"
+                            && contract.combine_output_port_id.as_str() == "combined"
+                            && contract.maximum_active == 1 && contract.maximum_queued == 1
+                            && contract.maximum_items > 0)
+                    {
+                        return Err(KindValidationError::InvalidFlowScan);
+                    }
+                }
+                KindSemanticLaw::FlowEach(contract) => {
+                    if flow_each.replace(contract).is_some() || contract.maximum_items == 0 {
+                        return Err(KindValidationError::InvalidFlowEach);
+                    }
+                    let input = self
+                        .inputs
+                        .iter()
+                        .find(|port| port.port_id == contract.input_port_id);
+                    let output = self
+                        .outputs
+                        .iter()
+                        .find(|port| port.port_id == contract.output_port_id);
+                    if !matches!((input, output), (Some(input), Some(output)) if input.temporal == crate::PortTemporal::Flow { closes: true } && output.temporal == crate::PortTemporal::Flow { closes: true })
+                    {
+                        return Err(KindValidationError::InvalidFlowEach);
+                    }
+                }
                 _ => {}
             }
         }
         Ok(())
     }
+}
+
+fn validate_bounded_collect(
+    kind: &Kind,
+    contract: &crate::BoundedCollectSemanticLaw,
+) -> Result<(), KindValidationError> {
+    let input = kind
+        .inputs
+        .iter()
+        .find(|port| port.port_id == contract.input_port_id)
+        .ok_or(KindValidationError::InvalidBoundedCollect)?;
+    let output = kind
+        .outputs
+        .iter()
+        .find(|port| port.port_id == contract.output_port_id)
+        .ok_or(KindValidationError::InvalidBoundedCollect)?;
+    if contract.maximum_items == 0
+        || contract.element.validate_definition().is_err()
+        || contract.collection.validate_definition().is_err()
+        || contract.overflow_disposition.validate_definition().is_err()
+        || input.direction != crate::PortDirection::Input
+        || input.temporal != (crate::PortTemporal::Flow { closes: true })
+        || input.value_kind != contract.element.value_kind
+        || input.abnormal_kind.is_some()
+        || output.direction != crate::PortDirection::Output
+        || output.temporal != crate::PortTemporal::Value
+        || output.value_kind != contract.collection.value_kind
+        || output.abnormal_kind.as_ref() != Some(&contract.overflow_disposition.value_kind)
+    {
+        return Err(KindValidationError::InvalidBoundedCollect);
+    }
+    let encoder = crate::PreparedLeafSequenceEncoder::new(
+        contract.element.value_kind.clone(),
+        contract.element.maximum_bytes,
+        contract.maximum_items,
+    )
+    .map_err(|_| KindValidationError::InvalidBoundedCollect)?;
+    let value_type = encoder
+        .value_type()
+        .map_err(|_| KindValidationError::InvalidBoundedCollect)?;
+    let profile = value_type
+        .profile()
+        .map_err(|_| KindValidationError::InvalidBoundedCollect)?;
+    if profile.value_kind() != &contract.collection.value_kind
+        || encoder.maximum_bytes() != contract.collection.maximum_bytes
+    {
+        return Err(KindValidationError::InvalidBoundedCollect);
+    }
+    let required = [
+        (
+            crate::FrontValueLocation::Input(contract.input_port_id.clone()),
+            &contract.element,
+        ),
+        (
+            crate::FrontValueLocation::Output(contract.output_port_id.clone()),
+            &contract.collection,
+        ),
+        (
+            crate::FrontValueLocation::OutputAbnormal(contract.output_port_id.clone()),
+            &contract.overflow_disposition,
+        ),
+    ];
+    if required.iter().any(|(location, expected)| {
+        !kind
+            .value_contracts()
+            .iter()
+            .any(|actual| actual.location == *location && actual.contract == **expected)
+    }) {
+        return Err(KindValidationError::InvalidBoundedCollect);
+    }
+    Ok(())
 }
 
 fn validate_value_contracts(
@@ -374,6 +564,15 @@ pub enum KindValidationError {
     DuplicateValueBounds,
     DuplicateKeyedJoin,
     InvalidKeyedJoin,
+    DuplicateBoundedCollect,
+    InvalidBoundedCollect,
+    DuplicateFlowSelect,
+    InvalidFlowSelect,
+    DuplicateFlowFold,
+    InvalidFlowFold,
+    InvalidFlowEach,
+    DuplicateFlowScan,
+    InvalidFlowScan,
     InvalidValueBound,
     UnknownValueBoundLocation,
 }

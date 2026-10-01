@@ -1,9 +1,16 @@
 schema = "conduit.proof-dependency-audit/v1"
-maximum_edges = 17
+maximum_edges = 19
 
 # This inventory contains every non-dev Cargo dependency from outside proof/
 # whose path enters proof/. `cargo test -p xtask --test proof_dependency_boundary`
 # rejects additions, removals, and dependency-kind changes.
+
+[[edges]]
+manifest = "products/patchbay/model/Cargo.toml"
+dependency = "conduit-patchbay-workbench-conformance"
+kind = "dependencies"
+classification = "product-demo-fixture"
+resolution = "Remove when the remaining Patchbay product shell is retired; the extracted proof owns the fixed workbench realization meanwhile."
 
 [[edges]]
 manifest = "products/patchbay/model/Cargo.toml"
@@ -109,6 +116,13 @@ dependency = "conduit-signal-conformance"
 kind = "build-dependencies"
 classification = "firmware-build-fixture"
 resolution = "Separate reusable Pico offers from fixed build-time Signal topology."
+
+[[edges]]
+manifest = "tools/xtask/Cargo.toml"
+dependency = "conduit-patchbay-workbench-conformance"
+kind = "dependencies"
+classification = "repository-proof-entrance"
+resolution = "Retain while cargo xtask exposes the admitted Patchbay workbench proof; rename or retire with that proof surface."
 
 [[edges]]
 manifest = "tools/xtask/Cargo.toml"

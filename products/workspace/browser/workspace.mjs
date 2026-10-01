@@ -10,7 +10,7 @@ import { acquireBrowserBodyContinuity } from "../../../targets/browser/host/asse
 import { createBodyInvitationReceiver, openWorkspaceMembership, readBodyInvitation, readSharedBodyInvitation } from "./workspace-membership.mjs";
 import { prepareWorkspaceVoicePlay } from "./workspace-voice-play.mjs";
 import { prepareWorkspaceTutorialPresenterPlay } from "./workspace-tutorial-presenter-play.mjs";
-import { createMemoryReleaseCache, openReleaseCatalog } from "../../creche/browser/creche-release-catalog.mjs";
+import { createMemoryReleaseCache, openReleaseCatalog } from "./creche-release-catalog.mjs";
 import { browserHostCallLimits, createBrowserHostCalls } from "../../../targets/browser/host/assets/browser-host-calls.mjs";
 
 export async function startApplication(application) {

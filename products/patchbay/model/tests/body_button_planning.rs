@@ -1,6 +1,6 @@
 use conduit_body::{BodyWorkset, ResidentForm};
 use conduit_core::{resource_offer, SignId, INPUT_RESOURCE_CLASS};
-use patchbay_model::{plan_body_workset_on_host, FormCandidate};
+use patchbay_model::FormCandidate;
 
 #[test]
 fn canonical_button_body_planning_respects_both_selected_queue_limits() {
@@ -35,9 +35,10 @@ fn canonical_button_body_planning_respects_both_selected_queue_limits() {
         1,
     ));
     host.resources.sort();
-    let plans = plan_body_workset_on_host(
+    let planning = candidate.body_planning_form().unwrap();
+    let plans = conduit_body_make::plan_body_workset_on_host(
         &workset,
-        &[candidate],
+        &[planning],
         &host,
         &["conduit.base/local@1".into()],
     )

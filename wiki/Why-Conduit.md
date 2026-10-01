@@ -53,15 +53,15 @@ This distinction keeps compatibility machinery from becoming semantic identity b
 Work has another small cluster of nouns:
 
 - a **kind** says what a reusable operation means;
-- its **fore** is the checked outward boundary through which that meaning is invoked;
-- a **back** is one concrete realization capable of satisfying that kind and fore;
+- its **fore** is the checked function-like signature through which authors call that meaning;
+- a **back** is one concrete realization compatible with that kind and fore;
 - a **gear** is one configured occurrence of a kind in a plot.
 
 A plot can therefore ask for semantic work without choosing the final implementation.
 
 ```text
 kind      what work means
-fore      how that meaning meets its surroundings
+fore      the callable signature presented to the author
 back      one way to realize it
 gear      one occurrence in the authored plot
 ```
@@ -70,7 +70,7 @@ A host may offer several backs for the same kind. Planning chooses among eligibl
 
 ## Ports, cords, and lines
 
-A **port** is a typed semantic point on a gear or fore. A **cord** connects compatible ports. A **line** is concrete carriage that may realize a cord when the connected gears do not share the same local mechanism.
+A **port** is a typed directional point declared by a fore and used by gears. A **cord** connects compatible ports. A **line** is concrete carriage that may realize a cord when the connected gears do not share the same local mechanism.
 
 That produces another useful distinction:
 
@@ -109,6 +109,12 @@ That is different from saving data.
 - **load** recovers typed info from it.
 
 This is why Conduit resists treating every temporal problem as mutation of a heap cell. Duration, publication, identity, and causality are separate promises and should remain visible.
+
+## Fore and face are unrelated
+
+The words happen to sound spatial, but they live in different parts of the architecture.
+
+A **fore** is a callable signature, roughly the role a function signature plays in an ordinary language. A **face** is human-facing semantic interaction and presentation. Neither is a specialization or realization of the other.
 
 ## Human meaning is not a widget tree
 

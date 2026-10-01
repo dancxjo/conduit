@@ -269,11 +269,12 @@ fn disposition(
     };
     match tag {
         "complete" => Ok(VisualImpressionDisposition::Complete),
-        "truncated" => Ok(VisualImpressionDisposition::Truncated {
-            original_bytes: count(payload)?
+        "truncated" => VisualImpressionDisposition::truncated(
+            count(payload)?
                 .try_into()
                 .map_err(|_| VisualValueRefusal::InvalidImpression)?,
-        }),
+        )
+        .map_err(|_| VisualValueRefusal::InvalidImpression),
         _ => Err(VisualValueRefusal::InvalidImpression),
     }
 }

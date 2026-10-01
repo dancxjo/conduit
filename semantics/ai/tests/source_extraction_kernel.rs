@@ -312,7 +312,7 @@ fn admitted_source_executes_through_the_production_kernel() {
             maximum_items: None,
         },
         &binding(&source, ResourceReferenceAvailability::Available),
-        SourceExtractionProfile::TextUtf8 { overlap_bytes: 2 },
+        SourceExtractionProfile::text_utf8(2).unwrap(),
         SourceExtractionLimits {
             maximum_source_bytes: 4096,
             maximum_source_items: 32,

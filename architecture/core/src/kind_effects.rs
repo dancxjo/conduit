@@ -134,6 +134,11 @@ pub fn semantic_work_facts(kind: &Kind) -> Result<PureExpressionFacts, PureExpre
             KindSemanticLaw::ResourcePorts(_) => {}
             KindSemanticLaw::ValueContracts(_) => {}
             KindSemanticLaw::KeyedJoin(_) => {}
+            KindSemanticLaw::BoundedCollect(_) => {}
+            KindSemanticLaw::FlowSelect(_) => {}
+            KindSemanticLaw::FlowFold(_)
+            | KindSemanticLaw::FlowEach(_)
+            | KindSemanticLaw::FlowScan(_) => {}
             KindSemanticLaw::ExternalEffects(value) => set_once(
                 &mut external_effects,
                 *value,

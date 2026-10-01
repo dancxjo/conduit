@@ -1,0 +1,13 @@
+[package]
+name = "conduit-patchbay-workbench-conformance"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+conduit-core = { path = "../../../architecture/core" }
+conduit-form = { path = "../../../architecture/form" }
+conduit-planner = { path = "../../../architecture/planner" }
+conduit-presentation = { path = "../../../semantics/presentation" }
+conduit-semantic-catalog = { path = "../../../semantics/catalog", features = ["form-catalog"] }
+conduit-std-offers = { path = "../../../targets/std/offers" }
+conduit-text = { path = "../../../semantics/text" }

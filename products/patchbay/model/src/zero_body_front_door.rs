@@ -196,6 +196,31 @@ impl FormCandidate {
     pub(super) fn editor(&self) -> Result<FormEditor, String> {
         Ok(self.editor.clone())
     }
+
+    pub fn body_planning_form(
+        &self,
+    ) -> Result<conduit_body_make::BodyPlanningForm, conduit_body::BodyPlanningSessionError> {
+        let view = self.editor.view();
+        let name = view
+            .checked
+            .forms
+            .iter()
+            .find(|form| form.checked_form_id == self.checked_form_id)
+            .map(|form| form.name.as_str())
+            .ok_or_else(|| {
+                conduit_body::BodyPlanningSessionError::InvalidForm("checked form is absent".into())
+            })?;
+        let expanded = self.editor.expand_form(name).map_err(|error| {
+            conduit_body::BodyPlanningSessionError::InvalidForm(error.to_string())
+        })?;
+        conduit_body_make::BodyPlanningForm::new(
+            conduit_body::ResidentForm::new(
+                self.source_document_id.clone(),
+                self.checked_form_id.clone(),
+            ),
+            expanded,
+        )
+    }
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]

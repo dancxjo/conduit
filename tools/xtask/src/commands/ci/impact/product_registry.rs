@@ -49,11 +49,10 @@ pub(super) const PRODUCT_PROOFS: &[ProductProofSpec] = &[ProductProofSpec {
         "proof/browser/creche-lifecycle-ownership.md",
         "proof/browser/workspace-library.spec.mjs",
         "proof/browser/workspace-handoff.test.mjs",
-        "proof/browser/creche-workspace-continuity.spec.mjs",
+        "proof/browser/workspace-continuity.spec.mjs",
     ],
     input_prefixes: &[
         "docs/journeys/tour/",
-        "products/creche/",
         "products/workspace/",
         "products/patchbay/html/",
         "products/patchbay/model/",
@@ -117,9 +116,7 @@ pub(super) const BROWSER_PRESENTATION_PROOFS: &[BrowserPresentationSpec] =
             "site/",
             "products/shared/browser/",
             "docs/journeys/tour/",
-            "products/creche/browser/",
             "products/workspace/browser/",
-            "products/creche/tools/stage-creche-product",
             "products/workspace/tools/stage-workspace-product",
             "site/tools/stage-pages-root",
             "products/patchbay/tools/stage-patchbay-product",
@@ -150,7 +147,7 @@ mod tests {
             "proof/browser/workspace-mixed-membership.spec.mjs",
             "proof/browser/workspace-library.spec.mjs",
             "proof/browser/workspace-handoff.test.mjs",
-            "proof/browser/creche-workspace-continuity.spec.mjs",
+            "proof/browser/workspace-continuity.spec.mjs",
         ] {
             assert_eq!(
                 super::proofs_for_paths(&[path.into()]),
@@ -212,7 +209,6 @@ mod product_source_tests {
     #[test]
     fn broad_product_and_site_roots_own_their_carrier_staging_tools() {
         for path in [
-            "products/creche/tools/stage-creche-product.mjs",
             "products/workspace/tools/stage-workspace-product.mjs",
             "products/patchbay/tools/stage-patchbay-product.mjs",
             "site/tools/stage-pages-root.mjs",

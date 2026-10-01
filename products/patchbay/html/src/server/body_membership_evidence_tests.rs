@@ -323,7 +323,7 @@ fn selected_host_departure_retains_unsatisfied_wake_without_rewriting_the_plan()
         .current_plan()
         .forms
         .clone();
-    let planning = patchbay_model::BodyPlanningSession::start(
+    let planning = conduit_body::BodyPlanningSession::start(
         &observer.body,
         1,
         "sign/running-wake".into(),

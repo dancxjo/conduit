@@ -1,6 +1,6 @@
 use super::*;
+use conduit_body::BodyPlanningSession;
 use conduit_core::BaseImplementationId;
-use patchbay_model::BodyPlanningSession;
 use std::io::Read;
 
 pub(in crate::server) fn proposed_server() -> PatchbayHtmlServer {
@@ -33,9 +33,14 @@ pub(in crate::server) fn proposed_server() -> PatchbayHtmlServer {
     host.host_id = current.host_id.clone();
     host.boot_id = current.boot_id.clone();
     host.offer_generation = current.offer_generation;
-    let forms = patchbay_model::plan_body_workset_on_host(
+    let candidates = super::super::body_host_planning_offer::planning_forms(
         &evidence.body.workset,
         &server.body_planning_forms,
+    )
+    .unwrap();
+    let forms = conduit_body_make::plan_body_workset_on_host(
+        &evidence.body.workset,
+        &candidates,
         &host,
         &[BaseImplementationId::from("conduit.base/local@1")],
     )
@@ -163,9 +168,14 @@ fn fresh_membership_must_still_match_the_proposed_host_boot_and_generation() {
     host.host_id = fragment.host_id.clone();
     host.boot_id = "boot/never-admitted".into();
     host.offer_generation = fragment.offer_generation;
-    let forms = patchbay_model::plan_body_workset_on_host(
+    let candidates = super::super::body_host_planning_offer::planning_forms(
         &body.workset,
         &server.body_planning_forms,
+    )
+    .unwrap();
+    let forms = conduit_body_make::plan_body_workset_on_host(
+        &body.workset,
+        &candidates,
         &host,
         &[BaseImplementationId::from("conduit.base/local@1")],
     )

@@ -100,7 +100,7 @@ fn stages() -> Vec<RetrievalStage<ExtractedSourceValue>> {
 fn policy() -> HybridFusionPolicy {
     HybridFusionPolicy {
         identity: "fusion/reciprocal-rank@1".into(),
-        strategy: FusionStrategy::ReciprocalRank { rank_constant: 60 },
+        strategy: FusionStrategy::reciprocal_rank(60).unwrap(),
         required_mechanisms: vec![
             RetrievalMechanism::VectorSimilarity,
             RetrievalMechanism::Lexical,

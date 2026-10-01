@@ -4,6 +4,22 @@ type KeyTransition =
     pressed
     | released
 
+type KeymapRefusal =
+    unknown_compose_sequence
+    | empty_unicode_entry
+    | unicode_entry_overflow
+    | invalid_unicode_scalar
+
+type HumanMediaKind =
+    camera
+    | microphone
+
+type VisualImpressionDisposition =
+    complete
+    | truncated {
+        original_bytes: U32
+    }
+
 code human/key-transition = KeyTransition as u8
 
 type ChordPhase =

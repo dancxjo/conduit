@@ -56,9 +56,13 @@ back   one concrete realization behind that fore
 gear   one configured occurrence of a kind in a form
 ```
 
-A gear invokes a kind through its fore. A host offers a back. A plan selects the back.
+A gear invokes a kind through its **fore**. A host offers a compatible back. A plan selects the exact back.
 
-Some older repository prose and internal Rust names still say **front**. The current language/architecture noun is **fore**. The human-facing noun is **face**.
+A fore is basically Conduit's function signature: the callable surface an author sees and writes against. For a plot, the parenthesized declaration is its fore; for a kind, the fore records the same callable shape in the catalog.
+
+A checked fore includes the public calling facts that affect compatibility, such as startup parameters, runtime ports, their names and directions, value types, temporal shapes, and any declared shorthand input-to-output path.
+
+Some older repository prose and internal Rust names still say **front**. That is historical/internal vocabulary for this callable signature. **Face is unrelated**: face belongs to human interaction and presentation, not callability.
 
 ## Plots are live unless completed
 

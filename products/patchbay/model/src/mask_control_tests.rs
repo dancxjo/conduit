@@ -1,5 +1,7 @@
 use super::*;
-use conduit_body::{Body, BodyFaceSelector, BodyWorkset, ResidentForm};
+use conduit_body::{
+    Body, BodyFaceSelector, BodyPlanningSession, BodyPlanningTransition, BodyWorkset, ResidentForm,
+};
 use conduit_core::{BaseImplementationId, BootId, HostId, PlacementId, SignId};
 use conduit_planner::{default_expanded_placements, plan_expanded_canonical};
 use conduit_presentation::{

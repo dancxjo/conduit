@@ -878,16 +878,9 @@ fn validate_observatory(
             "ordinary Observatory identities, bounds, lifecycle, or sealed provenance disagreed with boot/kernel Signs",
         ));
     }
-    let mut patchbay = patchbay_model::PatchbayTopology::new(1)
-        .map_err(|error| ConduitosError::refusal("patchbay-rejected-report", error.to_string()))?;
-    patchbay
-        .ingest(snapshot)
-        .map_err(|error| ConduitosError::refusal("patchbay-rejected-report", error.to_string()))?;
-    let linear = patchbay
-        .document(None)
-        .map_err(|error| ConduitosError::refusal("patchbay-rejected-report", error.to_string()))?
-        .lines()
-        .join("\n");
+    let report = conduit_observatory::build_report(snapshot)
+        .map_err(|error| ConduitosError::refusal("observatory-report-refused", error))?;
+    let linear = conduit_observatory::render_text_report(&report);
     for required in [
         boot.host_id.as_str(),
         boot.boot_id.as_str(),
@@ -895,12 +888,12 @@ fn validate_observatory(
         kernel.active_play_id.as_str(),
         "input/keyboard",
         "conduitos/usb-hid-keyboard@1",
-        "BOOT PROVENANCE [SEALED]",
+        "boot provenance [sealed]",
     ] {
         if !linear.contains(required) {
             return Err(ConduitosError::refusal(
-                "patchbay-linear-projection-incomplete",
-                format!("native Patchbay projection omitted {required}"),
+                "observatory-report-incomplete",
+                format!("ordinary Observatory report omitted {required}"),
             ));
         }
     }

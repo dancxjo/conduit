@@ -52,6 +52,7 @@ package_test_shard!(
         "conduit-signal-conformance",
         "conduit-alife-distributed-conformance",
         "conduit-r1-network-conformance",
+        "conduit-patchbay-workbench-conformance",
         "conduit-semantic-catalog",
         "conduit-midi",
         "conduit-presentation",

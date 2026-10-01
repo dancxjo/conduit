@@ -1,4 +1,4 @@
-import { createBrowserConfigurationOutfitter as createExactOutfitter } from "../../creche/browser/creche-browser-configuration.mjs";
+import { createBrowserConfigurationOutfitter as createExactOutfitter } from "./browser-host-configuration.mjs";
 
 const CATALOG_SCHEMA = "conduit.host/browser-capability-intent-catalog@1";
 const REVIEW_SCHEMA = "conduit.host/browser-capability-configuration-review@1";

@@ -70,11 +70,16 @@ pub fn render_text_report(report: &ObservatoryReport) -> String {
     for base in &report.bases {
         let _ = writeln!(
             output,
-            "base id={} provider={} provider_generation={} kind={} host={} boot={} state={:?} capacity_units={}",
+            "base id={} provider={} provider_generation={} kind={} implementation={} enforcement={:?} lifecycle={:?} host={} boot={} state={:?} capacity_units={}",
             base.base_id.as_str(),
             base.provider_instance_id.as_str(),
             base.provider_generation,
             base.kind_id.as_str(),
+            base.implementation_id
+                .as_ref()
+                .map_or("unreported", |value| value.as_str()),
+            base.enforcement_class,
+            base.lifecycle,
             base.host_id.as_str(),
             base.boot_id.as_str(),
             base.state,

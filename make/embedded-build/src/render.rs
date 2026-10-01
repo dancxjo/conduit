@@ -400,6 +400,31 @@ fn render_resources(output: &mut String, plan: &GeneratedEmbeddedPlan) {
         .expect("String writes cannot fail");
     }
     output.push_str("];\n");
+
+    writeln!(
+        output,
+        "pub const GENERATED_RESOURCE_CORDS: [(conduit_kernel::NodeId, conduit_kernel::PortId, conduit_kernel::NodeId, conduit_kernel::PortId, conduit_kernel::ResourceId, u8, u8); {}] = [",
+        plan.resource_cords.len()
+    )
+    .expect("String writes cannot fail");
+    for cord in &plan.resource_cords {
+        let ownership = match cord.ownership {
+            conduit_core::ResourcePortOwnership::Move => 0,
+            conduit_core::ResourcePortOwnership::Shared => 1,
+        };
+        let lifecycle = match cord.lifecycle {
+            conduit_core::ResourcePortLifecycle::Play => 0,
+            conduit_core::ResourcePortLifecycle::Plan => 1,
+            conduit_core::ResourcePortLifecycle::Boot => 2,
+        };
+        writeln!(
+            output,
+            "    (conduit_kernel::NodeId({}), conduit_kernel::PortId({}), conduit_kernel::NodeId({}), conduit_kernel::PortId({}), conduit_kernel::ResourceId({}), {ownership}, {lifecycle}),",
+            cord.source_node, cord.source_port, cord.sink_node, cord.sink_port, cord.resource
+        )
+        .expect("String writes cannot fail");
+    }
+    output.push_str("];\n");
 }
 
 fn render_sign(output: &mut String, plan: &GeneratedEmbeddedPlan) {
@@ -419,6 +444,9 @@ fn render_sign(output: &mut String, plan: &GeneratedEmbeddedPlan) {
             ),
             GeneratedSignTarget::Cord(cord) => format!(
                 "conduit_kernel::SignExpectationTarget::Cord(conduit_kernel::CordId({cord}))"
+            ),
+            GeneratedSignTarget::Resource { node, resource } => format!(
+                "conduit_kernel::SignExpectationTarget::Resource {{ node: conduit_kernel::NodeId({node}), resource: conduit_kernel::ResourceId({resource}) }}"
             ),
         };
         writeln!(

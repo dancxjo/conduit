@@ -1,6 +1,7 @@
 //! Candidate output and accountable semantic validation for generative Masks.
 
 use crate::GenerativePresenterRefusal;
+pub use crate::{GeneratedContentRole, GeneratedManifestationDisposition};
 use alloc::{string::String, vec::Vec};
 use conduit_core::{BootId, CapabilityId, HostId, ImplementationId, PlacementId, PlanId};
 use serde::{Deserialize, Serialize};
@@ -10,27 +11,11 @@ pub const MAX_GENERATED_CONTENT_SEGMENTS: usize = 8;
 pub const MAX_GENERATED_AFFORDANCES: usize = 32;
 pub const MAX_GENERATED_CORRELATIONS: usize = 128;
 
-#[derive(Clone, Copy, Debug, Deserialize, Eq, PartialEq, Serialize)]
-pub enum GeneratedManifestationDisposition {
-    Produced,
-    Truncated,
-    Refused,
-    Failed,
-    Cancelled,
-    ProviderLost,
-}
-
 #[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
 #[serde(deny_unknown_fields)]
 pub struct GeneratedActionAffordance {
     pub action_identity: String,
     pub source_presentation_revision: u64,
-}
-
-#[derive(Clone, Copy, Debug, Deserialize, Eq, PartialEq, Serialize)]
-pub enum GeneratedContentRole {
-    Speech,
-    PresentedThought,
 }
 
 #[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]

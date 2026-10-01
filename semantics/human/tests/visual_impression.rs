@@ -110,16 +110,13 @@ fn context_and_truncation_are_bounded_and_exact() {
     );
 
     value = impression();
-    value.disposition = VisualImpressionDisposition::Truncated {
-        original_bytes: value.text.len() as u32,
-    };
+    value.disposition = VisualImpressionDisposition::truncated(value.text.len() as u32).unwrap();
     assert_eq!(
         value.validate(&profile),
         Err(VisualImpressionRefusal::InvalidTruncation)
     );
-    value.disposition = VisualImpressionDisposition::Truncated {
-        original_bytes: value.text.len() as u32 + 12,
-    };
+    value.disposition =
+        VisualImpressionDisposition::truncated(value.text.len() as u32 + 12).unwrap();
     value.validate(&profile).unwrap();
 }
 

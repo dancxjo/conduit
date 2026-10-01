@@ -172,4 +172,31 @@ mod tests {
                 > 0
         );
     }
+
+    #[test]
+    fn expression_body_reports_its_lossless_ordinary_form() {
+        let path = std::env::temp_dir().join(format!(
+            "conduit-expression-body-expansion-{}.conduit",
+            std::process::id()
+        ));
+        std::fs::write(
+            &path,
+            "form identity (\n  >> value: Text\n  result: Text >>\n) = .\n",
+        )
+        .unwrap();
+
+        let human = run(&path, false).unwrap();
+        let json = run(&path, true).unwrap();
+        std::fs::remove_file(path).unwrap();
+
+        assert!(human.contains("`= .` in form `identity`"));
+        assert!(human.contains("ordinary Gear: conduitese/pure-expression-operation@1"));
+        assert!(human.contains("value >> . >> result"));
+        let value: serde_json::Value = serde_json::from_str(&json).unwrap();
+        assert_eq!(value["expansions"][0]["authored"], "= .");
+        assert_eq!(
+            value["expansions"][0]["canonical_replacement"],
+            "{\n    value >> . >> result\n}"
+        );
+    }
 }

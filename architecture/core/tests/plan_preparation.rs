@@ -2,11 +2,292 @@ use std::{cell::RefCell, rc::Rc};
 
 use conduit_core::{
     mandatory_sign_storage_requirement, prepare_plan_on_hosts, seal_plan, start_prepared_plan,
-    ActivePlayId, BootId, CancellationPolicy, CheckedFormId, ExpandedFormId, ExpectedSign,
-    ExpectedTerminal, FormIdentity, FragmentId, HostId, HostPreparationRefusal, OfferGeneration,
-    Plan, PlanFragment, PlanPreparationError, PlanPreparationHost, PreparationHostIdentity,
-    PreparedFragmentReceipt, SignStorageBudget, SourceDocumentId, TerminalPolicy,
+    verify_prepared_plan, ActivePlayId, BootId, CancellationPolicy, CheckedFormId, ExpandedFormId,
+    ExpectedSign, ExpectedTerminal, FormIdentity, FragmentId, HostId, HostPreparationRefusal,
+    OfferGeneration, Plan, PlanFragment, PlanPreparationError, PlanPreparationHost,
+    PreparationHostIdentity, PreparedFragmentReceipt, SignStorageBudget, SourceDocumentId,
+    TerminalPolicy,
 };
+#[path = "common/sealed_state.rs"]
+mod common;
+
+struct MultiHost {
+    identity: PreparationHostIdentity,
+    prepared: Vec<PreparedFragmentReceipt>,
+    fail_on: Option<usize>,
+    stale_on: Option<usize>,
+    preparations: usize,
+    releases: usize,
+    release_failure: Option<HostPreparationRefusal>,
+}
+
+impl MultiHost {
+    fn new() -> Self {
+        Self {
+            identity: PreparationHostIdentity {
+                host_id: HostId::from("host"),
+                boot_id: BootId::from("boot"),
+                offer_generation: OfferGeneration(1),
+            },
+            prepared: vec![],
+            fail_on: None,
+            stale_on: None,
+            preparations: 0,
+            releases: 0,
+            release_failure: None,
+        }
+    }
+}
+
+impl PlanPreparationHost for MultiHost {
+    fn preparation_identity(&self) -> PreparationHostIdentity {
+        self.identity.clone()
+    }
+    fn prepare_fragment(
+        &mut self,
+        fragment: &PlanFragment,
+    ) -> Result<PreparedFragmentReceipt, HostPreparationRefusal> {
+        self.preparations += 1;
+        if self.fail_on == Some(self.preparations) {
+            return Err(HostPreparationRefusal::ResourceUnavailable);
+        }
+        let receipt = if self.stale_on == Some(self.preparations) {
+            let mut stale = fragment.clone();
+            stale.offer_generation = OfferGeneration(fragment.offer_generation.0 + 1);
+            PreparedFragmentReceipt::new(&stale)
+        } else {
+            PreparedFragmentReceipt::new(fragment)
+        };
+        self.prepared.push(receipt.clone());
+        Ok(receipt)
+    }
+    fn release_fragment(
+        &mut self,
+        receipt: &PreparedFragmentReceipt,
+    ) -> Result<(), HostPreparationRefusal> {
+        if let Some(reason) = self.release_failure {
+            return Err(reason);
+        }
+        let index = self
+            .prepared
+            .iter()
+            .position(|value| value == receipt)
+            .ok_or(HostPreparationRefusal::PreparedBindingMismatch)?;
+        self.prepared.remove(index);
+        self.releases += 1;
+        Ok(())
+    }
+    fn validate_start(
+        &self,
+        receipt: &PreparedFragmentReceipt,
+    ) -> Result<(), HostPreparationRefusal> {
+        self.prepared
+            .contains(receipt)
+            .then_some(())
+            .ok_or(HostPreparationRefusal::PreparedBindingMismatch)
+    }
+    fn start_fragment(&mut self, _: &PreparedFragmentReceipt) -> ActivePlayId {
+        ActivePlayId::from("play")
+    }
+}
+
+fn activation_plan() -> Plan {
+    let mut child_fragment = common::fragment();
+    child_fragment.fore_ports = vec![
+        conduit_core::PlannedForePort {
+            front_port_id: conduit_core::port_id("in"),
+            direction: conduit_core::PortDirection::Input,
+            placement_id: conduit_core::PlacementId::from("placement"),
+            gear_port_id: conduit_core::port_id("next"),
+            value_kind: conduit_core::kind_id("fixture/byte@1"),
+            value_contract: None,
+            abnormal_kind: None,
+            track: conduit_core::ConnectionTrack::Payload,
+            temporal: conduit_core::PortTemporal::Value,
+            pressure_policy: conduit_core::DeliveryPressurePolicy::PreserveOrder,
+            item_capacity: 1,
+            byte_capacity: 1,
+        },
+        conduit_core::PlannedForePort {
+            front_port_id: conduit_core::port_id("out"),
+            direction: conduit_core::PortDirection::Output,
+            placement_id: conduit_core::PlacementId::from("placement"),
+            gear_port_id: conduit_core::port_id("current"),
+            value_kind: conduit_core::kind_id("fixture/byte@1"),
+            value_contract: None,
+            abnormal_kind: None,
+            track: conduit_core::ConnectionTrack::Payload,
+            temporal: conduit_core::PortTemporal::Value,
+            pressure_policy: conduit_core::DeliveryPressurePolicy::PreserveOrder,
+            item_capacity: 1,
+            byte_capacity: 1,
+        },
+    ];
+    let child = common::seal(child_fragment);
+    let outer = common::fragment();
+    let activation = conduit_core::PlannedActivation {
+        activation_id: "each".into(),
+        owner_placement_id: conduit_core::PlacementId::from("placement"),
+        selected_plan_id: child.plan_id.clone(),
+        selected_plan: Box::new(child),
+        input: conduit_core::PlannedActivationFront {
+            front_port_id: conduit_core::port_id("in"),
+            value_kind: conduit_core::kind_id("fixture/byte@1"),
+            abnormal_kind: None,
+        },
+        output: conduit_core::PlannedActivationFront {
+            front_port_id: conduit_core::port_id("out"),
+            value_kind: conduit_core::kind_id("fixture/byte@1"),
+            abnormal_kind: None,
+        },
+        limits: conduit_core::PlannedActivationLimits {
+            maximum_active: 1,
+            maximum_queue_items: 1,
+            maximum_queue_bytes: 1,
+            maximum_items: 1,
+        },
+        terminal_policy: conduit_core::PlannedActivationTerminalPolicy::DrainThenPropagateExact,
+        cancellation_policy:
+            conduit_core::PlannedActivationCancellationPolicy::CancelActiveAndRejectLateCompletion,
+        effect_multiplicity:
+            conduit_core::PlannedActivationEffectMultiplicity::OncePerAcceptedInput,
+        per_activation_sign_budget: SignStorageBudget {
+            item_capacity: 2,
+            byte_capacity: 64,
+        },
+    };
+    conduit_core::seal_plan_with_activations(
+        FormIdentity {
+            source_document_id: outer.source_document_id.clone(),
+            checked_form_id: outer.checked_form_id.clone(),
+            expanded_form_id: outer.expanded_form_id.clone(),
+        },
+        conduit_core::PlanCompletionPolicy::Live,
+        vec![],
+        vec![activation],
+        vec![outer],
+    )
+}
+
+#[test]
+fn subordinate_fragments_are_prepared_and_rollback_atomically() {
+    let plan = activation_plan();
+    let mut host = MultiHost::new();
+    let prepared = prepare_plan_on_hosts(&plan, &mut [&mut host]).unwrap();
+    assert_eq!(prepared.receipts().len(), 1);
+    assert_eq!(prepared.subordinate_receipts().len(), 1);
+    assert!(verify_prepared_plan(&prepared, &plan));
+    assert_eq!(host.preparations, 2);
+
+    let mut failing = MultiHost::new();
+    failing.fail_on = Some(2);
+    assert!(matches!(
+        prepare_plan_on_hosts(&plan, &mut [&mut failing]),
+        Err(PlanPreparationError::HostRefused { .. })
+    ));
+    assert!(failing.prepared.is_empty());
+    assert_eq!(failing.releases, 1);
+
+    let mut stale = MultiHost::new();
+    stale.stale_on = Some(2);
+    assert!(matches!(
+        prepare_plan_on_hosts(&plan, &mut [&mut stale]),
+        Err(PlanPreparationError::InvalidReceipt { .. })
+    ));
+    assert!(stale.prepared.is_empty());
+    assert_eq!(stale.releases, 2);
+}
+
+#[test]
+fn subordinate_start_refuses_stale_boot_and_offer_before_any_play() {
+    let plan = activation_plan();
+    let mut stale_boot = MultiHost::new();
+    let prepared = prepare_plan_on_hosts(&plan, &mut [&mut stale_boot]).unwrap();
+    let child = prepared.subordinate_receipts()[0].1.fragment_id().clone();
+    stale_boot.identity.boot_id = BootId::from("new-boot");
+    assert!(matches!(
+        start_prepared_plan(prepared, &mut [&mut stale_boot]),
+        Err(PlanPreparationError::StartRefused {
+            fragment_id,
+            reason: HostPreparationRefusal::StaleBoot,
+        }) if fragment_id == child
+    ));
+
+    let mut stale_offer = MultiHost::new();
+    let prepared = prepare_plan_on_hosts(&plan, &mut [&mut stale_offer]).unwrap();
+    let child = prepared.subordinate_receipts()[0].1.fragment_id().clone();
+    stale_offer.identity.offer_generation = OfferGeneration(2);
+    assert!(matches!(
+        start_prepared_plan(prepared, &mut [&mut stale_offer]),
+        Err(PlanPreparationError::StartRefused {
+            fragment_id,
+            reason: HostPreparationRefusal::StaleOffer,
+        }) if fragment_id == child
+    ));
+}
+
+#[test]
+fn invalid_subordinate_receipt_preserves_its_release_refusal() {
+    let plan = activation_plan();
+    let mut host = MultiHost::new();
+    host.stale_on = Some(2);
+    host.release_failure = Some(HostPreparationRefusal::LocalFailure(
+        conduit_core::FailureReason::ResourceCapacityExceeded,
+    ));
+    assert!(matches!(
+        prepare_plan_on_hosts(&plan, &mut [&mut host]),
+        Err(PlanPreparationError::InvalidReceipt {
+            rollback_failures,
+            ..
+        }) if rollback_failures.iter().any(|failure| failure.reason
+            == HostPreparationRefusal::LocalFailure(
+                conduit_core::FailureReason::ResourceCapacityExceeded
+            ))
+    ));
+}
+
+#[test]
+fn subordinate_preparation_total_is_finitely_bounded_before_host_work() {
+    let base = activation_plan();
+    let mut outer = base.fragments[0].clone();
+    let template = outer.placements[0].clone();
+    let template_activation = base.activations[0].clone();
+    let mut activations = Vec::new();
+    for index in 0..32 {
+        let placement_id = conduit_core::PlacementId::from(format!("activation-{index}"));
+        let mut placement = template.clone();
+        placement.placement_id = placement_id.clone();
+        placement.gear_id = conduit_core::GearId::from(format!("activation-{index}"));
+        outer.placements.push(placement);
+        outer.startup_order.push(placement_id.clone());
+        let conduit_core::PlannedActivationEntry::Unary(mut activation) =
+            template_activation.clone()
+        else {
+            unreachable!()
+        };
+        activation.activation_id = format!("activation-{index}");
+        activation.owner_placement_id = placement_id;
+        activations.push(conduit_core::PlannedActivationEntry::Unary(activation));
+    }
+    let plan = conduit_core::seal_plan_with_activation_entries(
+        FormIdentity {
+            source_document_id: outer.source_document_id.clone(),
+            checked_form_id: outer.checked_form_id.clone(),
+            expanded_form_id: outer.expanded_form_id.clone(),
+        },
+        conduit_core::PlanCompletionPolicy::Live,
+        vec![],
+        activations,
+        vec![outer],
+    );
+    assert!(conduit_core::verify_plan(&plan));
+    let mut host = MultiHost::new();
+    assert_eq!(
+        prepare_plan_on_hosts(&plan, &mut [&mut host]),
+        Err(PlanPreparationError::HostCapacityExceeded)
+    );
+    assert_eq!(host.preparations, 0);
+}
 
 struct TestHost {
     identity: PreparationHostIdentity,

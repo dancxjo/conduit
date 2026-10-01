@@ -130,8 +130,6 @@ pub enum LoweringError {
     InvalidTerminalTransduction(PlacementId),
     UnsupportedHostCallConcurrency(PlacementId),
     ResourceBindingInvalid(PlacementId),
-    /// Resource authority cannot enter the byte-valued Cord store. A future
-    /// executable path must bind an already-issued local handle slot.
     ResourceAuthorityTransferUnsupported(ConnectionId),
     SignBudgetInvalid,
     SignReferenceMissing,
@@ -347,6 +345,23 @@ pub struct LoweredResource {
     pub binding: KernelResourceBinding,
 }
 
+/// One local resource Cord lowered outside the byte-valued Cord store.
+///
+/// `resource` identifies the already-reserved source binding. The opaque
+/// bearer remains in the Host capability table; this table only authorizes an
+/// exact move/shared acceptance between the two plan nodes and ports.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct LoweredResourceCord {
+    pub connection_id: ConnectionId,
+    pub source_node: NodeId,
+    pub source_port: PortId,
+    pub sink_node: NodeId,
+    pub sink_port: PortId,
+    pub resource: ResourceId,
+    pub contract: conduit_core::ResourcePortContract,
+    pub binding: PlanResourceBinding,
+}
+
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct LoweredSign {
     pub expectation: SignExpectationId,
@@ -373,6 +388,7 @@ pub struct KernelIdentityMap {
     pub fore_endpoints: Vec<KernelForeEndpointIdentity>,
     pub host_calls: Vec<(NodeId, HostCallId, HostCallContractId)>,
     pub resources: Vec<(NodeId, ResourceId, PlanResourceBinding)>,
+    pub resource_connections: Vec<(NodeId, ResourceId, ConnectionId)>,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -754,6 +770,7 @@ pub struct LoweredPlanFragment {
     pub routes: Vec<LoweredRoute>,
     pub host_calls: Vec<LoweredHostCall>,
     pub resources: Vec<LoweredResource>,
+    pub resource_cords: Vec<LoweredResourceCord>,
     pub signs: Vec<LoweredSign>,
     pub shared_pools: Vec<LoweredSharedPool>,
     pub cord_value_slots: u16,
@@ -762,6 +779,33 @@ pub struct LoweredPlanFragment {
     pub sign_bytes: u32,
 }
 
+/// Whole-Plan entry point. The legacy fragment-only function cannot carry
+/// activation truth and therefore remains only for activation-free callers.
+pub fn lower_plan_fragment_from_plan(
+    plan: &conduit_core::Plan,
+    fragment_id: &FragmentId,
+) -> Result<
+    (
+        LoweredPlanFragment,
+        crate::activation_fragment::LoweredFragmentActivations,
+    ),
+    LoweringError,
+> {
+    let activations = crate::activation_fragment::lower_fragment_activations(plan, fragment_id)
+        .map_err(|_| LoweringError::InvalidFragment)?;
+    let fragment = plan
+        .fragments
+        .iter()
+        .find(|part| &part.fragment_id == fragment_id)
+        .ok_or(LoweringError::InvalidFragment)?;
+    Ok((lower_plan_fragment(fragment)?, activations))
+}
+
+/// Lowers fragment-local kernel facts only. This API cannot establish whether
+/// a whole Plan owns activation coordinators and must never be used by new
+/// target installation code. Activation-aware installation must use
+/// [`lower_plan_fragment_from_plan`]. Kept temporarily for existing
+/// activation-free target callers pending their reviewed migration.
 pub fn lower_plan_fragment(fragment: &PlanFragment) -> Result<LoweredPlanFragment, LoweringError> {
     lower_plan_fragment_for_profile(fragment, FIXED_KERNEL_STORAGE_PROFILE)
 }
@@ -900,14 +944,10 @@ pub fn lower_plan_fragment_for_profile(
     let mut remote_endpoints = Vec::new();
     let mut value_slots = 0u16;
     let mut value_bytes = 0u32;
-    for (cord_index, connection) in fragment.connections.iter().enumerate() {
+    let mut resource_cords = Vec::new();
+    for connection in &fragment.connections {
         if !connection_ids.insert(connection.connection_id.clone()) {
             return Err(LoweringError::DuplicateConnection(
-                connection.connection_id.clone(),
-            ));
-        }
-        if connection.resource.is_some() {
-            return Err(LoweringError::ResourceAuthorityTransferUnsupported(
                 connection.connection_id.clone(),
             ));
         }
@@ -916,7 +956,6 @@ pub fn lower_plan_fragment_for_profile(
                 connection.connection_id.clone(),
             ));
         }
-        let cord = CordId(as_u16(cord_index)?);
         let source_node = placement_nodes
             .get(&connection.source_placement_id)
             .copied();
@@ -939,6 +978,49 @@ pub fn lower_plan_fragment_for_profile(
                 )
             })
             .transpose()?;
+        if let Some(resource) = &connection.resource {
+            let (Some(source_node), Some(source_port), Some(sink_node), Some(sink_port)) =
+                (source_node, source_port, sink_node, sink_port)
+            else {
+                return Err(LoweringError::ResourceAuthorityTransferUnsupported(
+                    connection.connection_id.clone(),
+                ));
+            };
+            if resource.owner_placement_id != connection.source_placement_id
+                || resource.contract.port_id != connection.source_port_id
+                || resource.contract.mobility != conduit_core::ResourcePortMobility::HostLocal
+            {
+                return Err(LoweringError::ResourceAuthorityTransferUnsupported(
+                    connection.connection_id.clone(),
+                ));
+            }
+            let placement = fragment
+                .placements
+                .iter()
+                .find(|placement| placement.placement_id == connection.source_placement_id)
+                .ok_or_else(|| {
+                    LoweringError::UnknownConnectionEndpoint(connection.connection_id.clone())
+                })?;
+            let index = placement
+                .resources
+                .iter()
+                .position(|binding| binding == &resource.source_binding)
+                .ok_or_else(|| {
+                    LoweringError::ResourceBindingInvalid(placement.placement_id.clone())
+                })?;
+            resource_cords.push(LoweredResourceCord {
+                connection_id: connection.connection_id.clone(),
+                source_node,
+                source_port,
+                sink_node,
+                sink_port,
+                resource: ResourceId(as_u16(index)?),
+                contract: resource.contract.clone(),
+                binding: resource.source_binding.clone(),
+            });
+            continue;
+        }
+        let cord = CordId(as_u16(cords.len())?);
         if source_node.zip(source_port).is_some_and(|(node, port)| {
             let descriptor = &nodes[usize::from(node.0)].outputs[usize::from(port.0)];
             !source_contract_matches(
@@ -1273,13 +1355,20 @@ pub fn lower_plan_fragment_for_profile(
                         .ok_or(LoweringError::SignReferenceMissing)?,
                 )
             }
-            ExpectedSign::ConnectionTerminal(id) => SignExpectationTarget::Cord(
-                cords
-                    .iter()
-                    .find(|cord| &cord.connection_id == id)
-                    .map(|cord| cord.spec.cord)
-                    .ok_or(LoweringError::SignReferenceMissing)?,
-            ),
+            ExpectedSign::ConnectionTerminal(id) => {
+                if let Some(cord) = cords.iter().find(|cord| &cord.connection_id == id) {
+                    SignExpectationTarget::Cord(cord.spec.cord)
+                } else {
+                    let resource = resource_cords
+                        .iter()
+                        .find(|cord| &cord.connection_id == id)
+                        .ok_or(LoweringError::SignReferenceMissing)?;
+                    SignExpectationTarget::Resource {
+                        node: resource.source_node,
+                        resource: resource.resource,
+                    }
+                }
+            }
         };
         signs.push(LoweredSign {
             expectation: SignExpectationId(as_u16(index)?),
@@ -1335,6 +1424,10 @@ pub fn lower_plan_fragment_for_profile(
                 )
                 .map(|(item, binding)| (item.node, item.binding.resource, binding.clone()))
                 .collect(),
+            resource_connections: resource_cords
+                .iter()
+                .map(|item| (item.source_node, item.resource, item.connection_id.clone()))
+                .collect(),
         },
         nodes,
         node_specs,
@@ -1346,6 +1439,7 @@ pub fn lower_plan_fragment_for_profile(
         routes,
         host_calls,
         resources,
+        resource_cords,
         signs,
         shared_pools,
         cord_value_slots: value_slots,

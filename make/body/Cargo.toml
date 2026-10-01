@@ -5,12 +5,18 @@ edition = "2021"
 description = "Bounded Body construction and Spore binding above Conduit Host make"
 
 [dependencies]
+conduit-body = { path = "../../architecture/body" }
+conduit-core = { path = "../../architecture/core" }
 conduit-form = { path = "../../architecture/form" }
 conduit-host-make = { path = "../host" }
+conduit-planner = { path = "../../architecture/planner" }
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
 sha2 = "0.10"
 toml = "0.8"
 
 [dev-dependencies]
+conduit-semantic-catalog = { path = "../../semantics/catalog" }
+conduit-std-host = { path = "../../targets/std" }
+conduit-std-offers = { path = "../../targets/std/offers" }
 conduit-workspace-make = { path = "../workspace" }

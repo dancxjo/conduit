@@ -97,6 +97,43 @@ fn generated_code_preserves_explicit_iota_origin() {
 }
 
 #[test]
+fn rust_only_variant_order_preserves_serde_abi_without_changing_type_identity() {
+    let types = checked_types();
+    let ordinary = generate_rust_bindings(
+        &types,
+        &RustBindingOptions {
+            derive_serde_for_variants: true,
+            ..RustBindingOptions::default()
+        },
+    )
+    .unwrap();
+    let ordered = generate_rust_bindings(
+        &types,
+        &RustBindingOptions {
+            derive_serde_for_variants: true,
+            serde_variant_orders: [("Direction".into(), vec!["south".into(), "north".into()])]
+                .into(),
+            ..RustBindingOptions::default()
+        },
+    )
+    .unwrap();
+    assert_eq!(ordinary.semantic_type_bytes, ordered.semantic_type_bytes);
+    assert!(ordered
+        .source
+        .contains("pub enum Direction {\n    South,\n    North,"));
+    assert!(matches!(
+        generate_rust_bindings(
+            &types,
+            &RustBindingOptions {
+                serde_variant_orders: [("Direction".into(), vec!["north".into()])].into(),
+                ..RustBindingOptions::default()
+            }
+        ),
+        Err(RustBindingGenerationError::InvalidSemanticType)
+    ));
+}
+
+#[test]
 fn generated_contracts_preserve_semantic_openness() {
     let checked = crate::check_syntax_document(
         &crate::parse_syntax_document(

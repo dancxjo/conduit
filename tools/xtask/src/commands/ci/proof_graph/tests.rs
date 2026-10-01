@@ -239,7 +239,7 @@ fn product_proof_renames_invalidate_receipts_without_rejecting_the_tree() {
     let migrations = [
         (
             "scripts/ci/stage-book-product.sh",
-            "products/creche/tools/stage-creche-product.sh",
+            "products/workspace/tools/stage-workspace-product.sh",
         ),
         (
             "proof/browser/pages-front-door.spec.mjs",
@@ -272,7 +272,7 @@ fn product_proof_renames_invalidate_receipts_without_rejecting_the_tree() {
     }
     let previous = git_text(&repo.root, &["rev-parse", "HEAD"]).unwrap();
     repo.write(
-        "products/creche/tools/stage-creche-product.sh",
+        "products/workspace/tools/stage-workspace-product.sh",
         "changed proof bytes",
     );
     let changed = repo.commit("change renamed implementation");
@@ -282,7 +282,10 @@ fn product_proof_renames_invalidate_receipts_without_rejecting_the_tree() {
             fingerprint(&repo.root, &changed, spec(id)).unwrap()
         );
     }
-    repo.write("products/creche/browser/creche.mjs", "moved product source");
+    repo.write(
+        "products/workspace/browser/workspace.mjs",
+        "moved product source",
+    );
     let moved = repo.commit("move Creche into its product owner");
     assert_ne!(
         fingerprint(&repo.root, &changed, spec("products.pages-carrier")).unwrap(),
