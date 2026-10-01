@@ -198,6 +198,7 @@ are satisfied.
 | Body Chat role, bounded message and history record | `semantics/chat/types.conduit` | generated at build time | yes | yes | exact native round trip plus Chat, prompt and std Host suites |
 | Chat presentation-state and Body Chat refusal vocabularies | `semantics/chat/types.conduit` | generated at build time | yes | yes | exact native round trips plus presentation, prompt and codec suites |
 | Network transport, DNS record/TTL, application refusal, transcript direction and terminal facts | `semantics/net/types.conduit` | generated at build time | yes | yes | exact native round trips plus explicit terminal compatibility codec, network, browser and std Host suites |
+| Bounded DNS query record | `semantics/net/types.conduit` | generated at build time | yes | yes | exact native record round trip and name/port bounds plus network catalog and std resolver suites |
 | Morse key phase | `semantics/text/types.conduit` | generated at build time | yes | yes | exact native round trip plus text suites |
 | Morse segment record | `semantics/text/types.conduit` | generated at build time | yes | yes | exact native record round trip plus canonical Morse codec and interpreter suites |
 | Morse key transition record | `semantics/text/types.conduit` | generated at build time | yes | yes | exact native record round trip plus interpreter and ESP32 tooling suites |

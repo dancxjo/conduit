@@ -15,6 +15,13 @@ type DnsTtl =
     }
     | unavailable
 
+type DnsQuery = {
+    name: Text <= 253B not in [""]
+    port: U16 in 1..=65535
+    record_kind: DnsRecordKind
+    transport: NetworkTransport
+}
+
 type ApplicationNetworkRefusal =
     empty-name
     | name-too-large
