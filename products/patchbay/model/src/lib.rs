@@ -19,7 +19,6 @@ mod form_editor_catalogs;
 mod form_editor_error;
 mod form_edits;
 mod front_configuration;
-mod front_door;
 mod front_door_projection;
 mod front_door_session;
 mod front_door_topology;
@@ -93,10 +92,6 @@ pub use cross_host_renderer::{
 pub use form_editor::{
     CheckedRevision, EditorDiagnostic, FormDocumentView, FormEditor, FormEditorError, GraphCord,
     GraphCordStage, GraphForm, GraphItem, GraphItemKind, SourceSelection,
-};
-pub use front_door::{
-    EntranceAction, EntranceLayer, EntranceRefusal, EntranceUpdateDisposition,
-    PatchbayEntranceState, MAX_ENTRANCE_ACTIONS,
 };
 pub use front_door_session::{LocalFrontDoor, LocalFrontDoorProjection};
 pub use front_door_topology::MAX_FRONT_DOOR_LINES;

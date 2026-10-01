@@ -93,7 +93,7 @@ impl PatchbayHtmlServer {
         let mut entrance = if prior_entrance.body_id == snapshot.presentation.basis.body_id {
             prior_entrance
         } else {
-            patchbay_model::PatchbayEntranceState::enter(&snapshot.presentation)
+            patchbay_application::PatchbayEntranceState::enter(&snapshot.presentation)
                 .map_err(|error| ServerError::Interaction(format!("{error:?}")))?
         };
         if entrance.presentation_id != snapshot.presentation.identity.as_str() {

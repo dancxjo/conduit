@@ -1,9 +1,10 @@
 use conduit_presentation::{Presentation, PresentationRole};
-
-use crate::{
-    portable_demonstration, EntranceAction, EntranceLayer, EntranceRefusal,
-    EntranceUpdateDisposition, PatchbayEntranceState,
+use patchbay_application::{
+    EntranceAction, EntranceLayer, EntranceRefusal, EntranceUpdateDisposition,
+    PatchbayEntranceState,
 };
+
+use crate::portable_demonstration;
 
 fn revised(presentation: &Presentation, revision: u64) -> Presentation {
     Presentation::new_with_semantics(

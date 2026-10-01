@@ -7,7 +7,7 @@ use conduit_presentation::{
 };
 use serde::{Deserialize, Serialize};
 
-use crate::{EntranceAction, EntranceLayer, EntranceRefusal, PatchbayEntranceState};
+use patchbay_application::{EntranceAction, EntranceLayer, EntranceRefusal, PatchbayEntranceState};
 
 pub const ENTRANCE_EQUIVALENCE_SCHEMA: &str = "conduit.patchbay.entrance-equivalence@2";
 pub const ONE_FORM_TWO_FACES_HOST_ID: &str = "journey/one-form-two-fronts/host";
