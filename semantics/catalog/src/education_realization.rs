@@ -4,16 +4,12 @@ use alloc::{string::ToString, vec};
 use conduit_core::{StructuredInfoRefusal, StructuredInfoValue};
 use conduit_form::rust_binding::NativeRustBinding;
 
-use crate::education_value::{
-    count_value, leaf_count, leaf_text, ratio_value, record_field, record_value, text_value,
-    unit_value,
-};
+use crate::education_value::{leaf_count, leaf_text, record_field, record_value};
 use crate::{
-    education_assessment_outcome_type, education_assessment_type, education_evidence_class_type,
-    education_feedback_provenance_type, education_lesson_feedback_type,
-    education_optional_hint_type, education_progress_state_type, education_progress_type,
-    education_rhythm_feedback_type, timing_feedback_type, EducationHint, EducationHints,
-    EducationQuestion, EducationResponse,
+    education_rhythm_feedback_type, timing_feedback_type, EducationAssessment,
+    EducationAssessmentOutcome, EducationEvidenceClass, EducationFeedbackProvenance, EducationHint,
+    EducationHints, EducationLessonFeedback, EducationOptionalHint, EducationProgress,
+    EducationProgressState, EducationQuestion, EducationResponse,
 };
 
 pub const ARITHMETIC_RESPONSE_PROFILE: &str = "education/response/integer-text@1";
@@ -159,84 +155,67 @@ pub fn evaluate_arithmetic_response(
         EducationResponse::Refused(value) => (value.response_identity(), value.question_identity()),
     };
 
-    let (outcome_tag, outcome_payload, score, message, hint, progress_state) =
-        if response_question != question_identity {
-            (
-                "refused",
-                text_value("response-question-mismatch"),
-                0,
-                "Response belongs to a different question.",
-                None,
-                "refused",
-            )
-        } else {
-            match &response {
-                EducationResponse::Answer(answer) => {
-                    let content = answer.content();
-                    if content == "12" {
-                        (
-                            "correct",
-                            unit_value()?,
-                            1_000_000,
-                            "Correct: 7 + 5 is 12.",
-                            None,
-                            "completed",
-                        )
-                    } else {
-                        (
-                            "incorrect",
-                            unit_value()?,
-                            0,
-                            "That answer is not 12.",
-                            None,
-                            "awaiting_response",
-                        )
-                    }
+    let (outcome, score, message, hint, progress_state) = if response_question != question_identity
+    {
+        (
+            EducationAssessmentOutcome::refused("response-question-mismatch".into())?,
+            0,
+            "Response belongs to a different question.",
+            None,
+            EducationProgressState::Refused,
+        )
+    } else {
+        match &response {
+            EducationResponse::Answer(answer) => {
+                let content = answer.content();
+                if content == "12" {
+                    (
+                        EducationAssessmentOutcome::Correct,
+                        1_000_000,
+                        "Correct: 7 + 5 is 12.",
+                        None,
+                        EducationProgressState::Completed,
+                    )
+                } else {
+                    (
+                        EducationAssessmentOutcome::Incorrect,
+                        0,
+                        "That answer is not 12.",
+                        None,
+                        EducationProgressState::AwaitingResponse,
+                    )
                 }
-                EducationResponse::HintRequest(_) => (
-                    "hint_requested",
-                    text_value("learner-requested"),
-                    0,
-                    "Here is one bounded hint.",
-                    first_hint(&question)?,
-                    "hinting",
-                ),
-                EducationResponse::Timeout(_) => (
-                    "timeout",
-                    text_value("response-window-ended"),
-                    0,
-                    "The response window ended.",
-                    None,
-                    "timed_out",
-                ),
-                EducationResponse::Refused(refused) => (
-                    "refused",
-                    text_value(refused.reason()),
-                    0,
-                    "The response was refused.",
-                    None,
-                    "refused",
-                ),
             }
-        };
-
-    let outcome = StructuredInfoValue::variant(
-        education_assessment_outcome_type(),
-        outcome_tag,
-        outcome_payload,
-    )?;
-    let assessment = record_value(
-        education_assessment_type(),
-        vec![
-            (
-                "evaluation_profile",
-                text_value(ARITHMETIC_EVALUATION_PROFILE),
+            EducationResponse::HintRequest(_) => (
+                EducationAssessmentOutcome::hint_requested("learner-requested".into())?,
+                0,
+                "Here is one bounded hint.",
+                first_hint(&question)?,
+                EducationProgressState::Hinting,
             ),
-            ("outcome", outcome),
-            ("question_identity", text_value(question_identity)),
-            ("response_identity", text_value(response_identity)),
-            ("score", ratio_value(score)?),
-        ],
+            EducationResponse::Timeout(_) => (
+                EducationAssessmentOutcome::timeout("response-window-ended".into())?,
+                0,
+                "The response window ended.",
+                None,
+                EducationProgressState::TimedOut,
+            ),
+            EducationResponse::Refused(refused) => (
+                EducationAssessmentOutcome::refused(refused.reason().clone())?,
+                0,
+                "The response was refused.",
+                None,
+                EducationProgressState::Refused,
+            ),
+        }
+    };
+
+    let assessment = EducationAssessment::new(
+        ARITHMETIC_EVALUATION_PROFILE.into(),
+        outcome,
+        question_identity.into(),
+        response_identity.clone(),
+        ratio(score),
     )?;
     let feedback = feedback_value(
         assessment.clone(),
@@ -247,9 +226,9 @@ pub fn evaluate_arithmetic_response(
     )?;
     let progress = progress_value(question_identity, progress_state)?;
     Ok(EducationEvaluation {
-        assessment,
-        feedback,
-        progress,
+        assessment: assessment.into_structured()?,
+        feedback: feedback.into_structured()?,
+        progress: progress.into_structured()?,
     })
 }
 
@@ -260,57 +239,42 @@ pub fn adapt_rhythm_feedback(
         return Err(EducationInfoRefusal::MalformedInfo);
     }
     let classification = leaf_text(record_field(timing, "classification")?)?;
-    let (outcome_tag, outcome_payload, score, message, progress_state) = match classification {
+    let (outcome, score, message, progress_state) = match classification {
         "on-time" => (
-            "correct",
-            unit_value()?,
+            EducationAssessmentOutcome::Correct,
             1_000_000,
             "Timing is within the exact lesson tolerance.",
-            "completed",
+            EducationProgressState::Completed,
         ),
         "early" | "late" => (
-            "partial",
-            ratio_value(500_000)?,
+            EducationAssessmentOutcome::partial(ratio(500_000))?,
             500_000,
             "Timing is outside tolerance; exact musical timing is attached.",
-            "awaiting_response",
+            EducationProgressState::AwaitingResponse,
         ),
         "missed" => (
-            "timeout",
-            text_value("beat-not-observed"),
+            EducationAssessmentOutcome::timeout("beat-not-observed".into())?,
             0,
             "No performance event was observed for this beat.",
-            "timed_out",
+            EducationProgressState::TimedOut,
         ),
         _ => (
-            "refused",
-            text_value("unknown-timing-classification"),
+            EducationAssessmentOutcome::refused("unknown-timing-classification".into())?,
             0,
             "The timing classification is unsupported.",
-            "refused",
+            EducationProgressState::Refused,
         ),
     };
     let beat = leaf_count(record_field(timing, "beat")?)?;
     let beat = beat.to_string();
     let question_identity = ["question/rhythm-beat/", beat.as_str()].concat();
     let response_identity = ["response/rhythm-beat/", beat.as_str()].concat();
-    let outcome = StructuredInfoValue::variant(
-        education_assessment_outcome_type(),
-        outcome_tag,
-        outcome_payload,
-    )?;
-    let assessment = record_value(
-        education_assessment_type(),
-        vec![
-            (
-                "evaluation_profile",
-                text_value("education/evaluate/rhythm-timing@1"),
-            ),
-            ("outcome", outcome),
-            ("question_identity", text_value(&question_identity)),
-            ("response_identity", text_value(&response_identity)),
-            ("score", ratio_value(score)?),
-        ],
+    let assessment = EducationAssessment::new(
+        "education/evaluate/rhythm-timing@1".into(),
+        outcome,
+        question_identity.clone(),
+        response_identity,
+        ratio(score),
     )?;
     let feedback = feedback_value(
         assessment,
@@ -323,83 +287,54 @@ pub fn adapt_rhythm_feedback(
     record_value(
         education_rhythm_feedback_type(),
         vec![
-            ("feedback", feedback),
-            ("progress", progress),
+            ("feedback", feedback.into_structured()?),
+            ("progress", progress.into_structured()?),
             ("timing", timing.clone()),
         ],
     )
 }
 
-fn first_hint(
-    question: &EducationQuestion,
-) -> Result<Option<StructuredInfoValue>, EducationInfoRefusal> {
-    question
-        .hints()
-        .iter()
-        .next()
-        .cloned()
-        .map(NativeRustBinding::into_structured)
-        .transpose()
-        .map_err(Into::into)
+fn first_hint(question: &EducationQuestion) -> Result<Option<EducationHint>, EducationInfoRefusal> {
+    Ok(question.hints().iter().next().cloned())
 }
 
 fn feedback_value(
-    assessment: StructuredInfoValue,
-    hint: Option<StructuredInfoValue>,
+    assessment: EducationAssessment,
+    hint: Option<EducationHint>,
     message: &str,
     profile: &str,
     source: &str,
-) -> Result<StructuredInfoValue, EducationInfoRefusal> {
+) -> Result<EducationLessonFeedback, EducationInfoRefusal> {
     let optional_hint = match hint {
-        Some(value) => {
-            StructuredInfoValue::variant(education_optional_hint_type(), "provided", value)?
-        }
-        None => {
-            StructuredInfoValue::variant(education_optional_hint_type(), "absent", unit_value()?)?
-        }
+        Some(value) => EducationOptionalHint::provided(
+            value.content().clone(),
+            value.hint_identity().clone(),
+            value.question_identity().clone(),
+            *value.sequence(),
+        )?,
+        None => EducationOptionalHint::Absent,
     };
-    let evidence = StructuredInfoValue::variant(
-        education_evidence_class_type(),
-        "deterministic",
-        unit_value()?,
+    let provenance = EducationFeedbackProvenance::new(
+        EducationEvidenceClass::Deterministic,
+        profile.into(),
+        "fixture-1".into(),
+        source.into(),
     )?;
-    let provenance = record_value(
-        education_feedback_provenance_type(),
-        vec![
-            ("evidence_class", evidence),
-            ("profile", text_value(profile)),
-            ("revision", text_value("fixture-1")),
-            ("source", text_value(source)),
-        ],
-    )?;
-    record_value(
-        education_lesson_feedback_type(),
-        vec![
-            ("assessment", assessment),
-            ("hint", optional_hint),
-            ("message", text_value(message)),
-            ("provenance", provenance),
-        ],
-    )
+    Ok(EducationLessonFeedback::new(
+        assessment,
+        optional_hint,
+        message.into(),
+        provenance,
+    )?)
 }
 
 fn progress_value(
     question_identity: &str,
-    state: &str,
-) -> Result<StructuredInfoValue, EducationInfoRefusal> {
-    record_value(
-        education_progress_type(),
-        vec![
-            ("attempt_count", count_value(1)),
-            ("question_identity", text_value(question_identity)),
-            (
-                "state",
-                StructuredInfoValue::variant(
-                    education_progress_state_type(),
-                    state,
-                    unit_value()?,
-                )?,
-            ),
-        ],
-    )
+    state: EducationProgressState,
+) -> Result<EducationProgress, EducationInfoRefusal> {
+    Ok(EducationProgress::new(1, question_identity.into(), state)?)
+}
+
+fn ratio(value: i64) -> conduit_core::Quantity {
+    conduit_core::Quantity::new(value, conduit_core::QuantityUnit::Millionth)
 }

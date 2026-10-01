@@ -1,4 +1,4 @@
-//! Portable education question and response meaning.
+//! Portable education question, response, assessment, feedback, and progress meaning.
 #![no_std]
 
 extern crate alloc;
@@ -9,9 +9,11 @@ mod generated {
 }
 
 pub use generated::{
-    EducationAnswer, EducationHint, EducationQuestion, EducationRefusedResponse, EducationResponse,
-    EducationResponseAnswer, EducationResponseEvent, EducationResponseHintRequest,
-    EducationResponseRefused, EducationResponseTimeout,
+    EducationAnswer, EducationAssessment, EducationAssessmentOutcome, EducationEvidenceClass,
+    EducationFeedbackProvenance, EducationHint, EducationLessonFeedback, EducationOptionalHint,
+    EducationOptionalHintProvided, EducationProgress, EducationProgressState, EducationQuestion,
+    EducationRefusedResponse, EducationResponse, EducationResponseAnswer, EducationResponseEvent,
+    EducationResponseHintRequest, EducationResponseRefused, EducationResponseTimeout,
 };
 
 pub type EducationHints = conduit_form::rust_binding::BoundedSequence<EducationHint, 3>;
@@ -53,6 +55,38 @@ pub fn education_refused_response_type() -> conduit_core::StructuredInfoType {
 
 pub fn education_response_type() -> conduit_core::StructuredInfoType {
     EducationResponse::semantic_type().expect("checked education response Type")
+}
+
+pub fn education_assessment_outcome_type() -> conduit_core::StructuredInfoType {
+    EducationAssessmentOutcome::semantic_type().expect("checked education assessment outcome Type")
+}
+
+pub fn education_assessment_type() -> conduit_core::StructuredInfoType {
+    EducationAssessment::semantic_type().expect("checked education assessment Type")
+}
+
+pub fn education_optional_hint_type() -> conduit_core::StructuredInfoType {
+    EducationOptionalHint::semantic_type().expect("checked education optional-hint Type")
+}
+
+pub fn education_evidence_class_type() -> conduit_core::StructuredInfoType {
+    EducationEvidenceClass::semantic_type().expect("checked education evidence-class Type")
+}
+
+pub fn education_feedback_provenance_type() -> conduit_core::StructuredInfoType {
+    EducationFeedbackProvenance::semantic_type().expect("checked feedback-provenance Type")
+}
+
+pub fn education_lesson_feedback_type() -> conduit_core::StructuredInfoType {
+    EducationLessonFeedback::semantic_type().expect("checked lesson-feedback Type")
+}
+
+pub fn education_progress_state_type() -> conduit_core::StructuredInfoType {
+    EducationProgressState::semantic_type().expect("checked education progress-state Type")
+}
+
+pub fn education_progress_type() -> conduit_core::StructuredInfoType {
+    EducationProgress::semantic_type().expect("checked education progress Type")
 }
 
 #[cfg(test)]
@@ -140,5 +174,78 @@ mod tests {
                 ..
             }
         ));
+    }
+
+    #[test]
+    fn assessment_feedback_and_progress_round_trip_through_generated_bindings() {
+        let assessment = EducationAssessment::new(
+            "evaluation/exact".to_string(),
+            EducationAssessmentOutcome::partial(conduit_core::Quantity::new(
+                500_000,
+                conduit_core::QuantityUnit::Millionth,
+            ))
+            .unwrap(),
+            "question/1".to_string(),
+            "response/1".to_string(),
+            conduit_core::Quantity::new(500_000, conduit_core::QuantityUnit::Millionth),
+        )
+        .unwrap();
+        let hint = EducationOptionalHint::provided(
+            "count onward".to_string(),
+            "hint/1".to_string(),
+            "question/1".to_string(),
+            1,
+        )
+        .unwrap();
+        let provenance = EducationFeedbackProvenance::new(
+            EducationEvidenceClass::Deterministic,
+            "education/deterministic".to_string(),
+            "revision/1".to_string(),
+            "fixture/1".to_string(),
+        )
+        .unwrap();
+        let feedback = EducationLessonFeedback::new(
+            assessment.clone(),
+            hint,
+            "Try once more.".to_string(),
+            provenance,
+        )
+        .unwrap();
+        let progress = EducationProgress::new(
+            1,
+            "question/1".to_string(),
+            EducationProgressState::AwaitingResponse,
+        )
+        .unwrap();
+
+        let assessment_value = assessment.clone().into_structured().unwrap();
+        assert_eq!(
+            EducationAssessment::from_structured(assessment_value).unwrap(),
+            assessment
+        );
+        let feedback_value = feedback.clone().into_structured().unwrap();
+        assert_eq!(
+            EducationLessonFeedback::from_structured(feedback_value).unwrap(),
+            feedback
+        );
+        let progress_value = progress.clone().into_structured().unwrap();
+        assert_eq!(
+            EducationProgress::from_structured(progress_value).unwrap(),
+            progress
+        );
+
+        for outcome in [
+            EducationAssessmentOutcome::Correct,
+            EducationAssessmentOutcome::hint_requested("requested".to_string()).unwrap(),
+            EducationAssessmentOutcome::Incorrect,
+            EducationAssessmentOutcome::refused("unsupported".to_string()).unwrap(),
+            EducationAssessmentOutcome::timeout("ended".to_string()).unwrap(),
+        ] {
+            let value = outcome.clone().into_structured().unwrap();
+            assert_eq!(
+                EducationAssessmentOutcome::from_structured(value).unwrap(),
+                outcome
+            );
+        }
     }
 }
