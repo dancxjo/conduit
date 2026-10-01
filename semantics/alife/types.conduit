@@ -27,6 +27,10 @@ type ReactionDiffusionRegion = {
     height: U16
 }
 
+type ReactionDiffusionPartition = {
+    regions: sequence ReactionDiffusionRegion in 1..=16
+}
+
 type FieldBitmapRefusal =
     invalid-field
     | invalid-bitmap

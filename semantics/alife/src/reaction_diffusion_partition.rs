@@ -9,10 +9,11 @@ use core::{
 
 use crate::{
     GrayScottParameters, ReactionDiffusionBoundaryEdge, ReactionDiffusionCell,
-    ReactionDiffusionFieldId, ReactionDiffusionFieldState, ReactionDiffusionRefusal,
-    ReactionDiffusionRegion, ReactionDiffusionRegionId, REACTION_DIFFUSION_MAXIMUM_BOUNDARIES,
-    REACTION_DIFFUSION_MAXIMUM_CELLS, REACTION_DIFFUSION_MAXIMUM_EXTENT,
-    REACTION_DIFFUSION_MAXIMUM_REGIONS, REACTION_DIFFUSION_MINIMUM_EXTENT,
+    ReactionDiffusionFieldId, ReactionDiffusionFieldState, ReactionDiffusionPartition,
+    ReactionDiffusionRefusal, ReactionDiffusionRegion, ReactionDiffusionRegionId,
+    REACTION_DIFFUSION_MAXIMUM_BOUNDARIES, REACTION_DIFFUSION_MAXIMUM_CELLS,
+    REACTION_DIFFUSION_MAXIMUM_EXTENT, REACTION_DIFFUSION_MAXIMUM_REGIONS,
+    REACTION_DIFFUSION_MINIMUM_EXTENT,
 };
 
 impl Copy for ReactionDiffusionRegionId {}
@@ -33,11 +34,6 @@ impl Hash for ReactionDiffusionRegionId {
     fn hash<H: Hasher>(&self, state: &mut H) {
         self.get().hash(state);
     }
-}
-
-#[derive(Debug, Clone, PartialEq, Eq)]
-pub struct ReactionDiffusionPartition {
-    pub regions: Vec<ReactionDiffusionRegion>,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -106,6 +102,17 @@ impl From<ReactionDiffusionRefusal> for ReactionDiffusionPartitionRefusal {
 }
 
 impl ReactionDiffusionPartition {
+    pub fn from_regions(
+        regions: Vec<ReactionDiffusionRegion>,
+    ) -> Result<Self, ReactionDiffusionPartitionRefusal> {
+        if regions.is_empty() {
+            return Err(ReactionDiffusionPartitionRefusal::InvalidRegionCount);
+        }
+        let regions = conduit_form::rust_binding::BoundedSequence::try_from_iter(regions)
+            .map_err(|_| ReactionDiffusionPartitionRefusal::InvalidRegionCount)?;
+        Self::new(regions).map_err(|_| ReactionDiffusionPartitionRefusal::InvalidRegionCount)
+    }
+
     pub fn validate(
         &self,
         width: u16,
@@ -121,8 +128,8 @@ pub fn partition_reaction_diffusion_generation(
 ) -> Result<PartitionedReactionDiffusionGeneration, ReactionDiffusionPartitionRefusal> {
     state.validate()?;
     let owners = owner_map(&partition, state.width, state.height)?;
-    let mut regions = Vec::with_capacity(partition.regions.len());
-    for region in &partition.regions {
+    let mut regions = Vec::with_capacity(partition.regions().len());
+    for region in partition.regions().iter() {
         let mut cells =
             Vec::with_capacity(usize::from(region.width()) * usize::from(region.height()));
         for y in region.origin_y()..region.origin_y() + region.height() {
@@ -155,10 +162,10 @@ pub fn partition_reaction_diffusion_generation(
 impl PartitionedReactionDiffusionGeneration {
     pub fn validate(&self) -> Result<(), ReactionDiffusionPartitionRefusal> {
         let owners = owner_map(&self.partition, self.width, self.height)?;
-        if self.regions.len() != self.partition.regions.len() {
+        if self.regions.len() != self.partition.regions().len() {
             return Err(ReactionDiffusionPartitionRefusal::RegionStateMismatch);
         }
-        for expected in &self.partition.regions {
+        for expected in self.partition.regions().iter() {
             let Some(actual) = self
                 .regions
                 .iter()
@@ -268,14 +275,14 @@ fn owner_map(
             ReactionDiffusionRefusal::InvalidDimensions,
         ));
     }
-    if partition.regions.is_empty()
-        || partition.regions.len() > usize::from(REACTION_DIFFUSION_MAXIMUM_REGIONS)
+    if partition.regions().is_empty()
+        || partition.regions().len() > usize::from(REACTION_DIFFUSION_MAXIMUM_REGIONS)
     {
         return Err(ReactionDiffusionPartitionRefusal::InvalidRegionCount);
     }
     let mut owners = vec![None; usize::from(width) * usize::from(height)];
-    let mut ids = Vec::with_capacity(partition.regions.len());
-    for region in &partition.regions {
+    let mut ids = Vec::with_capacity(partition.regions().len());
+    for region in partition.regions().iter() {
         if ids.contains(&region.region_id()) {
             return Err(ReactionDiffusionPartitionRefusal::DuplicateRegionIdentity);
         }
@@ -315,7 +322,7 @@ fn derive_boundaries(
     owners: &[ReactionDiffusionRegionId],
 ) -> Result<Vec<ReactionDiffusionBoundaryState>, ReactionDiffusionPartitionRefusal> {
     let mut boundaries = Vec::new();
-    for destination in &partition.regions {
+    for destination in partition.regions().iter() {
         for edge in [
             ReactionDiffusionBoundaryEdge::North,
             ReactionDiffusionBoundaryEdge::South,
@@ -364,7 +371,7 @@ fn validate_boundaries(
     }
     let expected_count = generation
         .partition
-        .regions
+        .regions()
         .iter()
         .map(|region| usize::from(2 * (region.width() + region.height())))
         .sum::<usize>();
@@ -389,7 +396,7 @@ fn validate_boundaries(
         }
         let Some(destination) = generation
             .partition
-            .regions
+            .regions()
             .iter()
             .find(|region| region.region_id() == boundary.destination_region)
         else {
