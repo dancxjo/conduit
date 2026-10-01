@@ -31,12 +31,7 @@ fn tsv_retains_word_geometry_and_bounded_confidence() {
         observed,
         [OcrCandidate {
             text: "TRINITY",
-            region: ImageRegion {
-                x: 10,
-                y: 20,
-                width: 30,
-                height: 12,
-            },
+            region: ImageRegion::from_xywh(10, 20, 30, 12).unwrap(),
             confidence_permille: 917,
         }]
     );
@@ -104,12 +99,7 @@ fn executable_provider_binds_identity_and_visits_exact_candidates() {
         observed,
         [(
             "CANTUS".to_owned(),
-            ImageRegion {
-                x: 2,
-                y: 3,
-                width: 4,
-                height: 5,
-            },
+            ImageRegion::from_xywh(2, 3, 4, 5).unwrap(),
             882,
         )]
     );

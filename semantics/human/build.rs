@@ -14,7 +14,7 @@ fn main() {
         &checked.codes,
         &RustBindingOptions {
             derive_serde_for_variants: true,
-            copy_record_types: ["ExperienceTemporalPolicy".into()].into(),
+            copy_record_types: ["ExperienceTemporalPolicy".into(), "ImageRegion".into()].into(),
             ..RustBindingOptions::default()
         },
     )

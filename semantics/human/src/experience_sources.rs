@@ -75,10 +75,10 @@ pub fn visual_object_experience(
         .map_err(ExperienceSourceRefusal::InvalidVisualObservation)?;
     let mut content = Vec::new();
     field(&mut content, observation.candidate_label.as_bytes());
-    content.extend_from_slice(&observation.region.x.to_le_bytes());
-    content.extend_from_slice(&observation.region.y.to_le_bytes());
-    content.extend_from_slice(&observation.region.width.to_le_bytes());
-    content.extend_from_slice(&observation.region.height.to_le_bytes());
+    content.extend_from_slice(&observation.region.x().to_le_bytes());
+    content.extend_from_slice(&observation.region.y().to_le_bytes());
+    content.extend_from_slice(&observation.region.width().to_le_bytes());
+    content.extend_from_slice(&observation.region.height().to_le_bytes());
     content.extend_from_slice(&observation.confidence_permille.to_le_bytes());
     Ok(ExperienceItem {
         id: item_id.into(),

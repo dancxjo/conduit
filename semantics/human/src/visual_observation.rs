@@ -5,7 +5,7 @@ use conduit_core::{
     ArtifactId, BaseImplementationId, BaseInstanceId, KindId, SignId, TemporalInstant,
 };
 
-use crate::{ImageObservationReference, ImageObservationRefusal, VisualEvidenceClass};
+use crate::{ImageObservationReference, ImageObservationRefusal, ImageRegion, VisualEvidenceClass};
 
 pub const MAXIMUM_VISUAL_LABEL_BYTES: usize = 128;
 pub const MAXIMUM_VISIBLE_TEXT_BYTES: usize = 512;
@@ -13,23 +13,24 @@ pub const MAXIMUM_VISUAL_IDENTITY_BYTES: usize = 128;
 pub const MAXIMUM_TRACK_OBSERVATIONS: usize = 16;
 pub const MAXIMUM_CONFIDENCE_PERMILLE: u16 = 1_000;
 
-#[derive(Clone, Copy, Debug, Eq, PartialEq)]
-pub struct ImageRegion {
-    pub x: u16,
-    pub y: u16,
-    pub width: u16,
-    pub height: u16,
-}
-
 impl ImageRegion {
+    pub fn from_xywh(
+        x: u16,
+        y: u16,
+        width: u16,
+        height: u16,
+    ) -> Result<Self, conduit_form::rust_binding::NativeBindingRefusal> {
+        Self::new(height, width, x, y)
+    }
+
     pub fn validate(
         self,
         image: &ImageObservationReference,
     ) -> Result<(), VisualObservationRefusal> {
-        if self.width == 0
-            || self.height == 0
-            || u32::from(self.x) + u32::from(self.width) > u32::from(image.width)
-            || u32::from(self.y) + u32::from(self.height) > u32::from(image.height)
+        if *self.width() == 0
+            || *self.height() == 0
+            || u32::from(*self.x()) + u32::from(*self.width()) > u32::from(image.width)
+            || u32::from(*self.y()) + u32::from(*self.height()) > u32::from(image.height)
         {
             return Err(VisualObservationRefusal::InvalidRegion);
         }
