@@ -32,6 +32,19 @@ type BodyChatHistoryItem = {
     text: BodyChatMessage
 }
 
+type BodyConversationalSummary = {
+    schema: Text <= 64B not in [""]
+    display_name: Text <= 128B not in [""]
+    lifecycle: Text <= 16B not in [""]
+    present_hosts: U16
+    offline_hosts: U16
+    active_forms: U16
+    execution: Text <= 16B not in [""]
+    ready_lines: U16
+    unavailable_lines: U16
+    unknown_lines: U16
+}
+
 type BodyChatRefusal =
     empty_message
     | message_bound_exceeded

@@ -17,6 +17,7 @@ use sha2::{Digest, Sha256};
 
 use crate::{
     BodyChatHistoryItem, BodyChatMessage, BodyChatRefusal, BodyChatRole, BodyChatRoleCode,
+    BodyConversationalSummary,
 };
 
 pub const BODY_CHAT_PROMPT_KIND: &str = "body/chat-prompt";
@@ -35,20 +36,6 @@ pub const MAXIMUM_BODY_CONVERSATIONAL_SUMMARY_ITEMS: usize =
         + conduit_body::MAXIMUM_CONVERSATION_FORMS
         + conduit_body::MAXIMUM_CONVERSATION_LINES;
 
-#[derive(Clone, Debug, Eq, PartialEq, Serialize, Deserialize)]
-pub struct BodyConversationalSummary {
-    pub schema: String,
-    pub display_name: String,
-    pub lifecycle: String,
-    pub present_hosts: u16,
-    pub offline_hosts: u16,
-    pub active_forms: u16,
-    pub execution: String,
-    pub ready_lines: u16,
-    pub unavailable_lines: u16,
-    pub unknown_lines: u16,
-}
-
 impl BodyConversationalSummary {
     pub fn project(
         context: &conduit_body::BodyConversationContext,
@@ -56,29 +43,29 @@ impl BodyConversationalSummary {
         validate_context(context)?;
         let count =
             |value: usize| u16::try_from(value).map_err(|_| BodyChatRefusal::ContextBoundExceeded);
-        let summary = Self {
-            schema: BODY_CONVERSATIONAL_SUMMARY_SCHEMA.into(),
-            display_name: context.display_name.clone(),
-            lifecycle: "awake".into(),
-            present_hosts: count(context.hosts.iter().filter(|host| host.present).count())?,
-            offline_hosts: count(context.hosts.iter().filter(|host| !host.present).count())?,
-            active_forms: count(context.active_forms.len())?,
-            execution: if context.active_play_id.is_some() {
-                "playing"
-            } else if context.current_plan_id.is_some() {
-                "planned"
-            } else {
-                "idle"
-            }
-            .into(),
-            ready_lines: count(
+        let execution = if context.active_play_id.is_some() {
+            "playing"
+        } else if context.current_plan_id.is_some() {
+            "planned"
+        } else {
+            "idle"
+        };
+        let summary = Self::new(
+            count(context.active_forms.len())?,
+            context.display_name.clone(),
+            execution.into(),
+            "awake".into(),
+            count(context.hosts.iter().filter(|host| !host.present).count())?,
+            count(context.hosts.iter().filter(|host| host.present).count())?,
+            count(
                 context
                     .lines
                     .iter()
                     .filter(|line| line.availability == Some(conduit_core::LineAvailability::Ready))
                     .count(),
             )?,
-            unavailable_lines: count(
+            BODY_CONVERSATIONAL_SUMMARY_SCHEMA.into(),
+            count(
                 context
                     .lines
                     .iter()
@@ -87,14 +74,15 @@ impl BodyConversationalSummary {
                     })
                     .count(),
             )?,
-            unknown_lines: count(
+            count(
                 context
                     .lines
                     .iter()
                     .filter(|line| line.availability.is_none())
                     .count(),
             )?,
-        };
+        )
+        .map_err(|_| BodyChatRefusal::ContextBoundExceeded)?;
         let encoded = serde_json::to_vec(&summary).map_err(|_| BodyChatRefusal::Encoding)?;
         if encoded.len() > MAXIMUM_BODY_CONVERSATIONAL_SUMMARY_BYTES {
             return Err(BodyChatRefusal::ContextBoundExceeded);
@@ -103,17 +91,15 @@ impl BodyConversationalSummary {
     }
 
     pub fn canonical_bytes(&self) -> Result<Vec<u8>, BodyChatRefusal> {
-        if self.schema != BODY_CONVERSATIONAL_SUMMARY_SCHEMA
-            || self.display_name.is_empty()
-            || self.display_name.len() > conduit_body::MAXIMUM_BODY_DISPLAY_NAME_BYTES
-            || self.lifecycle != "awake"
-            || !matches!(self.execution.as_str(), "idle" | "planned" | "playing")
-            || usize::from(self.present_hosts) + usize::from(self.offline_hosts)
+        if self.schema() != BODY_CONVERSATIONAL_SUMMARY_SCHEMA
+            || self.lifecycle() != "awake"
+            || !matches!(self.execution().as_str(), "idle" | "planned" | "playing")
+            || usize::from(*self.present_hosts()) + usize::from(*self.offline_hosts())
                 > conduit_body::MAXIMUM_CONVERSATION_HOSTS
-            || usize::from(self.active_forms) > conduit_body::MAXIMUM_CONVERSATION_FORMS
-            || usize::from(self.ready_lines)
-                + usize::from(self.unavailable_lines)
-                + usize::from(self.unknown_lines)
+            || usize::from(*self.active_forms()) > conduit_body::MAXIMUM_CONVERSATION_FORMS
+            || usize::from(*self.ready_lines())
+                + usize::from(*self.unavailable_lines())
+                + usize::from(*self.unknown_lines())
                 > conduit_body::MAXIMUM_CONVERSATION_LINES
         {
             return Err(BodyChatRefusal::MalformedContext);
@@ -123,6 +109,62 @@ impl BodyConversationalSummary {
             return Err(BodyChatRefusal::ContextBoundExceeded);
         }
         Ok(encoded)
+    }
+}
+
+impl Serialize for BodyConversationalSummary {
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: serde::Serializer,
+    {
+        let mut record = serializer.serialize_struct("BodyConversationalSummary", 10)?;
+        record.serialize_field("schema", self.schema())?;
+        record.serialize_field("display_name", self.display_name())?;
+        record.serialize_field("lifecycle", self.lifecycle())?;
+        record.serialize_field("present_hosts", self.present_hosts())?;
+        record.serialize_field("offline_hosts", self.offline_hosts())?;
+        record.serialize_field("active_forms", self.active_forms())?;
+        record.serialize_field("execution", self.execution())?;
+        record.serialize_field("ready_lines", self.ready_lines())?;
+        record.serialize_field("unavailable_lines", self.unavailable_lines())?;
+        record.serialize_field("unknown_lines", self.unknown_lines())?;
+        record.end()
+    }
+}
+
+#[derive(Deserialize)]
+struct BodyConversationalSummaryWire {
+    schema: String,
+    display_name: String,
+    lifecycle: String,
+    present_hosts: u16,
+    offline_hosts: u16,
+    active_forms: u16,
+    execution: String,
+    ready_lines: u16,
+    unavailable_lines: u16,
+    unknown_lines: u16,
+}
+
+impl<'de> Deserialize<'de> for BodyConversationalSummary {
+    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+    where
+        D: serde::Deserializer<'de>,
+    {
+        let wire = BodyConversationalSummaryWire::deserialize(deserializer)?;
+        Self::new(
+            wire.active_forms,
+            wire.display_name,
+            wire.execution,
+            wire.lifecycle,
+            wire.offline_hosts,
+            wire.present_hosts,
+            wire.ready_lines,
+            wire.schema,
+            wire.unavailable_lines,
+            wire.unknown_lines,
+        )
+        .map_err(|_| serde::de::Error::custom("body conversational summary exceeds its bounds"))
     }
 }
 
