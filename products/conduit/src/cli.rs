@@ -58,11 +58,30 @@ pub(crate) enum Command {
         #[arg(long)]
         json: bool,
     },
+    /// Render a checked form's gears, ports, and exact cords.
+    Diagram {
+        /// Authored form to visualize. The last public form is rendered.
+        form: PathBuf,
+        /// Diagram representation to emit.
+        #[arg(long, value_enum, default_value_t = DiagramFormat::Svg)]
+        format: DiagramFormat,
+        /// Write the diagram to this path instead of standard output.
+        #[arg(short, long)]
+        output: Option<PathBuf>,
+    },
     /// Inspect retained Conduit artifacts without executing work.
     Inspect {
         /// Artifact whose schema identifies the truth to render.
         thing: PathBuf,
     },
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, ValueEnum)]
+pub(crate) enum DiagramFormat {
+    /// Standalone SVG requiring no external renderer.
+    Svg,
+    /// Mermaid flowchart source for embedding in supporting tools.
+    Mermaid,
 }
 
 #[derive(Debug, Subcommand)]
@@ -379,7 +398,9 @@ mod public_surface_tests {
     #[test]
     fn public_help_names_intent_not_retired_shells_or_protocol_phases() {
         let help = Cli::command().render_long_help().to_string();
-        for entrance in ["run", "check", "expand", "inspect", "body", "host"] {
+        for entrance in [
+            "run", "check", "expand", "diagram", "inspect", "body", "host",
+        ] {
             assert!(help.contains(entrance), "missing {entrance} in:\n{help}");
         }
         for retired in ["creche", "patchbay", "copy", "rendezvous-relay"] {
@@ -443,6 +464,38 @@ mod public_surface_tests {
                 .expect("machine source expansion parses")
                 .command,
             Some(Command::Expand { json: true, .. })
+        ));
+    }
+
+    #[test]
+    fn form_diagram_defaults_to_svg_and_accepts_mermaid() {
+        assert!(matches!(
+            Cli::try_parse_from(["conduit", "diagram", "example.conduit"])
+                .expect("diagram parses")
+                .command,
+            Some(Command::Diagram {
+                format: DiagramFormat::Svg,
+                output: None,
+                ..
+            })
+        ));
+        assert!(matches!(
+            Cli::try_parse_from([
+                "conduit",
+                "diagram",
+                "example.conduit",
+                "--format",
+                "mermaid",
+                "--output",
+                "example.mmd",
+            ])
+            .expect("Mermaid diagram parses")
+            .command,
+            Some(Command::Diagram {
+                format: DiagramFormat::Mermaid,
+                output: Some(_),
+                ..
+            })
         ));
     }
 
