@@ -56,6 +56,34 @@ type ToneIntent = {
     order: U32
 }
 
+type BeatReference = {
+    beat: U64
+    expected_time_micros: U64
+}
+
+type TimingClassification =
+    on-time
+    | early
+    | late
+    | missed
+
+type RhythmRecoveryState =
+    interrupted
+    | recovered
+    | on-beat
+    | recovering
+    | displaced
+
+type TimingFeedback = {
+    beat: U64
+    classification: TimingClassification
+    delta_micros: I64
+    expected_time_micros: U64
+    observed: Boolean
+    observed_time_micros: U64
+    recovery_state: RhythmRecoveryState
+}
+
 type PcmSampleRepresentation =
     signed16-little-endian
     | signed24-little-endian

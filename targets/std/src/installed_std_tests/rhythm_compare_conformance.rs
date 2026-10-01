@@ -1,13 +1,12 @@
 use super::{host, installed_std, RecordingTimer};
-use conduit_audio::{Gate, MusicalNoteEvent, MusicalPitch, NoteOccurrenceId};
+use conduit_audio::{BeatReference, Gate, MusicalNoteEvent, MusicalPitch, NoteOccurrenceId};
 use conduit_core::{
-    BaseImplementationId, KindId, KindIdentity, PortDirection, StructuredFieldValue,
-    StructuredInfoType, StructuredInfoValue,
+    BaseImplementationId, KindId, KindIdentity, PortDirection, StructuredInfoValue,
 };
 use conduit_form::{
-    check_syntax_document, expand_canonical_form, parse_syntax_document, KindConfigurationField,
-    KindConfigurationRule, KindProjection, KindSignature, ProfileCatalog, StartupCatalog,
-    StartupParameterSignature,
+    check_syntax_document, expand_canonical_form, parse_syntax_document,
+    rust_binding::NativeRustBinding, KindConfigurationField, KindConfigurationRule, KindProjection,
+    KindSignature, ProfileCatalog, StartupCatalog, StartupParameterSignature,
 };
 use std::collections::BTreeMap;
 
@@ -18,10 +17,10 @@ const FEEDBACK_SINK: &str = "conduit-test/rhythm-feedback-sink";
 #[test]
 fn portable_lesson_executes_with_generic_structured_sources() {
     let performance = note(1_020);
-    let reference = record(
-        conduit_semantic_catalog::beat_reference_type(),
-        [("beat", 1), ("expected_time_micros", 1_000)],
-    );
+    let reference = BeatReference::new(1, 1_000)
+        .unwrap()
+        .into_structured()
+        .unwrap();
     let feedback =
         installed_std::rhythm_compare_host::expected_feedback(1, 1_000, Some(1_020), 0, 30_000);
     let reference_type = conduit_semantic_catalog::beat_reference_type();
@@ -246,26 +245,4 @@ fn note(time: u64) -> Vec<u8> {
     .unwrap()
     .encode()
     .to_vec()
-}
-
-fn record(value_type: StructuredInfoType, values: [(&str, u64); 2]) -> StructuredInfoValue {
-    let count = StructuredInfoType::leaf(KindId::from("value/count")).unwrap();
-    StructuredInfoValue::record(
-        value_type,
-        values
-            .into_iter()
-            .map(|(name, value)| {
-                StructuredFieldValue::new(
-                    name,
-                    StructuredInfoValue::leaf(
-                        count.clone(),
-                        conduit_core::encode_count(value).to_vec(),
-                    )
-                    .unwrap(),
-                )
-                .unwrap()
-            })
-            .collect(),
-    )
-    .unwrap()
 }

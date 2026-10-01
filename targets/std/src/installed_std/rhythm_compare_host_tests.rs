@@ -1,5 +1,8 @@
 use super::*;
-use conduit_audio::{MusicalPitch, NoteOccurrenceId};
+use conduit_audio::{
+    BeatReference, MusicalPitch, NoteOccurrenceId, RhythmRecoveryState, TimingClassification,
+    TimingFeedback,
+};
 
 fn host(target: i64, tolerance: u64) -> RhythmCompareHost {
     RhythmCompareHost {
@@ -34,50 +37,19 @@ fn note(time: u64, gate: Gate) -> Vec<u8> {
 }
 
 fn beat(index: u64, expected: u64) -> Vec<u8> {
-    StructuredInfoValue::record(
-        conduit_semantic_catalog::beat_reference_type(),
-        vec![
-            value_field("beat", count_leaf(index)),
-            value_field("expected_time_micros", count_leaf(expected)),
-        ],
+    BeatReference::new(index, expected)
+        .unwrap()
+        .into_structured()
+        .unwrap()
+        .canonical_bytes()
+        .unwrap()
+}
+
+fn decode(value: Option<&[u8]>) -> TimingFeedback {
+    TimingFeedback::from_structured(
+        StructuredInfoValue::from_canonical_bytes(value.expect("expected feedback")).unwrap(),
     )
     .unwrap()
-    .canonical_bytes()
-    .unwrap()
-}
-
-fn decode(value: Option<&[u8]>) -> StructuredInfoValue {
-    StructuredInfoValue::from_canonical_bytes(value.expect("expected feedback")).unwrap()
-}
-
-fn property(value: &StructuredInfoValue, name: &str) -> String {
-    let StructuredInfoValueShape::Record(fields) = value.shape() else {
-        panic!("feedback must be a record")
-    };
-    let StructuredInfoValueShape::Leaf(bytes) = field(fields, name).unwrap().shape() else {
-        panic!("feedback field must be a leaf")
-    };
-    core::str::from_utf8(bytes).unwrap().to_string()
-}
-
-fn property_count(value: &StructuredInfoValue, name: &str) -> u64 {
-    let StructuredInfoValueShape::Record(fields) = value.shape() else {
-        panic!("feedback must be a record")
-    };
-    let StructuredInfoValueShape::Leaf(bytes) = field(fields, name).unwrap().shape() else {
-        panic!("feedback field must be a leaf")
-    };
-    conduit_core::decode_count(bytes).unwrap()
-}
-
-fn property_bool(value: &StructuredInfoValue, name: &str) -> bool {
-    let StructuredInfoValueShape::Record(fields) = value.shape() else {
-        panic!("feedback must be a record")
-    };
-    let StructuredInfoValueShape::Leaf(bytes) = field(fields, name).unwrap().shape() else {
-        panic!("feedback field must be a leaf")
-    };
-    conduit_core::InfoBool::decode(bytes).unwrap().get()
 }
 
 #[test]
@@ -98,9 +70,9 @@ fn exact_vectors_report_early_late_recovery_and_deliberate_displacement() {
             )
             .unwrap(),
     );
-    assert_eq!(property(&early, "delta_micros"), "-200");
-    assert_eq!(property(&early, "classification"), "early");
-    assert_eq!(property(&early, "recovery_state"), "displaced");
+    assert_eq!(early.delta_micros(), -200);
+    assert_eq!(early.classification(), TimingClassification::Early);
+    assert_eq!(early.recovery_state(), RhythmRecoveryState::Displaced);
 
     comparison
         .execute(
@@ -116,8 +88,8 @@ fn exact_vectors_report_early_late_recovery_and_deliberate_displacement() {
             )
             .unwrap(),
     );
-    assert_eq!(property(&recovering, "classification"), "late");
-    assert_eq!(property(&recovering, "recovery_state"), "recovering");
+    assert_eq!(recovering.classification(), TimingClassification::Late);
+    assert_eq!(recovering.recovery_state(), RhythmRecoveryState::Recovering);
 
     comparison
         .execute(
@@ -133,8 +105,8 @@ fn exact_vectors_report_early_late_recovery_and_deliberate_displacement() {
             )
             .unwrap(),
     );
-    assert_eq!(property(&recovered, "classification"), "on-time");
-    assert_eq!(property(&recovered, "recovery_state"), "recovered");
+    assert_eq!(recovered.classification(), TimingClassification::OnTime);
+    assert_eq!(recovered.recovery_state(), RhythmRecoveryState::Recovered);
 
     let mut displaced = host(100, 25);
     displaced
@@ -151,8 +123,8 @@ fn exact_vectors_report_early_late_recovery_and_deliberate_displacement() {
             )
             .unwrap(),
     );
-    assert_eq!(property(&feedback, "delta_micros"), "20");
-    assert_eq!(property(&feedback, "classification"), "on-time");
+    assert_eq!(feedback.delta_micros(), 20);
+    assert_eq!(feedback.classification(), TimingClassification::OnTime);
 }
 
 #[test]
@@ -182,15 +154,15 @@ fn note_off_is_ignored_and_drain_emits_each_missed_beat() {
             .execute(conduit_std_offers::RHYTHM_DRAIN_HOST_CALL, b"ignored")
             .unwrap(),
     );
-    assert_eq!(property_count(&first, "beat"), 1);
-    assert_eq!(property(&first, "classification"), "missed");
-    assert!(!property_bool(&first, "observed"));
+    assert_eq!(first.beat(), 1);
+    assert_eq!(first.classification(), TimingClassification::Missed);
+    assert!(!first.observed());
     let second = decode(
         comparison
             .execute(conduit_std_offers::RHYTHM_DRAIN_HOST_CALL, b"ignored")
             .unwrap(),
     );
-    assert_eq!(property_count(&second, "beat"), 2);
+    assert_eq!(second.beat(), 2);
     assert!(comparison
         .execute(conduit_std_offers::RHYTHM_DRAIN_HOST_CALL, b"ignored")
         .unwrap()

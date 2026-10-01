@@ -1,18 +1,18 @@
+use conduit_audio::{RhythmRecoveryState, TimingClassification, TimingFeedback};
 use conduit_core::{
     BaseImplementationId, BootId, HostAdvertisement, HostId, HostProfileId, OfferGeneration,
-    StructuredFieldValue, StructuredInfoType, StructuredInfoTypeShape, StructuredInfoValue,
-    StructuredInfoValueShape, PROTOCOL_VERSION,
+    StructuredInfoTypeShape, StructuredInfoValue, StructuredInfoValueShape, PROTOCOL_VERSION,
 };
 use conduit_form::{
     check_syntax_document, expand_canonical_form_for_authoring, parse_syntax_document,
-    ProfileCatalog, StartupCatalog,
+    rust_binding::NativeRustBinding, ProfileCatalog, StartupCatalog,
 };
 use conduit_semantic_catalog::{
     adapt_rhythm_feedback, deterministic_arithmetic_fixture, deterministic_hint_request,
     deterministic_refused_response, deterministic_timeout, education_assessment_outcome_type,
     education_progress_type, education_question_type, education_rhythm_feedback_type,
     evaluate_arithmetic_response, install_education_catalogs,
-    install_structured_music_form_catalogs, timing_feedback_type, EDUCATION_RHYTHM_FEEDBACK_KIND,
+    install_structured_music_form_catalogs, EDUCATION_RHYTHM_FEEDBACK_KIND,
     MAXIMUM_EDUCATION_HINTS,
 };
 
@@ -132,7 +132,7 @@ fn hint_request_timeout_and_refusal_are_typed_outcomes() {
 
 #[test]
 fn rhythm_adapter_keeps_exact_timing_inside_the_same_feedback_substrate() {
-    let timing = timing_value("late", 45_000);
+    let timing = timing_value(TimingClassification::Late, 45_000);
     let adapted = adapt_rhythm_feedback(&timing).unwrap();
     assert_eq!(adapted.value_type(), &education_rhythm_feedback_type());
     assert_eq!(record_field(&adapted, "timing"), &timing);
@@ -217,40 +217,19 @@ fn lesson_state_and_hints_are_bounded_without_retained_learner_history() {
     );
 }
 
-fn timing_value(classification: &str, delta_micros: i64) -> StructuredInfoValue {
-    record(
-        timing_feedback_type(),
-        vec![
-            ("beat", leaf("value/count", &conduit_core::encode_count(3))),
-            (
-                "classification",
-                leaf("music/timing-classification@1", classification.as_bytes()),
-            ),
-            (
-                "delta_micros",
-                leaf(
-                    "time/signed-microseconds@1",
-                    delta_micros.to_string().as_bytes(),
-                ),
-            ),
-            (
-                "expected_time_micros",
-                leaf("value/count", &conduit_core::encode_count(3_000_000)),
-            ),
-            (
-                "observed",
-                leaf("value/bool", &conduit_core::InfoBool::TRUE.encode()),
-            ),
-            (
-                "observed_time_micros",
-                leaf("value/count", &conduit_core::encode_count(3_045_000)),
-            ),
-            (
-                "recovery_state",
-                leaf("music/recovery-state@1", b"improving"),
-            ),
-        ],
+fn timing_value(classification: TimingClassification, delta_micros: i64) -> StructuredInfoValue {
+    TimingFeedback::new(
+        3,
+        classification,
+        delta_micros,
+        3_000_000,
+        true,
+        3_045_000,
+        RhythmRecoveryState::Recovering,
     )
+    .unwrap()
+    .into_structured()
+    .unwrap()
 }
 
 fn host(capabilities: Vec<conduit_core::CapabilityOffer>) -> HostAdvertisement {
@@ -265,28 +244,6 @@ fn host(capabilities: Vec<conduit_core::CapabilityOffer>) -> HostAdvertisement {
         planner_capabilities: vec![],
         capabilities,
     }
-}
-
-fn record(
-    value_type: StructuredInfoType,
-    fields: Vec<(&str, StructuredInfoValue)>,
-) -> StructuredInfoValue {
-    StructuredInfoValue::record(
-        value_type,
-        fields
-            .into_iter()
-            .map(|(name, value)| StructuredFieldValue::new(name, value).unwrap())
-            .collect(),
-    )
-    .unwrap()
-}
-
-fn leaf(kind: &str, bytes: &[u8]) -> StructuredInfoValue {
-    StructuredInfoValue::leaf(
-        StructuredInfoType::leaf(conduit_core::kind_id(kind)).unwrap(),
-        bytes.to_vec(),
-    )
-    .unwrap()
 }
 
 fn record_field<'a>(value: &'a StructuredInfoValue, name: &str) -> &'a StructuredInfoValue {
