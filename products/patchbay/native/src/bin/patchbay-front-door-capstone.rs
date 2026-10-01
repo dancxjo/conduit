@@ -15,9 +15,10 @@ use conduit_std_host::browser_admission::{
     BrowserAdmissionEgress, BrowserAdmissionIngress, BrowserAdmissionListener,
     BROWSER_ADMISSION_PROTOCOL, MAX_BROWSER_ADMISSION_FRAME_BYTES,
 };
+use patchbay_application::{EntranceUpdateDisposition, PatchbayEntranceState};
 use patchbay_model::{
-    compare_entrances, EntranceUpdateDisposition, LocalFrontDoor, PatchbayEntranceState,
-    RendererAdapterIdentity, RendererAdapterKind, RendererExecution,
+    compare_entrances, LocalFrontDoor, RendererAdapterIdentity, RendererAdapterKind,
+    RendererExecution,
 };
 use serde_json::json;
 

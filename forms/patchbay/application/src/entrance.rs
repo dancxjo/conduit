@@ -1,5 +1,6 @@
-//! Shared renderer-neutral state for the world-first Patchbay entrance.
+//! Shared renderer-neutral state for the resident Patchbay entrance.
 
+use alloc::{format, string::String, vec::Vec};
 use conduit_body::BodyId;
 use conduit_presentation::{Presentation, PresentationPropertyValue, PresentationRole};
 use serde::{Deserialize, Serialize};

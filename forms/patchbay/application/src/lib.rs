@@ -28,6 +28,7 @@ mod debugger_timeline_tests;
 mod debugger_watch;
 #[cfg(test)]
 mod debugger_watch_tests;
+mod entrance;
 mod learned_watch;
 #[cfg(test)]
 mod learned_watch_tests;
@@ -68,6 +69,10 @@ pub use debugger_watch::{
     DebuggerWatch, DebuggerWatchBinding, DebuggerWatchError, DebuggerWatchHistoryEntry,
     DebuggerWatchLifecycle, DebuggerWatchRate, DebuggerWatchSet, DebuggerWatchSubjectRole,
     DEBUGGER_WATCH_SCHEMA, MAX_DEBUGGER_WATCHES, MAX_WATCH_HISTORY_RECORDS,
+};
+pub use entrance::{
+    EntranceAction, EntranceLayer, EntranceRefusal, EntranceUpdateDisposition,
+    PatchbayEntranceState, MAX_ENTRANCE_ACTIONS,
 };
 pub use learned_watch::{
     ClockAlignment, DynamicsWatch, LearnedLifecyclePhase, LearnedLifecycleWatch,

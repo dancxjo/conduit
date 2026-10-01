@@ -65,7 +65,7 @@ impl RendererSnapshot {
         execution
             .validate()
             .map_err(|_| SnapshotError::InvalidIdentity)?;
-        let entrance = patchbay_model::PatchbayEntranceState::enter(&execution.presentation)
+        let entrance = patchbay_application::PatchbayEntranceState::enter(&execution.presentation)
             .map_err(|_| SnapshotError::InvalidIdentity)?;
         let temporal_context = project_model_temporal_context(&execution.presentation)
             .map_err(|_| SnapshotError::InvalidIdentity)?;
