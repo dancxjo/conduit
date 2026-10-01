@@ -179,3 +179,8 @@ type GeneratedManifestationDisposition =
 type GeneratedContentRole =
     speech
     | presented_thought
+
+type GeneratedActionAffordance = {
+    action_identity: Text <= 128B not in [""]
+    source_presentation_revision: U64
+}

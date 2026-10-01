@@ -19,6 +19,9 @@ pub struct RustBindingOptions {
     /// Authored record Type names whose Rust bindings retain a pre-existing
     /// Serde wire contract. This binding choice is not semantic Type truth.
     pub serde_record_types: BTreeSet<String>,
+    /// Serde-enabled authored record Type names whose established wire API
+    /// rejects fields absent from the semantic record.
+    pub serde_deny_unknown_record_types: BTreeSet<String>,
     /// Authored record Type names whose entirely-copyable Rust bindings retain
     /// a pre-existing `Copy` API.
     pub copy_record_types: BTreeSet<String>,
@@ -238,6 +241,12 @@ fn emit_type(
         StructuredInfoTypeShape::Record { fields, .. } => {
             let derive_copy = options.copy_record_types.contains(&value_type.name);
             let derive_serde = options.serde_record_types.contains(&value_type.name);
+            let deny_unknown = options
+                .serde_deny_unknown_record_types
+                .contains(&value_type.name);
+            if deny_unknown && !derive_serde {
+                return Err(RustBindingGenerationError::InvalidSemanticType);
+            }
             if derive_copy && !copy_type(&value_type.value_type) {
                 return Err(RustBindingGenerationError::InvalidSemanticType);
             }
@@ -251,8 +260,16 @@ fn emit_type(
                 }
                 (false, false) => "Debug, Clone, PartialEq, Eq",
             };
-            writeln!(out, "#[derive({derives})]\npub struct {rust_name} {{")
-                .expect("String writing is infallible");
+            writeln!(
+                out,
+                "#[derive({derives})]{}\npub struct {rust_name} {{",
+                if deny_unknown {
+                    "\n#[serde(deny_unknown_fields)]"
+                } else {
+                    ""
+                }
+            )
+            .expect("String writing is infallible");
             for field in fields {
                 writeln!(
                     out,

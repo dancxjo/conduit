@@ -311,10 +311,7 @@ mod tests {
                 source_text_index: 0,
                 bytes: b"I am awake. You can inspect this body.".to_vec(),
             }],
-            affordances: vec![GeneratedActionAffordance {
-                action_identity: "patchbay.open".into(),
-                source_presentation_revision: 7,
-            }],
+            affordances: vec![GeneratedActionAffordance::new("patchbay.open".into(), 7).unwrap()],
             correlations: vec![GeneratedSemanticCorrelation::Action {
                 index: 0,
                 identity: "patchbay.open".into(),
@@ -379,18 +376,19 @@ mod tests {
     fn generated_content_cannot_invent_or_revive_an_action() {
         let request = request();
         let mut generated = manifestation(&request);
-        generated.affordances[0].action_identity = "disk.format".into();
+        generated.affordances[0] = GeneratedActionAffordance::new("disk.format".into(), 7).unwrap();
         assert_eq!(
             request.validate_candidate(&generated),
             Err(GenerativePresenterRefusal::UnknownAction)
         );
-        generated.affordances[0].action_identity = "body.fulfill".into();
+        generated.affordances[0] =
+            GeneratedActionAffordance::new("body.fulfill".into(), 7).unwrap();
         assert_eq!(
             request.validate_candidate(&generated),
             Err(GenerativePresenterRefusal::UnavailableAction)
         );
-        generated.affordances[0].action_identity = "patchbay.open".into();
-        generated.affordances[0].source_presentation_revision = 6;
+        generated.affordances[0] =
+            GeneratedActionAffordance::new("patchbay.open".into(), 6).unwrap();
         assert_eq!(
             request.validate_candidate(&generated),
             Err(GenerativePresenterRefusal::StaleAction)
