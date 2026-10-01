@@ -1,12 +1,13 @@
 //! Bounded, renderer-neutral explanation of planner-owned realization choices.
 
-use conduit_core::{GearId, Plan, PlanId, SignId};
-use conduit_planner::{
-    ObservationBasis, PlannerFactRef, PlanningPolicyBasis, PolicySourceRevision,
+use crate::{
+    prelude::*, ObservationBasis, PlannerFactRef, PlanningPolicyBasis, PolicySourceRevision,
     RealizationDecisionDisposition, RealizationDecisionRecord, RealizationRejection, StyleId,
     StylePreferenceEvidence, StylePreferenceOutcome, MAXIMUM_REALIZATION_DECISION_RECORDS,
     MAXIMUM_RETAINED_POLICY_OBSERVATIONS,
 };
+use alloc::borrow::ToOwned;
+use conduit_core::{GearId, Plan, PlanId, SignId};
 
 pub const MAX_POLICY_EXPLANATIONS: usize = 64;
 pub const MAX_STYLE_EXPLANATION_CLAUSES: usize = 64;
@@ -74,7 +75,7 @@ impl core::fmt::Display for PolicyExplanationError {
     }
 }
 
-impl std::error::Error for PolicyExplanationError {}
+impl core::error::Error for PolicyExplanationError {}
 
 impl PolicyChoiceExplanation {
     #[allow(clippy::too_many_arguments)]

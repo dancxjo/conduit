@@ -63,7 +63,6 @@ mod palette;
 mod parts_truth_explanation_tests;
 mod parts_view;
 mod patchbay_backs;
-mod policy_explanation;
 mod portable_composition;
 mod portable_content;
 mod portable_correlations;
@@ -215,11 +214,6 @@ pub use patchbay_graph::{
 pub use patchbay_workbench_host_contract::{
     ControlReceiptProjection, PatchbayHostAdapter, PatchbayHostExecution, PatchbayHostProfile,
     PlayExecutionProjection,
-};
-pub use policy_explanation::{
-    PolicyChoiceDetails, PolicyChoiceDomain, PolicyChoiceExplanation, PolicyChoiceSummary,
-    PolicyExplanationError, PolicyReplanRequest, MAX_POLICY_EXPLANATIONS,
-    MAX_STYLE_EXPLANATION_CLAUSES,
 };
 pub use portable_composition::{
     constrained_frame_layout, constrained_graphics_scene, DirectObligation, DirectPresentation,
