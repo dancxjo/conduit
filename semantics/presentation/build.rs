@@ -14,7 +14,11 @@ fn main() {
         &checked.codes,
         &RustBindingOptions {
             derive_serde_for_variants: true,
-            serde_variant_exclusions: ["FaceUtteranceProvenance".into()].into(),
+            serde_variant_exclusions: [
+                "FaceUtteranceProvenance".into(),
+                "PresentationCompositionKind".into(),
+            ]
+            .into(),
             serde_record_types: ["GeneratedActionAffordance".into()].into(),
             serde_deny_unknown_record_types: ["GeneratedActionAffordance".into()].into(),
             copy_record_types: [
@@ -29,6 +33,7 @@ fn main() {
                 "ApplicationAction".into(),
                 "LayoutFrame".into(),
                 "LayoutRect".into(),
+                "PresentationCompositionRelation".into(),
             ]
             .into(),
             record_constructor_orders: [(
@@ -122,6 +127,21 @@ fn main() {
                     ["transient_first_person_body_narrator"]
                         .map(String::from)
                         .into(),
+                ),
+                (
+                    "PresentationCompositionKind".into(),
+                    [
+                        "group",
+                        "contrast",
+                        "juxtapose",
+                        "emphasize",
+                        "subordinate",
+                        "associate",
+                        "reveal_after",
+                        "semantic",
+                    ]
+                    .map(String::from)
+                    .into(),
                 ),
             ]
             .into(),

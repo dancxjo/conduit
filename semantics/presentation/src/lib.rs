@@ -41,7 +41,8 @@ pub use generated::{
     GraphicsTextRole, GraphicsTextRoleCode, LayoutAlignment, LayoutAxis, LayoutError, LayoutFrame,
     LayoutRect, MaskPlanningDisposition, MaskPlanningDispositionCode, MaskWardrobeError,
     MaskWardrobeErrorCode, MaskWardrobeLifetime, MaskWardrobeLifetimeCode, NavigationRefusal,
-    NavigationRefusalCode, PresentationAspect, PresentationAspectCode, PresentationDepth,
+    NavigationRefusalCode, PresentationAspect, PresentationAspectCode, PresentationCompositionKind,
+    PresentationCompositionKindSemantic, PresentationCompositionRelation, PresentationDepth,
     PresentationDepthCode, PresentationDisclosureLevel, PresentationMechanismKind,
     PresentationPlace, PresentationPlaceCode, PresentationTemporalRole, StatusKind, ThemeColor,
 };

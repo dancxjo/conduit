@@ -154,6 +154,27 @@ type PresentationTemporalRole =
     | observation
     | ingestion
 
+# Renderer-neutral rhetoric among exact Presentation subjects. The open
+# semantic case names meaning; it does not prescribe layout or a renderer.
+type PresentationCompositionKind =
+    group
+    | contrast
+    | juxtapose
+    | emphasize
+    | subordinate
+    | associate
+    | reveal_after
+    | semantic {
+        identity: Text <= 256B not in [""]
+    }
+
+type PresentationCompositionRelation = {
+    identity: Text <= 256B not in [""]
+    source: Text <= 256B not in [""]
+    target: Text <= 256B not in [""]
+    kind: PresentationCompositionKind
+}
+
 type LayoutAxis =
     horizontal
     | vertical
