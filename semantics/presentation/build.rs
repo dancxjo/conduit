@@ -1,4 +1,7 @@
-use conduit_form::rust_binding::{generate_rust_bindings_with_codes, RustBindingOptions};
+use conduit_form::rust_binding::{
+    generate_rust_bindings_with_codes_and_external_bindings, ExternalNativeRustBinding,
+    RustBindingOptions,
+};
 use conduit_form::{check_syntax_document, parse_syntax_document, StartupCatalog};
 use std::{env, fs, path::PathBuf};
 
@@ -21,14 +24,55 @@ fn main() {
             ),
         )
         .expect("resource references are one exact portable leaf");
+    let image_observation = conduit_human::ImageObservationReference::semantic_type()
+        .expect("human image observation Type checks");
+    let temporal_instant =
+        conduit_time::NativeTemporalInstant::semantic_type().expect("temporal instant Type checks");
+    catalog
+        .insert_structured_type("ImageObservationReference", image_observation.clone())
+        .expect("human image observation Type installs once");
+    catalog
+        .insert_structured_type("TemporalInstant", temporal_instant.clone())
+        .expect("temporal instant Type installs once");
     let checked = check_syntax_document(
         &parse_syntax_document(include_str!("types.conduit")),
         &catalog,
     )
     .expect("presentation semantic Types must check");
-    let generated = generate_rust_bindings_with_codes(
+    let external_identity =
+        |value_type: &conduit_form::rust_binding::semantic_core::StructuredInfoType| {
+            match value_type.shape() {
+                conduit_form::rust_binding::semantic_core::StructuredInfoTypeShape::Nominal {
+                    schema,
+                    ..
+                }
+                | conduit_form::rust_binding::semantic_core::StructuredInfoTypeShape::Record {
+                    schema,
+                    ..
+                }
+                | conduit_form::rust_binding::semantic_core::StructuredInfoTypeShape::Variant {
+                    schema,
+                    ..
+                } => schema.as_str().to_owned(),
+                _ => panic!("external native Type has a named identity"),
+            }
+        };
+    let image_observation_identity = external_identity(&image_observation);
+    let temporal_instant_identity = external_identity(&temporal_instant);
+    let generated = generate_rust_bindings_with_codes_and_external_bindings(
         &checked.native_types,
         &checked.codes,
+        &[image_observation, temporal_instant],
+        &[
+            ExternalNativeRustBinding {
+                semantic_identity: &image_observation_identity,
+                rust_type_path: "conduit_human::ImageObservationReference",
+            },
+            ExternalNativeRustBinding {
+                semantic_identity: &temporal_instant_identity,
+                rust_type_path: "conduit_time::NativeTemporalInstant",
+            },
+        ],
         &RustBindingOptions {
             derive_serde_for_variants: true,
             serde_variant_exclusions: [
@@ -37,6 +81,9 @@ fn main() {
                 "VisionColorSample".into(),
                 "VisionDetectionSlot".into(),
                 "VisionLandmarkSlot".into(),
+                "VisionOptionalPixelRegion".into(),
+                "VisualExperienceObservation".into(),
+                "VisualImpressionDisposition".into(),
             ]
             .into(),
             serde_record_types: ["GeneratedActionAffordance".into()].into(),

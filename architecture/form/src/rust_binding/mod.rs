@@ -18,6 +18,7 @@ pub use bounded::{BoundedBytes, BoundedSequence, BoundedSequenceCapacityRefusal,
 pub use conduit_core as semantic_core;
 pub use generate::{
     generate_rust_bindings, generate_rust_bindings_with_codes,
+    generate_rust_bindings_with_codes_and_external_bindings,
     generate_rust_bindings_with_external_bindings, ExternalNativeRustBinding,
     ExternalRustBindingGenerationError, RustBindingGenerationError, RustBindingModule,
     RustBindingOptions,

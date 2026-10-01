@@ -120,6 +120,20 @@ pub fn generate_rust_bindings_with_external_bindings(
         .map_err(ExternalRustBindingGenerationError::Generation)
 }
 
+/// Generates bindings and compact codes while reusing exact bindings owned by
+/// other semantic crates.
+pub fn generate_rust_bindings_with_codes_and_external_bindings(
+    types: &[CheckedNativeType],
+    codes: &[CheckedCode],
+    external_types: &[StructuredInfoType],
+    external_bindings: &[ExternalNativeRustBinding<'_>],
+    options: &RustBindingOptions,
+) -> Result<RustBindingModule, ExternalRustBindingGenerationError> {
+    let external_names = validate_external_bindings(types, external_types, external_bindings)?;
+    generate_rust_bindings_with_external_names(types, codes, options, &external_names)
+        .map_err(ExternalRustBindingGenerationError::Generation)
+}
+
 pub(super) fn validate_external_bindings(
     types: &[CheckedNativeType],
     external_types: &[StructuredInfoType],
