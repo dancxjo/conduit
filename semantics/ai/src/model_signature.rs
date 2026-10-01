@@ -5,8 +5,8 @@ use conduit_core::semantic_digest;
 use conduit_data::{TensorAxisRole, TensorElement};
 
 use crate::{
-    ModelOperation, ModelOperationCode, ModelPortPresence, ModelPortPresenceCode,
-    ModelSignatureRefusal,
+    ModelDimensionConstraint, ModelOperation, ModelOperationCode, ModelPortPresence,
+    ModelPortPresenceCode, ModelSignatureRefusal,
 };
 
 pub const MODEL_SIGNATURE_INFO_ID: &str = "model/signature@1";
@@ -15,12 +15,6 @@ pub const MAXIMUM_MODEL_OPERATIONS: usize = 8;
 pub const MAXIMUM_MODEL_ELEMENTS: usize = 8;
 pub const MAXIMUM_MODEL_RANK: usize = 8;
 pub const MAXIMUM_MODEL_IDENTITY_BYTES: usize = 128;
-
-#[derive(Debug, Copy, Clone, PartialEq, Eq)]
-pub enum ModelDimensionConstraint {
-    Fixed(u64),
-    Bounded { minimum: u64, maximum: u64 },
-}
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct ModelAxisConstraint {
@@ -131,19 +125,17 @@ fn validate_tensor(port: &ModelPortConstraint) -> Result<(), ModelSignatureRefus
         || tensor.axes.is_empty()
         || tensor.axes.len() > MAXIMUM_MODEL_RANK
         || tensor.maximum_bytes == 0
-        || tensor.axes.iter().any(|axis| match axis.dimension {
-            ModelDimensionConstraint::Fixed(value) => value == 0,
-            ModelDimensionConstraint::Bounded { minimum, maximum } => {
-                minimum == 0 || minimum > maximum
-            }
+        || tensor.axes.iter().any(|axis| match &axis.dimension {
+            ModelDimensionConstraint::Fixed(value) => *value.value() == 0,
+            ModelDimensionConstraint::Bounded(value) => value.minimum() > value.maximum(),
         })
     {
         return Err(ModelSignatureRefusal::InvalidTensorConstraint);
     }
     let maximum_elements = tensor.axes.iter().try_fold(1_u64, |count, axis| {
-        let dimension = match axis.dimension {
-            ModelDimensionConstraint::Fixed(value) => value,
-            ModelDimensionConstraint::Bounded { maximum, .. } => maximum,
+        let dimension = match &axis.dimension {
+            ModelDimensionConstraint::Fixed(value) => *value.value(),
+            ModelDimensionConstraint::Bounded(value) => *value.maximum(),
         };
         count.checked_mul(dimension)
     });
@@ -197,19 +189,23 @@ fn encode_ports(output: &mut Vec<u8>, ports: &[ModelPortConstraint], direction: 
         push_len(output, tensor.axes.len());
         for axis in &tensor.axes {
             encode_axis_role(output, &axis.role);
-            match axis.dimension {
-                ModelDimensionConstraint::Fixed(value) => {
-                    output.push(0);
-                    output.extend_from_slice(&value.to_le_bytes());
-                }
-                ModelDimensionConstraint::Bounded { minimum, maximum } => {
-                    output.push(1);
-                    output.extend_from_slice(&minimum.to_le_bytes());
-                    output.extend_from_slice(&maximum.to_le_bytes());
-                }
-            }
+            push_dimension_constraint(output, &axis.dimension);
         }
         output.extend_from_slice(&tensor.maximum_bytes.to_le_bytes());
+    }
+}
+
+fn push_dimension_constraint(output: &mut Vec<u8>, value: &ModelDimensionConstraint) {
+    match value {
+        ModelDimensionConstraint::Fixed(value) => {
+            output.push(0);
+            output.extend_from_slice(&value.value().to_le_bytes());
+        }
+        ModelDimensionConstraint::Bounded(value) => {
+            output.push(1);
+            output.extend_from_slice(&value.minimum().to_le_bytes());
+            output.extend_from_slice(&value.maximum().to_le_bytes());
+        }
     }
 }
 
@@ -251,4 +247,30 @@ fn push_len(output: &mut Vec<u8>, value: usize) {
 fn push_text(output: &mut Vec<u8>, value: &str) {
     push_len(output, value.len());
     output.extend_from_slice(value.as_bytes());
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn dimension_constraint_retains_the_v1_manual_digest_bytes() {
+        let mut bytes = Vec::new();
+        push_dimension_constraint(
+            &mut bytes,
+            &ModelDimensionConstraint::fixed(0x0102_0304_0506_0708).unwrap(),
+        );
+        assert_eq!(bytes, [0, 8, 7, 6, 5, 4, 3, 2, 1]);
+
+        bytes.clear();
+        push_dimension_constraint(
+            &mut bytes,
+            &ModelDimensionConstraint::bounded(0x1112_1314_1516_1718, 0x0102_0304_0506_0708)
+                .unwrap(),
+        );
+        assert_eq!(
+            bytes,
+            [1, 8, 7, 6, 5, 4, 3, 2, 1, 0x18, 0x17, 0x16, 0x15, 0x14, 0x13, 0x12, 0x11,]
+        );
+    }
 }

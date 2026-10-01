@@ -24,14 +24,11 @@ fn tensor() -> ModelTensorConstraint {
         axes: vec![
             ModelAxisConstraint {
                 role: TensorAxisRole::Time,
-                dimension: ModelDimensionConstraint::Bounded {
-                    minimum: 1,
-                    maximum: 256,
-                },
+                dimension: ModelDimensionConstraint::bounded(256, 1).unwrap(),
             },
             ModelAxisConstraint {
                 role: TensorAxisRole::Feature,
-                dimension: ModelDimensionConstraint::Fixed(12),
+                dimension: ModelDimensionConstraint::fixed(12).unwrap(),
             },
         ],
         maximum_bytes: 12_288,
@@ -134,6 +131,16 @@ fn mismatched_signature_checkpoint_runtime_and_signal_shape_refuse_exactly() {
     assert_eq!(
         bad_signal.validate(),
         Err(ModelSignatureRefusal::InvalidSignalConstraint)
+    );
+
+    let mut reversed = signature_fixture();
+    let ModelValueConstraint::SampledSignal(input) = &mut reversed.inputs[0].value else {
+        unreachable!()
+    };
+    input.axes[0].dimension = ModelDimensionConstraint::bounded(1, 2).unwrap();
+    assert_eq!(
+        reversed.validate(),
+        Err(ModelSignatureRefusal::InvalidTensorConstraint)
     );
 
     let signature = signature_fixture();

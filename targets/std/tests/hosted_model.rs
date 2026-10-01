@@ -115,7 +115,7 @@ fn signature() -> ModelSignature {
             elements: vec![TensorElement::F32],
             axes: vec![ModelAxisConstraint {
                 role: TensorAxisRole::Feature,
-                dimension: ModelDimensionConstraint::Fixed(1),
+                dimension: ModelDimensionConstraint::fixed(1).unwrap(),
             }],
             maximum_bytes: 4,
         })

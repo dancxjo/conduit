@@ -321,10 +321,10 @@ fn validate_tensor(
         .zip(&value.axes)
         .zip(&constraint.axes)
     {
-        let valid = match expected.dimension {
-            ModelDimensionConstraint::Fixed(value) => *dimension == value,
-            ModelDimensionConstraint::Bounded { minimum, maximum } => {
-                *dimension >= minimum && *dimension <= maximum
+        let valid = match &expected.dimension {
+            ModelDimensionConstraint::Fixed(value) => dimension == value.value(),
+            ModelDimensionConstraint::Bounded(value) => {
+                dimension >= value.minimum() && dimension <= value.maximum()
             }
         };
         if !valid || axis.role != expected.role {

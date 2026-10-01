@@ -28,14 +28,11 @@ fn tensor_constraint() -> ModelTensorConstraint {
         axes: vec![
             ModelAxisConstraint {
                 role: TensorAxisRole::Time,
-                dimension: ModelDimensionConstraint::Bounded {
-                    minimum: 1,
-                    maximum: 256,
-                },
+                dimension: ModelDimensionConstraint::bounded(256, 1).unwrap(),
             },
             ModelAxisConstraint {
                 role: TensorAxisRole::Feature,
-                dimension: ModelDimensionConstraint::Fixed(12),
+                dimension: ModelDimensionConstraint::fixed(12).unwrap(),
             },
         ],
         maximum_bytes: 12_288,

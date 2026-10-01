@@ -14,14 +14,11 @@ fn constraint() -> ModelValueConstraint {
         axes: vec![
             ModelAxisConstraint {
                 role: TensorAxisRole::Time,
-                dimension: ModelDimensionConstraint::Bounded {
-                    minimum: 1,
-                    maximum: 8,
-                },
+                dimension: ModelDimensionConstraint::bounded(8, 1).unwrap(),
             },
             ModelAxisConstraint {
                 role: TensorAxisRole::Feature,
-                dimension: ModelDimensionConstraint::Fixed(2),
+                dimension: ModelDimensionConstraint::fixed(2).unwrap(),
             },
         ],
         maximum_bytes: 64,
