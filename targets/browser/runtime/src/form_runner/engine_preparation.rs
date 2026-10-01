@@ -129,7 +129,11 @@ pub(in crate::form_runner) fn prepare_body_scheduler(
             .ok_or_else(|| "lowered browser node has no planned placement".to_string())?;
         let installation = factory(&placement.implementation_id)
             .ok_or_else(|| "planned browser implementation is not installed".to_string())?;
-        if placement.kind_id.as_str() == conduit_semantic_catalog::QUANTITY_MAP_KIND {
+        if matches!(
+            placement.kind_id.as_str(),
+            conduit_semantic_catalog::QUANTITY_MAP_KIND
+                | conduit_semantic_catalog::NORMALIZED_DISTANCE_MAP_KIND
+        ) {
             mappings[usize::from(node.node.0)] = Some(
                 crate::installed_browser::prepare_quantity_mapping(placement)?,
             );
