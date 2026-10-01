@@ -35,37 +35,7 @@ pub const KEY_EVENT_CONFORMANCE_VECTORS: [KeyEventConformanceVector; 8] = [
     vector("simultaneous-b-second", 0x05, 0, 0),
 ];
 
-use crate::{KeyTransition, KeyTransitionCode};
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
-pub struct KeyModifiers(u8);
-
-impl KeyModifiers {
-    pub const NONE: Self = Self(0);
-    pub const LEFT_CONTROL: Self = Self(1 << 0);
-    pub const LEFT_SHIFT: Self = Self(1 << 1);
-    pub const LEFT_ALT: Self = Self(1 << 2);
-    pub const LEFT_GUI: Self = Self(1 << 3);
-    pub const RIGHT_CONTROL: Self = Self(1 << 4);
-    pub const RIGHT_SHIFT: Self = Self(1 << 5);
-    pub const RIGHT_ALT: Self = Self(1 << 6);
-    pub const RIGHT_GUI: Self = Self(1 << 7);
-
-    pub const fn from_bits(bits: u8) -> Self {
-        Self(bits)
-    }
-
-    pub const fn bits(self) -> u8 {
-        self.0
-    }
-
-    pub const fn contains_usage(self, usage: u8) -> bool {
-        if usage < MODIFIER_USAGE_MINIMUM || usage > MODIFIER_USAGE_MAXIMUM {
-            return false;
-        }
-        self.0 & (1 << (usage - MODIFIER_USAGE_MINIMUM)) != 0
-    }
-}
+use crate::{KeyModifiers, KeyTransition, KeyTransitionCode};
 
 /// One exact keyboard transition with the modifier state *after* the transition.
 ///
