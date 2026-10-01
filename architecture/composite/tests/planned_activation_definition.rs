@@ -10,58 +10,14 @@ use conduit_core::{
 use conduit_kernel::scheduler::{StepBack, StepInputBytes, StepIo, StepOutcome};
 use conduit_kernel::{BoundedValueRef, HostCallId, HostedValueStore, PortId, RequestId};
 use conduit_plan_lowering::lowering::FIXED_KERNEL_STORAGE_PORTS_PER_NODE;
-use std::alloc::{GlobalAlloc, Layout, System};
-use std::cell::Cell;
 use std::sync::{
     atomic::{AtomicUsize, Ordering},
     Arc,
 };
 
-struct CountingAllocator;
-thread_local! {
-    static COUNT_ALLOCATIONS: Cell<bool> = const { Cell::new(false) };
-    static ALLOCATION_COUNT: Cell<usize> = const { Cell::new(0) };
-}
-
-unsafe impl GlobalAlloc for CountingAllocator {
-    unsafe fn alloc(&self, layout: Layout) -> *mut u8 {
-        COUNT_ALLOCATIONS.with(|armed| {
-            if armed.get() {
-                ALLOCATION_COUNT.with(|count| count.set(count.get() + 1));
-            }
-        });
-        unsafe { System.alloc(layout) }
-    }
-    unsafe fn dealloc(&self, ptr: *mut u8, layout: Layout) {
-        unsafe { System.dealloc(ptr, layout) }
-    }
-    unsafe fn realloc(&self, ptr: *mut u8, layout: Layout, size: usize) -> *mut u8 {
-        COUNT_ALLOCATIONS.with(|armed| {
-            if armed.get() {
-                ALLOCATION_COUNT.with(|count| count.set(count.get() + 1));
-            }
-        });
-        unsafe { System.realloc(ptr, layout, size) }
-    }
-}
-
-#[global_allocator]
-static TEST_ALLOCATOR: CountingAllocator = CountingAllocator;
-
-fn allocations_during(run: impl FnOnce()) -> usize {
-    struct Disarm;
-    impl Drop for Disarm {
-        fn drop(&mut self) {
-            COUNT_ALLOCATIONS.with(|armed| armed.set(false));
-        }
-    }
-    ALLOCATION_COUNT.with(|count| count.set(0));
-    COUNT_ALLOCATIONS.with(|armed| armed.set(true));
-    let disarm = Disarm;
-    run();
-    drop(disarm);
-    ALLOCATION_COUNT.with(Cell::get)
-}
+#[path = "support/allocation.rs"]
+mod allocation;
+use allocation::allocations_during;
 
 #[path = "../../core/tests/common/sealed_state.rs"]
 mod common;

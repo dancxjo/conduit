@@ -332,6 +332,26 @@ impl BoundedFoldActivationHost {
         Ok(Some(self.accumulator.clone()))
     }
 
+    pub fn final_value_into(
+        &mut self,
+        destination: &mut ValuePayload,
+    ) -> Result<bool, BoundedFoldError> {
+        if self.state != BoundedFoldState::FinalReady {
+            return Ok(false);
+        }
+        if destination.value_kind != self.accumulator.value_kind
+            || destination.encoded.capacity() < self.accumulator.encoded.len()
+        {
+            return Err(BoundedFoldError::PlannedContractMismatch);
+        }
+        destination.encoded.clear();
+        destination
+            .encoded
+            .extend_from_slice(&self.accumulator.encoded);
+        self.state = BoundedFoldState::Complete;
+        Ok(true)
+    }
+
     pub fn cancel(&mut self) -> Result<(), BoundedFoldError> {
         self.state = BoundedFoldState::Cancelled;
         let cancellation = self
@@ -409,6 +429,17 @@ impl BoundedFoldActivationHost {
             .as_ref()
             .ok_or(BoundedFoldError::InvalidLifecycle)?
             .host_request_input(request)
+            .map_err(BoundedFoldError::Refused)
+    }
+    pub fn complete_host_call_bytes(
+        &mut self,
+        request: &AdmittedKernelCompositeHostRequest,
+        bytes: &[u8],
+    ) -> Result<(), BoundedFoldError> {
+        self.active
+            .as_mut()
+            .ok_or(BoundedFoldError::InvalidLifecycle)?
+            .complete_host_call_bytes(request, bytes)
             .map_err(BoundedFoldError::Refused)
     }
 }

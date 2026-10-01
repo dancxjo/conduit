@@ -445,6 +445,17 @@ impl BoundedScanActivationHost {
             .host_request_input(request)
             .map_err(BoundedScanError::Refused)
     }
+    pub fn complete_host_call_bytes(
+        &mut self,
+        request: &AdmittedKernelCompositeHostRequest,
+        bytes: &[u8],
+    ) -> Result<(), BoundedScanError> {
+        self.active
+            .as_mut()
+            .ok_or(BoundedScanError::InvalidLifecycle)?
+            .complete_host_call_bytes(request, bytes)
+            .map_err(BoundedScanError::Refused)
+    }
 }
 
 #[cfg(feature = "fixture-registry-preparation")]

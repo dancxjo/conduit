@@ -438,4 +438,14 @@ impl FlowSelectCoordinator {
             .host_request_input(request)
             .map_err(FlowSelectError::Activation)
     }
+
+    pub fn complete_host_call_bytes(
+        &mut self,
+        request: &AdmittedKernelCompositeHostRequest,
+        bytes: &[u8],
+    ) -> Result<(), FlowSelectError> {
+        self.activation
+            .complete_host_call_bytes(request, bytes)
+            .map_err(FlowSelectError::Activation)
+    }
 }

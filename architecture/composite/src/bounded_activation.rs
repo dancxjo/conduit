@@ -558,6 +558,18 @@ impl BoundedActivationHost {
             .map_err(BoundedActivationError::Refused)
     }
 
+    pub fn complete_host_call_bytes(
+        &mut self,
+        request: &AdmittedKernelCompositeHostRequest,
+        bytes: &[u8],
+    ) -> Result<(), BoundedActivationError> {
+        self.active
+            .as_mut()
+            .ok_or(BoundedActivationError::InvalidLifecycle)?
+            .complete_host_call_bytes(request, bytes)
+            .map_err(BoundedActivationError::Refused)
+    }
+
     pub fn signs(&self) -> BTreeMap<conduit_core::HostId, Vec<KernelEvent>> {
         let mut signs = BTreeMap::new();
         for receipt in self.receipts.iter().chain(self.active.iter()) {
