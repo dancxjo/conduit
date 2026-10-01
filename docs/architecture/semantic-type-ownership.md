@@ -1,6 +1,6 @@
 # Semantic type ownership inventory
 
-**Status:** ownership audit for [#4382](https://github.com/dancxjo/conduit/issues/4382)
+**Status:** completed ownership audit from [#4382](https://github.com/dancxjo/conduit/issues/4382); reviewed migrations continue under [#4375](https://github.com/dancxjo/conduit/issues/4375)
 
 **Language owner:** [Conduitese canon #4109](https://github.com/dancxjo/conduit/issues/4109)
 

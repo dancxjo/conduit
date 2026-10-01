@@ -44,9 +44,10 @@ Their presence is not an additional physical or release acceptance claim:
   tags from authored variant order, typed malformed-input refusal, finite
   extent/work bounds, and a mechanical compatibility identity. The Data Text
   terminal family has no handwritten Rust tag table, and generated Rust plus
-  ECMAScript consume the same checked declaration. Broader semantic algebra
-  and migration of the audited handwritten domain codecs remain open under
-  #4431 and #4382.
+  ECMAScript consume the same checked declaration. #4431 and #4382 completed
+  the payload-rich Type and repository-audit foundations; reviewed follow-up
+  migrations continue under #4375, while bounded flow target integration
+  remains open under #4378.
   HTTP scheme, transaction identity, target and header meaning are likewise
   native declarations; hosted and ConduitOS HTTP code consumes generated
   bindings while its HTTP/1.1 bytes remain an external adapter contract.

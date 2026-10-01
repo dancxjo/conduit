@@ -347,19 +347,21 @@ host tiny-screen (
 
 This is construction source. A successful parse does not claim the machine booted or the display exists.
 
-## Planned v1 abstractions are clearly marked
+## Current abstractions and remaining algebra
 
-Open language work is exploring checked behavioral parameters and bounded collection combinators, for example:
+Checked behavioral parameters and bounded activation are current v1. The
+following compact collection spellings remain conceptual authoring examples;
+the exact accepted syntax lives in the current language surface:
 
 ```conduit
-# DIRECTION UNDER ACTIVE DESIGN, not current canon
+# CONCEPTUAL COLLECTION SPELLING; see current language surface
 values >> flow/each(transform = normalize) >> normalized
 ```
 
 and:
 
 ```conduit
-# DIRECTION UNDER ACTIVE DESIGN, not current canon
+# CONCEPTUAL COLLECTION SPELLING; see current language surface
 form map (
     item: type
     result: type
@@ -373,4 +375,4 @@ form map (
 }
 ```
 
-The point is compile-time semantic specialization and finite collection algebra, not runtime closures or imperative loops. Follow [#4375](https://github.com/dancxjo/conduit/issues/4375) and [#4378](https://github.com/dancxjo/conduit/issues/4378) for live design.
+The point is compile-time semantic specialization and finite collection algebra, not runtime closures or imperative loops. Follow [#4378](https://github.com/dancxjo/conduit/issues/4378) for the remaining algebra and target-integration work.

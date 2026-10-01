@@ -1,6 +1,6 @@
 # What we're building next
 
-This is a navigation snapshot of open work, reviewed on **13 September 2026**.
+This is a navigation snapshot of open work, reviewed on **1 October 2026**.
 Follow the linked issue for its current state, dependencies, acceptance criteria,
 and scope. An open issue is planned or unfinished work, not a claim that someone
 is actively implementing it. Paused work is marked below.
@@ -13,6 +13,16 @@ capabilities understandable and useful through real product experiences.
 [current-product truth surface](https://dancxjo.github.io/conduit/current-product.html)
 names exact development, accepted-release, publication, lag, and proof-receipt
 identities; this roadmap does not substitute planned work for any of those.
+
+## Conduitese v1 completion
+
+The language can author payload-rich semantic Types, checked reusable Forms,
+behavioral parameters, concise pure Forms, compact codes, and generated
+bindings. [#4375](https://github.com/dancxjo/conduit/issues/4375) now tracks the
+finite audited migration tail and current-truth reconciliation rather than a
+new edition. [#4378](https://github.com/dancxjo/conduit/issues/4378) remains
+open for bounded flow target integration; it does not authorize a general loop
+runtime, runtime closures, or unbounded collections.
 
 ## ConduitOS shell
 
