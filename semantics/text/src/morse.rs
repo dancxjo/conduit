@@ -9,7 +9,7 @@ use conduit_core::{
     PortTemporal,
 };
 
-use crate::MorseError;
+use crate::{MorseError, MorseSegment};
 
 pub const MORSE_PATTERN_VALUE_KIND: &str = "value/morse-pattern@1";
 pub const TEXT_MORSE_KIND: &str = "text/morse";
@@ -24,10 +24,8 @@ pub const MAXIMUM_MORSE_INPUT_BYTES: usize = 32;
 pub const MAXIMUM_MORSE_SEGMENTS: usize = 320;
 pub const MAXIMUM_MORSE_PATTERN_BYTES: usize = 5 + MAXIMUM_MORSE_SEGMENTS * 2;
 
-#[derive(Clone, Copy, Debug, PartialEq, Eq)]
-pub struct MorseSegment {
-    pub level: bool,
-    pub units: u8,
+pub(crate) fn morse_segment(level: bool, units: u8) -> MorseSegment {
+    MorseSegment::new(level, units).expect("Boolean and U8 have no narrower native constraint")
 }
 
 #[derive(Clone, Debug, PartialEq, Eq)]
@@ -180,8 +178,8 @@ impl MorsePattern {
         encoded.extend_from_slice(&self.unit_millis.to_le_bytes());
         encoded.extend_from_slice(&count.to_le_bytes());
         for segment in &self.segments {
-            encoded.push(u8::from(segment.level));
-            encoded.push(segment.units);
+            encoded.push(u8::from(*segment.level()));
+            encoded.push(*segment.units());
         }
         Ok(encoded)
     }
@@ -205,10 +203,7 @@ impl MorsePattern {
                 1 => true,
                 _ => return Err(MorseError::MalformedEncoding),
             };
-            segments.push(MorseSegment {
-                level,
-                units: pair[1],
-            });
+            segments.push(morse_segment(level, pair[1]));
         }
         let pattern = Self {
             unit_millis,
@@ -226,17 +221,17 @@ impl MorsePattern {
         if self.segments.is_empty() || self.segments.len() > MAXIMUM_MORSE_SEGMENTS {
             return Err(MorseError::InvalidPattern);
         }
-        if !self.segments[0].level || !self.segments.last().is_some_and(|value| value.level) {
+        if !self.segments[0].level() || !self.segments.last().is_some_and(|value| *value.level()) {
             return Err(MorseError::InvalidPattern);
         }
         for (index, segment) in self.segments.iter().enumerate() {
-            if segment.units == 0
-                || (segment.level && !matches!(segment.units, 1 | 3))
-                || (!segment.level && !matches!(segment.units, 1 | 3 | 7))
+            if *segment.units() == 0
+                || (*segment.level() && !matches!(segment.units(), 1 | 3))
+                || (!segment.level() && !matches!(segment.units(), 1 | 3 | 7))
                 || self
                     .segments
                     .get(index + 1)
-                    .is_some_and(|next| next.level == segment.level)
+                    .is_some_and(|next| next.level() == segment.level())
             {
                 return Err(MorseError::InvalidPattern);
             }
@@ -291,7 +286,7 @@ mod tests {
             pattern
                 .segments
                 .iter()
-                .map(|value| (value.level, value.units))
+                .map(|value| (*value.level(), *value.units()))
                 .collect::<Vec<_>>(),
             vec![
                 (true, 1),
