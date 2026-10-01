@@ -85,10 +85,7 @@ mod tests {
                 maximum_identity_bytes: 64,
             },
             at(10),
-            ExperienceTemporalPolicy {
-                maximum_current_age_ticks: 2,
-                maximum_recent_age_ticks: 5,
-            },
+            ExperienceTemporalPolicy::new(2, 5).unwrap(),
         )
         .unwrap()
     }

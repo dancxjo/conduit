@@ -65,6 +65,11 @@ type ExperienceTemporalRole =
     | stale
     | historical
 
+type ExperienceTemporalPolicy = {
+    maximum_current_age_ticks: U64
+    maximum_recent_age_ticks: U64
+}
+
 type ExperienceAvailability =
     present
     | not_observed

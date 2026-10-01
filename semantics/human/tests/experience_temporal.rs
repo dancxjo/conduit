@@ -12,10 +12,7 @@ fn at(ticks: u64, uncertainty_ticks: u64) -> TemporalInstant {
 }
 
 fn policy() -> ExperienceTemporalPolicy {
-    ExperienceTemporalPolicy {
-        maximum_current_age_ticks: 5,
-        maximum_recent_age_ticks: 20,
-    }
+    ExperienceTemporalPolicy::new(5, 20).unwrap()
 }
 
 #[test]
