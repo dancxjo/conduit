@@ -4,12 +4,12 @@ use crate::{
     gui_hit::{GuiAction, HitShape, HitTarget},
     gui_primitives::{frame_rect, text, PixelRect},
 };
+use conduit_presentation::ApplicationTheme;
 use embedded_graphics::{
     pixelcolor::Rgb888,
     prelude::{DrawTarget, Point},
 };
 use patchbay_graph::{PatchbayGear, PatchbayGraph};
-use patchbay_model::ApplicationTheme;
 
 pub(super) fn draw_front_controls<D: DrawTarget<Color = Rgb888>>(
     target: &mut D,

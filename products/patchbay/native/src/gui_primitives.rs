@@ -5,13 +5,13 @@ use crate::{
     font::BitmapFont,
     icon::{draw_icon, Icon},
 };
+use conduit_presentation::{ApplicationTheme, ThemeColor};
 use embedded_graphics::{
     pixelcolor::Rgb888,
     prelude::{DrawTarget, Point, Primitive, Size},
     primitives::{Line, PrimitiveStyle, Rectangle},
     Drawable,
 };
-use patchbay_model::{ApplicationTheme, ThemeColor};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub(super) struct PixelRect {

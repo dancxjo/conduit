@@ -7,6 +7,7 @@ use crate::{
     gui_primitives::{fill_rect, frame_rect, rgb, text, PixelRect},
     icon::{draw_icon, Icon},
 };
+use conduit_presentation::ApplicationTheme;
 use embedded_graphics::{
     draw_target::DrawTargetExt,
     pixelcolor::Rgb888,
@@ -16,7 +17,7 @@ use embedded_graphics::{
 };
 use patchbay_application::PatchbayLayout;
 use patchbay_graph::PatchbayGraph;
-use patchbay_model::{ApplicationTheme, GearRealizationInspection, RealizationDisposition};
+use patchbay_model::{GearRealizationInspection, RealizationDisposition};
 
 pub(super) struct GearViewContext<'a> {
     pub(super) presentation_layout: &'a PatchbayLayout,

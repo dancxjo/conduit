@@ -5,6 +5,7 @@ use crate::{
     gui_hit::HitShape,
     gui_primitives::{frame_rect, text, PixelRect},
 };
+use conduit_presentation::ApplicationTheme;
 use embedded_graphics::{
     draw_target::DrawTargetExt,
     pixelcolor::Rgb888,
@@ -12,7 +13,6 @@ use embedded_graphics::{
     primitives::Rectangle,
 };
 use patchbay_graph::PatchbayGraph;
-use patchbay_model::ApplicationTheme;
 
 const HEADER_HEIGHT: i32 = 52;
 const NAV_WIDTH: i32 = 176;

@@ -11,12 +11,12 @@ use crate::{
     gui_hit::{HitShape, ViewportAction},
     gui_primitives::{frame_rect, text, PixelRect},
 };
+use conduit_presentation::ApplicationTheme;
 use embedded_graphics::{
     pixelcolor::Rgb888,
     prelude::{DrawTarget, Point},
 };
 use patchbay_graph::PatchbayGraph;
-use patchbay_model::ApplicationTheme;
 
 #[cfg(test)]
 pub(super) fn canvas_rect(width: u32, height: u32) -> PixelRect {
