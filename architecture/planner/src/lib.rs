@@ -106,6 +106,9 @@ pub mod wcet;
 use startup::startup_order;
 mod style;
 mod survival_policy;
+mod survival_policy_explanation;
+#[cfg(test)]
+mod survival_policy_explanation_tests;
 
 use functional_compatibility::default_placements_unvalidated;
 use protected_resources::validate_protected_resource_grants;
@@ -249,6 +252,10 @@ pub use survival_policy::{
     SurvivalPlanningMode, SurvivalPlanningPolicy, SurvivalPolicyRefusal, SurvivalTradeoff,
     WorkloadResourceRequest, MAXIMUM_SCARCE_RESOURCE_REQUESTS, MAXIMUM_SURVIVAL_CANDIDATES,
     MAXIMUM_SURVIVAL_POLICY_ID_BYTES, MAXIMUM_SURVIVAL_TRADEOFFS,
+};
+pub use survival_policy_explanation::{
+    explain_survival_plan_selection, SurvivalPolicyExplanation, SurvivalPolicyExplanationError,
+    MAXIMUM_SURVIVAL_POLICY_EXPLANATION_BYTES,
 };
 pub use wcet::{
     admit_deadline_region, validate_replan, DeadlineAdmission, DeadlineRegion, TimingDependency,

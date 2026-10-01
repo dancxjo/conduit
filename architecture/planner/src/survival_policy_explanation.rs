@@ -1,11 +1,12 @@
 //! Renderer-neutral evidence for an explicit survival-oriented Plan selection.
 
-use conduit_planner::{
-    SurvivalCandidateDisposition, SurvivalPlanSelection, SurvivalPlanningMode, SurvivalTradeoff,
+use crate::{
+    prelude::*, SurvivalCandidateDisposition, SurvivalPlanSelection, SurvivalPlanningMode,
+    SurvivalTradeoff,
 };
 use serde::{Deserialize, Serialize};
 
-pub const MAX_SURVIVAL_POLICY_EXPLANATION_BYTES: usize = 4_096;
+pub const MAXIMUM_SURVIVAL_POLICY_EXPLANATION_BYTES: usize = 4_096;
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct SurvivalPolicyExplanation {
@@ -39,7 +40,7 @@ pub fn explain_survival_plan_selection(
             .iter()
             .any(|(plan_id, disposition)| {
                 plan_id == &selection.selected_plan_id
-                    && *disposition == conduit_planner::SurvivalCandidateEvidence::Selected
+                    && *disposition == crate::SurvivalCandidateEvidence::Selected
             })
     {
         return Err(SurvivalPolicyExplanationError::IncoherentEvidence);
@@ -77,7 +78,7 @@ pub fn explain_survival_plan_selection(
         profile_disposition,
         principal_tradeoffs.join(", "),
     );
-    if summary.len() > MAX_SURVIVAL_POLICY_EXPLANATION_BYTES {
+    if summary.len() > MAXIMUM_SURVIVAL_POLICY_EXPLANATION_BYTES {
         return Err(SurvivalPolicyExplanationError::EvidenceTooLarge);
     }
     Ok(SurvivalPolicyExplanation {
