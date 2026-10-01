@@ -1,6 +1,6 @@
 //! Bounded, versioned interchange encoding for image-and-text records.
 
-use alloc::vec::Vec;
+use alloc::{string::String, vec::Vec};
 use conduit_core::{BoundedResourceRef, KindId, MAXIMUM_RESOURCE_REFERENCE_ENCODED_BYTES};
 
 use crate::{
@@ -52,7 +52,7 @@ impl ImageTextRecord {
             + self
                 .metadata
                 .iter()
-                .map(|entry| 1 + entry.key.len() + 2 + entry.value.len())
+                .map(|entry| 1 + entry.key().len() + 2 + entry.value().len())
                 .sum::<usize>()
             + self.content_digest.len();
         if required > MAXIMUM_IMAGE_TEXT_ENCODED_BYTES {
@@ -70,8 +70,8 @@ impl ImageTextRecord {
         writer.bytes_u16(self.caption.as_bytes());
         writer.u8(self.metadata.len() as u8);
         for entry in &self.metadata {
-            writer.bytes_u8(entry.key.as_bytes());
-            writer.bytes_u16(entry.value.as_bytes());
+            writer.bytes_u8(entry.key().as_bytes());
+            writer.bytes_u16(entry.value().as_bytes());
         }
         writer.bytes(&self.content_digest);
         Ok(writer.written())
@@ -101,10 +101,23 @@ impl ImageTextRecord {
         }
         let mut metadata = Vec::with_capacity(count);
         for _ in 0..count {
-            metadata.push(ImageTextMetadata {
-                key: cursor.text_u8()?.into(),
-                value: cursor.text_u16()?.into(),
-            });
+            let key: String = cursor.text_u8()?.into();
+            let value: String = cursor.text_u16()?.into();
+            let refusal = if key.is_empty() {
+                Some(ImageTextRefusal::EmptyMetadataKey)
+            } else if key.len() > MAXIMUM_IMAGE_TEXT_METADATA_KEY_BYTES {
+                Some(ImageTextRefusal::MetadataKeyTooLarge)
+            } else if value.len() > MAXIMUM_IMAGE_TEXT_METADATA_VALUE_BYTES {
+                Some(ImageTextRefusal::MetadataValueTooLarge)
+            } else {
+                None
+            };
+            if let Some(refusal) = refusal {
+                return Err(ImageTextCodecRefusal::InvalidRecord(refusal));
+            }
+            let entry = ImageTextMetadata::new(key, value)
+                .expect("decoder establishes native metadata bounds");
+            metadata.push(entry);
         }
         let mut content_digest = [0; 32];
         content_digest.copy_from_slice(cursor.bytes(32)?);

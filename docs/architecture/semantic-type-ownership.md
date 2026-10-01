@@ -170,6 +170,7 @@ are satisfied.
 | Civil recurrence gap, fold and resolution-choice vocabularies | `semantics/time/types.conduit` | generated at build time | yes | yes | exact native round trips, Serde compatibility and civil recurrence suites |
 | Calendar, proposal, recurrence, schedule and temporal-window refusal vocabularies | `semantics/time/types.conduit` | generated at build time | yes | yes | exact native round trips plus temporal behavior suites |
 | Linguistic offset basis | `semantics/language/types.conduit` | generated at build time | yes | yes | native binding and linguistic suites |
+| Human image-text metadata record | `semantics/human/types.conduit` | generated at build time | yes | yes | exact native text boundaries and round trip plus preserved image-text digest and codec suites |
 | Audio tone terminal | `semantics/audio/types.conduit` | generated at build time | yes | yes | exact terminal round trip and audio suites |
 | Audio gate, modulation destination, PCM sample representation and channel layout | `semantics/audio/types.conduit` | generated at build time | yes | yes | exact native round trips plus audio, browser, std and embedded compile suites |
 | Sound pressure, cancellation, terminal, stream-state and compatibility-seam vocabularies | `semantics/audio/types.conduit` | generated at build time | yes | yes | exact native round trips plus catalog, conformance and Host consumer suites |

@@ -193,8 +193,8 @@ pub fn image_text_record_value(
         let metadata = StructuredInfoValue::record(
             metadata_type(),
             vec![
-                field_value("key", text(&entry.key)?),
-                field_value("value", text(&entry.value)?),
+                field_value("key", text(entry.key())?),
+                field_value("value", text(entry.value())?),
             ],
         )
         .map_err(|_| ImageTextValueRefusal::Malformed)?;
@@ -256,10 +256,13 @@ pub fn image_text_record_from_value(
             "absent" => absent_seen = true,
             "present" if !absent_seen => {
                 let fields = record_fields(payload)?;
-                metadata.push(conduit_human::ImageTextMetadata {
-                    key: text_from(field(fields, "key")?)?,
-                    value: text_from(field(fields, "value")?)?,
-                });
+                metadata.push(
+                    conduit_human::ImageTextMetadata::new(
+                        text_from(field(fields, "key")?)?,
+                        text_from(field(fields, "value")?)?,
+                    )
+                    .map_err(|_| ImageTextValueRefusal::Malformed)?,
+                );
             }
             _ => return Err(ImageTextValueRefusal::Malformed),
         }
