@@ -16,6 +16,17 @@ type MeasurementPlotPoint = {
     value-millionths: I64 in 0..=1000000
 }
 
+type MeasurementPlotProfile = {
+    point-capacity: U16 in 1..=32
+    overflow-policy: MeasurementPlotOverflowPolicy
+}
+
+type MeasurementPlotSeries = {
+    projected-points: sequence MeasurementPlotPoint in 1..=32
+    source-sample-count: U64 in 1..=18446744073709551615
+    omitted-sample-count: U64
+}
+
 type MeasurementWindowRefusal =
     capacity_out_of_bounds
     | invalid_clock_profile
