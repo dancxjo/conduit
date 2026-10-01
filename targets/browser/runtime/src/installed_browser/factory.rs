@@ -242,6 +242,16 @@ pub(crate) fn advertisement_for_presentation(
 ) -> HostAdvertisement {
     let mut host = advertisement(host_id, boot_id);
     if profile == super::PresentationProfile::Annotation {
+        for offer in &mut host.capabilities {
+            if matches!(
+                offer.kind_id.as_str(),
+                conduit_language::TOKENIZE_FOUR_KIND
+                    | conduit_language::ANNOTATE_FOUR_KIND
+                    | conduit_semantic_catalog::STRUCTURED_PRESENTATION_KIND
+            ) {
+                offer.limits.max_queue_bytes = super::MAXIMUM_BROWSER_STORED_VALUE_BYTES as u32;
+            }
+        }
         return host;
     }
     host.capabilities.retain(|offer| {

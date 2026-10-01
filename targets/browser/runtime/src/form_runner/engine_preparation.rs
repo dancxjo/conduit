@@ -1,6 +1,7 @@
 //! Admission and finite storage preparation for the browser production kernel.
 
 use super::*;
+use crate::installed_browser::MAXIMUM_BROWSER_STORED_VALUE_BYTES;
 
 fn empty_slots<T>(count: usize) -> Vec<Option<T>> {
     core::iter::repeat_with(|| None).take(count).collect()
@@ -89,7 +90,7 @@ pub(in crate::form_runner) fn prepare_body_scheduler(
     }
     let mut values = HostedValueStore::new(
         BROWSER_VALUE_ITEMS,
-        MAXIMUM_BROWSER_VALUE_BYTES as u32,
+        MAXIMUM_BROWSER_STORED_VALUE_BYTES as u32,
         BROWSER_TOTAL_VALUE_BYTES,
     )
     .map_err(|error| format!("browser value store: {error:?}"))?;

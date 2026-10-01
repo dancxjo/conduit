@@ -29,8 +29,17 @@ impl AudioRenderDemand {
         start_frame
             .checked_add(u64::from(frame_count))
             .ok_or(SoundInfoError::OutOfRange("render-frame-interval"))?;
-        Self::new_native(clock_id, start_frame, frame_count, sequence)
-            .map_err(|_| SoundInfoError::OutOfRange("render-frame-interval"))
+        // The public constructor has already proved every authored field bound
+        // and the exact frame-interval law.  Building the generated carrier
+        // directly keeps that proof out of the real-time render loop: the
+        // general structured validator remains available at native/portable
+        // boundaries without allocating again for each audio block.
+        Ok(Self {
+            clock_id,
+            frame_count,
+            sequence,
+            start_frame,
+        })
     }
 
     pub fn encode(self) -> [u8; AUDIO_RENDER_DEMAND_ENCODED_LEN] {

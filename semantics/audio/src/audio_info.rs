@@ -57,17 +57,20 @@ impl PcmFrameHeader {
         if payload_bytes > MAXIMUM_PCM_FRAME_BYTES {
             return Err(SoundInfoError::OutOfRange("payload-bytes"));
         }
-        Self::new_native(
+        // The checks above establish the generated Type's scalar bounds and
+        // payload-width law.  Construct the generated carrier directly so an
+        // admitted audio stream does not re-run the allocating portable
+        // expression evaluator for every PCM block.
+        Ok(Self {
+            clock_id,
+            discontinuity,
+            frame_count,
+            layout,
+            payload_bytes,
             representation,
             sample_rate_hz,
-            layout,
-            frame_count,
-            clock_id,
             start_frame,
-            discontinuity,
-            payload_bytes,
-        )
-        .map_err(|_| SoundInfoError::OutOfRange("payload-bytes"))
+        })
     }
 
     pub fn validate_payload(self, payload: &[u8]) -> Result<(), SoundInfoError> {

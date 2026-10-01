@@ -7,6 +7,7 @@ pub(crate) const MAXIMUM_BROWSER_FORM_CORDS: usize = 24;
 pub(crate) const MAXIMUM_BROWSER_GEARS: usize = 32;
 pub(crate) const MAXIMUM_BROWSER_CORDS: usize = 48;
 pub(crate) const MAXIMUM_BROWSER_VALUE_BYTES: usize = 4_096;
+pub(crate) const MAXIMUM_BROWSER_STORED_VALUE_BYTES: usize = 8_192;
 pub(crate) const BROWSER_PORTS_PER_GEAR: usize =
     conduit_plan_lowering::lowering::FIXED_KERNEL_STORAGE_PORTS_PER_NODE;
 pub(crate) const BROWSER_QUEUE_SLOTS: usize = MAXIMUM_BROWSER_CORDS * 4;
@@ -49,7 +50,7 @@ pub(crate) const fn envelope_limits() -> BrowserEnvelopeLimits {
         host_call_bindings: BROWSER_HOST_CALL_BINDINGS,
         pending_requests: BROWSER_PENDING_REQUESTS,
         value_items: BROWSER_VALUE_ITEMS,
-        maximum_value_bytes: MAXIMUM_BROWSER_VALUE_BYTES,
+        maximum_value_bytes: MAXIMUM_BROWSER_STORED_VALUE_BYTES,
         total_value_bytes: BROWSER_TOTAL_VALUE_BYTES,
         sign_items: BROWSER_SIGN_ITEMS,
     }
