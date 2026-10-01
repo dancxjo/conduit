@@ -10,7 +10,7 @@ conduit-form = { path = "../../../architecture/form" }
 conduit-presentation = { path = "../../../semantics/presentation" }
 patchbay-control = { path = ".." }
 patchbay-graph = { path = "../graph" }
-serde = { version = "1", features = ["derive"] }
+serde = { version = "1", default-features = false, features = ["alloc", "derive"] }
 
 [dev-dependencies]
 conduit-patchbay-workbench-conformance = { path = "../../../proof/conformance/patchbay-workbench" }
