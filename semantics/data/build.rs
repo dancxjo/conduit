@@ -15,7 +15,11 @@ fn main() {
         &checked.native_types,
         &checked.codes,
         &RustBindingOptions {
-            copy_record_types: ["MeasurementPlotPoint".into()].into(),
+            copy_record_types: [
+                "MeasurementPlotPoint".into(),
+                "MeasurementThresholdPolicy".into(),
+            ]
+            .into(),
             ..RustBindingOptions::default()
         },
     )

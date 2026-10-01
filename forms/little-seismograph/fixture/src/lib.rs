@@ -110,10 +110,11 @@ pub fn deterministic_little_seismograph_inputs() -> (
         })
         .collect();
     let threshold = MeasurementHysteresisProfile {
-        policy: MeasurementThresholdPolicy {
-            lower: Quantity::new(40, QuantityUnit::Millivolt),
-            upper: Quantity::new(60, QuantityUnit::Millivolt),
-        },
+        policy: MeasurementThresholdPolicy::new(
+            Quantity::new(40, QuantityUnit::Millivolt),
+            Quantity::new(60, QuantityUnit::Millivolt),
+        )
+        .unwrap(),
         initial_state: MeasurementThresholdState::Below,
     };
     (profile, samples, threshold)

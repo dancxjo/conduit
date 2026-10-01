@@ -322,10 +322,11 @@ mod tests {
             conduit_data::measurement_hysteresis_profile_type(),
             conduit_data::encode_measurement_hysteresis_profile(
                 conduit_data::MeasurementHysteresisProfile {
-                    policy: conduit_data::MeasurementThresholdPolicy {
-                        lower: Quantity::new(40, QuantityUnit::Millivolt),
-                        upper: Quantity::new(60, QuantityUnit::Millivolt),
-                    },
+                    policy: conduit_data::MeasurementThresholdPolicy::new(
+                        Quantity::new(40, QuantityUnit::Millivolt),
+                        Quantity::new(60, QuantityUnit::Millivolt),
+                    )
+                    .unwrap(),
                     initial_state,
                 },
             )
