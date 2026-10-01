@@ -5,12 +5,13 @@ use std::collections::BTreeMap;
 use std::fmt::Write as _;
 use std::path::Path;
 
-const BOX_WIDTH: i32 = 250;
-const COLUMN_GAP: i32 = 100;
-const ROW_GAP: i32 = 40;
-const HEADER_HEIGHT: i32 = 48;
-const PORT_ROW: i32 = 30;
-const MARGIN: i32 = 40;
+const BOX_WIDTH: i32 = 420;
+const BOX_HEIGHT: i32 = 112;
+const COLUMN_GAP: i32 = 70;
+const ROW_GAP: i32 = 70;
+const LEVEL_GAP: i32 = 90;
+const MARGIN: i32 = 50;
+const COLUMNS: usize = 2;
 
 pub(crate) fn run(form: &Path, format: DiagramFormat, output: Option<&Path>) -> Result<(), String> {
     let source = crate::form_source::load(form)?;
@@ -37,35 +38,34 @@ struct BoxLayout<'a> {
     gear: &'a conduit_form::CheckedGear,
     x: i32,
     y: i32,
-    height: i32,
 }
 
 fn render_svg(authoring: &ExpandedAuthoringForm) -> String {
     let expanded = &authoring.expanded;
     let levels = gear_levels(authoring);
-    let mut next_y = BTreeMap::<usize, i32>::new();
-    let mut boxes = Vec::new();
+    let mut by_level = BTreeMap::<usize, Vec<_>>::new();
     for gear in &expanded.gears {
         let level = levels.get(gear.gear_id.as_str()).copied().unwrap_or(0);
-        let height =
-            HEADER_HEIGHT + PORT_ROW * gear.inputs.len().max(gear.outputs.len()).max(1) as i32 + 12;
-        let y = *next_y.entry(level).or_insert(MARGIN + 70);
-        boxes.push(BoxLayout {
-            gear,
-            x: MARGIN + 170 + level as i32 * (BOX_WIDTH + COLUMN_GAP),
-            y,
-            height,
-        });
-        next_y.insert(level, y + height + ROW_GAP);
+        by_level.entry(level).or_default().push(gear);
     }
-    let maximum_level = levels.values().copied().max().unwrap_or(0);
-    let width = MARGIN * 2 + 340 + (maximum_level as i32 + 1) * (BOX_WIDTH + COLUMN_GAP);
-    let height = boxes
-        .iter()
-        .map(|layout| layout.y + layout.height + MARGIN)
-        .max()
-        .unwrap_or(240)
-        .max(240);
+    let width = MARGIN * 2 + COLUMNS as i32 * BOX_WIDTH + (COLUMNS as i32 - 1) * COLUMN_GAP;
+    let mut boxes = Vec::new();
+    let mut y = 220;
+    for gears in by_level.values() {
+        for (index, gear) in gears.iter().enumerate() {
+            let column = index % COLUMNS;
+            let row = index / COLUMNS;
+            boxes.push(BoxLayout {
+                gear,
+                x: MARGIN + column as i32 * (BOX_WIDTH + COLUMN_GAP),
+                y: y + row as i32 * (BOX_HEIGHT + ROW_GAP),
+            });
+        }
+        let rows = gears.len().div_ceil(COLUMNS).max(1) as i32;
+        y += rows * BOX_HEIGHT + (rows - 1) * ROW_GAP + LEVEL_GAP;
+    }
+    let output_y = y.max(250);
+    let height = output_y + 180;
     let mut svg = String::new();
     writeln!(
         svg,
@@ -83,14 +83,20 @@ fn render_svg(authoring: &ExpandedAuthoringForm) -> String {
         "<desc id=\"desc\">Checked Conduit Form with exact typed port connections.</desc>"
     )
     .unwrap();
-    svg.push_str(r#"<style>text{font-family:ui-monospace,SFMono-Regular,Consolas,monospace;fill:#172033}.gear{fill:#f7f9fc;stroke:#52647d;stroke-width:2}.header{fill:#dce7f5}.boundary{fill:#eef8ee;stroke:#4f7654;stroke-width:2}.port{fill:#fff;stroke:#52647d;stroke-width:2}.cord{fill:none;stroke:#3973ac;stroke-width:2}.close{stroke:#777;stroke-dasharray:6 4}.quiescence{stroke:#7851a9;stroke-dasharray:2 4}.abnormal{stroke:#b64040;stroke-dasharray:4 4}.kind{fill:#52647d;font-size:11px}.label{font-size:12px}.title{font-size:18px;font-weight:700}</style>"#);
-    svg.push_str(r##"<defs><marker id="arrow" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto"><path d="M0,0 L8,4 L0,8 z" fill="#3973ac"/></marker><marker id="arrow-abnormal" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto"><path d="M0,0 L8,4 L0,8 z" fill="#b64040"/></marker></defs>"##);
+    svg.push_str(r#"<style>text{font-family:ui-monospace,SFMono-Regular,Consolas,monospace;fill:#172033}.canvas{fill:#fbfcfe}.gear{fill:#fff;stroke:#52647d;stroke-width:2}.header{fill:#dce7f5}.boundary{fill:#eef8ee;stroke:#4f7654;stroke-width:2}.port{fill:#fff;stroke:#315c87;stroke-width:3}.cord-shadow{fill:none;stroke:#fff;stroke-width:7}.cord{fill:none;stroke:#3973ac;stroke-width:3}.close{stroke:#666;stroke-dasharray:8 5}.quiescence{stroke:#7851a9;stroke-dasharray:3 5}.abnormal{stroke:#b64040;stroke-dasharray:5 5}.kind{fill:#52647d;font-size:13px}.port-label{font-size:14px;font-weight:650}.label{font-size:16px}.title{font-size:24px;font-weight:750}.legend{font-size:13px;fill:#52647d}</style>"#);
+    svg.push_str(r##"<defs><marker id="arrow" markerWidth="10" markerHeight="10" refX="9" refY="5" orient="auto"><path d="M0,0 L10,5 L0,10 z" fill="#3973ac"/></marker><marker id="arrow-abnormal" markerWidth="10" markerHeight="10" refX="9" refY="5" orient="auto"><path d="M0,0 L10,5 L0,10 z" fill="#b64040"/></marker></defs>"##);
     writeln!(
         svg,
-        "<text class=\"title\" x=\"{MARGIN}\" y=\"32\">Form {}</text>",
+        "<rect class=\"canvas\" width=\"{width}\" height=\"{height}\"/>"
+    )
+    .unwrap();
+    writeln!(
+        svg,
+        "<text class=\"title\" x=\"{MARGIN}\" y=\"42\">Form {}</text>",
         escape(&expanded.name)
     )
     .unwrap();
+    writeln!(svg, "<text class=\"legend\" x=\"{MARGIN}\" y=\"68\">payload —  close - -  quiescence · ·  abnormal - -</text>").unwrap();
 
     let mut nodes = String::new();
     let mut inputs = BTreeMap::new();
@@ -98,20 +104,27 @@ fn render_svg(authoring: &ExpandedAuthoringForm) -> String {
     for layout in &boxes {
         draw_gear(&mut nodes, layout, &mut inputs, &mut outputs);
     }
-    let boundary_output_x = width - MARGIN - 130;
     let front_inputs = authoring.front.inputs();
     let front_outputs = authoring.front.outputs();
-    draw_boundary(&mut nodes, "Form inputs", MARGIN, 75, front_inputs, true);
+    let boundary_x = (width - BOX_WIDTH) / 2;
+    draw_boundary(
+        &mut nodes,
+        "Form inputs",
+        boundary_x,
+        95,
+        front_inputs,
+        true,
+    );
     draw_boundary(
         &mut nodes,
         "Form outputs",
-        boundary_output_x,
-        75,
+        boundary_x,
+        output_y,
         front_outputs,
         false,
     );
-    let front_input_points = boundary_points(MARGIN, 75, front_inputs, true);
-    let front_output_points = boundary_points(boundary_output_x, 75, front_outputs, false);
+    let front_input_points = boundary_points(boundary_x, 95, front_inputs, true);
+    let front_output_points = boundary_points(boundary_x, output_y, front_outputs, false);
 
     for connection in &expanded.connections {
         if let (Some(from), Some(to)) = (
@@ -184,12 +197,19 @@ fn draw_gear<'a>(
     outputs: &mut BTreeMap<(&'a str, &'a str), Point>,
 ) {
     let gear = layout.gear;
-    writeln!(svg, "<g><rect class=\"gear\" x=\"{}\" y=\"{}\" width=\"{BOX_WIDTH}\" height=\"{}\" rx=\"8\"/><path class=\"header\" d=\"M{},{} h{BOX_WIDTH} v40 h-{BOX_WIDTH} z\"/>", layout.x, layout.y, layout.height, layout.x, layout.y).unwrap();
-    writeln!(svg, "<text class=\"label\" x=\"{}\" y=\"{}\">{}</text><text class=\"kind\" x=\"{}\" y=\"{}\">{}</text>", layout.x + 12, layout.y + 18, escape(gear.gear_id.as_str()), layout.x + 12, layout.y + 34, escape(gear.kind_id.as_str())).unwrap();
+    writeln!(svg, "<g><rect class=\"gear\" x=\"{}\" y=\"{}\" width=\"{BOX_WIDTH}\" height=\"{BOX_HEIGHT}\" rx=\"10\"/><path class=\"header\" d=\"M{},{} h{BOX_WIDTH} v52 h-{BOX_WIDTH} z\"/>", layout.x, layout.y, layout.x, layout.y).unwrap();
+    writeln!(
+        svg,
+        "<title>{} — kind {}</title>",
+        escape(gear.gear_id.as_str()),
+        escape(gear.kind_id.as_str())
+    )
+    .unwrap();
+    writeln!(svg, "<text class=\"label\" x=\"{}\" y=\"{}\">{}</text><text class=\"kind\" x=\"{}\" y=\"{}\">kind · {}</text>", layout.x + 16, layout.y + 22, escape(&shorten(gear.gear_id.as_str(), 45)), layout.x + 16, layout.y + 43, escape(&shorten(gear.kind_id.as_str(), 52))).unwrap();
     for (index, port) in gear.inputs.iter().enumerate() {
         let point = Point {
-            x: layout.x,
-            y: layout.y + HEADER_HEIGHT + index as i32 * PORT_ROW + 13,
+            x: port_x(layout.x, index, gear.inputs.len()),
+            y: layout.y,
         };
         inputs.insert((gear.gear_id.as_str(), port.port_id.as_str()), point);
         draw_port(
@@ -202,8 +222,8 @@ fn draw_gear<'a>(
     }
     for (index, port) in gear.outputs.iter().enumerate() {
         let point = Point {
-            x: layout.x + BOX_WIDTH,
-            y: layout.y + HEADER_HEIGHT + index as i32 * PORT_ROW + 13,
+            x: port_x(layout.x, index, gear.outputs.len()),
+            y: layout.y + BOX_HEIGHT,
         };
         outputs.insert((gear.gear_id.as_str(), port.port_id.as_str()), point);
         draw_port(
@@ -217,6 +237,20 @@ fn draw_gear<'a>(
     svg.push_str("</g>\n");
 }
 
+fn port_x(box_x: i32, index: usize, count: usize) -> i32 {
+    box_x + ((index + 1) as i32 * BOX_WIDTH) / (count.max(1) as i32 + 1)
+}
+
+fn shorten(value: &str, maximum_chars: usize) -> String {
+    let mut chars = value.chars();
+    let prefix = chars.by_ref().take(maximum_chars).collect::<String>();
+    if chars.next().is_some() {
+        format!("{prefix}…")
+    } else {
+        prefix
+    }
+}
+
 fn draw_port(svg: &mut String, point: Point, name: &str, kind: &str, input: bool) {
     writeln!(
         svg,
@@ -224,12 +258,8 @@ fn draw_port(svg: &mut String, point: Point, name: &str, kind: &str, input: bool
         point.x, point.y
     )
     .unwrap();
-    let (x, anchor) = if input {
-        (point.x + 10, "start")
-    } else {
-        (point.x - 10, "end")
-    };
-    writeln!(svg, "<text class=\"label\" text-anchor=\"{anchor}\" x=\"{x}\" y=\"{}\">{} <tspan class=\"kind\">{}</tspan></text>", point.y + 4, escape(name), escape(kind)).unwrap();
+    let y = if input { point.y + 20 } else { point.y - 10 };
+    writeln!(svg, "<text class=\"port-label\" text-anchor=\"middle\" x=\"{}\" y=\"{y}\">{}</text><title>{}: {}</title>", point.x, escape(&shorten(name, 18)), escape(name), escape(kind)).unwrap();
 }
 
 fn draw_boundary(
@@ -240,12 +270,12 @@ fn draw_boundary(
     ports: &[conduit_core::PortDescriptor],
     input: bool,
 ) {
-    let height = HEADER_HEIGHT + PORT_ROW * ports.len().max(1) as i32;
-    writeln!(svg, "<rect class=\"boundary\" x=\"{x}\" y=\"{y}\" width=\"130\" height=\"{height}\" rx=\"8\"/><text class=\"label\" x=\"{}\" y=\"{}\">{title}</text>", x + 10, y + 24).unwrap();
+    let height = 74;
+    writeln!(svg, "<rect class=\"boundary\" x=\"{x}\" y=\"{y}\" width=\"{BOX_WIDTH}\" height=\"{height}\" rx=\"10\"/><text class=\"label\" x=\"{}\" y=\"{}\">{title}</text>", x + 16, y + 28).unwrap();
     for (index, port) in ports.iter().enumerate() {
         let point = Point {
-            x: if input { x + 130 } else { x },
-            y: y + HEADER_HEIGHT + index as i32 * PORT_ROW + 5,
+            x: port_x(x, index, ports.len()),
+            y: if input { y + height } else { y },
         };
         draw_port(
             svg,
@@ -270,8 +300,8 @@ fn boundary_points(
             (
                 port.port_id.as_str(),
                 Point {
-                    x: if input { x + 130 } else { x },
-                    y: y + HEADER_HEIGHT + index as i32 * PORT_ROW + 5,
+                    x: port_x(x, index, ports.len()),
+                    y: if input { y + 74 } else { y },
                 },
             )
         })
@@ -279,30 +309,29 @@ fn boundary_points(
 }
 
 fn draw_cord(svg: &mut String, from: Point, to: Point, track: ConnectionTrack) {
-    let bend = ((to.x - from.x).abs() / 2).max(35);
+    let bend = ((to.y - from.y).abs() / 2).max(40);
     let (class, marker) = match track {
         ConnectionTrack::Payload => ("cord", "arrow"),
         ConnectionTrack::NormalClose => ("cord close", "arrow"),
         ConnectionTrack::AbnormalTerminal => ("cord abnormal", "arrow-abnormal"),
         ConnectionTrack::Quiescence => ("cord quiescence", "arrow"),
     };
-    writeln!(
-        svg,
-        "<path class=\"{class}\" marker-end=\"url(#{marker})\" d=\"M{},{} C{},{} {},{} {},{}\"/>",
+    let path = format!(
+        "M{},{} C{},{} {},{} {},{}",
         from.x,
         from.y,
-        from.x + bend,
-        from.y,
-        to.x - bend,
-        to.y,
+        from.x,
+        from.y + bend,
+        to.x,
+        to.y - bend,
         to.x,
         to.y
-    )
-    .unwrap();
+    );
+    writeln!(svg, "<path class=\"cord-shadow\" d=\"{path}\"/><path class=\"{class}\" marker-end=\"url(#{marker})\" d=\"{path}\"/>").unwrap();
 }
 
 fn render_mermaid(authoring: &ExpandedAuthoringForm) -> String {
-    let mut output = String::from("flowchart LR\n");
+    let mut output = String::from("flowchart TB\n");
     output.push_str("  form_in[\"Form inputs\"]\n  form_out[\"Form outputs\"]\n");
     let ids = authoring
         .expanded
@@ -314,7 +343,7 @@ fn render_mermaid(authoring: &ExpandedAuthoringForm) -> String {
     for gear in &authoring.expanded.gears {
         writeln!(
             output,
-            "  {}[\"{}<br/><small>{}</small>\"]",
+            "  {}[\"{}<br/><small>kind · {}</small>\"]",
             ids[gear.gear_id.as_str()],
             mermaid_escape(gear.gear_id.as_str()),
             mermaid_escape(gear.kind_id.as_str())
@@ -400,6 +429,8 @@ mod tests {
         assert!(svg.contains("Form inputs"));
         assert!(svg.contains("text"));
         assert!(svg.contains("marker-end=\"url(#arrow)\""));
+        assert!(svg.contains("kind · text/join"));
+        assert!(svg.contains("width=\"1010\""));
         assert!(!svg.contains("text/join(\"&\")"));
     }
 
@@ -409,5 +440,15 @@ mod tests {
         let mermaid = render_mermaid(&form);
         assert!(mermaid.contains("text → text"));
         assert!(mermaid.contains("text → shown"));
+        assert!(mermaid.contains("kind · text/join"));
+    }
+
+    #[test]
+    fn svg_includes_every_expanded_gear_and_internal_cord() {
+        let form = checked("form main (\n  >> text: Text\n  shown: Text >>\n) {\n  first: text/join(\" \" )\n  second: text/join(\" \" )\n  text >> first >> second >> shown\n}\n");
+        let svg = render_svg(&form);
+        assert!(svg.contains("first</text>"));
+        assert!(svg.contains("second</text>"));
+        assert_eq!(svg.matches("marker-end=\"url(#arrow)\"").count(), 3);
     }
 }
