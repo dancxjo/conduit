@@ -66,6 +66,8 @@ mod compute_admission;
 mod contract;
 mod decision_evidence;
 mod degradation;
+#[cfg(test)]
+mod degradation_explanation_tests;
 mod degraded_profile;
 mod diagnostic;
 mod diversity;
@@ -141,9 +143,10 @@ pub use decision_evidence::{
     RealizationSelection, MAXIMUM_REALIZATION_DECISION_RECORDS,
 };
 pub use degradation::{
-    assess_scoped_degradation, DegradationAssessment, DegradationFragment,
-    DegradationFragmentDisposition, DegradationInput, MAXIMUM_DEGRADATION_FRAGMENTS,
-    MAXIMUM_DEGRADATION_FRAGMENT_ID_BYTES, MAXIMUM_DEGRADATION_REFUSAL_BYTES,
+    assess_scoped_degradation, DegradationAssessment, DegradationExplanation, DegradationFragment,
+    DegradationFragmentDisposition, DegradationInput, MAXIMUM_DEGRADATION_EXPLANATION_BYTES,
+    MAXIMUM_DEGRADATION_FRAGMENTS, MAXIMUM_DEGRADATION_FRAGMENT_ID_BYTES,
+    MAXIMUM_DEGRADATION_REFUSAL_BYTES,
 };
 pub use degraded_profile::{
     seal_reviewed_service_profile_plan, select_reviewed_service_profile, DegradationDirection,

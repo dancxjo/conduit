@@ -1,10 +1,9 @@
 use conduit_core::PlanId;
-use conduit_planner::{
-    DegradationAssessment, DegradationFragment, DegradationFragmentDisposition, FactDomain,
-    PlanningFactKey,
-};
 
-use crate::PatchbayDegradationExplanation;
+use crate::{
+    DegradationAssessment, DegradationExplanation, DegradationFragment,
+    DegradationFragmentDisposition, FactDomain, PlanningFactKey,
+};
 
 fn assessment(replacement: bool) -> DegradationAssessment {
     DegradationAssessment {
@@ -42,8 +41,8 @@ fn assessment(replacement: bool) -> DegradationAssessment {
 }
 
 #[test]
-fn patchbay_names_failure_continuing_work_and_distinct_fresh_plan() {
-    let explanation = PatchbayDegradationExplanation::from_assessment(&assessment(true)).unwrap();
+fn names_failure_continuing_work_and_distinct_fresh_plan() {
+    let explanation = DegradationExplanation::from_assessment(&assessment(true)).unwrap();
     assert_eq!(explanation.what_failed.len(), 1);
     assert!(explanation.what_failed[0].contains("resource/compute-gpu"));
     assert!(explanation.what_failed[0].contains("replacement=compute-spare-cpu"));
@@ -59,8 +58,8 @@ fn patchbay_names_failure_continuing_work_and_distinct_fresh_plan() {
 }
 
 #[test]
-fn patchbay_keeps_specific_refusal_distinct_from_body_wide_failure() {
-    let explanation = PatchbayDegradationExplanation::from_assessment(&assessment(false)).unwrap();
+fn keeps_specific_refusal_distinct_from_body_wide_failure() {
+    let explanation = DegradationExplanation::from_assessment(&assessment(false)).unwrap();
     assert!(
         explanation.what_failed[0].contains("no current host offers the required compute capacity")
     );
@@ -71,8 +70,8 @@ fn patchbay_keeps_specific_refusal_distinct_from_body_wide_failure() {
 }
 
 #[test]
-fn patchbay_refuses_any_claim_of_automatic_retry() {
+fn refuses_any_claim_of_automatic_retry() {
     let mut evidence = assessment(true);
     evidence.automatic_retry_count = 1;
-    assert!(PatchbayDegradationExplanation::from_assessment(&evidence).is_err());
+    assert!(DegradationExplanation::from_assessment(&evidence).is_err());
 }
