@@ -43,19 +43,20 @@ impl Default for PcSpeaker {
 
 impl ToneBase for PcSpeaker {
     fn apply(&mut self, intent: ToneIntent) -> Result<RealizedTone, BaseError> {
-        match intent.gate {
+        match intent.gate() {
             Gate::Off => {
                 self.silence()?;
                 Ok(RealizedTone {
-                    correlation: intent.correlation,
-                    requested_millihertz: intent.pitch.frequency_millihertz(),
+                    correlation: intent.correlation(),
+                    requested_millihertz: intent.pitch().frequency_millihertz(),
                     realized_millihertz: 0,
                     divisor: 0,
                     gate_open: false,
                 })
             }
             Gate::On => {
-                let (divisor, realized_millihertz) = quantize(intent.pitch.frequency_millihertz())?;
+                let (divisor, realized_millihertz) =
+                    quantize(intent.pitch().frequency_millihertz())?;
                 unsafe {
                     // Channel 2 only: channel 0 remains the kernel timer Base.
                     outb(PIT_CONTROL, CHANNEL_TWO_SQUARE_WAVE);
@@ -70,8 +71,8 @@ impl ToneBase for PcSpeaker {
                     .checked_add(1)
                     .ok_or(BaseError::Unavailable)?;
                 Ok(RealizedTone {
-                    correlation: intent.correlation,
-                    requested_millihertz: intent.pitch.frequency_millihertz(),
+                    correlation: intent.correlation(),
+                    requested_millihertz: intent.pitch().frequency_millihertz(),
                     realized_millihertz,
                     divisor,
                     gate_open: true,

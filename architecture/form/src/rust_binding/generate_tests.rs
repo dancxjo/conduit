@@ -375,6 +375,25 @@ fn selected_constrained_record_validates_direct_integer_bounds_without_structure
 }
 
 #[test]
+fn constrained_integer_nominal_validates_without_structured_allocation() {
+    let checked = crate::check_syntax_document(
+        &crate::parse_syntax_document("type Positive = U64 in 1..\n"),
+        &crate::StartupCatalog::new(),
+    )
+    .unwrap();
+    let generated =
+        generate_rust_bindings(&checked.native_types, &RustBindingOptions::default()).unwrap();
+
+    assert!(generated.source.contains("value >= 1u64"));
+    assert!(generated
+        .source
+        .contains("ValueConstraintRefusal::FixedIntegerRange"));
+    assert!(!generated
+        .source
+        .contains("let structured = candidate.clone().into_structured()?;"));
+}
+
+#[test]
 fn generated_contracts_preserve_semantic_openness() {
     let checked = crate::check_syntax_document(
         &crate::parse_syntax_document(

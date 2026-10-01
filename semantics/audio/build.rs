@@ -17,20 +17,26 @@ fn main() {
             copy_record_types: [
                 "AudioRenderDemand".into(),
                 "MusicalPitch".into(),
+                "MusicalNoteEvent".into(),
                 "PcmClipProfile".into(),
                 "PcmFrameHeader".into(),
+                "ToneIntent".into(),
             ]
             .into(),
             copy_record_value_getters: [
                 "AudioRenderDemand".into(),
+                "MusicalNoteEvent".into(),
                 "MusicalPitch".into(),
                 "PcmFrameHeader".into(),
+                "ToneIntent".into(),
             ]
             .into(),
             public_record_fields: ["AudioRenderDemand".into(), "PcmFrameHeader".into()].into(),
             direct_checked_record_constructors: [
                 "MusicalControlEvent".into(),
                 "MusicalPitch".into(),
+                "MusicalNoteEvent".into(),
+                "ToneIntent".into(),
             ]
             .into(),
             record_constructor_orders: [
@@ -41,6 +47,17 @@ fn main() {
                         "start-frame".into(),
                         "frame-count".into(),
                         "sequence".into(),
+                    ],
+                ),
+                (
+                    "MusicalNoteEvent".into(),
+                    vec![
+                        "occurrence".into(),
+                        "pitch".into(),
+                        "gate".into(),
+                        "velocity".into(),
+                        "event-time-micros".into(),
+                        "order".into(),
                     ],
                 ),
                 (
@@ -62,6 +79,16 @@ fn main() {
                         "start-frame".into(),
                         "discontinuity".into(),
                         "payload-bytes".into(),
+                    ],
+                ),
+                (
+                    "ToneIntent".into(),
+                    vec![
+                        "correlation".into(),
+                        "pitch".into(),
+                        "gate".into(),
+                        "event-time-micros".into(),
+                        "order".into(),
                     ],
                 ),
             ]

@@ -140,12 +140,15 @@ fn eight_buttons_map_to_portable_frequencies_and_preserve_identity_and_time() {
             10 + index as u64,
         );
         let event = note(map_control(&mapping, &value, index as u32).unwrap());
-        assert_eq!(event.pitch.frequency_millihertz(), frequency);
-        assert_eq!(event.occurrence, NoteOccurrenceId(index as u64 + 1));
-        assert_eq!(event.event_time_micros, 10 + index as u64);
-        assert_eq!(event.order, index as u32);
+        assert_eq!(event.pitch().frequency_millihertz(), frequency);
         assert_eq!(
-            event.gate,
+            event.occurrence(),
+            NoteOccurrenceId::new(index as u64 + 1).unwrap()
+        );
+        assert_eq!(event.event_time_micros(), 10 + index as u64);
+        assert_eq!(event.order(), index as u32);
+        assert_eq!(
+            event.gate(),
             if index % 2 == 0 { Gate::On } else { Gate::Off }
         );
     }

@@ -67,8 +67,8 @@ impl RhythmCompareHost {
             conduit_std_offers::RHYTHM_PERFORMANCE_HOST_CALL => {
                 let note = MusicalNoteEvent::decode(input)
                     .map_err(|_| RhythmCompareRefusal::MalformedPerformance)?;
-                if note.gate == Gate::On {
-                    self.push_performance(note.event_time_micros)?;
+                if note.gate() == Gate::On {
+                    self.push_performance(note.event_time_micros())?;
                 }
             }
             conduit_std_offers::RHYTHM_REFERENCE_HOST_CALL => {

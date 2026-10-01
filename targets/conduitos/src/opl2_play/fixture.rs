@@ -40,7 +40,7 @@ pub fn reviewed_values() -> [MusicalNoteEvent; EVENTS] {
 
 pub(super) fn note(occurrence: u64, frequency: u64, gate: Gate, order: u32) -> MusicalNoteEvent {
     MusicalNoteEvent::new(
-        NoteOccurrenceId(occurrence),
+        NoteOccurrenceId::new(occurrence).unwrap(),
         MusicalPitch::new(frequency, 440_000, 0).expect("reviewed pitch"),
         gate,
         u16::MAX,

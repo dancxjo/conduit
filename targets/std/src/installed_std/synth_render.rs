@@ -16,7 +16,7 @@ enum PendingMusicalEvent {
 impl PendingMusicalEvent {
     fn frame(&self) -> u64 {
         let micros = match self {
-            Self::Note(event) => event.event_time_micros,
+            Self::Note(event) => event.event_time_micros(),
             Self::Control(event) => *event.event_time_micros(),
         };
         micros.saturating_mul(u64::from(conduit_synth::REFERENCE_SAMPLE_RATE_HZ)) / 1_000_000
@@ -87,7 +87,7 @@ pub(super) fn execute(
         return Err("reference synth input has an unsupported exact length".to_string());
     };
     let key = match &event {
-        PendingMusicalEvent::Note(event) => (event.event_time_micros, event.order),
+        PendingMusicalEvent::Note(event) => (event.event_time_micros(), event.order()),
         PendingMusicalEvent::Control(event) => (*event.event_time_micros(), *event.order()),
     };
     if state.last_event.is_some_and(|last| key <= last) {
@@ -100,7 +100,17 @@ pub(super) fn execute(
         .checked_sub(state.clock_origin_micros)
         .ok_or_else(|| "reference synth event predates the admitted clock origin".to_string())?;
     match &mut event {
-        PendingMusicalEvent::Note(event) => event.event_time_micros = relative_micros,
+        PendingMusicalEvent::Note(event) => {
+            *event = conduit_audio::MusicalNoteEvent::new(
+                event.occurrence(),
+                event.pitch(),
+                event.gate(),
+                event.velocity(),
+                relative_micros,
+                event.order(),
+            )
+            .expect("relative time remains within the admitted event bound");
+        }
         PendingMusicalEvent::Control(event) => {
             *event = conduit_audio::MusicalControlEvent::new(
                 event.control().clone(),
@@ -202,7 +212,7 @@ mod tests {
 
     fn note(occurrence: u64, gate: Gate, micros: u64, order: u32) -> MusicalNoteEvent {
         MusicalNoteEvent::new(
-            NoteOccurrenceId(occurrence),
+            NoteOccurrenceId::new(occurrence).unwrap(),
             MusicalPitch::new(440_000, 440_000, 0).unwrap(),
             gate,
             u16::MAX,

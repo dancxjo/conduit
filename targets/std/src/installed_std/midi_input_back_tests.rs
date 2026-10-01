@@ -156,16 +156,22 @@ fn overlap_retrigger_velocity_zero_and_order_are_deterministic() {
     ));
 
     assert_eq!(
-        (first.occurrence.0, first.gate, first.order),
+        (*first.occurrence().get(), first.gate(), first.order()),
         (1, Gate::On, 0)
     );
     assert_eq!(
-        (second.occurrence.0, second.gate, second.order),
+        (*second.occurrence().get(), second.gate(), second.order()),
         (2, Gate::On, 1)
     );
-    assert_eq!((off_second.occurrence.0, off_second.gate), (2, Gate::Off));
-    assert_eq!((off_first.occurrence.0, off_first.gate), (1, Gate::Off));
-    assert!(second.velocity > first.velocity);
+    assert_eq!(
+        (*off_second.occurrence().get(), off_second.gate()),
+        (2, Gate::Off)
+    );
+    assert_eq!(
+        (*off_first.occurrence().get(), off_first.gate()),
+        (1, Gate::Off)
+    );
+    assert!(second.velocity() > first.velocity());
 }
 
 #[test]

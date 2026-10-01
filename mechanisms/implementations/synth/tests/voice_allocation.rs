@@ -20,11 +20,17 @@ fn overlapping_equal_pitch_occurrences_release_independently() {
     synth
         .apply_note(note(1, 261_626, Gate::Off, 0, 0, 2))
         .unwrap();
-    assert!(synth.voice_for(NoteOccurrenceId(2)).is_some());
-    assert!(!synth.voice_for(NoteOccurrenceId(2)).unwrap().1.key_released);
+    assert!(synth.voice_for(NoteOccurrenceId::new(2).unwrap()).is_some());
+    assert!(
+        !synth
+            .voice_for(NoteOccurrenceId::new(2).unwrap())
+            .unwrap()
+            .1
+            .key_released
+    );
     render_frames(&mut synth, 8_000, 127);
-    assert!(synth.voice_for(NoteOccurrenceId(1)).is_none());
-    assert!(synth.voice_for(NoteOccurrenceId(2)).is_some());
+    assert!(synth.voice_for(NoteOccurrenceId::new(1).unwrap()).is_none());
+    assert!(synth.voice_for(NoteOccurrenceId::new(2).unwrap()).is_some());
 }
 
 #[test]
@@ -51,7 +57,7 @@ fn sustain_holds_key_release_then_releases_exact_voices() {
     render_frames(&mut synth, 10_000, 256);
     assert_eq!(
         synth
-            .voice_for(NoteOccurrenceId(3))
+            .voice_for(NoteOccurrenceId::new(3).unwrap())
             .unwrap()
             .1
             .envelope
@@ -71,7 +77,7 @@ fn sustain_holds_key_release_then_releases_exact_voices() {
         }
     );
     render_frames(&mut synth, 8_000, 256);
-    assert!(synth.voice_for(NoteOccurrenceId(3)).is_none());
+    assert!(synth.voice_for(NoteOccurrenceId::new(3).unwrap()).is_none());
 }
 
 #[test]
@@ -98,10 +104,10 @@ fn exhaustion_steals_oldest_released_then_oldest_active() {
             .unwrap(),
         SynthEventOutcome::NoteOn(VoiceAllocationOutcome::Stolen {
             slot: 2,
-            occurrence: NoteOccurrenceId(3)
+            occurrence: NoteOccurrenceId::new(3).unwrap()
         })
     );
-    assert!(synth.voice_for(NoteOccurrenceId(3)).is_none());
+    assert!(synth.voice_for(NoteOccurrenceId::new(3).unwrap()).is_none());
 
     let mut refusing_profile = synth.profile();
     refusing_profile.steal_policy = VoiceStealPolicy::Refuse;
@@ -144,5 +150,11 @@ fn duplicate_and_stale_note_off_never_kill_another_occurrence() {
         synth.apply_note(note(99, 440_000, Gate::Off, 0, 0, 4)),
         Err(SynthEventError::UnknownOccurrence)
     );
-    assert!(!synth.voice_for(NoteOccurrenceId(2)).unwrap().1.key_released);
+    assert!(
+        !synth
+            .voice_for(NoteOccurrenceId::new(2).unwrap())
+            .unwrap()
+            .1
+            .key_released
+    );
 }

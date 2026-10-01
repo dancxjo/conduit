@@ -9,13 +9,13 @@ struct FakeBase {
 
 impl ToneBase for FakeBase {
     fn apply(&mut self, intent: ToneIntent) -> Result<RealizedTone, BaseError> {
-        self.active = intent.gate == Gate::On;
+        self.active = intent.gate() == Gate::On;
         self.transitions += 1;
         Ok(RealizedTone {
-            correlation: intent.correlation,
-            requested_millihertz: intent.pitch.frequency_millihertz(),
+            correlation: intent.correlation(),
+            requested_millihertz: intent.pitch().frequency_millihertz(),
             realized_millihertz: if self.active {
-                intent.pitch.frequency_millihertz()
+                intent.pitch().frequency_millihertz()
             } else {
                 0
             },

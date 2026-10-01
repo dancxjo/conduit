@@ -10,14 +10,14 @@ pub(super) fn apply_event<B: Opl2Base>(
     base: &mut B,
     event: MusicalNoteEvent,
 ) -> Result<u64, PreparationError> {
-    match event.gate {
+    match event.gate() {
         Gate::On => {
-            if event.velocity != u16::MAX
+            if event.velocity() != u16::MAX
                 || execution
                     .voices
                     .iter()
                     .flatten()
-                    .any(|voice| voice.occurrence == event.occurrence)
+                    .any(|voice| voice.occurrence == event.occurrence())
             {
                 return Err(PreparationError::KernelRejected);
             }
@@ -27,10 +27,10 @@ pub(super) fn apply_event<B: Opl2Base>(
                 .position(Option::is_none)
                 .ok_or(PreparationError::KernelRejected)?;
             let pitch = base
-                .key_on(channel as u8, event.pitch.frequency_millihertz())
+                .key_on(channel as u8, event.pitch().frequency_millihertz())
                 .map_err(|_| PreparationError::KernelRejected)?;
             execution.voices[channel] = Some(Voice {
-                occurrence: event.occurrence,
+                occurrence: event.occurrence(),
                 pitch,
             });
             execution.peak_voices = execution
@@ -42,7 +42,7 @@ pub(super) fn apply_event<B: Opl2Base>(
             let channel = execution
                 .voices
                 .iter()
-                .position(|voice| voice.is_some_and(|voice| voice.occurrence == event.occurrence))
+                .position(|voice| voice.is_some_and(|voice| voice.occurrence == event.occurrence()))
                 .ok_or(PreparationError::KernelRejected)?;
             let admitted_pitch_millihertz = execution.voices[channel]
                 .ok_or(PreparationError::KernelRejected)?

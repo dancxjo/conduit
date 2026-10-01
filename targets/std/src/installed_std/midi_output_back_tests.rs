@@ -97,17 +97,30 @@ fn exact_portable_events_cross_the_bounded_host_boundary_in_order() {
         0,
     )
     .unwrap();
-    let on =
-        conduit_audio::MusicalNoteEvent::new(NoteOccurrenceId(9), pitch, Gate::On, u16::MAX, 10, 0)
-            .unwrap();
+    let on = conduit_audio::MusicalNoteEvent::new(
+        NoteOccurrenceId::new(9).unwrap(),
+        pitch,
+        Gate::On,
+        u16::MAX,
+        10,
+        0,
+    )
+    .unwrap();
     let sustain = conduit_audio::MusicalControlEvent::new(
         conduit_audio::MusicalControl::sustain(true).unwrap(),
         11,
         1,
     )
     .unwrap();
-    let off = conduit_audio::MusicalNoteEvent::new(NoteOccurrenceId(9), pitch, Gate::Off, 0, 12, 2)
-        .unwrap();
+    let off = conduit_audio::MusicalNoteEvent::new(
+        NoteOccurrenceId::new(9).unwrap(),
+        pitch,
+        Gate::Off,
+        0,
+        12,
+        2,
+    )
+    .unwrap();
     for (contract, encoded) in [
         (
             conduit_std_offers::MUSIC_PLAY_MIDI_NOTE_OPERATION,
@@ -158,9 +171,15 @@ fn stale_authority_and_unrepresentable_pitch_fail_closed() {
         1,
     )
     .unwrap();
-    let event =
-        conduit_audio::MusicalNoteEvent::new(NoteOccurrenceId(1), pitch, Gate::On, u16::MAX, 0, 0)
-            .unwrap();
+    let event = conduit_audio::MusicalNoteEvent::new(
+        NoteOccurrenceId::new(1).unwrap(),
+        pitch,
+        Gate::On,
+        u16::MAX,
+        0,
+        0,
+    )
+    .unwrap();
     let outcome = execute(
         &mut adapter,
         &mut session,
@@ -189,9 +208,15 @@ fn provider_loss_remains_a_host_failure() {
         0,
     )
     .unwrap();
-    let event =
-        conduit_audio::MusicalNoteEvent::new(NoteOccurrenceId(2), pitch, Gate::On, u16::MAX, 0, 0)
-            .unwrap();
+    let event = conduit_audio::MusicalNoteEvent::new(
+        NoteOccurrenceId::new(2).unwrap(),
+        pitch,
+        Gate::On,
+        u16::MAX,
+        0,
+        0,
+    )
+    .unwrap();
     let outcome = execute(
         &mut adapter,
         &mut session,
