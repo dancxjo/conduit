@@ -1,20 +1,19 @@
+use crate::{
+    BodyEvidenceAttachment, BodyEvidenceEntrance, BodyEvidenceEntranceError,
+    BodyHistoryManifestation, BodyHistoryMoment, ReadableBodyHistory, ReadableBodyHistoryError,
+    ReadableBodyHistorySlot, MAX_BODY_ATTACHMENT_EVIDENCE_BYTES,
+    MAX_BODY_BIOGRAPHY_EXPLANATION_BYTES, MAX_BODY_HISTORY_LINEAR_BYTES,
+    MAX_BODY_HISTORY_TITLE_BYTES,
+};
 use conduit_body::{
     AuthenticatedHostObservation, Body, BodyBiographyEvidence, BodyBiographyRecordKind,
     BodyGraduationChoice, BodyGraduationEvidence, BodyMembership, MembershipProofId, PartId,
-};
-use conduit_body_make::{
-    BodyEvidenceAttachment, BodyEvidenceEntrance, BodyEvidenceEntranceError,
-    MAX_BODY_ATTACHMENT_EVIDENCE_BYTES, MAX_BODY_BIOGRAPHY_EXPLANATION_BYTES,
 };
 use conduit_core::{
     bind_sign, BootId, CheckedFormId, HostId, ImplementationId, OfferGeneration, PlanId, SignId,
     SourceDocumentId,
 };
 use conduit_presentation::{PresentationAspect, PresentationDepth, PresentationPlace};
-use patchbay_model::{
-    BodyHistoryManifestation, BodyHistoryMoment, ReadableBodyHistory, ReadableBodyHistoryError,
-    ReadableBodyHistorySlot, MAX_BODY_HISTORY_LINEAR_BYTES, MAX_BODY_HISTORY_TITLE_BYTES,
-};
 
 const HOSTED_PLAN: &str = "plan/roseau-patchbay";
 const HOSTED_IMPLEMENTATION: &str = "browser/patchbay-surface@1";
@@ -104,6 +103,7 @@ fn hosted_attachment() -> BodyEvidenceAttachment {
 fn hosted_history_is_body_signs_with_four_ordered_friendly_and_exact_entries() {
     let history = ReadableBodyHistory::from_attachment(7, &hosted_attachment()).unwrap();
 
+    assert_eq!(history.schema, "conduit.body/readable-history@1");
     assert_eq!(history.place, PresentationPlace::Body);
     assert_eq!(history.aspect, PresentationAspect::Signs);
     assert_eq!(

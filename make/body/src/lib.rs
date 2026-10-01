@@ -10,6 +10,7 @@ mod construction_source;
 mod current_frame;
 mod evidence_attachment;
 mod planning;
+mod readable_history;
 mod spore;
 mod workload_session;
 
@@ -20,6 +21,7 @@ pub use construction_source::*;
 pub use current_frame::*;
 pub use evidence_attachment::*;
 pub use planning::*;
+pub use readable_history::*;
 pub use spore::*;
 pub use workload_session::*;
 

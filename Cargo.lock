@@ -812,6 +812,7 @@ dependencies = [
  "conduit-form",
  "conduit-host-make",
  "conduit-planner",
+ "conduit-presentation",
  "conduit-semantic-catalog",
  "conduit-std-host",
  "conduit-std-offers",
