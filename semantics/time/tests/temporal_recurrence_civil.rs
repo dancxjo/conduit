@@ -44,7 +44,7 @@ fn window(start: u64, end: u64, maximum_results: u32) -> RecurrenceExpansion {
 }
 
 fn policy(gap: CivilGapPolicy, fold: CivilFoldPolicy) -> CivilResolutionPolicy {
-    CivilResolutionPolicy { gap, fold }
+    CivilResolutionPolicy::new(fold, gap).expect("civil resolution policies are exact")
 }
 
 #[test]
