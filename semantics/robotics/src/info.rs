@@ -4,6 +4,9 @@
 //! not imply a sensor, Host, Base, implementation, or physical observation.
 
 use conduit_core::{semantic_digest, InfoDecodeError, Quantity, QuantityUnit};
+use core::{cmp::Ordering, hash::Hash};
+
+use crate::RangeObservation;
 
 pub const ROBOTICS_RANGE_INFO_ID: &str = "robotics/range-mm-sensor-forward@1";
 pub const ROBOTICS_RANGE_ENCODED_LEN: usize = 8;
@@ -21,58 +24,34 @@ pub const PI_MICRORADIANS: i32 = 3_141_593;
 pub const HALF_PI_MICRORADIANS: i32 = 1_570_797;
 pub const MAXIMUM_BATTERY_MILLIVOLTS: u16 = 60_000;
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
-pub struct RangeObservation {
-    distance_mm: u32,
-    age_ms: u32,
-}
-
 impl RangeObservation {
     pub fn from_quantities(distance: Quantity, age: Quantity) -> Result<Self, InfoDecodeError> {
-        Self::new(
-            quantity_u32(
-                "distance-mm",
-                distance,
-                QuantityUnit::Millimeter,
-                MAXIMUM_RANGE_MM,
-            )?,
-            quantity_u32(
-                "age-ms",
-                age,
-                QuantityUnit::Millisecond,
-                MAXIMUM_OBSERVATION_AGE_MS,
-            )?,
-        )
+        let distance_mm = quantity_u32(
+            "distance-mm",
+            distance,
+            QuantityUnit::Millimeter,
+            MAXIMUM_RANGE_MM,
+        )?;
+        let age_ms = quantity_u32(
+            "age-ms",
+            age,
+            QuantityUnit::Millisecond,
+            MAXIMUM_OBSERVATION_AGE_MS,
+        )?;
+        Ok(Self::new(distance_mm, age_ms).expect("quantity bounds match generated contracts"))
     }
 
-    pub fn new(distance_mm: u32, age_ms: u32) -> Result<Self, InfoDecodeError> {
-        bounded_u32("distance-mm", distance_mm, MAXIMUM_RANGE_MM)?;
-        bounded_u32("age-ms", age_ms, MAXIMUM_OBSERVATION_AGE_MS)?;
-        Ok(Self {
-            distance_mm,
-            age_ms,
-        })
+    pub fn distance(self) -> Quantity {
+        Quantity::new(i64::from(self.distance_mm()), QuantityUnit::Millimeter)
     }
 
-    pub const fn distance_mm(self) -> u32 {
-        self.distance_mm
+    pub fn age(self) -> Quantity {
+        Quantity::new(i64::from(self.age_ms()), QuantityUnit::Millisecond)
     }
 
-    pub const fn age_ms(self) -> u32 {
-        self.age_ms
-    }
-
-    pub const fn distance(self) -> Quantity {
-        Quantity::new(self.distance_mm as i64, QuantityUnit::Millimeter)
-    }
-
-    pub const fn age(self) -> Quantity {
-        Quantity::new(self.age_ms as i64, QuantityUnit::Millisecond)
-    }
-
-    pub const fn encode(self) -> [u8; ROBOTICS_RANGE_ENCODED_LEN] {
-        let distance = self.distance_mm.to_le_bytes();
-        let age = self.age_ms.to_le_bytes();
+    pub fn encode(self) -> [u8; ROBOTICS_RANGE_ENCODED_LEN] {
+        let distance = self.distance_mm().to_le_bytes();
+        let age = self.age_ms().to_le_bytes();
         [
             distance[0],
             distance[1],
@@ -87,14 +66,34 @@ impl RangeObservation {
 
     pub fn decode(encoded: &[u8]) -> Result<Self, InfoDecodeError> {
         exact_len(encoded, ROBOTICS_RANGE_ENCODED_LEN)?;
-        Self::new(
-            u32::from_le_bytes(encoded[0..4].try_into().expect("checked range length")),
-            u32::from_le_bytes(encoded[4..8].try_into().expect("checked range length")),
-        )
+        let distance_mm =
+            u32::from_le_bytes(encoded[0..4].try_into().expect("checked range length"));
+        let age_ms = u32::from_le_bytes(encoded[4..8].try_into().expect("checked range length"));
+        bounded_u32("distance-mm", distance_mm, MAXIMUM_RANGE_MM)?;
+        bounded_u32("age-ms", age_ms, MAXIMUM_OBSERVATION_AGE_MS)?;
+        Ok(Self::new(distance_mm, age_ms).expect("codec bounds match generated contracts"))
     }
 
     pub fn semantic_digest(self) -> [u8; 32] {
         semantic_digest(ROBOTICS_RANGE_INFO_ID, &self.encode())
+    }
+}
+
+impl PartialOrd for RangeObservation {
+    fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
+        Some(self.cmp(other))
+    }
+}
+
+impl Ord for RangeObservation {
+    fn cmp(&self, other: &Self) -> Ordering {
+        (self.distance_mm(), self.age_ms()).cmp(&(other.distance_mm(), other.age_ms()))
+    }
+}
+
+impl Hash for RangeObservation {
+    fn hash<H: core::hash::Hasher>(&self, state: &mut H) {
+        (self.distance_mm(), self.age_ms()).hash(state);
     }
 }
 

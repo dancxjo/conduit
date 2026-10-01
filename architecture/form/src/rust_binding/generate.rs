@@ -29,6 +29,12 @@ pub struct RustBindingOptions {
     /// direct primitive field bounds without materializing a structured value.
     /// Nested generated fields retain their own construction invariants.
     pub direct_checked_record_constructors: BTreeSet<String>,
+    /// Copy record bindings whose generated getters retain an established
+    /// by-value Rust API instead of returning references.
+    pub copy_record_value_getters: BTreeSet<String>,
+    /// Optional Rust constructor argument order for retaining an established
+    /// record API. Semantic record identity remains canonically field-ordered.
+    pub record_constructor_orders: BTreeMap<String, Vec<String>>,
     /// Optional Rust enum declaration order for preserving an established
     /// Serde variant-index ABI. Keys are authored Type names and values are an
     /// exhaustive, unique list of authored variant tags. This is binding-only
@@ -373,10 +379,17 @@ fn emit_type(
         rust_name,
         &constant,
         names,
-        options.copy_record_types.contains(&value_type.name),
-        options
-            .direct_checked_record_constructors
-            .contains(&value_type.name),
+        super::generate_value::RecordBindingOptions {
+            copy: options.copy_record_types.contains(&value_type.name),
+            value_getters: options.copy_record_value_getters.contains(&value_type.name),
+            direct_checked: options
+                .direct_checked_record_constructors
+                .contains(&value_type.name),
+            constructor_order: options
+                .record_constructor_orders
+                .get(&value_type.name)
+                .map(Vec::as_slice),
+        },
     )?;
     Ok(())
 }

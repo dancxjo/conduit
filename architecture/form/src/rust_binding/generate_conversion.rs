@@ -14,6 +14,7 @@ pub(super) fn emit_record_binding(
     constant: &str,
     fields: &[conduit_core::StructuredFieldType],
     names: &BTreeMap<String, String>,
+    constructor_order: Option<&[String]>,
 ) -> Result<(), RustBindingGenerationError> {
     trait_header(out, rust_name, constant);
     writeln!(out, "        let mut fields = Vec::new();").expect("String writing is infallible");
@@ -37,7 +38,21 @@ pub(super) fn emit_record_binding(
         .expect("String writing is infallible");
     exact_type_guard(out);
     writeln!(out, "        Self::new(").expect("String writing is infallible");
-    for field in fields {
+    let constructor_fields = constructor_order
+        .map(|order| {
+            order
+                .iter()
+                .map(|name| {
+                    fields
+                        .iter()
+                        .find(|field| field.name() == name)
+                        .ok_or(RustBindingGenerationError::InvalidSemanticType)
+                })
+                .collect::<Result<Vec<_>, _>>()
+        })
+        .transpose()?
+        .unwrap_or_else(|| fields.iter().collect());
+    for field in constructor_fields {
         let raw = format!(
             "conduit_form::rust_binding::record_field_value(&value, {:?})?",
             field.name()
