@@ -27,8 +27,8 @@ pub use generate_package::{
 pub use primitive::{primitive_from_structured, primitive_into_structured, NativePrimitive};
 pub use value::{
     collection_element_type, nominal_representation_type, record_field_type, record_field_value,
-    validate_native_contracts, validate_native_invariants, variant_payload_type,
-    NativeBindingRefusal, NativeRustBinding,
+    sequence_element_type, validate_native_contracts, validate_native_invariants,
+    variant_payload_type, NativeBindingRefusal, NativeRustBinding,
 };
 
 /// A bounded refusal produced by any generated finite code codec.
