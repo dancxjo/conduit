@@ -1,11 +1,12 @@
 //! Finite text-level address detection independent of speech or model machinery.
 
 use alloc::{string::String, vec::Vec};
+use conduit_form::rust_binding::BoundedSequence;
 use serde::{Deserialize, Serialize};
 
 use crate::{
-    AddressConfigurationError, AddressDetection, AddressDetectionRefusal, AddressValueError,
-    MAX_TEXT_BYTES,
+    AddressConfigurationError, AddressDetection, AddressDetectionRefusal, AddressName,
+    AddressNames, AddressSet, AddressValueError, MAX_TEXT_BYTES,
 };
 
 pub const MAX_ADDRESS_NAMES: usize = 8;
@@ -15,11 +16,6 @@ pub const MAX_ADDRESS_DETECTION_VALUE_BYTES: usize = 1_024;
 
 const ADDRESS_SET_SCHEMA: &str = "conduit.text/address-set-value@1";
 const ADDRESS_DETECTION_SCHEMA: &str = "conduit.text/address-detection-value@1";
-
-#[derive(Clone, Debug, Eq, PartialEq)]
-pub struct AddressSet {
-    names: Vec<String>,
-}
 
 #[derive(Serialize, Deserialize)]
 struct AddressSetValue {
@@ -60,17 +56,21 @@ impl AddressSet {
             }
             if admitted
                 .iter()
-                .any(|prior: &String| prior.eq_ignore_ascii_case(name))
+                .any(|prior: &AddressName| prior.get().eq_ignore_ascii_case(name))
             {
                 return Err(AddressConfigurationError::DuplicateName);
             }
-            admitted.push(String::from(*name));
+            admitted.push(
+                AddressName::new(String::from(*name))
+                    .map_err(|_| AddressConfigurationError::NameTooLarge)?,
+            );
         }
-        Ok(Self { names: admitted })
-    }
-
-    pub fn names(&self) -> &[String] {
-        &self.names
+        let admitted = BoundedSequence::try_from_iter(admitted)
+            .map_err(|_| AddressConfigurationError::TooManyNames)?;
+        Self::new_native(
+            AddressNames::new(admitted).map_err(|_| AddressConfigurationError::TooManyNames)?,
+        )
+        .map_err(|_| AddressConfigurationError::Empty)
     }
 
     pub fn detect(&self, recognized: &str) -> Result<AddressDetection, AddressDetectionRefusal> {
@@ -78,8 +78,8 @@ impl AddressSet {
             return Err(AddressDetectionRefusal::RecognizedTextTooLarge);
         }
         let candidate = recognized.trim_start();
-        for (index, name) in self.names.iter().enumerate() {
-            let Some(consumed) = matching_prefix_bytes(candidate, name) else {
+        for (index, name) in self.names().get().iter().enumerate() {
+            let Some(consumed) = matching_prefix_bytes(candidate, name.get()) else {
                 continue;
             };
             let remainder = &candidate[consumed..];
@@ -104,7 +104,12 @@ pub fn encode_address_set(addresses: &AddressSet) -> Result<Vec<u8>, AddressValu
     encode_bounded(
         &AddressSetValue {
             schema: ADDRESS_SET_SCHEMA.into(),
-            names: addresses.names.clone(),
+            names: addresses
+                .names()
+                .get()
+                .iter()
+                .map(|name| name.get().clone())
+                .collect(),
         },
         MAX_ADDRESS_SET_VALUE_BYTES,
     )

@@ -19,6 +19,14 @@ type MorseKeyTransition = {
 type AddressDetectionRefusal =
     recognized_text_too_large
 
+type AddressName = Text <= 64B not in [""]
+
+type AddressNames = sequence AddressName in 1..=8
+
+type AddressSet = {
+    names: AddressNames
+}
+
 type AddressDetection =
     not_addressed
     | addressed {
