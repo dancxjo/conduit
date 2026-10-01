@@ -57,6 +57,79 @@ type ImageRegion2 = {
     region: Rect2
 }
 
+type ImagePixelExtent = {
+    height: U64
+    width: U64
+}
+
+type ImageFormat =
+    gray8
+    | jpeg
+    | png
+    | rgba8
+
+type ImageColorProfile =
+    absent
+    | named Text
+
+type ImageResource = {
+    color_profile: ImageColorProfile
+    content: ResourceRef
+    extent: ImagePixelExtent
+    format: ImageFormat
+    image_frame: Text
+}
+
+type VisionEvidenceClass =
+    heuristic
+    | model_derived
+
+type VisionProvenance = {
+    evidence_class: VisionEvidenceClass
+    profile: Text
+    revision: Text
+    source: Text
+}
+
+type VisionKeypoint = {
+    confidence: Ratio
+    name: Text
+    point: Point2
+}
+
+type VisionLandmarkSlot =
+    keypoint VisionKeypoint
+    | unused
+
+type VisionLandmarks = collection VisionLandmarkSlot = 8
+
+type VisionRgbSample = {
+    blue: U8
+    green: U8
+    point: Point2
+    red: U8
+}
+
+type VisionColorSample =
+    absent
+    | rgb VisionRgbSample
+
+type VisionDetection = {
+    classification: Text
+    color_sample: VisionColorSample
+    confidence: Ratio
+    image_identity: Text
+    landmarks: VisionLandmarks
+    provenance: VisionProvenance
+    region: Rect2
+}
+
+type VisionDetectionSlot =
+    detection VisionDetection
+    | unused
+
+type VisionDetectionsFour = collection VisionDetectionSlot = 4
+
 type GraphicsCommandKind =
     rect
     | text

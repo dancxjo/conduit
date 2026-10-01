@@ -1,15 +1,16 @@
 //! Portable bounded image metadata and model-derived vision Info.
 //!
-//! Pixel content remains one bounded resource reference. Regions and landmarks
-//! reuse the geometry catalog in a named normalized image frame.
+//! Conduitese owns the family. This module keeps the catalog's stable names and
+//! the contextual confidence rule used by vision realizations.
 
 use alloc::{vec, vec::Vec};
-use conduit_core::{
-    kind_id, Quantity, QuantityDimension, StructuredFieldType, StructuredInfoType,
-    StructuredVariantCase, QUANTITY_INFO_ID, RESOURCE_REFERENCE_INFO_ID,
+use conduit_core::{Quantity, QuantityDimension, StructuredInfoType};
+use conduit_form::rust_binding::NativeRustBinding;
+use conduit_presentation::{
+    ImageColorProfile, ImageFormat, ImagePixelExtent, ImageResource, VisionColorSample,
+    VisionDetection, VisionDetectionSlot, VisionDetectionsFour, VisionEvidenceClass,
+    VisionKeypoint, VisionLandmarkSlot, VisionLandmarks, VisionProvenance, VisionRgbSample,
 };
-
-use conduit_presentation::{point2_type, rect2_type};
 
 pub const IMAGE_RESOURCE_TYPE: &str = "ImageResource";
 pub const VISION_DETECTION_TYPE: &str = "VisionDetection";
@@ -40,177 +41,53 @@ pub fn validate_confidence(confidence: Quantity) -> Result<(), VisionRefusal> {
     Ok(())
 }
 
-fn leaf(kind: &str) -> StructuredInfoType {
-    StructuredInfoType::leaf(kind_id(kind)).expect("reviewed vision leaf")
-}
-
-fn field(name: &str, value_type: StructuredInfoType) -> StructuredFieldType {
-    StructuredFieldType::new(name, value_type).expect("reviewed vision field")
-}
-
-fn case(name: &str, payload_type: StructuredInfoType) -> StructuredVariantCase {
-    StructuredVariantCase::new(name, payload_type).expect("reviewed vision case")
-}
-
-fn record(kind: &str, fields: Vec<StructuredFieldType>) -> StructuredInfoType {
-    StructuredInfoType::record(kind_id(kind), fields).expect("reviewed vision record")
-}
-
-fn unit_type() -> StructuredInfoType {
-    leaf("value/unit")
-}
-
-fn text_type() -> StructuredInfoType {
-    leaf("value/text")
-}
-
-fn count_type() -> StructuredInfoType {
-    leaf("value/count")
+fn native_type<T: NativeRustBinding>() -> StructuredInfoType {
+    T::semantic_type().expect("checked native vision Type")
 }
 
 pub fn image_pixel_extent_type() -> StructuredInfoType {
-    record(
-        "vision/pixel-extent@1",
-        vec![field("height", count_type()), field("width", count_type())],
-    )
+    native_type::<ImagePixelExtent>()
 }
-
 pub fn image_format_type() -> StructuredInfoType {
-    StructuredInfoType::variant(
-        kind_id("vision/image-format@1"),
-        vec![
-            case("gray8", unit_type()),
-            case("jpeg", unit_type()),
-            case("png", unit_type()),
-            case("rgba8", unit_type()),
-        ],
-    )
-    .expect("reviewed image formats")
+    native_type::<ImageFormat>()
 }
-
 pub fn image_color_profile_type() -> StructuredInfoType {
-    StructuredInfoType::variant(
-        kind_id("vision/color-profile@1"),
-        vec![case("absent", unit_type()), case("named", text_type())],
-    )
-    .expect("reviewed optional color profile")
+    native_type::<ImageColorProfile>()
 }
-
 pub fn image_resource_type() -> StructuredInfoType {
-    record(
-        "vision/image-resource@1",
-        vec![
-            field("color_profile", image_color_profile_type()),
-            field("content", leaf(RESOURCE_REFERENCE_INFO_ID)),
-            field("extent", image_pixel_extent_type()),
-            field("format", image_format_type()),
-            field("image_frame", text_type()),
-        ],
-    )
+    native_type::<ImageResource>()
 }
-
 pub fn vision_evidence_class_type() -> StructuredInfoType {
-    StructuredInfoType::variant(
-        kind_id("vision/evidence-class@1"),
-        vec![
-            case("heuristic", unit_type()),
-            case("model_derived", unit_type()),
-        ],
-    )
-    .expect("reviewed evidence class")
+    native_type::<VisionEvidenceClass>()
 }
-
 pub fn vision_provenance_type() -> StructuredInfoType {
-    record(
-        "vision/detection-provenance@1",
-        vec![
-            field("evidence_class", vision_evidence_class_type()),
-            field("profile", text_type()),
-            field("revision", text_type()),
-            field("source", text_type()),
-        ],
-    )
+    native_type::<VisionProvenance>()
 }
-
 pub fn vision_keypoint_type() -> StructuredInfoType {
-    record(
-        "vision/keypoint@1",
-        vec![
-            field("confidence", leaf(QUANTITY_INFO_ID)),
-            field("name", text_type()),
-            field("point", point2_type()),
-        ],
-    )
+    native_type::<VisionKeypoint>()
 }
-
 pub fn vision_landmark_slot_type() -> StructuredInfoType {
-    StructuredInfoType::variant(
-        kind_id("vision/landmark-slot@1"),
-        vec![
-            case("keypoint", vision_keypoint_type()),
-            case("unused", unit_type()),
-        ],
-    )
-    .expect("reviewed landmark slot")
+    native_type::<VisionLandmarkSlot>()
 }
-
 pub fn vision_landmarks_type() -> StructuredInfoType {
-    StructuredInfoType::collection(vision_landmark_slot_type(), Some(MAXIMUM_VISION_LANDMARKS))
-        .expect("bounded landmark slots")
+    native_type::<VisionLandmarks>()
 }
-
-fn rgb_sample_type() -> StructuredInfoType {
-    record(
-        "vision/rgb-sample@1",
-        vec![
-            field("blue", count_type()),
-            field("green", count_type()),
-            field("point", point2_type()),
-            field("red", count_type()),
-        ],
-    )
-}
-
 pub fn vision_color_sample_type() -> StructuredInfoType {
-    StructuredInfoType::variant(
-        kind_id("vision/optional-color-sample@1"),
-        vec![case("absent", unit_type()), case("rgb", rgb_sample_type())],
-    )
-    .expect("reviewed optional color sample")
+    native_type::<VisionColorSample>()
 }
-
 pub fn vision_detection_type() -> StructuredInfoType {
-    record(
-        "vision/detection@1",
-        vec![
-            field("classification", text_type()),
-            field("color_sample", vision_color_sample_type()),
-            field("confidence", leaf(QUANTITY_INFO_ID)),
-            field("image_identity", text_type()),
-            field("landmarks", vision_landmarks_type()),
-            field("provenance", vision_provenance_type()),
-            field("region", rect2_type()),
-        ],
-    )
+    native_type::<VisionDetection>()
 }
-
 pub fn vision_detection_slot_type() -> StructuredInfoType {
-    StructuredInfoType::variant(
-        kind_id("vision/detection-slot@1"),
-        vec![
-            case("detection", vision_detection_type()),
-            case("unused", unit_type()),
-        ],
-    )
-    .expect("reviewed detection slot")
+    native_type::<VisionDetectionSlot>()
+}
+pub fn vision_detections_type() -> StructuredInfoType {
+    native_type::<VisionDetectionsFour>()
 }
 
-pub fn vision_detections_type() -> StructuredInfoType {
-    StructuredInfoType::collection(
-        vision_detection_slot_type(),
-        Some(MAXIMUM_VISION_DETECTIONS),
-    )
-    .expect("bounded detection slots")
+#[allow(dead_code)]
+fn rgb_sample_type() -> StructuredInfoType {
+    native_type::<VisionRgbSample>()
 }
 
 pub fn vision_registered_types() -> Vec<(&'static str, StructuredInfoType)> {

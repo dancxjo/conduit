@@ -31,7 +31,7 @@ pub use transport::*;
 pub use tuple::*;
 pub use validation::PreparedStructuredValueValidator;
 
-pub const MAXIMUM_STRUCTURED_INFO_DEPTH: usize = 8;
+pub const MAXIMUM_STRUCTURED_INFO_DEPTH: usize = 16;
 pub const MAXIMUM_STRUCTURED_INFO_NODES: usize = 1_024;
 pub const MAXIMUM_STRUCTURED_COLLECTION_ITEMS: usize = 256;
 pub const MAXIMUM_STRUCTURED_RECORD_FIELDS: usize = 64;
