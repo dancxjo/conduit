@@ -152,7 +152,8 @@ pub fn lower_group_zero(
         proximity: ProximityObservation::decode(&[proximity_sectors])?,
         virtual_wall,
         infrared,
-        buttons: ButtonSetObservation::new(u32::from(bytes[11])),
+        buttons: ButtonSetObservation::new(u32::from(bytes[11]))
+            .expect("U32 has no additional generated constraint"),
         charging,
         distance_delta_mm: i16::from_be_bytes([bytes[12], bytes[13]]),
         angle_delta_degrees: i16::from_be_bytes([bytes[14], bytes[15]]),

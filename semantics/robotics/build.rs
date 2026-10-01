@@ -15,6 +15,7 @@ fn main() {
         &RustBindingOptions {
             copy_record_types: [
                 "AccelerationObservation".into(),
+                "ButtonSetObservation".into(),
                 "ContactObservation".into(),
                 "OdometryObservation".into(),
                 "ProximityObservation".into(),
