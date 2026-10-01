@@ -9,14 +9,14 @@ mod generated {
     include!(concat!(env!("OUT_DIR"), "/semantic_types.rs"));
 }
 pub use generated::{
-    BaseProofClass, BatchOrder, CandidateLifecycle, CheckpointPolicy, ContextOmissionReason,
-    ContextOrderingPolicy, ContextRedundancyPolicy, ContextSelectionRationale,
-    ContextSelectionRefusal, ContextTruncationReason, DataHandling, DrawRelationship,
-    DrawRelationshipCorrelated, DynamicsRefusal, EmbeddingNormalization, EmbodimentStage,
-    EntityBoundary, EvaluationDisposition, EvaluationPolicy, ExactVectorSearchRefusal,
-    FusionStrategy, FusionStrategyReciprocalRank, GeneratedTextFlowRefusal,
-    GeneratedTextFlowTerminal, GroundedAnswerDisposition, GroundedAnswerRefusal,
-    GroundingDisposition, HouseContextProvenanceClass, HouseContextRefusal,
+    BaseProofClass, BatchOrder, CandidateLifecycle, CheckpointPolicy, CompatibleMetrics,
+    ContextOmissionReason, ContextOrderingPolicy, ContextRedundancyPolicy,
+    ContextSelectionRationale, ContextSelectionRefusal, ContextTruncationReason, DataHandling,
+    DrawRelationship, DrawRelationshipCorrelated, DynamicsRefusal, EmbeddingNormalization,
+    EmbodimentStage, EntityBoundary, EvaluationDisposition, EvaluationPolicy,
+    ExactVectorSearchRefusal, FusionStrategy, FusionStrategyReciprocalRank,
+    GeneratedTextFlowRefusal, GeneratedTextFlowTerminal, GroundedAnswerDisposition,
+    GroundedAnswerRefusal, GroundingDisposition, HouseContextProvenanceClass, HouseContextRefusal,
     HumanAssessmentDisposition, HybridRetrievalOfferInvalidity, IntegrationTerminal,
     InterpretationDisposition, InterpretationInvalidity, InterpretationProvenance,
     LearnedLifecycleRefusal, LlmDeterminismProfile, LlmImplementationControl,

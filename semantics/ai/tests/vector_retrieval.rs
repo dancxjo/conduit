@@ -13,11 +13,7 @@ fn profile(normalization: EmbeddingNormalization) -> EmbeddingProfile {
         provider_identity: "provider/reviewed-fixture-v1".into(),
         dimensions: 3,
         normalization,
-        compatible_metrics: CompatibleMetrics {
-            cosine_similarity: true,
-            dot_product_similarity: true,
-            squared_euclidean_distance: true,
-        },
+        compatible_metrics: CompatibleMetrics::new(true, true, true).unwrap(),
     }
 }
 
@@ -114,11 +110,14 @@ fn dimensions_and_metric_admission_are_exact_profile_compatibility() {
     );
 
     let mut metrics = base.clone();
-    metrics.compatible_metrics.cosine_similarity = false;
+    metrics.compatible_metrics = CompatibleMetrics::new(false, true, true).unwrap();
     assert_eq!(
         base.compatibility(&metrics, SimilarityMetric::CosineSimilarity),
         Err(VectorRefusal::MetricNotCompatible)
     );
+
+    metrics.compatible_metrics = CompatibleMetrics::new(false, false, false).unwrap();
+    assert_eq!(metrics.validate(), Err(VectorRefusal::NoCompatibleMetric));
 }
 
 #[test]

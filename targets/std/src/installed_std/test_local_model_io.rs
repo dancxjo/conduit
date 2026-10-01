@@ -626,11 +626,8 @@ fn source_request(placement: &PlannedGear) -> Result<Vec<u8>, String> {
                     provider_identity: "provider/vector-play-fixture".into(),
                     dimensions: 3,
                     normalization: conduit_ai::EmbeddingNormalization::None,
-                    compatible_metrics: conduit_ai::CompatibleMetrics {
-                        cosine_similarity: true,
-                        dot_product_similarity: true,
-                        squared_euclidean_distance: true,
-                    },
+                    compatible_metrics: conduit_ai::CompatibleMetrics::new(true, true, true)
+                        .unwrap(),
                 },
                 values: vec![1.0, 0.0, 0.0],
             },

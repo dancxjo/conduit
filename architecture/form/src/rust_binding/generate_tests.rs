@@ -158,6 +158,27 @@ fn serde_variant_exclusion_preserves_a_non_serde_binding() {
 }
 
 #[test]
+fn selected_record_retains_copy_and_serde_binding_traits() {
+    let types = checked_types();
+    let generated = generate_rust_bindings(
+        &types,
+        &RustBindingOptions {
+            serde_record_types: ["Toggle".into()].into(),
+            copy_record_types: ["Toggle".into()].into(),
+            ..RustBindingOptions::default()
+        },
+    )
+    .unwrap();
+
+    assert!(generated.source.contains(
+        "#[derive(Debug, Clone, Copy, PartialEq, Eq, serde::Serialize, serde::Deserialize)]\npub struct Toggle"
+    ));
+    assert!(generated
+        .source
+        .contains("#[derive(Debug, Clone, PartialEq, Eq)]\npub struct Position"));
+}
+
+#[test]
 fn generated_contracts_preserve_semantic_openness() {
     let checked = crate::check_syntax_document(
         &crate::parse_syntax_document(
