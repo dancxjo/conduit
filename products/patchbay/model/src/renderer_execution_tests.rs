@@ -141,10 +141,7 @@ fn production_patchbay_face_preserves_meaning_across_graphical_aural_and_linear_
         assert!(records.contains(&format!("id={:?}", subject.identity)));
         assert!(records.contains(&format!("name={:?}", subject.name)));
         assert!(aural.clauses.iter().any(|clause| {
-            clause.provenance
-                == FaceUtteranceProvenance::Subject {
-                    identity: subject.identity.clone(),
-                }
+            clause.provenance == FaceUtteranceProvenance::subject(subject.identity.clone()).unwrap()
         }));
     }
     for relationship in &face.relationships {
@@ -154,10 +151,7 @@ fn production_patchbay_face_preserves_meaning_across_graphical_aural_and_linear_
     for action in &face.actions {
         assert!(records.contains(&format!("id={:?}", action.identity)));
         assert!(aural.clauses.iter().any(|clause| {
-            clause.provenance
-                == FaceUtteranceProvenance::Action {
-                    identity: action.identity.clone(),
-                }
+            clause.provenance == FaceUtteranceProvenance::action(action.identity.clone()).unwrap()
         }));
     }
 

@@ -10,40 +10,13 @@ use sha2::{Digest, Sha256};
 use conduit_core::{IntervalEndpoint, ValueConstraint};
 
 use crate::{
-    FaceUtteranceClauseKind, Presentation, PresentationActionAvailability,
+    FaceUtteranceClauseKind, FaceUtteranceProvenance, Presentation, PresentationActionAvailability,
     PresentationCompositionKind, PresentationError, PresentationRelationshipKind, PresentationRole,
 };
 
 pub const MAX_FACE_UTTERANCE_CLAUSES: usize = 10_256;
 pub const MAX_FACE_UTTERANCE_CLAUSE_BYTES: usize = 4_096;
 pub const MAX_FACE_UTTERANCE_PLAN_BYTES: usize = 2 * 1024 * 1024;
-
-/// Exact Face record from which one deterministic utterance clause was made.
-#[derive(Debug, Clone, PartialEq, Eq)]
-pub enum FaceUtteranceProvenance {
-    Subject {
-        identity: String,
-    },
-    Relationship {
-        index: u32,
-    },
-    Property {
-        index: u32,
-    },
-    Composition {
-        identity: String,
-    },
-    Text {
-        index: u32,
-    },
-    Action {
-        identity: String,
-    },
-    ActionArgument {
-        action_identity: String,
-        argument_name: String,
-    },
-}
 
 /// One bounded sentence or exact Face wording item.
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -96,9 +69,8 @@ pub fn plan_face_utterances(
         builder.push(FaceUtteranceClause {
             kind: FaceUtteranceClauseKind::Subject,
             text: format!("{}: {}.", role_token(&subject.role), subject.name),
-            provenance: FaceUtteranceProvenance::Subject {
-                identity: subject.identity.clone(),
-            },
+            provenance: FaceUtteranceProvenance::subject(subject.identity.clone())
+                .expect("validated subject identity remains bounded"),
         })?;
     }
 
@@ -115,9 +87,7 @@ pub fn plan_face_utterances(
         builder.push(FaceUtteranceClause {
             kind: FaceUtteranceClauseKind::Relationship,
             text: relationship_clause(face, relationship),
-            provenance: FaceUtteranceProvenance::Relationship {
-                index: index as u32,
-            },
+            provenance: FaceUtteranceProvenance::relationship(index as u32).unwrap(),
         })?;
     }
 
@@ -133,9 +103,7 @@ pub fn plan_face_utterances(
         builder.push(FaceUtteranceClause {
             kind: FaceUtteranceClauseKind::Property,
             text: property_clause(face, property),
-            provenance: FaceUtteranceProvenance::Property {
-                index: index as u32,
-            },
+            provenance: FaceUtteranceProvenance::property(index as u32).unwrap(),
         })?;
     }
 
@@ -151,9 +119,8 @@ pub fn plan_face_utterances(
         builder.push(FaceUtteranceClause {
             kind: FaceUtteranceClauseKind::Composition,
             text: composition_clause(face, relation),
-            provenance: FaceUtteranceProvenance::Composition {
-                identity: relation.identity.clone(),
-            },
+            provenance: FaceUtteranceProvenance::composition(relation.identity.clone())
+                .expect("validated composition identity remains bounded"),
         })?;
     }
 
@@ -163,9 +130,7 @@ pub fn plan_face_utterances(
         builder.push(FaceUtteranceClause {
             kind: FaceUtteranceClauseKind::Text,
             text: text.text.clone(),
-            provenance: FaceUtteranceProvenance::Text {
-                index: index as u32,
-            },
+            provenance: FaceUtteranceProvenance::text(index as u32).unwrap(),
         })?;
     }
 
@@ -180,18 +145,18 @@ pub fn plan_face_utterances(
         builder.push(FaceUtteranceClause {
             kind: FaceUtteranceClauseKind::Action,
             text: action_clause(face, action),
-            provenance: FaceUtteranceProvenance::Action {
-                identity: action.identity.clone(),
-            },
+            provenance: FaceUtteranceProvenance::action(action.identity.clone())
+                .expect("validated action identity remains bounded"),
         })?;
         for argument in &action.arguments {
             builder.push(FaceUtteranceClause {
                 kind: FaceUtteranceClauseKind::ActionArgument,
                 text: action_argument_clause(action, argument),
-                provenance: FaceUtteranceProvenance::ActionArgument {
-                    action_identity: action.identity.clone(),
-                    argument_name: argument.name.clone(),
-                },
+                provenance: FaceUtteranceProvenance::action_argument(
+                    action.identity.clone(),
+                    argument.name.clone(),
+                )
+                .expect("validated action argument identities remain bounded"),
             })?;
         }
     }
@@ -625,37 +590,34 @@ impl UtteranceBuilder {
 
 fn hash_provenance(digest: &mut Sha256, provenance: &FaceUtteranceProvenance) {
     match provenance {
-        FaceUtteranceProvenance::Subject { identity } => {
+        FaceUtteranceProvenance::Subject(value) => {
             digest.update([0]);
-            hash_bytes(digest, identity.as_bytes());
+            hash_bytes(digest, value.identity().as_bytes());
         }
-        FaceUtteranceProvenance::Relationship { index } => {
+        FaceUtteranceProvenance::Relationship(value) => {
             digest.update([1]);
-            digest.update(index.to_le_bytes());
+            digest.update(value.index().to_le_bytes());
         }
-        FaceUtteranceProvenance::Property { index } => {
+        FaceUtteranceProvenance::Property(value) => {
             digest.update([6]);
-            digest.update(index.to_le_bytes());
+            digest.update(value.index().to_le_bytes());
         }
-        FaceUtteranceProvenance::Composition { identity } => {
+        FaceUtteranceProvenance::Composition(value) => {
             digest.update([2]);
-            hash_bytes(digest, identity.as_bytes());
+            hash_bytes(digest, value.identity().as_bytes());
         }
-        FaceUtteranceProvenance::Text { index } => {
+        FaceUtteranceProvenance::Text(value) => {
             digest.update([3]);
-            digest.update(index.to_le_bytes());
+            digest.update(value.index().to_le_bytes());
         }
-        FaceUtteranceProvenance::Action { identity } => {
+        FaceUtteranceProvenance::Action(value) => {
             digest.update([4]);
-            hash_bytes(digest, identity.as_bytes());
+            hash_bytes(digest, value.identity().as_bytes());
         }
-        FaceUtteranceProvenance::ActionArgument {
-            action_identity,
-            argument_name,
-        } => {
+        FaceUtteranceProvenance::ActionArgument(value) => {
             digest.update([5]);
-            hash_bytes(digest, action_identity.as_bytes());
-            hash_bytes(digest, argument_name.as_bytes());
+            hash_bytes(digest, value.action_identity().as_bytes());
+            hash_bytes(digest, value.argument_name().as_bytes());
         }
     }
 }
@@ -663,4 +625,33 @@ fn hash_provenance(digest: &mut Sha256, provenance: &FaceUtteranceProvenance) {
 fn hash_bytes(digest: &mut Sha256, bytes: &[u8]) {
     digest.update((bytes.len() as u64).to_le_bytes());
     digest.update(bytes);
+}
+
+#[cfg(test)]
+mod provenance_digest_tests {
+    use super::*;
+
+    #[test]
+    fn provenance_retains_the_v1_manual_digest_tags_and_field_order() {
+        let mut digest = Sha256::new();
+        for value in [
+            FaceUtteranceProvenance::subject("subject".into()).unwrap(),
+            FaceUtteranceProvenance::relationship(0x0102_0304).unwrap(),
+            FaceUtteranceProvenance::property(7).unwrap(),
+            FaceUtteranceProvenance::composition("composition".into()).unwrap(),
+            FaceUtteranceProvenance::text(9).unwrap(),
+            FaceUtteranceProvenance::action("action".into()).unwrap(),
+            FaceUtteranceProvenance::action_argument("action".into(), "argument".into()).unwrap(),
+        ] {
+            hash_provenance(&mut digest, &value);
+        }
+        assert_eq!(
+            <[u8; 32]>::from(digest.finalize()),
+            [
+                0xaf, 0xbc, 0xda, 0x8e, 0x91, 0x21, 0xa8, 0x80, 0xd8, 0xc3, 0x1d, 0xa9, 0xf9, 0x80,
+                0x5d, 0x52, 0x27, 0xaf, 0x98, 0x66, 0x93, 0x37, 0x92, 0x04, 0x8e, 0xb1, 0xfb, 0x06,
+                0xd4, 0x81, 0x8d, 0xa9,
+            ]
+        );
+    }
 }
