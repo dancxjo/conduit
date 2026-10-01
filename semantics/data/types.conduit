@@ -286,6 +286,10 @@ type TabularQueryResultFour = {
     status: TabularQueryStatus
 }
 
+type TabularQueryOutcomeFour =
+    inline TabularQueryResultFour
+    | materialized ResourceRef
+
 code data/save-text-terminal = DataSaveTextTerminal as u8
 
 code data/load-text-terminal = DataLoadTextTerminal as u8

@@ -20,9 +20,9 @@ pub use generated::{
     ScientificObservationRefusal, SignalContinuity, SignalContinuityClockReset,
     SignalContinuityDiscontinuous, TabularColumnSpec,
     TabularColumnType, TabularOptionalText, TabularPersonRow, TabularPersonRowSlot,
-    TabularPersonRowsFour, TabularQueryCompletion, TabularQueryError, TabularQueryResultFour,
-    TabularQueryStatus, TabularSchemaFour, TensorAxisRole, TensorAxisRoleOther, TensorElement,
-    TensorRefusal,
+    TabularPersonRowsFour, TabularQueryCompletion, TabularQueryError, TabularQueryOutcomeFour,
+    TabularQueryResultFour, TabularQueryStatus, TabularSchemaFour, TensorAxisRole,
+    TensorAxisRoleOther, TensorElement, TensorRefusal,
 };
 
 mod data_catalog;
