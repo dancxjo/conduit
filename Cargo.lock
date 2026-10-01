@@ -842,6 +842,7 @@ dependencies = [
  "conduit-body-invitation-form",
  "conduit-body-make",
  "conduit-chat",
+ "conduit-composite",
  "conduit-core",
  "conduit-data",
  "conduit-form",
