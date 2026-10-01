@@ -29,7 +29,6 @@ mod debugger_watch;
 mod debugger_watch_tests;
 mod degraded_profile_explanation;
 mod dormant_readmission_explanation;
-mod execution_disposition_explanation;
 mod form_editor;
 mod form_editor_catalogs;
 mod form_editor_error;
@@ -155,9 +154,6 @@ pub use degraded_profile_explanation::{
 pub use dormant_readmission_explanation::{
     explain_dormant_readmission, DormantReadmissionExplanation, DormantReadmissionExplanationError,
     MAX_DORMANT_READMISSION_EXPLANATION_BYTES,
-};
-pub use execution_disposition_explanation::{
-    explain_execution_disposition, ExecutionDispositionExplanation,
 };
 pub use form_editor::{
     CheckedRevision, EditorDiagnostic, FormDocumentView, FormEditor, FormEditorError, GraphCord,
