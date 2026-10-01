@@ -442,6 +442,19 @@ fn constraint_clause(constraint: &ValueConstraint) -> String {
             *minimum_endpoint,
             *maximum_endpoint,
         ),
+        ValueConstraint::FloatFinite => "a finite IEEE-754 value".into(),
+        ValueConstraint::FloatRange {
+            minimum,
+            maximum,
+            minimum_endpoint,
+            maximum_endpoint,
+        } => range_clause(
+            "IEEE-754 value",
+            minimum.as_ref().map(|value| format!("canonical 0x{}", hex_bytes(value))).as_ref(),
+            maximum.as_ref().map(|value| format!("canonical 0x{}", hex_bytes(value))).as_ref(),
+            *minimum_endpoint,
+            *maximum_endpoint,
+        ),
         ValueConstraint::CanonicalMembership { members, negated } => format!(
             "{} the canonical values {}",
             if *negated { "none of" } else { "one of" },

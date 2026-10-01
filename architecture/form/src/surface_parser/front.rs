@@ -268,6 +268,17 @@ impl Parser<'_> {
         let mut refinements = Vec::new();
         while cursor < source.len() {
             let remaining = &source[cursor..];
+            if remaining.starts_with(" finite") {
+                let clause_end = cursor + " finite".len();
+                refinements.push(crate::ValueRefinement::Finite {
+                    span: self.span(
+                        start + source_offset + cursor,
+                        start + source_offset + clause_end,
+                    ),
+                });
+                cursor = clause_end;
+                continue;
+            }
             let (negated, relation, body_start) = if remaining.starts_with(" not in ") {
                 (true, "in", cursor + " not in ".len())
             } else if remaining.starts_with(" in ") {
@@ -388,7 +399,7 @@ impl Parser<'_> {
 }
 
 fn next_refinement(source: &str) -> Option<usize> {
-    [" not in ", " in ", " !~ ", " ~ "]
+    [" finite", " not in ", " in ", " !~ ", " ~ "]
         .into_iter()
         .filter_map(|token| source.find(token))
         .min()

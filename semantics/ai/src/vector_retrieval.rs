@@ -3,8 +3,8 @@ use serde::{Deserialize, Serialize};
 
 use crate::{
     CompatibleMetrics, EmbeddingNormalization, FiniteEmbedding, SimilarityMetric,
-    StructuredResultInvalidity, TemporalProvenance, TemporalRetrievalIntent, VectorRefusal,
-    MAXIMUM_EMBEDDING_DIMENSIONS,
+    SimilarityThreshold, StructuredResultInvalidity, TemporalProvenance, TemporalRetrievalIntent,
+    VectorRefusal, MAXIMUM_EMBEDDING_DIMENSIONS,
 };
 
 pub const MAXIMUM_VECTOR_IDENTITY_BYTES: usize = 256;
@@ -51,12 +51,6 @@ pub struct VectorRecord<T> {
 pub enum MetadataFilter {
     Equal { key: String, value: String },
     Present { key: String },
-}
-
-#[derive(Debug, Clone, Copy, PartialEq, Serialize, Deserialize)]
-pub enum SimilarityThreshold {
-    MinimumSimilarity(f32),
-    MaximumSquaredDistance(f32),
 }
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
@@ -290,13 +284,27 @@ impl SimilarityQuery {
             (
                 Some(SimilarityThreshold::MinimumSimilarity(minimum)),
                 SimilarityScore::Similarity(value),
-            ) => Ok(value >= minimum),
+            ) => Ok(value >= finite_f32(minimum)),
             (
                 Some(SimilarityThreshold::MaximumSquaredDistance(maximum)),
                 SimilarityScore::SquaredDistance(value),
-            ) => Ok(value <= maximum),
+            ) => Ok(value <= nonnegative_f32(maximum)),
             _ => Err(VectorRefusal::ThresholdMetricMismatch),
         }
+    }
+}
+
+impl SimilarityThreshold {
+    pub fn minimum(value: f32) -> Result<Self, VectorRefusal> {
+        let value = crate::FiniteF32::new(conduit_core::IeeeF32::from(value))
+            .map_err(|_| VectorRefusal::InvalidThreshold)?;
+        Self::minimum_similarity(value).map_err(|_| VectorRefusal::InvalidThreshold)
+    }
+
+    pub fn maximum_distance(value: f32) -> Result<Self, VectorRefusal> {
+        let value = crate::NonnegativeFiniteF32::new(conduit_core::IeeeF32::from(value))
+            .map_err(|_| VectorRefusal::InvalidThreshold)?;
+        Self::maximum_squared_distance(value).map_err(|_| VectorRefusal::InvalidThreshold)
     }
 }
 
@@ -437,11 +445,14 @@ fn validate_threshold(
         (
             SimilarityMetric::CosineSimilarity | SimilarityMetric::DotProductSimilarity,
             SimilarityThreshold::MinimumSimilarity(value),
-        ) => value.is_finite(),
+        ) => finite_f32(value).is_finite(),
         (
             SimilarityMetric::SquaredEuclideanDistance,
             SimilarityThreshold::MaximumSquaredDistance(value),
-        ) => value.is_finite() && value >= 0.0,
+        ) => {
+            let value = nonnegative_f32(value);
+            value.is_finite() && value >= 0.0
+        }
         _ => return Err(VectorRefusal::ThresholdMetricMismatch),
     };
     if valid {
@@ -449,4 +460,12 @@ fn validate_threshold(
     } else {
         Err(VectorRefusal::InvalidThreshold)
     }
+}
+
+fn finite_f32(value: crate::FiniteF32) -> f32 {
+    value.get().value()
+}
+
+fn nonnegative_f32(value: crate::NonnegativeFiniteF32) -> f32 {
+    value.get().value()
 }

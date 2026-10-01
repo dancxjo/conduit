@@ -19,7 +19,9 @@ fn ecmascript_inspects_records_references_optionals_and_bounds() {
                  identity: Digest\n\
                  prior: Digest?\n\
                  ancestors: sequence Digest <= 16\n\
-             }\n",
+             }\n\
+             type FiniteFloat = F32 finite\n\
+             type Probability = F32 finite in 0.0..=1.0\n",
         ),
         &StartupCatalog::new(),
     )
@@ -54,6 +56,17 @@ if (fields.identity.name !== 'Digest') process.exit(24);
 if (fields.prior.kind !== 'optional' || fields.prior.value.name !== 'Digest') process.exit(25);
 if (fields.ancestors.kind !== 'sequence' || fields.ancestors.maximumItems !== 16) process.exit(26);
 if (fields.ancestors.element.name !== 'Digest') process.exit(27);
+const finite = types.lookupType('FiniteFloat');
+if (finite.shape.representation.identity !== 'value/ieee754-binary32') process.exit(28);
+if (finite.contracts.length !== 1 || finite.contracts[0].maximumBytes !== 4) process.exit(29);
+const probability = types.lookupType('Probability');
+if (probability.contracts.length !== 1 || probability.contracts[0].identity.length === finite.contracts[0].identity.length && probability.contracts[0].identity.every((byte, index) => byte === finite.contracts[0].identity[index])) process.exit(30);
+const negativeZero = types.inspectIeee('value/ieee754-binary32', Uint8Array.of(0, 0, 0, 128));
+if (!negativeZero.signedZero || negativeZero.sign !== 1 || negativeZero.bits !== 0x80000000n) process.exit(31);
+const quietNaN = types.inspectIeee('value/ieee754-binary32', Uint8Array.of(1, 0, 192, 127));
+if (!quietNaN.nan || quietNaN.finite || quietNaN.bits !== 0x7fc00001n) process.exit(32);
+const smallestSubnormal = types.inspectIeee('value/ieee754-binary32', Uint8Array.of(1, 0, 0, 0));
+if (!smallestSubnormal.finite || smallestSubnormal.exponent !== 0n || smallestSubnormal.fraction !== 1n) process.exit(33);
 "#;
     let output = Command::new("node")
         .args([

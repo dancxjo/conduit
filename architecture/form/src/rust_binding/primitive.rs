@@ -1,8 +1,8 @@
 use crate::prelude::*;
 use crate::rust_binding::{BoundedBytes, NativeBindingRefusal};
 use conduit_core::{
-    validate_primitive_info, InfoBool, Quantity, Scalar, StructuredInfoType, StructuredInfoValue,
-    StructuredInfoValueShape,
+    validate_primitive_info, IeeeF32, IeeeF64, InfoBool, Quantity, Scalar, StructuredInfoType,
+    StructuredInfoValue, StructuredInfoValueShape,
 };
 
 /// Rust representation mechanics for one primitive leaf.
@@ -137,3 +137,19 @@ macro_rules! fixed_integer {
 }
 
 fixed_integer!(u8, u16, u32, u64, u128, i8, i16, i32, i64, i128);
+
+macro_rules! ieee_float {
+    ($($value:ty),+ $(,)?) => {$ (
+        impl NativePrimitive for $value {
+            fn encode_primitive(&self) -> Vec<u8> {
+                self.encode().to_vec()
+            }
+
+            fn decode_primitive(canonical: &[u8]) -> Option<Self> {
+                Self::decode(canonical)
+            }
+        }
+    )+ };
+}
+
+ieee_float!(IeeeF32, IeeeF64);

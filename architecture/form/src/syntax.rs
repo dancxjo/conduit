@@ -325,6 +325,9 @@ pub struct RuntimePort {
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum ValueRefinement {
+    Finite {
+        span: Span,
+    },
     TextPattern {
         source: SpannedText,
         case_insensitive: bool,

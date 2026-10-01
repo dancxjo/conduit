@@ -31,6 +31,9 @@ pub struct RustBindingOptions {
     /// Authored nominal Type names whose hashable Rust representations retain
     /// a `Hash` binding. This target trait never changes semantic identity.
     pub hash_nominal_types: BTreeSet<String>,
+    /// Authored nominal Types whose Rust newtypes retain transparent Serde.
+    /// This target codec choice never participates in semantic identity.
+    pub serde_nominal_types: BTreeSet<String>,
     /// Exact `Type.case` variant payloads boxed only in generated Rust layout.
     /// This target ownership choice never participates in semantic identity.
     pub boxed_variant_payloads: BTreeSet<String>,
@@ -277,23 +280,38 @@ fn emit_type(
             let inner = rust_type(representation, names)?;
             let derive_copy = options.copy_nominal_types.contains(&value_type.name);
             let derive_hash = options.hash_nominal_types.contains(&value_type.name);
+            let derive_serde = options.serde_nominal_types.contains(&value_type.name);
             if derive_copy && !copy_type(representation)
                 || derive_hash && !hash_type(representation)
             {
                 return Err(RustBindingGenerationError::InvalidSemanticType);
             }
-            let derives = if derive_copy && derive_hash {
-                "Debug, Clone, Copy, PartialEq, Eq, Hash"
-            } else if derive_copy {
-                "Debug, Clone, Copy, PartialEq, Eq"
-            } else if derive_hash {
-                "Debug, Clone, PartialEq, Eq, Hash"
-            } else {
-                "Debug, Clone, PartialEq, Eq"
+            let derives = match (derive_copy, derive_hash, derive_serde) {
+                (true, true, true) => {
+                    "Debug, Clone, Copy, PartialEq, Eq, Hash, serde::Serialize, serde::Deserialize"
+                }
+                (true, false, true) => {
+                    "Debug, Clone, Copy, PartialEq, Eq, serde::Serialize, serde::Deserialize"
+                }
+                (false, true, true) => {
+                    "Debug, Clone, PartialEq, Eq, Hash, serde::Serialize, serde::Deserialize"
+                }
+                (false, false, true) => {
+                    "Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize"
+                }
+                (true, true, false) => "Debug, Clone, Copy, PartialEq, Eq, Hash",
+                (true, false, false) => "Debug, Clone, Copy, PartialEq, Eq",
+                (false, true, false) => "Debug, Clone, PartialEq, Eq, Hash",
+                (false, false, false) => "Debug, Clone, PartialEq, Eq",
             };
             writeln!(
                 out,
-                "#[derive({derives})]\npub struct {rust_name}({inner});"
+                "#[derive({derives})]{}\npub struct {rust_name}({inner});",
+                if derive_serde {
+                    "\n#[serde(transparent)]"
+                } else {
+                    ""
+                }
             )
             .expect("String writing is infallible");
             writeln!(out, "impl {rust_name} {{").expect("String writing is infallible");
@@ -623,6 +641,8 @@ fn hash_type(value_type: &StructuredInfoType) -> bool {
                     | PrimitiveInfoKind::U64
                     | PrimitiveInfoKind::I128
                     | PrimitiveInfoKind::U128
+                    | PrimitiveInfoKind::F32
+                    | PrimitiveInfoKind::F64
             )
         ),
         StructuredInfoTypeShape::Nominal { representation, .. } => hash_type(representation),
@@ -723,6 +743,8 @@ pub(super) fn primitive_rust_type(identity: &str) -> Result<String, RustBindingG
         Some(PrimitiveInfoKind::I32) => "i32",
         Some(PrimitiveInfoKind::I64) => "i64",
         Some(PrimitiveInfoKind::I128) => "i128",
+        Some(PrimitiveInfoKind::F32) => "conduit_core::IeeeF32",
+        Some(PrimitiveInfoKind::F64) => "conduit_core::IeeeF64",
         Some(PrimitiveInfoKind::Terminal) | None => {
             return Err(RustBindingGenerationError::UnsupportedLeaf(identity.into()));
         }
