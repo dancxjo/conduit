@@ -2,14 +2,10 @@
 
 use crate::{
     TabularColumnSpec, TabularColumnType, TabularOptionalText, TabularPersonRow,
-    TabularPersonRowSlot, TabularPersonRowsFour, TabularQueryResultFour, TabularQueryStatus,
-    TabularSchemaFour,
+    TabularPersonRowSlot, TabularPersonRowsFour, TabularQueryOutcomeFour, TabularQueryResultFour,
+    TabularQueryStatus, TabularSchemaFour,
 };
-use alloc::vec;
-use conduit_core::{
-    kind_id, StructuredInfoRefusal, StructuredInfoType, StructuredVariantCase,
-    RESOURCE_REFERENCE_INFO_ID,
-};
+use conduit_core::{kind_id, StructuredInfoRefusal, StructuredInfoType};
 
 pub const TABULAR_SCHEMA_TYPE: &str = "TabularPersonSchema";
 pub const TABULAR_PERSON_ROW_TYPE: &str = "TabularPersonRow";
@@ -69,18 +65,5 @@ pub fn tabular_query_result_type() -> StructuredInfoType {
 }
 
 pub fn tabular_query_outcome_type() -> StructuredInfoType {
-    StructuredInfoType::variant(
-        kind_id("tabular/query-outcome-four@1"),
-        vec![
-            StructuredVariantCase::new("inline", tabular_query_result_type())
-                .expect("reviewed inline case"),
-            StructuredVariantCase::new(
-                "materialized",
-                StructuredInfoType::leaf(kind_id(RESOURCE_REFERENCE_INFO_ID))
-                    .expect("reviewed resource reference"),
-            )
-            .expect("reviewed materialized case"),
-        ],
-    )
-    .expect("reviewed query outcomes")
+    native(TabularQueryOutcomeFour::semantic_type())
 }
