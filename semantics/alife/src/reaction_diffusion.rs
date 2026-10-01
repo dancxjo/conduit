@@ -61,7 +61,9 @@ impl GrayScottParameters {
             || self.time_step_ppm == 0
             || self.feed_ppm.saturating_add(self.kill_ppm) > CONCENTRATION_SCALE as u32
         {
-            return Err(ReactionDiffusionRefusal::InvalidParameters);
+            return Err(ReactionDiffusionRefusal::Value(
+                crate::ReactionDiffusionValueRefusal::InvalidParameters,
+            ));
         }
         Ok(())
     }
@@ -81,7 +83,9 @@ impl ReactionDiffusionCell {
 
     fn validate(self) -> Result<(), ReactionDiffusionRefusal> {
         if self.u_ppm > CONCENTRATION_SCALE as u32 || self.v_ppm > CONCENTRATION_SCALE as u32 {
-            return Err(ReactionDiffusionRefusal::ConcentrationOutOfRange);
+            return Err(ReactionDiffusionRefusal::Value(
+                crate::ReactionDiffusionValueRefusal::ConcentrationOutOfRange,
+            ));
         }
         Ok(())
     }
@@ -111,16 +115,20 @@ impl ReactionDiffusionEvolveRequest {
 
     pub fn decode(encoded: &[u8]) -> Result<Self, ReactionDiffusionRefusal> {
         if encoded.len() != REACTION_DIFFUSION_REQUEST_BYTES as usize {
-            return Err(ReactionDiffusionRefusal::WrongLength {
-                expected: REACTION_DIFFUSION_REQUEST_BYTES as usize,
-                actual: encoded.len(),
-            });
+            return Err(ReactionDiffusionRefusal::wrong_length(
+                REACTION_DIFFUSION_REQUEST_BYTES as usize,
+                encoded.len(),
+            ));
         }
         if encoded[0..8] != REQUEST_MAGIC {
-            return Err(ReactionDiffusionRefusal::WrongMagic);
+            return Err(ReactionDiffusionRefusal::Codec(
+                crate::ReactionDiffusionCodecRefusal::WrongMagic,
+            ));
         }
         if read_u32(encoded, 8)? != NUMERIC_PROFILE_TAG || encoded[38..40] != [0, 0] {
-            return Err(ReactionDiffusionRefusal::WrongNumericProfile);
+            return Err(ReactionDiffusionRefusal::Codec(
+                crate::ReactionDiffusionCodecRefusal::WrongNumericProfile,
+            ));
         }
         let mut field_id = [0; 16];
         field_id.copy_from_slice(&encoded[12..28]);
@@ -130,25 +138,43 @@ impl ReactionDiffusionEvolveRequest {
             read_u16(encoded, 36)?,
             read_u32(encoded, 40)?,
         )
-        .map_err(|_| ReactionDiffusionRefusal::InvalidGenerationCount)
+        .map_err(|_| {
+            ReactionDiffusionRefusal::Value(
+                crate::ReactionDiffusionValueRefusal::InvalidGenerationCount,
+            )
+        })
     }
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
-pub enum ReactionDiffusionRefusal {
+pub enum ReactionDiffusionCodecRefusal {
     WrongLength { expected: usize, actual: usize },
     WrongMagic,
     WrongNumericProfile,
-    InvalidDimensions,
-    CellCountMismatch,
-    ConcentrationOutOfRange,
-    InvalidParameters,
-    WrongFieldIdentity,
-    StaleGeneration { expected: u64, actual: u64 },
-    InvalidGenerationCount,
-    GenerationOverflow,
-    WorkLimitExceeded { required: u32, admitted: u32 },
-    ArithmeticOverflow,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum ReactionDiffusionRefusal {
+    Value(crate::ReactionDiffusionValueRefusal),
+    Codec(ReactionDiffusionCodecRefusal),
+}
+
+impl From<crate::ReactionDiffusionValueRefusal> for ReactionDiffusionRefusal {
+    fn from(value: crate::ReactionDiffusionValueRefusal) -> Self {
+        Self::Value(value)
+    }
+}
+
+impl From<ReactionDiffusionCodecRefusal> for ReactionDiffusionRefusal {
+    fn from(value: ReactionDiffusionCodecRefusal) -> Self {
+        Self::Codec(value)
+    }
+}
+
+impl ReactionDiffusionRefusal {
+    fn wrong_length(expected: usize, actual: usize) -> Self {
+        Self::Codec(ReactionDiffusionCodecRefusal::WrongLength { expected, actual })
+    }
 }
 
 impl ReactionDiffusionFieldState {
@@ -164,8 +190,11 @@ impl ReactionDiffusionFieldState {
         let mut cells = vec![ReactionDiffusionCell::REST; count];
         let center_x = usize::from(width / 2);
         let center_y = usize::from(height / 2);
-        let radius = 1 + usize::try_from(seed % 3)
-            .map_err(|_| ReactionDiffusionRefusal::ArithmeticOverflow)?;
+        let radius = 1 + usize::try_from(seed % 3).map_err(|_| {
+            ReactionDiffusionRefusal::Value(
+                crate::ReactionDiffusionValueRefusal::ArithmeticOverflow,
+            )
+        })?;
         for y in center_y.saturating_sub(radius)..=(center_y + radius).min(usize::from(height) - 1)
         {
             for x in
@@ -220,7 +249,9 @@ impl ReactionDiffusionFieldState {
         let count = validate_dimensions(self.width, self.height)?;
         self.parameters.validate()?;
         if self.cells.len() != count {
-            return Err(ReactionDiffusionRefusal::CellCountMismatch);
+            return Err(ReactionDiffusionRefusal::Value(
+                crate::ReactionDiffusionValueRefusal::CellCountMismatch,
+            ));
         }
         self.cells.iter().try_for_each(|cell| cell.validate())
     }
@@ -231,32 +262,46 @@ impl ReactionDiffusionFieldState {
     ) -> Result<Self, ReactionDiffusionRefusal> {
         self.validate()?;
         if request.field_id != self.field_id {
-            return Err(ReactionDiffusionRefusal::WrongFieldIdentity);
+            return Err(ReactionDiffusionRefusal::Value(
+                crate::ReactionDiffusionValueRefusal::WrongFieldIdentity,
+            ));
         }
         if request.expected_generation != self.generation {
-            return Err(ReactionDiffusionRefusal::StaleGeneration {
-                expected: self.generation,
-                actual: request.expected_generation,
-            });
+            return Err(ReactionDiffusionRefusal::Value(
+                crate::ReactionDiffusionValueRefusal::stale_generation(
+                    request.expected_generation,
+                    self.generation,
+                )
+                .expect("primitive generation values satisfy their contracts"),
+            ));
         }
         if request.generations == 0 || request.generations > REACTION_DIFFUSION_MAXIMUM_GENERATIONS
         {
-            return Err(ReactionDiffusionRefusal::InvalidGenerationCount);
+            return Err(ReactionDiffusionRefusal::Value(
+                crate::ReactionDiffusionValueRefusal::InvalidGenerationCount,
+            ));
         }
         self.generation
             .checked_add(u64::from(request.generations))
-            .ok_or(ReactionDiffusionRefusal::GenerationOverflow)?;
+            .ok_or(ReactionDiffusionRefusal::Value(
+                crate::ReactionDiffusionValueRefusal::GenerationOverflow,
+            ))?;
         let required = u32::from(self.width)
             .checked_mul(u32::from(self.height))
             .and_then(|cells| cells.checked_mul(u32::from(request.generations)))
-            .ok_or(ReactionDiffusionRefusal::ArithmeticOverflow)?;
+            .ok_or(ReactionDiffusionRefusal::Value(
+                crate::ReactionDiffusionValueRefusal::ArithmeticOverflow,
+            ))?;
         if required > REACTION_DIFFUSION_MAXIMUM_WORK
             || required > request.admitted_cell_generations
         {
-            return Err(ReactionDiffusionRefusal::WorkLimitExceeded {
-                required,
-                admitted: request.admitted_cell_generations,
-            });
+            return Err(ReactionDiffusionRefusal::Value(
+                crate::ReactionDiffusionValueRefusal::work_limit_exceeded(
+                    request.admitted_cell_generations,
+                    required,
+                )
+                .expect("primitive work-limit values satisfy their contracts"),
+            ));
         }
 
         let mut current = self.cells.clone();
@@ -310,31 +355,38 @@ impl ReactionDiffusionFieldState {
 
     pub fn decode(encoded: &[u8]) -> Result<Self, ReactionDiffusionRefusal> {
         if encoded.len() < FIELD_HEADER_BYTES {
-            return Err(ReactionDiffusionRefusal::WrongLength {
-                expected: FIELD_HEADER_BYTES,
-                actual: encoded.len(),
-            });
+            return Err(ReactionDiffusionRefusal::wrong_length(
+                FIELD_HEADER_BYTES,
+                encoded.len(),
+            ));
         }
         if encoded[0..8] != FIELD_MAGIC {
-            return Err(ReactionDiffusionRefusal::WrongMagic);
+            return Err(ReactionDiffusionRefusal::Codec(
+                crate::ReactionDiffusionCodecRefusal::WrongMagic,
+            ));
         }
         if read_u32(encoded, 8)? != NUMERIC_PROFILE_TAG {
-            return Err(ReactionDiffusionRefusal::WrongNumericProfile);
+            return Err(ReactionDiffusionRefusal::Codec(
+                crate::ReactionDiffusionCodecRefusal::WrongNumericProfile,
+            ));
         }
         let width = read_u16(encoded, 12)?;
         let height = read_u16(encoded, 14)?;
         let count = validate_dimensions(width, height)?;
-        let encoded_count = usize::try_from(read_u32(encoded, 60)?)
-            .map_err(|_| ReactionDiffusionRefusal::CellCountMismatch)?;
+        let encoded_count = usize::try_from(read_u32(encoded, 60)?).map_err(|_| {
+            ReactionDiffusionRefusal::Value(crate::ReactionDiffusionValueRefusal::CellCountMismatch)
+        })?;
         if encoded_count != count {
-            return Err(ReactionDiffusionRefusal::CellCountMismatch);
+            return Err(ReactionDiffusionRefusal::Value(
+                crate::ReactionDiffusionValueRefusal::CellCountMismatch,
+            ));
         }
         let expected = FIELD_HEADER_BYTES + count * 8;
         if encoded.len() != expected {
-            return Err(ReactionDiffusionRefusal::WrongLength {
+            return Err(ReactionDiffusionRefusal::wrong_length(
                 expected,
-                actual: encoded.len(),
-            });
+                encoded.len(),
+            ));
         }
         let mut field_id = [0; 16];
         field_id.copy_from_slice(&encoded[24..40]);
@@ -377,11 +429,15 @@ fn validate_dimensions(width: u16, height: u16) -> Result<usize, ReactionDiffusi
         || !(REACTION_DIFFUSION_MINIMUM_EXTENT..=REACTION_DIFFUSION_MAXIMUM_EXTENT)
             .contains(&height)
     {
-        return Err(ReactionDiffusionRefusal::InvalidDimensions);
+        return Err(ReactionDiffusionRefusal::Value(
+            crate::ReactionDiffusionValueRefusal::InvalidDimensions,
+        ));
     }
     let count = usize::from(width) * usize::from(height);
     if count > REACTION_DIFFUSION_MAXIMUM_CELLS as usize {
-        return Err(ReactionDiffusionRefusal::InvalidDimensions);
+        return Err(ReactionDiffusionRefusal::Value(
+            crate::ReactionDiffusionValueRefusal::InvalidDimensions,
+        ));
     }
     Ok(count)
 }
@@ -391,10 +447,7 @@ fn read_u16(encoded: &[u8], offset: usize) -> Result<u16, ReactionDiffusionRefus
         .get(offset..offset + 2)
         .and_then(|bytes| bytes.try_into().ok())
         .map(u16::from_le_bytes)
-        .ok_or(ReactionDiffusionRefusal::WrongLength {
-            expected: offset + 2,
-            actual: encoded.len(),
-        })
+        .ok_or_else(|| ReactionDiffusionRefusal::wrong_length(offset + 2, encoded.len()))
 }
 
 fn read_u32(encoded: &[u8], offset: usize) -> Result<u32, ReactionDiffusionRefusal> {
@@ -402,10 +455,7 @@ fn read_u32(encoded: &[u8], offset: usize) -> Result<u32, ReactionDiffusionRefus
         .get(offset..offset + 4)
         .and_then(|bytes| bytes.try_into().ok())
         .map(u32::from_le_bytes)
-        .ok_or(ReactionDiffusionRefusal::WrongLength {
-            expected: offset + 4,
-            actual: encoded.len(),
-        })
+        .ok_or_else(|| ReactionDiffusionRefusal::wrong_length(offset + 4, encoded.len()))
 }
 
 fn read_u64(encoded: &[u8], offset: usize) -> Result<u64, ReactionDiffusionRefusal> {
@@ -413,8 +463,5 @@ fn read_u64(encoded: &[u8], offset: usize) -> Result<u64, ReactionDiffusionRefus
         .get(offset..offset + 8)
         .and_then(|bytes| bytes.try_into().ok())
         .map(u64::from_le_bytes)
-        .ok_or(ReactionDiffusionRefusal::WrongLength {
-            expected: offset + 8,
-            actual: encoded.len(),
-        })
+        .ok_or_else(|| ReactionDiffusionRefusal::wrong_length(offset + 8, encoded.len()))
 }

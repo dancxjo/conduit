@@ -1,6 +1,7 @@
 use conduit_alife::{
-    GrayScottParameters, ReactionDiffusionCell, ReactionDiffusionEvolveRequest,
-    ReactionDiffusionFieldId, ReactionDiffusionFieldState, ReactionDiffusionRefusal,
+    GrayScottParameters, ReactionDiffusionCell, ReactionDiffusionCodecRefusal,
+    ReactionDiffusionEvolveRequest, ReactionDiffusionFieldId, ReactionDiffusionFieldState,
+    ReactionDiffusionRefusal, ReactionDiffusionValueRefusal,
     REACTION_DIFFUSION_MAXIMUM_GENERATIONS,
 };
 
@@ -65,49 +66,65 @@ fn three_distinct_seeds_have_byte_exact_multi_generation_goldens() {
 fn malformed_profile_dimensions_parameters_and_cells_refuse_distinctly() {
     assert_eq!(
         ReactionDiffusionFieldState::initialized(FIELD_ID, 2, 8, GrayScottParameters::REFERENCE, 1,),
-        Err(ReactionDiffusionRefusal::InvalidDimensions)
+        Err(ReactionDiffusionRefusal::Value(
+            ReactionDiffusionValueRefusal::InvalidDimensions
+        ))
     );
     let mut invalid_parameters = GrayScottParameters::REFERENCE;
     invalid_parameters.time_step_ppm = 0;
     assert_eq!(
         ReactionDiffusionFieldState::initialized(FIELD_ID, 8, 8, invalid_parameters, 1),
-        Err(ReactionDiffusionRefusal::InvalidParameters)
+        Err(ReactionDiffusionRefusal::Value(
+            ReactionDiffusionValueRefusal::InvalidParameters
+        ))
     );
     assert_eq!(
         ReactionDiffusionCell::new(1_000_001, 0),
-        Err(ReactionDiffusionRefusal::ConcentrationOutOfRange)
+        Err(ReactionDiffusionRefusal::Value(
+            ReactionDiffusionValueRefusal::ConcentrationOutOfRange
+        ))
     );
 
     let mut wrong_profile = state(8, 8, 1).encode().unwrap();
     wrong_profile[8] ^= 1;
     assert_eq!(
         ReactionDiffusionFieldState::decode(&wrong_profile),
-        Err(ReactionDiffusionRefusal::WrongNumericProfile)
+        Err(ReactionDiffusionRefusal::Codec(
+            ReactionDiffusionCodecRefusal::WrongNumericProfile
+        ))
     );
     let mut wrong_magic = state(8, 8, 1).encode().unwrap();
     wrong_magic[0] ^= 1;
     assert_eq!(
         ReactionDiffusionFieldState::decode(&wrong_magic),
-        Err(ReactionDiffusionRefusal::WrongMagic)
+        Err(ReactionDiffusionRefusal::Codec(
+            ReactionDiffusionCodecRefusal::WrongMagic
+        ))
     );
     assert_eq!(
         ReactionDiffusionFieldState::decode(&wrong_magic[..20]),
-        Err(ReactionDiffusionRefusal::WrongLength {
-            expected: 64,
-            actual: 20,
-        })
+        Err(ReactionDiffusionRefusal::Codec(
+            ReactionDiffusionCodecRefusal::WrongLength {
+                expected: 64,
+                actual: 20,
+            }
+        ))
     );
     let mut wrong_count = state(8, 8, 1).encode().unwrap();
     wrong_count[60..64].copy_from_slice(&63_u32.to_le_bytes());
     assert_eq!(
         ReactionDiffusionFieldState::decode(&wrong_count),
-        Err(ReactionDiffusionRefusal::CellCountMismatch)
+        Err(ReactionDiffusionRefusal::Value(
+            ReactionDiffusionValueRefusal::CellCountMismatch
+        ))
     );
     let mut out_of_range = state(8, 8, 1).encode().unwrap();
     out_of_range[64..68].copy_from_slice(&1_000_001_u32.to_le_bytes());
     assert_eq!(
         ReactionDiffusionFieldState::decode(&out_of_range),
-        Err(ReactionDiffusionRefusal::ConcentrationOutOfRange)
+        Err(ReactionDiffusionRefusal::Value(
+            ReactionDiffusionValueRefusal::ConcentrationOutOfRange
+        ))
     );
 }
 
@@ -123,7 +140,9 @@ fn identity_generation_and_work_are_admitted_before_evolution() {
     noncanonical_request[38] = 1;
     assert_eq!(
         ReactionDiffusionEvolveRequest::decode(&noncanonical_request),
-        Err(ReactionDiffusionRefusal::WrongNumericProfile)
+        Err(ReactionDiffusionRefusal::Codec(
+            ReactionDiffusionCodecRefusal::WrongNumericProfile
+        ))
     );
     let wrong_id = ReactionDiffusionEvolveRequest {
         field_id: ReactionDiffusionFieldId::from_bytes(*b"field-other-0001"),
@@ -131,21 +150,21 @@ fn identity_generation_and_work_are_admitted_before_evolution() {
     };
     assert_eq!(
         initial.evolve_reference(wrong_id),
-        Err(ReactionDiffusionRefusal::WrongFieldIdentity)
+        Err(ReactionDiffusionRefusal::Value(
+            ReactionDiffusionValueRefusal::WrongFieldIdentity
+        ))
     );
     assert_eq!(
         initial.evolve_reference(request(1, 1, 64)),
-        Err(ReactionDiffusionRefusal::StaleGeneration {
-            expected: 0,
-            actual: 1,
-        })
+        Err(ReactionDiffusionRefusal::Value(
+            ReactionDiffusionValueRefusal::stale_generation(1, 0).unwrap()
+        ))
     );
     assert_eq!(
         initial.evolve_reference(request(0, 2, 127)),
-        Err(ReactionDiffusionRefusal::WorkLimitExceeded {
-            required: 128,
-            admitted: 127,
-        })
+        Err(ReactionDiffusionRefusal::Value(
+            ReactionDiffusionValueRefusal::work_limit_exceeded(127, 128).unwrap()
+        ))
     );
     assert_eq!(
         initial.evolve_reference(request(
@@ -153,7 +172,9 @@ fn identity_generation_and_work_are_admitted_before_evolution() {
             REACTION_DIFFUSION_MAXIMUM_GENERATIONS + 1,
             u32::MAX,
         )),
-        Err(ReactionDiffusionRefusal::InvalidGenerationCount)
+        Err(ReactionDiffusionRefusal::Value(
+            ReactionDiffusionValueRefusal::InvalidGenerationCount
+        ))
     );
 
     let at_end = ReactionDiffusionFieldState::from_cells(
@@ -172,7 +193,9 @@ fn identity_generation_and_work_are_admitted_before_evolution() {
             generations: 1,
             admitted_cell_generations: 64,
         }),
-        Err(ReactionDiffusionRefusal::GenerationOverflow)
+        Err(ReactionDiffusionRefusal::Value(
+            ReactionDiffusionValueRefusal::GenerationOverflow
+        ))
     );
 }
 

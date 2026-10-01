@@ -38,6 +38,33 @@ type ReactionDiffusionEvolveRequest = {
 
 type LeniaFieldId = collection U8 = 16
 
+type LeniaValueRefusal =
+    invalid-dimensions
+    | cell-count-mismatch
+    | cell-out-of-range
+    | invalid-parameters
+    | generation-overflow
+    | arithmetic-overflow
+    | invalid-seed
+
+type ReactionDiffusionValueRefusal =
+    invalid-dimensions
+    | cell-count-mismatch
+    | concentration-out-of-range
+    | invalid-parameters
+    | wrong-field-identity
+    | stale-generation {
+        expected: U64
+        actual: U64
+    }
+    | invalid-generation-count
+    | generation-overflow
+    | work-limit-exceeded {
+        required: U32
+        admitted: U32
+    }
+    | arithmetic-overflow
+
 type LeniaRegionChunkKind =
     work
     | result

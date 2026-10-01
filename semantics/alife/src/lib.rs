@@ -22,9 +22,11 @@ pub use generated::{
     FieldBitmapRefusal, GardenClockObservation, GardenContactObservation,
     GardenEnrichedObservation, GardenEvolutionRefusal, GardenState, GrayScottParameters,
     LeniaBoundary, LeniaFieldId, LeniaParameters, LeniaRegionChunkKind, LeniaRegionChunkKindCode,
-    ReactionDiffusionBoundaryEdge, ReactionDiffusionBoundaryEdgeCode, ReactionDiffusionCell,
-    ReactionDiffusionEvolveRequest, ReactionDiffusionFieldId, ReactionDiffusionPartition,
-    ReactionDiffusionRegion, ReactionDiffusionRegionId,
+    LeniaValueRefusal, ReactionDiffusionBoundaryEdge, ReactionDiffusionBoundaryEdgeCode,
+    ReactionDiffusionCell, ReactionDiffusionEvolveRequest, ReactionDiffusionFieldId,
+    ReactionDiffusionPartition, ReactionDiffusionRegion, ReactionDiffusionRegionId,
+    ReactionDiffusionValueRefusal, ReactionDiffusionValueRefusalStaleGeneration,
+    ReactionDiffusionValueRefusalWorkLimitExceeded,
 };
 
 mod distributed_catalog;

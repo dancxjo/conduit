@@ -39,7 +39,9 @@ fn malformed_fields_and_invalid_parameters_are_distinct_refusals() {
             32,
             vec![0; 31 * 32]
         ),
-        Err(LeniaRefusal::InvalidDimensions)
+        Err(LeniaRefusal::Value(
+            crate::LeniaValueRefusal::InvalidDimensions
+        ))
     );
     assert_eq!(
         LeniaFieldState::from_cells(
@@ -49,18 +51,22 @@ fn malformed_fields_and_invalid_parameters_are_distinct_refusals() {
             32,
             vec![LENIA_Q16_ONE + 1; 32 * 32],
         ),
-        Err(LeniaRefusal::CellOutOfRange)
+        Err(LeniaRefusal::Value(
+            crate::LeniaValueRefusal::CellOutOfRange
+        ))
     );
     let mut malformed = crate::orbium_seed(32, 32, 1).unwrap().encode().unwrap();
     malformed[0] = 0;
     assert_eq!(
         LeniaFieldState::decode(&malformed),
-        Err(LeniaRefusal::WrongMagic)
+        Err(LeniaRefusal::Codec(crate::LeniaCodecRefusal::WrongMagic))
     );
     let mut invalid = LeniaParameters::ORBIUM;
     invalid.kernel_radius = 0;
     assert_eq!(
         LeniaEngine::new(invalid).err(),
-        Some(LeniaRefusal::InvalidParameters)
+        Some(LeniaRefusal::Value(
+            crate::LeniaValueRefusal::InvalidParameters
+        ))
     );
 }

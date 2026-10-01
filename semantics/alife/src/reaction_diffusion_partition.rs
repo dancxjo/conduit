@@ -272,7 +272,9 @@ fn owner_map(
         || usize::from(width) * usize::from(height) > REACTION_DIFFUSION_MAXIMUM_CELLS as usize
     {
         return Err(ReactionDiffusionPartitionRefusal::Field(
-            ReactionDiffusionRefusal::InvalidDimensions,
+            ReactionDiffusionRefusal::Value(
+                crate::ReactionDiffusionValueRefusal::InvalidDimensions,
+            ),
         ));
     }
     if partition.regions().is_empty()
