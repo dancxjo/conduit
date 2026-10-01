@@ -27,7 +27,6 @@ mod debugger_timeline_tests;
 mod debugger_watch;
 #[cfg(test)]
 mod debugger_watch_tests;
-mod degradation_explanation;
 mod degraded_profile_explanation;
 mod dormant_readmission_explanation;
 mod execution_disposition_explanation;
@@ -106,9 +105,6 @@ mod zero_body_creche;
 mod zero_body_front_door;
 mod zero_body_projection;
 
-#[cfg(test)]
-mod degradation_explanation_tests;
-
 pub use build_birth::{
     BirthSigns, BuildBirthController, BuildBirthDocument, BuildBirthError, BuildRevisionStatus,
     PatchbayMode, MAX_BUILD_DOCUMENT_LINES,
@@ -150,9 +146,6 @@ pub use debugger_watch::{
     DebuggerWatch, DebuggerWatchBinding, DebuggerWatchError, DebuggerWatchHistoryEntry,
     DebuggerWatchLifecycle, DebuggerWatchRate, DebuggerWatchSet, DebuggerWatchSubjectRole,
     DEBUGGER_WATCH_SCHEMA, MAX_DEBUGGER_WATCHES, MAX_WATCH_HISTORY_RECORDS,
-};
-pub use degradation_explanation::{
-    PatchbayDegradationExplanation, MAX_DEGRADATION_EXPLANATION_BYTES,
 };
 pub use degraded_profile_explanation::{
     explain_degraded_profile, explain_degraded_profile_refusal, DegradedProfileExplanation,
