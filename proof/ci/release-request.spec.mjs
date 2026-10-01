@@ -17,7 +17,7 @@ const release = (number = 1) => ({ number, base: { ref: "main" },
 function fixture() {
   const state = { pulls: [], runs: [integration()], history: [], writes: [],
     candidateTree: "candidate-tree", mainTree: "main-tree", merged: "candidate-tree",
-    main, onDev: true, onMain: false, openReads: 0 };
+    main, onDev: true, onMain: false, mainTreeOnDev: false, openReads: 0 };
   const deps = {
     repository,
     api: async (path, method = "GET", value) => {
@@ -49,6 +49,7 @@ function fixture() {
     },
     isAncestor: (_base, head) => head === "origin/dev" ? state.onDev : state.onMain,
     mergedTree: () => state.merged,
+    hasAncestorTree: (tree, head) => tree === state.mainTree && head === sha && state.mainTreeOnDev,
   };
   return { state, deps, request: () => requestRelease(deps) };
 }
@@ -116,6 +117,15 @@ test("already accepted, divergent, and release-fix-dropping candidates do not pu
     assert.equal((await f.request()).status, status);
     assert.deepEqual(f.state.writes, []);
   }
+});
+
+test("an exact accepted tree in dev history admits a manually squashed release", async () => {
+  const f = fixture();
+  f.state.merged = null;
+  f.state.mainTreeOnDev = true;
+  const result = await f.request();
+  assert.equal(result.status, "created");
+  assert.equal(result.headSha, sha);
 });
 
 test("admission rechecks ownership and main immediately before publication", async () => {
