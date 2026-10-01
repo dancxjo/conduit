@@ -20,8 +20,10 @@ pub(super) struct GraduationReceipt {
     pub(super) sequence: u64,
     pub(super) sign_id: String,
     pub(super) choice: String,
-    pub(super) patchbay_plan_id: Option<String>,
-    pub(super) patchbay_implementation_id: Option<String>,
+    #[serde(rename = "patchbay_plan_id")]
+    pub(super) reader_plan_id: Option<String>,
+    #[serde(rename = "patchbay_implementation_id")]
+    pub(super) reader_implementation_id: Option<String>,
     pub(super) creche_required: bool,
 }
 

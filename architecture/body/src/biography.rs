@@ -38,7 +38,9 @@ pub struct BodyBiographyCompaction {
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub enum BodyGraduationChoice {
-    HostedPatchbay,
+    /// Current neutral name; the v2 durable wire spelling remains unchanged.
+    #[serde(rename = "HostedPatchbay")]
+    HostedReader,
     ExternalReader,
 }
 
@@ -48,8 +50,10 @@ pub struct BodyGraduationEvidence {
     pub sequence: u64,
     pub sign_id: SignId,
     pub choice: BodyGraduationChoice,
-    pub patchbay_plan_id: Option<PlanId>,
-    pub patchbay_implementation_id: Option<ImplementationId>,
+    #[serde(rename = "patchbay_plan_id")]
+    pub reader_plan_id: Option<PlanId>,
+    #[serde(rename = "patchbay_implementation_id")]
+    pub reader_implementation_id: Option<ImplementationId>,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
@@ -103,8 +107,10 @@ pub enum BodyBiographyRecordKind {
     },
     Graduated {
         choice: BodyGraduationChoice,
-        patchbay_plan_id: Option<PlanId>,
-        patchbay_implementation_id: Option<ImplementationId>,
+        #[serde(rename = "patchbay_plan_id")]
+        reader_plan_id: Option<PlanId>,
+        #[serde(rename = "patchbay_implementation_id")]
+        reader_implementation_id: Option<ImplementationId>,
     },
     EmergencyConfigured {
         configuration: crate::DurableEmergencyConfiguration,
@@ -470,8 +476,8 @@ impl BodyBiographyEvidence {
             sign_id: evidence.sign_id.clone(),
             kind: BodyBiographyRecordKind::Graduated {
                 choice: evidence.choice.clone(),
-                patchbay_plan_id: evidence.patchbay_plan_id.clone(),
-                patchbay_implementation_id: evidence.patchbay_implementation_id.clone(),
+                reader_plan_id: evidence.reader_plan_id.clone(),
+                reader_implementation_id: evidence.reader_implementation_id.clone(),
             },
         });
         self.graduation = Some(evidence);
@@ -523,15 +529,13 @@ fn validate_graduation(evidence: &BodyGraduationEvidence) -> Result<(), BodyBiog
         return Err(BodyBiographyError::InvalidEvidence);
     }
     match evidence.choice {
-        BodyGraduationChoice::HostedPatchbay
-            if evidence.patchbay_plan_id.is_some()
-                && evidence.patchbay_implementation_id.is_some() =>
+        BodyGraduationChoice::HostedReader
+            if evidence.reader_plan_id.is_some() && evidence.reader_implementation_id.is_some() =>
         {
             Ok(())
         }
         BodyGraduationChoice::ExternalReader
-            if evidence.patchbay_plan_id.is_none()
-                && evidence.patchbay_implementation_id.is_none() =>
+            if evidence.reader_plan_id.is_none() && evidence.reader_implementation_id.is_none() =>
         {
             Ok(())
         }

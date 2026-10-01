@@ -79,7 +79,7 @@ pub(super) fn graduate(
                 )
             }
             2 => ("external-reader", None, None),
-            _ => return Err("graduation choice must be hosted Patchbay or external reader".into()),
+            _ => return Err("graduation choice must be hosted or external reader".into()),
         };
         let sign = bind_sign(
             &HostId::from(host.as_str()),
@@ -88,7 +88,7 @@ pub(super) fn graduate(
             sequence,
         );
         let choice = if choice_name == "host-patchbay" {
-            BodyGraduationChoice::HostedPatchbay
+            BodyGraduationChoice::HostedReader
         } else {
             BodyGraduationChoice::ExternalReader
         };
@@ -97,8 +97,8 @@ pub(super) fn graduate(
             sequence,
             sign_id: sign.sign_id.clone(),
             choice,
-            patchbay_plan_id: plan_id.as_deref().map(PlanId::from),
-            patchbay_implementation_id: implementation_id.as_deref().map(ImplementationId::from),
+            reader_plan_id: plan_id.as_deref().map(PlanId::from),
+            reader_implementation_id: implementation_id.as_deref().map(ImplementationId::from),
         };
         let mut biography = body.biography.clone();
         biography
@@ -110,8 +110,8 @@ pub(super) fn graduate(
             sequence,
             sign_id: sign.sign_id.as_str().into(),
             choice: choice_name.into(),
-            patchbay_plan_id: plan_id,
-            patchbay_implementation_id: implementation_id,
+            reader_plan_id: plan_id,
+            reader_implementation_id: implementation_id,
             creche_required: false,
         });
         body.biography = biography;

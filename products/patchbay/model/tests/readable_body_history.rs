@@ -66,7 +66,7 @@ fn evidence(choice: BodyGraduationChoice) -> BodyBiographyEvidence {
         .append_membership_events(membership, &[(admitted, 2), (joined, 3)])
         .unwrap();
     let (plan, implementation) = match choice {
-        BodyGraduationChoice::HostedPatchbay => (
+        BodyGraduationChoice::HostedReader => (
             Some(PlanId::from(HOSTED_PLAN)),
             Some(ImplementationId::from(HOSTED_IMPLEMENTATION)),
         ),
@@ -78,8 +78,8 @@ fn evidence(choice: BodyGraduationChoice) -> BodyBiographyEvidence {
             sequence: 4,
             sign_id: SignId::from("sign/roseau-graduated"),
             choice,
-            patchbay_plan_id: plan,
-            patchbay_implementation_id: implementation,
+            reader_plan_id: plan,
+            reader_implementation_id: implementation,
         })
         .unwrap();
     evidence
@@ -91,7 +91,7 @@ fn encoded(choice: BodyGraduationChoice) -> Vec<u8> {
 
 fn hosted_attachment() -> BodyEvidenceAttachment {
     BodyEvidenceAttachment::open_serialized(
-        &encoded(BodyGraduationChoice::HostedPatchbay),
+        &encoded(BodyGraduationChoice::HostedReader),
         BodyEvidenceEntrance::Hosted {
             plan_id: PlanId::from(HOSTED_PLAN),
             implementation_id: ImplementationId::from(HOSTED_IMPLEMENTATION),
@@ -176,13 +176,13 @@ fn external_graduation_is_exactly_unhosted_and_inspects_its_sign() {
     let hosted = ReadableBodyHistory::from_attachment(2, &hosted_attachment()).unwrap();
 
     assert_eq!(history.entries[..3], hosted.entries[..3]);
-    assert!(graduation.narrative.contains("No Patchbay was hosted"));
+    assert!(graduation.narrative.contains("No reader was hosted"));
     assert!(matches!(
         graduation.exact.record.kind,
         BodyBiographyRecordKind::Graduated {
             choice: BodyGraduationChoice::ExternalReader,
-            patchbay_plan_id: None,
-            patchbay_implementation_id: None,
+            reader_plan_id: None,
+            reader_implementation_id: None,
         }
     ));
     assert_eq!(graduation.inspect.sign_id, graduation.exact.record.sign_id);

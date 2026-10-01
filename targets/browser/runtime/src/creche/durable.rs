@@ -60,21 +60,21 @@ pub(super) fn validate(snapshot: &DurableBodySession) -> Result<(), String> {
                 && receipt.body_id == biography.body_id.as_str()
                 && receipt.sequence == biography.sequence
                 && receipt.sign_id == biography.sign_id.as_str()
-                && receipt.patchbay_plan_id.as_deref()
+                && receipt.reader_plan_id.as_deref()
                     == biography
-                        .patchbay_plan_id
+                        .reader_plan_id
                         .as_ref()
                         .map(|value| value.as_str())
-                && receipt.patchbay_implementation_id.as_deref()
+                && receipt.reader_implementation_id.as_deref()
                     == biography
-                        .patchbay_implementation_id
+                        .reader_implementation_id
                         .as_ref()
                         .map(|value| value.as_str())
                 && matches!(
                     (receipt.choice.as_str(), &biography.choice),
                     (
                         "host-patchbay",
-                        conduit_body::BodyGraduationChoice::HostedPatchbay
+                        conduit_body::BodyGraduationChoice::HostedReader
                     ) | (
                         "external-reader",
                         conduit_body::BodyGraduationChoice::ExternalReader
