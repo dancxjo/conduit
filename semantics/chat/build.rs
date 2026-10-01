@@ -1,12 +1,21 @@
 use conduit_form::rust_binding::{generate_rust_bindings_with_codes, RustBindingOptions};
 use conduit_form::{check_syntax_document, parse_syntax_document, StartupCatalog};
-use std::{env, fs, path::PathBuf};
+use std::{collections::BTreeSet, env, fs, path::PathBuf};
 
 fn main() {
     println!("cargo:rerun-if-changed=types.conduit");
+    let mut catalog = StartupCatalog::new();
+    catalog
+        .insert_value_kind_alias(
+            "ResourceRef",
+            conduit_form::rust_binding::semantic_core::kind_id(
+                conduit_form::rust_binding::semantic_core::RESOURCE_REFERENCE_INFO_ID,
+            ),
+        )
+        .expect("resource references are one exact portable leaf");
     let checked = check_syntax_document(
         &parse_syntax_document(include_str!("types.conduit")),
-        &StartupCatalog::new(),
+        &catalog,
     )
     .expect("chat semantic Types must check");
     let generated = generate_rust_bindings_with_codes(
@@ -14,6 +23,7 @@ fn main() {
         &checked.codes,
         &RustBindingOptions {
             derive_serde_for_variants: true,
+            serde_variant_exclusions: BTreeSet::from(["MessageAttachmentSlot".into()]),
             ..RustBindingOptions::default()
         },
     )

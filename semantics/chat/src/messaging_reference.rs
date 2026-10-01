@@ -11,8 +11,9 @@ use crate::{
     delivery_evidence_type, delivery_request_type, delivery_state_type, delivery_update_type,
     message_attachment_slot_type, message_attachment_type, message_attachments_type,
     message_metadata_entry_type, message_metadata_slot_type, message_metadata_type,
-    message_recipient_slot_type, message_recipient_type, message_recipients_type,
-    messaging_optional_text_type, notification_event_type, portable_message_type,
+    message_optional_display_name_type, message_optional_sender_type,
+    message_optional_subject_type, message_recipient_slot_type, message_recipient_type,
+    message_recipients_type, notification_event_type, portable_message_type,
     MAXIMUM_DELIVERY_ATTEMPTS, MAXIMUM_MESSAGE_ATTACHMENTS, MAXIMUM_MESSAGE_METADATA,
     MAXIMUM_MESSAGE_RECIPIENTS,
 };
@@ -93,7 +94,7 @@ pub fn deterministic_messaging_fixture() -> Result<MessagingFixture, MessagingIn
             ("address_profile", text_value("messaging/local-mailbox@1")),
             (
                 "display_name",
-                optional_text("messaging/optional-display-name@1", Some("Fixture Inbox"))?,
+                optional_text(message_optional_display_name_type(), Some("Fixture Inbox"))?,
             ),
         ],
     )?;
@@ -132,11 +133,11 @@ pub fn deterministic_messaging_fixture() -> Result<MessagingFixture, MessagingIn
             ("recipients", recipients),
             (
                 "sender",
-                optional_text("messaging/optional-sender@1", Some("lesson/service"))?,
+                optional_text(message_optional_sender_type(), Some("lesson/service"))?,
             ),
             (
                 "subject",
-                optional_text("messaging/optional-subject@1", Some("Lesson result"))?,
+                optional_text(message_optional_subject_type(), Some("Lesson result"))?,
             ),
         ],
     )?;
@@ -341,10 +342,9 @@ fn fixed_slots(
 }
 
 fn optional_text(
-    kind: &str,
+    value_type: StructuredInfoType,
     value: Option<&str>,
 ) -> Result<StructuredInfoValue, MessagingInfoRefusal> {
-    let value_type = messaging_optional_text_type(kind);
     match value {
         Some(value) => Ok(StructuredInfoValue::variant(
             value_type,

@@ -54,3 +54,100 @@ type BodyChatRefusal =
     | history_bound_exceeded
     | prompt_bound_exceeded
     | encoding
+
+# Portable messaging meaning. Addresses and provider profiles remain semantic
+# text; transports, retries, and provider acknowledgements remain realization.
+
+type MessageOptionalDisplayName =
+    absent
+    | provided Text <= 4096B
+
+type MessageOptionalSender =
+    absent
+    | provided Text <= 4096B
+
+type MessageOptionalSubject =
+    absent
+    | provided Text <= 4096B
+
+type MessageRecipient = {
+    address: Text <= 4096B
+    address_profile: Text <= 4096B
+    display_name: MessageOptionalDisplayName
+}
+
+type MessageRecipientSlot =
+    recipient MessageRecipient
+    | unused
+
+type MessageMetadataEntry = {
+    key: Text <= 4096B
+    value: Text <= 4096B
+}
+
+type MessageMetadataSlot =
+    entry MessageMetadataEntry
+    | unused
+
+type MessageAttachment = {
+    content: ResourceRef
+    filename: Text <= 4096B
+    media_type: Text <= 4096B
+}
+
+type MessageAttachmentSlot =
+    attachment MessageAttachment
+    | unused
+
+type PortableMessage = {
+    attachments: collection MessageAttachmentSlot = 2
+    body: Text <= 4096B
+    message_identity: Text <= 4096B
+    metadata: collection MessageMetadataSlot = 4
+    recipients: collection MessageRecipientSlot = 4
+    sender: MessageOptionalSender
+    subject: MessageOptionalSubject
+}
+
+type DeliveryAuthority =
+    absent
+    | grant Text <= 4096B
+
+type DeliveryRequest = {
+    attempt: Count
+    authority: DeliveryAuthority
+    correlation_identity: Text <= 4096B
+    message: PortableMessage
+    request_identity: Text <= 4096B
+}
+
+type DeliveryEvidence =
+    end_recipient Text <= 4096B
+    | local_queue Text <= 4096B
+    | provider_acknowledgement Text <= 4096B
+
+type DeliveryState =
+    cancelled Text <= 4096B
+    | delivered DeliveryEvidence
+    | duplicate Text <= 4096B
+    | expired Text <= 4096B
+    | failed Text <= 4096B
+    | queued DeliveryEvidence
+    | refused Text <= 4096B
+    | sent DeliveryEvidence
+
+type DeliveryUpdate = {
+    request_identity: Text <= 4096B
+    state: DeliveryState
+}
+
+type NotificationEvent = {
+    notification_identity: Text <= 4096B
+    source_request_identity: Text <= 4096B
+    summary: Text <= 4096B
+}
+
+type PresenceEvent = {
+    state: PresenceState
+    subject_identity: Text <= 4096B
+}
