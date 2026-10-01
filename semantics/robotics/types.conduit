@@ -58,3 +58,9 @@ type BatteryObservation = {
     charge-permille: U16 in 0..=1000
     millivolts: U16 in 0..=60000
 }
+
+type OrientationObservation = {
+    roll-microradians: I32 in -3141593..=3141593
+    pitch-microradians: I32 in -1570797..=1570797
+    yaw-microradians: I32 in -3141593..=3141593
+}
