@@ -31,7 +31,8 @@ const RESULT: &str = "conduit.info/reaction-diffusion-region-result@1";
 const NEXT_STATE: &str = "next-state";
 pub const MAX_PAYLOAD: u32 = 58;
 pub const MAX_FRAME: u32 = 4_096;
-pub const FIELD_ID: ReactionDiffusionFieldId = ReactionDiffusionFieldId(*b"field-a2-line001");
+pub const FIELD_ID: ReactionDiffusionFieldId =
+    ReactionDiffusionFieldId::from_bytes(*b"field-a2-line001");
 
 pub fn distributed_plan() -> (conduit_form::ExpandedCanonicalForm, conduit_core::Plan) {
     let (startup, profile, field) = catalogs();

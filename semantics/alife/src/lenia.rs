@@ -8,7 +8,7 @@
 use alloc::{vec, vec::Vec};
 use sha2::{Digest, Sha256};
 
-use crate::{LeniaBoundary, LeniaParameters};
+use crate::{LeniaBoundary, LeniaFieldId, LeniaParameters};
 
 pub const SCALAR_FIELD2_INFO_ID: &str = "alife/scalar-field2@1";
 pub const LENIA_NUMERIC_PROFILE: &str = "alife/fixed-q16.16@1";
@@ -24,9 +24,6 @@ const LENIA_FIELD_MAGIC: [u8; 8] = *b"CNDLEN01";
 const LENIA_PROFILE_TAG: u32 = 0x5131_3631;
 const LENIA_FIELD_HEADER_BYTES: usize = 48;
 const LENIA_FIELD_DIGEST_DOMAIN: &[u8] = b"conduit.alife.scalar-field2.v1";
-
-#[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
-pub struct LeniaFieldId(pub [u8; 16]);
 
 impl LeniaParameters {
     pub const ORBIUM: Self = Self {
@@ -291,7 +288,7 @@ pub fn decode_lenia_field_header(encoded: &[u8]) -> Result<LeniaFieldHeader, Len
     let mut field_id = [0; 16];
     field_id.copy_from_slice(&encoded[24..40]);
     Ok(LeniaFieldHeader {
-        field_id: LeniaFieldId(field_id),
+        field_id: LeniaFieldId::from_bytes(field_id),
         generation: read_u64(encoded, 16)?,
         width,
         height,
@@ -364,7 +361,7 @@ fn encode_field_into(
     output.extend_from_slice(&header.width.to_le_bytes());
     output.extend_from_slice(&header.height.to_le_bytes());
     output.extend_from_slice(&header.generation.to_le_bytes());
-    output.extend_from_slice(&header.field_id.0);
+    output.extend_from_slice(header.field_id.get());
     output.extend_from_slice(&header.cell_count.to_le_bytes());
     output.extend_from_slice(&[0; 4]);
     for value in cells {

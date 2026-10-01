@@ -54,7 +54,7 @@ pub fn orbium_seed(width: u16, height: u16, seed: u64) -> Result<LeniaFieldState
     let digest: [u8; 32] = digest.finalize().into();
     let mut field_id = [0; 16];
     field_id.copy_from_slice(&digest[..16]);
-    LeniaFieldState::from_cells(LeniaFieldId(field_id), 0, width, height, cells)
+    LeniaFieldState::from_cells(LeniaFieldId::from_bytes(field_id), 0, width, height, cells)
 }
 
 fn decode_pattern() -> Result<Vec<Vec<u32>>, LeniaRefusal> {

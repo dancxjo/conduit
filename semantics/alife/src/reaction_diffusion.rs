@@ -11,7 +11,10 @@ use alloc::vec;
 use alloc::vec::Vec;
 use sha2::{Digest, Sha256};
 
-use crate::GrayScottParameters;
+use crate::{
+    GrayScottParameters, ReactionDiffusionCell, ReactionDiffusionEvolveRequest,
+    ReactionDiffusionFieldId,
+};
 
 pub const REACTION_DIFFUSION_STATE_INFO_ID: &str = "field/reaction-diffusion-state@1";
 pub const REACTION_DIFFUSION_REQUEST_INFO_ID: &str = "field/evolve-request@1";
@@ -32,9 +35,6 @@ const NUMERIC_PROFILE_TAG: u32 = 0x4753_5031;
 const FIELD_HEADER_BYTES: usize = 64;
 const FIELD_DIGEST_DOMAIN: &[u8] = b"conduit.field.state.v1";
 const REQUEST_MAGIC: [u8; 8] = *b"CNDFRQ01";
-
-#[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
-pub struct ReactionDiffusionFieldId(pub [u8; 16]);
 
 impl GrayScottParameters {
     pub const REFERENCE: Self = Self {
@@ -67,12 +67,6 @@ impl GrayScottParameters {
     }
 }
 
-#[derive(Debug, Copy, Clone, PartialEq, Eq)]
-pub struct ReactionDiffusionCell {
-    pub u_ppm: u32,
-    pub v_ppm: u32,
-}
-
 impl ReactionDiffusionCell {
     pub const REST: Self = Self {
         u_ppm: CONCENTRATION_SCALE as u32,
@@ -103,20 +97,12 @@ pub struct ReactionDiffusionFieldState {
     cells: Vec<ReactionDiffusionCell>,
 }
 
-#[derive(Debug, Copy, Clone, PartialEq, Eq)]
-pub struct ReactionDiffusionEvolveRequest {
-    pub field_id: ReactionDiffusionFieldId,
-    pub expected_generation: u64,
-    pub generations: u16,
-    pub admitted_cell_generations: u32,
-}
-
 impl ReactionDiffusionEvolveRequest {
     pub fn encode(self) -> [u8; REACTION_DIFFUSION_REQUEST_BYTES as usize] {
         let mut encoded = [0; REACTION_DIFFUSION_REQUEST_BYTES as usize];
         encoded[0..8].copy_from_slice(&REQUEST_MAGIC);
         encoded[8..12].copy_from_slice(&NUMERIC_PROFILE_TAG.to_le_bytes());
-        encoded[12..28].copy_from_slice(&self.field_id.0);
+        encoded[12..28].copy_from_slice(self.field_id.get());
         encoded[28..36].copy_from_slice(&self.expected_generation.to_le_bytes());
         encoded[36..38].copy_from_slice(&self.generations.to_le_bytes());
         encoded[40..44].copy_from_slice(&self.admitted_cell_generations.to_le_bytes());
@@ -138,12 +124,13 @@ impl ReactionDiffusionEvolveRequest {
         }
         let mut field_id = [0; 16];
         field_id.copy_from_slice(&encoded[12..28]);
-        Ok(Self {
-            field_id: ReactionDiffusionFieldId(field_id),
-            expected_generation: read_u64(encoded, 28)?,
-            generations: read_u16(encoded, 36)?,
-            admitted_cell_generations: read_u32(encoded, 40)?,
-        })
+        Self::new(
+            ReactionDiffusionFieldId::from_bytes(field_id),
+            read_u64(encoded, 28)?,
+            read_u16(encoded, 36)?,
+            read_u32(encoded, 40)?,
+        )
+        .map_err(|_| ReactionDiffusionRefusal::InvalidGenerationCount)
     }
 }
 
@@ -302,7 +289,7 @@ impl ReactionDiffusionFieldState {
         encoded.extend_from_slice(&self.width.to_le_bytes());
         encoded.extend_from_slice(&self.height.to_le_bytes());
         encoded.extend_from_slice(&self.generation.to_le_bytes());
-        encoded.extend_from_slice(&self.field_id.0);
+        encoded.extend_from_slice(self.field_id.get());
         for parameter in [
             self.parameters.diffusion_u_ppm,
             self.parameters.diffusion_v_ppm,
@@ -366,7 +353,7 @@ impl ReactionDiffusionFieldState {
             )?);
         }
         Self::from_cells(
-            ReactionDiffusionFieldId(field_id),
+            ReactionDiffusionFieldId::from_bytes(field_id),
             read_u64(encoded, 16)?,
             width,
             height,
