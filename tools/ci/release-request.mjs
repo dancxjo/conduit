@@ -1,6 +1,6 @@
 // Admission owns release creation. dev itself is the coalesced next batch;
 // an Actions pending run is not a durable repair queue.
-export async function requestRelease({ api, git, isAncestor, mergedTree, repository, integratedSha = "" }) {
+export async function requestRelease({ api, git, isAncestor, mergedTree, hasAncestorTree, repository, integratedSha = "" }) {
   const releases = pulls => pulls.filter(pull => pull.base.ref === "main" &&
     pull.head.repo?.full_name === repository && /^release\/[0-9a-f]{40}$/.test(pull.head.ref));
   const blocker = pulls => {
@@ -37,7 +37,14 @@ export async function requestRelease({ api, git, isAncestor, mergedTree, reposit
     return { status: "already-current" };
   }
   // A successful dev run predating release repair must not drop those fixes.
-  if (mergedTree(main, sha) !== tree) return { status: "release-fixes-not-integrated" };
+  const mainTree = git("rev-parse", `${main}^{tree}`);
+  // A manually squash-merged release has a different commit identity even
+  // when its complete accepted tree is the exact tree of a dev ancestor. In
+  // that topology the source ancestor, not the synthetic main commit, proves
+  // that every accepted release fix is already in this development line.
+  if (mergedTree(main, sha) !== tree && !hasAncestorTree(mainTree, sha)) {
+    return { status: "release-fixes-not-integrated" };
+  }
   const branch = `release/${sha}`;
   const history = await api(`/pulls?state=closed&base=main&head=${repository.split("/")[0]}:${branch}&per_page=100`);
   if (history.length) return { status: "previous-release-requires-review", numbers: history.map(pull => pull.number) };

@@ -36,6 +36,10 @@ const result = await requestRelease({
     const result = queryGit("merge-tree", "--write-tree", base, head);
     return result.status === 0 ? result.stdout.trim() : null;
   },
+  hasAncestorTree: (tree, head) => {
+    const result = queryGit("log", "--format=%T", head);
+    return result.status === 0 && result.stdout.split(/\s+/).includes(tree);
+  },
 });
 process.stdout.write(`${JSON.stringify(result)}\n`);
 if (process.env.GITHUB_STEP_SUMMARY) {
