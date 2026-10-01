@@ -148,22 +148,52 @@ impl Parser<'_> {
         let offset = start + line.find(source).unwrap_or(0);
         let span = self.span(offset, offset + source.len());
         if let Some(rest) = source.strip_prefix("sequence ") {
-            let (element, maximum) = rest
-                .rsplit_once(" <= ")
-                .ok_or_else(|| self.invalid_statement(line, start))?;
-            let maximum_items = maximum
-                .parse::<u16>()
-                .ok()
-                .filter(|maximum| {
-                    *maximum > 0
-                        && usize::from(*maximum)
-                            <= conduit_core::MAXIMUM_STRUCTURED_COLLECTION_ITEMS
-                })
-                .ok_or_else(|| self.invalid_statement(line, start))?;
+            let (element, minimum_items, maximum_items) =
+                if let Some((element, maximum)) = rest.rsplit_once(" <= ") {
+                    (
+                        element,
+                        0,
+                        parse_collection_bound(maximum)
+                            .ok_or_else(|| self.invalid_statement(line, start))?,
+                    )
+                } else if let Some((element, bounds)) = rest.rsplit_once(" in ") {
+                    let (minimum, maximum) = bounds
+                        .split_once("..=")
+                        .ok_or_else(|| self.invalid_statement(line, start))?;
+                    let minimum = minimum
+                        .parse::<u16>()
+                        .ok()
+                        .ok_or_else(|| self.invalid_statement(line, start))?;
+                    let maximum = parse_collection_bound(maximum)
+                        .ok_or_else(|| self.invalid_statement(line, start))?;
+                    if minimum > maximum {
+                        return Err(self.invalid_statement(line, start));
+                    }
+                    (element, minimum, maximum)
+                } else {
+                    return Err(self.invalid_statement(line, start));
+                };
             return Ok(TypeExpressionSyntax::Sequence {
                 element: Box::new(self.parse_type_expression(element, line, start)?),
-                minimum_items: 0,
+                minimum_items,
                 maximum_items,
+                span,
+            });
+        }
+        if let Some(rest) = source.strip_prefix("collection ") {
+            let (element, length) = rest
+                .rsplit_once(" = ")
+                .ok_or_else(|| self.invalid_statement(line, start))?;
+            let length = length
+                .parse::<u16>()
+                .ok()
+                .filter(|length| {
+                    usize::from(*length) <= conduit_core::MAXIMUM_STRUCTURED_COLLECTION_ITEMS
+                })
+                .ok_or_else(|| self.invalid_statement(line, start))?;
+            return Ok(TypeExpressionSyntax::Collection {
+                element: Box::new(self.parse_type_expression(element, line, start)?),
+                length,
                 span,
             });
         }
@@ -195,4 +225,10 @@ impl Parser<'_> {
             span,
         })
     }
+}
+
+fn parse_collection_bound(source: &str) -> Option<u16> {
+    source.parse::<u16>().ok().filter(|bound| {
+        *bound > 0 && usize::from(*bound) <= conduit_core::MAXIMUM_STRUCTURED_COLLECTION_ITEMS
+    })
 }

@@ -61,6 +61,15 @@ pub fn sequence_element_type(
     Ok(element.clone())
 }
 
+pub fn collection_element_type(
+    value_type: &StructuredInfoType,
+) -> Result<StructuredInfoType, NativeBindingRefusal> {
+    let StructuredInfoTypeShape::Collection { element, .. } = value_type.shape() else {
+        return Err(wrong_type());
+    };
+    Ok(element.clone())
+}
+
 pub fn variant_payload_type(
     value_type: &StructuredInfoType,
     tag: &str,

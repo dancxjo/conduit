@@ -151,6 +151,11 @@ pub enum TypeExpressionSyntax {
         value: Box<TypeExpressionSyntax>,
         span: Span,
     },
+    Collection {
+        element: Box<TypeExpressionSyntax>,
+        length: u16,
+        span: Span,
+    },
     Sequence {
         element: Box<TypeExpressionSyntax>,
         minimum_items: u16,
