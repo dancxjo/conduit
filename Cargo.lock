@@ -950,6 +950,7 @@ dependencies = [
 name = "conduit-education"
 version = "0.1.0"
 dependencies = [
+ "conduit-audio",
  "conduit-core",
  "conduit-form",
 ]

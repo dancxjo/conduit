@@ -4,8 +4,10 @@ version = "0.1.0"
 edition = "2021"
 
 [dependencies]
+conduit-audio = { path = "../audio" }
 conduit-core = { path = "../../architecture/core" }
 conduit-form = { path = "../../architecture/form" }
 
 [build-dependencies]
+conduit-audio = { path = "../audio" }
 conduit-form = { path = "../../architecture/form" }

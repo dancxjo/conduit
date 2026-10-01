@@ -97,3 +97,9 @@ type EducationProgress = {
     question_identity: Text <= 64KiB
     state: EducationProgressState
 }
+
+type EducationRhythmFeedback = {
+    feedback: EducationLessonFeedback
+    progress: EducationProgress
+    timing: TimingFeedback
+}
