@@ -6,8 +6,8 @@ use conduit_core::{ActivePlayId, CheckedFormId, PlanId};
 use serde::{Deserialize, Serialize};
 
 use crate::{
-    Presentation, PresentationBasis, PresentationContextBasis, PresentationDisclosure,
-    PresentationDisclosureLevel, PresentationError, PresentationFragment,
+    FaceContributionRole, Presentation, PresentationBasis, PresentationContextBasis,
+    PresentationDisclosure, PresentationDisclosureLevel, PresentationError, PresentationFragment,
     PresentationFragmentError, PresentationInteractionContext, PresentationProperty,
     PresentationPropertyValue, PresentationRelationship, PresentationRelationshipKind,
     PresentationRole, PresentationSubject, PresentationText,
@@ -31,14 +31,6 @@ pub enum FaceContext {
     ResidentForm(CheckedFormId),
     Tutorial(CheckedFormId),
     Inspection(CheckedFormId),
-}
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
-pub enum FaceContributionRole {
-    Foreground,
-    Tutorial,
-    Inspection,
-    Transient,
 }
 
 impl FaceContributionRole {

@@ -3,6 +3,8 @@
 use alloc::string::String;
 use serde::{Deserialize, Serialize};
 
+use crate::GenerativeNarratorRole;
+
 pub const MAX_GENERATIVE_PRESENTER_POLICY_BYTES: usize = 4_096;
 /// The portable `llm/present` capability's reviewed semantic input ceiling.
 pub const MAX_GENERATIVE_PRESENTER_INPUT_BYTES: usize = 262_144;
@@ -53,13 +55,4 @@ pub struct GenerativePresenterPolicy {
     /// that body's identity, continuity, authority, or stake.
     pub narrator_role: GenerativeNarratorRole,
     pub instructions: String,
-}
-
-/// The narrator's implementation role and the voice it performs are distinct.
-///
-/// Additional voice modes require an explicit reviewed contract revision; the
-/// first generative Presenter only admits the body's first-person voice.
-#[derive(Clone, Copy, Debug, Deserialize, Eq, PartialEq, Serialize)]
-pub enum GenerativeNarratorRole {
-    TransientFirstPersonBodyNarrator,
 }

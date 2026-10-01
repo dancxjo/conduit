@@ -4,9 +4,10 @@ use alloc::{format, vec};
 use conduit_body::{Body, BodyState, Wake, WakePlanState};
 
 use super::{
-    interaction_context_identity, FaceContext, FaceContribution, FaceContributionRole, FaceFocus,
-    FaceRefusal, MAX_FACE_CONTRIBUTIONS, MAX_FACE_TRANSIENTS,
+    interaction_context_identity, FaceContext, FaceContribution, FaceFocus, FaceRefusal,
+    MAX_FACE_CONTRIBUTIONS, MAX_FACE_TRANSIENTS,
 };
+use crate::FaceContributionRole;
 use crate::PresentationFragmentError;
 
 pub(super) fn validate_wake(body: &Body, wake: Option<&Wake>) -> Result<(), FaceRefusal> {
