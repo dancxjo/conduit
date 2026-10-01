@@ -5,12 +5,12 @@ use crate::{
     gui_composition::CompositionLayout,
     gui_primitives::{frame_rect, line, text, PixelRect},
 };
+use conduit_presentation::ApplicationTheme;
 use embedded_graphics::{
     pixelcolor::Rgb888,
     prelude::{DrawTarget, Point},
 };
 use patchbay_graph::{PatchbayGraph, PatchbayPortCompatibility};
-use patchbay_model::ApplicationTheme;
 
 #[derive(Default)]
 pub struct GestureView<'a> {

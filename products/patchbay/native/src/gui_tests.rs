@@ -6,8 +6,9 @@ use crate::{
     icon::Icon,
     render::BACKGROUND,
 };
+use conduit_presentation::CONDUIT_APPLICATION_THEME;
 use patchbay_graph::PatchbayGraph;
-use patchbay_model::{FormEditor, CONDUIT_APPLICATION_THEME};
+use patchbay_model::FormEditor;
 use std::path::PathBuf;
 
 fn graph() -> PatchbayGraph {
@@ -356,7 +357,11 @@ fn contextual_lifecycle_header_exposes_only_projected_typed_actions() {
             patchbay_model::PatchbayAction::Lull
         ]
     );
-    assert!(pixels.contains(&patchbay_model::CONDUIT_APPLICATION_THEME.focus.packed_rgb()));
+    assert!(pixels.contains(
+        &conduit_presentation::CONDUIT_APPLICATION_THEME
+            .focus
+            .packed_rgb()
+    ));
 }
 
 #[test]

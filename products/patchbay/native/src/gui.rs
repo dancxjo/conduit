@@ -19,6 +19,7 @@ use crate::{
     lifecycle_flow::{draw_lifecycle_flow, LifecycleFlow},
     parts_view::{draw_parts, PartsSelection},
 };
+use conduit_presentation::{ApplicationTheme, CONDUIT_APPLICATION_THEME};
 use embedded_graphics::{
     draw_target::DrawTargetExt,
     pixelcolor::Rgb888,
@@ -27,7 +28,6 @@ use embedded_graphics::{
 };
 use patchbay_application::DebuggerPresentation;
 use patchbay_graph::{PatchbayGear, PatchbayGraph};
-use patchbay_model::{ApplicationTheme, CONDUIT_APPLICATION_THEME};
 
 pub use crate::gui_hit::{GuiAction, HitTarget};
 

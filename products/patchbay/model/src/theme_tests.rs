@@ -1,9 +1,9 @@
-use crate::{ThemeColor, CONDUIT_APPLICATION_THEME};
 use conduit_core::CharacteristicId;
 use conduit_planner::{
     dos_shell_style, PlannerFactRef, PlannerFactValue, PlannerPreference,
     PRESENTATION_PALETTE_CLASS,
 };
+use conduit_presentation::{ThemeColor, CONDUIT_APPLICATION_THEME};
 
 #[test]
 fn phosphor_theme_is_fixed_bounded_and_matches_the_shared_palette() {

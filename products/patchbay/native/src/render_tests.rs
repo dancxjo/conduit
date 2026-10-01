@@ -1,5 +1,5 @@
 use crate::render::{draw_document, BACKGROUND};
-use patchbay_model::CONDUIT_APPLICATION_THEME;
+use conduit_presentation::CONDUIT_APPLICATION_THEME;
 
 #[test]
 fn document_renders_unicode_scripts_on_the_software_surface() {

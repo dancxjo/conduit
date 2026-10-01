@@ -5,11 +5,12 @@ use crate::{
     gui_primitives::{frame_rect, text, PixelRect},
 };
 use conduit_body::{CandidateId, PartId};
+use conduit_presentation::ApplicationTheme;
 use embedded_graphics::{
     pixelcolor::Rgb888,
     prelude::{DrawTarget, Point},
 };
-use patchbay_model::{ApplicationTheme, PartPresentationState, PartsAction, PartsView};
+use patchbay_model::{PartPresentationState, PartsAction, PartsView};
 
 pub(super) struct PartsSelection<'a> {
     pub(super) part: Option<&'a PartId>,

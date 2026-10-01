@@ -1,6 +1,6 @@
 //! Finite CSS transport for the shared Patchbay theme.
 
-use patchbay_model::{ApplicationTheme, ThemeColor};
+use conduit_presentation::{ApplicationTheme, ThemeColor};
 
 pub(crate) fn render_theme_css(theme: &ApplicationTheme) -> Vec<u8> {
     format!(

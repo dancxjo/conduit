@@ -4,9 +4,9 @@ use crate::{
     interaction_status::{InteractionStatusChannel, InteractionStatusCode, InteractionStatusLevel},
     render::BACKGROUND,
 };
+use conduit_presentation::CONDUIT_APPLICATION_THEME;
 use patchbay_model::{
     AuthoredEnvironment, AuthoredLink, AuthoredPart, EnvironmentLinkKind, MachineProfile,
-    CONDUIT_APPLICATION_THEME,
 };
 
 #[test]

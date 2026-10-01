@@ -79,10 +79,6 @@ pub use conduit_body::WakeLifecycle;
 pub use conduit_patchbay_workbench_conformance::{
     patchbay_mask_plans, PatchbayMaskPlans, PATCHBAY_PRESENTATION_KIND,
 };
-pub use conduit_presentation::{
-    ApplicationTheme, MaskWardrobeAction, MaskWardrobeControl, MaskWardrobeControlError,
-    MaskWardrobeControlEvidence, ThemeColor, CONDUIT_APPLICATION_THEME,
-};
 pub use control::{admit_run, ControlError, PatchbayRequestId, PlanDocument, PlayDocument};
 pub use cross_host_renderer::{
     cross_host_renderer_plan, CrossHostRendererPlan, CROSS_HOST_MAXIMUM_FRAME_BYTES,

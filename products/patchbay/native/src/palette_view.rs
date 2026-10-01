@@ -1,11 +1,11 @@
 //! Categorized native presentation of the authoritative Gear palette.
 
+use conduit_presentation::ApplicationTheme;
 use conduit_semantic_catalog::PaletteCategory;
 use embedded_graphics::{
     pixelcolor::Rgb888,
     prelude::{DrawTarget, Point},
 };
-use patchbay_model::ApplicationTheme;
 
 use crate::{
     gui::{GuiAction, HitTarget},

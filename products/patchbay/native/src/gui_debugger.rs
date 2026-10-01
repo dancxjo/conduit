@@ -6,13 +6,13 @@ use crate::{
     gui_composition::CompositionLayout,
     gui_primitives::{frame_rect, line, text, PixelRect},
 };
+use conduit_presentation::ApplicationTheme;
 use embedded_graphics::{
     pixelcolor::Rgb888,
     prelude::{DrawTarget, Point},
 };
 use patchbay_application::{DebuggerActivityPhase, DebuggerPresentation, DebuggerSubjectActivity};
 use patchbay_graph::PatchbayGraph;
-use patchbay_model::ApplicationTheme;
 
 pub(super) fn draw_debugger_overlay<D: DrawTarget<Color = Rgb888>>(
     target: &mut D,

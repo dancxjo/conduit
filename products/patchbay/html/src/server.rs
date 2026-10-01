@@ -2,7 +2,8 @@ use crate::{RendererSnapshot, SnapshotError};
 use conduit_browser_host::application_package;
 use conduit_core::SignId;
 use conduit_presentation::ManifestationFailure;
-use patchbay_model::{PatchbayInteraction, CONDUIT_APPLICATION_THEME};
+use conduit_presentation::CONDUIT_APPLICATION_THEME;
+use patchbay_model::PatchbayInteraction;
 use std::net::{Ipv4Addr, SocketAddr, SocketAddrV4, TcpListener, TcpStream};
 use std::time::Duration;
 

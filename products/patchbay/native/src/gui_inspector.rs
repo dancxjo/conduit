@@ -16,12 +16,12 @@ use crate::{
     gui_primitives::{frame_rect, icon_label, text, PixelRect},
     icon::Icon,
 };
+use conduit_presentation::ApplicationTheme;
 use embedded_graphics::{
     pixelcolor::Rgb888,
     prelude::{DrawTarget, Point},
 };
 use patchbay_graph::{PatchbayGraph, PatchbaySubjectKind};
-use patchbay_model::ApplicationTheme;
 
 pub(super) fn draw_inspector<D: DrawTarget<Color = Rgb888>>(
     target: &mut D,
@@ -338,7 +338,7 @@ fn wrapped_text<D: DrawTarget<Color = Rgb888>>(
     value: &str,
     columns: usize,
     rows: usize,
-    color: patchbay_model::ThemeColor,
+    color: conduit_presentation::ThemeColor,
 ) {
     let characters = value.chars().collect::<Vec<_>>();
     for (row, chunk) in characters.chunks(columns).take(rows).enumerate() {
