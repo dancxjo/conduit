@@ -287,6 +287,7 @@ are satisfied.
 | HTTP exchange target, headers, body and request/response family | `semantics/web/types.conduit` | generated at build time | yes | yes | exact native bounds and round trips plus HTTP, provider, hosted and ConduitOS consumer suites |
 | Replay terminal state and civil-resolution policy | `semantics/time/types.conduit` | generated at build time | yes | yes | exact native round trips plus replay, recurrence and std Host consumer suites |
 | Rhythm state and synchronization outcome | `semantics/time/types.conduit` | generated at build time | yes | yes | exact full-domain native round trips plus retained 14-byte codec, synchronization behavior and browser consumer proof |
+| PCM compatibility profile and incompatibility-reason family | `semantics/audio/types.conduit` | generated at build time | yes | yes | exact primitive-domain native round trips plus Audio/Catalog compatibility behavior and Serde proof |
 | Portable keyboard occurrence | `semantics/human/types.conduit` | generated at build time | yes | yes | exact usage/refinement proof plus keymap and target consumer suites |
 | Wire session, terminal and checkpoint vocabulary | `architecture/wire/types.conduit` | generated at build time | yes | yes | exact native round trips plus wire, no-std and standalone firmware proof |
 | Image observation reference | `semantics/human/types.conduit` | generated at build time | yes | yes | exact resource/dimension bounds and round trips plus catalog, hosted vision and image-text consumers |
