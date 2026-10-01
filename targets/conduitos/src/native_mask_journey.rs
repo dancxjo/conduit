@@ -196,6 +196,13 @@ impl<'a> NativeJourney<'a> {
         action: MaskJourneyAction,
         concrete_event: &'static str,
     ) -> NativeMaskJourneyObservation {
+        let retains_fresh_show = matches!(
+            action,
+            MaskJourneyAction::InspectInitialShow
+                | MaskJourneyAction::PreferAlternateMask
+                | MaskJourneyAction::InspectReplannedShow
+                | MaskJourneyAction::InspectRestoredShow
+        );
         NativeMaskJourneyObservation {
             action_id: action.id(),
             concrete_event,
@@ -211,7 +218,9 @@ impl<'a> NativeJourney<'a> {
                 .selected
                 .as_ref()
                 .map(|selected| selected.route_id.clone()),
-            show_id: self.show.as_ref().map(|show| show.show_id.as_str().into()),
+            show_id: retains_fresh_show
+                .then(|| self.show.as_ref().map(|show| show.show_id.as_str().into()))
+                .flatten(),
             receipt_ids: self.receipts.clone(),
         }
     }
