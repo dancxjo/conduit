@@ -53,3 +53,8 @@ type OdometryObservation = {
 type ButtonSetObservation = {
     bits: U32
 }
+
+type BatteryObservation = {
+    charge-permille: U16 in 0..=1000
+    millivolts: U16 in 0..=60000
+}
