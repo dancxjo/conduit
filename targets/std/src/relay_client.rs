@@ -215,7 +215,20 @@ impl ProtectedFrameCarrier for HostedRelayCarrier {
         })
         .map_err(|_| CarrierFailure::Lost)?;
         self.line.send_binary(&control).map_err(map_carrier_error)?;
-        self.line.close().map_err(map_carrier_error)
+        let length = self
+            .line
+            .receive_binary(&mut self.outer)
+            .map_err(map_carrier_error)?;
+        if !matches!(
+            decode_outcome(&self.outer[..length], &self.route_id),
+            Ok(OutcomeStatus::Closed)
+        ) {
+            return Err(CarrierFailure::Lost);
+        }
+        // The relay's terminal acknowledgement proves that the private slot
+        // was closed before either outer transport can be mistaken for loss.
+        let _outer_close = self.line.close();
+        Ok(())
     }
 }
 
