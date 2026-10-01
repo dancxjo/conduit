@@ -33,8 +33,8 @@ function candidate(prNumber, attempt, options = {}) {
   };
 }
 
-function decide(candidates, escalations = []) {
-  return decideReleaseLane({ now, candidates, escalations }, {
+function decide(candidates) {
+  return decideReleaseLane({ now, candidates }, {
     noProgressMs: 15 * minute,
     maxElapsedMs: 45 * minute,
   });
@@ -61,7 +61,7 @@ test("an open release exposes only its current head to lane ownership", () => {
   const decision = decide(candidates);
   assert.deepEqual(decision.actions.preserve.map(({ runId }) => runId), [102]);
   assert.deepEqual(decision.actions.cancel, []);
-  assert.deepEqual(decision.actions.escalate, []);
+  assert.equal("escalate" in decision.actions, false);
 });
 
 test("A remains healthy while B queues", () => {
@@ -162,16 +162,18 @@ test("an approval-gated unstarted candidate remains queued and may be superseded
   assert.equal(decision.actions.start.runId, 102);
 });
 
-test("stuck A escalates exactly once and retains only newest queued successor", () => {
+test("stuck A remains visible without creating an escalation action", () => {
   const a = candidate(1, run(101, "in_progress", 20, { updatedAt: new Date(now - 20 * minute).toISOString() }));
   const b = candidate(2, run(102, "queued", 2));
   const c = candidate(3, run(103, "queued", 1));
-  const first = decide([a, b, c]);
-  assert.equal(first.actions.escalate.length, 1);
-  assert.equal(first.actions.escalate[0].key, "release-stuck:101");
-  assert.deepEqual(first.actions.cancel.map(({ runId }) => runId), [102]);
-  const repeated = decide([a, b, c], ["release-stuck:101"]);
-  assert.deepEqual(repeated.actions.escalate, []);
+  const decision = decide([a, b, c]);
+  assert.equal(decision.classifications[0].state, "stuck");
+  assert.deepEqual(decision.actions.preserve.map(({ runId, state }) => [runId, state]), [
+    [101, "stuck"],
+    [103, "queued"],
+  ]);
+  assert.deepEqual(decision.actions.cancel.map(({ runId }) => runId), [102]);
+  assert.equal("escalate" in decision.actions, false);
 });
 
 test("known-bad head cannot restart without explicit repair action", () => {
