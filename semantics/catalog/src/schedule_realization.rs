@@ -11,8 +11,8 @@ use crate::{
     assess_workflow_timing, recurrence_instant_type, recurrence_occurrence_instant_type,
     recurrence_occurrence_type, schedule_assessment_type, schedule_constraint_type,
     schedule_effect_intent_type, schedule_observation_type, schedule_window_position_type,
-    scheduled_intent_type, workflow_lifecycle_type, ScheduleRefusal,
-    ScheduleWindowPosition, WorkflowLifecycle, WorkflowTimingOutcome,
+    scheduled_intent_type, workflow_lifecycle_type, ScheduleRefusal, ScheduleWindowPosition,
+    WorkflowLifecycle, WorkflowTimingOutcome,
 };
 
 pub struct ScheduleFixture {
