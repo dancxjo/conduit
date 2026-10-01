@@ -15,7 +15,7 @@ fn main() {
         &RustBindingOptions {
             derive_serde_for_variants: true,
             serde_variant_exclusions: ["ReplayCommand".into()].into(),
-            serde_record_types: ["CandidateConflict".into()].into(),
+            serde_record_types: ["CandidateConflict".into(), "TemporalInstant".into()].into(),
             copy_record_types: ["PulseObservation".into()].into(),
             ..RustBindingOptions::default()
         },
