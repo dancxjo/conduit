@@ -1,9 +1,9 @@
 use conduit_form::rust_binding::NativeRustBinding;
 use conduit_human::{
     ExperienceAvailability, ExperienceCertainty, ExperienceDomain, ExperienceOrigin,
-    ExperienceRelationKind, ExperienceTemporalRole, HumanMediaKind, KeymapRefusal,
-    SourceAvailability, VisualEvidenceClass, VisualExperienceRelationKind,
-    VisualImpressionDisposition,
+    ExperienceRelationKind, ExperienceTemporalPolicy, ExperienceTemporalRefusal,
+    ExperienceTemporalRole, HumanMediaKind, KeymapRefusal, SourceAvailability, VisualEvidenceClass,
+    VisualExperienceRelationKind, VisualImpressionDisposition,
 };
 
 fn assert_round_trip<T>(value: T)
@@ -12,6 +12,25 @@ where
 {
     let structured = value.clone().into_structured().unwrap();
     assert_eq!(T::from_structured(structured).unwrap(), value);
+}
+
+#[test]
+fn experience_temporal_policy_round_trips_and_retains_relational_validation() {
+    let policy = ExperienceTemporalPolicy::new(5, 20).unwrap();
+    assert_round_trip(policy);
+    assert_eq!(*policy.maximum_current_age_ticks(), 5);
+    assert_eq!(*policy.maximum_recent_age_ticks(), 20);
+    assert_eq!(policy.validate(), Ok(()));
+    assert_eq!(
+        ExperienceTemporalPolicy::new(20, 20).unwrap().validate(),
+        Err(ExperienceTemporalRefusal::InvalidPolicy)
+    );
+    assert_eq!(
+        ExperienceTemporalPolicy::new(u64::MAX, 0)
+            .unwrap()
+            .validate(),
+        Err(ExperienceTemporalRefusal::InvalidPolicy)
+    );
 }
 
 #[test]

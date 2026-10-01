@@ -2,13 +2,7 @@
 
 use conduit_core::{TemporalInstant, TemporalRelation, TemporalRelationError};
 
-use crate::ExperienceTemporalRole;
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub struct ExperienceTemporalPolicy {
-    pub maximum_current_age_ticks: u64,
-    pub maximum_recent_age_ticks: u64,
-}
+use crate::{ExperienceTemporalPolicy, ExperienceTemporalRole};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum ExperienceTemporalRefusal {
@@ -22,7 +16,7 @@ pub enum ExperienceTemporalRefusal {
 
 impl ExperienceTemporalPolicy {
     pub fn validate(self) -> Result<(), ExperienceTemporalRefusal> {
-        if self.maximum_recent_age_ticks <= self.maximum_current_age_ticks {
+        if *self.maximum_recent_age_ticks() <= *self.maximum_current_age_ticks() {
             return Err(ExperienceTemporalRefusal::InvalidPolicy);
         }
         Ok(())
@@ -40,26 +34,26 @@ impl ExperienceTemporalPolicy {
         match relation {
             TemporalRelation::Present => Ok(ExperienceTemporalRole::Current),
             TemporalRelation::Past { maximum_ticks, .. }
-                if maximum_ticks <= self.maximum_current_age_ticks =>
+                if maximum_ticks <= *self.maximum_current_age_ticks() =>
             {
                 Ok(ExperienceTemporalRole::Current)
             }
             TemporalRelation::Past {
                 minimum_ticks,
                 maximum_ticks,
-            } if minimum_ticks > self.maximum_current_age_ticks
-                && maximum_ticks <= self.maximum_recent_age_ticks =>
+            } if minimum_ticks > *self.maximum_current_age_ticks()
+                && maximum_ticks <= *self.maximum_recent_age_ticks() =>
             {
                 Ok(ExperienceTemporalRole::Recent)
             }
             TemporalRelation::Past { minimum_ticks, .. }
-                if minimum_ticks > self.maximum_recent_age_ticks =>
+                if minimum_ticks > *self.maximum_recent_age_ticks() =>
             {
                 Ok(ExperienceTemporalRole::Stale)
             }
             TemporalRelation::Indeterminate
                 if maximum_possible_age(observed_at, reference_at)?
-                    <= self.maximum_current_age_ticks =>
+                    <= *self.maximum_current_age_ticks() =>
             {
                 Ok(ExperienceTemporalRole::Current)
             }
