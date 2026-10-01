@@ -8,6 +8,7 @@ patchbay-graph = { path = "../../../forms/patchbay/graph" }
 conduit-core = { path = "../../../architecture/core" }
 conduit-human = { path = "../../../semantics/human" }
 patchbay-control = { path = "../../../forms/patchbay" }
+patchbay-application = { path = "../../../forms/patchbay/application" }
 patchbay-workbench-host-contract = { path = "../../../forms/patchbay/workbench/host-contract" }
 conduit-form = { path = "../../../architecture/form" }
 conduit-kernel = { path = "../../../architecture/kernel", features = ["alloc"] }
@@ -36,7 +37,6 @@ serde = { version = "1", features = ["derive"] }
 serde_json = "1"
 
 [dev-dependencies]
-patchbay-application = { path = "../../../forms/patchbay/application" }
 conduit-std-host = { path = "../../../targets/std" }
 conduit-signal = { path = "../../../semantics/signal", features = ["host-profile"] }
 conduit-signal-conformance = { path = "../../../proof/conformance/signal" }
