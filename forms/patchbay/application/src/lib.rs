@@ -23,6 +23,12 @@ pub use inspection::{
     project_mask_inspection, MaskInspectionError, MaskInspectionProjection, MaskInspectionRoute,
     MaskInspectionShow,
 };
+mod topology;
+mod topology_projection;
+pub use topology::*;
+pub use topology_projection::project_mask_topology;
+#[cfg(test)]
+mod topology_tests;
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub enum PatchbayApplicationRequest {

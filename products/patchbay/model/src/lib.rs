@@ -63,10 +63,6 @@ mod mask_control_tests;
 mod mask_plans_tests;
 #[cfg(test)]
 mod mask_product_tests;
-mod mask_topology;
-mod mask_topology_projection;
-#[cfg(test)]
-mod mask_topology_tests;
 mod palette;
 #[cfg(test)]
 mod parts_truth_explanation_tests;
@@ -230,8 +226,6 @@ pub use maker_environment::{
     MAX_ENVIRONMENT_COORDINATE, MAX_ENVIRONMENT_ID_BYTES, MAX_PART_NAME_BYTES,
 };
 pub use mask_control::*;
-pub use mask_topology::*;
-pub use mask_topology_projection::*;
 pub use palette::{
     GearPalette, PaletteCategory, PaletteConfigurationSummary, PaletteEntry, PaletteError,
     PaletteIconKey, MAX_PALETTE_ENTRIES, MAX_PALETTE_QUERY_BYTES,

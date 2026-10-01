@@ -98,7 +98,7 @@ impl PatchbayHtmlServer {
             .project_current(&planning, &play)
             .map_err(|error| ServerError::Interaction(format!("{error:?}")))?;
         snapshot.mask_topology = Some(
-            patchbay_model::project_mask_topology(control.presentation(), &topology)
+            patchbay_application::project_mask_topology(control.presentation(), &topology)
                 .map_err(|error| ServerError::Interaction(format!("{error:?}")))?,
         );
         snapshot.interaction.revision = sequence;
