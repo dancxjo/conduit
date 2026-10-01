@@ -37,6 +37,7 @@ mod creche;
 mod device_base;
 mod distributed;
 mod distributed_toggle;
+pub mod flow_activation;
 #[cfg(feature = "form-runner")]
 mod form_runner;
 pub mod human_media;

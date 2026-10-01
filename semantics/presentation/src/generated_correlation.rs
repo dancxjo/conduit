@@ -216,14 +216,14 @@ pub(crate) fn validate_generated_candidate(
         validate_correlation(request, correlation)?;
     }
     for affordance in &candidate.affordances {
-        if affordance.source_presentation_revision
+        if *affordance.source_presentation_revision()
             != request.semantic_data.source_presentation_revision
         {
             return Err(GenerativePresenterRefusal::StaleAction);
         }
         match request.semantic_data.presentation.resolve_action(
-            affordance.source_presentation_revision,
-            &affordance.action_identity,
+            *affordance.source_presentation_revision(),
+            affordance.action_identity(),
         ) {
             Ok(_) => {}
             Err(PresentationActionRefusal::StaleRevision) => {
@@ -237,7 +237,7 @@ pub(crate) fn validate_generated_candidate(
                 | PresentationActionRefusal::Refused { .. },
             ) => return Err(GenerativePresenterRefusal::UnavailableAction),
         }
-        if !candidate.correlations.iter().any(|item| matches!(item, GeneratedSemanticCorrelation::Action { identity, .. } if identity == &affordance.action_identity)) { return Err(GenerativePresenterRefusal::UncorrelatedAction); }
+        if !candidate.correlations.iter().any(|item| matches!(item, GeneratedSemanticCorrelation::Action { identity, .. } if identity == affordance.action_identity())) { return Err(GenerativePresenterRefusal::UncorrelatedAction); }
     }
     if candidate.candidate_identity != candidate.digest() {
         return Err(GenerativePresenterRefusal::CandidateIdentityMismatch);

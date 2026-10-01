@@ -2,20 +2,21 @@
 
 extern crate alloc;
 
-#[allow(dead_code)]
+#[allow(dead_code, clippy::too_many_arguments)]
 mod generated {
     include!(concat!(env!("OUT_DIR"), "/semantic_types.rs"));
 }
 
 pub use generated::{
-    ClockRelationQuality, ClockRelationQualityEstimated, DataGenerationNamespaceRefusal,
-    DataLoadTextTerminal, DataLoadTextTerminalCode, DataReferenceRefusal, DataSaveTextTerminal,
-    DataSaveTextTerminalCode, FullWindowPolicy, FullWindowPolicyCode, MathScalarRefusal,
-    MeasurementPlotOverflowPolicy, MeasurementPlotRefusal, MeasurementSummaryRefusal,
-    MeasurementThresholdRefusal, MeasurementThresholdState, MeasurementThresholdStateCode,
-    MeasurementThresholdTransition, MeasurementWindowRefusal, NormalizedQuantityRefusal,
-    QuantityMappingRefusal, QuantizationPolicy, RangePolicy, SampledSignalRefusal,
-    ScalarComparison, ScientificObservationRefusal, SignalContinuity, SignalContinuityClockReset,
+    ClockRelation, ClockRelationQuality, ClockRelationQualityEstimated,
+    DataGenerationNamespaceRefusal, DataLoadTextTerminal, DataLoadTextTerminalCode,
+    DataReferenceRefusal, DataSaveTextTerminal, DataSaveTextTerminalCode, FullWindowPolicy,
+    FullWindowPolicyCode, MathScalarRefusal, MeasurementPlotOverflowPolicy, MeasurementPlotPoint,
+    MeasurementPlotRefusal, MeasurementSummaryRefusal, MeasurementThresholdRefusal,
+    MeasurementThresholdState, MeasurementThresholdStateCode, MeasurementThresholdTransition,
+    MeasurementWindowRefusal, NormalizedQuantityRefusal, QuantityMappingRefusal,
+    QuantizationPolicy, RangePolicy, SampledSignalRefusal, ScalarComparison,
+    ScientificObservationRefusal, SignalContinuity, SignalContinuityClockReset,
     SignalContinuityDiscontinuous, TensorAxisRole, TensorAxisRoleOther, TensorElement,
     TensorRefusal,
 };

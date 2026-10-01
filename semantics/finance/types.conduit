@@ -24,3 +24,16 @@ type FinanceMoney = {
     amount: FinanceFixedDecimal
     currency: FinanceCurrency
 }
+
+type FinanceRateSource = Text <= 256B not in [""]
+
+type FinanceRateProfile = Text <= 256B not in [""]
+
+type FinanceRateObservation = {
+    base: FinanceCurrency
+    quote: FinanceCurrency
+    rate: FinanceFixedDecimal
+    observed_ticks: U64
+    source: FinanceRateSource
+    profile: FinanceRateProfile
+}

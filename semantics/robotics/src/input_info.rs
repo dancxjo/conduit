@@ -2,7 +2,10 @@
 
 use conduit_core::{semantic_digest, InfoDecodeError};
 
-use crate::{BeaconKind, BeaconKindCode, BODY_SECTOR_MASK};
+use crate::{
+    AccelerationObservation, BeaconKind, BeaconKindCode, ProximityObservation, BODY_SECTOR_MASK,
+};
+use core::{cmp::Ordering, hash::Hash};
 
 pub const ROBOTICS_PROXIMITY_INFO_ID: &str = "robotics/proximity-body-sectors@1";
 pub const ROBOTICS_BEACON_INFO_ID: &str = "robotics/beacon-observation@1";
@@ -15,38 +18,37 @@ pub const ROBOTICS_BUTTONS_ENCODED_LEN: usize = 4;
 pub const ROBOTICS_ACCELERATION_ENCODED_LEN: usize = 12;
 pub const MAXIMUM_ACCELERATION_MM_S2: i32 = 200_000;
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
-pub struct ProximityObservation {
-    active_body_sectors: u8,
-}
-
 impl ProximityObservation {
-    pub fn new(active_body_sectors: u8) -> Result<Self, InfoDecodeError> {
-        reject_reserved(
-            "proximity-body-sectors",
-            active_body_sectors,
-            BODY_SECTOR_MASK,
-        )?;
-        Ok(Self {
-            active_body_sectors,
-        })
-    }
-
-    pub const fn active_body_sectors(self) -> u8 {
-        self.active_body_sectors
-    }
-
-    pub const fn encode(self) -> [u8; ROBOTICS_PROXIMITY_ENCODED_LEN] {
-        [self.active_body_sectors]
+    pub fn encode(self) -> [u8; ROBOTICS_PROXIMITY_ENCODED_LEN] {
+        [*self.active_body_sectors()]
     }
 
     pub fn decode(encoded: &[u8]) -> Result<Self, InfoDecodeError> {
         exact_len(encoded, ROBOTICS_PROXIMITY_ENCODED_LEN)?;
-        Self::new(encoded[0])
+        reject_reserved("proximity-body-sectors", encoded[0], BODY_SECTOR_MASK)?;
+        Ok(Self::new(encoded[0]).expect("sector-mask bound matches generated contract"))
     }
 
     pub fn semantic_digest(self) -> [u8; 32] {
         semantic_digest(ROBOTICS_PROXIMITY_INFO_ID, &self.encode())
+    }
+}
+
+impl PartialOrd for ProximityObservation {
+    fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
+        Some(self.cmp(other))
+    }
+}
+
+impl Ord for ProximityObservation {
+    fn cmp(&self, other: &Self) -> Ordering {
+        self.active_body_sectors().cmp(other.active_body_sectors())
+    }
+}
+
+impl Hash for ProximityObservation {
+    fn hash<H: core::hash::Hasher>(&self, state: &mut H) {
+        self.active_body_sectors().hash(state);
     }
 }
 
@@ -118,48 +120,20 @@ impl ButtonSetObservation {
     }
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
-pub struct AccelerationObservation {
-    x_forward_mm_s2: i32,
-    y_left_mm_s2: i32,
-    z_up_mm_s2: i32,
-}
-
 impl AccelerationObservation {
-    pub fn new(
-        x_forward_mm_s2: i32,
-        y_left_mm_s2: i32,
-        z_up_mm_s2: i32,
-    ) -> Result<Self, InfoDecodeError> {
-        for (field, value) in [
-            ("x-forward-mm-s2", x_forward_mm_s2),
-            ("y-left-mm-s2", y_left_mm_s2),
-            ("z-up-mm-s2", z_up_mm_s2),
-        ] {
-            if !(-MAXIMUM_ACCELERATION_MM_S2..=MAXIMUM_ACCELERATION_MM_S2).contains(&value) {
-                return Err(InfoDecodeError::OutOfRange {
-                    field,
-                    minimum: i64::from(-MAXIMUM_ACCELERATION_MM_S2),
-                    maximum: i64::from(MAXIMUM_ACCELERATION_MM_S2),
-                    actual: i64::from(value),
-                });
-            }
-        }
-        Ok(Self {
-            x_forward_mm_s2,
-            y_left_mm_s2,
-            z_up_mm_s2,
-        })
-    }
-
-    pub const fn components(self) -> (i32, i32, i32) {
-        (self.x_forward_mm_s2, self.y_left_mm_s2, self.z_up_mm_s2)
+    pub fn components(self) -> (i32, i32, i32) {
+        (
+            *self.x_forward_mm_s2(),
+            *self.y_left_mm_s2(),
+            *self.z_up_mm_s2(),
+        )
     }
 
     pub fn encode(self) -> [u8; ROBOTICS_ACCELERATION_ENCODED_LEN] {
-        let x = self.x_forward_mm_s2.to_le_bytes();
-        let y = self.y_left_mm_s2.to_le_bytes();
-        let z = self.z_up_mm_s2.to_le_bytes();
+        let (x, y, z) = self.components();
+        let x = x.to_le_bytes();
+        let y = y.to_le_bytes();
+        let z = z.to_le_bytes();
         [
             x[0], x[1], x[2], x[3], y[0], y[1], y[2], y[3], z[0], z[1], z[2], z[3],
         ]
@@ -167,28 +141,64 @@ impl AccelerationObservation {
 
     pub fn decode(encoded: &[u8]) -> Result<Self, InfoDecodeError> {
         exact_len(encoded, ROBOTICS_ACCELERATION_ENCODED_LEN)?;
-        Self::new(
-            i32::from_le_bytes(
-                encoded[0..4]
-                    .try_into()
-                    .expect("checked acceleration length"),
-            ),
-            i32::from_le_bytes(
-                encoded[4..8]
-                    .try_into()
-                    .expect("checked acceleration length"),
-            ),
-            i32::from_le_bytes(
-                encoded[8..12]
-                    .try_into()
-                    .expect("checked acceleration length"),
-            ),
-        )
+        let x = i32::from_le_bytes(
+            encoded[0..4]
+                .try_into()
+                .expect("checked acceleration length"),
+        );
+        let y = i32::from_le_bytes(
+            encoded[4..8]
+                .try_into()
+                .expect("checked acceleration length"),
+        );
+        let z = i32::from_le_bytes(
+            encoded[8..12]
+                .try_into()
+                .expect("checked acceleration length"),
+        );
+        validate_acceleration_components(x, y, z)?;
+        Ok(Self::new(x, y, z).expect("explicit bounds match generated contracts"))
     }
 
     pub fn semantic_digest(self) -> [u8; 32] {
         semantic_digest(ROBOTICS_ACCELERATION_INFO_ID, &self.encode())
     }
+}
+
+impl PartialOrd for AccelerationObservation {
+    fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
+        Some(self.cmp(other))
+    }
+}
+
+impl Ord for AccelerationObservation {
+    fn cmp(&self, other: &Self) -> Ordering {
+        self.components().cmp(&other.components())
+    }
+}
+
+impl Hash for AccelerationObservation {
+    fn hash<H: core::hash::Hasher>(&self, state: &mut H) {
+        self.components().hash(state);
+    }
+}
+
+fn validate_acceleration_components(x: i32, y: i32, z: i32) -> Result<(), InfoDecodeError> {
+    for (field, value) in [
+        ("x-forward-mm-s2", x),
+        ("y-left-mm-s2", y),
+        ("z-up-mm-s2", z),
+    ] {
+        if !(-MAXIMUM_ACCELERATION_MM_S2..=MAXIMUM_ACCELERATION_MM_S2).contains(&value) {
+            return Err(InfoDecodeError::OutOfRange {
+                field,
+                minimum: i64::from(-MAXIMUM_ACCELERATION_MM_S2),
+                maximum: i64::from(MAXIMUM_ACCELERATION_MM_S2),
+                actual: i64::from(value),
+            });
+        }
+    }
+    Ok(())
 }
 
 fn exact_len(encoded: &[u8], expected: usize) -> Result<(), InfoDecodeError> {

@@ -1,4 +1,3 @@
-use crate::FormCandidate;
 use conduit_body::{
     Body, BodyFaceSelector, BodyFormPlan, BodyMaskChainPlan, BodyMaskTopology, BodyPlanningSession,
     BodyPlanningTransition, BodyWorkset, ResidentForm, WakeLifecycle, WakePlanState,
@@ -9,8 +8,8 @@ use conduit_std_host::StdHost;
 
 #[test]
 fn unstarted_proposals_preserve_the_wake_without_inventing_play_events() {
-    let (candidate, expanded) = form();
-    let on_a = planned_form(&candidate, &expanded, "host/a", "boot/a");
+    let expanded = super::hello_form();
+    let on_a = planned_form(&expanded, "host/a", "boot/a");
     let body = Body::born_with_forms(
         BodyWorkset::one(on_a.form.clone()).unwrap(),
         1,
@@ -32,7 +31,7 @@ fn unstarted_proposals_preserve_the_wake_without_inventing_play_events() {
         session.snapshot().unavailable_proposal_sign_id,
         Some("sign/proposed-host-left".into())
     );
-    let on_b = planned_form(&candidate, &expanded, "host/b", "boot/b");
+    let on_b = planned_form(&expanded, "host/b", "boot/b");
     session.replace_proposal(vec![on_b.clone()]).unwrap();
     assert!(session.snapshot().unavailable_proposal_sign_id.is_none());
     assert_eq!(session.wake(), &original_wake);
@@ -44,22 +43,7 @@ fn unstarted_proposals_preserve_the_wake_without_inventing_play_events() {
     assert_eq!(session.snapshot(), snapshot);
 }
 
-fn form() -> (FormCandidate, conduit_form::ExpandedCanonicalForm) {
-    let candidate = FormCandidate::from_source(
-        "Hello",
-        "forms/hello/main.conduit",
-        include_str!("../../../../../forms/hello/main.conduit"),
-        "canonical test Form",
-        SignId::from("sign/form-reviewed"),
-        1,
-    )
-    .unwrap();
-    let expanded = candidate.editor().unwrap().expand_form("hello").unwrap();
-    (candidate, expanded)
-}
-
 fn planned_form(
-    candidate: &FormCandidate,
     expanded: &conduit_form::ExpandedCanonicalForm,
     host_id: &str,
     boot_id: &str,
@@ -77,8 +61,8 @@ fn planned_form(
     .unwrap();
     BodyFormPlan {
         form: ResidentForm::new(
-            candidate.source_document_id.clone(),
-            candidate.checked_form_id.clone(),
+            expanded.source_document_id.clone(),
+            expanded.checked_form_id.clone(),
         ),
         plan,
     }
@@ -86,8 +70,8 @@ fn planned_form(
 
 #[test]
 fn joined_host_offer_replans_one_body_without_erasing_plan_history() {
-    let (candidate, expanded) = form();
-    let on_a = planned_form(&candidate, &expanded, "host/a", "boot/a");
+    let expanded = super::hello_form();
+    let on_a = planned_form(&expanded, "host/a", "boot/a");
     let resident = on_a.form.clone();
     let body = Body::born_with_forms(
         BodyWorkset::one(resident).unwrap(),
@@ -108,7 +92,7 @@ fn joined_host_offer_replans_one_body_without_erasing_plan_history() {
     .unwrap();
     let prior_plan_id = session.current_plan().plan_id.clone();
 
-    let on_b = planned_form(&candidate, &expanded, "host/b", "boot/b");
+    let on_b = planned_form(&expanded, "host/b", "boot/b");
     session
         .replan(
             vec![on_b],
@@ -136,8 +120,8 @@ fn joined_host_offer_replans_one_body_without_erasing_plan_history() {
 
 #[test]
 fn selected_host_loss_is_machine_readable_and_keeps_the_plan() {
-    let (candidate, expanded) = form();
-    let on_a = planned_form(&candidate, &expanded, "host/a", "boot/a");
+    let expanded = super::hello_form();
+    let on_a = planned_form(&expanded, "host/a", "boot/a");
     let body = Body::born_with_forms(
         BodyWorkset::one(on_a.form.clone()).unwrap(),
         1,
@@ -167,8 +151,8 @@ fn selected_host_loss_is_machine_readable_and_keeps_the_plan() {
 
 #[test]
 fn mask_replan_changes_plan_play_without_changing_body_or_authored_forms() {
-    let (candidate, expanded) = form();
-    let body_form = planned_form(&candidate, &expanded, "host/body", "boot/body");
+    let expanded = super::hello_form();
+    let body_form = planned_form(&expanded, "host/body", "boot/body");
     let resident = body_form.form.clone();
     let body = Body::born_with_forms(
         BodyWorkset::one(resident.clone()).unwrap(),
@@ -176,7 +160,7 @@ fn mask_replan_changes_plan_play_without_changing_body_or_authored_forms() {
         SignId::from("sign/body-born"),
     )
     .unwrap();
-    let mask_plans = crate::patchbay_mask_plans().unwrap();
+    let mask_plans = conduit_patchbay_workbench_conformance::patchbay_mask_plans().unwrap();
     let renderer = |plan: &conduit_core::Plan| {
         plan.fragments
             .iter()

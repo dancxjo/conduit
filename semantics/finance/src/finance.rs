@@ -27,22 +27,13 @@ pub type Currency = crate::FinanceCurrency;
 
 pub type Money = crate::FinanceMoney;
 
-#[derive(Debug, Clone, PartialEq, Eq)]
-pub struct RateObservation<'a> {
-    pub base: Currency,
-    pub quote: Currency,
-    pub rate: FixedDecimal,
-    pub observed_ticks: u64,
-    pub source: &'a str,
-    pub profile: &'a str,
-}
+pub type RateObservation = crate::FinanceRateObservation;
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum FinanceRefusal {
     CurrencyMismatch { left: Currency, right: Currency },
     RatePairMismatch,
     Overflow,
-    InvalidObservation,
     MalformedInfo,
     Structured(StructuredInfoRefusal),
     NativeBinding(conduit_form::rust_binding::NativeBindingRefusal),
@@ -131,16 +122,13 @@ pub fn compare_money(left: Money, right: Money) -> Result<Ordering, FinanceRefus
     left.amount().checked_cmp(right.amount())
 }
 
-pub fn convert_money(money: Money, rate: &RateObservation<'_>) -> Result<Money, FinanceRefusal> {
-    if rate.base == rate.quote || money.currency() != &rate.base {
+pub fn convert_money(money: Money, rate: &RateObservation) -> Result<Money, FinanceRefusal> {
+    if rate.base() == rate.quote() || money.currency() != rate.base() {
         return Err(FinanceRefusal::RatePairMismatch);
     }
-    if rate.source.is_empty() || rate.profile.is_empty() {
-        return Err(FinanceRefusal::InvalidObservation);
-    }
     Ok(Money::new(
-        money.amount().checked_mul(&rate.rate)?,
-        rate.quote,
+        money.amount().checked_mul(rate.rate())?,
+        *rate.quote(),
     )?)
 }
 

@@ -276,8 +276,8 @@ pub(super) fn decode_manifestation(
                     .segments
                     .into_iter()
                     .map(|segment| IndicatorSegment {
-                        level: segment.level,
-                        units: segment.units,
+                        level: *segment.level(),
+                        units: *segment.units(),
                     })
                     .collect(),
                 None,
@@ -449,10 +449,14 @@ pub(super) fn decode_manifestation(
             let pulse = conduit_time::decode_pulse_observation(&manifestation.canonical_value)
                 .map_err(|error| format!("decode pulse manifestation: {error:?}"))?;
             Ok((
-                u16::try_from(pulse.sequence)
+                u16::try_from(*pulse.sequence())
                     .map_err(|_| "pulse manifestation sequence exceeds presentation bound")?,
                 Vec::new(),
-                Some(format!("pulse {} · {} ms", pulse.sequence, pulse.period_ms)),
+                Some(format!(
+                    "pulse {} · {} ms",
+                    pulse.sequence(),
+                    pulse.period_ms()
+                )),
             ))
         }
         conduit_semantic_catalog::RHYTHM_PRESENTATION_KIND => {

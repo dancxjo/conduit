@@ -31,20 +31,14 @@ fn same_composition_accepts_exact_images_from_distinct_realizations() {
         &profile,
         image(profile.as_str(), 1),
         "Imported field sample".into(),
-        vec![ImageTextMetadata {
-            key: "subject".into(),
-            value: "north wall".into(),
-        }],
+        vec![ImageTextMetadata::new("subject".into(), "north wall".into()).unwrap()],
     )
     .unwrap();
     let captured = compose_image_text(
         &profile,
         image(profile.as_str(), 3),
         "Captured field sample".into(),
-        vec![ImageTextMetadata {
-            key: "subject".into(),
-            value: "north wall".into(),
-        }],
+        vec![ImageTextMetadata::new("subject".into(), "north wall".into()).unwrap()],
     )
     .unwrap();
     imported.validate(&profile).unwrap();
@@ -94,14 +88,8 @@ fn image_type_caption_and_metadata_bounds_refuse_distinctly() {
         Err(ImageTextRefusal::ImageTooLarge)
     );
     let duplicate = vec![
-        ImageTextMetadata {
-            key: "place".into(),
-            value: "a".into(),
-        },
-        ImageTextMetadata {
-            key: "place".into(),
-            value: "b".into(),
-        },
+        ImageTextMetadata::new("place".into(), "a".into()).unwrap(),
+        ImageTextMetadata::new("place".into(), "b".into()).unwrap(),
     ];
     assert_eq!(
         compose_image_text(
@@ -114,10 +102,7 @@ fn image_type_caption_and_metadata_bounds_refuse_distinctly() {
     );
 
     let too_many = (0..=MAXIMUM_IMAGE_TEXT_METADATA_ENTRIES)
-        .map(|index| ImageTextMetadata {
-            key: format!("key-{index}"),
-            value: "value".into(),
-        })
+        .map(|index| ImageTextMetadata::new(format!("key-{index}"), "value".into()).unwrap())
         .collect();
     assert_eq!(
         compose_image_text(

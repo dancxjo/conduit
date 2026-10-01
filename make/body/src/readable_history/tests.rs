@@ -1,20 +1,19 @@
+use crate::{
+    BodyEvidenceAttachment, BodyEvidenceEntrance, BodyEvidenceEntranceError,
+    BodyHistoryManifestation, BodyHistoryMoment, ReadableBodyHistory, ReadableBodyHistoryError,
+    ReadableBodyHistorySlot, MAX_BODY_ATTACHMENT_EVIDENCE_BYTES,
+    MAX_BODY_BIOGRAPHY_EXPLANATION_BYTES, MAX_BODY_HISTORY_LINEAR_BYTES,
+    MAX_BODY_HISTORY_TITLE_BYTES,
+};
 use conduit_body::{
     AuthenticatedHostObservation, Body, BodyBiographyEvidence, BodyBiographyRecordKind,
     BodyGraduationChoice, BodyGraduationEvidence, BodyMembership, MembershipProofId, PartId,
-};
-use conduit_body_make::{
-    BodyEvidenceAttachment, BodyEvidenceEntrance, BodyEvidenceEntranceError,
-    MAX_BODY_ATTACHMENT_EVIDENCE_BYTES, MAX_BODY_BIOGRAPHY_EXPLANATION_BYTES,
 };
 use conduit_core::{
     bind_sign, BootId, CheckedFormId, HostId, ImplementationId, OfferGeneration, PlanId, SignId,
     SourceDocumentId,
 };
 use conduit_presentation::{PresentationAspect, PresentationDepth, PresentationPlace};
-use patchbay_model::{
-    BodyHistoryManifestation, BodyHistoryMoment, ReadableBodyHistory, ReadableBodyHistoryError,
-    ReadableBodyHistorySlot, MAX_BODY_HISTORY_LINEAR_BYTES, MAX_BODY_HISTORY_TITLE_BYTES,
-};
 
 const HOSTED_PLAN: &str = "plan/roseau-patchbay";
 const HOSTED_IMPLEMENTATION: &str = "browser/patchbay-surface@1";
@@ -66,7 +65,7 @@ fn evidence(choice: BodyGraduationChoice) -> BodyBiographyEvidence {
         .append_membership_events(membership, &[(admitted, 2), (joined, 3)])
         .unwrap();
     let (plan, implementation) = match choice {
-        BodyGraduationChoice::HostedPatchbay => (
+        BodyGraduationChoice::HostedReader => (
             Some(PlanId::from(HOSTED_PLAN)),
             Some(ImplementationId::from(HOSTED_IMPLEMENTATION)),
         ),
@@ -78,8 +77,8 @@ fn evidence(choice: BodyGraduationChoice) -> BodyBiographyEvidence {
             sequence: 4,
             sign_id: SignId::from("sign/roseau-graduated"),
             choice,
-            patchbay_plan_id: plan,
-            patchbay_implementation_id: implementation,
+            reader_plan_id: plan,
+            reader_implementation_id: implementation,
         })
         .unwrap();
     evidence
@@ -91,7 +90,7 @@ fn encoded(choice: BodyGraduationChoice) -> Vec<u8> {
 
 fn hosted_attachment() -> BodyEvidenceAttachment {
     BodyEvidenceAttachment::open_serialized(
-        &encoded(BodyGraduationChoice::HostedPatchbay),
+        &encoded(BodyGraduationChoice::HostedReader),
         BodyEvidenceEntrance::Hosted {
             plan_id: PlanId::from(HOSTED_PLAN),
             implementation_id: ImplementationId::from(HOSTED_IMPLEMENTATION),
@@ -104,6 +103,7 @@ fn hosted_attachment() -> BodyEvidenceAttachment {
 fn hosted_history_is_body_signs_with_four_ordered_friendly_and_exact_entries() {
     let history = ReadableBodyHistory::from_attachment(7, &hosted_attachment()).unwrap();
 
+    assert_eq!(history.schema, "conduit.body/readable-history@1");
     assert_eq!(history.place, PresentationPlace::Body);
     assert_eq!(history.aspect, PresentationAspect::Signs);
     assert_eq!(
@@ -176,13 +176,13 @@ fn external_graduation_is_exactly_unhosted_and_inspects_its_sign() {
     let hosted = ReadableBodyHistory::from_attachment(2, &hosted_attachment()).unwrap();
 
     assert_eq!(history.entries[..3], hosted.entries[..3]);
-    assert!(graduation.narrative.contains("No Patchbay was hosted"));
+    assert!(graduation.narrative.contains("No reader was hosted"));
     assert!(matches!(
         graduation.exact.record.kind,
         BodyBiographyRecordKind::Graduated {
             choice: BodyGraduationChoice::ExternalReader,
-            patchbay_plan_id: None,
-            patchbay_implementation_id: None,
+            reader_plan_id: None,
+            reader_implementation_id: None,
         }
     ));
     assert_eq!(graduation.inspect.sign_id, graduation.exact.record.sign_id);

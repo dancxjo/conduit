@@ -20,3 +20,26 @@ type RoboticsSimulationAvailability =
     fresh
     | missing
     | stale
+
+type AccelerationObservation = {
+    x-forward-mm-s2: I32 in -200000..=200000
+    y-left-mm-s2: I32 in -200000..=200000
+    z-up-mm-s2: I32 in -200000..=200000
+}
+
+type ProximityObservation = {
+    active-body-sectors: U8 in 0..=31
+}
+
+type ContactObservation = {
+    sectors: U8 in 0..=31
+}
+
+type WheelDropObservation = {
+    wheels: U8 in 0..=7
+}
+
+type RangeObservation = {
+    distance-mm: U32 in 0..=1000000
+    age-ms: U32 in 0..=60000
+}

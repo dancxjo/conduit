@@ -30,13 +30,24 @@ fn every_replay_command_round_trips_through_the_finite_value() {
         ReplayCommand::Resume,
         ReplayCommand::Restart,
         ReplayCommand::Step,
-        ReplayCommand::Fail { code: 513 },
+        ReplayCommand::fail(513).unwrap(),
     ] {
         let mut encoded = [0; MAXIMUM_REPLAY_COMMAND_BYTES];
-        let length = encode_replay_command_into(command, &mut encoded).unwrap();
+        let length = encode_replay_command_into(command.clone(), &mut encoded).unwrap();
         assert!(length <= MAXIMUM_REPLAY_COMMAND_BYTES);
         assert_eq!(decode_replay_command(&encoded[..length]), Ok(command));
     }
+}
+
+#[test]
+fn replay_command_wire_bytes_remain_exact() {
+    let mut encoded = [0; MAXIMUM_REPLAY_COMMAND_BYTES];
+    let start = encode_replay_command_into(ReplayCommand::Start, &mut encoded).unwrap();
+    assert_eq!(&encoded[..start], b"RCTL\x01\x00");
+
+    let failure =
+        encode_replay_command_into(ReplayCommand::fail(513).unwrap(), &mut encoded).unwrap();
+    assert_eq!(&encoded[..failure], b"RCTL\x01\x06\x01\x02");
 }
 
 #[test]
@@ -46,7 +57,7 @@ fn command_codec_failures_remain_distinct() {
         encode_replay_command_into(ReplayCommand::Start, &mut encoded[..5]),
         Err(ReplayCommandCodecRefusal::OutputTooSmall)
     );
-    let length = encode_replay_command_into(ReplayCommand::Fail { code: 7 }, &mut encoded).unwrap();
+    let length = encode_replay_command_into(ReplayCommand::fail(7).unwrap(), &mut encoded).unwrap();
     assert_eq!(
         decode_replay_command(&encoded[..5]),
         Err(ReplayCommandCodecRefusal::Truncated)
@@ -105,6 +116,6 @@ fn explicit_commands_drive_step_stop_restart_and_failure() {
     assert_eq!(replay.state(), ReplayState::Stopped);
     assert_eq!(replay.cursor(), 0);
     assert_eq!(replay.apply(ReplayCommand::Start, 300).unwrap(), None);
-    assert_eq!(replay.apply(ReplayCommand::Fail { code: 9 }, 301), Ok(None));
+    assert_eq!(replay.apply(ReplayCommand::fail(9).unwrap(), 301), Ok(None));
     assert_eq!(replay.state(), ReplayState::Failed { code: 9 });
 }

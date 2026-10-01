@@ -91,10 +91,7 @@ fn two_browser_hosts_exchange_pulses_and_converge_over_one_planned_line() {
         assert_eq!(frame.value_kind, conduit_time::PULSE_OBSERVATION_VALUE_KIND);
         assert_eq!(
             conduit_time::decode_pulse_observation(&frame.payload).unwrap(),
-            conduit_time::PulseObservation {
-                sequence: sequence as u32,
-                period_ms: 240,
-            }
+            conduit_time::PulseObservation::new(240, sequence as u32).unwrap()
         );
         assert_eq!(projection.hosts.len(), 2);
         assert_eq!(projection.cord.maximum_in_flight_items, 1);

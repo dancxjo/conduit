@@ -57,7 +57,6 @@ pub(super) const PRODUCT_PROOFS: &[ProductProofSpec] = &[ProductProofSpec {
         "products/patchbay/html/",
         "products/patchbay/model/",
         "products/patchbay/tools/",
-        "products/shared/browser/",
         "semantics/presentation/assets/",
         "site/",
         "targets/browser/host/",
@@ -111,10 +110,10 @@ pub(super) const BROWSER_PRESENTATION_PROOFS: &[BrowserPresentationSpec] =
         exact_inputs: &[
             "targets/browser/tools/build-browser-application-package.mjs",
             "targets/browser/tools/render-product-masthead.mjs",
+            "targets/browser/host/assets/conduit.css",
         ],
         input_prefixes: &[
             "site/",
-            "products/shared/browser/",
             "docs/journeys/tour/",
             "products/workspace/browser/",
             "products/workspace/tools/stage-workspace-product",
@@ -194,9 +193,9 @@ mod product_source_tests {
     use super::*;
 
     #[test]
-    fn product_owned_browser_source_requires_carrier_and_browser_proof() {
+    fn browser_presentation_source_requires_carrier_and_browser_proof() {
         for path in [
-            "products/shared/browser/conduit.css",
+            "targets/browser/host/assets/conduit.css",
             "docs/journeys/tour/chapter-1.md",
             "products/workspace/browser/body-bootstrap.mjs",
             "products/workspace/browser/reviewed-form-selection.mjs",

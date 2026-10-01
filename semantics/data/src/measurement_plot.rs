@@ -2,7 +2,10 @@
 
 use alloc::vec::Vec;
 
-use crate::{BoundedMeasurementWindow, MeasurementPlotOverflowPolicy, MeasurementPlotRefusal};
+use crate::{
+    BoundedMeasurementWindow, MeasurementPlotOverflowPolicy, MeasurementPlotPoint,
+    MeasurementPlotRefusal,
+};
 
 pub const MEASUREMENT_PLOT_SERIES_INFO_ID: &str = "data/measurement-plot-series@1";
 pub const MAXIMUM_MEASUREMENT_PLOT_POINTS: usize = 32;
@@ -12,13 +15,6 @@ pub const PLOT_AXIS_MILLIONTHS: i64 = 1_000_000;
 pub struct MeasurementPlotProfile {
     pub point_capacity: usize,
     pub overflow_policy: MeasurementPlotOverflowPolicy,
-}
-
-#[derive(Debug, Copy, Clone, PartialEq, Eq)]
-pub struct MeasurementPlotPoint {
-    pub source_index: usize,
-    pub time_millionths: i64,
-    pub value_millionths: i64,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -38,13 +34,13 @@ impl MeasurementPlotSeries {
             || points.len() > MAXIMUM_MEASUREMENT_PLOT_POINTS
             || source_samples.checked_sub(points.len()) != Some(omitted_samples)
             || points.iter().any(|point| {
-                point.source_index >= source_samples
-                    || !(0..=PLOT_AXIS_MILLIONTHS).contains(&point.time_millionths)
-                    || !(0..=PLOT_AXIS_MILLIONTHS).contains(&point.value_millionths)
+                usize::try_from(*point.source_index()).map_or(true, |index| index >= source_samples)
+                    || !(0..=PLOT_AXIS_MILLIONTHS).contains(point.time_millionths())
+                    || !(0..=PLOT_AXIS_MILLIONTHS).contains(point.value_millionths())
             })
             || points
                 .windows(2)
-                .any(|pair| pair[0].source_index >= pair[1].source_index)
+                .any(|pair| pair[0].source_index() >= pair[1].source_index())
         {
             return Err(MeasurementPlotRefusal::InvalidProjection);
         }
@@ -95,11 +91,10 @@ impl MeasurementPlotSeries {
             } else {
                 scaled(source_index as i64, (samples.len() - 1) as i64)?
             };
-            points.push(MeasurementPlotPoint {
-                source_index,
-                time_millionths,
-                value_millionths,
-            });
+            points.push(
+                MeasurementPlotPoint::new(source_index as u64, time_millionths, value_millionths)
+                    .expect("projection establishes native point bounds"),
+            );
         }
         Ok(Self {
             points,

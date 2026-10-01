@@ -96,7 +96,6 @@ enum StageSink {
         conduit_core::KindId,
         conduit_core::PortTemporal,
         Option<conduit_core::KindId>,
-        conduit_core::ConnectionTrack,
     ),
 }
 
@@ -429,7 +428,7 @@ fn expand_instance_inner(
             ));
         }
     }
-    let abnormal = infer_abnormal_export(&gears, &connections)?;
+    let abnormal = infer_abnormal_export(&gears, &connections, &outputs)?;
     Ok(Fragment {
         gears,
         connections,

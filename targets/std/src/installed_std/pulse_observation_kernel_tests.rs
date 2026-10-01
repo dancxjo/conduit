@@ -66,7 +66,7 @@ impl StepBack<1> for Driver {
                 if io.input(PortId(0)).is_some() {
                     let canonical = bytes.input(PortId(0)).unwrap();
                     let pulse = conduit_time::decode_pulse_observation(canonical).unwrap();
-                    assert_eq!((pulse.sequence, pulse.period_ms), (*next - 1, 320));
+                    assert_eq!((*pulse.sequence(), *pulse.period_ms()), (*next - 1, 320));
                     io.consume(PortId(0)).unwrap();
                     *next += 1;
                     StepOutcome::Progress

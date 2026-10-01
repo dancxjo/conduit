@@ -206,7 +206,7 @@ fn unavailable_corrupt_quota_and_replay_failure_remain_distinct() {
     replay.load_timeline(&timeline[..timeline_length]).unwrap();
     let mut command = [0; MAXIMUM_REPLAY_COMMAND_BYTES];
     let command_length =
-        encode_replay_command_into(ReplayCommand::Fail { code: 37 }, &mut command).unwrap();
+        encode_replay_command_into(ReplayCommand::fail(37).unwrap(), &mut command).unwrap();
     let mut event = [0; MAXIMUM_REPLAY_EVENT_BYTES];
     let mut state = [0; MAXIMUM_REPLAY_STATE_BYTES];
     let failed = replay

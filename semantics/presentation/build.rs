@@ -14,6 +14,9 @@ fn main() {
         &checked.codes,
         &RustBindingOptions {
             derive_serde_for_variants: true,
+            serde_variant_exclusions: ["FaceUtteranceProvenance".into()].into(),
+            serde_record_types: ["GeneratedActionAffordance".into()].into(),
+            serde_deny_unknown_record_types: ["GeneratedActionAffordance".into()].into(),
             serde_variant_orders: [
                 (
                     "GeneratedManifestationDisposition".into(),

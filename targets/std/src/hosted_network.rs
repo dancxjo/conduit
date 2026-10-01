@@ -26,7 +26,7 @@ pub fn resolve_dns(query: &DnsQuery) -> DnsResult {
             reason: refusal_message(error),
         };
     }
-    let resolved = match (query.name.as_str(), query.port).to_socket_addrs() {
+    let resolved = match (query.name().as_str(), *query.port()).to_socket_addrs() {
         Ok(resolved) => resolved,
         Err(error) => {
             return DnsResult::Refused {
@@ -36,10 +36,10 @@ pub fn resolve_dns(query: &DnsQuery) -> DnsResult {
     };
     let mut candidates = Vec::with_capacity(NETWORK_MAXIMUM_CANDIDATES);
     for address in resolved {
-        if !record_matches(query.record_kind, address.ip()) {
+        if !record_matches(*query.record_kind(), address.ip()) {
             continue;
         }
-        let endpoint = socket_endpoint(address, query.transport);
+        let endpoint = socket_endpoint(address, *query.transport());
         if !candidates.contains(&endpoint) {
             candidates.push(endpoint);
         }
@@ -53,7 +53,7 @@ pub fn resolve_dns(query: &DnsQuery) -> DnsResult {
         };
     }
     DnsResult::Current(DnsResolution {
-        canonical_name: query.name.clone(),
+        canonical_name: query.name().clone(),
         candidates,
         // `ToSocketAddrs` does not expose authoritative TTL. Do not invent it.
         ttl: DnsTtl::Unavailable,

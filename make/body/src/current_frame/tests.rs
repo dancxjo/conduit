@@ -55,7 +55,7 @@ fn evidence(choice: BodyGraduationChoice) -> BodyBiographyEvidence {
         .append_membership_events(membership, &[(admitted, 2), (joined, 3)])
         .unwrap();
     let (plan, implementation) = match choice {
-        BodyGraduationChoice::HostedPatchbay => (
+        BodyGraduationChoice::HostedReader => (
             Some(PlanId::from(HOSTED_PLAN)),
             Some(ImplementationId::from(HOSTED_IMPLEMENTATION)),
         ),
@@ -67,8 +67,8 @@ fn evidence(choice: BodyGraduationChoice) -> BodyBiographyEvidence {
             sequence: 4,
             sign_id: SignId::from("sign/roseau-graduated"),
             choice,
-            patchbay_plan_id: plan,
-            patchbay_implementation_id: implementation,
+            reader_plan_id: plan,
+            reader_implementation_id: implementation,
         })
         .unwrap();
     evidence
@@ -81,7 +81,7 @@ fn encoded(choice: BodyGraduationChoice) -> Vec<u8> {
 #[test]
 fn hosted_roseau_opens_as_one_lulled_current_body_with_exact_facts() {
     let attachment = BodyEvidenceAttachment::open_serialized(
-        &encoded(BodyGraduationChoice::HostedPatchbay),
+        &encoded(BodyGraduationChoice::HostedReader),
         BodyEvidenceEntrance::Hosted {
             plan_id: PlanId::from(HOSTED_PLAN),
             implementation_id: ImplementationId::from(HOSTED_IMPLEMENTATION),
@@ -115,7 +115,7 @@ fn hosted_roseau_opens_as_one_lulled_current_body_with_exact_facts() {
 #[test]
 fn external_readers_distinguish_hosted_and_unhosted_graduations() {
     let hosted = BodyEvidenceAttachment::open_serialized(
-        &encoded(BodyGraduationChoice::HostedPatchbay),
+        &encoded(BodyGraduationChoice::HostedReader),
         BodyEvidenceEntrance::ExternalReader,
     )
     .unwrap();

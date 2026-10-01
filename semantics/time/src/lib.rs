@@ -10,11 +10,12 @@ pub use generated::{
     AvailabilityState, CalendarRefusal, CivilFoldPolicy, CivilGapPolicy, CivilResolutionChoice,
     ClockChangeBehavior, HistoricalEntryOrigin, HistoricalEntryOriginCode,
     HistoricalOverflowPolicy, HistoricalOverflowPolicyCode, InvitationState,
-    MeetingProposalRefusal, ParticipantRole, PatternComparisonRefusal, RecurrenceRefusal,
-    ReplayPolicy, ReplayPolicyRate, ScheduleRefusal, ScheduledIntentRefusal,
-    SequenceNormalizationRefusal, SuspendBehavior, TemplateCollectionRefusal, TemporalBoundary,
-    TemporalWindowPosition, TemporalWindowRefusal, TimedPatternRefusal, WorkflowLifecycle,
-    WorkflowTimingOutcome, WorkflowTimingOutcomeClockUncertain, WorkflowTimingOutcomeLate,
+    MeetingProposalRefusal, ParticipantRole, PatternComparisonRefusal, PulseObservation,
+    RecurrenceRefusal, ReplayCommand, ReplayCommandFail, ReplayPolicy, ReplayPolicyRate,
+    ScheduleRefusal, ScheduledIntentRefusal, SequenceNormalizationRefusal, SuspendBehavior,
+    TemplateCollectionRefusal, TemporalBoundary, TemporalWindowPosition, TemporalWindowRefusal,
+    TimedPatternRefusal, WorkflowLifecycle, WorkflowTimingOutcome,
+    WorkflowTimingOutcomeClockUncertain, WorkflowTimingOutcomeLate,
 };
 
 mod timed_pattern_refusal;

@@ -14,6 +14,8 @@ fn main() {
         &checked.codes,
         &RustBindingOptions {
             derive_serde_for_variants: true,
+            serde_variant_exclusions: ["ReplayCommand".into()].into(),
+            copy_record_types: ["PulseObservation".into()].into(),
             ..RustBindingOptions::default()
         },
     )

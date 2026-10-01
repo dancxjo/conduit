@@ -236,7 +236,7 @@ mod tests {
             series
                 .points()
                 .iter()
-                .map(|point| point.source_index)
+                .map(|point| *point.source_index())
                 .collect::<Vec<_>>(),
             [0, 2]
         );

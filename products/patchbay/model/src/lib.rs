@@ -11,7 +11,6 @@ use conduit_observatory::{
     ObservatorySnapshot, OfferFreshness, OperationalState, RetentionReport, SNAPSHOT_SCHEMA,
 };
 
-mod body_planning_session;
 mod build_birth;
 mod control;
 mod conversation_request_evidence;
@@ -92,7 +91,6 @@ mod portable_world_projection;
 mod presentation_layout;
 mod prewake;
 pub mod proof;
-mod readable_body_history;
 mod recursive_form_demonstration;
 #[cfg(test)]
 mod recursive_form_projection_tests;
@@ -279,12 +277,6 @@ pub use presentation_layout::{
     PresentationRegionMode, ResponsivePatchbayLayout, MAX_PRESENTATION_REGIONS,
 };
 pub use prewake::*;
-pub use readable_body_history::{
-    BodyHistoryAccess, BodyHistoryEntry, BodyHistoryExactEvidence, BodyHistoryInspectTarget,
-    BodyHistoryManifestation, BodyHistoryMoment, ReadableArchivedBodyHistory, ReadableBodyHistory,
-    ReadableBodyHistoryError, ReadableBodyHistorySlot, MAX_BODY_HISTORY_LINEAR_BYTES,
-    MAX_BODY_HISTORY_TITLE_BYTES,
-};
 pub use recursive_form_demonstration::recursive_form_demonstration;
 pub use recursive_recovery_explanation::{
     explain_recursive_recovery, RecursiveRecoveryExplanation, RecursiveRecoveryExplanationError,

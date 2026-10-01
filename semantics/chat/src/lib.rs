@@ -6,14 +6,14 @@
 
 extern crate alloc;
 
-#[allow(dead_code)]
+#[allow(dead_code, clippy::too_many_arguments)]
 mod generated {
     include!(concat!(env!("OUT_DIR"), "/semantic_types.rs"));
 }
 
 pub use generated::{
     BodyChatHistoryItem, BodyChatMessage, BodyChatRefusal, BodyChatRole, BodyChatRoleCode,
-    ChatConnectionState, ChatStateRefusal, PresenceState,
+    BodyConversationalSummary, ChatConnectionState, ChatStateRefusal, PresenceState,
 };
 
 mod body_chat;

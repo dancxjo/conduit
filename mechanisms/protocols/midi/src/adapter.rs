@@ -321,7 +321,7 @@ impl MidiOutputAdapter {
     }
 
     pub fn encode_control(&self, event: MusicalControlEvent) -> Result<[u8; 3], MidiAdapterError> {
-        match event.control {
+        match event.control() {
             MusicalControl::Sustain(payload) => Ok([
                 0xb0 | self.profile.output_channel,
                 64,

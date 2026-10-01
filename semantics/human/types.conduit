@@ -20,6 +20,11 @@ type VisualImpressionDisposition =
         original_bytes: U32
     }
 
+type ImageTextMetadata = {
+    key: Text <= 64B not in [""]
+    value: Text <= 256B
+}
+
 code human/key-transition = KeyTransition as u8
 
 type ChordPhase =

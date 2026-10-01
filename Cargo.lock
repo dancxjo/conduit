@@ -811,7 +811,9 @@ dependencies = [
  "conduit-core",
  "conduit-form",
  "conduit-host-make",
+ "conduit-patchbay-workbench-conformance",
  "conduit-planner",
+ "conduit-presentation",
  "conduit-semantic-catalog",
  "conduit-std-host",
  "conduit-std-offers",
@@ -842,6 +844,7 @@ dependencies = [
  "conduit-body-invitation-form",
  "conduit-body-make",
  "conduit-chat",
+ "conduit-composite",
  "conduit-core",
  "conduit-data",
  "conduit-form",
@@ -1014,19 +1017,11 @@ dependencies = [
 ]
 
 [[package]]
-name = "conduit-host-conduitos-fabrication"
-version = "0.0.0"
-
-[[package]]
 name = "conduit-host-conduitos-make"
 version = "0.1.0"
 dependencies = [
  "conduit-host-make",
 ]
-
-[[package]]
-name = "conduit-host-esp32-fabrication"
-version = "0.0.0"
 
 [[package]]
 name = "conduit-host-esp32-make"
@@ -1390,6 +1385,7 @@ dependencies = [
  "conduit-body",
  "conduit-browser-runtime",
  "conduit-chat",
+ "conduit-composite",
  "conduit-core",
  "conduit-create-oi",
  "conduit-data",
@@ -1567,10 +1563,6 @@ version = "0.1.0"
 dependencies = [
  "conduit-core",
 ]
-
-[[package]]
-name = "conduit-workspace-fabrication"
-version = "0.0.0"
 
 [[package]]
 name = "conduit-workspace-make"

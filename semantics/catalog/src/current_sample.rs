@@ -116,12 +116,14 @@ pub fn install_current_sample_kind(
     startup: &mut conduit_form::StartupCatalog,
     profile: &mut conduit_form::ProfileCatalog,
 ) -> Result<(), alloc::string::String> {
+    let contract = current_sample_semantic_contract(value, trigger).map_err(str::to_string)?;
     startup.insert(conduit_form::KindSignature {
         kind: CURRENT_SAMPLE_KIND.to_string(),
         startup_parameters: Vec::new(),
     })?;
+    startup.insert_fore(CURRENT_SAMPLE_KIND, contract.checked_front())?;
     profile
-        .insert_kind(current_sample_semantic_contract(value, trigger).map_err(str::to_string)?)
+        .insert_kind(contract)
         .map_err(|error| error.to_string())
 }
 

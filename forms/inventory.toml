@@ -1,5 +1,5 @@
 schema = "conduit.reviewed-form-inventory/v1"
-maximum_forms = 116
+maximum_forms = 117
 maximum_combined_workloads = 4
 
 # Membership is explicit: repository path discovery validates this list but never creates it.
@@ -217,6 +217,12 @@ title = "Memory Lantern"
 entry = "memory_lantern"
 initial_body_order = 2
 browser_safe = { spec = "proof/browser/reviewed-form-conformance.spec.mjs", case = "reviewed form memory-lantern runs browser-safe" }
+[[forms]]
+slug = "durable-notebook"
+title = "Durable Notebook"
+entry = "durable-note"
+deterministic = { package = "conduit-std-host", test = "durable_notebook", case = "canonical_durable_notebook_checks_and_seals_distinct_retention_publication_and_load_truth" }
+browser_safe_not_applicable = "the reviewed browser Host does not offer Body-durable keep or immutable data-generation residence"
 [[forms]]
 slug = "little-seismograph"
 title = "Little Seismograph"

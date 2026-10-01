@@ -10,6 +10,12 @@ type MeasurementPlotOverflowPolicy =
     reject
     | evenly_spaced
 
+type MeasurementPlotPoint = {
+    source-index: U64
+    time-millionths: I64 in 0..=1000000
+    value-millionths: I64 in 0..=1000000
+}
+
 type MeasurementWindowRefusal =
     capacity_out_of_bounds
     | invalid_clock_profile
@@ -81,6 +87,17 @@ type ClockRelationQuality =
     | estimated {
         maximum-error: Duration
     }
+
+type ClockRelation = {
+    identity: Text <= 128B not in [""]
+    source-clock: Text <= 128B not in [""]
+    target-clock: Text <= 128B not in [""]
+    source-anchor: U64
+    target-anchor: U64
+    source-ticks: U64 in 1..=18446744073709551615
+    target-ticks: U64 in 1..=18446744073709551615
+    quality: ClockRelationQuality
+}
 
 type SampledSignalRefusal =
     invalid_clock

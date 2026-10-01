@@ -9,7 +9,7 @@ use conduit_core::SignId;
 use conduit_presentation::{PresentationAspect, PresentationDepth, PresentationPlace};
 use serde::Serialize;
 
-use conduit_body_make::{
+use crate::{
     project_body_biography, BodyEvidenceAttachment, BodyEvidenceEntranceError,
     MAX_BODY_BIOGRAPHY_EXPLANATION_BYTES,
 };
@@ -138,7 +138,7 @@ impl ReadableBodyHistory {
             )
             .collect::<Result<Vec<_>, _>>()?;
         Ok(Self {
-            schema: "conduit.patchbay/readable-body-history@1",
+            schema: "conduit.body/readable-history@1",
             evidence_revision,
             body_id: evidence.body_id.clone(),
             friendly_name: evidence.friendly_name.clone(),
@@ -221,3 +221,6 @@ impl ReadableBodyHistorySlot {
             .expect("readable history was installed"))
     }
 }
+
+#[cfg(test)]
+mod tests;

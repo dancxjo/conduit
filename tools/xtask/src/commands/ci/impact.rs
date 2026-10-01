@@ -1054,7 +1054,6 @@ fn browser_admission_shards(
     if paths.iter().any(|path| {
         path.starts_with("site/")
             || path.starts_with("products/home/")
-            || path.starts_with("products/shared/browser/")
             || path.starts_with("semantics/presentation/")
             || path.starts_with("targets/browser/host/")
             || path.starts_with("proof/browser/pages-")

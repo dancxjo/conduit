@@ -57,7 +57,7 @@ impl<const PORTS: usize> StepBack<PORTS> for Sink {
                 input_bytes.input(PortId(0)).expect("present pulse bytes"),
             )
             .expect("canonical pulse fixture");
-            assert_eq!((pulse.sequence, pulse.period_ms), (self.next, 320));
+            assert_eq!((*pulse.sequence(), *pulse.period_ms()), (self.next, 320));
             io.consume(PortId(0)).expect("present pulse fixture");
             self.next += 1;
             return StepOutcome::Progress;

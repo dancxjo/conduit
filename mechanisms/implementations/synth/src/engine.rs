@@ -104,8 +104,8 @@ impl ReferenceSynth {
         &mut self,
         event: MusicalControlEvent,
     ) -> Result<SynthEventOutcome, SynthEventError> {
-        self.require_current_or_future(event.event_time_micros)?;
-        match event.control {
+        self.require_current_or_future(*event.event_time_micros())?;
+        match event.control() {
             MusicalControl::Sustain(payload) => {
                 let down = *payload.down();
                 let mut released = 0;

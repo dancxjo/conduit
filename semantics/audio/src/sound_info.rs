@@ -5,7 +5,10 @@
 
 use conduit_core::{semantic_digest, Quantity, QuantityConversionRefusal, QuantityUnit};
 
-use crate::{Gate, GateCode, ModulationDestination, ModulationDestinationCode, MusicalControl};
+use crate::{
+    Gate, GateCode, ModulationDestination, ModulationDestinationCode, MusicalControl,
+    MusicalControlEvent,
+};
 
 pub const SOUND_TONE_INFO_ID: &str = "sound/tone-intent@1";
 pub const MUSIC_NOTE_INFO_ID: &str = "music/note-event@1";
@@ -233,32 +236,10 @@ impl Gate {
     }
 }
 
-#[derive(Debug, Clone, PartialEq, Eq)]
-pub struct MusicalControlEvent {
-    pub control: MusicalControl,
-    pub event_time_micros: u64,
-    pub order: u32,
-}
-
 impl MusicalControlEvent {
-    pub fn new(
-        control: MusicalControl,
-        event_time_micros: u64,
-        order: u32,
-    ) -> Result<Self, SoundInfoError> {
-        if event_time_micros > MAXIMUM_EVENT_TIME_MICROS {
-            return Err(SoundInfoError::OutOfRange("event-time-micros"));
-        }
-        Ok(Self {
-            control,
-            event_time_micros,
-            order,
-        })
-    }
-
     pub fn encode(&self) -> [u8; CONTROL_EVENT_ENCODED_LEN] {
         let mut out = [0; CONTROL_EVENT_ENCODED_LEN];
-        match &self.control {
+        match self.control() {
             MusicalControl::Sustain(payload) => {
                 out[0] = 0;
                 out[1] = u8::from(*payload.down());
@@ -274,8 +255,8 @@ impl MusicalControlEvent {
                 out[9] = ModulationDestinationCode::encode(*payload.destination())[0];
             }
         }
-        out[10..18].copy_from_slice(&self.event_time_micros.to_le_bytes());
-        out[18..22].copy_from_slice(&self.order.to_le_bytes());
+        out[10..18].copy_from_slice(&self.event_time_micros().to_le_bytes());
+        out[18..22].copy_from_slice(&self.order().to_le_bytes());
         out
     }
 
@@ -327,6 +308,7 @@ impl MusicalControlEvent {
             u64::from_le_bytes(array(encoded, 10)?),
             u32::from_le_bytes(array(encoded, 18)?),
         )
+        .map_err(|_| SoundInfoError::OutOfRange("event-time-micros"))
     }
 }
 

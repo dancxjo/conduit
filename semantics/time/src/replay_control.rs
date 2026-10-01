@@ -318,7 +318,7 @@ impl BoundedReplayController {
                 Ok(None)
             }
             crate::ReplayCommand::Step => self.step(playback_ticks).map(Some),
-            crate::ReplayCommand::Fail { code } => self.fail(code).map(|()| None),
+            crate::ReplayCommand::Fail(failure) => self.fail(*failure.code()).map(|()| None),
         }
     }
 
