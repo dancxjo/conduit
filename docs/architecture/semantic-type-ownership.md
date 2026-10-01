@@ -224,6 +224,7 @@ are satisfied.
 | Human camera/microphone media-kind vocabulary | `semantics/human/types.conduit` | generated at build time | yes | yes | exact native and stable JSON/postcard round trips plus human-media planning and target consumer suites |
 | Human visual-impression disposition vocabulary | `semantics/human/types.conduit` | generated at build time | yes | yes | exact native round trips, invalid-truncation validation, catalog codec/digest and std hosted-vision suites |
 | Measurement window/plot policies and threshold state/transitions | `semantics/data/types.conduit` | generated at build time | yes | yes | exact native round trips plus data and wire suites |
+| Measurement threshold policy record | `semantics/data/types.conduit` | generated at build time | yes | yes | exact native full-domain Quantity round trip, retained unit/order validation and literal hysteresis-profile wire golden |
 | Measurement window, plot, summary and threshold refusal vocabularies | `semantics/data/types.conduit` | generated at build time | yes | yes | exact native round trips plus measurement behavior suites |
 | Sampled-signal continuity and typed terminal | `semantics/data/types.conduit` | generated at build time | yes | yes | exact native round trips and identity bounds plus sampled-signal behavior suite |
 | Data text save/load typed terminals | `semantics/data/types.conduit` | generated at build time | yes | yes | exact native round trips plus one-byte codec and data behavior suites |

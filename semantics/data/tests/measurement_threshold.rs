@@ -26,10 +26,11 @@ fn summary(value: i64, unit: QuantityUnit, ticks: u64) -> MeasurementSummary {
 }
 
 fn policy() -> MeasurementThresholdPolicy {
-    MeasurementThresholdPolicy {
-        lower: Quantity::new(40, QuantityUnit::Millivolt),
-        upper: Quantity::new(60, QuantityUnit::Millivolt),
-    }
+    MeasurementThresholdPolicy::new(
+        Quantity::new(40, QuantityUnit::Millivolt),
+        Quantity::new(60, QuantityUnit::Millivolt),
+    )
+    .unwrap()
 }
 
 #[test]
@@ -66,18 +67,20 @@ fn hysteresis_transitions_only_at_the_explicit_boundaries() {
 
 #[test]
 fn invalid_policy_and_summary_units_refuse_distinctly() {
-    let mixed = MeasurementThresholdPolicy {
-        lower: Quantity::new(40, QuantityUnit::Millivolt),
-        upper: Quantity::new(60, QuantityUnit::Millimeter),
-    };
+    let mixed = MeasurementThresholdPolicy::new(
+        Quantity::new(40, QuantityUnit::Millivolt),
+        Quantity::new(60, QuantityUnit::Millimeter),
+    )
+    .unwrap();
     assert_eq!(
         MeasurementHysteresis::new(mixed, MeasurementThresholdState::Below),
         Err(MeasurementThresholdRefusal::PolicyUnitMismatch)
     );
-    let reversed = MeasurementThresholdPolicy {
-        lower: Quantity::new(60, QuantityUnit::Millivolt),
-        upper: Quantity::new(40, QuantityUnit::Millivolt),
-    };
+    let reversed = MeasurementThresholdPolicy::new(
+        Quantity::new(60, QuantityUnit::Millivolt),
+        Quantity::new(40, QuantityUnit::Millivolt),
+    )
+    .unwrap();
     assert_eq!(
         MeasurementHysteresis::new(reversed, MeasurementThresholdState::Below),
         Err(MeasurementThresholdRefusal::InvalidPolicyOrder)
@@ -130,6 +133,10 @@ fn hysteresis_profile_and_decision_payloads_round_trip_exactly() {
             &encode_measurement_hysteresis_profile(profile).unwrap()
         ),
         Ok(profile)
+    );
+    assert_eq!(
+        encode_measurement_hysteresis_profile(profile).unwrap(),
+        vec![1, 7, 40, 0, 0, 0, 0, 0, 0, 0, 7, 60, 0, 0, 0, 0, 0, 0, 0, 0,]
     );
     let mut hysteresis = MeasurementHysteresis::new(profile.policy, profile.initial_state).unwrap();
     let decision = hysteresis

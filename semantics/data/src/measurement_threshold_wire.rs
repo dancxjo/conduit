@@ -19,8 +19,8 @@ pub fn encode_measurement_hysteresis_profile(
         .map_err(|_| MeasurementWireRefusal::Malformed)?;
     let mut bytes = Vec::with_capacity(2 + conduit_core::QUANTITY_ENCODED_LEN * 2);
     bytes.push(1);
-    bytes.extend_from_slice(&profile.policy.lower.encode());
-    bytes.extend_from_slice(&profile.policy.upper.encode());
+    bytes.extend_from_slice(&profile.policy.lower().encode());
+    bytes.extend_from_slice(&profile.policy.upper().encode());
     bytes.push(state_byte(profile.initial_state));
     Ok(bytes)
 }
@@ -36,10 +36,8 @@ pub fn decode_measurement_hysteresis_profile(
         return Err(MeasurementWireRefusal::UnsupportedVersion);
     }
     let profile = MeasurementHysteresisProfile {
-        policy: crate::MeasurementThresholdPolicy {
-            lower: input.quantity()?,
-            upper: input.quantity()?,
-        },
+        policy: crate::MeasurementThresholdPolicy::new(input.quantity()?, input.quantity()?)
+            .map_err(|_| MeasurementWireRefusal::Malformed)?,
         initial_state: decode_state(input.u8()?)?,
     };
     if !input.finished() {

@@ -130,10 +130,11 @@ fn deterministic_source_runs_the_exact_processing_pipeline() {
     assert_eq!(summary.range, Quantity::new(150, QuantityUnit::Millivolt));
 
     let mut threshold = MeasurementHysteresis::new(
-        MeasurementThresholdPolicy {
-            lower: Quantity::new(10, QuantityUnit::Millivolt),
-            upper: Quantity::new(20, QuantityUnit::Millivolt),
-        },
+        MeasurementThresholdPolicy::new(
+            Quantity::new(10, QuantityUnit::Millivolt),
+            Quantity::new(20, QuantityUnit::Millivolt),
+        )
+        .unwrap(),
         MeasurementThresholdState::Below,
     )
     .unwrap();
