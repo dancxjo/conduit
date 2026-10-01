@@ -220,37 +220,26 @@ fn encode_wire_request(
     let mut cursor = Cursor::new(encoded);
     cursor.record(5)?;
     cursor.field("body")?;
-    cursor.variant("inline")?;
+    cursor.variant("inline-bytes")?;
     let body = cursor.leaf()?;
     cursor.field("headers")?;
-    cursor.collection(conduit_web::HTTP_MAXIMUM_HEADERS)?;
+    let encoded_header_count = cursor.collection_len()?;
+    if encoded_header_count > conduit_web::HTTP_MAXIMUM_HEADERS {
+        return Err(HttpClientFailure::RequestOverflow);
+    }
     let mut headers = [Header {
         name: &[],
         value: &[],
     }; conduit_web::HTTP_MAXIMUM_HEADERS];
     let mut count = 0;
-    let mut unused_seen = false;
-    for _ in 0..conduit_web::HTTP_MAXIMUM_HEADERS {
-        cursor.tag(3)?;
-        let tag = cursor.bytes()?;
-        match tag {
-            b"header" if !unused_seen => {
-                cursor.record(2)?;
-                cursor.field("name")?;
-                let name = cursor.leaf()?;
-                cursor.field("value")?;
-                let value = cursor.leaf()?;
-                headers[count] = Header { name, value };
-                count += 1;
-            }
-            b"unused" => {
-                unused_seen = true;
-                if !cursor.leaf()?.is_empty() {
-                    return Err(HttpClientFailure::MalformedRequest);
-                }
-            }
-            _ => return Err(HttpClientFailure::MalformedRequest),
-        }
+    for _ in 0..encoded_header_count {
+        cursor.record(2)?;
+        cursor.field("name")?;
+        let name = cursor.leaf()?;
+        cursor.field("value")?;
+        let value = cursor.leaf()?;
+        headers[count] = Header { name, value };
+        count += 1;
     }
     cursor.field("method")?;
     cursor.tag(3)?;
@@ -274,8 +263,12 @@ fn encode_wire_request(
     cursor.field("path_and_query")?;
     let target = cursor.leaf()?;
     cursor.field("scheme")?;
-    let scheme = cursor.leaf()?;
-    cursor.field("transaction_id")?;
+    cursor.tag(3)?;
+    let scheme = cursor.bytes()?;
+    if !cursor.leaf()?.is_empty() {
+        return Err(HttpClientFailure::MalformedRequest);
+    }
+    cursor.field("transaction-id")?;
     let transaction = u64::from_le_bytes(
         cursor
             .leaf()?
@@ -431,25 +424,20 @@ fn encode_info_response(
     writer.put(response_type)?;
     writer.record(4)?;
     writer.field("body")?;
-    writer.variant("inline")?;
+    writer.variant("inline-bytes")?;
     writer.leaf(body)?;
     writer.field("headers")?;
-    writer.collection(conduit_web::HTTP_MAXIMUM_HEADERS)?;
+    writer.collection(count)?;
     for header in &headers[..count] {
-        writer.variant("header")?;
         writer.record(2)?;
         writer.field("name")?;
         writer.leaf(header.name)?;
         writer.field("value")?;
         writer.leaf(header.value)?;
     }
-    for _ in count..conduit_web::HTTP_MAXIMUM_HEADERS {
-        writer.variant("unused")?;
-        writer.leaf(&[])?;
-    }
     writer.field("status")?;
-    writer.leaf(&u64::from(status).to_le_bytes())?;
-    writer.field("transaction_id")?;
+    writer.leaf(&status.to_le_bytes())?;
+    writer.field("transaction-id")?;
     writer.leaf(&transaction.to_le_bytes())?;
     Ok(writer.len)
 }
@@ -520,13 +508,9 @@ impl<'a> Cursor<'a> {
             Err(HttpClientFailure::MalformedRequest)
         }
     }
-    fn collection(&mut self, items: usize) -> Result<(), HttpClientFailure> {
+    fn collection_len(&mut self) -> Result<usize, HttpClientFailure> {
         self.tag(1)?;
-        if self.u32()? as usize == items {
-            Ok(())
-        } else {
-            Err(HttpClientFailure::MalformedRequest)
-        }
+        Ok(self.u32()? as usize)
     }
     fn field(&mut self, expected: &str) -> Result<(), HttpClientFailure> {
         if self.bytes()? == expected.as_bytes() {
