@@ -4,14 +4,13 @@ use conduit_ai::{DATA_EGRESS_CHARACTERISTIC, MAXIMUM_CONTEXT_CHARACTERISTIC};
 use conduit_core::{CharacteristicId, CharacteristicUnit, PlanId};
 use conduit_planner::{
     plan, select_realization_with_scoped_policy, HardRealizationRequirements, PlacementChoices,
-    PlannerFactRef, PlannerFactValue, PlannerPredicate, PlannerPreference, PolicyLayer,
-    PolicyScope, PolicySourceId, PolicySourceRevision, RealizationPreference, ReviewedObservation,
-    StylePreferenceEvidence, StylePreferenceOutcome,
+    PlannerFactRef, PlannerFactValue, PlannerPredicate, PlannerPreference, PolicyChoiceDomain,
+    PolicyChoiceExplanation, PolicyExplanationError, PolicyLayer, PolicyScope, PolicySourceId,
+    PolicySourceRevision, RealizationPreference, ReviewedObservation, StylePreferenceEvidence,
+    StylePreferenceOutcome, MAX_POLICY_EXPLANATIONS,
 };
 
-use crate::{
-    PatchbayPresentation, PolicyChoiceDomain, PolicyChoiceExplanation, PolicyExplanationError,
-};
+use crate::PatchbayPresentation;
 
 fn source(id: &str, scope: PolicyScope) -> PolicySourceRevision {
     PolicySourceRevision {
@@ -117,7 +116,7 @@ fn explanation(
     selection: &conduit_planner::ScopedRealizationSelection,
     plan: &conduit_core::Plan,
     gear_id: &conduit_core::GearId,
-) -> crate::PolicyChoiceExplanation {
+) -> PolicyChoiceExplanation {
     PolicyChoiceExplanation::from_planner_evidence(
         plan,
         gear_id,
@@ -263,6 +262,6 @@ fn renderer_projection_accepts_only_bounded_explanations_for_its_exact_plan() {
         .with_policy_explanations(vec![explanation.clone()])
         .is_err());
     assert!(projected
-        .with_policy_explanations(vec![explanation; crate::MAX_POLICY_EXPLANATIONS + 1])
+        .with_policy_explanations(vec![explanation; MAX_POLICY_EXPLANATIONS + 1])
         .is_err());
 }

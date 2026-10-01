@@ -1,12 +1,11 @@
 //! Renderer-neutral explanation of a scarred but semantically full realization.
 
+use crate::{prelude::*, RecursiveRecoveryEvidence};
 use conduit_core::Plan;
-use conduit_planner::RecursiveRecoveryEvidence;
-use serde::{Deserialize, Serialize};
 
-pub const MAX_RECURSIVE_RECOVERY_EXPLANATION_BYTES: usize = 4_096;
+pub const MAXIMUM_RECURSIVE_RECOVERY_EXPLANATION_BYTES: usize = 4_096;
 
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub struct RecursiveRecoveryExplanation {
     pub semantic_profile: String,
     pub lost_direct_plan_id: String,
@@ -91,7 +90,7 @@ pub fn explain_recursive_recovery(
         evidence.resource_binding_count,
         evidence.authority_binding_count,
     );
-    if summary.len() > MAX_RECURSIVE_RECOVERY_EXPLANATION_BYTES {
+    if summary.len() > MAXIMUM_RECURSIVE_RECOVERY_EXPLANATION_BYTES {
         return Err(RecursiveRecoveryExplanationError::EvidenceTooLarge);
     }
     Ok(RecursiveRecoveryExplanation {
