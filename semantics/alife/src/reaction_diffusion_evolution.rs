@@ -81,7 +81,9 @@ fn laplacian(center: u32, north: u32, south: u32, west: u32, east: u32) -> i64 {
 
 fn scaled_product(left: i64, right: i64) -> Result<i64, ReactionDiffusionRefusal> {
     let product = i128::from(left) * i128::from(right) / i128::from(CONCENTRATION_SCALE);
-    i64::try_from(product).map_err(|_| ReactionDiffusionRefusal::ArithmeticOverflow)
+    i64::try_from(product).map_err(|_| {
+        ReactionDiffusionRefusal::Value(crate::ReactionDiffusionValueRefusal::ArithmeticOverflow)
+    })
 }
 
 fn clamp_concentration(value: i64) -> u32 {

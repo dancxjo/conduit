@@ -24,17 +24,17 @@ pub fn orbium_seed(width: u16, height: u16, seed: u64) -> Result<LeniaFieldState
         || pattern_width > usize::from(width)
         || pattern_height > usize::from(height)
     {
-        return Err(LeniaRefusal::InvalidSeed);
+        return Err(LeniaRefusal::Value(crate::LeniaValueRefusal::InvalidSeed));
     }
     let mut cells = vec![0; count];
     let jitter_x = ((seed.wrapping_mul(17) % 9) as isize) - 4;
     let jitter_y = ((seed.wrapping_mul(29) % 9) as isize) - 4;
     let origin_x = (isize::try_from(usize::from(width) - pattern_width)
-        .map_err(|_| LeniaRefusal::ArithmeticOverflow)?
+        .map_err(|_| LeniaRefusal::Value(crate::LeniaValueRefusal::ArithmeticOverflow))?
         / 2)
         + jitter_x;
     let origin_y = (isize::try_from(usize::from(height) - pattern_height)
-        .map_err(|_| LeniaRefusal::ArithmeticOverflow)?
+        .map_err(|_| LeniaRefusal::Value(crate::LeniaValueRefusal::ArithmeticOverflow))?
         / 2)
         + jitter_y;
     let mirrored = seed & 1 == 0;
@@ -66,7 +66,9 @@ fn decode_pattern() -> Result<Vec<Vec<u32>>, LeniaRefusal> {
             count = count
                 .checked_mul(10)
                 .and_then(|value| value.checked_add(character.to_digit(10)? as usize))
-                .ok_or(LeniaRefusal::ArithmeticOverflow)?;
+                .ok_or(LeniaRefusal::Value(
+                    crate::LeniaValueRefusal::ArithmeticOverflow,
+                ))?;
             continue;
         }
         if matches!(character, 'p'..='y' | '@') {
@@ -75,7 +77,7 @@ fn decode_pattern() -> Result<Vec<Vec<u32>>, LeniaRefusal> {
         }
         if character == '$' || character == '!' {
             if prefix.is_some() || count != 0 {
-                return Err(LeniaRefusal::InvalidSeed);
+                return Err(LeniaRefusal::Value(crate::LeniaValueRefusal::InvalidSeed));
             }
             if character == '$' {
                 rows.push(Vec::new());
@@ -87,7 +89,7 @@ fn decode_pattern() -> Result<Vec<Vec<u32>>, LeniaRefusal> {
         count = 0;
         let q16 = (u64::from(value) * u64::from(LENIA_Q16_ONE) + 127) / 255;
         rows.last_mut()
-            .ok_or(LeniaRefusal::InvalidSeed)?
+            .ok_or(LeniaRefusal::Value(crate::LeniaValueRefusal::InvalidSeed))?
             .extend(core::iter::repeat_n(q16 as u32, repeats));
     }
     if rows.last().is_some_and(Vec::is_empty) {
@@ -101,27 +103,27 @@ fn decode_value(prefix: Option<char>, character: char) -> Result<u16, LeniaRefus
         return prefix
             .is_none()
             .then_some(0)
-            .ok_or(LeniaRefusal::InvalidSeed);
+            .ok_or(LeniaRefusal::Value(crate::LeniaValueRefusal::InvalidSeed));
     }
     if character == 'o' {
         return prefix
             .is_none()
             .then_some(255)
-            .ok_or(LeniaRefusal::InvalidSeed);
+            .ok_or(LeniaRefusal::Value(crate::LeniaValueRefusal::InvalidSeed));
     }
     if !character.is_ascii_uppercase() {
-        return Err(LeniaRefusal::InvalidSeed);
+        return Err(LeniaRefusal::Value(crate::LeniaValueRefusal::InvalidSeed));
     }
     let suffix = character as u16 - 'A' as u16;
     let value = match prefix {
         None => suffix + 1,
         Some(prefix @ 'p'..='y') => (prefix as u16 - 'p' as u16) * 24 + suffix + 25,
         Some('@') => 10 * 24 + suffix + 25,
-        _ => return Err(LeniaRefusal::InvalidSeed),
+        _ => return Err(LeniaRefusal::Value(crate::LeniaValueRefusal::InvalidSeed)),
     };
     (value <= 255)
         .then_some(value)
-        .ok_or(LeniaRefusal::InvalidSeed)
+        .ok_or(LeniaRefusal::Value(crate::LeniaValueRefusal::InvalidSeed))
 }
 
 #[cfg(test)]

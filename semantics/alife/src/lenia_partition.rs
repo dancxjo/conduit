@@ -340,9 +340,11 @@ impl LeniaRegionKernel {
         work: LeniaRegionWorkView<'_>,
         output: &mut [u32],
     ) -> Result<(), LeniaPartitionRefusal> {
-        let parameters = self.parameters.ok_or(LeniaPartitionRefusal::Evolution(
-            LeniaRefusal::Uninitialized,
-        ))?;
+        let parameters =
+            self.parameters
+                .ok_or(LeniaPartitionRefusal::Evolution(LeniaRefusal::Worker(
+                    crate::LeniaWorkerRefusal::Uninitialized,
+                )))?;
         if work.halo != parameters.kernel_radius {
             return Err(LeniaPartitionRefusal::WrongHalo);
         }
@@ -406,9 +408,9 @@ impl LeniaRegionResult {
             return Err(LeniaPartitionRefusal::CellCountMismatch);
         }
         if cells.iter().any(|cell| *cell > crate::LENIA_Q16_ONE) {
-            return Err(LeniaPartitionRefusal::Evolution(
-                LeniaRefusal::CellOutOfRange,
-            ));
+            return Err(LeniaPartitionRefusal::Evolution(LeniaRefusal::Value(
+                crate::LeniaValueRefusal::CellOutOfRange,
+            )));
         }
         Ok(Self {
             field_id,
