@@ -233,6 +233,59 @@ type DataGenerationValue<T> = {
 
 type DataGenerationTextValue = DataGenerationValue<Text <= 4096B>
 
+type TabularColumnType =
+    boolean
+    | count
+    | optional_text
+    | text
+
+type TabularColumnSpec = {
+    name: Text <= 4096B
+    value_type: TabularColumnType
+}
+
+type TabularSchemaFour = {
+    columns: collection TabularColumnSpec = 4
+    identity: Text <= 4096B
+}
+
+type TabularOptionalText =
+    null
+    | value Text <= 4096B
+
+type TabularPersonRow = {
+    active: Boolean
+    id: Count
+    name: Text <= 4096B
+    nickname: TabularOptionalText
+}
+
+type TabularPersonRowSlot =
+    row TabularPersonRow
+    | unused
+
+type TabularPersonRowsFour = collection TabularPersonRowSlot = 4
+
+type TabularQueryCompletion = {
+    emitted_rows: Count
+    end_of_results: Boolean
+}
+
+type TabularQueryError = {
+    code: Text <= 4096B
+    message: Text <= 4096B
+}
+
+type TabularQueryStatus =
+    complete TabularQueryCompletion
+    | error TabularQueryError
+
+type TabularQueryResultFour = {
+    rows: TabularPersonRowsFour
+    schema: TabularSchemaFour
+    status: TabularQueryStatus
+}
+
 code data/save-text-terminal = DataSaveTextTerminal as u8
 
 code data/load-text-terminal = DataLoadTextTerminal as u8
