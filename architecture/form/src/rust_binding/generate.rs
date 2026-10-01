@@ -486,6 +486,9 @@ pub(super) fn rust_type(
             rust_type(element, names)?,
             maximum_items
         )),
+        StructuredInfoTypeShape::Collection { element, length } => {
+            Ok(format!("[{}; {}]", rust_type(element, names)?, length))
+        }
         StructuredInfoTypeShape::Variant { schema, cases }
             if schema.as_str() == "conduit.conduitese.optional.v1" =>
         {

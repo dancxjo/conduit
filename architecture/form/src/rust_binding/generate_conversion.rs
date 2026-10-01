@@ -230,6 +230,12 @@ fn encode_expression(
                 "{{ let element_type = conduit_form::rust_binding::sequence_element_type(&{expected})?; let _ = &element_type; let mut values = Vec::new(); for item in {value} {{ values.push({inner}); }} StructuredInfoValue::sequence({expected}, values).map_err(NativeBindingRefusal::InvalidValue)? }}"
             ))
         }
+        StructuredInfoTypeShape::Collection { element, .. } => {
+            let inner = encode_expression(element, "item", "element_type.clone()", names)?;
+            Ok(format!(
+                "{{ let element_type = conduit_form::rust_binding::collection_element_type(&{expected})?; let _ = &element_type; let mut values = Vec::new(); for item in {value} {{ values.push({inner}); }} StructuredInfoValue::collection({expected}, values).map_err(NativeBindingRefusal::InvalidValue)? }}"
+            ))
+        }
         StructuredInfoTypeShape::Variant { schema, cases }
             if schema.as_str() == "conduit.conduitese.optional.v1" =>
         {
@@ -274,6 +280,13 @@ fn decode_expression(
             let decoded = decode_expression(element, "item.clone()", names)?;
             Ok(format!(
                 "{{ let sequence_value = {value}; let StructuredInfoValueShape::Collection(items) = sequence_value.shape() else {{ return Err(NativeBindingRefusal::InvalidValue(conduit_core::StructuredInfoRefusal::WrongType)); }}; let mut result = BoundedSequence::<{}, {maximum_items}>::new(); for item in items {{ result.push({decoded}).map_err(|_| NativeBindingRefusal::InvalidValue(conduit_core::StructuredInfoRefusal::WrongCollectionLength))?; }} result }}",
+                rust_type(element, names)?
+            ))
+        }
+        StructuredInfoTypeShape::Collection { element, length } => {
+            let decoded = decode_expression(element, "item.clone()", names)?;
+            Ok(format!(
+                "{{ let collection_value = {value}; let StructuredInfoValueShape::Collection(items) = collection_value.shape() else {{ return Err(NativeBindingRefusal::InvalidValue(conduit_core::StructuredInfoRefusal::WrongType)); }}; let mut decoded_values = Vec::new(); for item in items {{ decoded_values.push({decoded}); }} let result: [{}; {length}] = decoded_values.try_into().map_err(|_| NativeBindingRefusal::InvalidValue(conduit_core::StructuredInfoRefusal::WrongCollectionLength))?; result }}",
                 rust_type(element, names)?
             ))
         }

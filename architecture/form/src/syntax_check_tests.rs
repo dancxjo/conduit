@@ -1270,6 +1270,23 @@ fn native_types_resolve_forward_references_and_refuse_recursive_cycles() {
 }
 
 #[test]
+fn native_fixed_collection_checks_to_exact_structured_collection_truth() {
+    let checked = check_syntax_document(
+        &parse_syntax_document("type Quartet = collection Note = 4\ntype Note = U8 in 0..=127\n"),
+        &StartupCatalog::new(),
+    )
+    .unwrap();
+    assert!(matches!(
+        checked.native_types[0].value_type.shape(),
+        conduit_core::StructuredInfoTypeShape::Nominal { representation, .. }
+            if matches!(
+                representation.shape(),
+                conduit_core::StructuredInfoTypeShape::Collection { length: 4, .. }
+            )
+    ));
+}
+
+#[test]
 fn native_types_work_in_keeps_and_data_refs_without_structural_interchange() {
     let mut catalog = StartupCatalog::new();
     catalog

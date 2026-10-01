@@ -141,6 +141,7 @@ fn expression_references<'a>(expression: &'a TypeExpressionSyntax, out: &mut Vec
         TypeExpressionSyntax::Optional { value, .. }
         | TypeExpressionSyntax::DataReference { value, .. } => expression_references(value, out),
         TypeExpressionSyntax::Sequence { element, .. } => expression_references(element, out),
+        TypeExpressionSyntax::Collection { element, .. } => expression_references(element, out),
     }
 }
 
@@ -352,6 +353,18 @@ fn compile_expression(
                     *maximum_items,
                 )
                 .map_err(|error| bounded(*span, error))?,
+                contracts: prefix_contracts(compiled.contracts, "[]"),
+            })
+        }
+        TypeExpressionSyntax::Collection {
+            element,
+            length,
+            span,
+        } => {
+            let compiled = compile_expression(element, catalog)?;
+            Ok(CompiledRepresentation {
+                value_type: StructuredInfoType::collection(compiled.value_type, Some(*length))
+                    .map_err(|error| bounded(*span, error))?,
                 contracts: prefix_contracts(compiled.contracts, "[]"),
             })
         }

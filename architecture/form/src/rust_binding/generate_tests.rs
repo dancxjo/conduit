@@ -9,6 +9,14 @@ type Position = {
     y: Distance
 }
 
+type Chord = {
+    notes: collection Note = 3
+}
+
+type Phrase = {
+    notes: sequence Note in 2..=3
+}
+
 type Observation = {
     note: Note?
     evidence: &Text
@@ -488,6 +496,29 @@ mod generated_round_trip {
         ).unwrap();
         let encoded = position.clone().encode().unwrap();
         assert_eq!(Position::decode(&encoded).unwrap(), position);
+
+        let chord = Chord::new([
+            Note::new(60).unwrap(),
+            Note::new(64).unwrap(),
+            Note::new(67).unwrap(),
+        ]).unwrap();
+        assert_eq!(chord.notes().len(), 3);
+        let encoded = chord.clone().encode().unwrap();
+        assert_eq!(Chord::decode(&encoded).unwrap(), chord);
+
+        let underfull = Phrase::new(BoundedSequence::<Note, 3>::new());
+        assert!(matches!(
+            underfull,
+            Err(NativeBindingRefusal::InvalidValue(
+                conduit_core::StructuredInfoRefusal::WrongCollectionLength
+            ))
+        ));
+        let mut notes = BoundedSequence::<Note, 3>::new();
+        notes.push(Note::new(60).unwrap()).unwrap();
+        notes.push(Note::new(64).unwrap()).unwrap();
+        let phrase = Phrase::new(notes).unwrap();
+        let encoded = phrase.clone().encode().unwrap();
+        assert_eq!(Phrase::decode(&encoded).unwrap(), phrase);
 
         let evidence = BoundedBytes::<4096>::new(b"sha256:truth").unwrap();
         let observation = Observation::new(evidence, Some(Note::new(64).unwrap())).unwrap();
