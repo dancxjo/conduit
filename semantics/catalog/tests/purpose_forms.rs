@@ -46,8 +46,11 @@ fn purpose_evidence_has_exact_finite_bounds() {
         .iter()
         .find(|field| field.name() == "obligations")
         .unwrap();
-    let StructuredInfoTypeShape::Collection { element, length } = obligations.value_type().shape()
+    let StructuredInfoTypeShape::Nominal { representation, .. } = obligations.value_type().shape()
     else {
+        panic!()
+    };
+    let StructuredInfoTypeShape::Collection { element, length } = representation.shape() else {
         panic!()
     };
     assert_eq!(length, 32);
@@ -58,7 +61,11 @@ fn purpose_evidence_has_exact_finite_bounds() {
         .iter()
         .find(|field| field.name() == "evidence_sign_identities")
         .unwrap();
-    let StructuredInfoTypeShape::Collection { length, .. } = evidence.value_type().shape() else {
+    let StructuredInfoTypeShape::Nominal { representation, .. } = evidence.value_type().shape()
+    else {
+        panic!()
+    };
+    let StructuredInfoTypeShape::Collection { length, .. } = representation.shape() else {
         panic!()
     };
     assert_eq!(length, 8);

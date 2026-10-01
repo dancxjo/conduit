@@ -1292,6 +1292,14 @@ dependencies = [
 ]
 
 [[package]]
+name = "conduit-purpose"
+version = "0.1.0"
+dependencies = [
+ "conduit-core",
+ "conduit-form",
+]
+
+[[package]]
 name = "conduit-r1-network-conformance"
 version = "0.1.0"
 dependencies = [
@@ -1348,6 +1356,7 @@ dependencies = [
  "conduit-net",
  "conduit-planner",
  "conduit-presentation",
+ "conduit-purpose",
  "conduit-robotics",
  "conduit-text",
  "conduit-time",
