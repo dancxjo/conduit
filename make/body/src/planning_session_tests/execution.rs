@@ -1,4 +1,4 @@
-use crate::FormCandidate;
+use crate::BodyPlanningForm;
 use conduit_body::{
     Body, BodyExecutionClaim, BodyExecutionClaimError, BodyLifecycleError, BodyPlanningSession,
     BodyPlanningSessionError, BodyPlanningTransition, BodyWorkset, RemoteProofClass, Wake,
@@ -7,23 +7,15 @@ use conduit_body::{
 use conduit_core::{bind_sign, SignId};
 
 fn proposal() -> BodyPlanningSession {
-    let candidate = FormCandidate::from_source(
-        "Hello",
-        "forms/hello/main.conduit",
-        include_str!("../../../../../forms/hello/main.conduit"),
-        "canonical test Form",
-        "sign/reviewed".into(),
-        1,
-    )
-    .unwrap();
+    let expanded = super::hello_form();
     let resident = conduit_body::ResidentForm::new(
-        candidate.source_document_id.clone(),
-        candidate.checked_form_id.clone(),
+        expanded.source_document_id.clone(),
+        expanded.checked_form_id.clone(),
     );
-    let workset = BodyWorkset::one(resident).unwrap();
+    let workset = BodyWorkset::one(resident.clone()).unwrap();
     let host = conduit_std_host::StdHost::new();
-    let planning = candidate.body_planning_form().unwrap();
-    let forms = conduit_body_make::plan_body_workset_on_host(
+    let planning = BodyPlanningForm::new(resident.clone(), expanded).unwrap();
+    let forms = crate::plan_body_workset_on_host(
         &workset,
         &[planning],
         host.advertisement(),
