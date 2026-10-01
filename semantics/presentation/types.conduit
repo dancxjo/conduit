@@ -191,6 +191,79 @@ type GeneratedContentRole =
     speech
     | presented_thought
 
+type PresentationPlace =
+    entrance
+    | program
+    | body
+
+code presentation/place = PresentationPlace as u8
+
+type PresentationAspect =
+    structure
+    | plan
+    | play
+    | signs
+
+code presentation/aspect = PresentationAspect as u8
+
+type PresentationDepth =
+    primary
+    | context
+    | detail
+    | exact
+
+code presentation/depth = PresentationDepth as u8
+
+type NavigationRefusal =
+    stale_presentation
+    | unknown_place
+    | unknown_aspect
+    | unknown_subject
+    | unknown_relationship
+    | history_exhausted
+    | history_full
+    | invalid_truth
+
+code presentation/navigation-refusal = NavigationRefusal as u8
+
+type MaskWardrobeLifetime =
+    wake
+    | body
+
+code presentation/mask-wardrobe-lifetime = MaskWardrobeLifetime as u8
+
+type MaskPlanningDisposition =
+    not_required
+    | replacement_required
+
+code presentation/mask-planning-disposition = MaskPlanningDisposition as u8
+
+type MaskWardrobeError =
+    stale_revision
+    | capacity_exceeded
+    | duplicate_mask
+    | unknown_mask
+    | unknown_preference
+    | invalid_lifetime_scope
+    | invalid_route
+    | duplicate_route
+    | stale_selection
+
+code presentation/mask-wardrobe-error = MaskWardrobeError as u8
+
+type FaceContributionRole =
+    foreground
+    | tutorial
+    | inspection
+    | transient
+
+code presentation/face-contribution-role = FaceContributionRole as u8
+
+type GenerativeNarratorRole =
+    transient_first_person_body_narrator
+
+code presentation/generative-narrator-role = GenerativeNarratorRole as u8
+
 type GeneratedActionAffordance = {
     action_identity: Text <= 128B not in [""]
     source_presentation_revision: U64
