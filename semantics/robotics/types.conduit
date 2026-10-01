@@ -7,7 +7,7 @@ type BeaconKind =
 type BeaconObservation = {
     kind: BeaconKind
     code: U8
-    where variant/tag(.kind) != "virtual_wall" || .code == 0
+    where !(.kind is virtual_wall) || .code == 0
 }
 
 code robotics/beacon-kind = BeaconKind as u8

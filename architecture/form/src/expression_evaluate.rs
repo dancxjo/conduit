@@ -175,6 +175,27 @@ fn intrinsic_call(
             encoded: tag.as_bytes().to_vec(),
         });
     }
+    if kind == "variant/is" {
+        if arguments.len() != 2 {
+            return Err(PortableExpressionEvaluationRefusal::InvalidProgram);
+        }
+        let case = arguments
+            .pop()
+            .ok_or(PortableExpressionEvaluationRefusal::InvalidProgram)?;
+        let value = arguments
+            .pop()
+            .ok_or(PortableExpressionEvaluationRefusal::InvalidProgram)?;
+        let value = StructuredInfoValue::from_canonical_bytes(&value.encoded)
+            .map_err(|_| PortableExpressionEvaluationRefusal::InvalidProgram)?;
+        let StructuredInfoValueShape::Variant { tag, .. } = value.shape() else {
+            return Err(PortableExpressionEvaluationRefusal::InvalidProgram);
+        };
+        let matched = tag.as_bytes() == case.encoded;
+        return Ok(Value {
+            value_type: expected.clone(),
+            encoded: vec![u8::from(matched)],
+        });
+    }
     if matches!(
         kind,
         "value/u16"

@@ -18,14 +18,14 @@ type KeyEvent = {
     right_alt_after: Boolean
     right_gui_after: Boolean
     where (.usage >= 4 && .usage <= 164) || (.usage >= 224 && .usage <= 231)
-    where .usage != 224 || .left_control_after == (variant/tag(.transition) == "pressed")
-    where .usage != 225 || .left_shift_after == (variant/tag(.transition) == "pressed")
-    where .usage != 226 || .left_alt_after == (variant/tag(.transition) == "pressed")
-    where .usage != 227 || .left_gui_after == (variant/tag(.transition) == "pressed")
-    where .usage != 228 || .right_control_after == (variant/tag(.transition) == "pressed")
-    where .usage != 229 || .right_shift_after == (variant/tag(.transition) == "pressed")
-    where .usage != 230 || .right_alt_after == (variant/tag(.transition) == "pressed")
-    where .usage != 231 || .right_gui_after == (variant/tag(.transition) == "pressed")
+    where .usage != 224 || .left_control_after == (.transition is pressed)
+    where .usage != 225 || .left_shift_after == (.transition is pressed)
+    where .usage != 226 || .left_alt_after == (.transition is pressed)
+    where .usage != 227 || .left_gui_after == (.transition is pressed)
+    where .usage != 228 || .right_control_after == (.transition is pressed)
+    where .usage != 229 || .right_shift_after == (.transition is pressed)
+    where .usage != 230 || .right_alt_after == (.transition is pressed)
+    where .usage != 231 || .right_gui_after == (.transition is pressed)
 }
 
 type KeymapRefusal =
