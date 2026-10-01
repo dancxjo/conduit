@@ -37,3 +37,54 @@ type FinanceRateObservation = {
     source: FinanceRateSource
     profile: FinanceRateProfile
 }
+
+# Finance quotes use one exact clock instead of carrying an open-ended scale
+# record: Unix UTC seconds are part of this nominal meaning.
+type FinanceObservedInstant = U64
+
+type FinanceQuoteSource = Text <= 256B not in [""]
+
+type FinanceOrderIdentity = Text <= 256B not in [""]
+
+type FinanceRejectionReason = Text <= 256B not in [""]
+
+type FinanceQuoteFreshness =
+    fresh {
+        age: Duration
+        reference: FinanceObservedInstant
+    }
+    | stale {
+        age: Duration
+        reference: FinanceObservedInstant
+    }
+
+type FinanceQuote = {
+    ask: FinanceMoney
+    bid: FinanceMoney
+    freshness: FinanceQuoteFreshness
+    instrument: FinanceCurrencyPair
+    observed-at: FinanceObservedInstant
+    source: FinanceQuoteSource
+}
+
+type FinanceTransactionEvent =
+    placed {
+        amount: FinanceMoney
+        observed-at: FinanceObservedInstant
+        order-id: FinanceOrderIdentity
+    }
+    | filled {
+        amount: FinanceMoney
+        observed-at: FinanceObservedInstant
+        order-id: FinanceOrderIdentity
+        price: FinanceMoney
+    }
+    | rejected {
+        observed-at: FinanceObservedInstant
+        order-id: FinanceOrderIdentity
+        reason: FinanceRejectionReason
+    }
+
+type FinanceTransactionEventsThree = {
+    events: collection FinanceTransactionEvent = 3
+}
