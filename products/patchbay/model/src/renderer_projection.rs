@@ -113,7 +113,7 @@ pub struct PatchbayPresentation {
     pub graph: Option<PatchbayGraph>,
     pub attempted_edit: Option<AttemptedEditPresentation>,
     pub sound_inspection: Option<SoundRealizationInspection>,
-    pub policy_explanations: Vec<crate::PolicyChoiceExplanation>,
+    pub policy_explanations: Vec<conduit_planner::PolicyChoiceExplanation>,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -312,9 +312,9 @@ impl PatchbayPresentation {
 
     pub fn with_policy_explanations(
         mut self,
-        explanations: Vec<crate::PolicyChoiceExplanation>,
+        explanations: Vec<conduit_planner::PolicyChoiceExplanation>,
     ) -> Result<Self, RendererProjectionError> {
-        if explanations.len() > crate::MAX_POLICY_EXPLANATIONS
+        if explanations.len() > conduit_planner::MAX_POLICY_EXPLANATIONS
             || explanations.iter().any(|explanation| {
                 self.plan.as_ref().map(|plan| &plan.plan_id) != Some(&explanation.details().plan_id)
             })

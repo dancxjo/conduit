@@ -88,6 +88,7 @@ mod observations;
 mod performance_policy;
 mod policy;
 mod policy_composition;
+mod policy_explanation;
 mod profile;
 pub mod proof;
 mod protected_resources;
@@ -219,6 +220,11 @@ pub use policy_composition::{
     select_realization_with_scoped_policy, ObservationBasis, PlanningPolicyBasis, PolicyLayer,
     PolicyScope, PolicySourceId, PolicySourceRevision, ReviewedObservation,
     ScopedRealizationSelection, MAXIMUM_POLICY_SOURCES, MAXIMUM_RETAINED_POLICY_OBSERVATIONS,
+};
+pub use policy_explanation::{
+    PolicyChoiceDetails, PolicyChoiceDomain, PolicyChoiceExplanation, PolicyChoiceSummary,
+    PolicyExplanationError, PolicyReplanRequest, MAX_POLICY_EXPLANATIONS,
+    MAX_STYLE_EXPLANATION_CLAUSES,
 };
 pub use profile::{
     plan_with_advertised_profile, BROWSER_PLANNER_PROFILE, FULL_PLANNER_LIMITS,
