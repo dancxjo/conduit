@@ -49,9 +49,6 @@ impl PulseObservationConfiguration {
         if actual != u64::from(expected) {
             return Err(PulseObservationRefusal::UnexpectedSequence { expected, actual });
         }
-        Ok(PulseObservation {
-            sequence: expected,
-            period_ms: self.period_ms,
-        })
+        Ok(crate::rhythm::pulse_observation(expected, self.period_ms))
     }
 }

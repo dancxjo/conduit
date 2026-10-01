@@ -45,7 +45,7 @@ impl PhaseSynchronizationBack {
         let (Some(local), Some(peer)) = (self.local.as_mut(), self.peer) else {
             return StepOutcome::Progress;
         };
-        let observed_at_ms = peer.sequence.wrapping_mul(u32::from(peer.period_ms));
+        let observed_at_ms = peer.sequence().wrapping_mul(u32::from(*peer.period_ms()));
         let outcome = match synchronize(local, peer, observed_at_ms) {
             Ok(outcome) => outcome,
             Err(_) => return failure(FailureCode::InvalidInput, 511),
@@ -215,10 +215,7 @@ mod tests {
             pair(
                 &mut operation,
                 local(4),
-                PulseObservation {
-                    sequence: 3,
-                    period_ms: 240,
-                },
+                PulseObservation::new(240, 3).unwrap(),
             )
             .0,
             StepOutcome::Progress
@@ -232,10 +229,7 @@ mod tests {
             pair(
                 &mut outside,
                 local(8),
-                PulseObservation {
-                    sequence: 8,
-                    period_ms: 240,
-                },
+                PulseObservation::new(240, 8).unwrap(),
             )
             .0,
             StepOutcome::Progress
