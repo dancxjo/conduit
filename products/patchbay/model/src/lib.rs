@@ -59,7 +59,6 @@ mod maker_environment;
 mod mask_control;
 #[cfg(test)]
 mod mask_control_tests;
-mod mask_inspection;
 #[cfg(test)]
 mod mask_plans_tests;
 #[cfg(test)]
@@ -231,7 +230,6 @@ pub use maker_environment::{
     MAX_ENVIRONMENT_COORDINATE, MAX_ENVIRONMENT_ID_BYTES, MAX_PART_NAME_BYTES,
 };
 pub use mask_control::*;
-pub use mask_inspection::*;
 pub use mask_topology::*;
 pub use mask_topology_projection::*;
 pub use palette::{

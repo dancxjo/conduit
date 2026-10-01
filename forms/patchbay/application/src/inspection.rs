@@ -1,5 +1,6 @@
 //! Patchbay projection of the public Mask Form boundary and exact ordinary Plan.
 
+use alloc::{string::String, vec::Vec};
 use conduit_core::{FormIdentity, PlanId};
 use conduit_presentation::{
     AdmittedMaskFormRoutes, MaskPlanningDisposition, MaskReconciliation, MaskShow,

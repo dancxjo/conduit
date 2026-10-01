@@ -3850,6 +3850,7 @@ dependencies = [
  "conduit-semantic-catalog",
  "patchbay-control",
  "patchbay-graph",
+ "serde",
 ]
 
 [[package]]
@@ -3931,6 +3932,7 @@ dependencies = [
  "conduit-text",
  "conduit-time",
  "conduit-wire",
+ "patchbay-application",
  "patchbay-control",
  "patchbay-graph",
  "patchbay-workbench-host-contract",
