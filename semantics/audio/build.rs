@@ -16,19 +16,23 @@ fn main() {
             derive_serde_for_variants: true,
             copy_record_types: [
                 "AudioRenderDemand".into(),
+                "BeatReference".into(),
                 "MusicalPitch".into(),
                 "MusicalNoteEvent".into(),
                 "PcmClipProfile".into(),
                 "PcmFrameHeader".into(),
                 "ToneIntent".into(),
+                "TimingFeedback".into(),
             ]
             .into(),
             copy_record_value_getters: [
                 "AudioRenderDemand".into(),
+                "BeatReference".into(),
                 "MusicalNoteEvent".into(),
                 "MusicalPitch".into(),
                 "PcmFrameHeader".into(),
                 "ToneIntent".into(),
+                "TimingFeedback".into(),
             ]
             .into(),
             public_record_fields: ["AudioRenderDemand".into(), "PcmFrameHeader".into()].into(),
@@ -37,9 +41,15 @@ fn main() {
                 "MusicalPitch".into(),
                 "MusicalNoteEvent".into(),
                 "ToneIntent".into(),
+                "BeatReference".into(),
+                "TimingFeedback".into(),
             ]
             .into(),
             record_constructor_orders: [
+                (
+                    "BeatReference".into(),
+                    vec!["beat".into(), "expected_time_micros".into()],
+                ),
                 (
                     "AudioRenderDemand".into(),
                     vec![
@@ -47,6 +57,18 @@ fn main() {
                         "start-frame".into(),
                         "frame-count".into(),
                         "sequence".into(),
+                    ],
+                ),
+                (
+                    "TimingFeedback".into(),
+                    vec![
+                        "beat".into(),
+                        "classification".into(),
+                        "delta_micros".into(),
+                        "expected_time_micros".into(),
+                        "observed".into(),
+                        "observed_time_micros".into(),
+                        "recovery_state".into(),
                     ],
                 ),
                 (

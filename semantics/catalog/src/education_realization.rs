@@ -1,10 +1,11 @@
 //! Deterministic arithmetic and rhythm-feedback realizations for education Info.
 
 use alloc::{string::ToString, vec};
+use conduit_audio::{TimingClassification, TimingFeedback};
 use conduit_core::{StructuredInfoRefusal, StructuredInfoValue};
 use conduit_form::rust_binding::NativeRustBinding;
 
-use crate::education_value::{leaf_count, leaf_text, record_field, record_value};
+use crate::education_value::record_value;
 use crate::{
     education_rhythm_feedback_type, timing_feedback_type, EducationAssessment,
     EducationAssessmentOutcome, EducationEvidenceClass, EducationFeedbackProvenance, EducationHint,
@@ -238,34 +239,30 @@ pub fn adapt_rhythm_feedback(
     if timing.value_type() != &timing_feedback_type() {
         return Err(EducationInfoRefusal::MalformedInfo);
     }
-    let classification = leaf_text(record_field(timing, "classification")?)?;
+    let timing_binding = TimingFeedback::from_structured(timing.clone())
+        .map_err(|_| EducationInfoRefusal::MalformedInfo)?;
+    let classification = timing_binding.classification();
     let (outcome, score, message, progress_state) = match classification {
-        "on-time" => (
+        TimingClassification::OnTime => (
             EducationAssessmentOutcome::Correct,
             1_000_000,
             "Timing is within the exact lesson tolerance.",
             EducationProgressState::Completed,
         ),
-        "early" | "late" => (
+        TimingClassification::Early | TimingClassification::Late => (
             EducationAssessmentOutcome::partial(ratio(500_000))?,
             500_000,
             "Timing is outside tolerance; exact musical timing is attached.",
             EducationProgressState::AwaitingResponse,
         ),
-        "missed" => (
+        TimingClassification::Missed => (
             EducationAssessmentOutcome::timeout("beat-not-observed".into())?,
             0,
             "No performance event was observed for this beat.",
             EducationProgressState::TimedOut,
         ),
-        _ => (
-            EducationAssessmentOutcome::refused("unknown-timing-classification".into())?,
-            0,
-            "The timing classification is unsupported.",
-            EducationProgressState::Refused,
-        ),
     };
-    let beat = leaf_count(record_field(timing, "beat")?)?;
+    let beat = timing_binding.beat();
     let beat = beat.to_string();
     let question_identity = ["question/rhythm-beat/", beat.as_str()].concat();
     let response_identity = ["response/rhythm-beat/", beat.as_str()].concat();

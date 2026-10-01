@@ -1,11 +1,15 @@
 //! Finite host-side structured value transformation for rhythm comparison.
 
-use conduit_audio::{Gate, MusicalNoteEvent};
+#[cfg(test)]
+use conduit_audio::TimingFeedback;
+use conduit_audio::{
+    BeatReference, Gate, MusicalNoteEvent, RhythmRecoveryState, TimingClassification,
+};
+#[cfg(test)]
+use conduit_core::StructuredInfoValue;
 use conduit_core::{PlannedGear, MAXIMUM_STRUCTURED_CANONICAL_BYTES};
 #[cfg(test)]
-use conduit_core::{
-    StructuredFieldValue, StructuredInfoType, StructuredInfoValue, StructuredInfoValueShape,
-};
+use conduit_form::rust_binding::NativeRustBinding;
 use std::collections::VecDeque;
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
@@ -16,12 +20,6 @@ pub(super) enum RhythmCompareRefusal {
     DeltaOverflow = 4,
     MalformedFeedback = 5,
     WrongBack = 6,
-}
-
-#[derive(Debug, Copy, Clone, PartialEq, Eq)]
-struct BeatReference {
-    beat: u64,
-    expected_time_micros: u64,
 }
 
 pub(super) struct RhythmCompareHost {
@@ -138,24 +136,35 @@ fn encode_feedback_into(
     tolerance_micros: u64,
     previous_absolute_delta: &mut Option<u64>,
 ) -> Result<(), RhythmCompareRefusal> {
-    let (delta, classification, recovery) = classification(
+    let (delta, classification, recovery_state) = classification(
         beat,
         observed,
         target_offset_micros,
         tolerance_micros,
         previous_absolute_delta,
     )?;
+    // The generated binding remains the semantic owner. This host adapter writes
+    // its canonical value directly into admitted storage so play does not allocate;
+    // the host tests decode every emitted case through `TimingFeedback`.
     output.clear();
     output.extend_from_slice(type_prefix);
     output.push(2);
     output.extend_from_slice(&7_u32.to_le_bytes());
-    field_u64(output, "beat", beat.beat);
-    field_text(output, "classification", classification);
+    field_u64(output, "beat", beat.beat());
+    field_unit_variant(
+        output,
+        "classification",
+        timing_classification_name(classification),
+    );
     field_i64(output, "delta_micros", delta);
-    field_u64(output, "expected_time_micros", beat.expected_time_micros);
+    field_u64(output, "expected_time_micros", beat.expected_time_micros());
     field_bool(output, "observed", observed.is_some());
     field_u64(output, "observed_time_micros", observed.unwrap_or(0));
-    field_text(output, "recovery_state", recovery);
+    field_unit_variant(
+        output,
+        "recovery_state",
+        rhythm_recovery_state_name(recovery_state),
+    );
     (output.len() <= MAXIMUM_STRUCTURED_CANONICAL_BYTES)
         .then_some(())
         .ok_or(RhythmCompareRefusal::MalformedFeedback)
@@ -167,47 +176,72 @@ fn classification(
     target_offset_micros: i64,
     tolerance_micros: u64,
     previous_absolute_delta: &mut Option<u64>,
-) -> Result<(i64, &'static str, &'static str), RhythmCompareRefusal> {
+) -> Result<(i64, TimingClassification, RhythmRecoveryState), RhythmCompareRefusal> {
     let Some(observed) = observed else {
-        return Ok((0, "missed", "interrupted"));
+        return Ok((
+            0,
+            TimingClassification::Missed,
+            RhythmRecoveryState::Interrupted,
+        ));
     };
     let delta = i128::from(observed)
-        - i128::from(beat.expected_time_micros)
+        - i128::from(beat.expected_time_micros())
         - i128::from(target_offset_micros);
     let delta = i64::try_from(delta).map_err(|_| RhythmCompareRefusal::DeltaOverflow)?;
     let absolute = delta.unsigned_abs();
     let classification = if absolute <= tolerance_micros {
-        "on-time"
+        TimingClassification::OnTime
     } else if delta < 0 {
-        "early"
+        TimingClassification::Early
     } else {
-        "late"
+        TimingClassification::Late
     };
     let recovery = if absolute <= tolerance_micros {
         if previous_absolute_delta.is_some_and(|prior| prior > tolerance_micros) {
-            "recovered"
+            RhythmRecoveryState::Recovered
         } else {
-            "on-beat"
+            RhythmRecoveryState::OnBeat
         }
     } else if previous_absolute_delta.is_some_and(|prior| absolute < prior) {
-        "recovering"
+        RhythmRecoveryState::Recovering
     } else {
-        "displaced"
+        RhythmRecoveryState::Displaced
     };
     *previous_absolute_delta = Some(absolute);
     Ok((delta, classification, recovery))
 }
 
-fn field_text(output: &mut Vec<u8>, name: &str, value: &str) {
+const fn timing_classification_name(value: TimingClassification) -> &'static str {
+    match value {
+        TimingClassification::OnTime => "on-time",
+        TimingClassification::Early => "early",
+        TimingClassification::Late => "late",
+        TimingClassification::Missed => "missed",
+    }
+}
+
+const fn rhythm_recovery_state_name(value: RhythmRecoveryState) -> &'static str {
+    match value {
+        RhythmRecoveryState::Interrupted => "interrupted",
+        RhythmRecoveryState::Recovered => "recovered",
+        RhythmRecoveryState::OnBeat => "on-beat",
+        RhythmRecoveryState::Recovering => "recovering",
+        RhythmRecoveryState::Displaced => "displaced",
+    }
+}
+
+fn field_unit_variant(output: &mut Vec<u8>, name: &str, tag: &str) {
     bytes(output, name.as_bytes());
+    output.push(3);
+    bytes(output, tag.as_bytes());
     output.push(0);
-    bytes(output, value.as_bytes());
+    bytes(output, &[]);
 }
 
 fn field_u64(output: &mut Vec<u8>, name: &str, value: u64) {
     bytes(output, name.as_bytes());
     output.push(0);
-    bytes(output, &conduit_core::encode_count(value));
+    bytes(output, &value.to_le_bytes());
 }
 
 fn field_bool(output: &mut Vec<u8>, name: &str, value: bool) {
@@ -219,29 +253,7 @@ fn field_bool(output: &mut Vec<u8>, name: &str, value: bool) {
 fn field_i64(output: &mut Vec<u8>, name: &str, value: i64) {
     bytes(output, name.as_bytes());
     output.push(0);
-    let length_at = output.len();
-    output.extend_from_slice(&0_u32.to_le_bytes());
-    let start = output.len();
-    if value < 0 {
-        output.push(b'-');
-    }
-    append_digits(output, value.unsigned_abs());
-    let length = u32::try_from(output.len() - start).expect("signed decimal length is finite");
-    output[length_at..length_at + 4].copy_from_slice(&length.to_le_bytes());
-}
-
-fn append_digits(output: &mut Vec<u8>, mut value: u64) {
-    let mut digits = [0_u8; 20];
-    let mut cursor = digits.len();
-    loop {
-        cursor -= 1;
-        digits[cursor] = b'0' + (value % 10) as u8;
-        value /= 10;
-        if value == 0 {
-            break;
-        }
-    }
-    output.extend_from_slice(&digits[cursor..]);
+    bytes(output, &value.to_le_bytes());
 }
 
 fn bytes(output: &mut Vec<u8>, value: &[u8]) {
@@ -257,47 +269,23 @@ fn feedback(
     tolerance_micros: u64,
     previous_absolute_delta: &mut Option<u64>,
 ) -> Result<StructuredInfoValue, RhythmCompareRefusal> {
-    let (delta, classification, recovery) = classification(
+    let (delta, classification, recovery_state) = classification(
         beat,
         observed,
         target_offset_micros,
         tolerance_micros,
         previous_absolute_delta,
     )?;
-    StructuredInfoValue::record(
-        conduit_semantic_catalog::timing_feedback_type(),
-        vec![
-            value_field("beat", count_leaf(beat.beat)),
-            value_field(
-                "classification",
-                text_leaf("music/timing-classification@1", classification),
-            ),
-            value_field(
-                "delta_micros",
-                text_leaf("time/signed-microseconds@1", &delta.to_string()),
-            ),
-            value_field(
-                "expected_time_micros",
-                count_leaf(beat.expected_time_micros),
-            ),
-            value_field(
-                "observed",
-                StructuredInfoValue::leaf(
-                    StructuredInfoType::leaf(conduit_core::kind_id(conduit_core::BOOL_INFO_ID))
-                        .unwrap(),
-                    conduit_core::InfoBool::new(observed.is_some())
-                        .encode()
-                        .to_vec(),
-                )
-                .unwrap(),
-            ),
-            value_field("observed_time_micros", count_leaf(observed.unwrap_or(0))),
-            value_field(
-                "recovery_state",
-                text_leaf("music/recovery-state@1", recovery),
-            ),
-        ],
+    TimingFeedback::new(
+        beat.beat(),
+        classification,
+        delta,
+        beat.expected_time_micros(),
+        observed.is_some(),
+        observed.unwrap_or(0),
+        recovery_state,
     )
+    .and_then(NativeRustBinding::into_structured)
     .map_err(|_| RhythmCompareRefusal::MalformedFeedback)
 }
 
@@ -310,10 +298,7 @@ pub(crate) fn expected_feedback(
     tolerance_micros: u64,
 ) -> StructuredInfoValue {
     feedback(
-        BeatReference {
-            beat,
-            expected_time_micros,
-        },
+        BeatReference::new(beat, expected_time_micros).unwrap(),
         observed,
         target_offset_micros,
         tolerance_micros,
@@ -329,23 +314,23 @@ fn decode_beat(bytes: &[u8], type_prefix: &[u8]) -> Result<BeatReference, Rhythm
     if take_byte(&mut bytes)? != 2 || take_u32(&mut bytes)? != 2 {
         return Err(RhythmCompareRefusal::MalformedReference);
     }
-    let beat = take_named_count(&mut bytes, "beat")?;
-    let expected_time_micros = take_named_count(&mut bytes, "expected_time_micros")?;
+    let beat = take_named_u64(&mut bytes, "beat")?;
+    let expected_time_micros = take_named_u64(&mut bytes, "expected_time_micros")?;
     if !bytes.is_empty() {
         return Err(RhythmCompareRefusal::MalformedReference);
     }
-    Ok(BeatReference {
-        beat,
-        expected_time_micros,
-    })
+    BeatReference::new(beat, expected_time_micros)
+        .map_err(|_| RhythmCompareRefusal::MalformedReference)
 }
 
-fn take_named_count(bytes: &mut &[u8], name: &str) -> Result<u64, RhythmCompareRefusal> {
+fn take_named_u64(bytes: &mut &[u8], name: &str) -> Result<u64, RhythmCompareRefusal> {
     if take_bytes(bytes)? != name.as_bytes() || take_byte(bytes)? != 0 {
         return Err(RhythmCompareRefusal::MalformedReference);
     }
-    conduit_core::decode_count(take_bytes(bytes)?)
-        .map_err(|_| RhythmCompareRefusal::MalformedReference)
+    let raw: [u8; 8] = take_bytes(bytes)?
+        .try_into()
+        .map_err(|_| RhythmCompareRefusal::MalformedReference)?;
+    Ok(u64::from_le_bytes(raw))
 }
 
 fn take_byte(bytes: &mut &[u8]) -> Result<u8, RhythmCompareRefusal> {
@@ -374,41 +359,6 @@ fn take_bytes<'a>(bytes: &mut &'a [u8]) -> Result<&'a [u8], RhythmCompareRefusal
         .ok_or(RhythmCompareRefusal::MalformedReference)?;
     *bytes = &bytes[length..];
     Ok(value)
-}
-
-#[cfg(test)]
-fn field<'a>(
-    fields: &'a [StructuredFieldValue],
-    name: &str,
-) -> Result<&'a StructuredInfoValue, RhythmCompareRefusal> {
-    fields
-        .iter()
-        .find(|field| field.name() == name)
-        .map(StructuredFieldValue::value)
-        .ok_or(RhythmCompareRefusal::MalformedReference)
-}
-
-#[cfg(test)]
-fn count_leaf(value: u64) -> StructuredInfoValue {
-    StructuredInfoValue::leaf(
-        StructuredInfoType::leaf(conduit_core::kind_id(conduit_core::COUNT_INFO_ID)).unwrap(),
-        conduit_core::encode_count(value).to_vec(),
-    )
-    .unwrap()
-}
-
-#[cfg(test)]
-fn text_leaf(kind: &str, value: &str) -> StructuredInfoValue {
-    StructuredInfoValue::leaf(
-        StructuredInfoType::leaf(conduit_core::kind_id(kind)).unwrap(),
-        value.as_bytes().to_vec(),
-    )
-    .unwrap()
-}
-
-#[cfg(test)]
-fn value_field(name: &str, value: StructuredInfoValue) -> StructuredFieldValue {
-    StructuredFieldValue::new(name, value).unwrap()
 }
 
 #[cfg(test)]
