@@ -96,8 +96,11 @@ and superseded unstarted runs left by the old multi-PR policy. New admission
 does not manufacture those queues. Installing this change does not authorize
 discarding existing release repairs; finish or explicitly resolve those PRs.
 
-Successful promotion has one finalization owner: `finalize-release.yml` verifies
-and merges the exact successful head, then dispatches Pages and synchronization.
+Successful promotion has one finalization owner: the release-lane reconciler
+dispatches `finalize-release.yml` with the exact successful promotion run.
+The finalizer independently verifies that run and merges only its exact head,
+then dispatches Pages and synchronization. This explicit dispatch also survives
+GitHub's workflow-run chain limit after a trusted approval rerun.
 The long-running release monitor handles approval and early failure; it never
 competes to merge or dispatch duplicate publication work.
 

@@ -1,8 +1,14 @@
 name: Finalize trusted release automation
 
 on:
+  workflow_dispatch:
+    inputs:
+      promotion_run_id:
+        description: Exact successful promotion run to finalize
+        required: true
+        type: number
   workflow_run:
-    workflows: [promotion, candidate]
+    workflows: [candidate]
     types: [completed]
 
 permissions:
@@ -11,17 +17,12 @@ permissions:
   pull-requests: write
 
 concurrency:
-  group: finalize-release-${{ github.event.workflow_run.head_branch }}
+  group: finalize-release-${{ github.event.workflow_run.head_branch || inputs.promotion_run_id }}
   cancel-in-progress: false
 
 jobs:
   release:
-    if: >-
-      github.event.workflow_run.name == 'promotion' &&
-      github.event.workflow_run.event == 'pull_request' &&
-      github.event.workflow_run.conclusion == 'success' &&
-      github.event.workflow_run.head_repository.full_name == github.repository &&
-      startsWith(github.event.workflow_run.head_branch, 'release/')
+    if: github.event_name == 'workflow_dispatch'
     runs-on: ubuntu-slim
     timeout-minutes: 3
     steps:
@@ -33,10 +34,18 @@ jobs:
         id: merge
         env:
           GH_TOKEN: ${{ github.token }}
-          HEAD_BRANCH: ${{ github.event.workflow_run.head_branch }}
-          HEAD_SHA: ${{ github.event.workflow_run.head_sha }}
+          PROMOTION_RUN_ID: ${{ inputs.promotion_run_id }}
         run: |
           set -euo pipefail
+          [[ "$PROMOTION_RUN_ID" =~ ^[1-9][0-9]*$ ]]
+          promotion=$(gh api "repos/$GITHUB_REPOSITORY/actions/runs/$PROMOTION_RUN_ID")
+          test "$(jq -r .name <<<"$promotion")" = promotion
+          test "$(jq -r .event <<<"$promotion")" = pull_request
+          test "$(jq -r .status <<<"$promotion")" = completed
+          test "$(jq -r .conclusion <<<"$promotion")" = success
+          test "$(jq -r .head_repository.full_name <<<"$promotion")" = "$GITHUB_REPOSITORY"
+          HEAD_BRANCH=$(jq -r .head_branch <<<"$promotion")
+          HEAD_SHA=$(jq -r .head_sha <<<"$promotion")
           snapshot=${HEAD_BRANCH#release/}
           [[ "$snapshot" =~ ^[0-9a-f]{40}$ ]]
           [[ "$HEAD_SHA" =~ ^[0-9a-f]{40}$ ]]

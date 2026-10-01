@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 
-import { cp, mkdir, readFile, readdir, rm } from "node:fs/promises";
+import { cp, lstat, mkdir, readFile, readdir, rm } from "node:fs/promises";
 import path from "node:path";
 
 const GALLERY_SCHEMA = "conduit.visual-evidence-gallery/v1";

@@ -157,6 +157,10 @@ test("workflow topology keeps fast development separate from stable promotion", 
   assert.match(devIntegration, /gh workflow run promote-dev\.yml --repo "\$GITHUB_REPOSITORY" --ref main/);
   assert.match(devIntegration, /-f integrated_sha="\$INTEGRATED_SHA"/);
   const finalizer = readFileSync(".github/workflows/finalize-release.yml", "utf8");
+  assert.match(finalizer, /workflow_dispatch:/);
+  assert.match(finalizer, /promotion_run_id:/);
+  assert.match(finalizer, /actions\/runs\/\$PROMOTION_RUN_ID/);
+  assert.match(finalizer, /test "\$\(jq -r \.conclusion/);
   assert.match(finalizer, /types: \[completed\]/);
   assert.match(finalizer, /gh pr list --state all --base main --head "\$HEAD_BRANCH"/);
   assert.match(finalizer, /if test "\$state" = OPEN/);
@@ -186,8 +190,11 @@ test("workflow topology keeps fast development separate from stable promotion", 
   assert.doesNotMatch(sync, /gh workflow run monitor-trusted-pr\.yml --ref main/);
   assert.match(sync, /actions\/runs\/\$run_id\/approve/);
   assert.match(sync, /\.actor\.login/);
-  assert.match(sync, /merge --no-ff --no-edit origin\/dev/);
-  assert.match(sync, /git merge-base --is-ancestor origin\/dev "\$sync_head"/);
+  assert.match(sync, /git checkout --detach origin\/dev/);
+  assert.match(sync, /git merge-base --is-ancestor "\$RELEASE_HEAD" HEAD/);
+  assert.match(sync, /merge --no-ff --no-edit "\$RELEASE_HEAD"/);
+  assert.match(sync, /git merge-base --is-ancestor "\$base_sha" "\$sync_head"/);
+  assert.match(sync, /Development already contains the accepted release head/);
   assert.match(request, /permissions:\n  actions: write\n  contents: write/);
   assert.match(sync, /permissions:\n  actions: write\n  contents: write/);
   assert.match(monitor, /types?: choice/);
@@ -235,6 +242,8 @@ test("workflow topology keeps fast development separate from stable promotion", 
   const releaseLaneGithub = readFileSync("tools/ci/release-lane-github.mjs", "utf8");
   assert.match(releaseLaneGithub, /\/actions\/runs\/\$\{run\.id\}\/jobs\?per_page=100&filter=latest/);
   assert.match(releaseLaneGithub, /actions\/workflows\/promote-dev\.yml\/dispatches/);
+  assert.match(releaseLaneGithub, /actions\/workflows\/finalize-release\.yml\/dispatches/);
+  assert.match(releaseLaneGithub, /promotion_run_id: String\(action\.runId\)/);
   assert.doesNotMatch(releaseLaneGithub, /run\.status === "waiting"/);
   const approval = readFileSync(".github/workflows/approve-release-automation.yml", "utf8");
   assert.match(approval, /workflows: \[promotion, candidate\]/);
