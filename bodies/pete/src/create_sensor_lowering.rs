@@ -148,7 +148,7 @@ pub fn lower_group_zero(
     Ok(CreateGroupZeroObservation {
         contact: ContactObservation::decode(&[contact_sectors])?,
         cliff: CliffObservation::new(cliff_sectors, 0, [0; 4])?,
-        wheel_drop: WheelDropObservation::new(dropped_wheels)?,
+        wheel_drop: WheelDropObservation::decode(&[dropped_wheels])?,
         proximity: ProximityObservation::decode(&[proximity_sectors])?,
         virtual_wall,
         infrared,

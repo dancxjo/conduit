@@ -8,7 +8,7 @@
 use conduit_core::{semantic_digest, InfoDecodeError, Quantity, QuantityUnit};
 use core::{cmp::Ordering, hash::Hash};
 
-use crate::ContactObservation;
+use crate::{ContactObservation, WheelDropObservation};
 
 pub const ROBOTICS_CONTACT_INFO_ID: &str = "robotics/contact-body-sectors@1";
 pub const ROBOTICS_CLIFF_INFO_ID: &str = "robotics/cliff-body-sectors@1";
@@ -161,32 +161,41 @@ impl CliffObservation {
     }
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
-pub struct WheelDropObservation {
-    dropped_wheels: u8,
-}
-
 impl WheelDropObservation {
-    pub fn new(dropped_wheels: u8) -> Result<Self, InfoDecodeError> {
-        reject_reserved("dropped-wheels", dropped_wheels, WHEEL_MASK)?;
-        Ok(Self { dropped_wheels })
+    pub fn dropped_wheels(self) -> u8 {
+        *self.wheels()
     }
 
-    pub const fn dropped_wheels(self) -> u8 {
-        self.dropped_wheels
-    }
-
-    pub const fn encode(self) -> [u8; ROBOTICS_WHEEL_DROP_ENCODED_LEN] {
-        [self.dropped_wheels]
+    pub fn encode(self) -> [u8; ROBOTICS_WHEEL_DROP_ENCODED_LEN] {
+        [self.dropped_wheels()]
     }
 
     pub fn decode(encoded: &[u8]) -> Result<Self, InfoDecodeError> {
         exact_len(encoded, ROBOTICS_WHEEL_DROP_ENCODED_LEN)?;
-        Self::new(encoded[0])
+        reject_reserved("dropped-wheels", encoded[0], WHEEL_MASK)?;
+        Ok(Self::new(encoded[0]).expect("wheel-mask bound matches generated contract"))
     }
 
     pub fn semantic_digest(self) -> [u8; 32] {
         semantic_digest(ROBOTICS_WHEEL_DROP_INFO_ID, &self.encode())
+    }
+}
+
+impl PartialOrd for WheelDropObservation {
+    fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
+        Some(self.cmp(other))
+    }
+}
+
+impl Ord for WheelDropObservation {
+    fn cmp(&self, other: &Self) -> Ordering {
+        self.dropped_wheels().cmp(&other.dropped_wheels())
+    }
+}
+
+impl Hash for WheelDropObservation {
+    fn hash<H: core::hash::Hasher>(&self, state: &mut H) {
+        self.dropped_wheels().hash(state);
     }
 }
 

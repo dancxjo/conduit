@@ -34,3 +34,7 @@ type ProximityObservation = {
 type ContactObservation = {
     sectors: U8 in 0..=31
 }
+
+type WheelDropObservation = {
+    wheels: U8 in 0..=7
+}

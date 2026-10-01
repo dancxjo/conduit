@@ -17,6 +17,7 @@ fn main() {
                 "AccelerationObservation".into(),
                 "ContactObservation".into(),
                 "ProximityObservation".into(),
+                "WheelDropObservation".into(),
             ]
             .into(),
             ..RustBindingOptions::default()
