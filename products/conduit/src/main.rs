@@ -21,6 +21,8 @@ mod source_expansion;
 mod std_websocket_line;
 #[cfg(test)]
 mod two_std_line_tests;
+#[cfg(test)]
+mod v1_history;
 
 use clap::Parser;
 use std::io;
