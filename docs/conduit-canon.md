@@ -130,6 +130,17 @@ to Type identity, and must hold at every generated construction boundary. It is
 not an assertion, target hook, handwritten validator, or escape from bounded
 evaluation.
 
+Variant cases are tested by typed identity, not tag text:
+
+```conduit
+.transition is pressed
+```
+
+The case must belong to the exact checked variant Type. Unknown, renamed, or
+foreign cases refuse during checking; payload contents are irrelevant to the
+test. `variant/tag(...)` remains reflection for presentation and logging, not
+the semantic discrimination surface.
+
 A native Type may bind checked portable Type parameters and concrete source may
 instantiate them:
 

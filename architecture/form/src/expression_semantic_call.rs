@@ -65,6 +65,57 @@ pub(super) fn check(
         }
         return Ok(CheckedExpressionType::semantic(conduit_core::TEXT_INFO_ID));
     }
+    if name.text == "variant/is" {
+        if arguments.len() != 2 {
+            return Err(diagnostic(
+                span,
+                "variant case test requires one value and one case",
+            ));
+        }
+        let source = check_argument(&arguments[0], None)?;
+        let Some(kind) = source.value_kind() else {
+            return Err(diagnostic(
+                arguments[0].span(),
+                "case test requires a semantic variant",
+            ));
+        };
+        let Some(value_type) = context.structured_types.get(kind) else {
+            return Err(diagnostic(
+                arguments[0].span(),
+                "case test requires a semantic variant",
+            ));
+        };
+        let conduit_core::StructuredInfoTypeShape::Variant { cases, .. } = value_type.shape()
+        else {
+            return Err(diagnostic(
+                arguments[0].span(),
+                "case test requires a semantic variant",
+            ));
+        };
+        let ExpressionSyntax::Atomic(case) = &arguments[1] else {
+            return Err(diagnostic(
+                arguments[1].span(),
+                "case test requires one declared case",
+            ));
+        };
+        let Some(case_name) = crate::text_value::parse_quoted_text(&case.text) else {
+            return Err(diagnostic(
+                case.span,
+                "case test requires one declared case",
+            ));
+        };
+        if !cases.iter().any(|candidate| candidate.tag() == case_name) {
+            return Err(diagnostic(
+                case.span,
+                "case is not declared by this exact variant Type",
+            ));
+        }
+        check_argument(
+            &arguments[1],
+            Some(&CheckedExpressionType::semantic(conduit_core::TEXT_INFO_ID)),
+        )?;
+        return Ok(CheckedExpressionType::semantic(conduit_core::BOOL_INFO_ID));
+    }
     let kind = context
         .semantic_kinds
         .get(&name.text)
