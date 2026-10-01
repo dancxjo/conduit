@@ -5,10 +5,11 @@ use conduit_presentation::{
     PresentationPropertyValue, PresentationRelationship, PresentationRelationshipKind,
     PresentationRole,
 };
+use patchbay_application::{PartCapability, PartPresentationState, PartsView};
 
 use crate::{
     portable_projection::{append_sign, ContentBuilder},
-    PartPresentationState, PartsView, PatchbayPresentation,
+    PatchbayPresentation,
 };
 
 pub(super) fn append_body_parts(body: &Body, parts: &PartsView, content: &mut ContentBuilder) {
@@ -346,7 +347,7 @@ fn append_capability(
     owner: &str,
     host: &str,
     boot: &str,
-    capability: &crate::PartCapability,
+    capability: &PartCapability,
     content: &mut ContentBuilder,
 ) {
     let subject = content.subject_with_identity(

@@ -1,5 +1,6 @@
-//! Human-first projection of canonical Body membership and admission candidates.
+//! Human-first resident projection of canonical Body membership and admission candidates.
 
+use alloc::{string::String, vec, vec::Vec};
 use conduit_body::{
     Body, BodyMembership, CandidateId, CandidateInventory, CandidateState, HostPresenceClock,
     HostPresenceState, HostPresenceTable, MembershipEventKind, MembershipState, PartId,

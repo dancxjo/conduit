@@ -2,9 +2,8 @@
 
 use conduit_presentation::{ModelTemporalContextFact, Presentation, RendererSelfInspection};
 use patchbay_application::{
-    DebuggerPresentation, PatchbayEntranceState, PatchbayNavigationProjection,
+    DebuggerPresentation, PartsView, PatchbayEntranceState, PatchbayNavigationProjection,
 };
-use patchbay_model::PartsView;
 use serde::{Deserialize, Serialize};
 
 pub const MAX_BROWSER_PALETTE_ENTRIES: usize = conduit_semantic_catalog::MAX_PALETTE_ENTRIES;

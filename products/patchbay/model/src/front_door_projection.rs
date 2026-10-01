@@ -1,13 +1,12 @@
 //! Build one immutable portable projection from the living front-door session.
 
-use crate::{
-    LocalFrontDoor, LocalFrontDoorProjection, PartsView, PatchbayGraph, PatchbayPresentation,
-};
+use crate::{LocalFrontDoor, LocalFrontDoorProjection, PatchbayGraph, PatchbayPresentation};
 use conduit_body::WakeLifecycle;
 use conduit_presentation::{
     Presentation, PresentationBasis, PresentationDisclosure, PresentationDisclosureLevel,
     PresentationPropertyValue, PresentationRole,
 };
+use patchbay_application::PartsView;
 
 impl LocalFrontDoor {
     pub fn project(&self) -> Result<LocalFrontDoorProjection, String> {

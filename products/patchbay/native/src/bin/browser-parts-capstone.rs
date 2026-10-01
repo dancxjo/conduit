@@ -11,7 +11,7 @@ use conduit_std_host::browser_admission::{
     BrowserAdmissionEgress, BrowserAdmissionIngress, BrowserAdmissionListener,
     BrowserAdmissionSocket, BROWSER_ADMISSION_PROTOCOL,
 };
-use patchbay_model::{PartPresentationState, PartsView};
+use patchbay_application::{PartPresentationState, PartsView};
 use serde_json::json;
 
 #[path = "browser_parts_capstone/navigation.rs"]

@@ -1,4 +1,3 @@
-use crate::{PartPresentationState, PartsAction, PartsView};
 use conduit_body::{
     AuthenticatedHostObservation, Body, BodyMembership, CandidateInventory, CandidateObservation,
     DiscoveryProofId, HostPresenceClock, HostPresenceClockScale, HostPresenceState,
@@ -6,6 +5,7 @@ use conduit_body::{
 };
 use conduit_core::{bind_active_play, BootId, HostId, LinkBindingId, OfferGeneration, SignId};
 use conduit_std_host::{StdHost, StdHostConfig};
+use patchbay_application::{PartPresentationState, PartsAction, PartsView};
 
 fn admit(
     membership: &mut BodyMembership,

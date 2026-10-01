@@ -5,9 +5,10 @@ use conduit_presentation::{
     Presentation, PresentationError, PresentationTemporalFact, PresentationTemporalRole,
     TemporalInstant, TemporalReference, TemporalRelationError, TemporalScale,
 };
+use patchbay_application::PartsView;
 
 use crate::portable_projection::{ContentBuilder, PortableProjectionError};
-use crate::{PartsView, PatchbayPresentation};
+use crate::PatchbayPresentation;
 
 impl PatchbayPresentation {
     pub fn to_portable_front_door(

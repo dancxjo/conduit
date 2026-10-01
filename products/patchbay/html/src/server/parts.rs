@@ -1,7 +1,7 @@
 //! Bounded HTML Parts commands over the transported canonical projection.
 
 use super::{PatchbayHtmlServer, ServerError};
-use patchbay_model::{PartsAction, PartsView};
+use patchbay_application::{PartsAction, PartsView};
 use serde::Deserialize;
 
 #[derive(Deserialize)]

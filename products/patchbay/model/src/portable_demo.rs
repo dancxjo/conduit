@@ -7,11 +7,11 @@ use conduit_body::{
 };
 use conduit_core::{bind_active_play, BootId, HostId, LinkBindingId, OfferGeneration, SignId};
 use conduit_presentation::{Presentation, TemporalInstant, TemporalReference, TemporalScale};
+use patchbay_application::PartsView;
 
 use crate::{
-    DistributedRouteDemo, FormEditor, PartsView, PatchbayHostAdapter, PatchbayHostProfile,
-    PatchbayModel, PatchbayPresentation, PatchbayRequestId, PatchbayTopology, PlanDocument,
-    PlayDocument,
+    DistributedRouteDemo, FormEditor, PatchbayHostAdapter, PatchbayHostProfile, PatchbayModel,
+    PatchbayPresentation, PatchbayRequestId, PatchbayTopology, PlanDocument, PlayDocument,
 };
 
 pub fn portable_demonstration_with_adapter(

@@ -65,7 +65,7 @@ pub struct LifecycleContext {
     pub plan_id: Option<String>,
     pub play_id: Option<String>,
     pub flow: LifecycleFlow,
-    pub parts: Option<patchbay_model::PartsView>,
+    pub parts: Option<patchbay_application::PartsView>,
     pub selected_part: Option<conduit_body::PartId>,
     pub selected_candidate: Option<conduit_body::CandidateId>,
     pub pending_revoke: Option<conduit_body::PartId>,
