@@ -41,7 +41,8 @@ code migration or a more precise external-boundary justification.
 | Presentation | `bitmap.rs`, `graphics.rs` and nested graphics command codecs |
 | Time | `historical_timeline_codec.rs`, `replay_codec.rs`, `retention_gap_codec.rs` |
 
-The migration order is driven by active #4382 verticals. A migration must move
+The migration order is driven by the completed #4382 audit and reviewed #4375
+follow-up slices. A migration must move
 the authoritative table or layout, generate or generically interpret the
 codec, delete the Rust duplicate, and retain exact compatibility proof.
 

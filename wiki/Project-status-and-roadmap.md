@@ -34,11 +34,15 @@ Its core symmetry is:
 
 Recent progress includes native authored semantic types and generated Rust bindings. The merged LinguisticOffsetBasis migration is a concrete example.
 
+The foundational children for authored payload-rich Types, generated bindings,
+checked behavioral parameters, and bounded activation are complete. Portable
+semantic families now migrate as small reviewed follow-up slices rather than as
+an open language-support dependency.
+
 Still-live work includes:
 
 - [#4378](https://github.com/dancxjo/conduit/issues/4378) — bounded sequence/flow algebra instead of imperative loops;
-- [#4382](https://github.com/dancxjo/conduit/issues/4382) — migrate portable semantic type ownership out of handwritten Rust;
-- [#4399](https://github.com/dancxjo/conduit/issues/4399) — bounded activation of one statically selected subgraph.
+- [#4375](https://github.com/dancxjo/conduit/issues/4375) — finish the audited semantic migrations and close the v1 campaign honestly.
 
 The design line remains strict: no general loop runtime, runtime closures, or ambient semantic escape hatch just to make authoring convenient.
 

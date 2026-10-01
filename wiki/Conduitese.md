@@ -323,6 +323,6 @@ Instead, bounds, effects, state, terminal behavior, and temporal relationships a
 
 ## Current v1 growth
 
-The live v1 self-authoring epic is [#4375](https://github.com/dancxjo/conduit/issues/4375). Current work includes bounded collection algebra and migration of portable semantic types into native Conduitese.
+The remaining v1 self-authoring work is tracked by [#4375](https://github.com/dancxjo/conduit/issues/4375). Authored payload-rich Types, checked behavioral parameters, generated bindings, concise expansion, and bounded activation are present. Current work is the audited migration of remaining portable semantic families plus bounded collection target integration under [#4378](https://github.com/dancxjo/conduit/issues/4378).
 
 Proposed syntax in open issues is **not automatically canon**. The exact current language surface lives in [[Current language surface|Current-language-surface]].
