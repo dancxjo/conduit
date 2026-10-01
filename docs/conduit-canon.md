@@ -409,10 +409,11 @@ and host truth. Transform kinds do not acquire hidden Show side effects.
 
 Mask is a Form role, not a new authored keyword or a second graph language.
 The role is admitted from an ordinary Form's exact Fore. Body construction
-uses `wear MASK [else FALLBACK]` for finite eligibility/fallback structure and
-`want MASK over MASK ...` for ordered soft preference. These are planning
+uses `wear MASK, MASK ...` for a finite unordered eligibility set and
+optional `want MASK over MASK ...` for ordered soft preference. These are planning
 inputs: they do not mutate an immutable Plan, grant deployment authority, or
-put realization policy inside a Mask.
+put realization policy inside a Mask. Comma order confers no preference;
+same-Plan recovery remains limited to exact routes already sealed by that Plan.
 
 ### Make and runtime
 

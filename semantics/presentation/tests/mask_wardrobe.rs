@@ -133,3 +133,70 @@ fn an_unsealed_or_other_plan_route_cannot_be_selected_as_fallback() {
         Err(MaskWardrobeError::InvalidRoute)
     );
 }
+
+#[test]
+fn unordered_eligibility_is_permutation_invariant_for_every_availability_case() {
+    let graphical = mask("graphical");
+    let spoken = mask("spoken");
+    for (graphical_available, spoken_available, expected) in [
+        (true, true, Some("route/graphical")),
+        (true, false, Some("route/graphical")),
+        (false, true, Some("route/spoken")),
+        (false, false, None),
+    ] {
+        let forward = MaskWardrobe::new(
+            MaskWardrobeLifetime::Body,
+            vec![graphical.clone(), spoken.clone()],
+            vec![],
+        )
+        .unwrap();
+        let reversed = MaskWardrobe::new(
+            MaskWardrobeLifetime::Body,
+            vec![spoken.clone(), graphical.clone()],
+            vec![],
+        )
+        .unwrap();
+        let routes = [
+            route(&spoken, "spoken", spoken_available),
+            route(&graphical, "graphical", graphical_available),
+        ];
+        for wardrobe in [&forward, &reversed] {
+            let result = wardrobe
+                .reconcile(&PlanId::from("plan/current"), &routes, None)
+                .unwrap();
+            let selected = match result.show {
+                MaskShowDisposition::SelectSealed { selected, .. } => Some(selected.route_id),
+                MaskShowDisposition::NoCurrentShow { .. } => None,
+                MaskShowDisposition::Retain(_) => unreachable!("there was no prior selection"),
+            };
+            assert_eq!(selected.as_deref(), expected);
+        }
+    }
+}
+
+#[test]
+fn explicit_preference_orders_only_available_eligible_routes() {
+    let graphical = mask("graphical");
+    let spoken = mask("spoken");
+    let wardrobe = MaskWardrobe::new(
+        MaskWardrobeLifetime::Body,
+        vec![graphical.clone(), spoken.clone()],
+        vec![graphical.clone(), spoken.clone()],
+    )
+    .unwrap();
+    let result = wardrobe
+        .reconcile(
+            &PlanId::from("plan/current"),
+            &[
+                route(&graphical, "graphical", false),
+                route(&spoken, "spoken", true),
+            ],
+            None,
+        )
+        .unwrap();
+    assert!(matches!(
+        result.show,
+        MaskShowDisposition::SelectSealed { selected, .. }
+            if selected.route_id == "route/spoken"
+    ));
+}

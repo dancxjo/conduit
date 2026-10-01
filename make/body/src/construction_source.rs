@@ -9,7 +9,7 @@ use serde_json::{Map, Number, Value};
 
 use crate::{
     BodyBindingTarget, BodyDescription, BodyDescriptionDiagnostic, BodyHostDescription,
-    BodyMaskImportDescription, BodyMaskRouteDescription, BodyWardrobeDescription,
+    BodyMaskImportDescription, BodyWardrobeDescription,
 };
 
 pub fn parse_body_description_conduit(
@@ -66,11 +66,10 @@ pub fn parse_body_description_conduit(
     let mut wardrobe = BodyWardrobeDescription::default();
     for directive in construction.directives {
         match directive {
-            ConstructionDirectiveSyntax::BodyWear { mask, fallback, .. } => {
-                wardrobe.worn.push(BodyMaskRouteDescription {
-                    mask: mask.text,
-                    fallback: fallback.map(|mask| mask.text),
-                });
+            ConstructionDirectiveSyntax::BodyWear { masks, .. } => {
+                wardrobe
+                    .worn
+                    .extend(masks.into_iter().map(|mask| mask.text));
             }
             ConstructionDirectiveSyntax::BodyWant { masks, .. } => {
                 if !wardrobe.preference.is_empty() {

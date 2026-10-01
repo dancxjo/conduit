@@ -222,15 +222,8 @@ pub struct ConstructionSyntax {
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum ConstructionDirectiveSyntax {
-    BodyWear {
-        mask: SpannedText,
-        fallback: Option<SpannedText>,
-        span: Span,
-    },
-    BodyWant {
-        masks: Vec<SpannedText>,
-        span: Span,
-    },
+    BodyWear { masks: Vec<SpannedText>, span: Span },
+    BodyWant { masks: Vec<SpannedText>, span: Span },
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]

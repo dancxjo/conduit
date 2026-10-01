@@ -171,11 +171,7 @@ impl MaskWardrobe {
                 });
             }
         }
-        if let Some(route) = self.ordered_worn().find_map(|mask| {
-            routes
-                .iter()
-                .find(|route| &route.mask_form == mask && route.currently_available)
-        }) {
+        if let Some(route) = self.select_available_route(routes) {
             return Ok(MaskReconciliation {
                 show: MaskShowDisposition::SelectSealed {
                     prior: selected.cloned(),
@@ -200,12 +196,27 @@ impl MaskWardrobe {
         })
     }
 
-    fn ordered_worn(&self) -> impl Iterator<Item = &FormIdentity> {
-        self.preference.iter().chain(
-            self.worn
+    fn select_available_route<'a>(
+        &self,
+        routes: &'a [SealedMaskFormRoute],
+    ) -> Option<&'a SealedMaskFormRoute> {
+        for preferred in &self.preference {
+            if let Some(route) = routes
                 .iter()
-                .filter(|mask| !self.preference.contains(mask)),
-        )
+                .filter(|route| route.currently_available && &route.mask_form == preferred)
+                .min_by(|left, right| left.route_id.cmp(&right.route_id))
+            {
+                return Some(route);
+            }
+        }
+        routes
+            .iter()
+            .filter(|route| {
+                route.currently_available
+                    && self.worn.contains(&route.mask_form)
+                    && !self.preference.contains(&route.mask_form)
+            })
+            .min_by(|left, right| left.route_id.cmp(&right.route_id))
     }
 
     fn require_revision(&self, basis_revision: u64) -> Result<(), MaskWardrobeError> {

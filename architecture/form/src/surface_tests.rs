@@ -746,7 +746,7 @@ fn canonical_document_roles_share_tokens_declarations_values_and_diagnostics() {
 
 #[test]
 fn body_wardrobe_directives_are_role_specific_lossless_syntax() {
-    let source = "with masks/native-graphical as graphical\nwith masks/spoken as spoken\nbody roseau {\n  wear graphical else spoken\n  want graphical over spoken\n}\n";
+    let source = "with masks/native-graphical as graphical\nwith masks/spoken as spoken\nbody roseau {\n  wear graphical, spoken\n  want graphical over spoken\n}\n";
     let document = parse_syntax_document(source);
     assert_eq!(document.round_trip(), source);
     assert!(
@@ -758,12 +758,16 @@ fn body_wardrobe_directives_are_role_specific_lossless_syntax() {
         panic!("one Body is required");
     };
     assert_eq!(body.directives.len(), 2);
-    let crate::ConstructionDirectiveSyntax::BodyWear { mask, fallback, .. } = &body.directives[0]
-    else {
+    let crate::ConstructionDirectiveSyntax::BodyWear { masks, .. } = &body.directives[0] else {
         panic!("first directive should wear a Mask");
     };
-    assert_eq!(mask.text, "graphical");
-    assert_eq!(fallback.as_ref().unwrap().text, "spoken");
+    assert_eq!(
+        masks
+            .iter()
+            .map(|mask| mask.text.as_str())
+            .collect::<Vec<_>>(),
+        vec!["graphical", "spoken"]
+    );
     let crate::ConstructionDirectiveSyntax::BodyWant { masks, .. } = &body.directives[1] else {
         panic!("second directive should order policy");
     };
@@ -775,8 +779,11 @@ fn body_wardrobe_directives_are_role_specific_lossless_syntax() {
         vec!["graphical", "spoken"]
     );
 
-    let host = parse_syntax_document("host bad {\n  wear graphical else spoken\n}\n");
+    let host = parse_syntax_document("host bad {\n  wear graphical, spoken\n}\n");
     assert!(!host.diagnostics.is_empty());
+
+    let legacy = parse_syntax_document("body legacy {\n  wear graphical else spoken\n}\n");
+    assert!(!legacy.diagnostics.is_empty());
 }
 
 #[test]
