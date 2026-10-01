@@ -29,7 +29,6 @@ mod debugger_watch;
 mod debugger_watch_tests;
 mod degraded_profile_explanation;
 mod dormant_readmission_explanation;
-mod execution_disposition_explanation;
 mod form_editor;
 mod form_editor_catalogs;
 mod form_editor_error;
@@ -53,7 +52,6 @@ mod live_conversation_flow;
 mod llm_documentary;
 mod llm_embodiment_presentation;
 mod llm_presentation;
-mod llm_replan_explanation;
 mod maker_environment;
 mod mask_control;
 #[cfg(test)]
@@ -156,9 +154,6 @@ pub use dormant_readmission_explanation::{
     explain_dormant_readmission, DormantReadmissionExplanation, DormantReadmissionExplanationError,
     MAX_DORMANT_READMISSION_EXPLANATION_BYTES,
 };
-pub use execution_disposition_explanation::{
-    explain_execution_disposition, ExecutionDispositionExplanation,
-};
 pub use form_editor::{
     CheckedRevision, EditorDiagnostic, FormDocumentView, FormEditor, FormEditorError, GraphCord,
     GraphCordStage, GraphForm, GraphItem, GraphItemKind, SourceSelection,
@@ -205,10 +200,6 @@ pub use llm_embodiment_presentation::{
 pub use llm_presentation::{
     project_llm_patchbay, CandidateFormInspection, LlmGearActivity, LlmPatchbayTruth,
     LlmPresentationError, MAXIMUM_LLM_PRESENTATION_STAGES,
-};
-pub use llm_replan_explanation::{
-    explain_cross_host_llm_replan, explain_missing_llm_realization, CrossHostLlmReplanExplanation,
-    MAX_LLM_REPLAN_EXPLANATION_BYTES,
 };
 pub use maker_environment::{
     AuthoredEnvironment, AuthoredEnvironmentError, AuthoredLink, AuthoredPart, ConnectivityKind,
