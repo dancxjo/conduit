@@ -17,6 +17,9 @@ fn main() {
             serde_variant_exclusions: ["ReplayCommand".into()].into(),
             serde_record_types: [
                 "CandidateConflict".into(),
+                "NamedPatternTemplate".into(),
+                "NamedPatternTemplateSlot".into(),
+                "NormalizedDurationSequence".into(),
                 "ReminderOccurrence".into(),
                 "TemporalInstant".into(),
             ]

@@ -2,7 +2,7 @@
 
 use alloc::{string::String, vec, vec::Vec};
 use conduit_core::{
-    kind_id, StructuredFieldType, StructuredFieldValue, StructuredInfoType, StructuredInfoValue,
+    kind_id, StructuredFieldValue, StructuredInfoType, StructuredInfoValue,
     StructuredInfoValueShape,
 };
 pub use conduit_time::TemplateCollectionRefusal;
@@ -10,8 +10,6 @@ pub use conduit_time::TemplateCollectionRefusal;
 pub const MAXIMUM_NAMED_TEMPLATES: u16 = 8;
 pub const MAXIMUM_TEMPLATE_NAME_BYTES: usize = 64;
 pub const TEMPLATE_COLLECTION_SCHEMA: &str = "sequence/named-pattern-template-collection@1";
-pub const TEMPLATE_SLOT_SCHEMA: &str = "sequence/named-pattern-template-slot@1";
-pub const TEMPLATE_NAME_INFO_ID: &str = "sequence/pattern-template-name@1";
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 struct DecodedSlot {
@@ -21,21 +19,8 @@ struct DecodedSlot {
 }
 
 pub fn named_pattern_template_slot_type() -> StructuredInfoType {
-    StructuredInfoType::record(
-        kind_id(TEMPLATE_SLOT_SCHEMA),
-        vec![
-            field_type(
-                "active",
-                StructuredInfoType::leaf(kind_id("value/bool")).unwrap(),
-            ),
-            field_type(
-                "name",
-                StructuredInfoType::leaf(kind_id(TEMPLATE_NAME_INFO_ID)).unwrap(),
-            ),
-            field_type("pattern", crate::normalized_duration_sequence_type()),
-        ],
-    )
-    .unwrap()
+    conduit_time::NamedPatternTemplateSlot::semantic_type()
+        .expect("checked named pattern template slot Type")
 }
 
 pub fn named_pattern_template_collection_type() -> StructuredInfoType {
@@ -213,16 +198,12 @@ fn slot_value(
                 .encode()
                 .to_vec(),
             )?,
-            leaf_field("name", TEMPLATE_NAME_INFO_ID, name)?,
+            leaf_field("name", conduit_core::TEXT_INFO_ID, name)?,
             StructuredFieldValue::new("pattern", pattern)
                 .map_err(|_| TemplateCollectionRefusal::Malformed)?,
         ],
     )
     .map_err(|_| TemplateCollectionRefusal::Malformed)
-}
-
-fn field_type(name: &str, value_type: StructuredInfoType) -> StructuredFieldType {
-    StructuredFieldType::new(name, value_type).unwrap()
 }
 
 fn leaf_field(

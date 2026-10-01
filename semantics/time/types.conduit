@@ -212,6 +212,36 @@ type PatternComparison = {
     tolerance_millionths: Count
 }
 
+type NormalizedDurationSequence = {
+    algorithm: Text
+    values: Text
+}
+
+type NamedPatternTemplateSlot = {
+    active: Boolean
+    name: Text
+    pattern: NormalizedDurationSequence
+}
+
+type NamedPatternTemplateSlots = collection NamedPatternTemplateSlot = 8
+
+type NamedPatternTemplate = {
+    name: Text
+    pattern: NormalizedDurationSequence
+}
+
+type NamedPatternTemplateCommand =
+    delete Text
+    | get Text
+    | put NamedPatternTemplate
+    | put-and-get NamedPatternTemplate
+
+type NamedPatternTemplateResult =
+    deleted Text
+    | found NamedPatternTemplate
+    | missing Text
+    | stored Text
+
 type TimedPatternRefusal =
     malformed
     | too-few-events
