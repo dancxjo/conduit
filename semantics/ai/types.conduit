@@ -227,6 +227,13 @@ type RelationResultProfile =
         maximum_samples: U32 in 1..=4294967295
     }
 
+type ModelCachePolicy =
+    no_cache
+    | bounded {
+        maximum_loaded_models: U16 in 1..=65535
+        maximum_loaded_bytes: U64 in 1..=18446744073709551615
+    }
+
 type ContextSelectionRationale =
     exact_match
     | semantic_candidate
