@@ -286,6 +286,23 @@ type WorkflowTimingOutcome =
     | cancelled
     | expired
 
+type ScheduleEffectIntent =
+    observation Text
+    | proposed_effect Text
+
+type ScheduleWorkflowLifecycle =
+    cancelled
+    | completed
+    | expired
+    | failed Text
+    | pending
+    | running
+
+type ScheduleAssessment = {
+    intent_identity: Text
+    outcome: WorkflowTimingOutcome
+}
+
 type TemplateCollectionRefusal =
     malformed
     | name-empty

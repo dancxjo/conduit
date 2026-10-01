@@ -105,25 +105,13 @@ fn record(kind: &str, fields: Vec<StructuredFieldType>) -> StructuredInfoType {
 }
 
 #[cfg(feature = "form-catalog")]
-fn unit_type() -> StructuredInfoType {
-    leaf("value/unit")
-}
-
-#[cfg(feature = "form-catalog")]
 fn text_type() -> StructuredInfoType {
     leaf("value/text")
 }
 
 #[cfg(feature = "form-catalog")]
 pub fn schedule_effect_intent_type() -> StructuredInfoType {
-    StructuredInfoType::variant(
-        kind_id("schedule/effect-intent@1"),
-        vec![
-            case("observation", text_type()),
-            case("proposed_effect", text_type()),
-        ],
-    )
-    .expect("reviewed effect proposal")
+    conduit_time::ScheduleEffectIntent::semantic_type().expect("checked schedule effect Type")
 }
 
 #[cfg(feature = "form-catalog")]
@@ -158,32 +146,14 @@ pub fn scheduled_intent_type() -> StructuredInfoType {
 
 #[cfg(feature = "form-catalog")]
 pub fn workflow_lifecycle_type() -> StructuredInfoType {
-    StructuredInfoType::variant(
-        kind_id("schedule/workflow-lifecycle@1"),
-        vec![
-            case("cancelled", unit_type()),
-            case("completed", unit_type()),
-            case("expired", unit_type()),
-            case("failed", text_type()),
-            case("pending", unit_type()),
-            case("running", unit_type()),
-        ],
-    )
-    .expect("reviewed workflow lifecycle")
+    conduit_time::ScheduleWorkflowLifecycle::semantic_type()
+        .expect("checked schedule workflow lifecycle Type")
 }
 
 #[cfg(feature = "form-catalog")]
 pub fn schedule_window_position_type() -> StructuredInfoType {
-    StructuredInfoType::variant(
-        kind_id("schedule/window-position@1"),
-        vec![
-            case("after", unit_type()),
-            case("before", unit_type()),
-            case("indeterminate", unit_type()),
-            case("within", unit_type()),
-        ],
-    )
-    .expect("reviewed schedule position")
+    conduit_time::TemporalWindowPosition::semantic_type()
+        .expect("checked schedule window position Type")
 }
 
 #[cfg(feature = "form-catalog")]
@@ -201,31 +171,13 @@ pub fn schedule_observation_type() -> StructuredInfoType {
 
 #[cfg(feature = "form-catalog")]
 pub fn workflow_timing_outcome_type() -> StructuredInfoType {
-    StructuredInfoType::variant(
-        kind_id("schedule/workflow-timing-outcome@1"),
-        vec![
-            case("awaiting", unit_type()),
-            case("cancelled", unit_type()),
-            case("clock_uncertain", leaf(QUANTITY_INFO_ID)),
-            case("expired", unit_type()),
-            case("failed", unit_type()),
-            case("late", leaf(QUANTITY_INFO_ID)),
-            case("missed_window", unit_type()),
-            case("on_time", unit_type()),
-        ],
-    )
-    .expect("reviewed workflow timing outcome")
+    conduit_time::WorkflowTimingOutcome::semantic_type()
+        .expect("checked workflow timing outcome Type")
 }
 
 #[cfg(feature = "form-catalog")]
 pub fn schedule_assessment_type() -> StructuredInfoType {
-    record(
-        "schedule/assessment@1",
-        vec![
-            field("intent_identity", text_type()),
-            field("outcome", workflow_timing_outcome_type()),
-        ],
-    )
+    conduit_time::ScheduleAssessment::semantic_type().expect("checked schedule assessment Type")
 }
 
 #[cfg(feature = "form-catalog")]
