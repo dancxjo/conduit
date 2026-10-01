@@ -105,7 +105,16 @@ type ExperienceTemporalRole =
 type ExperienceTemporalPolicy = {
     maximum_current_age_ticks: U64
     maximum_recent_age_ticks: U64
+    where .maximum_current_age_ticks < .maximum_recent_age_ticks
 }
+
+type ExperienceTemporalRefusal =
+    invalid_policy
+    | invalid_instant
+    | incomparable_clock
+    | interval_overflow
+    | future_observation
+    | indeterminate_age
 
 type ExperienceAvailability =
     present
