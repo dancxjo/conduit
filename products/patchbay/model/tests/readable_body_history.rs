@@ -4,7 +4,7 @@ use conduit_body::{
 };
 use conduit_body_make::{
     BodyEvidenceAttachment, BodyEvidenceEntrance, BodyEvidenceEntranceError,
-    MAX_BODY_ATTACHMENT_EVIDENCE_BYTES,
+    MAX_BODY_ATTACHMENT_EVIDENCE_BYTES, MAX_BODY_BIOGRAPHY_EXPLANATION_BYTES,
 };
 use conduit_core::{
     bind_sign, BootId, CheckedFormId, HostId, ImplementationId, OfferGeneration, PlanId, SignId,
@@ -13,8 +13,7 @@ use conduit_core::{
 use conduit_presentation::{PresentationAspect, PresentationDepth, PresentationPlace};
 use patchbay_model::{
     BodyHistoryManifestation, BodyHistoryMoment, ReadableBodyHistory, ReadableBodyHistoryError,
-    ReadableBodyHistorySlot, MAX_BODY_BIOGRAPHY_EXPLANATION_BYTES, MAX_BODY_HISTORY_LINEAR_BYTES,
-    MAX_BODY_HISTORY_TITLE_BYTES,
+    ReadableBodyHistorySlot, MAX_BODY_HISTORY_LINEAR_BYTES, MAX_BODY_HISTORY_TITLE_BYTES,
 };
 
 const HOSTED_PLAN: &str = "plan/roseau-patchbay";

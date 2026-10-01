@@ -9,8 +9,10 @@ use conduit_core::SignId;
 use conduit_presentation::{PresentationAspect, PresentationDepth, PresentationPlace};
 use serde::Serialize;
 
-use crate::{project_body_biography, MAX_BODY_BIOGRAPHY_EXPLANATION_BYTES};
-use conduit_body_make::{BodyEvidenceAttachment, BodyEvidenceEntranceError};
+use conduit_body_make::{
+    project_body_biography, BodyEvidenceAttachment, BodyEvidenceEntranceError,
+    MAX_BODY_BIOGRAPHY_EXPLANATION_BYTES,
+};
 
 pub const MAX_BODY_HISTORY_TITLE_BYTES: usize = 64;
 pub const MAX_BODY_HISTORY_LINEAR_BYTES: usize = 1_024;

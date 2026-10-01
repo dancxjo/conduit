@@ -11,7 +11,6 @@ use conduit_observatory::{
     ObservatorySnapshot, OfferFreshness, OperationalState, RetentionReport, SNAPSHOT_SCHEMA,
 };
 
-mod body_biography;
 mod body_planning_session;
 mod build_birth;
 mod control;
@@ -119,10 +118,6 @@ mod zero_body_projection;
 #[cfg(test)]
 mod degradation_explanation_tests;
 
-pub use body_biography::{
-    project_body_biography, BodyBiographyArchiveProjection, BodyBiographyEntry,
-    BodyBiographyProjection, BodyBiographyProjectionError, MAX_BODY_BIOGRAPHY_EXPLANATION_BYTES,
-};
 pub use build_birth::{
     BirthSigns, BuildBirthController, BuildBirthDocument, BuildBirthError, BuildRevisionStatus,
     PatchbayMode, MAX_BUILD_DOCUMENT_LINES,

@@ -3,6 +3,7 @@
 //! This layer depends on Host make to produce PROFILE, BUILD, and IMAGE
 //! artifacts. It does not create a current host, Boot, membership, Plan, or Play.
 
+mod biography_projection;
 mod body_description;
 mod body_source;
 mod construction_source;
@@ -11,6 +12,7 @@ mod planning;
 mod spore;
 mod workload_session;
 
+pub use biography_projection::*;
 pub use body_description::*;
 pub use body_source::*;
 pub use construction_source::*;
