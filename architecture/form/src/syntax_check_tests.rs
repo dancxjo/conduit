@@ -178,6 +178,18 @@ fn local_form_privacy_and_implicit_capture_fail_closed() {
 }
 
 #[test]
+fn back_bindings_cannot_shadow_fore_symbols() {
+    for source in [
+        "form outer (\n >> occupied: Text\n) {\n occupied: text/upper\n}\n",
+        "form outer (\n >> occupied: Text\n) {\n let occupied = \"no\"\n}\n",
+        "form outer (\n >> occupied: Text\n) {\n form occupied {\n }\n}\n",
+    ] {
+        let error = check_syntax_document(&parse_syntax_document(source), &catalog()).unwrap_err();
+        assert!(error.message.contains("occupied"), "{}", error.message);
+    }
+}
+
+#[test]
 fn local_form_captures_outer_type_parameters_only_as_exact_compile_time_identity() {
     let checked = check(
         "form outer (\n item: type\n >> value: item\n mapped: item >>\n) {\n form helper (\n  >> inner: item\n  mapped: item >>\n ) {\n  inner >> mapped\n }\n helper: helper\n value >> helper >> mapped\n}\n\nform main {\n child: outer(item = Count)\n}\n",

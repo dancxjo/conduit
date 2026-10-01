@@ -17,9 +17,10 @@ const MARGIN: i32 = 50;
 pub(crate) fn run(form: &Path, format: DiagramFormat, output: Option<&Path>) -> Result<(), String> {
     let source = crate::form_source::load(form)?;
     let authoring = source.expand_entry_for_authoring()?;
+    let type_names = type_names(&authoring, &source.startup);
     let rendered = match format {
-        DiagramFormat::Svg => render_svg(&authoring),
-        DiagramFormat::Mermaid => render_mermaid(&authoring),
+        DiagramFormat::Svg => render_svg(&authoring, &type_names),
+        DiagramFormat::Mermaid => render_mermaid(&authoring, &type_names),
     };
     if let Some(path) = output {
         std::fs::write(path, rendered).map_err(|error| error.to_string())
@@ -52,7 +53,7 @@ fn gear_height(gear: &conduit_form::CheckedGear) -> i32 {
         .max(MIN_BOX_HEIGHT)
 }
 
-fn render_svg(authoring: &ExpandedAuthoringForm) -> String {
+fn render_svg(authoring: &ExpandedAuthoringForm, type_names: &BTreeMap<String, String>) -> String {
     let expanded = &authoring.expanded;
     let levels = gear_levels(authoring);
     let mut by_level = BTreeMap::<usize, Vec<_>>::new();
@@ -172,6 +173,7 @@ fn render_svg(authoring: &ExpandedAuthoringForm) -> String {
         input_boundary_y,
         front_inputs,
         true,
+        type_names,
     );
     draw_boundary(
         &mut nodes,
@@ -180,6 +182,7 @@ fn render_svg(authoring: &ExpandedAuthoringForm) -> String {
         output_boundary_y,
         front_outputs,
         false,
+        type_names,
     );
     let front_input_points = boundary_points(MARGIN, input_boundary_y, front_inputs, true);
     let front_output_points =
@@ -243,7 +246,7 @@ fn render_svg(authoring: &ExpandedAuthoringForm) -> String {
                 from.point,
                 to.point,
                 connection.track,
-                information_label(&from.kind),
+                information_label(&from.kind, type_names),
                 &format!(
                     "{}.{} → {}.{} · {}",
                     connection.source_gear_id.as_str(),
@@ -271,7 +274,7 @@ fn render_svg(authoring: &ExpandedAuthoringForm) -> String {
                 from.point,
                 to.point,
                 binding.track,
-                information_label(&from.kind),
+                information_label(&from.kind, type_names),
                 &format!(
                     "Form.{} → {}.{} · {}",
                     binding.front_port_id.as_str(),
@@ -298,7 +301,7 @@ fn render_svg(authoring: &ExpandedAuthoringForm) -> String {
                 from.point,
                 to.point,
                 binding.track,
-                information_label(&from.kind),
+                information_label(&from.kind, type_names),
                 &format!(
                     "{}.{} → Form.{} · {}",
                     binding.gear_id.as_str(),
@@ -480,6 +483,7 @@ fn draw_boundary(
     y: i32,
     ports: &[conduit_core::PortDescriptor],
     input: bool,
+    type_names: &BTreeMap<String, String>,
 ) {
     let height = boundary_height(ports.len());
     writeln!(svg, "<rect class=\"boundary\" x=\"{x}\" y=\"{y}\" width=\"{BOUNDARY_WIDTH}\" height=\"{height}\" rx=\"10\"/><text class=\"label\" x=\"{}\" y=\"{}\">{title}</text>", x + 16, y + 28).unwrap();
@@ -502,7 +506,10 @@ fn draw_boundary(
             point.x + if input { -12 } else { 12 },
             point.y + 4,
             escape(&shorten(port.port_id.as_str(), 16)),
-            escape(&shorten(&information_label(port.value_kind.as_str()), 18))
+            escape(&shorten(
+                &information_label(port.value_kind.as_str(), type_names),
+                18,
+            ))
         )
         .unwrap();
     }
@@ -616,7 +623,29 @@ fn draw_cord(
     svg.push_str("</g>\n");
 }
 
-fn information_label(kind: &str) -> String {
+fn type_names(
+    authoring: &ExpandedAuthoringForm,
+    startup: &conduit_form::StartupCatalog,
+) -> BTreeMap<String, String> {
+    authoring
+        .expanded
+        .gears
+        .iter()
+        .flat_map(|gear| gear.inputs.iter().chain(&gear.outputs))
+        .chain(authoring.front.inputs())
+        .chain(authoring.front.outputs())
+        .filter_map(|port| {
+            startup
+                .structured_type_name(&port.value_kind)
+                .map(|name| (port.value_kind.as_str().to_string(), name.to_string()))
+        })
+        .collect()
+}
+
+fn information_label(kind: &str, type_names: &BTreeMap<String, String>) -> String {
+    if let Some(name) = type_names.get(kind) {
+        return name.clone();
+    }
     if let Some(profile) = kind.strip_prefix("structured-info/profile-") {
         let (digest, version) = profile.split_once('@').unwrap_or((profile, ""));
         let digest = digest.chars().take(8).collect::<String>();
@@ -639,7 +668,10 @@ fn track_name(track: ConnectionTrack) -> &'static str {
     }
 }
 
-fn render_mermaid(authoring: &ExpandedAuthoringForm) -> String {
+fn render_mermaid(
+    authoring: &ExpandedAuthoringForm,
+    type_names: &BTreeMap<String, String>,
+) -> String {
     let mut output = String::from("flowchart TB\n");
     output.push_str("  form_in[\"Form inputs\"]\n  form_out[\"Form outputs\"]\n");
     let ids = authoring
@@ -667,7 +699,7 @@ fn render_mermaid(authoring: &ExpandedAuthoringForm) -> String {
             gear.outputs.iter().map(move |port| {
                 (
                     (gear.gear_id.as_str(), port.port_id.as_str()),
-                    information_label(port.value_kind.as_str()),
+                    information_label(port.value_kind.as_str(), type_names),
                 )
             })
         })
@@ -679,7 +711,7 @@ fn render_mermaid(authoring: &ExpandedAuthoringForm) -> String {
         .map(|port| {
             (
                 port.port_id.as_str(),
-                information_label(port.value_kind.as_str()),
+                information_label(port.value_kind.as_str(), type_names),
             )
         })
         .collect::<BTreeMap<_, _>>();
@@ -763,7 +795,7 @@ mod tests {
     #[test]
     fn svg_connects_exact_ports_and_escapes_labels() {
         let form = checked("form main (\n  >> text: Text\n  shown: Text >>\n) {\n  pass: text/join(\"&\")\n  text >> pass >> shown\n}\n");
-        let svg = render_svg(&form);
+        let svg = render_svg(&form, &BTreeMap::new());
         assert!(svg.starts_with("<svg"));
         assert!(svg.contains("Form inputs"));
         assert!(svg.contains("text"));
@@ -793,7 +825,7 @@ mod tests {
     #[test]
     fn mermaid_labels_cords_once_with_information_kind() {
         let form = checked("form main (\n  >> text: Text\n  shown: Text >>\n) {\n  pass: text/join(\" \" )\n  text >> pass >> shown\n}\n");
-        let mermaid = render_mermaid(&form);
+        let mermaid = render_mermaid(&form, &BTreeMap::new());
         assert_eq!(mermaid.matches("-- \"value/text\" -->").count(), 2);
         assert!(!mermaid.contains("text → text"));
         assert!(mermaid.contains("<small>text/join</small>"));
@@ -802,7 +834,7 @@ mod tests {
     #[test]
     fn svg_includes_every_expanded_gear_and_internal_cord() {
         let form = checked("form main (\n  >> text: Text\n  shown: Text >>\n) {\n  first: text/join(\" \" )\n  second: text/join(\" \" )\n  text >> first >> second >> shown\n}\n");
-        let svg = render_svg(&form);
+        let svg = render_svg(&form, &BTreeMap::new());
         assert!(svg.contains("first</text>"));
         assert!(svg.contains("second</text>"));
         assert_eq!(svg.matches("marker-end=\"url(#arrow)\"").count(), 3);
@@ -879,12 +911,28 @@ mod tests {
 
     #[test]
     fn information_labels_use_types_not_port_names() {
-        assert_eq!(information_label("value/text"), "value/text");
+        assert_eq!(
+            information_label("value/text", &BTreeMap::new()),
+            "value/text"
+        );
         assert_eq!(
             information_label(
-                "structured-info/profile-5499281c7145915c96904daf22ba0da93fcd03c7edb3c39ed767bb31ab8b9fdc@1"
+                "structured-info/profile-5499281c7145915c96904daf22ba0da93fcd03c7edb3c39ed767bb31ab8b9fdc@1",
+                &BTreeMap::new(),
             ),
             "profile-5499281c…@1"
+        );
+        let names = BTreeMap::from([(
+            "structured-info/profile-5499281c7145915c96904daf22ba0da93fcd03c7edb3c39ed767bb31ab8b9fdc@1"
+                .to_string(),
+            "ImageResource".to_string(),
+        )]);
+        assert_eq!(
+            information_label(
+                "structured-info/profile-5499281c7145915c96904daf22ba0da93fcd03c7edb3c39ed767bb31ab8b9fdc@1",
+                &names,
+            ),
+            "ImageResource"
         );
     }
 }

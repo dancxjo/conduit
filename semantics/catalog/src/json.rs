@@ -131,7 +131,7 @@ mod tests {
             assert_eq!(
                 contract.shorthand,
                 Some((
-                    conduit_core::port_id("value"),
+                    conduit_core::port_id("source"),
                     conduit_core::port_id("value"),
                 ))
             );

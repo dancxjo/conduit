@@ -9,7 +9,7 @@ form native-graphical (
     render: presentation/resource-renderer
     human: face/interaction
 
-    face >> spread.presentation
+    face >> spread.source
     spread.presentation >> render.presentation
     surface.show-resource >> render.show-resource
     spread.presentation >> human.presentation

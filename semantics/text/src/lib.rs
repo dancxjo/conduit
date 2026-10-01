@@ -146,7 +146,11 @@ pub fn text_upper_semantics() -> TextKindContract {
     TextKindContract {
         kind_id: kind_id(TEXT_UPPER_KIND),
         kind_contract_revision: KindIdentity::from(TEXT_UPPER_CONTRACT_REVISION),
-        inputs: vec![text_port(PortDirection::Input)],
+        inputs: vec![named_text_port(
+            "source",
+            TEXT_VALUE_KIND,
+            PortDirection::Input,
+        )],
         outputs: vec![text_port(PortDirection::Output)],
         configuration: Default::default(),
         limits: text_limits(),
@@ -157,7 +161,11 @@ pub fn text_join_semantics() -> TextKindContract {
     TextKindContract {
         kind_id: kind_id(TEXT_JOIN_KIND),
         kind_contract_revision: KindIdentity::from(TEXT_JOIN_CONTRACT_REVISION),
-        inputs: vec![text_port(PortDirection::Input)],
+        inputs: vec![named_text_port(
+            "source",
+            TEXT_VALUE_KIND,
+            PortDirection::Input,
+        )],
         outputs: vec![text_port(PortDirection::Output)],
         configuration: vec![TextConfigurationField {
             key: "prefix",

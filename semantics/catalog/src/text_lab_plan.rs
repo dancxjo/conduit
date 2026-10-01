@@ -377,7 +377,10 @@ fn text_upper_fixture_offer(
         Vec::new(),
         Vec::new(),
     );
-    offer.shorthand = Some((conduit_core::port_id("text"), conduit_core::port_id("text")));
+    offer.shorthand = Some((
+        conduit_core::port_id("source"),
+        conduit_core::port_id("text"),
+    ));
     offer
 }
 

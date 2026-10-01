@@ -109,7 +109,7 @@ fn ordinary_form_splits_text_and_chords_through_the_production_kernel() {
 
 #[test]
 fn keymap_text_flows_directly_into_text_upper_without_an_adapter() {
-    let form = "form upper_input {\n source: conduit-test/key-event-source\n keymap: input/keymap\n upper: text/upper\n show: presentation/text\n source.key >> keymap.key\n keymap.text >> upper.text\n upper.text >> show.text\n}\n";
+    let form = "form upper_input {\n source: conduit-test/key-event-source\n keymap: input/keymap\n upper: text/upper\n show: presentation/text\n source.key >> keymap.key\n keymap.text >> upper.source\n upper.text >> show.text\n}\n";
     let (mut host, fragment) = plan(form);
     let mut output = Vec::with_capacity(16_384);
     let mut timer = RecordingTimer {

@@ -246,16 +246,16 @@ form vision (
     experience: experience/visual(maximum-observations = 32)
 
     frames >> ingress.in
-    ingress.out >> normalize.image
-    normalize.image >> fanout.in
+    ingress.out >> normalize.source
+    normalize.normalized >> fanout.in
 
     fanout.left >> change.image
     fanout.right >> objects.image
-    normalize.image >> text.image
+    normalize.normalized >> text.image
 
     objects.detections >> tracks.detections
 
-    normalize.image >> describe.image
+    normalize.normalized >> describe.image
     objects.detections >> describe.observations
     text.observations >> describe.observations
     tracks.tracks >> describe.observations

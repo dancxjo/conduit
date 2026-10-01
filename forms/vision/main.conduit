@@ -14,11 +14,11 @@ form vision (
     relate: vision/relate-experience
 
     images >> ingress.in
-    ingress.out >> normalize.image
-    normalize.image >> motion.image
-    normalize.image >> objects.image
-    normalize.image >> text.image
-    normalize.image >> describe.image
+    ingress.out >> normalize.source
+    normalize.normalized >> motion.image
+    normalize.normalized >> objects.image
+    normalize.normalized >> text.image
+    normalize.normalized >> describe.image
     objects.detections >> tracks.detections
     objects.detections >> describe.detections
     objects.detections >> relate.detections

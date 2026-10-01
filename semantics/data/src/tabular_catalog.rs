@@ -32,7 +32,7 @@ pub fn tabular_semantic_contracts() -> Vec<Kind> {
         ),
         (
             TABULAR_FILTER_KIND,
-            vec![port("result", &result, PortDirection::Input)],
+            vec![port("source", &result, PortDirection::Input)],
             vec![port("result", &result, PortDirection::Output)],
         ),
     ]
