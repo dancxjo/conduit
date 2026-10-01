@@ -1,5 +1,6 @@
 //! Renderer-neutral equivalence oracle for Patchbay entrance manifestations.
 
+use alloc::{string::String, vec::Vec};
 use conduit_presentation::{
     Presentation, PresentationAction, PresentationDisclosure, PresentationProperty,
     PresentationRelationship, PresentationSubject, PresentationTemporalFact, PresentationText,
@@ -7,7 +8,7 @@ use conduit_presentation::{
 };
 use serde::{Deserialize, Serialize};
 
-use patchbay_application::{EntranceAction, EntranceLayer, EntranceRefusal, PatchbayEntranceState};
+use crate::{EntranceAction, EntranceLayer, EntranceRefusal, PatchbayEntranceState};
 
 pub const ENTRANCE_EQUIVALENCE_SCHEMA: &str = "conduit.patchbay.entrance-equivalence@2";
 pub const ONE_FORM_TWO_FACES_HOST_ID: &str = "journey/one-form-two-fronts/host";

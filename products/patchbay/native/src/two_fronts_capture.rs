@@ -3,9 +3,9 @@
 use crate::{png_capture::write_rgb_png, presentation::ordinary_front_door_lines, render};
 use conduit_core::{BootId, HostId, SignId};
 use conduit_presentation::ManifestationLifecycle;
+use patchbay_application::{ONE_FORM_TWO_FACES_BOOT_ID, ONE_FORM_TWO_FACES_HOST_ID};
 use patchbay_model::{
     prepare_renderer_execution, RendererAdapterIdentity, RendererAdapterKind, ZeroBodyFrontDoor,
-    ONE_FORM_TWO_FACES_BOOT_ID, ONE_FORM_TWO_FACES_HOST_ID,
 };
 use std::io::Write;
 use std::path::Path;

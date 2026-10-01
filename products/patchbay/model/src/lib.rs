@@ -52,7 +52,6 @@ mod prewake;
 mod recursive_form_demonstration;
 #[cfg(test)]
 mod recursive_form_projection_tests;
-mod renderer_conformance;
 mod renderer_preparation;
 mod renderer_projection;
 mod route_demo;
@@ -131,10 +130,6 @@ pub use portable_demo::{
 pub use portable_projection::PortableProjectionError;
 pub use prewake::*;
 pub use recursive_form_demonstration::recursive_form_demonstration;
-pub use renderer_conformance::{
-    compare_entrances, EntranceEquivalenceError, EntranceEquivalenceReport,
-    ENTRANCE_EQUIVALENCE_SCHEMA, ONE_FORM_TWO_FACES_BOOT_ID, ONE_FORM_TWO_FACES_HOST_ID,
-};
 pub use renderer_preparation::{
     prepare_renderer_execution, prepare_renderer_execution_with_offer_generation,
     RendererAdapterIdentity, RendererAdapterKind, RendererPreparationError,

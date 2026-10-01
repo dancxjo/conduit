@@ -29,6 +29,7 @@ mod debugger_watch;
 #[cfg(test)]
 mod debugger_watch_tests;
 mod entrance;
+mod entrance_equivalence;
 mod learned_watch;
 #[cfg(test)]
 mod learned_watch_tests;
@@ -74,6 +75,10 @@ pub use debugger_watch::{
 pub use entrance::{
     EntranceAction, EntranceLayer, EntranceRefusal, EntranceUpdateDisposition,
     PatchbayEntranceState, MAX_ENTRANCE_ACTIONS,
+};
+pub use entrance_equivalence::{
+    compare_entrances, EntranceEquivalenceError, EntranceEquivalenceReport,
+    ENTRANCE_EQUIVALENCE_SCHEMA, ONE_FORM_TWO_FACES_BOOT_ID, ONE_FORM_TWO_FACES_HOST_ID,
 };
 pub use learned_watch::{
     ClockAlignment, DynamicsWatch, LearnedLifecyclePhase, LearnedLifecycleWatch,

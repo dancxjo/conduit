@@ -1,6 +1,8 @@
 use super::*;
+use patchbay_application::compare_entrances;
+
 use crate::{
-    compare_entrances, prepare_renderer_execution, PatchbayInvocationOutcome, PatchbayRefusal,
+    prepare_renderer_execution, PatchbayInvocationOutcome, PatchbayRefusal,
     RendererAdapterIdentity, RendererAdapterKind,
 };
 use conduit_body::{AuthenticatedHostObservation, BodyMembership, MembershipProofId, PartId};
