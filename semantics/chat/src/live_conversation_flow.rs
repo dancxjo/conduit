@@ -123,11 +123,11 @@ pub fn project_live_conversation_flow(
         return Err(LiveConversationProjectionError::CommittedTurnMismatch);
     }
     if truth.context.is_some_and(|context| {
-        context.request_identity.is_empty()
-            || context.body_id.is_empty()
-            || context.wake_id.is_empty()
-            || context.model_context_sha256.len() != 64
-            || context.private_prompt_retained
+        context.request_identity().is_empty()
+            || context.body_id().is_empty()
+            || context.wake_id().is_empty()
+            || context.model_context_sha256().len() != 64
+            || *context.private_prompt_retained()
     }) {
         return Err(LiveConversationProjectionError::InvalidContextEvidence);
     }
@@ -212,8 +212,10 @@ pub fn project_live_conversation_flow(
                 },
                 truth
                     .context
-                    .map(|context| context.request_identity.as_str()),
-                truth.context.map_or(0, |context| context.context_revision),
+                    .map(|context| context.request_identity().as_str()),
+                truth
+                    .context
+                    .map_or(0, |context| *context.context_revision()),
                 0,
             ),
             stage(
@@ -282,15 +284,16 @@ mod tests {
             recognition(RecognitionEvidenceStatus::Provisional),
             recognition(RecognitionEvidenceStatus::Committed),
         ];
-        let context = ConversationRequestEvidence {
-            request_identity: "request/live-1".into(),
-            body_id: "body/live".into(),
-            wake_id: "wake/live".into(),
-            wake_sequence: 2,
-            context_revision: 9,
-            model_context_sha256: "7".repeat(64),
-            private_prompt_retained: false,
-        };
+        let context = ConversationRequestEvidence::new(
+            "request/live-1".into(),
+            "body/live".into(),
+            "wake/live".into(),
+            2,
+            9,
+            "7".repeat(64),
+            false,
+        )
+        .unwrap();
         let generation = GeneratedTextFlowEvidence {
             chunks: 3,
             generated_bytes: 42,

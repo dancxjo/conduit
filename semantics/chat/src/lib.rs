@@ -13,17 +13,16 @@ mod generated {
 
 pub use generated::{
     BodyChatHistoryItem, BodyChatMessage, BodyChatRefusal, BodyChatRole, BodyChatRoleCode,
-    BodyConversationalSummary, ChatConnectionState, ChatStateRefusal, DeliveryAuthority,
-    DeliveryEvidence, DeliveryRequest, DeliveryState, DeliveryUpdate, MessageAttachment,
-    MessageAttachmentSlot, MessageMetadataEntry, MessageMetadataSlot, MessageOptionalDisplayName,
-    MessageOptionalSender, MessageOptionalSubject, MessageRecipient, MessageRecipientSlot,
-    NotificationEvent, PortableMessage, PresenceEvent, PresenceState,
+    BodyConversationalSummary, ChatConnectionState, ChatStateRefusal, ConversationRequestEvidence,
+    DeliveryAuthority, DeliveryEvidence, DeliveryRequest, DeliveryState, DeliveryUpdate,
+    MessageAttachment, MessageAttachmentSlot, MessageMetadataEntry, MessageMetadataSlot,
+    MessageOptionalDisplayName, MessageOptionalSender, MessageOptionalSubject, MessageRecipient,
+    MessageRecipientSlot, NotificationEvent, PortableMessage, PresenceEvent, PresenceState,
 };
 
 mod body_chat;
 pub use body_chat::*;
 mod conversation_request_evidence;
-pub use conversation_request_evidence::ConversationRequestEvidence;
 #[cfg(feature = "conversation-flow")]
 mod live_conversation_flow;
 #[cfg(feature = "conversation-flow")]

@@ -23,6 +23,20 @@ fn main() {
         &checked.codes,
         &RustBindingOptions {
             derive_serde_for_variants: true,
+            record_constructor_orders: [(
+                "ConversationRequestEvidence".into(),
+                vec![
+                    "request-identity".into(),
+                    "body-id".into(),
+                    "wake-id".into(),
+                    "wake-sequence".into(),
+                    "context-revision".into(),
+                    "model-context-sha256".into(),
+                    "private-prompt-retained".into(),
+                ],
+            )]
+            .into(),
+            serde_record_types: ["ConversationRequestEvidence".into()].into(),
             serde_variant_exclusions: BTreeSet::from(["MessageAttachmentSlot".into()]),
             ..RustBindingOptions::default()
         },
