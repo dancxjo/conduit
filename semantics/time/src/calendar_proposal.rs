@@ -4,8 +4,8 @@ use alloc::{string::String, vec::Vec};
 use serde::{Deserialize, Serialize};
 
 use crate::{
-    AvailabilityState, CalendarRefusal, MeetingProposalRefusal, ParticipantAvailability,
-    TemporalInstant, TemporalRelation, TemporalWindow,
+    AvailabilityState, CalendarRefusal, CandidateConflict, MeetingProposalRefusal,
+    ParticipantAvailability, TemporalInstant, TemporalRelation, TemporalWindow,
 };
 
 pub const MAXIMUM_MEETING_CANDIDATES: usize = 64;
@@ -25,12 +25,6 @@ pub struct MeetingProposalRequest {
     pub participant_identities: Vec<String>,
     pub candidates: Vec<MeetingCandidate>,
     pub maximum_results: u16,
-}
-
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
-pub struct CandidateConflict {
-    pub participant_identity: String,
-    pub state: AvailabilityState,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
@@ -85,12 +79,10 @@ impl MeetingProposalRequest {
                     AvailabilityState::Tentative => {
                         tentative.push(participant.participant_identity.clone())
                     }
-                    AvailabilityState::Busy | AvailabilityState::Unavailable => {
-                        conflicts.push(CandidateConflict {
-                            participant_identity: participant.participant_identity.clone(),
-                            state,
-                        })
-                    }
+                    AvailabilityState::Busy | AvailabilityState::Unavailable => conflicts.push(
+                        CandidateConflict::new(participant.participant_identity.clone(), state)
+                            .expect("validated availability owns a bounded participant identity"),
+                    ),
                 }
             }
             if conflicts.is_empty() && accepted.len() < usize::from(self.maximum_results) {

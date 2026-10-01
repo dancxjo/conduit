@@ -45,6 +45,11 @@ type AvailabilityState =
     | busy
     | unavailable
 
+type CandidateConflict = {
+    participant-identity: Text <= 128B not in [""]
+    state: AvailabilityState
+}
+
 type HistoricalEntryOrigin =
     machine_observation
     | operator_authored
