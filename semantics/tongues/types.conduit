@@ -12,6 +12,13 @@ type SpeechCommitRefusal =
     | segment_queue_full
     | already_closed
 
+type SpeakableSegment = {
+    stream_identity: Text <= 256B not in [""]
+    sequence: U32
+    text: Text <= 1024B not in [""]
+    reason: SpeechCommitReason
+}
+
 type SpeechRecognitionDisposition =
     recognized
     | no_speech

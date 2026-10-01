@@ -10,7 +10,7 @@ use serde::{Deserialize, Deserializer, Serialize, Serializer};
 use sha2::{Digest, Sha256};
 use std::{string::String, vec, vec::Vec};
 
-use crate::{SpeechCommitReason, SpeechCommitRefusal, SpeechRecognitionContract};
+use crate::{SpeakableSegment, SpeechCommitReason, SpeechCommitRefusal, SpeechRecognitionContract};
 
 pub const SPEECH_COMMIT_KIND: &str = "speech/commit-generated-text";
 pub const SPEECH_COMMIT_REVISION: &str = "conduit.speech/commit-generated-text@1";
@@ -46,14 +46,6 @@ impl<'de> Deserialize<'de> for SpeechCommitReason {
             _ => Err(serde::de::Error::custom("unknown speech commit reason")),
         }
     }
-}
-
-#[derive(Clone, Debug, Eq, PartialEq, Serialize, Deserialize)]
-pub struct SpeakableSegment {
-    pub stream_identity: String,
-    pub sequence: u32,
-    pub text: String,
-    pub reason: SpeechCommitReason,
 }
 
 pub fn encode_speakable_segment(

@@ -1,9 +1,9 @@
 use conduit_form::rust_binding::NativeRustBinding;
 use conduit_tongues::{
-    no_speech_result, recognized_result, RecognitionTextRefusal, SpeechCommitReason,
-    SpeechCommitRefusal, SpeechRecognitionAttempt, SpeechRecognitionAudioDigest,
-    SpeechRecognitionDisposition, SpeechRecognitionRefusal, SpeechRecognitionResult,
-    SpeechRecognitionValueError, StreamingRecognitionRefusal,
+    no_speech_result, recognized_result, RecognitionTextRefusal, SpeakableSegment,
+    SpeechCommitReason, SpeechCommitRefusal, SpeechRecognitionAttempt,
+    SpeechRecognitionAudioDigest, SpeechRecognitionDisposition, SpeechRecognitionRefusal,
+    SpeechRecognitionResult, SpeechRecognitionValueError, StreamingRecognitionRefusal,
 };
 
 fn round_trip<T>(value: T)
@@ -16,6 +16,15 @@ where
 
 #[test]
 fn speech_commit_and_recognition_vocabularies_are_native() {
+    round_trip(
+        SpeakableSegment::new(
+            "stream/1".into(),
+            3,
+            "Hello there.".into(),
+            SpeechCommitReason::TonguesBoundary,
+        )
+        .unwrap(),
+    );
     for value in [
         SpeechCommitReason::TonguesBoundary,
         SpeechCommitReason::FinalFlush,
