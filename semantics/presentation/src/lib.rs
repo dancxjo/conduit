@@ -26,17 +26,19 @@ mod generated {
     }
 }
 pub use generated::{
-    AdmittedNavigationDestination, ChoiceMultiplicity, CompositionItemKind,
-    CompositionItemKindCode, CompositionRole, CompositionRoleCode, EvidenceDisposition,
-    FaceUtteranceClauseKind, FaceUtteranceProvenance, FaceUtteranceProvenanceAction,
-    FaceUtteranceProvenanceActionArgument, FaceUtteranceProvenanceComposition,
-    FaceUtteranceProvenanceProperty, FaceUtteranceProvenanceRelationship,
-    FaceUtteranceProvenanceSubject, FaceUtteranceProvenanceText, GeneratedActionAffordance,
-    GeneratedContentRole, GeneratedManifestationDisposition, GraphicsClipClass,
-    GraphicsCommandKind, GraphicsCommandKindCode, GraphicsPaintRole, GraphicsPaintRoleCode,
-    GraphicsPoint, GraphicsShapeStyle, GraphicsShapeStyleCode, GraphicsTextRole,
-    GraphicsTextRoleCode, LayoutAlignment, LayoutAxis, PresentationDisclosureLevel,
-    PresentationMechanismKind, PresentationTemporalRole, StatusKind, ThemeColor,
+    AdmittedNavigationDestination, ApplicationComponent, ApplicationComponentCode,
+    ApplicationEventKind, ApplicationEventKindCode, ApplicationNodeState, ApplicationNodeStateCode,
+    ApplicationViewRefusal, ChoiceMultiplicity, CompositionItemKind, CompositionItemKindCode,
+    CompositionRole, CompositionRoleCode, EvidenceDisposition, FaceUtteranceClauseKind,
+    FaceUtteranceProvenance, FaceUtteranceProvenanceAction, FaceUtteranceProvenanceActionArgument,
+    FaceUtteranceProvenanceComposition, FaceUtteranceProvenanceProperty,
+    FaceUtteranceProvenanceRelationship, FaceUtteranceProvenanceSubject,
+    FaceUtteranceProvenanceText, GeneratedActionAffordance, GeneratedContentRole,
+    GeneratedManifestationDisposition, GraphicsClipClass, GraphicsCommandKind,
+    GraphicsCommandKindCode, GraphicsPaintRole, GraphicsPaintRoleCode, GraphicsPoint,
+    GraphicsShapeStyle, GraphicsShapeStyleCode, GraphicsTextRole, GraphicsTextRoleCode,
+    LayoutAlignment, LayoutAxis, PresentationDisclosureLevel, PresentationMechanismKind,
+    PresentationTemporalRole, StatusKind, ThemeColor,
 };
 
 mod application_event;
