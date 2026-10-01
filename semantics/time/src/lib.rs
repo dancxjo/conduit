@@ -46,6 +46,7 @@ mod replay_operation;
 mod replay_output;
 mod replay_source;
 mod retention_gap_codec;
+mod temporal_instant;
 mod temporal_recurrence;
 mod temporal_recurrence_civil;
 mod temporal_schedule;
@@ -53,6 +54,9 @@ mod temporal_window;
 
 pub use calendar::*;
 pub use calendar_proposal::*;
+pub use generated::{
+    TemporalInstant as NativeTemporalInstant, TemporalScale as NativeTemporalScale,
+};
 pub use historical_command::*;
 pub use historical_configuration::*;
 pub use historical_operation::*;
@@ -68,6 +72,7 @@ pub use replay_operation::*;
 pub use replay_output::*;
 pub use replay_source::*;
 pub use retention_gap_codec::*;
+pub use temporal_instant::*;
 pub use temporal_recurrence::*;
 pub use temporal_recurrence_civil::*;
 pub use temporal_schedule::*;
