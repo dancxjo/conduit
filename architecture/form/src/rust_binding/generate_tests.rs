@@ -24,9 +24,21 @@ type Interval = {
     where .start <= .end
 }
 
-type Observation = {
+type EvidenceObservation = {
     note: Note?
     evidence: Bytes
+}
+
+type Digest = collection U8 = 32
+
+type OptionalDigest = Digest?
+
+type DigestSet = sequence Digest <= 16
+
+type Observation = {
+    identity: Digest
+    source: OptionalDigest
+    ancestors: DigestSet
 }
 
 type MusicEvent =
@@ -512,8 +524,15 @@ fn generated_bindings_compile_as_an_independent_rust_library() {
     use std::process::Command;
     use std::string::String;
 
-    let generated =
-        generate_rust_bindings(&checked_types(), &RustBindingOptions::default()).unwrap();
+    let generated = generate_rust_bindings(
+        &checked_types(),
+        &RustBindingOptions {
+            copy_nominal_types: ["Digest".into()].into(),
+            hash_nominal_types: ["Digest".into()].into(),
+            ..RustBindingOptions::default()
+        },
+    )
+    .unwrap();
     let dependencies = std::env::current_exe()
         .unwrap()
         .parent()
@@ -604,7 +623,26 @@ mod generated_round_trip {
         assert_eq!(Interval::decode(&encoded).unwrap(), interval);
 
         let evidence = BoundedBytes::<4096>::new(b"sha256:truth").unwrap();
-        let observation = Observation::new(evidence, Some(Note::new(64).unwrap())).unwrap();
+        let observation = EvidenceObservation::new(evidence, Some(Note::new(64).unwrap())).unwrap();
+        let encoded = observation.clone().encode().unwrap();
+        assert_eq!(EvidenceObservation::decode(&encoded).unwrap(), observation);
+
+        fn requires_digest_traits<T: Copy + Eq + core::hash::Hash>() {}
+        requires_digest_traits::<Digest>();
+        let identity = Digest::new([7; 32]).unwrap();
+        let digest_type = Digest::semantic_type().unwrap();
+        let representation = conduit_form::rust_binding::nominal_representation_type(&digest_type).unwrap();
+        assert!(matches!(
+            StructuredInfoValue::collection(representation, Vec::new()),
+            Err(conduit_core::StructuredInfoRefusal::WrongCollectionLength)
+        ));
+        let mut ancestors = BoundedSequence::<Digest, 16>::new();
+        ancestors.push(Digest::new([8; 32]).unwrap()).unwrap();
+        let observation = Observation::new(
+            DigestSet::new(ancestors).unwrap(),
+            identity,
+            OptionalDigest::new(Some(identity)).unwrap(),
+        ).unwrap();
         let encoded = observation.clone().encode().unwrap();
         assert_eq!(Observation::decode(&encoded).unwrap(), observation);
     }

@@ -208,7 +208,7 @@ fn exact_type_guard(out: &mut String) {
         .expect("String writing is infallible");
 }
 
-fn encode_expression(
+pub(super) fn encode_expression(
     value_type: &StructuredInfoType,
     value: &str,
     expected: &str,
@@ -265,7 +265,7 @@ fn encode_expression(
     }
 }
 
-fn decode_expression(
+pub(super) fn decode_expression(
     value_type: &StructuredInfoType,
     value: &str,
     names: &BTreeMap<String, String>,
