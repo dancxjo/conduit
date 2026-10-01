@@ -14,8 +14,11 @@ Each specimen keeps five owners explicit:
 5. the finite Show occurrence.
 
 The suite deliberately proposes no new grammar primitive. Its fixtures state
-the meanings that real Masks must attempt to preserve, but fixture shape alone
-does not prove that a person encounters those meanings.
+the meanings that real Masks must attempt to preserve. `accounts.json` records
+three independent human reconstruction accounts for every pressure case and
+names the medium furniture each reconstruction harmlessly loses. These are
+reviewable reconstruction conclusions, not generated Shows or claims that a
+person encountered them.
 
 Run the deterministic model proof with:
 
@@ -26,8 +29,10 @@ node --test proof/conformance/presentation-waist/presentation-waist.test.mjs
 `specimens.json` is a bounded reconstruction matrix, not authoritative domain
 truth and not Face conformance evidence. It therefore is not projected into
 Face records by a test: doing so would manufacture the truth the suite is meant
-to audit. Production Mask proof must start from a Face derived through an
-ordinary domain-owned contribution. The browser runtime carries the specimens
+to audit. `accounts.json` stays outside the Face records and asks what a human
+would understand and could do in each reconstruction; it does not round-trip
+the fixture graph and call that understanding. Production Mask proof must start
+from a Face derived through an ordinary domain-owned contribution. The browser runtime carries the specimens
 through an ordinary graphical Mask Form into a current Show, but that remains
 Mask-mechanism coverage rather than evidence that a domain derived the Face.
 
@@ -39,9 +44,12 @@ Fore emits anything; one valid value produces the exact Show-bound
 `FaceInteraction`. This proves the inward Face-admission path without turning
 the browser, its attributes, or its Host effect into validation authority.
 
-There is no transparent JavaScript stand-in for either Mask. In particular, the
-current spoken Mask can ground generated wording in exact Face text, but this
-matrix has not proved that it traverses Face relationships, rhetorical
-composition, or action availability. Actual spoken conformance remains open.
-Neither the browser nor deterministic-linear checks are physical or independent
-human-enactment evidence.
+There is no transparent JavaScript stand-in for either Mask. Production
+`plan_face_utterances` traverses Face subjects, relationships, properties,
+rhetorical composition, text, action availability, and exact input contracts;
+the browser and deterministic-linear paths retain their own production tests.
+The thirty accounts here complete the bounded reconstruction comparison without
+claiming that those fixtures entered any of those production paths. Aural plans
+are deterministic spoken reconstructions, not synthesized audio, audibility, or
+independent human-enactment evidence. The browser and deterministic-linear
+checks likewise make no physical or independent human-enactment claim.

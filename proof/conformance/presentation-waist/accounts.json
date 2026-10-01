@@ -1,0 +1,62 @@
+[
+  {
+    "identity": "authored-argument",
+    "graphical": {"understands": ["claim", "evidence supports claim", "qualification follows evidence"], "can": ["continue"], "lost_appearance": ["spoken pacing", "linear record labels"]},
+    "spoken": {"understands": ["claim", "evidence supports claim", "qualification follows evidence"], "can": ["continue"], "lost_appearance": ["page boundaries", "visual emphasis"]},
+    "deterministic_linear": {"understands": ["claim", "evidence supports claim", "qualification follows evidence"], "can": ["continue"], "lost_appearance": ["page boundaries", "visual emphasis", "spoken pacing"]}
+  },
+  {
+    "identity": "named-collections",
+    "graphical": {"understands": ["Tools contains Editor and Mail", "Editor is focused"], "can": ["activate-editor", "activate-mail"], "lost_appearance": ["spoken choice cadence", "linear record labels"]},
+    "spoken": {"understands": ["Tools contains Editor and Mail", "Editor is focused"], "can": ["activate-editor", "activate-mail"], "lost_appearance": ["simultaneous item placement", "visual focus treatment"]},
+    "deterministic_linear": {"understands": ["Tools contains Editor and Mail", "Editor is focused"], "can": ["activate-editor", "activate-mail"], "lost_appearance": ["simultaneous item placement", "visual focus treatment", "spoken choice cadence"]}
+  },
+  {
+    "identity": "source-destination",
+    "graphical": {"understands": ["Archive is source", "Backup is destination", "report.txt is selected"], "can": ["copy-to-destination"], "lost_appearance": ["spoken source-before-destination phrasing", "linear relationship labels"]},
+    "spoken": {"understands": ["Archive is source", "Backup is destination", "report.txt is selected"], "can": ["copy-to-destination"], "lost_appearance": ["side-by-side regions", "selection highlight"]},
+    "deterministic_linear": {"understands": ["Archive is source", "Backup is destination", "report.txt is selected"], "can": ["copy-to-destination"], "lost_appearance": ["side-by-side regions", "selection highlight", "spoken cadence"]}
+  },
+  {
+    "identity": "spreadsheet",
+    "graphical": {"understands": ["B2 and C2 contribute to Total", "cell addresses are semantic identity"], "can": ["recalculate"], "lost_appearance": ["spoken address traversal", "linear dependency labels"]},
+    "spoken": {"understands": ["B2 and C2 contribute to Total", "cell addresses are semantic identity"], "can": ["recalculate"], "lost_appearance": ["grid geometry", "column alignment"]},
+    "deterministic_linear": {"understands": ["B2 and C2 contribute to Total", "cell addresses are semantic identity"], "can": ["recalculate"], "lost_appearance": ["grid geometry", "column alignment", "spoken traversal cadence"]}
+  },
+  {
+    "identity": "timeline-editor",
+    "graphical": {"understands": ["Voice and Music coexist", "Verse take is selected on Voice"], "can": ["mute-voice", "trim-clip"], "lost_appearance": ["spoken track summary", "linear containment labels"]},
+    "spoken": {"understands": ["Voice and Music coexist", "Verse take is selected on Voice"], "can": ["mute-voice", "trim-clip"], "lost_appearance": ["track lanes", "clip geometry", "playhead position"]},
+    "deterministic_linear": {"understands": ["Voice and Music coexist", "Verse take is selected on Voice"], "can": ["mute-voice", "trim-clip"], "lost_appearance": ["track lanes", "clip geometry", "spoken summary cadence"]}
+  },
+  {
+    "identity": "web-article",
+    "graphical": {"understands": ["aside qualifies section", "reference belongs with section"], "can": ["open-reference"], "lost_appearance": ["spoken aside cue", "linear relationship labels"]},
+    "spoken": {"understands": ["aside qualifies section", "reference belongs with section"], "can": ["open-reference"], "lost_appearance": ["page flow", "aside placement", "link styling"]},
+    "deterministic_linear": {"understands": ["aside qualifies section", "reference belongs with section"], "can": ["open-reference"], "lost_appearance": ["page flow", "aside placement", "spoken cueing"]}
+  },
+  {
+    "identity": "map",
+    "graphical": {"understands": ["route goes from station to museum"], "can": ["start-route"], "lost_appearance": ["spoken turn cadence", "linear endpoint labels"]},
+    "spoken": {"understands": ["route goes from station to museum"], "can": ["start-route"], "lost_appearance": ["map geometry", "route color", "marker icons"]},
+    "deterministic_linear": {"understands": ["route goes from station to museum"], "can": ["start-route"], "lost_appearance": ["map geometry", "route color", "spoken turn cadence"]}
+  },
+  {
+    "identity": "terminal",
+    "graphical": {"understands": ["Tests passed is result of cargo test"], "can": ["repeat-command"], "lost_appearance": ["spoken command/result announcements", "linear relationship labels"]},
+    "spoken": {"understands": ["Tests passed is result of cargo test"], "can": ["repeat-command"], "lost_appearance": ["monospace alignment", "prompt styling", "cursor shape"]},
+    "deterministic_linear": {"understands": ["Tests passed is result of cargo test"], "can": ["repeat-command"], "lost_appearance": ["monospace alignment", "prompt styling", "spoken announcement cadence"]}
+  },
+  {
+    "identity": "screen-reader",
+    "graphical": {"understands": ["MFA is enabled", "MFA status is focused in Security"], "can": ["change-mfa"], "lost_appearance": ["spoken landmark cue", "linear focus labels"]},
+    "spoken": {"understands": ["MFA is enabled", "MFA status is focused in Security"], "can": ["change-mfa"], "lost_appearance": ["landmark placement", "visual focus ring", "status color"]},
+    "deterministic_linear": {"understands": ["MFA is enabled", "MFA status is focused in Security"], "can": ["change-mfa"], "lost_appearance": ["landmark placement", "visual focus ring", "spoken focus cadence"]}
+  },
+  {
+    "identity": "patchbay",
+    "graphical": {"understands": ["Text flow connects input to output", "direction is input to output"], "can": ["disconnect"], "lost_appearance": ["spoken directed statement", "linear endpoint labels"]},
+    "spoken": {"understands": ["Text flow connects input to output", "direction is input to output"], "can": ["disconnect"], "lost_appearance": ["jack coordinates", "cord curvature", "port color"]},
+    "deterministic_linear": {"understands": ["Text flow connects input to output", "direction is input to output"], "can": ["disconnect"], "lost_appearance": ["jack coordinates", "cord curvature", "spoken phrasing"]}
+  }
+]
