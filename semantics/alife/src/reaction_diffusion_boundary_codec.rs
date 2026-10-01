@@ -24,8 +24,8 @@ impl ReactionDiffusionBoundaryState {
         encoded.extend_from_slice(&self.field_id.0);
         encoded.extend_from_slice(&self.generation.to_le_bytes());
         encoded.extend_from_slice(&self.boundary_id.to_le_bytes());
-        encoded.extend_from_slice(&self.source_region.0.to_le_bytes());
-        encoded.extend_from_slice(&self.destination_region.0.to_le_bytes());
+        encoded.extend_from_slice(&self.source_region.get().to_le_bytes());
+        encoded.extend_from_slice(&self.destination_region.get().to_le_bytes());
         encoded.push(edge_tag(self.destination_edge));
         encoded.push(0);
         encoded.extend_from_slice(&self.destination_offset.to_le_bytes());
@@ -71,8 +71,10 @@ impl ReactionDiffusionBoundaryState {
             boundary_id: read_u32(encoded, 36)?,
             field_id: ReactionDiffusionFieldId(field_id),
             generation: read_u64(encoded, 28)?,
-            source_region: ReactionDiffusionRegionId(read_u16(encoded, 40)?),
-            destination_region: ReactionDiffusionRegionId(read_u16(encoded, 42)?),
+            source_region: ReactionDiffusionRegionId::new(read_u16(encoded, 40)?)
+                .map_err(|_| ReactionDiffusionPartitionRefusal::MalformedBoundaryLength)?,
+            destination_region: ReactionDiffusionRegionId::new(read_u16(encoded, 42)?)
+                .map_err(|_| ReactionDiffusionPartitionRefusal::MalformedBoundaryLength)?,
             destination_edge: edge,
             destination_offset: read_u16(encoded, 46)?,
             values,

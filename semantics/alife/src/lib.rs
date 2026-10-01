@@ -2,13 +2,14 @@
 
 extern crate alloc;
 
-#[allow(dead_code)]
+#[allow(clippy::clone_on_copy, dead_code)]
 mod generated {
     include!(concat!(env!("OUT_DIR"), "/semantic_types.rs"));
 }
 pub use generated::{
     FieldBitmapRefusal, GardenEvolutionRefusal, LeniaBoundary, LeniaRegionChunkKind,
     LeniaRegionChunkKindCode, ReactionDiffusionBoundaryEdge, ReactionDiffusionBoundaryEdgeCode,
+    ReactionDiffusionRegionId,
 };
 
 mod distributed_catalog;
