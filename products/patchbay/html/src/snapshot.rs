@@ -1,9 +1,8 @@
 use crate::transport_types::RendererSnapshot;
 use conduit_core::SignId;
 use conduit_presentation::{
-    project_model_temporal_context, ManifestationFailure, ManifestationLifecycle,
+    project_model_temporal_context, ManifestationFailure, ManifestationLifecycle, RendererExecution,
 };
-use patchbay_model::RendererExecution;
 
 pub const SNAPSHOT_SCHEMA: &str = "conduit.patchbay.portable-presentation";
 pub const MAX_NAVIGATION_SNAPSHOT_BYTES: usize = 512 * 1024;

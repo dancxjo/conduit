@@ -4,7 +4,7 @@ use crate::RendererSnapshot;
 use conduit_core::{BootId, HostId, SignId};
 use conduit_semantic_catalog::GearPalette;
 use patchbay_model::{
-    LocalFrontDoor, RendererAdapterIdentity, RendererAdapterKind, RendererExecution,
+    prepare_renderer_execution, LocalFrontDoor, RendererAdapterIdentity, RendererAdapterKind,
     ZeroBodyFrontDoor,
 };
 
@@ -38,7 +38,7 @@ pub(crate) fn snapshot_for_zero_body_front_door(
 ) -> Result<RendererSnapshot, String> {
     let projection = session.project()?;
     let navigation = projection.navigation;
-    let execution = RendererExecution::prepare(
+    let execution = prepare_renderer_execution(
         projection.presentation,
         RendererAdapterKind::HtmlDomSvg,
         RendererAdapterIdentity {
@@ -67,7 +67,7 @@ pub(crate) fn snapshot_for_front_door(
 ) -> Result<RendererSnapshot, String> {
     let projection = session.project()?;
     let navigation = projection.navigation;
-    let execution = RendererExecution::prepare(
+    let execution = prepare_renderer_execution(
         projection.presentation,
         RendererAdapterKind::HtmlDomSvg,
         RendererAdapterIdentity {

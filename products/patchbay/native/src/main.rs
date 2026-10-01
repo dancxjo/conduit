@@ -1,9 +1,11 @@
 //! Native window/event-loop adapter for Patchbay.
 
 use conduit_core::SignId;
+use conduit_presentation::RendererExecution;
 use patchbay_model::{
-    BuildBirthController, DistributedRouteDemo, FormEditor, PatchbayInteraction, PatchbayModel,
-    PatchbayTopology, RendererAdapterIdentity, RendererAdapterKind, RendererExecution,
+    prepare_renderer_execution, BuildBirthController, DistributedRouteDemo, FormEditor,
+    PatchbayInteraction, PatchbayModel, PatchbayTopology, RendererAdapterIdentity,
+    RendererAdapterKind,
 };
 use std::rc::Rc;
 use winit::application::ApplicationHandler;

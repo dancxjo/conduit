@@ -1,13 +1,13 @@
 use crate::RendererSnapshot;
 use conduit_core::{BootId, HostId, SignId};
 use patchbay_application::PatchbayNavigationProjection;
-use patchbay_model::{RendererAdapterIdentity, RendererAdapterKind, RendererExecution};
+use patchbay_model::{prepare_renderer_execution, RendererAdapterIdentity, RendererAdapterKind};
 
 pub fn demonstration_snapshot() -> Result<RendererSnapshot, String> {
     let (presentation, parts) = patchbay_model::portable_demonstration_with_parts_and_adapter(
         &patchbay_hosted::HostedPatchbayAdapter,
     )?;
-    let execution = RendererExecution::prepare(
+    let execution = prepare_renderer_execution(
         presentation,
         RendererAdapterKind::HtmlDomSvg,
         RendererAdapterIdentity {
@@ -33,7 +33,7 @@ pub fn demonstration_snapshot() -> Result<RendererSnapshot, String> {
 
 pub fn recursive_form_demonstration_snapshot() -> Result<RendererSnapshot, String> {
     let presentation = patchbay_model::recursive_form_demonstration()?;
-    let execution = RendererExecution::prepare(
+    let execution = prepare_renderer_execution(
         presentation,
         RendererAdapterKind::HtmlDomSvg,
         RendererAdapterIdentity {
@@ -147,7 +147,7 @@ pub fn llm_documentary_snapshot() -> Result<RendererSnapshot, String> {
     let presentation = patchbay_model::llm_documentary_presentation_with_adapter(
         &patchbay_hosted::HostedPatchbayAdapter,
     )?;
-    let execution = RendererExecution::prepare(
+    let execution = prepare_renderer_execution(
         presentation,
         RendererAdapterKind::HtmlDomSvg,
         RendererAdapterIdentity {
@@ -173,7 +173,7 @@ pub fn llm_embodiment_snapshot(stage: usize) -> Result<RendererSnapshot, String>
         .into_iter()
         .nth(stage)
         .ok_or("LLM embodiment stage must be 0, 1, or 2")?;
-    let execution = RendererExecution::prepare(
+    let execution = prepare_renderer_execution(
         presentation,
         RendererAdapterKind::HtmlDomSvg,
         RendererAdapterIdentity {
@@ -210,7 +210,7 @@ pub fn text_lab_split_loss_snapshot(
 fn text_lab_snapshot(
     explanation: patchbay_model::TextLabSplitExplanation,
 ) -> Result<RendererSnapshot, String> {
-    let execution = RendererExecution::prepare(
+    let execution = prepare_renderer_execution(
         explanation.presentation,
         RendererAdapterKind::HtmlDomSvg,
         RendererAdapterIdentity {

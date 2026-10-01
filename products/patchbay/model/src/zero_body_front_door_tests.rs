@@ -1,7 +1,7 @@
 use super::*;
 use crate::{
-    compare_entrances, PatchbayInvocationOutcome, PatchbayRefusal, RendererAdapterIdentity,
-    RendererAdapterKind, RendererExecution,
+    compare_entrances, prepare_renderer_execution, PatchbayInvocationOutcome, PatchbayRefusal,
+    RendererAdapterIdentity, RendererAdapterKind,
 };
 use conduit_body::{AuthenticatedHostObservation, BodyMembership, MembershipProofId, PartId};
 use conduit_core::{BootId, HostId, OfferGeneration};
@@ -136,7 +136,7 @@ fn zero_body_world_is_valid_and_native_browser_semantics_match() {
         (RendererAdapterKind::NativeWayland, "native"),
         (RendererAdapterKind::HtmlDomSvg, "browser"),
     ] {
-        RendererExecution::prepare(
+        prepare_renderer_execution(
             presentation.clone(),
             adapter,
             RendererAdapterIdentity {

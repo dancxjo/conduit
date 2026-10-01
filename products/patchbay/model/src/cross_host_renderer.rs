@@ -13,7 +13,7 @@ use conduit_presentation::{
 };
 use std::collections::BTreeMap;
 
-use crate::{renderer_execution::renderer_host, RendererAdapterIdentity, RendererAdapterKind};
+use crate::{renderer_preparation::renderer_host, RendererAdapterIdentity, RendererAdapterKind};
 
 pub const PRESENTATION_PROJECT_KIND: &str = "presentation/patchbay-project";
 pub const PRESENTATION_PROJECT_CAPABILITY: &str = "patchbay-project";
