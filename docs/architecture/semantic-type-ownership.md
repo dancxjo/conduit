@@ -329,6 +329,7 @@ are satisfied.
 | Robotics family terminal ownership review | `semantics/robotics/types.conduit` | generated at build time | yes | yes | every portable observation and navigation value is native; surviving structured fixture, refusal and catalog contract declarations are classified C |
 | Signal family terminal ownership review | `semantics/signal/types.conduit` | generated at build time | yes | yes | every portable signal, trigger and finite configuration value is native and compiles through fixed no-std carriers; surviving encoders are M/W |
 | Human generalized-input family | `semantics/human/types.conduit` | generated at build time | yes | yes | button transitions/state, axes, fixed slots, pointer position/delta, touch contacts, rotary steps, gamepad state and pressure evidence are native; catalog fixtures retain only range validation and deterministic sample construction |
+| Tongues speakable-segment boundary | `semantics/tongues/types.conduit` | generated at build time with the established JSON adapter | yes | yes | native source owns nonempty bounded stream identity/text, sequence and commit reason; streaming segmentation and commit evidence remain realization truth |
 | Remaining P families in `semantics/**` | family-owned `.conduit` source required | binding machinery available | in progress | in progress | exact std/browser/ConduitOS/embedded applicability per family |
 
 The completed foundations remove any general “language support” excuse for a

@@ -7,10 +7,11 @@ mod generated {
 
 pub use generated::{
     HouseGenerationRequest, LiveConversationSpeechRequirements, RecognitionTextRefusal,
-    RecognizedSpeechText, SpeechCommitReason, SpeechCommitRefusal, SpeechRecognitionAttempt,
-    SpeechRecognitionAudioDigest, SpeechRecognitionDisposition, SpeechRecognitionProviderIdentity,
-    SpeechRecognitionRefusal, SpeechRecognitionResult, SpeechRecognitionResultNoSpeech,
-    SpeechRecognitionResultRecognized, SpeechRecognitionValueError, StreamingRecognitionRefusal,
+    RecognizedSpeechText, SpeakableSegment, SpeechCommitReason, SpeechCommitRefusal,
+    SpeechRecognitionAttempt, SpeechRecognitionAudioDigest, SpeechRecognitionDisposition,
+    SpeechRecognitionProviderIdentity, SpeechRecognitionRefusal, SpeechRecognitionResult,
+    SpeechRecognitionResultNoSpeech, SpeechRecognitionResultRecognized,
+    SpeechRecognitionValueError, StreamingRecognitionRefusal,
 };
 
 mod analysis;
