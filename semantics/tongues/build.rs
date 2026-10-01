@@ -9,8 +9,15 @@ fn main() {
         &StartupCatalog::new(),
     )
     .expect("speech semantic Types must check");
-    let generated = generate_rust_bindings(&checked.native_types, &RustBindingOptions::default())
-        .expect("speech semantic Types must generate exact Rust bindings");
+    let generated = generate_rust_bindings(
+        &checked.native_types,
+        &RustBindingOptions {
+            copy_record_types: ["LiveConversationSpeechRequirements".into()].into(),
+            copy_record_value_getters: ["LiveConversationSpeechRequirements".into()].into(),
+            ..RustBindingOptions::default()
+        },
+    )
+    .expect("speech semantic Types must generate exact Rust bindings");
     let output = PathBuf::from(env::var_os("OUT_DIR").expect("Cargo supplies OUT_DIR"))
         .join("semantic_types.rs");
     fs::write(output, generated.source).expect("write generated speech bindings");

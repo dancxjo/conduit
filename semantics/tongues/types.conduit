@@ -39,3 +39,10 @@ type RecognitionTextRefusal =
 type StreamingRecognitionRefusal =
     bound_exceeded
     | invalid_event
+
+type LiveConversationSpeechRequirements = {
+    recognition-audio-bytes: U32
+    recognized-text-bytes: U16
+    speakable-segment-bytes: U32
+    synthesized-pcm-bytes: U32
+}
