@@ -1,0 +1,9 @@
+# Authoritative portable Home meaning. Rust consumes generated bindings.
+
+type HomeDestination =
+    tour
+    | patchbay
+    | forms
+    | body
+    | creche
+    | prompt

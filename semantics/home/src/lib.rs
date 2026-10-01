@@ -4,6 +4,13 @@
 
 extern crate alloc;
 
+#[allow(dead_code)]
+mod generated {
+    include!(concat!(env!("OUT_DIR"), "/semantic_types.rs"));
+}
+
+pub use generated::HomeDestination;
+
 use alloc::{format, string::String, vec, vec::Vec};
 use conduit_presentation::{
     ActionAvailability, ApplicationEventKind, PresentationMechanism, SemanticAction,
@@ -38,16 +45,6 @@ pub const JOURNEY_STEP_IDS: [&str; 8] = [
     PATCHBAY_REQUESTED_STEP_ID,
     HOME_RETURNED_STEP_ID,
 ];
-
-#[derive(Clone, Copy, Debug, Eq, PartialEq)]
-pub enum HomeDestination {
-    Tour,
-    Patchbay,
-    Forms,
-    Body,
-    Creche,
-    Prompt,
-}
 
 impl HomeDestination {
     pub const ALL: [Self; HOME_ITEM_COUNT] = [

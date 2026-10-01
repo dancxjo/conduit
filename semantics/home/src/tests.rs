@@ -1,6 +1,18 @@
 use super::*;
+use conduit_form::rust_binding::NativeRustBinding;
 
 const FORMS: [&str; 4] = ["Keyboard canvas", "Memory Lantern", "Tour", "Patchbay"];
+
+#[test]
+fn destinations_round_trip_through_the_native_type() {
+    for destination in HomeDestination::ALL {
+        let structured = destination.into_structured().unwrap();
+        assert_eq!(
+            HomeDestination::from_structured(structured).unwrap(),
+            destination
+        );
+    }
+}
 
 #[test]
 fn launcher_navigation_is_finite() {
