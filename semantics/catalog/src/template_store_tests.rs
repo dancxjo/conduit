@@ -1,5 +1,6 @@
 use super::*;
-use alloc::format;
+use alloc::{format, string::ToString};
+use conduit_form::rust_binding::NativeRustBinding;
 
 #[test]
 fn oversized_command_refuses_without_changing_retained_slots() {
@@ -101,17 +102,8 @@ fn command(name: &str, pattern: conduit_core::StructuredInfoValue) -> Vec<u8> {
 }
 
 fn deleted(name: &str) -> Vec<u8> {
-    let name_type =
-        conduit_core::StructuredInfoType::leaf(conduit_core::kind_id(crate::TEMPLATE_NAME_INFO_ID))
-            .unwrap();
-    let name =
-        conduit_core::StructuredInfoValue::leaf(name_type, name.as_bytes().to_vec()).unwrap();
-    conduit_core::StructuredInfoValue::variant(
-        crate::template_storage_result_type(),
-        "deleted",
-        name,
-    )
-    .unwrap()
-    .canonical_bytes()
-    .unwrap()
+    conduit_time::NamedPatternTemplateResult::deleted(name.to_string())
+        .unwrap()
+        .encode()
+        .unwrap()
 }

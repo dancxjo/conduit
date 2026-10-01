@@ -8,7 +8,7 @@ form bounded-navigation (
     >> time: NavigationTime
     decision: NavigationRouteDecision >>
     control: NavigationControl >>
-    request: RoboticsMotionRequest >>
+    request: NavigationBoundedMotionIntent >>
 ) {
     route: navigation/route-grid4
     timing: navigation/time-parameterize
