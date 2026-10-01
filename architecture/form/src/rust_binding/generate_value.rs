@@ -32,7 +32,6 @@ pub(super) fn emit_value_impl(
                 rust_name,
                 fields,
                 names,
-                value_type.value_contracts.is_empty(),
                 copy_record,
                 direct_checked_record,
                 &value_type.value_contracts,
@@ -144,11 +143,11 @@ fn emit_record_constructor(
     rust_name: &str,
     fields: &[conduit_core::StructuredFieldType],
     names: &BTreeMap<String, String>,
-    is_unconstrained: bool,
     copy_record: bool,
     direct_checked_record: bool,
     contracts: &[NativeTypeValueContract],
 ) -> Result<(), RustBindingGenerationError> {
+    let is_unconstrained = contracts.is_empty();
     writeln!(out, "impl {rust_name} {{").expect("String writing is infallible");
     write!(out, "    pub fn new(").expect("String writing is infallible");
     for (index, field) in fields.iter().enumerate() {
