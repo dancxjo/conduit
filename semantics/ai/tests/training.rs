@@ -1,9 +1,46 @@
 use conduit_ai::*;
 use conduit_core::StateContinuation;
+use conduit_form::rust_binding::BoundedSequence;
 
 #[path = "common/training_fixture.rs"]
 mod fixture;
 use fixture::*;
+
+fn missing_modality_policy(values: &[&str]) -> MissingModalityPolicy {
+    let mut optional_modalities = BoundedSequence::new();
+    for value in values {
+        optional_modalities
+            .push(MissingModality::new((*value).into()).unwrap())
+            .unwrap();
+    }
+    MissingModalityPolicy::permit_declared(optional_modalities).unwrap()
+}
+
+#[test]
+fn declared_missing_modalities_retain_relational_validation() {
+    let signature = signature();
+    let artifact = artifact(&signature);
+    let (dataset, split) = corpus();
+    let mut candidate = session(&artifact, &dataset, &split);
+
+    candidate.missing_modality_policy = missing_modality_policy(&[]);
+    assert_eq!(
+        candidate.validate(&artifact, &dataset, &split),
+        Err(TrainingRefusal::InvalidSession)
+    );
+
+    candidate.missing_modality_policy = missing_modality_policy(&["audio", "audio"]);
+    assert_eq!(
+        candidate.validate(&artifact, &dataset, &split),
+        Err(TrainingRefusal::InvalidSession)
+    );
+
+    candidate.missing_modality_policy = missing_modality_policy(&["unknown"]);
+    assert_eq!(
+        candidate.validate(&artifact, &dataset, &split),
+        Err(TrainingRefusal::InvalidSession)
+    );
+}
 
 #[test]
 fn three_atomic_steps_commit_through_explicit_state_then_checkpoint() {

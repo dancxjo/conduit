@@ -42,18 +42,7 @@ impl TrainingSession {
         for modality in &self.model_modalities {
             push_text(&mut bytes, modality);
         }
-        match &self.missing_modality_policy {
-            MissingModalityPolicy::Reject => bytes.push(0),
-            MissingModalityPolicy::PermitDeclared {
-                optional_modalities,
-            } => {
-                bytes.push(1);
-                push_len(&mut bytes, optional_modalities.len());
-                for modality in optional_modalities {
-                    push_text(&mut bytes, modality);
-                }
-            }
-        }
+        push_missing_modality_policy(&mut bytes, &self.missing_modality_policy);
         let resources = self.resources;
         bytes.extend_from_slice(&resources.model_bytes.to_le_bytes());
         bytes.extend_from_slice(&resources.working_memory_bytes.to_le_bytes());
@@ -67,6 +56,19 @@ impl TrainingSession {
         push_checkpoint_policy(&mut bytes, self.checkpoint_policy);
         push_evaluation_policy(&mut bytes, self.evaluation_policy);
         Ok(semantic_digest("ai/training-session@1", &bytes))
+    }
+}
+
+fn push_missing_modality_policy(output: &mut Vec<u8>, policy: &MissingModalityPolicy) {
+    match policy {
+        MissingModalityPolicy::Reject => output.push(0),
+        MissingModalityPolicy::PermitDeclared(policy) => {
+            output.push(1);
+            push_len(output, policy.optional_modalities().len());
+            for modality in policy.optional_modalities().iter() {
+                push_text(output, modality.get());
+            }
+        }
     }
 }
 
@@ -227,4 +229,33 @@ fn push_len(output: &mut Vec<u8>, value: usize) {
 fn push_text(output: &mut Vec<u8>, value: &str) {
     output.extend_from_slice(&(value.len() as u16).to_le_bytes());
     output.extend_from_slice(value.as_bytes());
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::MissingModality;
+    use conduit_form::rust_binding::BoundedSequence;
+
+    #[test]
+    fn missing_modality_policy_retains_the_v1_manual_digest_bytes() {
+        let mut bytes = Vec::new();
+        push_missing_modality_policy(&mut bytes, &MissingModalityPolicy::Reject);
+        assert_eq!(bytes, [0]);
+
+        let mut optional_modalities = BoundedSequence::new();
+        optional_modalities
+            .push(MissingModality::new("audio".into()).unwrap())
+            .unwrap();
+        optional_modalities
+            .push(MissingModality::new("ema".into()).unwrap())
+            .unwrap();
+        let policy = MissingModalityPolicy::permit_declared(optional_modalities).unwrap();
+        bytes.clear();
+        push_missing_modality_policy(&mut bytes, &policy);
+        assert_eq!(
+            bytes,
+            [1, 2, 0, 5, 0, b'a', b'u', b'd', b'i', b'o', 3, 0, b'e', b'm', b'a']
+        );
+    }
 }

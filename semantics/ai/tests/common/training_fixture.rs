@@ -7,6 +7,7 @@ use conduit_data::{
     DatasetDescriptor, DatasetSplitMembership, TensorAxisRole, TensorElement,
     CORPUS_MANIFEST_PROFILE,
 };
+use conduit_form::rust_binding::BoundedSequence;
 
 pub fn resource(identity: u8, profile: &str, bytes: u64) -> BoundedResourceRef {
     BoundedResourceRef {
@@ -139,6 +140,13 @@ pub fn session(
     dataset: &DatasetDescriptor,
     split: &DatasetSplitMembership,
 ) -> TrainingSession {
+    let mut optional_modalities = BoundedSequence::new();
+    optional_modalities
+        .push(MissingModality::new("audio".into()).unwrap())
+        .unwrap();
+    optional_modalities
+        .push(MissingModality::new("ema".into()).unwrap())
+        .unwrap();
     TrainingSession {
         identity: [5; 32],
         base_artifact_identity: artifact.content_identity(),
@@ -150,9 +158,8 @@ pub fn session(
         randomness: RandomnessProfile::explicit_seed(42).unwrap(),
         precision_profile: artifact.precision_profile.clone(),
         model_modalities: vec!["audio".into(), "ema".into()],
-        missing_modality_policy: MissingModalityPolicy::PermitDeclared {
-            optional_modalities: vec!["audio".into(), "ema".into()],
-        },
+        missing_modality_policy: MissingModalityPolicy::permit_declared(optional_modalities)
+            .unwrap(),
         resources: TrainingResourceEnvelope {
             model_bytes: 4096,
             working_memory_bytes: 1_048_576,

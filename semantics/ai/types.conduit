@@ -234,6 +234,14 @@ type ModelCachePolicy =
         maximum_loaded_bytes: U64 in 1..=18446744073709551615
     }
 
+type MissingModality = Text <= 128B not in [""]
+
+type MissingModalityPolicy =
+    reject
+    | permit_declared {
+        optional_modalities: sequence MissingModality <= 32
+    }
+
 type ContextSelectionRationale =
     exact_match
     | semantic_candidate
