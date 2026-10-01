@@ -32,12 +32,18 @@ fn fixed_profile_is_repeatable_and_does_not_grow_after_prepare() {
 #[test]
 fn malformed_fields_and_invalid_parameters_are_distinct_refusals() {
     assert_eq!(
-        LeniaFieldState::from_cells(LeniaFieldId([0; 16]), 0, 31, 32, vec![0; 31 * 32]),
+        LeniaFieldState::from_cells(
+            LeniaFieldId::from_bytes([0; 16]),
+            0,
+            31,
+            32,
+            vec![0; 31 * 32]
+        ),
         Err(LeniaRefusal::InvalidDimensions)
     );
     assert_eq!(
         LeniaFieldState::from_cells(
-            LeniaFieldId([0; 16]),
+            LeniaFieldId::from_bytes([0; 16]),
             0,
             32,
             32,
