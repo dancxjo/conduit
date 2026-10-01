@@ -1006,6 +1006,8 @@ dependencies = [
 name = "conduit-home-model"
 version = "0.1.0"
 dependencies = [
+ "conduit-core",
+ "conduit-form",
  "conduit-presentation",
 ]
 
