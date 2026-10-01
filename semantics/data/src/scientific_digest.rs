@@ -101,14 +101,14 @@ impl ClockRelation {
     pub fn semantic_digest(&self) -> Result<[u8; 32], ScientificAlignmentRefusal> {
         self.validate()?;
         let mut bytes = Vec::new();
-        push_text(&mut bytes, &self.identity);
-        push_text(&mut bytes, &self.source_clock);
-        push_text(&mut bytes, &self.target_clock);
-        bytes.extend_from_slice(&self.source_anchor.to_le_bytes());
-        bytes.extend_from_slice(&self.target_anchor.to_le_bytes());
-        bytes.extend_from_slice(&self.source_ticks.to_le_bytes());
-        bytes.extend_from_slice(&self.target_ticks.to_le_bytes());
-        match &self.quality {
+        push_text(&mut bytes, self.identity());
+        push_text(&mut bytes, self.source_clock());
+        push_text(&mut bytes, self.target_clock());
+        bytes.extend_from_slice(&self.source_anchor().to_le_bytes());
+        bytes.extend_from_slice(&self.target_anchor().to_le_bytes());
+        bytes.extend_from_slice(&self.source_ticks().to_le_bytes());
+        bytes.extend_from_slice(&self.target_ticks().to_le_bytes());
+        match self.quality() {
             ClockRelationQuality::Exact => bytes.push(0),
             ClockRelationQuality::Estimated(estimated) => {
                 let maximum_error = estimated.maximum_error();

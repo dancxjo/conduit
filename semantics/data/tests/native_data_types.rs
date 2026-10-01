@@ -1,7 +1,7 @@
 use conduit_core::{Quantity, QuantityUnit};
 use conduit_data::{
-    ClockRelationQuality, DataLoadTextTerminal, DataSaveTextTerminal, FullWindowPolicy,
-    MathScalarRefusal, MeasurementPlotOverflowPolicy, MeasurementPlotRefusal,
+    ClockRelation, ClockRelationQuality, DataLoadTextTerminal, DataSaveTextTerminal,
+    FullWindowPolicy, MathScalarRefusal, MeasurementPlotOverflowPolicy, MeasurementPlotRefusal,
     MeasurementSummaryRefusal, MeasurementThresholdRefusal, MeasurementThresholdState,
     MeasurementThresholdTransition, MeasurementWindowRefusal, NormalizedQuantityRefusal,
     QuantityMappingRefusal, QuantizationPolicy, RangePolicy, SampledSignalRefusal,
@@ -273,4 +273,44 @@ fn clock_relation_quality_keeps_duration_meaning_in_the_native_type() {
     );
 
     assert!(ClockRelationQuality::estimated(Quantity::new(1, QuantityUnit::Celsius)).is_err());
+}
+
+#[test]
+fn clock_relation_round_trips_exact_native_bounds() {
+    let boundary = "x".repeat(128);
+    let relation = ClockRelation::new(
+        boundary.clone(),
+        ClockRelationQuality::Exact,
+        u64::MAX,
+        boundary.clone(),
+        1,
+        u64::MAX,
+        "target".into(),
+        u64::MAX,
+    )
+    .unwrap();
+    assert_owned_round_trip(relation);
+
+    assert!(ClockRelation::new(
+        "x".repeat(129),
+        ClockRelationQuality::Exact,
+        0,
+        "source".into(),
+        1,
+        0,
+        "target".into(),
+        1,
+    )
+    .is_err());
+    assert!(ClockRelation::new(
+        "identity".into(),
+        ClockRelationQuality::Exact,
+        0,
+        "source".into(),
+        0,
+        0,
+        "target".into(),
+        1,
+    )
+    .is_err());
 }
