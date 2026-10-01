@@ -9,29 +9,17 @@ allocator-free state in [`conduit-human`](../semantics/human/src/lib.rs).
 
 An input implementation joins at the highest seam whose facts it can state
 exactly. ConduitOS discovers xHCI, USB, and HID facts because its keyboard
-actually depends on them. The native Patchbay host receives `winit` physical
-key codes, so `patchbay-native/winit-keyboard@1` maps those codes directly to
-the same HID Keyboard/Keypad usage-number vocabulary in
-`input/key-event@1`. The vocabulary is portable identity, not a claim that a
-native window owns a USB controller, HID report, device, interface, or
-endpoint.
+actually depends on them. Browser input joins at its platform event seam.
+Neither path promotes device, DOM, window, localized logical text, toolkit, or
+operating-system layout facts into `input/key-event@1`.
 
-The native adapter does not read localized logical text, XKB/OS layout,
-timestamps, or window identity into the portable value. It retains left/right
-modifier identity, one fixed eight-value/24-byte queue, sixteen held-key slots,
-and one admitted next-event operation. Unknown physical codes, platform
-repeats, duplicate presses, unmatched releases, queue pressure, focus loss,
-cancellation, and closure remain distinct. Renderer-local logical shortcuts
-consume a separate projection and do not become the canonical semantic map.
-
-The shared conformance vectors are byte-identical across the ConduitOS USB
-bridge and native adapter. Both then reuse the exact `conduit-intl` and
-`conduit-core` chord-map state machines below, both owned by `conduit-human`; neither implementation owns a private
-keymap or chord table. The unchanged K6 form can therefore select either
-`conduitos/usb-hid-keyboard@1` or `patchbay-native/winit-keyboard@1` while its
-source, checked meaning, gear/port identities, and info types remain unchanged.
-Their plans retain different host, boot, implementation, artifact, and base
-truth.
+The portable implementation retains left/right modifier identity and finite
+queue/held-key bounds. Unknown codes, platform repeats, duplicate presses,
+unmatched releases, queue pressure, focus loss, cancellation, and closure
+remain distinct. Target-local shortcuts consume a separate projection and do
+not become the canonical semantic map. The exact `conduit-intl` and
+`conduit-core` chord-map state machines remain owned by `conduit-human`; no
+target owns a private portable keymap or chord table.
 
 ## `input/keymap` and `conduit-intl`
 

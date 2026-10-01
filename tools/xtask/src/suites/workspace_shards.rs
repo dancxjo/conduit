@@ -93,7 +93,6 @@ package_test_shard!(
         "patchbay-model",
         "patchbay-workbench-host-contract",
         "patchbay-html",
-        "patchbay-native",
     ],
     []
 );

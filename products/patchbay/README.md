@@ -28,8 +28,9 @@ finishes:
 - `forms/patchbay/graph/` owns host-neutral semantic graph projection;
 - `model/` is mixed migration scaffolding being decomposed, not the
   architectural owner of Patchbay meaning;
-- `native/` and `html/` contain current workbench realizations and packaging
-  edges that will move or disappear as the product shell retires.
+- `html/` contains the remaining browser workbench realization and packaging
+  edge being retired. The standalone native Patchbay product is gone;
+  ConduitOS consumes the resident Form and its target-owned Mask directly.
 
 Do not add universal Body/Form/Plan/Play/Host/Line/Sign truth to `model/`, or
 preserve a product dependency through a compatibility re-export. Put semantic
@@ -53,6 +54,5 @@ reconstructing a second current-truth registry.
 - Planned renderer execution and Manifestation lifecycle now belong to
   universal Presentation truth. The legacy model retains only temporary
   adapter-offer preparation while native and HTML shells are retired.
-- Native binaries whose names contain `capstone` remain explicit proof
-  entrances. They are not invoked by the installed `conduit` product entrance
-  and make no physical claim unless their owning proof records one.
+- Retained capstone evidence is historical or proof-owned; it is not a product
+  entrance and makes no physical claim unless its owning proof records one.
