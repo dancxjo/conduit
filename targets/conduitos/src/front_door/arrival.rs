@@ -131,10 +131,13 @@ impl Arrival {
             79 | 80 if self.focus == 1 => self.cycle_tradition(event.usage() == 80),
             60 => return self.submit(),
             40 if action == "creche.name" => match self.keymap.apply(event) {
-                KeymapDisposition::Text(fragment) if !composing && fragment.as_bytes() == b"\n" => {
+                KeymapDisposition::Text(fragment) if !composing && fragment.as_char() == '\n' => {
                     return self.submit();
                 }
-                KeymapDisposition::Text(fragment) => self.append_name(fragment.as_bytes()),
+                KeymapDisposition::Text(fragment) => {
+                    let mut utf8 = [0; 4];
+                    self.append_name(fragment.encode_utf8(&mut utf8))
+                }
                 KeymapDisposition::Refused(_) => {
                     self.refusal = Some("The keyboard could not complete that character.".into());
                     return ArrivalInput::Changed;
@@ -172,10 +175,7 @@ impl Arrival {
             _ if action == "creche.search" => match self.keymap.apply(event) {
                 KeymapDisposition::Text(fragment) => {
                     let mut search = String::from(self.draft.search());
-                    let Ok(text) = core::str::from_utf8(fragment.as_bytes()) else {
-                        return ArrivalInput::Unchanged;
-                    };
-                    search.push_str(text);
+                    search.push(fragment.as_char());
                     self.change("creche.search", ApplicationEventKind::Input, &search)
                 }
                 _ => return ArrivalInput::Unchanged,
@@ -191,7 +191,10 @@ impl Arrival {
                 self.change("creche.name", ApplicationEventKind::Input, &name)
             }
             _ if self.focus == 0 => match self.keymap.apply(event) {
-                KeymapDisposition::Text(fragment) => self.append_name(fragment.as_bytes()),
+                KeymapDisposition::Text(fragment) => {
+                    let mut utf8 = [0; 4];
+                    self.append_name(fragment.encode_utf8(&mut utf8))
+                }
                 _ => return ArrivalInput::Unchanged,
             },
             _ => return ArrivalInput::Unchanged,

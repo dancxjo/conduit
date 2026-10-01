@@ -34,6 +34,18 @@ type KeymapRefusal =
     | unicode_entry_overflow
     | invalid_unicode_scalar
 
+# One Unicode scalar emitted by the portable keymap. The Rust binding encodes
+# it into at most four UTF-8 bytes at the consumer boundary without allocation.
+type TextFragment =
+    basic U32 in 0..=55295
+    | supplementary U32 in 57344..=1114111
+
+type KeymapDisposition =
+    no_text
+    | text TextFragment
+    | cancelled
+    | refused KeymapRefusal
+
 type HumanMediaKind =
     camera
     | microphone

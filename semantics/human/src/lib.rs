@@ -62,9 +62,9 @@ pub use generated::{
     InteractionApplicationOutcome, InteractionApplicationOutcomeAccepted,
     InteractionApplicationOutcomeFailed, InteractionApplicationOutcomeRefused,
     InteractionBoundKind as BoundKind, InteractionRefusal, KeyEvent, KeyModifiers, KeyTransition,
-    KeyTransitionCode, KeymapRefusal, OptionAvailability, OptionAvailabilityUnavailable,
-    RealizationRangePolicy, ScalarQuantization, SourceAvailability, VisualEvidenceClass,
-    VisualExperienceRelationKind, VisualImpressionDisposition,
+    KeyTransitionCode, KeymapDisposition, KeymapRefusal, OptionAvailability,
+    OptionAvailabilityUnavailable, RealizationRangePolicy, ScalarQuantization, SourceAvailability,
+    TextFragment, VisualEvidenceClass, VisualExperienceRelationKind, VisualImpressionDisposition,
     VisualImpressionDispositionTruncated,
 };
 

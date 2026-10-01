@@ -29,7 +29,8 @@ fn consumed(input: &mut NativeKeyboardInput, code: KeyCode, state: ElementState)
 fn text(disposition: KeymapDisposition) -> Option<String> {
     match disposition {
         KeymapDisposition::Text(value) => {
-            Some(String::from_utf8(value.as_bytes().to_vec()).unwrap())
+            let mut bytes = [0; 4];
+            Some(String::from_utf8(value.encode_utf8(&mut bytes).to_vec()).unwrap())
         }
         _ => None,
     }

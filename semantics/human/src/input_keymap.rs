@@ -1,38 +1,33 @@
 //! Finite, host-neutral `conduit-intl` keyboard text semantics.
 
-use crate::{KeyEvent, KeyModifiers, KeyTransition, KeymapRefusal};
+use crate::{
+    KeyEvent, KeyModifiers, KeyTransition, KeymapDisposition, KeymapRefusal, TextFragment,
+};
 
 pub const CONDUIT_INTL_LAYOUT: &str = "conduit-intl";
 pub const KEYMAP_MAXIMUM_HEX_DIGITS: u8 = 6;
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub struct TextFragment {
-    bytes: [u8; 4],
-    len: u8,
-}
-
 impl TextFragment {
     pub fn from_char(value: char) -> Self {
-        let mut bytes = [0; 4];
-        let len = value.encode_utf8(&mut bytes).len() as u8;
-        Self { bytes, len }
+        let value = value as u32;
+        if value <= 55_295 {
+            Self::basic(value).expect("a basic Rust char is one valid Unicode scalar")
+        } else {
+            Self::supplementary(value)
+                .expect("a supplementary Rust char is one valid Unicode scalar")
+        }
     }
 
-    pub const fn bytes(&self) -> &[u8; 4] {
-        &self.bytes
+    pub fn as_char(self) -> char {
+        let value = match self {
+            Self::Basic(value) | Self::Supplementary(value) => value,
+        };
+        char::from_u32(value).expect("checked TextFragment is one Unicode scalar")
     }
 
-    pub fn as_bytes(&self) -> &[u8] {
-        &self.bytes[..usize::from(self.len)]
+    pub fn encode_utf8(self, output: &mut [u8; 4]) -> &[u8] {
+        self.as_char().encode_utf8(output).as_bytes()
     }
-}
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum KeymapDisposition {
-    NoText,
-    Text(TextFragment),
-    Cancelled,
-    Refused(KeymapRefusal),
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
