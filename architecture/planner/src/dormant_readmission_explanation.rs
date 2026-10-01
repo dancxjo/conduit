@@ -1,9 +1,9 @@
 //! Renderer-neutral explanation for freshly re-admitted dormant equipment.
 
-use conduit_planner::DormantReadmissionEvidence;
+use crate::{prelude::*, DormantReadmissionEvidence};
 use serde::{Deserialize, Serialize};
 
-pub const MAX_DORMANT_READMISSION_EXPLANATION_BYTES: usize = 4_096;
+pub const MAXIMUM_DORMANT_READMISSION_EXPLANATION_BYTES: usize = 4_096;
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct DormantReadmissionExplanation {
@@ -59,7 +59,7 @@ pub fn explain_dormant_readmission(
         candidate.line_observation_signs.iter().map(|sign| sign.as_str()).collect::<Vec<_>>().join(", "),
         candidate.authority_grant_ids.iter().map(|grant| grant.as_str()).collect::<Vec<_>>().join(", "),
     );
-    if summary.len() > MAX_DORMANT_READMISSION_EXPLANATION_BYTES {
+    if summary.len() > MAXIMUM_DORMANT_READMISSION_EXPLANATION_BYTES {
         return Err(DormantReadmissionExplanationError::EvidenceTooLarge);
     }
     Ok(DormantReadmissionExplanation {
