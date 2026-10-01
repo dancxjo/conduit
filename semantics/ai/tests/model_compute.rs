@@ -43,10 +43,7 @@ fn offer() -> ModelComputeOffer {
         checkpoint_loading: true,
         checkpoint_writing: true,
         limits: limits(),
-        cache_policy: ModelCachePolicy::Bounded {
-            maximum_loaded_models: 1,
-            maximum_loaded_bytes: 4096,
-        },
+        cache_policy: ModelCachePolicy::bounded(4096, 1).unwrap(),
     }
 }
 
@@ -154,6 +151,13 @@ fn load_queue_active_cancel_loss_and_unload_are_explicit_and_bounded() {
 #[test]
 fn every_memory_shape_concurrency_and_checkpoint_bound_fails_closed() {
     let offer = offer();
+    let mut insufficient_cache = offer.clone();
+    insufficient_cache.cache_policy =
+        ModelCachePolicy::bounded(offer.limits.maximum_model_bytes - 1, 1).unwrap();
+    assert_eq!(
+        insufficient_cache.validate(),
+        Err(ModelComputeRefusal::InvalidOffer)
+    );
     let mut request = requirement(ModelComputeOperation::Inference);
     request.working_memory_bytes = offer.limits.maximum_working_memory_bytes + 1;
     assert_eq!(

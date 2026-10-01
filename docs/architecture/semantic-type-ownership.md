@@ -134,7 +134,7 @@ authority.
 | Float-bearing probability, vector and dynamics values | P | explicit finite/non-finite scalar law and generated equality behavior matching the current semantic contract |
 | Boxed relation, training and dynamics outcome trees | P/R boundary | reviewed finite indirection for portable payloads; Host candidates, receipts and realization facts remain R/M |
 | Source-extraction receipt proof text | R evidence | current `&'static str` proof-class representation must become a bounded semantic vocabulary before any portable projection |
-| Local-model and model-compute offers, sessions, runtime identities and cache policy | M/R | Host offer, admission and active realization truth |
+| Local-model and model-compute offers, sessions and runtime identities | M/R | Host offer, admission and active realization truth; the portable bounded model-cache policy is P and is recorded in the migration ledger |
 | Vector-index handles, authorization, mutable state, mutations and maintenance receipts | R | resource authority, generation and execution evidence |
 | Cross-host lifecycle, training lifecycle, Host step/candidate/receipt, integration realization and proposal-gate authority families | R/M | Plan, play, authority, active-instance or Host execution truth |
 | Form composition candidate and refusal families | C | contain checked/expanded Form compiler representations |
@@ -178,6 +178,7 @@ are satisfied.
 | AI source-extraction profile and overlap payloads | `semantics/ai/types.conduit` | generated at build time | yes | yes | exact native payload round trips plus Serde/postcard compatibility and source-extraction suites |
 | AI hybrid-retrieval fusion strategy and bounded rank payload | `semantics/ai/types.conduit` | generated at build time | yes | yes | exact native payload round trips, invalid-boundary refusal and hybrid retrieval/RAG suites |
 | AI relation result profile and positive sample-bound payload | `semantics/ai/types.conduit` | generated at build time | yes | yes | exact native payload round trips, invalid-boundary refusal, preserved manual digest bytes and relation/Tongues suites |
+| AI model-cache policy and positive model/byte bounds | `semantics/ai/types.conduit` | generated at build time | yes | yes | exact native payload round trips, invalid-boundary refusal and model-compute/Tongues/std Host suites; offer-relative byte adequacy remains Rust validation over portable policy and Host offer truth |
 | Presentation mechanism, status, evidence, choice, navigation, utterance, disclosure and temporal vocabularies | `semantics/presentation/types.conduit` | generated at build time | yes | yes | exact native round trips plus presentation and consumer suites |
 | Presentation layout axis and alignment vocabularies | `semantics/presentation/types.conduit` | generated at build time | yes | yes | exact native round trips plus layout and renderer consumer suites |
 | Presentation graphics clip-class vocabulary | `semantics/presentation/types.conduit` | generated at build time | yes | yes | exhaustive native round trips plus graphics classification, Patchbay and ConduitOS consumer suites |

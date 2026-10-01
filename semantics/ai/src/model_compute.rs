@@ -5,21 +5,13 @@ use conduit_core::ComputeServiceGuarantee;
 use conduit_data::TensorElement;
 
 use crate::{
-    ModelComputeLifecycle, ModelComputeOperation, ModelComputeRefusal, PortableComputeClass,
+    ModelCachePolicy, ModelComputeLifecycle, ModelComputeOperation, ModelComputeRefusal,
+    PortableComputeClass,
 };
 
 pub const MAXIMUM_MODEL_COMPUTE_PROFILES: usize = 16;
 pub const MAXIMUM_MODEL_COMPUTE_FORMATS: usize = 16;
 pub const MAXIMUM_MODEL_COMPUTE_DTYPES: usize = 16;
-
-#[derive(Debug, Copy, Clone, PartialEq, Eq)]
-pub enum ModelCachePolicy {
-    NoCache,
-    Bounded {
-        maximum_loaded_models: u16,
-        maximum_loaded_bytes: u64,
-    },
-}
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
 pub struct ComputeCapacity {
@@ -132,14 +124,12 @@ impl ModelComputeOffer {
             text(value)?;
         }
         self.limits.validate()?;
-        match self.cache_policy {
+        match &self.cache_policy {
             ModelCachePolicy::NoCache => {}
-            ModelCachePolicy::Bounded {
-                maximum_loaded_models,
-                maximum_loaded_bytes,
-            } if maximum_loaded_models > 0
-                && maximum_loaded_bytes >= self.limits.maximum_model_bytes => {}
-            ModelCachePolicy::Bounded { .. } => return Err(ModelComputeRefusal::InvalidOffer),
+            ModelCachePolicy::Bounded(policy)
+                if *policy.maximum_loaded_models() > 0
+                    && *policy.maximum_loaded_bytes() >= self.limits.maximum_model_bytes => {}
+            ModelCachePolicy::Bounded(_) => return Err(ModelComputeRefusal::InvalidOffer),
         }
         Ok(())
     }

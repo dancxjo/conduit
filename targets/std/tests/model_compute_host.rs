@@ -38,10 +38,7 @@ fn offer() -> ModelComputeOffer {
                 service: ComputeServiceGuarantee::Shared,
             },
         },
-        cache_policy: ModelCachePolicy::Bounded {
-            maximum_loaded_models: 1,
-            maximum_loaded_bytes: 1024,
-        },
+        cache_policy: ModelCachePolicy::bounded(1024, 1).unwrap(),
     }
 }
 
