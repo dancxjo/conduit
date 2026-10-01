@@ -34,6 +34,12 @@ type ImageRegion = {
     height: U16
 }
 
+type ImageObservationReference = {
+    content: ResourceRef
+    width: U16 in 1..=4096
+    height: U16 in 1..=4096
+}
+
 code human/key-transition = KeyTransition as u8
 
 type ChordPhase =

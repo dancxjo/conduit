@@ -56,8 +56,8 @@ mod generated {
 pub use generated::{
     ChordPhase, ChordPhaseCode, CoreChordId, CoreChordIdCode, ExperienceAvailability,
     ExperienceCertainty, ExperienceDomain, ExperienceOrigin, ExperienceRelationKind,
-    ExperienceTemporalPolicy, ExperienceTemporalRole, HumanMediaKind, ImageRegion,
-    ImageTextMetadata, KeyModifiers, KeyTransition, KeyTransitionCode, KeymapRefusal,
+    ExperienceTemporalPolicy, ExperienceTemporalRole, HumanMediaKind, ImageObservationReference,
+    ImageRegion, ImageTextMetadata, KeyModifiers, KeyTransition, KeyTransitionCode, KeymapRefusal,
     SourceAvailability, VisualEvidenceClass, VisualExperienceRelationKind,
     VisualImpressionDisposition, VisualImpressionDispositionTruncated,
 };
