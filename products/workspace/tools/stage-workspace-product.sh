@@ -13,7 +13,7 @@ cp products/workspace/browser/workspace.html "$destination/index.html"
 cp products/workspace/browser/workspace.webmanifest products/workspace/browser/workspace-icon.svg products/workspace/browser/workspace-share-target-sw.js "$destination/"
 cp products/workspace/browser/workspace.css products/workspace/browser/workspace.mjs products/workspace/browser/workspace-session.mjs products/workspace/browser/workspace-membership.mjs products/workspace/browser/workspace-host-configuration.mjs products/workspace/browser/workspace-play.mjs products/workspace/browser/workspace-voice-play.mjs products/workspace/browser/workspace-tutorial-presenter-play.mjs products/workspace/browser/workspace-library.mjs products/workspace/browser/workspace-handoff.mjs products/workspace/browser/workspace-surface.mjs products/workspace/browser/body-bootstrap.mjs products/workspace/browser/reviewed-form-selection.mjs "$destination/"
 cp products/workspace/browser/browser-host-configuration.mjs "$destination/browser-host-configuration.mjs"
-for asset in creche-names.mjs creche-rendezvous.mjs rendezvous-candidate-schedule.mjs rendezvous-cbor.mjs creche-rendezvous-candidates.mjs creche-physical.mjs creche-physical-presentation.mjs creche-target-catalog.mjs creche-installed-targets.mjs creche-existing-computer.mjs creche-release-catalog.mjs creche-release-bundle.mjs creche-spore-bundle.mjs creche-native-zip.mjs creche-native-disk.mjs; do
+for asset in creche-rendezvous.mjs rendezvous-candidate-schedule.mjs rendezvous-cbor.mjs creche-rendezvous-candidates.mjs creche-physical.mjs creche-physical-presentation.mjs creche-target-catalog.mjs creche-installed-targets.mjs creche-existing-computer.mjs creche-release-catalog.mjs creche-release-bundle.mjs creche-spore-bundle.mjs creche-native-zip.mjs creche-native-disk.mjs; do
   cp "products/workspace/browser/$asset" "$destination/$asset"
 done
 cp targets/browser/deployment/browser/creche-adapter.mjs targets/browser/deployment/browser/browser-bundle.mjs "$destination/targets/browser/browser-deployment/"
@@ -38,7 +38,6 @@ cargo xtask make host release-catalog --root "$destination/artifacts" --generati
 for asset in browser-host-calls.mjs browser-audio-cue.mjs browser-pcm-audio.mjs browser-remote-fragment.mjs browser-remote-voice.mjs browser-body-host.mjs browser-body-input.mjs browser-body-continuity.mjs browser-human-input.mjs browser-form-effects.mjs browser-runtime-bridge.mjs browser-application-loader.mjs browser-application-storage.mjs browser-host-bootstrap.mjs browser-host-membership.mjs browser-host-identity.mjs application-presentation.mjs application-theme.mjs application-syntax-presentation.mjs device-base.mjs usb-device-base.mjs; do
   cp "targets/browser/host/assets/$asset" "$destination/$asset"
 done
-cp forms/birth/names/catalog.mjs "$destination/creche-name-catalog.mjs"
 cp targets/browser/host/assets/conduit.css "$destination/conduit.css"
 cp "$runtime" "$destination/runtime.wasm"
 if test -n "$initial_body_bundle" || test -n "$workspace_catalog"; then

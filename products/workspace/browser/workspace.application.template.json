@@ -150,18 +150,6 @@
       "dependencies": []
     },
     {
-      "role": "creche-names",
-      "kind": "module",
-      "path": "creche-names.mjs",
-      "maximum_bytes": 53248,
-      "dependencies": [
-        {
-          "role": "creche-name-catalog",
-          "specifier": "../../../forms/birth/names/catalog.mjs"
-        }
-      ]
-    },
-    {
       "role": "runtime",
       "kind": "wasm",
       "path": "runtime.wasm",
@@ -505,13 +493,6 @@
       "kind": "module",
       "path": "browser-form-effects.mjs",
       "maximum_bytes": 16384,
-      "dependencies": []
-    },
-    {
-      "role": "creche-name-catalog",
-      "kind": "module",
-      "path": "creche-name-catalog.mjs",
-      "maximum_bytes": 131072,
       "dependencies": []
     },
     {
