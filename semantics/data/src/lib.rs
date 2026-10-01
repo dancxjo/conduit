@@ -18,11 +18,10 @@ pub use generated::{
     MeasurementWindowRefusal, NormalizedQuantityRefusal, QuantityMappingRefusal,
     QuantizationPolicy, RangePolicy, SampledSignalRefusal, ScalarComparison,
     ScientificObservationRefusal, SignalContinuity, SignalContinuityClockReset,
-    SignalContinuityDiscontinuous, TabularColumnSpec,
-    TabularColumnType, TabularOptionalText, TabularPersonRow, TabularPersonRowSlot,
-    TabularPersonRowsFour, TabularQueryCompletion, TabularQueryError, TabularQueryOutcomeFour,
-    TabularQueryResultFour, TabularQueryStatus, TabularSchemaFour, TensorAxisRole,
-    TensorAxisRoleOther, TensorElement, TensorRefusal,
+    SignalContinuityDiscontinuous, TabularColumnSpec, TabularColumnType, TabularOptionalText,
+    TabularPersonRow, TabularPersonRowSlot, TabularPersonRowsFour, TabularQueryCompletion,
+    TabularQueryError, TabularQueryOutcomeFour, TabularQueryResultFour, TabularQueryStatus,
+    TabularSchemaFour, TensorAxisRole, TensorAxisRoleOther, TensorElement, TensorRefusal,
 };
 
 mod data_catalog;
