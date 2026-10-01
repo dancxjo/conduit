@@ -38,14 +38,12 @@ mod front_door_session;
 mod front_door_topology;
 mod front_door_transition;
 mod gear_realization;
-mod generated_validation_inspection;
 mod host_adapter;
 mod interaction;
 mod layout;
 mod learned_watch;
 #[cfg(test)]
 mod learned_watch_tests;
-mod lifecycle_explanation;
 mod live_conversation_flow;
 mod llm_documentary;
 mod llm_embodiment_presentation;
@@ -89,7 +87,6 @@ mod renderer_projection;
 mod route_demo;
 mod route_presentation;
 mod text_lab_explanation;
-pub use lifecycle_explanation::*;
 mod text_lab_explanation_loss;
 mod topology;
 mod topology_hosts;
@@ -155,7 +152,6 @@ pub use gear_realization::{
     GearRealizationAlternative, GearRealizationError, GearRealizationInspection,
     LearnedImplementationSelection, RealizationDisposition, MAX_GEAR_REALIZATION_ALTERNATIVES,
 };
-pub use generated_validation_inspection::project_generated_validation_receipt;
 pub use interaction::{
     InteractionDisposition, InteractionError, InteractionReceipt, PatchbayAction, PatchbayEdit,
     PatchbayEditBasis, PatchbayInteraction, PatchbayInteractionRequest,
