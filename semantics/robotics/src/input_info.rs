@@ -2,7 +2,9 @@
 
 use conduit_core::{semantic_digest, InfoDecodeError};
 
-use crate::{AccelerationObservation, BeaconKind, BeaconKindCode, BODY_SECTOR_MASK};
+use crate::{
+    AccelerationObservation, BeaconKind, BeaconKindCode, ProximityObservation, BODY_SECTOR_MASK,
+};
 use core::{cmp::Ordering, hash::Hash};
 
 pub const ROBOTICS_PROXIMITY_INFO_ID: &str = "robotics/proximity-body-sectors@1";
@@ -16,38 +18,37 @@ pub const ROBOTICS_BUTTONS_ENCODED_LEN: usize = 4;
 pub const ROBOTICS_ACCELERATION_ENCODED_LEN: usize = 12;
 pub const MAXIMUM_ACCELERATION_MM_S2: i32 = 200_000;
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
-pub struct ProximityObservation {
-    active_body_sectors: u8,
-}
-
 impl ProximityObservation {
-    pub fn new(active_body_sectors: u8) -> Result<Self, InfoDecodeError> {
-        reject_reserved(
-            "proximity-body-sectors",
-            active_body_sectors,
-            BODY_SECTOR_MASK,
-        )?;
-        Ok(Self {
-            active_body_sectors,
-        })
-    }
-
-    pub const fn active_body_sectors(self) -> u8 {
-        self.active_body_sectors
-    }
-
-    pub const fn encode(self) -> [u8; ROBOTICS_PROXIMITY_ENCODED_LEN] {
-        [self.active_body_sectors]
+    pub fn encode(self) -> [u8; ROBOTICS_PROXIMITY_ENCODED_LEN] {
+        [*self.active_body_sectors()]
     }
 
     pub fn decode(encoded: &[u8]) -> Result<Self, InfoDecodeError> {
         exact_len(encoded, ROBOTICS_PROXIMITY_ENCODED_LEN)?;
-        Self::new(encoded[0])
+        reject_reserved("proximity-body-sectors", encoded[0], BODY_SECTOR_MASK)?;
+        Ok(Self::new(encoded[0]).expect("sector-mask bound matches generated contract"))
     }
 
     pub fn semantic_digest(self) -> [u8; 32] {
         semantic_digest(ROBOTICS_PROXIMITY_INFO_ID, &self.encode())
+    }
+}
+
+impl PartialOrd for ProximityObservation {
+    fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
+        Some(self.cmp(other))
+    }
+}
+
+impl Ord for ProximityObservation {
+    fn cmp(&self, other: &Self) -> Ordering {
+        self.active_body_sectors().cmp(other.active_body_sectors())
+    }
+}
+
+impl Hash for ProximityObservation {
+    fn hash<H: core::hash::Hasher>(&self, state: &mut H) {
+        self.active_body_sectors().hash(state);
     }
 }
 

@@ -149,7 +149,7 @@ pub fn lower_group_zero(
         contact: ContactObservation::new(contact_sectors)?,
         cliff: CliffObservation::new(cliff_sectors, 0, [0; 4])?,
         wheel_drop: WheelDropObservation::new(dropped_wheels)?,
-        proximity: ProximityObservation::new(proximity_sectors)?,
+        proximity: ProximityObservation::decode(&[proximity_sectors])?,
         virtual_wall,
         infrared,
         buttons: ButtonSetObservation::new(u32::from(bytes[11])),
@@ -247,7 +247,7 @@ mod tests {
             BODY_SECTOR_LEFT | BODY_SECTOR_FRONT_RIGHT
         );
         assert_eq!(lowered.cliff.signals(), (0, [0; 4]));
-        assert_eq!(lowered.proximity.active_body_sectors(), BODY_SECTOR_RIGHT);
+        assert_eq!(*lowered.proximity.active_body_sectors(), BODY_SECTOR_RIGHT);
         assert_eq!(
             lowered.virtual_wall,
             Some(BeaconObservation::new(BeaconKind::VirtualWall, 0).unwrap())
