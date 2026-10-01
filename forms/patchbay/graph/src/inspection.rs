@@ -266,6 +266,17 @@ fn constraint_fact(constraint: &ValueConstraint) -> String {
             minimum_endpoint,
             maximum_endpoint,
         } => open_range_fact("quantity-range", minimum, maximum, *minimum_endpoint, *maximum_endpoint),
+        ValueConstraint::FloatFinite => "constraint ieee-float finite=true".into(),
+        ValueConstraint::FloatRange {
+            minimum,
+            maximum,
+            minimum_endpoint,
+            maximum_endpoint,
+        } => format!(
+            "constraint ieee-float-range minimum={}({minimum_endpoint:?}) maximum={}({maximum_endpoint:?})",
+            minimum.as_ref().map(|value| format!("0x{}", hex_bytes(value))).unwrap_or_else(|| "open".into()),
+            maximum.as_ref().map(|value| format!("0x{}", hex_bytes(value))).unwrap_or_else(|| "open".into()),
+        ),
         ValueConstraint::CanonicalMembership { members, negated } => format!(
             "constraint canonical-membership negated={negated} values={} bytes={}",
             members.len(),
