@@ -309,6 +309,7 @@ impl PackageExportCatalog {
                     source_path.clone(),
                     value_type.value_type.clone(),
                     value_type.value_contracts.clone(),
+                    value_type.invariants.clone(),
                 )
                 .map_err(|message| crate::SyntaxCheckDiagnostic {
                     code: "CND-FRM-058",

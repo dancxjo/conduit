@@ -27,27 +27,36 @@ impl Parser<'_> {
         let name = self.spanned_at(name, header, start);
         let declaration_start = start;
 
-        let definition = if body == "{" {
+        let (definition, invariants) = if body == "{" {
             self.index += 1;
-            TypeDefinitionSyntax::Record(self.parse_type_fields()?)
+            let (fields, invariants) = self.parse_type_fields(true)?;
+            (TypeDefinitionSyntax::Record(fields), invariants)
         } else if body.is_empty() {
             self.index += 1;
-            TypeDefinitionSyntax::Variant(self.parse_type_variants()?)
+            (
+                TypeDefinitionSyntax::Variant(self.parse_type_variants()?),
+                Vec::new(),
+            )
         } else {
             let value_type = self.parse_type_expression(body, header, start)?;
             self.index += 1;
-            TypeDefinitionSyntax::Scalar(value_type)
+            (TypeDefinitionSyntax::Scalar(value_type), Vec::new())
         };
         let end = self.lines[self.index.saturating_sub(1)];
         Ok(TypeSyntax {
             name,
             definition,
+            invariants,
             span: self.span(declaration_start, end.start + end.text.len()),
         })
     }
 
-    fn parse_type_fields(&mut self) -> Result<Vec<TypeFieldSyntax>, (FormError, Span)> {
+    fn parse_type_fields(
+        &mut self,
+        allow_invariants: bool,
+    ) -> Result<(Vec<TypeFieldSyntax>, Vec<crate::Expression>), (FormError, Span)> {
         let mut fields = Vec::new();
+        let mut invariants = Vec::new();
         while self.index < self.lines.len() {
             let line = self.lines[self.index];
             let (text, start) = line.statement();
@@ -63,7 +72,31 @@ impl Parser<'_> {
                         self.line_span(line),
                     ));
                 }
-                return Ok(fields);
+                return Ok((fields, invariants));
+            }
+            if let Some(source) = text.strip_prefix("where ") {
+                if !allow_invariants || fields.is_empty() || source.trim().is_empty() {
+                    return Err(self.invalid_statement(text, start));
+                }
+                if invariants.len() >= conduit_core::MAXIMUM_STRUCTURED_RECORD_FIELDS {
+                    return Err((
+                        FormError::InvalidSyntax(
+                            "semantic record type has too many where laws".into(),
+                        ),
+                        self.line_span(line),
+                    ));
+                }
+                invariants.push(self.expression_at(source, text, start)?);
+                self.index += 1;
+                continue;
+            }
+            if !invariants.is_empty() {
+                return Err((
+                    FormError::InvalidSyntax(
+                        "semantic record fields must precede its where laws".into(),
+                    ),
+                    self.line_span(line),
+                ));
             }
             if fields.len() >= conduit_core::MAXIMUM_STRUCTURED_RECORD_FIELDS {
                 return Err((
@@ -116,7 +149,7 @@ impl Parser<'_> {
             let tag = self.spanned_at(tag, text, start);
             self.index += 1;
             let payload = if has_fields {
-                TypeVariantPayloadSyntax::Record(self.parse_type_fields()?)
+                TypeVariantPayloadSyntax::Record(self.parse_type_fields(false)?.0)
             } else if let Some(payload) = payload_source {
                 TypeVariantPayloadSyntax::Type(self.parse_type_expression(payload, text, start)?)
             } else {
