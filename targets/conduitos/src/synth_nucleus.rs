@@ -113,7 +113,7 @@ mod tests {
         synth
             .apply_note(
                 MusicalNoteEvent::new(
-                    NoteOccurrenceId(1),
+                    NoteOccurrenceId::new(1).unwrap(),
                     MusicalPitch::new(440_000, 440_000, 0).unwrap(),
                     Gate::On,
                     52_428,

@@ -286,13 +286,13 @@ struct NewestNoteAdapter {
 impl NewestNoteAdapter {
     fn apply(&mut self, event: MusicalNoteEvent) -> Result<[Option<ToneIntent>; 2], AdaptError> {
         let mut output = [None, None];
-        match event.gate {
+        match event.gate() {
             Gate::On => {
                 if self
                     .active
                     .iter()
                     .flatten()
-                    .any(|active| active.occurrence == event.occurrence)
+                    .any(|active| active.occurrence() == event.occurrence())
                 {
                     return Err(AdaptError::DuplicateOccurrence);
                 }
@@ -307,44 +307,46 @@ impl NewestNoteAdapter {
                         .active
                         .iter()
                         .flatten()
-                        .find(|active| active.occurrence.0 == previous)
+                        .find(|active| *active.occurrence().get() == previous)
                         .ok_or(AdaptError::UnknownOccurrence)?;
-                    output[0] = Some(tone(*prior, Gate::Off, doubled_order(event.order)?)?);
+                    output[0] = Some(tone(*prior, Gate::Off, doubled_order(event.order())?)?);
                 }
                 output[1] = Some(tone(
                     event,
                     Gate::On,
-                    doubled_order(event.order)?
+                    doubled_order(event.order())?
                         .checked_add(1)
                         .ok_or(AdaptError::OrderOverflow)?,
                 )?);
-                self.sounding = Some(event.occurrence.0);
+                self.sounding = Some(*event.occurrence().get());
             }
             Gate::Off => {
                 let slot = self
                     .active
                     .iter_mut()
-                    .find(|slot| slot.is_some_and(|active| active.occurrence == event.occurrence))
+                    .find(|slot| {
+                        slot.is_some_and(|active| active.occurrence() == event.occurrence())
+                    })
                     .ok_or(AdaptError::UnknownOccurrence)?;
                 *slot = None;
-                if self.sounding == Some(event.occurrence.0) {
-                    output[0] = Some(tone(event, Gate::Off, doubled_order(event.order)?)?);
+                if self.sounding == Some(*event.occurrence().get()) {
+                    output[0] = Some(tone(event, Gate::Off, doubled_order(event.order())?)?);
                     let resumed = self
                         .active
                         .iter()
                         .flatten()
-                        .max_by_key(|active| active.order)
+                        .max_by_key(|active| active.order())
                         .copied();
                     if let Some(resumed) = resumed {
                         output[1] = Some(tone(
                             resumed,
                             Gate::On,
-                            doubled_order(event.order)?
+                            doubled_order(event.order())?
                                 .checked_add(1)
                                 .ok_or(AdaptError::OrderOverflow)?,
                         )?);
                     }
-                    self.sounding = resumed.map(|active| active.occurrence.0);
+                    self.sounding = resumed.map(|active| *active.occurrence().get());
                 }
             }
         }
@@ -358,10 +360,10 @@ fn doubled_order(order: u32) -> Result<u32, AdaptError> {
 
 fn tone(event: MusicalNoteEvent, gate: Gate, order: u32) -> Result<ToneIntent, AdaptError> {
     ToneIntent::new(
-        event.occurrence.0,
-        event.pitch,
+        *event.occurrence().get(),
+        event.pitch(),
         gate,
-        event.event_time_micros,
+        event.event_time_micros(),
         order,
     )
     .map_err(|_| AdaptError::InvalidTone)
@@ -382,9 +384,9 @@ fn validate_reference_policy() -> Result<(), CatalogError> {
         .map_err(|error| adapter_error("release", error))?;
     if first_output[1].is_none_or(|tone| tone.gate() != Gate::On)
         || overlap[0].is_none_or(|tone| tone.correlation() != 1 || tone.gate() != Gate::Off)
-        || overlap[1].is_none_or(|tone| tone.correlation() != 2 || tone.pitch() != second.pitch)
+        || overlap[1].is_none_or(|tone| tone.correlation() != 2 || tone.pitch() != second.pitch())
         || release[0].is_none_or(|tone| tone.correlation() != 2 || tone.gate() != Gate::Off)
-        || release[1].is_none_or(|tone| tone.correlation() != 1 || tone.pitch() != first.pitch)
+        || release[1].is_none_or(|tone| tone.correlation() != 1 || tone.pitch() != first.pitch())
     {
         return Err(CatalogError::new(
             "sound-adapter-reference-mismatch",
@@ -401,7 +403,7 @@ fn reference_note(
     order: u32,
 ) -> Result<MusicalNoteEvent, CatalogError> {
     MusicalNoteEvent::new(
-        NoteOccurrenceId(occurrence),
+        NoteOccurrenceId::new(occurrence).map_err(|error| adapter_error("occurrence", error))?,
         MusicalPitch::new(440_000 + occurrence * 1_000, 440_000, 0)
             .map_err(|error| adapter_error("pitch", error))?,
         gate,
@@ -424,7 +426,7 @@ mod tests {
     use super::*;
     fn note(occurrence: u64, gate: Gate, velocity: u16, order: u32) -> MusicalNoteEvent {
         MusicalNoteEvent::new(
-            NoteOccurrenceId(occurrence),
+            NoteOccurrenceId::new(occurrence).unwrap(),
             MusicalPitch::new(440_000 + occurrence * 1_000, 440_000, 0).unwrap(),
             gate,
             velocity,
@@ -459,10 +461,10 @@ mod tests {
         assert_eq!(overlap[0].unwrap().correlation(), 1);
         assert_eq!(overlap[0].unwrap().gate(), Gate::Off);
         assert_eq!(overlap[1].unwrap().correlation(), 2);
-        assert_eq!(overlap[1].unwrap().pitch(), second.pitch);
+        assert_eq!(overlap[1].unwrap().pitch(), second.pitch());
         let release = adapter.apply(note(2, Gate::Off, 0, 3)).unwrap();
         assert_eq!(release[0].unwrap().correlation(), 2);
         assert_eq!(release[1].unwrap().correlation(), 1);
-        assert_eq!(release[1].unwrap().pitch(), first.pitch);
+        assert_eq!(release[1].unwrap().pitch(), first.pitch());
     }
 }

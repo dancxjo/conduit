@@ -181,7 +181,8 @@ impl MidiInputAdapter {
         velocity: u8,
         event_time_micros: u64,
     ) -> Result<PortableMidiEvent, MidiAdapterError> {
-        let occurrence = NoteOccurrenceId(self.next_occurrence);
+        let occurrence = NoteOccurrenceId::new(self.next_occurrence)
+            .map_err(|_| MidiAdapterError::OccurrenceExhausted)?;
         self.next_occurrence = self
             .next_occurrence
             .checked_add(1)
@@ -217,7 +218,7 @@ impl MidiInputAdapter {
             .enumerate()
             .filter_map(|(index, note)| {
                 note.filter(|note| note.channel == channel && note.key == key)
-                    .map(|note| (index, note.occurrence.0))
+                    .map(|note| (index, *note.occurrence.get()))
             })
             .max_by_key(|(_, occurrence)| *occurrence)
             .map(|(index, _)| index)
@@ -283,25 +284,25 @@ impl MidiOutputAdapter {
     }
 
     pub fn encode_note(&mut self, event: MusicalNoteEvent) -> Result<[u8; 3], MidiAdapterError> {
-        match event.gate {
+        match event.gate() {
             Gate::On => {
                 if self
                     .active
                     .iter()
                     .flatten()
-                    .any(|note| note.occurrence == event.occurrence)
+                    .any(|note| note.occurrence == event.occurrence())
                 {
                     return Err(MidiAdapterError::DuplicateOccurrence);
                 }
-                let key = exact_midi_key(event.pitch, self.profile.a4_reference_millihertz)?;
-                let velocity = exact_midi_velocity(event.velocity)?;
+                let key = exact_midi_key(event.pitch(), self.profile.a4_reference_millihertz)?;
+                let velocity = exact_midi_velocity(event.velocity())?;
                 let slot = self
                     .active
                     .iter_mut()
                     .find(|slot| slot.is_none())
                     .ok_or(MidiAdapterError::ActiveNoteCapacityExceeded)?;
                 *slot = Some(OutputNote {
-                    occurrence: event.occurrence,
+                    occurrence: event.occurrence(),
                     key,
                 });
                 Ok([0x90 | self.profile.output_channel, key, velocity])
@@ -310,7 +311,7 @@ impl MidiOutputAdapter {
                 let slot = self
                     .active
                     .iter_mut()
-                    .find(|slot| slot.is_some_and(|note| note.occurrence == event.occurrence))
+                    .find(|slot| slot.is_some_and(|note| note.occurrence == event.occurrence()))
                     .ok_or(MidiAdapterError::NoteOffWithoutActiveOccurrence)?;
                 let note = slot
                     .take()

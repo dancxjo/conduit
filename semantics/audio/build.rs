@@ -16,18 +16,36 @@ fn main() {
             derive_serde_for_variants: true,
             copy_record_types: [
                 "MusicalPitch".into(),
+                "MusicalNoteEvent".into(),
                 "PcmClipProfile".into(),
                 "ToneIntent".into(),
             ]
             .into(),
-            copy_record_value_getters: ["MusicalPitch".into(), "ToneIntent".into()].into(),
-            direct_checked_record_constructors: [
-                "MusicalControlEvent".into(),
+            copy_record_value_getters: [
+                "MusicalNoteEvent".into(),
                 "MusicalPitch".into(),
                 "ToneIntent".into(),
             ]
             .into(),
+            direct_checked_record_constructors: [
+                "MusicalControlEvent".into(),
+                "MusicalPitch".into(),
+                "MusicalNoteEvent".into(),
+                "ToneIntent".into(),
+            ]
+            .into(),
             record_constructor_orders: [
+                (
+                    "MusicalNoteEvent".into(),
+                    vec![
+                        "occurrence".into(),
+                        "pitch".into(),
+                        "gate".into(),
+                        "velocity".into(),
+                        "event-time-micros".into(),
+                        "order".into(),
+                    ],
+                ),
                 (
                     "MusicalPitch".into(),
                     vec![

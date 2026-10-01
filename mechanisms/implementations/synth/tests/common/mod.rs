@@ -20,7 +20,7 @@ pub fn note(
     order: u32,
 ) -> MusicalNoteEvent {
     MusicalNoteEvent::new(
-        NoteOccurrenceId(occurrence),
+        NoteOccurrenceId::new(occurrence).unwrap(),
         pitch(frequency_millihertz),
         gate,
         velocity,

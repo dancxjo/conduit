@@ -130,7 +130,7 @@ impl StartupChime {
                 ] {
                     if self.frame == micros_to_frame(micros) {
                         let event = MusicalNoteEvent::new(
-                            NoteOccurrenceId(index as u64 + 1),
+                            NoteOccurrenceId::new(index as u64 + 1).unwrap(),
                             MusicalPitch::new(tone.frequency_millihertz, 440_000, 0)
                                 .expect("reviewed cue pitch"),
                             gate,
