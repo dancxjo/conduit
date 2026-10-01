@@ -25,7 +25,7 @@ test("affected product proof begins after cheap PR entry while promotion stays p
 });
 
 test("every browser product admits the complete shared presentation theme", () => {
-  const themeBytes = readFileSync("products/shared/browser/conduit.css").byteLength;
+  const themeBytes = readFileSync("targets/browser/host/assets/conduit.css").byteLength;
   for (const path of [
     "products/workspace/browser/workspace.application.template.json",
     "products/patchbay/html/assets/patchbay.application.template.json",

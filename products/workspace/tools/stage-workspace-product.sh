@@ -39,7 +39,7 @@ for asset in browser-host-calls.mjs browser-audio-cue.mjs browser-pcm-audio.mjs 
   cp "targets/browser/host/assets/$asset" "$destination/$asset"
 done
 cp forms/birth/names/catalog.mjs "$destination/creche-name-catalog.mjs"
-cp products/shared/browser/conduit.css "$destination/conduit.css"
+cp targets/browser/host/assets/conduit.css "$destination/conduit.css"
 cp "$runtime" "$destination/runtime.wasm"
 if test -n "$initial_body_bundle" || test -n "$workspace_catalog"; then
   test -n "$initial_body_bundle"
