@@ -102,7 +102,7 @@ type PcmFrameHeader = {
     start-frame: U64
     discontinuity: Boolean
     payload-bytes: U32 in 1..=65536
-    where .payload-bytes == value/u32(.frame-count) * (variant/tag(.layout) == "mono" ? 1 : 2) * (variant/tag(.representation) == "signed16-little-endian" ? 2 : variant/tag(.representation) == "signed24-little-endian" ? 3 : 4)
+    where .payload-bytes == value/u32(.frame-count) * (.layout is mono ? 1 : 2) * (.representation is signed16-little-endian ? 2 : .representation is signed24-little-endian ? 3 : 4)
 }
 
 type AudioRenderDemand = {

@@ -51,6 +51,34 @@ impl Parser<'_> {
         let mut left = self.prefix(depth)?;
         loop {
             self.whitespace();
+            if minimum <= 7
+                && self.text[self.offset..].starts_with("is")
+                && self.text[self.offset + 2..]
+                    .chars()
+                    .next()
+                    .is_some_and(char::is_whitespace)
+            {
+                let operator_start = self.offset;
+                self.offset += 2;
+                self.whitespace();
+                let case = self.name("expected a variant case after 'is'")?;
+                let span = self.join(left.span(), case.span);
+                left = ExpressionSyntax::SemanticCall {
+                    kind: SpannedText {
+                        text: "variant/is".into(),
+                        span: self.from(operator_start, operator_start + 2),
+                    },
+                    arguments: vec![
+                        left,
+                        ExpressionSyntax::Atomic(SpannedText {
+                            text: alloc::format!("\"{}\"", case.text),
+                            span: case.span,
+                        }),
+                    ],
+                    span,
+                };
+                continue;
+            }
             if minimum <= 1 && self.peek() == Some('?') {
                 self.bump();
                 let when_true = self.expression(0, depth)?;

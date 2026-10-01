@@ -1251,6 +1251,28 @@ fn pure_expressions_admit_only_explicit_integer_widening_and_variant_tags() {
 }
 
 #[test]
+fn variant_case_tests_resolve_against_the_exact_declared_type() {
+    let source = "type Transition =\n    pressed\n    | released\n\ntype Event = {\n    transition: Transition\n    active: Boolean\n    where .active == (.transition is pressed)\n}\n";
+    let checked = check_syntax_document(&parse_syntax_document(source), &StartupCatalog::new())
+        .expect("declared cases are typed expression references");
+    let event = checked
+        .native_types
+        .iter()
+        .find(|value| value.name == "Event")
+        .unwrap();
+    let encoded = event.invariants[0].canonical_bytes().unwrap();
+    assert_eq!(
+        crate::PortableExpressionProgram::from_canonical_bytes(&encoded).unwrap(),
+        event.invariants[0]
+    );
+
+    let typo = source.replace("is pressed", "is presed");
+    let error = check_syntax_document(&parse_syntax_document(&typo), &StartupCatalog::new())
+        .expect_err("an unknown case must fail while checking");
+    assert!(error.message.contains("not declared"));
+}
+
+#[test]
 fn native_types_preserve_open_semantic_range_ends_for_every_numeric_family() {
     let checked = check(
         "type Positive = Count in 0..\n\
