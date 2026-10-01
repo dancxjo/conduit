@@ -1,5 +1,62 @@
 # Authoritative portable presentation meaning. Rust consumes generated bindings.
 
+type Point2 = {
+    frame: Text
+    x: Quantity
+    y: Quantity
+}
+
+type Point3 = {
+    frame: Text
+    x: Quantity
+    y: Quantity
+    z: Quantity
+}
+
+type Vector2 = {
+    frame: Text
+    x: Quantity
+    y: Quantity
+}
+
+type Vector3 = {
+    frame: Text
+    x: Quantity
+    y: Quantity
+    z: Quantity
+}
+
+type Extent2 = {
+    height: Quantity
+    width: Quantity
+}
+
+type Rect2 = {
+    extent: Extent2
+    origin: Point2
+}
+
+type Transform2 = {
+    from_frame: Text
+    offset_x: Quantity
+    offset_y: Quantity
+    to_frame: Text
+}
+
+type Path2Four = {
+    points: collection Point2 = 4
+}
+
+type RoboticsPose2 = {
+    heading: Quantity
+    position: Point2
+}
+
+type ImageRegion2 = {
+    label: Text
+    region: Rect2
+}
+
 type GraphicsCommandKind =
     rect
     | text
