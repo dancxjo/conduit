@@ -1,7 +1,7 @@
 use conduit_form::rust_binding::NativeRustBinding;
 use conduit_tongues::{
-    no_speech_result, recognized_result, RecognitionTextRefusal, SpeakableSegment,
-    SpeechCommitReason, SpeechCommitRefusal, SpeechRecognitionAttempt,
+    no_speech_result, recognized_result, CommittedUserMessage, RecognitionTextRefusal,
+    SpeakableSegment, SpeechCommitReason, SpeechCommitRefusal, SpeechRecognitionAttempt,
     SpeechRecognitionAudioDigest, SpeechRecognitionDisposition, SpeechRecognitionRefusal,
     SpeechRecognitionResult, SpeechRecognitionValueError, StreamingRecognitionRefusal,
 };
@@ -22,6 +22,15 @@ fn speech_commit_and_recognition_vocabularies_are_native() {
             3,
             "Hello there.".into(),
             SpeechCommitReason::TonguesBoundary,
+        )
+        .unwrap(),
+    );
+    round_trip(
+        CommittedUserMessage::new(
+            "tongues/1/turn".into(),
+            "user".into(),
+            "committed-external-speech".into(),
+            "Hello there.".into(),
         )
         .unwrap(),
     );
