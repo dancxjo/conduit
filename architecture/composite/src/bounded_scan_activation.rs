@@ -401,6 +401,16 @@ impl BoundedScanActivationHost {
             .host_request_obligation(request)
             .map_err(BoundedScanError::Refused)
     }
+    pub fn host_request_view(
+        &self,
+        request: &KernelCompositeHostRequest,
+    ) -> Result<crate::KernelCompositeHostRequestView<'_>, BoundedScanError> {
+        self.active
+            .as_ref()
+            .ok_or(BoundedScanError::InvalidLifecycle)?
+            .host_request_view(request)
+            .map_err(BoundedScanError::Refused)
+    }
     pub fn admit_host_request(
         &self,
         request: &KernelCompositeHostRequest,
@@ -423,6 +433,16 @@ impl BoundedScanActivationHost {
             .as_mut()
             .ok_or(BoundedScanError::InvalidLifecycle)?
             .complete_host_call(request, outcome)
+            .map_err(BoundedScanError::Refused)
+    }
+    pub fn host_request_input(
+        &self,
+        request: &AdmittedKernelCompositeHostRequest,
+    ) -> Result<&[u8], BoundedScanError> {
+        self.active
+            .as_ref()
+            .ok_or(BoundedScanError::InvalidLifecycle)?
+            .host_request_input(request)
             .map_err(BoundedScanError::Refused)
     }
 }

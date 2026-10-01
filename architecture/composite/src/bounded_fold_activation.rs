@@ -367,6 +367,16 @@ impl BoundedFoldActivationHost {
             .host_request_obligation(request)
             .map_err(BoundedFoldError::Refused)
     }
+    pub fn host_request_view(
+        &self,
+        request: &KernelCompositeHostRequest,
+    ) -> Result<crate::KernelCompositeHostRequestView<'_>, BoundedFoldError> {
+        self.active
+            .as_ref()
+            .ok_or(BoundedFoldError::InvalidLifecycle)?
+            .host_request_view(request)
+            .map_err(BoundedFoldError::Refused)
+    }
     pub fn admit_host_request(
         &self,
         request: &KernelCompositeHostRequest,
@@ -389,6 +399,16 @@ impl BoundedFoldActivationHost {
             .as_mut()
             .ok_or(BoundedFoldError::InvalidLifecycle)?
             .complete_host_call(request, outcome)
+            .map_err(BoundedFoldError::Refused)
+    }
+    pub fn host_request_input(
+        &self,
+        request: &AdmittedKernelCompositeHostRequest,
+    ) -> Result<&[u8], BoundedFoldError> {
+        self.active
+            .as_ref()
+            .ok_or(BoundedFoldError::InvalidLifecycle)?
+            .host_request_input(request)
             .map_err(BoundedFoldError::Refused)
     }
 }

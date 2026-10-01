@@ -10,10 +10,58 @@ use conduit_core::{
 use conduit_kernel::scheduler::{StepBack, StepInputBytes, StepIo, StepOutcome};
 use conduit_kernel::{BoundedValueRef, HostCallId, HostedValueStore, PortId, RequestId};
 use conduit_plan_lowering::lowering::FIXED_KERNEL_STORAGE_PORTS_PER_NODE;
+use std::alloc::{GlobalAlloc, Layout, System};
+use std::cell::Cell;
 use std::sync::{
     atomic::{AtomicUsize, Ordering},
     Arc,
 };
+
+struct CountingAllocator;
+thread_local! {
+    static COUNT_ALLOCATIONS: Cell<bool> = const { Cell::new(false) };
+    static ALLOCATION_COUNT: Cell<usize> = const { Cell::new(0) };
+}
+
+unsafe impl GlobalAlloc for CountingAllocator {
+    unsafe fn alloc(&self, layout: Layout) -> *mut u8 {
+        COUNT_ALLOCATIONS.with(|armed| {
+            if armed.get() {
+                ALLOCATION_COUNT.with(|count| count.set(count.get() + 1));
+            }
+        });
+        unsafe { System.alloc(layout) }
+    }
+    unsafe fn dealloc(&self, ptr: *mut u8, layout: Layout) {
+        unsafe { System.dealloc(ptr, layout) }
+    }
+    unsafe fn realloc(&self, ptr: *mut u8, layout: Layout, size: usize) -> *mut u8 {
+        COUNT_ALLOCATIONS.with(|armed| {
+            if armed.get() {
+                ALLOCATION_COUNT.with(|count| count.set(count.get() + 1));
+            }
+        });
+        unsafe { System.realloc(ptr, layout, size) }
+    }
+}
+
+#[global_allocator]
+static TEST_ALLOCATOR: CountingAllocator = CountingAllocator;
+
+fn allocations_during(run: impl FnOnce()) -> usize {
+    struct Disarm;
+    impl Drop for Disarm {
+        fn drop(&mut self) {
+            COUNT_ALLOCATIONS.with(|armed| armed.set(false));
+        }
+    }
+    ALLOCATION_COUNT.with(|count| count.set(0));
+    COUNT_ALLOCATIONS.with(|armed| armed.set(true));
+    let disarm = Disarm;
+    run();
+    drop(disarm);
+    ALLOCATION_COUNT.with(Cell::get)
+}
 
 #[path = "../../core/tests/common/sealed_state.rs"]
 mod common;
@@ -594,21 +642,88 @@ fn invalid_completion_retains_dispatch_then_corrected_completion_consumes_it_onc
             break request;
         }
     };
-    let obligation = child.host_request_obligation(&request).unwrap().clone();
-    let admitted = child
-        .admit_host_request(
-            &request,
-            &obligation.host,
-            &obligation.resources,
-            &obligation.authorities,
-        )
-        .unwrap();
+    let admitted = {
+        let obligation = child.host_request_obligation(&request).unwrap();
+        child
+            .admit_host_request(
+                &request,
+                &obligation.host,
+                &obligation.resources,
+                &obligation.authorities,
+            )
+            .unwrap()
+    };
 
     assert!(child.complete_host_call_bytes(&admitted, &[1, 2]).is_err());
     assert_eq!(child.host_request_input(&admitted).unwrap(), &[7]);
     child.complete_host_call_bytes(&admitted, &[9]).unwrap();
     assert!(child.complete_host_call_bytes(&admitted, &[9]).is_err());
     assert!(child.host_request_input(&admitted).is_err());
+}
+
+#[test]
+fn host_call_dispatch_lifecycle_allocates_nothing_after_preparation() {
+    let plan = activation_plan();
+    let mut preparation_host = Host::new();
+    let prepared = prepare_plan_on_hosts(&plan, &mut [&mut preparation_host]).unwrap();
+    let definition =
+        KernelCompositeDefinition::from_planned_activation(&plan, &prepared, "each").unwrap();
+    let mut registry = KernelOperationRegistry::new();
+    registry.install(HostCallFactory).unwrap();
+    let mut child = conduit_composite::KernelCompositeHost::prepare(definition, &registry).unwrap();
+    let input = conduit_core::ValuePayload {
+        value_kind: conduit_core::kind_id(conduit_core::BOOL_INFO_ID),
+        encoded: vec![7],
+    };
+    let input_port = conduit_core::port_id("in");
+    let unknown = conduit_composite::KernelCompositeHostRequest {
+        dispatch_token: u64::MAX,
+    };
+    let mut surfaced = None;
+    let mut admitted = None;
+
+    let allocations = allocations_during(|| {
+        child.start().unwrap();
+        child.admit_input(&input_port, 0, &input).unwrap();
+        loop {
+            child.step().unwrap();
+            if let Some(request) = child.next_host_request() {
+                surfaced = Some(request);
+                break;
+            }
+        }
+        let request = surfaced.unwrap();
+        assert!(child.host_request_view(&request).is_ok());
+        assert!(child.host_request_view(&unknown).is_err());
+        let obligation = child.host_request_obligation(&request).unwrap();
+        admitted = Some(
+            child
+                .admit_host_request(
+                    &request,
+                    &obligation.host,
+                    &obligation.resources,
+                    &obligation.authorities,
+                )
+                .unwrap(),
+        );
+        let admitted_request = admitted.unwrap();
+        assert_eq!(child.host_request_input(&admitted_request).unwrap(), &[7]);
+        assert_eq!(
+            child.complete_host_call_bytes(&admitted_request, &[1, 2]),
+            Err(conduit_composite::KernelCompositeError::HostCallOutputExceeded)
+        );
+        child
+            .complete_host_call_bytes(&admitted_request, &[9])
+            .unwrap();
+        assert_eq!(
+            child.complete_host_call_bytes(&admitted_request, &[9]),
+            Err(conduit_composite::KernelCompositeError::InvalidHostCallToken)
+        );
+    });
+    assert_eq!(
+        allocations, 0,
+        "Host Call lifecycle allocated {allocations} times"
+    );
 }
 
 #[test]

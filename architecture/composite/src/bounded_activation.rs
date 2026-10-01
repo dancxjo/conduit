@@ -510,6 +510,17 @@ impl BoundedActivationHost {
             .map_err(BoundedActivationError::Refused)
     }
 
+    pub fn host_request_view(
+        &self,
+        request: &KernelCompositeHostRequest,
+    ) -> Result<crate::KernelCompositeHostRequestView<'_>, BoundedActivationError> {
+        self.active
+            .as_ref()
+            .ok_or(BoundedActivationError::InvalidLifecycle)?
+            .host_request_view(request)
+            .map_err(BoundedActivationError::Refused)
+    }
+
     pub fn admit_host_request(
         &self,
         request: &KernelCompositeHostRequest,
@@ -533,6 +544,17 @@ impl BoundedActivationHost {
             .as_mut()
             .ok_or(BoundedActivationError::InvalidLifecycle)?
             .complete_host_call(request, outcome)
+            .map_err(BoundedActivationError::Refused)
+    }
+
+    pub fn host_request_input(
+        &self,
+        request: &AdmittedKernelCompositeHostRequest,
+    ) -> Result<&[u8], BoundedActivationError> {
+        self.active
+            .as_ref()
+            .ok_or(BoundedActivationError::InvalidLifecycle)?
+            .host_request_input(request)
             .map_err(BoundedActivationError::Refused)
     }
 

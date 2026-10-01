@@ -400,6 +400,14 @@ impl FlowSelectCoordinator {
             .host_request_obligation(request)
             .map_err(FlowSelectError::Activation)
     }
+    pub fn host_request_view(
+        &self,
+        request: &KernelCompositeHostRequest,
+    ) -> Result<crate::KernelCompositeHostRequestView<'_>, FlowSelectError> {
+        self.activation
+            .host_request_view(request)
+            .map_err(FlowSelectError::Activation)
+    }
 
     pub fn admit_host_request(
         &self,
@@ -420,5 +428,14 @@ impl FlowSelectCoordinator {
     ) -> Result<(), FlowSelectError> {
         self.activation.complete_host_call(request, outcome)?;
         Ok(())
+    }
+
+    pub fn host_request_input(
+        &self,
+        request: &AdmittedKernelCompositeHostRequest,
+    ) -> Result<&[u8], FlowSelectError> {
+        self.activation
+            .host_request_input(request)
+            .map_err(FlowSelectError::Activation)
     }
 }
