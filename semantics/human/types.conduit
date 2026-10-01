@@ -302,3 +302,107 @@ type RealizationRangePolicy =
 type ScalarQuantization =
     exact
     | nearest
+
+type InputPressurePolicy =
+    coalesce_latest_state
+    | ordered_transitions
+
+type InputPressure = {
+    coalesced: U64
+    dropped: U64
+    policy: InputPressurePolicy
+    queue_capacity: U64 in 1..
+}
+
+type InputButtonPhase =
+    pressed
+    | released
+
+type InputButtonTransition = {
+    button_identity: Text
+    phase: InputButtonPhase
+    sequence: U64
+}
+
+type InputButtonState = {
+    button_identity: Text
+    pressed: Boolean
+}
+
+type InputButtonSlot =
+    button InputButtonState
+    | unused
+type InputButtonSlots = collection InputButtonSlot = 8
+
+type InputAxisState = {
+    axis_identity: Text
+    range_profile: Text
+    value: Ratio
+}
+
+type InputAxisSlot =
+    axis InputAxisState
+    | unused
+type InputAxisSlots = collection InputAxisSlot = 4
+
+type InputSurfacePoint = {
+    frame: Text
+    x: Ratio
+    y: Ratio
+}
+
+type InputSurfaceVector = {
+    frame: Text
+    x: Ratio
+    y: Ratio
+}
+
+type PointerEvent = {
+    buttons: InputButtonSlots
+    delta: InputSurfaceVector
+    position: InputSurfacePoint
+    pressure: InputPressure
+    sequence: U64
+}
+
+type TouchContactPhase =
+    begin
+    | end
+    | moving
+
+type TouchContact = {
+    contact_identity: Text
+    phase: TouchContactPhase
+    position: InputSurfacePoint
+    pressure: Ratio
+}
+
+type TouchContactSlot =
+    contact TouchContact
+    | unused
+type TouchContacts = collection TouchContactSlot = 5
+
+type TouchFrame = {
+    contacts: TouchContacts
+    pressure: InputPressure
+    sequence: U64
+}
+
+type RotaryDirection =
+    clockwise
+    | counterclockwise
+
+type RotaryStep = {
+    control_identity: Text
+    direction: RotaryDirection
+    sequence: U64
+    steps: U64
+}
+
+type GamepadState = {
+    axes: InputAxisSlots
+    buttons: InputButtonSlots
+    pressure: InputPressure
+    sequence: U64
+    source_profile: Text
+}

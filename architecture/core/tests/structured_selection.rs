@@ -26,6 +26,14 @@ fn pitch_table() -> StructuredInfoValue {
         .unwrap()
 }
 
+fn named_pitch_table_type() -> StructuredInfoType {
+    StructuredInfoType::nominal(KindId::from("type/PitchTable@1"), pitch_table_type()).unwrap()
+}
+
+fn named_pitch_table() -> StructuredInfoValue {
+    StructuredInfoValue::nominal(named_pitch_table_type(), pitch_table()).unwrap()
+}
+
 fn note_type() -> StructuredInfoType {
     StructuredInfoType::record(
         KindId::from("music/note@1"),
@@ -96,6 +104,33 @@ fn button_index_selects_one_finite_pitch_without_numeric_coercion() {
     assert_eq!(selected, count(62));
     assert_eq!(selector.output_type(), &leaf("value/count"));
     assert_eq!(selector.input_type(), &pitch_table_type());
+}
+
+#[test]
+fn selectors_look_through_nominal_type_identity_without_erasing_it() {
+    let selector = StructuredSelector::index(named_pitch_table_type(), 1).unwrap();
+    let StructuredSelection::Matched(selected) = selector.select(&named_pitch_table()).unwrap()
+    else {
+        panic!("a valid nominal fixed index must match");
+    };
+    assert_eq!(selected, count(62));
+    assert_eq!(selector.input_type(), &named_pitch_table_type());
+    assert_eq!(selector.output_type(), &leaf("value/count"));
+
+    let input = named_pitch_table().canonical_bytes().unwrap();
+    let input_type = named_pitch_table_type().canonical_bytes().unwrap();
+    let output_type = leaf("value/count").canonical_bytes().unwrap();
+    let mut output = Vec::with_capacity(256);
+    assert_eq!(
+        selector
+            .select_canonical_into(&input, &input_type, &output_type, &mut output)
+            .unwrap(),
+        StructuredCanonicalSelection::Matched
+    );
+    assert_eq!(
+        StructuredInfoValue::from_canonical_bytes(&output).unwrap(),
+        count(62)
+    );
 }
 
 #[test]
