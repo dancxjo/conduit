@@ -283,6 +283,17 @@ are satisfied.
 | Body invitation presentation refusal | `semantics/body-invitation/types.conduit` | generated at build time | yes | yes | exact native round trips plus invitation presentation and Body lifecycle suites |
 | System-continuity reboot denial | `semantics/system-continuity/types.conduit` | generated at build time | yes | yes | exact native round trip plus continuity and no-std suites |
 | System-continuity reboot progress, pending-state and line-loss vocabularies | `semantics/system-continuity/types.conduit` | generated at build time | yes | yes | exact native round trips plus delegated-reboot behavior suite |
+| HTTP exchange target, headers, body and request/response family | `semantics/web/types.conduit` | generated at build time | yes | yes | exact native bounds and round trips plus HTTP, provider, hosted and ConduitOS consumer suites |
+| Replay terminal state and civil-resolution policy | `semantics/time/types.conduit` | generated at build time | yes | yes | exact native round trips plus replay, recurrence and std Host consumer suites |
+| Portable keyboard occurrence | `semantics/human/types.conduit` | generated at build time | yes | yes | exact usage/refinement proof plus keymap and target consumer suites |
+| Wire session, terminal and checkpoint vocabulary | `architecture/wire/types.conduit` | generated at build time | yes | yes | exact native round trips plus wire, no-std and standalone firmware proof |
+| Image observation reference | `semantics/human/types.conduit` | generated at build time | yes | yes | exact resource/dimension bounds and round trips plus catalog, hosted vision and image-text consumers |
+| Four-slot tabular schema, row, result and query-outcome family | `semantics/data/types.conduit` | generated at build time | yes | yes | exact fixed-collection and payload round trips plus deterministic provider, filter and materialized-result suites |
+| Human interaction refusal, availability, outcome, range and quantization vocabulary | `semantics/human/types.conduit` | generated at build time | yes | yes | exact native payload round trips plus interaction behavior suites |
+| Speech-recognition attempt and result family | `semantics/tongues/types.conduit` | generated at build time | yes | yes | exact bounded identity/text/digest and payload round trips plus recognition and JSON-adapter suites |
+| House generation request | `semantics/tongues/types.conduit` | generated at build time | yes | yes | exact identity/prompt/output bounds plus House, Tongues and std Host consumer suites |
+| Presentation place/aspect/depth, navigation, wardrobe, Face-role and narrator vocabulary | `semantics/presentation/types.conduit` | generated at build time | yes | yes | exact native/code round trips plus navigation, mask, Face and generative-presentation suites |
+| AI similarity-score family | `semantics/ai/types.conduit` | generated at build time with exact finite `F32` | yes | yes | bit-exact native and JSON round trips plus vector retrieval/search suites and non-finite refusal proof |
 | Remaining P families in `semantics/**` | family-owned `.conduit` source required | binding machinery available | in progress | in progress | exact std/browser/ConduitOS/embedded applicability per family |
 
 The completed foundations remove any general “language support” excuse for a
