@@ -31,16 +31,22 @@ fn experience_temporal_policy_round_trips_and_retains_relational_validation() {
     assert_eq!(*policy.maximum_current_age_ticks(), 5);
     assert_eq!(*policy.maximum_recent_age_ticks(), 20);
     assert_eq!(policy.validate(), Ok(()));
-    assert_eq!(
-        ExperienceTemporalPolicy::new(20, 20).unwrap().validate(),
-        Err(ExperienceTemporalRefusal::InvalidPolicy)
-    );
-    assert_eq!(
-        ExperienceTemporalPolicy::new(u64::MAX, 0)
-            .unwrap()
-            .validate(),
-        Err(ExperienceTemporalRefusal::InvalidPolicy)
-    );
+    assert!(ExperienceTemporalPolicy::new(20, 20).is_err());
+    assert!(ExperienceTemporalPolicy::new(u64::MAX, 0).is_err());
+}
+
+#[test]
+fn experience_temporal_refusals_are_native() {
+    for refusal in [
+        ExperienceTemporalRefusal::InvalidPolicy,
+        ExperienceTemporalRefusal::InvalidInstant,
+        ExperienceTemporalRefusal::IncomparableClock,
+        ExperienceTemporalRefusal::IntervalOverflow,
+        ExperienceTemporalRefusal::FutureObservation,
+        ExperienceTemporalRefusal::IndeterminateAge,
+    ] {
+        assert_round_trip(refusal);
+    }
 }
 
 #[test]
