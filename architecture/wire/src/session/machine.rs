@@ -1,10 +1,5 @@
 use super::*;
-
-#[derive(Debug, Copy, Clone, PartialEq, Eq)]
-pub enum SessionRole {
-    Source,
-    Sink,
-}
+use crate::{SessionRole, SessionTerminalDisposition, SessionTransferCheckpoint};
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
 enum TransferState {
@@ -91,10 +86,12 @@ impl SessionMachine {
             transfer: match self.transfer {
                 None => SessionTransferCheckpoint::None,
                 Some(TransferState::Offered(sequence)) => {
-                    SessionTransferCheckpoint::Offered(sequence)
+                    SessionTransferCheckpoint::offered(sequence)
+                        .expect("u64 transfer sequences are exact")
                 }
                 Some(TransferState::Accepted(sequence)) => {
-                    SessionTransferCheckpoint::Accepted(sequence)
+                    SessionTransferCheckpoint::accepted(sequence)
+                        .expect("u64 transfer sequences are exact")
                 }
             },
             input_closed: self.input_closed,

@@ -1,11 +1,5 @@
-use super::{SessionIdentity, SessionRole, WireError};
-
-#[derive(Debug, Copy, Clone, PartialEq, Eq)]
-pub enum SessionTransferCheckpoint {
-    None,
-    Offered(u64),
-    Accepted(u64),
-}
+use super::{SessionIdentity, WireError};
+use crate::{SessionRole, SessionTransferCheckpoint};
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
 pub struct SessionCheckpoint {
@@ -93,8 +87,8 @@ pub(super) fn reconcile_checkpoints(
                 input_abnormal: false,
                 abnormal_terminal_digest: None,
             },
-        ) if sequence == next_sequence && peer_next == next_sequence => {
-            Ok(SessionResumeAction::ReplayOffered(sequence))
+        ) if *sequence.sequence() == next_sequence && peer_next == next_sequence => {
+            Ok(SessionResumeAction::ReplayOffered(*sequence.sequence()))
         }
         (
             SessionRole::Sink,
@@ -112,8 +106,8 @@ pub(super) fn reconcile_checkpoints(
                 input_abnormal: false,
                 abnormal_terminal_digest: None,
             },
-        ) if sequence == next_sequence && peer_next == next_sequence => {
-            Ok(SessionResumeAction::AwaitReplay(sequence))
+        ) if *sequence.sequence() == next_sequence && peer_next == next_sequence => {
+            Ok(SessionResumeAction::AwaitReplay(*sequence.sequence()))
         }
         (
             SessionRole::Source,
@@ -131,8 +125,10 @@ pub(super) fn reconcile_checkpoints(
                 input_abnormal: false,
                 abnormal_terminal_digest: None,
             },
-        ) if sequence == next_sequence && sequence.checked_add(1) == Some(peer_next) => {
-            Ok(SessionResumeAction::AdvanceDelivered(sequence))
+        ) if *sequence.sequence() == next_sequence
+            && sequence.sequence().checked_add(1) == Some(peer_next) =>
+        {
+            Ok(SessionResumeAction::AdvanceDelivered(*sequence.sequence()))
         }
         (
             SessionRole::Sink,
@@ -150,8 +146,10 @@ pub(super) fn reconcile_checkpoints(
                 input_abnormal: false,
                 abnormal_terminal_digest: None,
             },
-        ) if sequence.checked_add(1) == Some(next_sequence) && peer_next == sequence => {
-            Ok(SessionResumeAction::AdvanceDelivered(sequence))
+        ) if sequence.sequence().checked_add(1) == Some(next_sequence)
+            && peer_next == *sequence.sequence() =>
+        {
+            Ok(SessionResumeAction::AdvanceDelivered(*sequence.sequence()))
         }
         _ => Err(WireError::InvalidState),
     }

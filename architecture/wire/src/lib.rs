@@ -2,6 +2,18 @@
 
 extern crate alloc;
 
+#[allow(dead_code, clippy::clone_on_copy)]
+mod generated {
+    include!(concat!(env!("OUT_DIR"), "/semantic_types.rs"));
+}
+impl Copy for SessionTransferCheckpointAccepted {}
+impl Copy for SessionTransferCheckpointOffered {}
+impl Copy for SessionTransferCheckpoint {}
+pub use generated::{
+    SessionRole, SessionTerminalDisposition, SessionTerminalDispositionCode,
+    SessionTransferCheckpoint, SessionTransferCheckpointAccepted, SessionTransferCheckpointOffered,
+};
+
 use alloc::string::String;
 use alloc::vec::Vec;
 use conduit_core::{ConnectionEnvelope, ConnectionId, KindId, PlanId, PROTOCOL_VERSION};
