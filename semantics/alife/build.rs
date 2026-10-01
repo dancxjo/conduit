@@ -25,11 +25,7 @@ fn main() {
                 "ReactionDiffusionRegion".into(),
             ]
             .into(),
-            direct_checked_record_constructors: [
-                "GrayScottParameters".into(),
-                "LeniaParameters".into(),
-            ]
-            .into(),
+            direct_checked_record_constructors: ["LeniaParameters".into()].into(),
             public_record_fields: ["GrayScottParameters".into(), "LeniaParameters".into()].into(),
             record_constructor_orders: [
                 (
