@@ -38,10 +38,11 @@ impl Home {
             42 => HomeEvent::Backspace,
             _ => match self.keymap.apply(event) {
                 KeymapDisposition::Text(fragment) => {
-                    return core::str::from_utf8(fragment.as_bytes())
-                        .map_or(HomeInput::Unchanged, |text| {
-                            self.model.accept(HomeEvent::Text(text), &forms)
-                        });
+                    let mut utf8 = [0; 4];
+                    let text = fragment.encode_utf8(&mut utf8);
+                    return core::str::from_utf8(text).map_or(HomeInput::Unchanged, |text| {
+                        self.model.accept(HomeEvent::Text(text), &forms)
+                    });
                 }
                 KeymapDisposition::Refused(_) => HomeEvent::CharacterUnavailable,
                 _ => return HomeInput::Unchanged,

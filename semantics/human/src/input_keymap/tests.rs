@@ -11,7 +11,8 @@ fn release(usage: u8, modifiers: KeyModifiers) -> KeyEvent {
 fn text(disposition: KeymapDisposition) -> alloc::string::String {
     match disposition {
         KeymapDisposition::Text(value) => {
-            alloc::string::String::from_utf8(value.as_bytes().to_vec()).unwrap()
+            let mut bytes = [0; 4];
+            alloc::string::String::from_utf8(value.encode_utf8(&mut bytes).to_vec()).unwrap()
         }
         other => panic!("expected text, found {other:?}"),
     }

@@ -5,13 +5,28 @@ extern crate alloc;
 #[allow(clippy::clone_on_copy, dead_code)]
 mod generated {
     include!(concat!(env!("OUT_DIR"), "/semantic_types.rs"));
+
+    impl ReactionDiffusionFieldId {
+        pub const fn from_bytes(value: [u8; 16]) -> Self {
+            Self(value)
+        }
+    }
+
+    impl LeniaFieldId {
+        pub const fn from_bytes(value: [u8; 16]) -> Self {
+            Self(value)
+        }
+    }
 }
 pub use generated::{
     FieldBitmapRefusal, GardenClockObservation, GardenContactObservation,
     GardenEnrichedObservation, GardenEvolutionRefusal, GardenState, GrayScottParameters,
-    LeniaBoundary, LeniaParameters, LeniaRegionChunkKind, LeniaRegionChunkKindCode,
-    ReactionDiffusionBoundaryEdge, ReactionDiffusionBoundaryEdgeCode, ReactionDiffusionPartition,
-    ReactionDiffusionRegion, ReactionDiffusionRegionId,
+    LeniaBoundary, LeniaFieldId, LeniaParameters, LeniaRegionChunkKind, LeniaRegionChunkKindCode,
+    LeniaValueRefusal, ReactionDiffusionBoundaryEdge, ReactionDiffusionBoundaryEdgeCode,
+    ReactionDiffusionCell, ReactionDiffusionEvolveRequest, ReactionDiffusionFieldId,
+    ReactionDiffusionPartition, ReactionDiffusionRegion, ReactionDiffusionRegionId,
+    ReactionDiffusionValueRefusal, ReactionDiffusionValueRefusalStaleGeneration,
+    ReactionDiffusionValueRefusalWorkLimitExceeded,
 };
 
 mod distributed_catalog;

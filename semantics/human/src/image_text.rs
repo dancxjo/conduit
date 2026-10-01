@@ -2,37 +2,17 @@
 
 use alloc::{string::String, vec::Vec};
 use conduit_core::{semantic_digest, KindId};
+use conduit_form::rust_binding::BoundedSequence;
 
-use crate::{ImageObservationReference, ImageObservationRefusal, ImageTextMetadata};
+use crate::{
+    ImageObservationReference, ImageObservationRefusal, ImageTextContentDigest, ImageTextMetadata,
+    ImageTextMetadataEntries, ImageTextRecord, ImageTextRefusal,
+};
 
 pub const MAXIMUM_IMAGE_TEXT_CAPTION_BYTES: usize = 512;
 pub const MAXIMUM_IMAGE_TEXT_METADATA_ENTRIES: usize = 8;
 pub const MAXIMUM_IMAGE_TEXT_METADATA_KEY_BYTES: usize = 64;
 pub const MAXIMUM_IMAGE_TEXT_METADATA_VALUE_BYTES: usize = 256;
-
-#[derive(Debug, Clone, PartialEq, Eq)]
-pub struct ImageTextRecord {
-    pub image: ImageObservationReference,
-    pub caption: String,
-    pub metadata: Vec<ImageTextMetadata>,
-    pub content_digest: [u8; 32],
-}
-
-#[derive(Debug, Copy, Clone, PartialEq, Eq)]
-pub enum ImageTextRefusal {
-    InvalidImage,
-    WrongImageProfile,
-    InvalidImageDimensions,
-    ImageTooLarge,
-    EmptyCaption,
-    CaptionTooLarge,
-    TooManyMetadataEntries,
-    EmptyMetadataKey,
-    MetadataKeyTooLarge,
-    MetadataValueTooLarge,
-    DuplicateMetadataKey,
-    IntegrityMismatch,
-}
 
 pub fn compose_image_text(
     expected_image_profile: &KindId,
@@ -74,7 +54,12 @@ pub fn compose_image_text(
             return Err(ImageTextRefusal::DuplicateMetadataKey);
         }
     }
-    let content_digest = digest(&image, &caption, &metadata);
+    let content_digest = ImageTextContentDigest::new(digest(&image, &caption, &metadata))
+        .expect("a SHA-256 digest has exactly 32 bytes");
+    let metadata = BoundedSequence::try_from_iter(metadata)
+        .map_err(|_| ImageTextRefusal::TooManyMetadataEntries)?;
+    let metadata = ImageTextMetadataEntries::new(metadata)
+        .expect("bounded metadata satisfies its native contract");
     Ok(ImageTextRecord {
         image,
         caption,
@@ -89,7 +74,7 @@ impl ImageTextRecord {
             expected_image_profile,
             self.image.clone(),
             self.caption.clone(),
-            self.metadata.clone(),
+            self.metadata.get().iter().cloned().collect(),
         )?;
         if recomposed.content_digest != self.content_digest {
             return Err(ImageTextRefusal::IntegrityMismatch);

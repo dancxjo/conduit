@@ -1,0 +1,13 @@
+# Authoritative portable Tutorial vocabulary.
+
+type TutorialPlayback =
+    lulled
+    | preparing
+    | playing
+    | idle
+    | completed
+    | cancelled
+    | failed
+    | refused
+    | stopped
+    | fulfilled

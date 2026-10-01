@@ -55,6 +55,18 @@ type BodyChatRefusal =
     | prompt_bound_exceeded
     | encoding
 
+# Privacy-preserving evidence for the exact Body truth consumed by one request.
+# The private prompt is named only by its digest and is never retained here.
+type ConversationRequestEvidence = {
+    request-identity: Text <= 82B not in [""]
+    body-id: Text <= 256B not in [""]
+    wake-id: Text <= 256B not in [""]
+    wake-sequence: U64
+    context-revision: U64
+    model-context-sha256: Text <= 64B not in [""]
+    private-prompt-retained: Boolean
+}
+
 # Portable messaging meaning. Addresses and provider profiles remain semantic
 # text; transports, retries, and provider acknowledgements remain realization.
 

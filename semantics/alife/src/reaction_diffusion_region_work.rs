@@ -194,7 +194,9 @@ impl ReactionDiffusionRegionWork {
                 > REACTION_DIFFUSION_MAXIMUM_CELLS as usize
         {
             return Err(ReactionDiffusionPartitionRefusal::Field(
-                crate::ReactionDiffusionRefusal::InvalidDimensions,
+                crate::ReactionDiffusionRefusal::Value(
+                    crate::ReactionDiffusionValueRefusal::InvalidDimensions,
+                ),
             ));
         }
         self.contract.parameters.validate()?;

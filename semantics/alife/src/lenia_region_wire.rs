@@ -109,7 +109,7 @@ impl LeniaRegionChunkHeader {
         output[4] = VERSION;
         output[5] = LeniaRegionChunkKindCode::encode(self.kind)[0];
         output[6] = self.region.id.0;
-        output[8..24].copy_from_slice(&self.field_id.0);
+        output[8..24].copy_from_slice(self.field_id.get());
         output[24..32].copy_from_slice(&self.generation.to_le_bytes());
         output[32..34].copy_from_slice(&self.field_width.to_le_bytes());
         output[34..36].copy_from_slice(&self.field_height.to_le_bytes());
@@ -233,7 +233,7 @@ impl<'a> LeniaRegionChunkView<'a> {
             .map_err(|_| LeniaRegionChunkRefusal::WrongKind)?;
         let header = LeniaRegionChunkHeader {
             kind,
-            field_id: LeniaFieldId(read_array(encoded, 8)?),
+            field_id: LeniaFieldId::from_bytes(read_array(encoded, 8)?),
             generation: u64::from_le_bytes(read_array(encoded, 24)?),
             field_width: u16::from_le_bytes(read_array(encoded, 32)?),
             field_height: u16::from_le_bytes(read_array(encoded, 34)?),

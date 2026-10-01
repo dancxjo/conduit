@@ -180,7 +180,12 @@ impl KeyboardTextKernel {
         };
         match output {
             Some(fragment) => {
-                self.complete_with_output(request, self.keymap_node, fragment.as_bytes())
+                let mut utf8 = [0; 4];
+                self.complete_with_output(
+                    request,
+                    self.keymap_node,
+                    fragment.encode_utf8(&mut utf8),
+                )
             }
             None => self.complete_without_output(request, self.keymap_node),
         }

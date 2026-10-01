@@ -179,7 +179,7 @@ mod tests {
     fn exact_line_envelope_round_trips_identity_and_chunk() {
         let header = LeniaRegionChunkHeader {
             kind: LeniaRegionChunkKind::Work,
-            field_id: LeniaFieldId([3; 16]),
+            field_id: LeniaFieldId::from_bytes([3; 16]),
             generation: 0,
             field_width: 32,
             field_height: 32,

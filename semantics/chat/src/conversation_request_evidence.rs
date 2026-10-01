@@ -1,18 +1,8 @@
 //! Privacy-preserving evidence for the body truth consumed by a chat request.
 
 use alloc::string::String;
-use serde::{Deserialize, Serialize};
 
-#[derive(Clone, Debug, Eq, PartialEq, Serialize, Deserialize)]
-pub struct ConversationRequestEvidence {
-    pub request_identity: String,
-    pub body_id: String,
-    pub wake_id: String,
-    pub wake_sequence: u64,
-    pub context_revision: u64,
-    pub model_context_sha256: String,
-    pub private_prompt_retained: bool,
-}
+use crate::ConversationRequestEvidence;
 
 impl From<&crate::BodyChatGenerationRequest> for ConversationRequestEvidence {
     fn from(request: &crate::BodyChatGenerationRequest) -> Self {
@@ -22,15 +12,16 @@ impl From<&crate::BodyChatGenerationRequest> for ConversationRequestEvidence {
             write!(&mut model_context_sha256, "{byte:02x}")
                 .expect("write digest to bounded String");
         }
-        Self {
-            request_identity: request.request_identity.clone(),
-            body_id: request.context_basis.body_id.as_str().into(),
-            wake_id: request.context_basis.wake_id.as_str().into(),
-            wake_sequence: request.context_basis.wake_sequence,
-            context_revision: request.context_basis.revision,
+        Self::new(
+            request.request_identity.clone(),
+            request.context_basis.body_id.as_str().into(),
+            request.context_basis.wake_id.as_str().into(),
+            request.context_basis.wake_sequence,
+            request.context_basis.revision,
             model_context_sha256,
-            private_prompt_retained: false,
-        }
+            false,
+        )
+        .expect("validated Body request satisfies the evidence contract")
     }
 }
 
@@ -40,6 +31,7 @@ mod tests {
     use alloc::vec;
     use conduit_body::{Body, BodyConversationContext, BodyConversationContextBasis};
     use conduit_core::{CheckedFormId, SignId, SourceDocumentId};
+    use conduit_form::rust_binding::NativeRustBinding;
 
     #[test]
     fn evidence_names_exact_context_basis_without_retaining_prompt_text() {
@@ -77,9 +69,29 @@ mod tests {
         let request = state.request(b"private message").unwrap();
         let evidence = ConversationRequestEvidence::from(&request);
         let serialized = serde_json::to_string(&evidence).unwrap();
-        assert_eq!(evidence.context_revision, 9);
-        assert!(!evidence.private_prompt_retained);
+        assert_eq!(*evidence.context_revision(), 9);
+        assert!(!evidence.private_prompt_retained());
         assert!(!serialized.contains("private name"));
         assert!(!serialized.contains("private message"));
+
+        let structured = evidence.clone().into_structured().unwrap();
+        assert_eq!(
+            ConversationRequestEvidence::from_structured(structured).unwrap(),
+            evidence
+        );
+    }
+
+    #[test]
+    fn evidence_rejects_values_beyond_the_owned_identity_bounds() {
+        assert!(ConversationRequestEvidence::new(
+            "r".repeat(83),
+            "body/fixture".into(),
+            "wake/fixture".into(),
+            1,
+            1,
+            "0".repeat(64),
+            false,
+        )
+        .is_err());
     }
 }

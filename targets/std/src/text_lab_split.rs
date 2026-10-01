@@ -384,9 +384,10 @@ impl NativeTextLabFragment {
                 let KeymapDisposition::Text(text) = self.keymap.apply(event) else {
                     return Err("Text Lab keymap did not produce text".into());
                 };
+                let mut utf8 = [0; 4];
                 let value = self
                     .scheduler
-                    .store_host_value(text.as_bytes())
+                    .store_host_value(text.encode_utf8(&mut utf8))
                     .map_err(|error| format!("{error:?}"))?;
                 Some(
                     BoundedValueRef::new(value, conduit_human::CHORD_ENCODED_LEN as u32)

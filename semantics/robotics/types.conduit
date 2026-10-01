@@ -95,3 +95,146 @@ type OrientationObservation = {
     pitch-microradians: I32 in -1570797..=1570797
     yaw-microradians: I32 in -3141593..=3141593
 }
+
+type NavigationIdentity64 = Text <= 64B not in [""]
+type NavigationRouteIdentity = Text <= 70B not in [""]
+type NavigationPlanningInputIdentity = Text <= 251B not in [""]
+
+type NavigationValidity = {
+    observed_at_ms: U64
+    valid_until_ms: U64
+    where .observed_at_ms <= .valid_until_ms
+}
+
+type NavigationTime = {
+    clock_identity: NavigationIdentity64
+    now_ms: U64
+}
+
+type NavigationPose = {
+    source_identity: NavigationIdentity64
+    sample_sequence: U64
+    clock_identity: NavigationIdentity64
+    frame: NavigationIdentity64
+    x_mm: I32
+    y_mm: I32
+    heading_microdegrees: I32
+    validity: NavigationValidity
+}
+
+type NavigationGoalTarget =
+    hold
+    | reach {
+        frame: NavigationIdentity64
+        x_mm: I32
+        y_mm: I32
+        heading_microdegrees: I32
+        position_tolerance_mm: U32
+        heading_tolerance_microdegrees: U32
+    }
+
+type NavigationGoal = {
+    identity: NavigationIdentity64
+    clock_identity: NavigationIdentity64
+    valid_until_ms: U64
+    target: NavigationGoalTarget
+}
+
+type NavigationTraversabilityCell =
+    free
+    | blocked
+    | unknown
+
+type NavigationTraversabilityCells = collection NavigationTraversabilityCell = 16
+
+type NavigationTraversability4x4 = {
+    source_identity: NavigationIdentity64
+    sample_sequence: U64
+    clock_identity: NavigationIdentity64
+    frame: NavigationIdentity64
+    origin_x_mm: I32
+    origin_y_mm: I32
+    cell_width_mm: U32
+    cell_height_mm: U32
+    validity: NavigationValidity
+    cells: NavigationTraversabilityCells
+    where .cell_width_mm > 0
+    where .cell_height_mm > 0
+    where value/i64(.origin_x_mm) + value/i64(.cell_width_mm) * 4 <= 2147483647
+    where value/i64(.origin_y_mm) + value/i64(.cell_height_mm) * 4 <= 2147483647
+}
+
+type NavigationWaypoint = {
+    x_mm: I32
+    y_mm: I32
+}
+
+type NavigationWaypoints = sequence NavigationWaypoint in 1..=4
+
+type NavigationRoute = {
+    identity: NavigationRouteIdentity
+    goal_identity: NavigationIdentity64
+    planner_identity: NavigationIdentity64
+    planning_input_identity: NavigationPlanningInputIdentity
+    frame: NavigationIdentity64
+    target_heading_microdegrees: I32
+    position_tolerance_mm: U32
+    heading_tolerance_microdegrees: U32
+    waypoints: NavigationWaypoints
+}
+
+type NavigationDecisionIdentity = {
+    goal_identity: NavigationIdentity64
+}
+
+type NavigationRouteDecision =
+    route NavigationRoute
+    | hold NavigationDecisionIdentity
+    | no_path NavigationDecisionIdentity
+    | goal_invalid NavigationDecisionIdentity
+    | obstacle_data_unavailable NavigationDecisionIdentity
+    | pose_stale NavigationDecisionIdentity
+
+type NavigationTrajectorySegment = {
+    target: NavigationWaypoint
+    interval_ms: U32 in 1..
+    maximum_linear_step_mm: U32 in 1..
+    maximum_angular_step_microdegrees: U32 in 1..
+}
+
+type NavigationTrajectorySegments = sequence NavigationTrajectorySegment in 1..=3
+
+type NavigationTrajectory = {
+    route_identity: NavigationRouteIdentity
+    goal_identity: NavigationIdentity64
+    clock_identity: NavigationIdentity64
+    valid_until_ms: U64
+    frame: NavigationIdentity64
+    target_heading_microdegrees: I32
+    position_tolerance_mm: U32
+    heading_tolerance_microdegrees: U32
+    segments: NavigationTrajectorySegments
+}
+
+type NavigationBoundedMotionIntent = {
+    goal_identity: NavigationIdentity64
+    linear_mm: I32
+    angular_microdegrees: I32
+    interval_ms: U32 in 1..
+    ttl_ms: U32 in 1..
+}
+
+type NavigationControlDecision =
+    motion NavigationBoundedMotionIntent
+    | arrived NavigationDecisionIdentity
+    | hold NavigationDecisionIdentity
+    | pose_stale NavigationDecisionIdentity
+    | trajectory_expired NavigationDecisionIdentity
+
+type NavigationRefusal =
+    empty_identity
+    | identity_too_long
+    | invalid_validity
+    | invalid_grid
+    | invalid_route
+    | invalid_trajectory

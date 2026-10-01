@@ -30,7 +30,8 @@ const REQUEST: RequestId = RequestId(1);
 const MAX_INPUT_BYTES: u32 =
     4 + REACTION_DIFFUSION_MAXIMUM_STATE_BYTES + REACTION_DIFFUSION_REQUEST_BYTES;
 const MAX_VALUE_BYTES: u32 = MAX_INPUT_BYTES;
-const FIELD_ID: ReactionDiffusionFieldId = ReactionDiffusionFieldId(*b"field-kernel-001");
+const FIELD_ID: ReactionDiffusionFieldId =
+    ReactionDiffusionFieldId::from_bytes(*b"field-kernel-001");
 
 #[derive(Clone, Copy)]
 enum TestOperation {

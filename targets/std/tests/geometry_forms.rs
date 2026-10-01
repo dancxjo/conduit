@@ -9,8 +9,9 @@ use conduit_form::{
 };
 use conduit_presentation::{
     apply_transform2, apply_transform2_to_path, image_region2_type, install_geometry_catalogs,
-    path2_type, path2_value, point2_type, point2_value, robotics_pose2_type, transform2_value,
-    GeometryRefusal, APPLY_TRANSFORM2_KIND, MAXIMUM_GEOMETRY_PATH_POINTS, POINT2_LITERAL_KIND,
+    path2_type, path2_value, point2_type, point2_value, rect2_type, robotics_pose2_type,
+    transform2_value, GeometryRefusal, APPLY_TRANSFORM2_KIND, MAXIMUM_GEOMETRY_PATH_POINTS,
+    POINT2_LITERAL_KIND,
 };
 use conduit_std_host::hosted_geometry::{geometry_std_offers, GEOMETRY_HOST_CALL};
 
@@ -203,8 +204,19 @@ fn robotics_and_vision_reuse_the_same_nominal_geometry_without_renderer_identity
         &point
     );
 
-    let rendered = format!("{:?}", image_region2_type()).to_ascii_lowercase();
-    assert!(rendered.contains("geometry/rect2@1"));
+    let image_region = image_region2_type();
+    let StructuredInfoTypeShape::Record { fields, .. } = image_region.shape() else {
+        panic!("image region must be a record")
+    };
+    assert_eq!(
+        fields
+            .iter()
+            .find(|field| field.name() == "region")
+            .unwrap()
+            .value_type(),
+        &rect2_type()
+    );
+    let rendered = format!("{image_region:?}").to_ascii_lowercase();
     for forbidden in ["patchbay", "presenter", "framebuffer", "dom", "css"] {
         assert!(
             !rendered.contains(forbidden),

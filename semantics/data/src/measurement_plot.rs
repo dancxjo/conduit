@@ -1,28 +1,16 @@
 //! Finite, source-independent projection of a typed measurement window for plotting.
 
 use alloc::vec::Vec;
+use conduit_form::rust_binding::BoundedSequence;
 
 use crate::{
     BoundedMeasurementWindow, MeasurementPlotOverflowPolicy, MeasurementPlotPoint,
-    MeasurementPlotRefusal,
+    MeasurementPlotProfile, MeasurementPlotRefusal, MeasurementPlotSeries,
 };
 
 pub const MEASUREMENT_PLOT_SERIES_INFO_ID: &str = "data/measurement-plot-series@1";
 pub const MAXIMUM_MEASUREMENT_PLOT_POINTS: usize = 32;
 pub const PLOT_AXIS_MILLIONTHS: i64 = 1_000_000;
-
-#[derive(Debug, Copy, Clone, PartialEq, Eq)]
-pub struct MeasurementPlotProfile {
-    pub point_capacity: usize,
-    pub overflow_policy: MeasurementPlotOverflowPolicy,
-}
-
-#[derive(Debug, Clone, PartialEq, Eq)]
-pub struct MeasurementPlotSeries {
-    points: Vec<MeasurementPlotPoint>,
-    source_samples: usize,
-    omitted_samples: usize,
-}
 
 impl MeasurementPlotSeries {
     pub fn from_projected(
@@ -44,26 +32,26 @@ impl MeasurementPlotSeries {
         {
             return Err(MeasurementPlotRefusal::InvalidProjection);
         }
-        Ok(Self {
-            points,
-            source_samples,
-            omitted_samples,
-        })
+        let points = BoundedSequence::try_from_iter(points)
+            .map_err(|_| MeasurementPlotRefusal::InvalidProjection)?;
+        Self::new(points, source_samples as u64, omitted_samples as u64)
+            .map_err(|_| MeasurementPlotRefusal::InvalidProjection)
     }
 
     pub fn project(
         window: &BoundedMeasurementWindow,
         profile: MeasurementPlotProfile,
     ) -> Result<Self, MeasurementPlotRefusal> {
-        if profile.point_capacity == 0 || profile.point_capacity > MAXIMUM_MEASUREMENT_PLOT_POINTS {
+        let point_capacity = usize::from(*profile.point_capacity());
+        if point_capacity == 0 || point_capacity > MAXIMUM_MEASUREMENT_PLOT_POINTS {
             return Err(MeasurementPlotRefusal::InvalidPointCapacity);
         }
         let samples = window.samples();
         if samples.is_empty() {
             return Err(MeasurementPlotRefusal::EmptyWindow);
         }
-        if samples.len() > profile.point_capacity
-            && profile.overflow_policy == MeasurementPlotOverflowPolicy::Reject
+        if samples.len() > point_capacity
+            && *profile.overflow_policy() == MeasurementPlotOverflowPolicy::Reject
         {
             return Err(MeasurementPlotRefusal::Full);
         }
@@ -76,8 +64,8 @@ impl MeasurementPlotSeries {
             return Err(MeasurementPlotRefusal::DegenerateValueRange);
         }
 
-        let retained = samples.len().min(profile.point_capacity);
-        let mut points = Vec::with_capacity(profile.point_capacity);
+        let retained = samples.len().min(point_capacity);
+        let mut points = Vec::with_capacity(point_capacity);
         for output_index in 0..retained {
             let source_index = selected_index(output_index, retained, samples.len());
             let value_offset = samples[source_index]
@@ -96,23 +84,23 @@ impl MeasurementPlotSeries {
                     .expect("projection establishes native point bounds"),
             );
         }
-        Ok(Self {
-            points,
-            source_samples: samples.len(),
-            omitted_samples: samples.len() - retained,
-        })
+        Self::from_projected(points, samples.len(), samples.len() - retained)
     }
 
-    pub fn points(&self) -> &[MeasurementPlotPoint] {
-        &self.points
+    pub fn points(&self) -> &BoundedSequence<MeasurementPlotPoint, 32> {
+        self.projected_points()
     }
 
-    pub const fn source_samples(&self) -> usize {
-        self.source_samples
+    pub fn point(&self, index: usize) -> Option<&MeasurementPlotPoint> {
+        self.projected_points().iter().nth(index)
     }
 
-    pub const fn omitted_samples(&self) -> usize {
-        self.omitted_samples
+    pub fn source_samples(&self) -> usize {
+        *self.source_sample_count() as usize
+    }
+
+    pub fn omitted_samples(&self) -> usize {
+        *self.omitted_sample_count() as usize
     }
 }
 

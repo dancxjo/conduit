@@ -88,7 +88,6 @@ pub use education::*;
 #[cfg(feature = "form-catalog")]
 mod education_realization;
 #[cfg(feature = "form-catalog")]
-mod education_value;
 #[cfg(feature = "form-catalog")]
 pub use education_realization::*;
 #[cfg(feature = "form-catalog")]

@@ -26,19 +26,27 @@ mod generated {
     }
 }
 pub use generated::{
-    AdmittedNavigationDestination, ApplicationComponent, ApplicationComponentCode,
-    ApplicationEventKind, ApplicationEventKindCode, ApplicationNodeState, ApplicationNodeStateCode,
-    ApplicationViewRefusal, ChoiceMultiplicity, CompositionItemKind, CompositionItemKindCode,
-    CompositionRole, CompositionRoleCode, EvidenceDisposition, FaceUtteranceClauseKind,
+    AdmittedNavigationDestination, ApplicationAction, ApplicationComponent,
+    ApplicationComponentCode, ApplicationEventKind, ApplicationEventKindCode, ApplicationNodeState,
+    ApplicationNodeStateCode, ApplicationViewRefusal, ChoiceMultiplicity, CompositionItemKind,
+    CompositionItemKindCode, CompositionRole, CompositionRoleCode, EvidenceDisposition, Extent2,
+    FaceContributionRole, FaceContributionRoleCode, FaceUtteranceClauseKind,
     FaceUtteranceProvenance, FaceUtteranceProvenanceAction, FaceUtteranceProvenanceActionArgument,
     FaceUtteranceProvenanceComposition, FaceUtteranceProvenanceProperty,
     FaceUtteranceProvenanceRelationship, FaceUtteranceProvenanceSubject,
     FaceUtteranceProvenanceText, GeneratedActionAffordance, GeneratedContentRole,
-    GeneratedManifestationDisposition, GraphicsClipClass, GraphicsCommandKind,
-    GraphicsCommandKindCode, GraphicsPaintRole, GraphicsPaintRoleCode, GraphicsPoint,
-    GraphicsShapeStyle, GraphicsShapeStyleCode, GraphicsTextRole, GraphicsTextRoleCode,
-    LayoutAlignment, LayoutAxis, PresentationDisclosureLevel, PresentationMechanismKind,
-    PresentationTemporalRole, StatusKind, ThemeColor,
+    GeneratedManifestationDisposition, GenerativeNarratorRole, GenerativeNarratorRoleCode,
+    GraphicsClipClass, GraphicsCommandKind, GraphicsCommandKindCode, GraphicsPaintRole,
+    GraphicsPaintRoleCode, GraphicsPoint, GraphicsShapeStyle, GraphicsShapeStyleCode,
+    GraphicsTextRole, GraphicsTextRoleCode, ImageRegion2, LayoutAlignment, LayoutAxis, LayoutError,
+    LayoutFrame, LayoutRect, MaskPlanningDisposition, MaskPlanningDispositionCode,
+    MaskWardrobeError, MaskWardrobeErrorCode, MaskWardrobeLifetime, MaskWardrobeLifetimeCode,
+    NavigationRefusal, NavigationRefusalCode, Path2Four, Point2, Point3, PresentationAspect,
+    PresentationAspectCode, PresentationCompositionKind, PresentationCompositionKindSemantic,
+    PresentationCompositionRelation, PresentationDepth, PresentationDepthCode,
+    PresentationDisclosureLevel, PresentationMechanismKind, PresentationPlace,
+    PresentationPlaceCode, PresentationTemporalRole, Rect2, RoboticsPose2, StatusKind, ThemeColor,
+    Transform2, Vector2, Vector3,
 };
 
 mod application_event;

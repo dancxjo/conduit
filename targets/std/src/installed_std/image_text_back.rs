@@ -233,9 +233,9 @@ fn parse_image<'a>(input: &'a [u8], expected_type: &[u8]) -> Result<ParsedImage<
     cursor.expect(0)?;
     let resource = cursor.bytes()?;
     cursor.text("height")?;
-    let height = cursor.count()?;
+    let height = cursor.u16()?;
     cursor.text("width")?;
-    let width = cursor.count()?;
+    let width = cursor.u16()?;
     if !cursor.remaining.is_empty() {
         return Err("trailing image value");
     }
@@ -283,10 +283,10 @@ impl<'a> CanonicalCursor<'a> {
             Err("wrong image field")
         }
     }
-    fn count(&mut self) -> Result<u16, &'static str> {
+    fn u16(&mut self) -> Result<u16, &'static str> {
         self.expect(0)?;
-        let bytes: [u8; 8] = self.bytes()?.try_into().map_err(|_| "wrong count")?;
-        u16::try_from(u64::from_le_bytes(bytes)).map_err(|_| "count exceeds image dimensions")
+        let bytes: [u8; 2] = self.bytes()?.try_into().map_err(|_| "wrong u16")?;
+        Ok(u16::from_le_bytes(bytes))
     }
 }
 
@@ -422,7 +422,7 @@ mod tests {
                 conduit_semantic_catalog::image_text_record_from_value(&value, &profile).unwrap();
             assert_eq!(record.caption, "At the pier");
             assert_eq!(record.image.width, 64);
-            assert!(record.metadata.is_empty());
+            assert!(record.metadata.get().is_empty());
         }
     }
 

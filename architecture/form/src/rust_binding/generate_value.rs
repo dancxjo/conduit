@@ -315,6 +315,10 @@ fn emit_record_constructor(
         fields.iter().collect::<Vec<_>>()
     };
     writeln!(out, "impl {rust_name} {{").expect("String writing is infallible");
+    if ordered_fields.len() > 7 {
+        writeln!(out, "    #[allow(clippy::too_many_arguments)]")
+            .expect("String writing is infallible");
+    }
     write!(out, "    pub fn {}(", options.constructor_name).expect("String writing is infallible");
     for (index, field) in ordered_fields.iter().enumerate() {
         if index > 0 {
@@ -553,6 +557,10 @@ fn emit_variant_constructors(
                             == Some(PrimitiveInfoKind::Bool)
                 )
             });
+            if fields.len() > 7 {
+                writeln!(out, "    #[allow(clippy::too_many_arguments)]")
+                    .expect("String writing is infallible");
+            }
             write!(out, "    pub fn {function}(").expect("String writing is infallible");
             for (index, field) in fields.iter().enumerate() {
                 if index > 0 {

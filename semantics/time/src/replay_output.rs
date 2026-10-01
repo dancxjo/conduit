@@ -183,7 +183,7 @@ pub fn encode_replay_state_into(
     state: ReplayState,
     output: &mut [u8],
 ) -> Result<usize, ReplayOutputCodecRefusal> {
-    let required = if matches!(state, ReplayState::Failed { .. }) {
+    let required = if matches!(state, ReplayState::Failed(..)) {
         8
     } else {
         6
@@ -198,10 +198,10 @@ pub fn encode_replay_state_into(
         ReplayState::Running => 1,
         ReplayState::Paused => 2,
         ReplayState::Completed => 3,
-        ReplayState::Failed { .. } => 4,
+        ReplayState::Failed(..) => 4,
     };
-    if let ReplayState::Failed { code } = state {
-        output[6..8].copy_from_slice(&code.to_le_bytes());
+    if let ReplayState::Failed(failed) = state {
+        output[6..8].copy_from_slice(&failed.code().to_le_bytes());
     }
     Ok(required)
 }
@@ -218,9 +218,8 @@ pub fn decode_replay_state(encoded: &[u8]) -> Result<ReplayState, ReplayOutputCo
                 return Err(ReplayOutputCodecRefusal::Truncated);
             }
             (
-                ReplayState::Failed {
-                    code: u16::from_le_bytes([encoded[6], encoded[7]]),
-                },
+                ReplayState::failed(u16::from_le_bytes([encoded[6], encoded[7]]))
+                    .expect("u16 replay failure codes are exact"),
                 8,
             )
         }

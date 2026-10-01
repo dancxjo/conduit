@@ -21,7 +21,7 @@ impl ReactionDiffusionBoundaryState {
             Vec::with_capacity(REACTION_DIFFUSION_BOUNDARY_HEADER_BYTES + self.values.len() * 8);
         encoded.extend_from_slice(&BOUNDARY_MAGIC);
         encoded.extend_from_slice(&NUMERIC_PROFILE_TAG.to_le_bytes());
-        encoded.extend_from_slice(&self.field_id.0);
+        encoded.extend_from_slice(self.field_id.get());
         encoded.extend_from_slice(&self.generation.to_le_bytes());
         encoded.extend_from_slice(&self.boundary_id.to_le_bytes());
         encoded.extend_from_slice(&self.source_region.get().to_le_bytes());
@@ -69,7 +69,7 @@ impl ReactionDiffusionBoundaryState {
         }
         Ok(Self {
             boundary_id: read_u32(encoded, 36)?,
-            field_id: ReactionDiffusionFieldId(field_id),
+            field_id: ReactionDiffusionFieldId::from_bytes(field_id),
             generation: read_u64(encoded, 28)?,
             source_region: ReactionDiffusionRegionId::new(read_u16(encoded, 40)?)
                 .map_err(|_| ReactionDiffusionPartitionRefusal::MalformedBoundaryLength)?,

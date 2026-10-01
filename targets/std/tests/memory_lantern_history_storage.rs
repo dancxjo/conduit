@@ -214,7 +214,7 @@ fn unavailable_corrupt_quota_and_replay_failure_remain_distinct() {
         .unwrap();
     assert_eq!(
         decode_replay_state(&state[..failed.state_bytes.unwrap()]),
-        Ok(ReplayState::Failed { code: 37 })
+        Ok(ReplayState::failed(37).unwrap())
     );
 }
 

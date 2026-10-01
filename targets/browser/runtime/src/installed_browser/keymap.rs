@@ -78,7 +78,8 @@ impl PreparedKeymap {
         match self.state.apply(event) {
             KeymapDisposition::Text(text) => {
                 let mut bytes = [0; 4];
-                let encoded = text.as_bytes();
+                let mut utf8 = [0; 4];
+                let encoded = text.encode_utf8(&mut utf8);
                 bytes[..encoded.len()].copy_from_slice(encoded);
                 Ok(Some(EncodedText {
                     bytes,

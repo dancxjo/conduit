@@ -7,7 +7,7 @@ use conduit_alife::{
 fn header(kind: LeniaRegionChunkKind, offset: u32, count: u16) -> LeniaRegionChunkHeader {
     LeniaRegionChunkHeader {
         kind,
-        field_id: LeniaFieldId([3; 16]),
+        field_id: LeniaFieldId::from_bytes([3; 16]),
         generation: if kind == LeniaRegionChunkKind::Work {
             4
         } else {

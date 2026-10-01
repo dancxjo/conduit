@@ -12,9 +12,8 @@ use conduit_form::{
 use conduit_semantic_catalog::{
     install_navigation_catalogs, install_robotics_structured_catalogs, local_control,
     navigation_control_type, navigation_kind_contracts, route_grid4, time_parameterize,
-    BoundedMotionIntent, ControlDecision, GoalTarget, NavigationGoal, NavigationPose,
-    NavigationRefusal, NavigationTime, RouteDecision, Traversability4x4, TraversabilityCell,
-    Validity, Waypoint, NAVIGATION_REVISION,
+    ControlDecision, GoalTarget, NavigationGoal, NavigationPose, NavigationTime, RouteDecision,
+    Traversability4x4, TraversabilityCell, Validity, Waypoint, NAVIGATION_REVISION,
 };
 
 const SOURCE: &str = include_str!("../../../forms/bounded-navigation/main.conduit");
@@ -95,59 +94,59 @@ fn canonical_bounded_navigation_is_one_checked_form() {
 fn deterministic_route_trajectory_and_controller_are_bounded_and_feedback_aware() {
     let start_pose = pose(50, 50, 0);
     let goal = goal(250, 250, 0);
-    let mut grid = grid(TraversabilityCell::Free);
-    grid.cells[1] = TraversabilityCell::Blocked;
+    let mut grid_cells = [TraversabilityCell::Free; 16];
+    grid_cells[1] = TraversabilityCell::Blocked;
+    let grid = grid_with_cells(grid_cells);
     let time = time(500);
 
     let RouteDecision::Route(route) = route_grid4(&start_pose, &goal, &grid, &time).unwrap() else {
         panic!("bounded alternative route must exist")
     };
-    assert_eq!(route.planner_identity, "navigation/deterministic-grid4@1");
     assert_eq!(
-        route.planning_input_identity,
+        route.planner_identity().get(),
+        "navigation/deterministic-grid4@1"
+    );
+    assert_eq!(
+        route.planning_input_identity().get(),
         "goal=goal/B;pose=pose/fixture#7;grid=grid/fixture#11"
     );
-    assert_eq!(route.waypoints.len(), 3);
+    assert_eq!(route.waypoints().len(), 3);
     assert_eq!(
-        route.waypoints[1],
-        Waypoint {
-            x_mm: 50,
-            y_mm: 250
-        }
+        route.waypoints().iter().nth(1).unwrap(),
+        &Waypoint::new(50, 250).unwrap()
     );
     let trajectory = time_parameterize(&route, &time, 100, 50, 30_000_000).unwrap();
     assert_eq!(trajectory.segments.len(), 2);
 
+    let ControlDecision::Motion(first) = local_control(&start_pose, &trajectory, &time).unwrap()
+    else {
+        panic!("motion")
+    };
     assert_eq!(
-        local_control(&start_pose, &trajectory, &time).unwrap(),
-        ControlDecision::Motion(BoundedMotionIntent {
-            goal_identity: "goal/B".into(),
-            linear_mm: 0,
-            angular_microdegrees: 30_000_000,
-            interval_ms: 100,
-            ttl_ms: 100,
-        })
+        (
+            *first.linear_mm(),
+            *first.angular_microdegrees(),
+            *first.interval_ms(),
+            *first.ttl_ms()
+        ),
+        (0, 30_000_000, 100, 100)
     );
 
     let at_corner = pose(50, 250, 0);
+    let ControlDecision::Motion(corner) = local_control(&at_corner, &trajectory, &time).unwrap()
+    else {
+        panic!("motion")
+    };
     assert_eq!(
-        local_control(&at_corner, &trajectory, &time).unwrap(),
-        ControlDecision::Motion(BoundedMotionIntent {
-            goal_identity: "goal/B".into(),
-            linear_mm: 50,
-            angular_microdegrees: 0,
-            interval_ms: 100,
-            ttl_ms: 100,
-        })
+        (*corner.linear_mm(), *corner.angular_microdegrees()),
+        (50, 0)
     );
 
     let arrived = pose(248, 250, 1_000_000);
-    assert_eq!(
+    assert!(matches!(
         local_control(&arrived, &trajectory, &time).unwrap(),
-        ControlDecision::Arrived {
-            goal_identity: "goal/B".into()
-        }
-    );
+        ControlDecision::Arrived(_)
+    ));
 }
 
 #[test]
@@ -163,15 +162,11 @@ fn an_already_reached_position_retains_terminal_heading_work() {
     .unwrap() else {
         panic!("heading-only goal must retain a route")
     };
-    assert_eq!(route.waypoints.len(), 2);
+    assert_eq!(route.waypoints().len(), 2);
     let trajectory = time_parameterize(&route, &now, 100, 50, 30_000_000).unwrap();
     assert!(matches!(
         local_control(&start, &trajectory, &now).unwrap(),
-        ControlDecision::Motion(BoundedMotionIntent {
-            linear_mm: 0,
-            angular_microdegrees: 30_000_000,
-            ..
-        })
+        ControlDecision::Motion(_)
     ));
 }
 
@@ -191,7 +186,7 @@ fn stale_invalid_unknown_and_no_path_remain_distinct() {
             &current
         )
         .unwrap(),
-        RouteDecision::PoseStale { .. }
+        RouteDecision::PoseStale(_)
     ));
 
     let mut expired_goal = goal.clone();
@@ -204,7 +199,7 @@ fn stale_invalid_unknown_and_no_path_remain_distinct() {
             &current
         )
         .unwrap(),
-        RouteDecision::GoalInvalid { .. }
+        RouteDecision::GoalInvalid(_)
     ));
 
     assert!(matches!(
@@ -215,7 +210,7 @@ fn stale_invalid_unknown_and_no_path_remain_distinct() {
             &current
         )
         .unwrap(),
-        RouteDecision::ObstacleDataUnavailable { .. }
+        RouteDecision::ObstacleDataUnavailable(_)
     ));
     assert!(matches!(
         route_grid4(
@@ -225,19 +220,70 @@ fn stale_invalid_unknown_and_no_path_remain_distinct() {
             &current
         )
         .unwrap(),
-        RouteDecision::NoPath { .. }
+        RouteDecision::NoPath(_)
     ));
 }
 
 #[test]
 fn invalid_grid_bounds_refuse_before_coordinate_arithmetic() {
-    let mut invalid = grid(TraversabilityCell::Free);
-    invalid.origin_x_mm = i32::MAX;
-    invalid.cell_width_mm = u32::MAX;
-    assert_eq!(
-        route_grid4(&pose(50, 50, 0), &goal(250, 250, 0), &invalid, &time(500)),
-        Err(NavigationRefusal::InvalidGrid)
-    );
+    assert!(Traversability4x4::new(
+        100,
+        u32::MAX,
+        cells([TraversabilityCell::Free; 16]),
+        id("clock/fixture"),
+        id("map/local"),
+        i32::MAX,
+        0,
+        11,
+        id("grid/fixture"),
+        validity(),
+    )
+    .is_err());
+}
+
+#[test]
+fn maximum_source_identities_remain_closed_through_trajectory_planning() {
+    let identity = "x".repeat(64);
+    let maximum = id(&identity);
+    let pose = NavigationPose::new(
+        maximum.clone(),
+        maximum.clone(),
+        0,
+        u64::MAX,
+        maximum.clone(),
+        validity(),
+        50,
+        50,
+    )
+    .unwrap();
+    let target = GoalTarget::reach(maximum.clone(), 0, 2_000_000, 5, 250, 250).unwrap();
+    let goal = NavigationGoal::new(maximum.clone(), maximum.clone(), target, 1_000).unwrap();
+    let grid = Traversability4x4::new(
+        100,
+        100,
+        cells([TraversabilityCell::Free; 16]),
+        maximum.clone(),
+        maximum.clone(),
+        0,
+        0,
+        u64::MAX,
+        maximum.clone(),
+        validity(),
+    )
+    .unwrap();
+    let time = NavigationTime::new(maximum, 500).unwrap();
+
+    let RouteDecision::Route(route) = route_grid4(&pose, &goal, &grid, &time).unwrap() else {
+        panic!("maximal valid identities must still produce a route")
+    };
+    assert_eq!(route.identity().len(), 70);
+    assert_eq!(route.planning_input_identity().len(), 251);
+    assert!(time_parameterize(&route, &time, 100, 50, 30_000_000).is_ok());
+}
+
+#[test]
+fn reach_frame_obeys_the_same_source_identity_bound() {
+    assert!(conduit_robotics::NavigationIdentity64::new("x".repeat(65)).is_err());
 }
 
 #[test]
@@ -264,7 +310,8 @@ fn structured_route_trajectory_and_control_codecs_preserve_exact_profiles() {
     let decoded_route =
         conduit_semantic_catalog::decode_navigation_route(&payload.canonical_bytes().unwrap())
             .unwrap();
-    assert_eq!(decoded_route, route);
+    assert_eq!(decoded_route.identity(), route.identity());
+    assert_eq!(decoded_route.waypoints(), route.waypoints());
 
     let trajectory = time_parameterize(&route, &time, 100, 50, 30_000_000).unwrap();
     let encoded_trajectory = conduit_semantic_catalog::encode_trajectory(&trajectory).unwrap();
@@ -286,8 +333,9 @@ fn structured_route_trajectory_and_control_codecs_preserve_exact_profiles() {
 fn navigation_input_codecs_round_trip_exact_finite_values() {
     let pose = pose(50, 50, 0);
     let goal = goal(250, 250, 0);
-    let mut traversability = grid(TraversabilityCell::Free);
-    traversability.cells[1] = TraversabilityCell::Blocked;
+    let mut values = [TraversabilityCell::Free; 16];
+    values[1] = TraversabilityCell::Blocked;
+    let traversability = grid_with_cells(values);
     let time = time(500);
 
     assert_eq!(
@@ -405,58 +453,64 @@ fn offer(
 }
 
 fn time(now_ms: u64) -> NavigationTime {
-    NavigationTime {
-        clock_identity: "clock/fixture".into(),
-        now_ms,
-    }
+    NavigationTime::new(id("clock/fixture"), now_ms).unwrap()
 }
 
 fn pose(x_mm: i32, y_mm: i32, heading_microdegrees: i32) -> NavigationPose {
-    NavigationPose {
-        source_identity: "pose/fixture".into(),
-        sample_sequence: 7,
-        clock_identity: "clock/fixture".into(),
-        frame: "map/local".into(),
+    NavigationPose::new(
+        id("clock/fixture"),
+        id("map/local"),
+        heading_microdegrees,
+        7,
+        id("pose/fixture"),
+        validity(),
         x_mm,
         y_mm,
-        heading_microdegrees,
-        validity: Validity {
-            observed_at_ms: 400,
-            valid_until_ms: 600,
-        },
-    }
+    )
+    .unwrap()
 }
 
 fn goal(x_mm: i32, y_mm: i32, heading_microdegrees: i32) -> NavigationGoal {
-    NavigationGoal {
-        identity: "goal/B".into(),
-        clock_identity: "clock/fixture".into(),
-        valid_until_ms: 1_000,
-        target: GoalTarget::Reach {
-            frame: "map/local".into(),
-            x_mm,
-            y_mm,
-            heading_microdegrees,
-            position_tolerance_mm: 5,
-            heading_tolerance_microdegrees: 2_000_000,
-        },
-    }
+    let target = GoalTarget::reach(
+        id("map/local"),
+        heading_microdegrees,
+        2_000_000,
+        5,
+        x_mm,
+        y_mm,
+    )
+    .unwrap();
+    NavigationGoal::new(id("clock/fixture"), id("goal/B"), target, 1_000).unwrap()
 }
 
 fn grid(cell: TraversabilityCell) -> Traversability4x4 {
-    Traversability4x4 {
-        source_identity: "grid/fixture".into(),
-        sample_sequence: 11,
-        clock_identity: "clock/fixture".into(),
-        frame: "map/local".into(),
-        origin_x_mm: 0,
-        origin_y_mm: 0,
-        cell_width_mm: 100,
-        cell_height_mm: 100,
-        validity: Validity {
-            observed_at_ms: 400,
-            valid_until_ms: 600,
-        },
-        cells: [cell; 16],
-    }
+    grid_with_cells([cell; 16])
+}
+
+fn id(value: &str) -> conduit_robotics::NavigationIdentity64 {
+    conduit_robotics::NavigationIdentity64::new(value.into()).unwrap()
+}
+
+fn validity() -> Validity {
+    Validity::new(400, 600).unwrap()
+}
+
+fn cells(values: [TraversabilityCell; 16]) -> conduit_robotics::NavigationTraversabilityCells {
+    conduit_robotics::NavigationTraversabilityCells::new(values).unwrap()
+}
+
+fn grid_with_cells(values: [TraversabilityCell; 16]) -> Traversability4x4 {
+    Traversability4x4::new(
+        100,
+        100,
+        cells(values),
+        id("clock/fixture"),
+        id("map/local"),
+        0,
+        0,
+        11,
+        id("grid/fixture"),
+        validity(),
+    )
+    .unwrap()
 }

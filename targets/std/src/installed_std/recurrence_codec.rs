@@ -40,22 +40,22 @@ pub(super) fn decode(value: &StructuredInfoValue) -> Result<DecodedRecurrence, S
     let resolutions = slots(field(fields, "resolutions")?, "resolution")?
         .map(resolution_payload)
         .collect::<Result<Vec<_>, _>>()?;
-    let policy = CivilResolutionPolicy {
-        gap: match text(field(fields, "gap_policy")?)?.as_str() {
-            "skip" => CivilGapPolicy::Skip,
-            "use_before" => CivilGapPolicy::UseBefore,
-            "use_after" => CivilGapPolicy::UseAfter,
-            "refuse" => CivilGapPolicy::Refuse,
-            _ => return Err("unknown recurrence gap policy".into()),
-        },
-        fold: match text(field(fields, "fold_policy")?)?.as_str() {
-            "earlier" => CivilFoldPolicy::Earlier,
-            "later" => CivilFoldPolicy::Later,
-            "both" => CivilFoldPolicy::Both,
-            "refuse" => CivilFoldPolicy::Refuse,
-            _ => return Err("unknown recurrence fold policy".into()),
-        },
+    let gap = match text(field(fields, "gap_policy")?)?.as_str() {
+        "skip" => CivilGapPolicy::Skip,
+        "use_before" => CivilGapPolicy::UseBefore,
+        "use_after" => CivilGapPolicy::UseAfter,
+        "refuse" => CivilGapPolicy::Refuse,
+        _ => return Err("unknown recurrence gap policy".into()),
     };
+    let fold = match text(field(fields, "fold_policy")?)?.as_str() {
+        "earlier" => CivilFoldPolicy::Earlier,
+        "later" => CivilFoldPolicy::Later,
+        "both" => CivilFoldPolicy::Both,
+        "refuse" => CivilFoldPolicy::Refuse,
+        _ => return Err("unknown recurrence fold policy".into()),
+    };
+    let policy = CivilResolutionPolicy::new(fold, gap)
+        .map_err(|_| "recurrence civil resolution policy is invalid")?;
     definition
         .validate()
         .map_err(|error| format!("recurrence definition refusal: {error:?}"))?;

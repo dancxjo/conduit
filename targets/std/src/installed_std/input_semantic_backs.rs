@@ -157,7 +157,8 @@ pub(super) fn execute_host(
         match state.apply(event) {
             KeymapDisposition::Text(fragment) => {
                 let mut bytes = [0; CHORD_ENCODED_LEN];
-                let value = fragment.as_bytes();
+                let mut utf8 = [0; 4];
+                let value = fragment.encode_utf8(&mut utf8);
                 bytes[..value.len()].copy_from_slice(value);
                 Ok(Some(EncodedOutput {
                     bytes,

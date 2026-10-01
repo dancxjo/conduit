@@ -53,62 +53,33 @@ fn value_field(name: &str, value: StructuredInfoValue) -> StructuredFieldValue {
 }
 
 pub fn point2_type() -> StructuredInfoType {
-    coordinate_type("geometry/point2@1", &["x", "y"])
+    crate::Point2::semantic_type().expect("checked native Point2 Type")
 }
 
 pub fn point3_type() -> StructuredInfoType {
-    coordinate_type("geometry/point3@1", &["x", "y", "z"])
+    crate::Point3::semantic_type().expect("checked native Point3 Type")
 }
 
 pub fn vector2_type() -> StructuredInfoType {
-    coordinate_type("geometry/vector2@1", &["x", "y"])
+    crate::Vector2::semantic_type().expect("checked native Vector2 Type")
 }
 
 pub fn vector3_type() -> StructuredInfoType {
-    coordinate_type("geometry/vector3@1", &["x", "y", "z"])
-}
-
-fn coordinate_type(schema: &str, axes: &[&str]) -> StructuredInfoType {
-    let mut fields = vec![field("frame", text_type())];
-    fields.extend(axes.iter().map(|axis| field(axis, quantity_type())));
-    StructuredInfoType::record(kind_id(schema), fields).expect("reviewed coordinate schema")
+    crate::Vector3::semantic_type().expect("checked native Vector3 Type")
 }
 
 pub fn extent2_type() -> StructuredInfoType {
-    StructuredInfoType::record(
-        kind_id("geometry/extent2@1"),
-        vec![
-            field("height", quantity_type()),
-            field("width", quantity_type()),
-        ],
-    )
-    .expect("reviewed extent schema")
+    crate::Extent2::semantic_type().expect("checked native Extent2 Type")
 }
 
 pub fn rect2_type() -> StructuredInfoType {
-    StructuredInfoType::record(
-        kind_id("geometry/rect2@1"),
-        vec![
-            field("extent", extent2_type()),
-            field("origin", point2_type()),
-        ],
-    )
-    .expect("reviewed rectangle schema")
+    crate::Rect2::semantic_type().expect("checked native Rect2 Type")
 }
 
 /// A deliberately small transform: exact translation between two named frames.
 /// Rotation and arbitrary matrices are not smuggled into this first contract.
 pub fn transform2_type() -> StructuredInfoType {
-    StructuredInfoType::record(
-        kind_id("geometry/translation-transform2@1"),
-        vec![
-            field("from_frame", text_type()),
-            field("offset_x", quantity_type()),
-            field("offset_y", quantity_type()),
-            field("to_frame", text_type()),
-        ],
-    )
-    .expect("reviewed transform schema")
+    crate::Transform2::semantic_type().expect("checked native Transform2 Type")
 }
 
 pub fn path2_type(point_count: u16) -> Result<StructuredInfoType, GeometryRefusal> {
@@ -118,6 +89,9 @@ pub fn path2_type(point_count: u16) -> Result<StructuredInfoType, GeometryRefusa
     {
         return Err(GeometryRefusal::TooManyPoints);
     }
+    if point_count == 4 {
+        return crate::Path2Four::semantic_type().map_err(|_| GeometryRefusal::MalformedInfo);
+    }
     let points = StructuredInfoType::collection(point2_type(), Some(point_count))?;
     Ok(StructuredInfoType::record(
         kind_id("geometry/path2@1"),
@@ -126,22 +100,11 @@ pub fn path2_type(point_count: u16) -> Result<StructuredInfoType, GeometryRefusa
 }
 
 pub fn robotics_pose2_type() -> StructuredInfoType {
-    StructuredInfoType::record(
-        kind_id("robotics/pose2@1"),
-        vec![
-            field("heading", quantity_type()),
-            field("position", point2_type()),
-        ],
-    )
-    .expect("reviewed robotics pose schema")
+    crate::RoboticsPose2::semantic_type().expect("checked native RoboticsPose2 Type")
 }
 
 pub fn image_region2_type() -> StructuredInfoType {
-    StructuredInfoType::record(
-        kind_id("vision/image-region2@1"),
-        vec![field("label", text_type()), field("region", rect2_type())],
-    )
-    .expect("reviewed image region schema")
+    crate::ImageRegion2::semantic_type().expect("checked native ImageRegion2 Type")
 }
 
 fn text(value: &str) -> StructuredInfoValue {

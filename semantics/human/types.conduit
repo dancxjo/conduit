@@ -6,11 +6,45 @@ type KeyTransition =
 
 type KeyModifiers = U8
 
+type KeyEvent = {
+    usage: U8
+    transition: KeyTransition
+    left_control_after: Boolean
+    left_shift_after: Boolean
+    left_alt_after: Boolean
+    left_gui_after: Boolean
+    right_control_after: Boolean
+    right_shift_after: Boolean
+    right_alt_after: Boolean
+    right_gui_after: Boolean
+    where (.usage >= 4 && .usage <= 164) || (.usage >= 224 && .usage <= 231)
+    where .usage != 224 || .left_control_after == (variant/tag(.transition) == "pressed")
+    where .usage != 225 || .left_shift_after == (variant/tag(.transition) == "pressed")
+    where .usage != 226 || .left_alt_after == (variant/tag(.transition) == "pressed")
+    where .usage != 227 || .left_gui_after == (variant/tag(.transition) == "pressed")
+    where .usage != 228 || .right_control_after == (variant/tag(.transition) == "pressed")
+    where .usage != 229 || .right_shift_after == (variant/tag(.transition) == "pressed")
+    where .usage != 230 || .right_alt_after == (variant/tag(.transition) == "pressed")
+    where .usage != 231 || .right_gui_after == (variant/tag(.transition) == "pressed")
+}
+
 type KeymapRefusal =
     unknown_compose_sequence
     | empty_unicode_entry
     | unicode_entry_overflow
     | invalid_unicode_scalar
+
+# One Unicode scalar emitted by the portable keymap. The Rust binding encodes
+# it into at most four UTF-8 bytes at the consumer boundary without allocation.
+type TextFragment =
+    basic U32 in 0..=55295
+    | supplementary U32 in 57344..=1114111
+
+type KeymapDisposition =
+    no_text
+    | text TextFragment
+    | cancelled
+    | refused KeymapRefusal
 
 type HumanMediaKind =
     camera
@@ -34,6 +68,43 @@ type ImageRegion = {
     height: U16
 }
 
+type ImageObservationReference = {
+    content: ResourceRef
+    width: U16 in 1..=4096
+    height: U16 in 1..=4096
+}
+
+type ImageObservationRefusal =
+    invalid_resource
+    | wrong_profile
+    | invalid_dimensions
+    | content_too_large
+
+type ImageTextMetadataEntries = sequence ImageTextMetadata <= 8
+
+type ImageTextContentDigest = collection U8 = 32
+
+type ImageTextRecord = {
+    image: ImageObservationReference
+    caption: Text <= 512B not in [""]
+    metadata: ImageTextMetadataEntries
+    content_digest: ImageTextContentDigest
+}
+
+type ImageTextRefusal =
+    invalid_image
+    | wrong_image_profile
+    | invalid_image_dimensions
+    | image_too_large
+    | empty_caption
+    | caption_too_large
+    | too_many_metadata_entries
+    | empty_metadata_key
+    | metadata_key_too_large
+    | metadata_value_too_large
+    | duplicate_metadata_key
+    | integrity_mismatch
+
 code human/key-transition = KeyTransition as u8
 
 type ChordPhase =
@@ -52,6 +123,23 @@ type CoreChordId =
     | activate
 
 code human/core-chord-id = CoreChordId as u8 from 1
+
+type ControlChordModifier =
+    left
+    | right
+    | both
+
+# The eight exact chord meanings. Usage, phase and compact-code fields are
+# derived compatibility facts rather than redundant authored payload.
+type ChordInfo =
+    cancel_or_escape ControlChordModifier
+    | clear_or_refresh ControlChordModifier
+    | repeat_or_replan ControlChordModifier
+    | palette
+    | inspect
+    | plan
+    | command
+    | activate
 
 type ExperienceDomain =
     visual
@@ -77,7 +165,16 @@ type ExperienceTemporalRole =
 type ExperienceTemporalPolicy = {
     maximum_current_age_ticks: U64
     maximum_recent_age_ticks: U64
+    where .maximum_current_age_ticks < .maximum_recent_age_ticks
 }
+
+type ExperienceTemporalRefusal =
+    invalid_policy
+    | invalid_instant
+    | incomparable_clock
+    | interval_overflow
+    | future_observation
+    | indeterminate_age
 
 type ExperienceAvailability =
     present
@@ -96,6 +193,54 @@ type SourceAvailability =
     present
     | missing
     | unavailable
+
+# Inputs remain nominally distinct because their provenance is meaning, even
+# though each source carries the same finite observation shape.
+type ExperienceHumanInput = {
+    item_identity: Text
+    source_identity: Text
+    observed_at: Text
+    content: Text
+}
+
+type ExperienceBodyInput = {
+    item_identity: Text
+    source_identity: Text
+    observed_at: Text
+    content: Text
+}
+
+type ExperienceMemoryInput = {
+    item_identity: Text
+    source_identity: Text
+    observed_at: Text
+    content: Text
+}
+
+type ExperienceInferenceInput = {
+    item_identity: Text
+    source_identity: Text
+    observed_at: Text
+    content: Text
+}
+
+type ExperienceHypothesisInput = {
+    item_identity: Text
+    source_identity: Text
+    observed_at: Text
+    content: Text
+}
+
+type ExperienceSourceStatus = {
+    source_identity: Text
+    availability: SourceAvailability
+}
+
+type CurrentExperienceProjection = {
+    revision: Count
+    item_identities: collection Text = 32
+    provenance_revision: Text
+}
 
 type VisualEvidenceClass =
     deterministic_derived

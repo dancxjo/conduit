@@ -28,6 +28,11 @@ type CivilResolutionChoice =
     | fold_earlier
     | fold_later
 
+type CivilResolutionPolicy = {
+    gap: CivilGapPolicy
+    fold: CivilFoldPolicy
+}
+
 type ParticipantRole =
     organizer
     | required
@@ -95,6 +100,15 @@ type ReplayCommand =
         code: U16
     }
 
+type ReplayState =
+    stopped
+    | running
+    | paused
+    | completed
+    | failed {
+        code: U16
+    }
+
 type TemporalBoundary =
     inclusive
     | exclusive
@@ -109,6 +123,23 @@ type PulseObservation = {
     sequence: U32
     period_ms: U16
 }
+
+type RhythmState = {
+    sequence: U32
+    next-pulse-at-ms: U32
+    period-ms: U16
+    expected-peer-sequence: U32
+}
+
+type SynchronizationOutcome =
+    adjusted {
+        phase-ms: I16
+        period-ms: I16
+    }
+    | outside-window
+    | stale
+    | missing
+    | pressure
 
 type CalendarRefusal =
     invalid_identity

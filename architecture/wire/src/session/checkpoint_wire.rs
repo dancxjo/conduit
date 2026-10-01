@@ -2,10 +2,8 @@
 
 use conduit_core::PROTOCOL_VERSION;
 
-use super::{
-    SessionCheckpoint, SessionCheckpointOffer, SessionIdentity, SessionLimits,
-    SessionTransferCheckpoint,
-};
+use super::{SessionCheckpoint, SessionCheckpointOffer, SessionIdentity, SessionLimits};
+use crate::SessionTransferCheckpoint;
 use crate::{WireError, MAX_ID_BYTES};
 
 const CHECKPOINT_MAGIC: [u8; 4] = *b"CNDC";
@@ -35,11 +33,11 @@ pub fn encode_session_checkpoint_into(
         SessionTransferCheckpoint::None => writer.u8(0)?,
         SessionTransferCheckpoint::Offered(sequence) => {
             writer.u8(1)?;
-            writer.u64(sequence)?;
+            writer.u64(*sequence.sequence())?;
         }
         SessionTransferCheckpoint::Accepted(sequence) => {
             writer.u8(2)?;
-            writer.u64(sequence)?;
+            writer.u64(*sequence.sequence())?;
         }
     }
     writer.u8(u8::from(offer.checkpoint.input_closed))?;
@@ -94,8 +92,10 @@ pub fn decode_session_checkpoint(
     let next_sequence = cursor.u64()?;
     let transfer = match cursor.u8()? {
         0 => SessionTransferCheckpoint::None,
-        1 => SessionTransferCheckpoint::Offered(cursor.u64()?),
-        2 => SessionTransferCheckpoint::Accepted(cursor.u64()?),
+        1 => SessionTransferCheckpoint::offered(cursor.u64()?)
+            .expect("u64 transfer sequences are exact"),
+        2 => SessionTransferCheckpoint::accepted(cursor.u64()?)
+            .expect("u64 transfer sequences are exact"),
         _ => return Err(WireError::InvalidState),
     };
     let input_closed = match cursor.u8()? {
@@ -285,7 +285,7 @@ mod tests {
             },
             checkpoint: SessionCheckpoint {
                 next_sequence: 7,
-                transfer: SessionTransferCheckpoint::Accepted(7),
+                transfer: SessionTransferCheckpoint::accepted(7).unwrap(),
                 input_closed: false,
                 input_abnormal: false,
                 abnormal_terminal_digest: None,

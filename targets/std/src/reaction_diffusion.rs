@@ -80,7 +80,7 @@ mod tests {
 
     #[test]
     fn hosted_reference_is_repeatable() {
-        let field_id = ReactionDiffusionFieldId(*b"field-a0-hosted1");
+        let field_id = ReactionDiffusionFieldId::from_bytes(*b"field-a0-hosted1");
         let state = ReactionDiffusionFieldState::initialized(
             field_id,
             12,

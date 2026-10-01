@@ -26,6 +26,7 @@ members = [
 	"semantics/language",
 	"semantics/net",
 	"semantics/presentation",
+	"semantics/purpose",
 	"semantics/robotics",
 	"semantics/signal",
 	"semantics/system-continuity",
