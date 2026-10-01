@@ -3,12 +3,14 @@ use conduit_presentation::{
     plan_face_utterances, render_linear_presentation, FaceUtteranceProvenance, ManifestationError,
     ManifestationFailure, ManifestationLifecycle, RendererExecution, RendererExecutionError,
 };
-use patchbay_application::{EntranceLayer, EntranceRefusal, PatchbayEntranceState};
+use patchbay_application::{
+    compare_entrances, EntranceEquivalenceError, EntranceLayer, EntranceRefusal,
+    PatchbayEntranceState,
+};
 
 use crate::{
-    compare_entrances, cross_host_renderer_plan, portable_demonstration,
-    prepare_renderer_execution, EntranceEquivalenceError, LocalFrontDoor, RendererAdapterIdentity,
-    RendererAdapterKind,
+    cross_host_renderer_plan, portable_demonstration, prepare_renderer_execution, LocalFrontDoor,
+    RendererAdapterIdentity, RendererAdapterKind,
 };
 
 fn identity(host: &str, boot: &str, target: &str) -> RendererAdapterIdentity {
