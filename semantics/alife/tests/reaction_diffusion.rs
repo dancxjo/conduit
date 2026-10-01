@@ -4,7 +4,8 @@ use conduit_alife::{
     REACTION_DIFFUSION_MAXIMUM_GENERATIONS,
 };
 
-const FIELD_ID: ReactionDiffusionFieldId = ReactionDiffusionFieldId(*b"field-a0-proof01");
+const FIELD_ID: ReactionDiffusionFieldId =
+    ReactionDiffusionFieldId::from_bytes(*b"field-a0-proof01");
 
 #[test]
 fn initialized_field_has_stable_encoding_digest_and_golden_generations() {
@@ -125,7 +126,7 @@ fn identity_generation_and_work_are_admitted_before_evolution() {
         Err(ReactionDiffusionRefusal::WrongNumericProfile)
     );
     let wrong_id = ReactionDiffusionEvolveRequest {
-        field_id: ReactionDiffusionFieldId(*b"field-other-0001"),
+        field_id: ReactionDiffusionFieldId::from_bytes(*b"field-other-0001"),
         ..request(0, 1, 64)
     };
     assert_eq!(

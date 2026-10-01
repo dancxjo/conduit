@@ -5,7 +5,8 @@ use conduit_alife::{
     ReactionDiffusionRegion, ReactionDiffusionRegionId, ReactionDiffusionRegionWork,
 };
 
-const FIELD_ID: ReactionDiffusionFieldId = ReactionDiffusionFieldId(*b"field-a2-local01");
+const FIELD_ID: ReactionDiffusionFieldId =
+    ReactionDiffusionFieldId::from_bytes(*b"field-a2-local01");
 
 #[test]
 fn two_host_local_work_matches_direct_without_peer_cells() {
@@ -87,7 +88,7 @@ fn host_local_admission_and_join_refuse_missing_duplicate_stale_and_wrong_truth(
         Err(ReactionDiffusionPartitionRefusal::WrongBoundaryDestination)
     );
     let mut wrong_field = partitioned.boundaries[0].clone();
-    wrong_field.field_id = ReactionDiffusionFieldId(*b"field-wrong-0001");
+    wrong_field.field_id = ReactionDiffusionFieldId::from_bytes(*b"field-wrong-0001");
     let (contract, cells) = partitioned
         .region_work_basis(wrong_field.destination_region)
         .unwrap();
