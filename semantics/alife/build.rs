@@ -13,7 +13,21 @@ fn main() {
         &checked.native_types,
         &checked.codes,
         &RustBindingOptions {
-            copy_record_types: ["ReactionDiffusionRegion".into()].into(),
+            copy_record_types: [
+                "GardenClockObservation".into(),
+                "GardenContactObservation".into(),
+                "GardenEnrichedObservation".into(),
+                "GardenState".into(),
+                "ReactionDiffusionRegion".into(),
+            ]
+            .into(),
+            public_record_fields: [
+                "GardenClockObservation".into(),
+                "GardenContactObservation".into(),
+                "GardenEnrichedObservation".into(),
+                "GardenState".into(),
+            ]
+            .into(),
             copy_record_value_getters: ["ReactionDiffusionRegion".into()].into(),
             record_constructor_orders: [(
                 "ReactionDiffusionRegion".into(),
