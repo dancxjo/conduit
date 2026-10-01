@@ -21,15 +21,15 @@ use conduit_plan_lowering::lowering::{
     lower_plan_fragment, LoweredPlanFragment, RemoteCordDirection,
     FIXED_KERNEL_STORAGE_PORTS_PER_NODE,
 };
-use conduit_presentation::{Presentation, MAX_RENDERER_VALUE_BYTES};
+use conduit_presentation::{Presentation, RendererExecution, MAX_RENDERER_VALUE_BYTES};
 use conduit_std_host::websocket::{NativeWebSocketLine, NativeWebSocketListener};
 use conduit_wire::{
     decode_session_frame, encode_session_frame_into, SessionBinding, SessionMachine,
     SessionMessage, SessionRole, SessionTerminalDisposition,
 };
 use patchbay_model::{
-    cross_host_renderer_plan, RendererAdapterIdentity, RendererExecution,
-    CROSS_HOST_MAXIMUM_FRAME_BYTES, PRESENTATION_PROJECT_KIND,
+    cross_host_renderer_plan, RendererAdapterIdentity, CROSS_HOST_MAXIMUM_FRAME_BYTES,
+    PRESENTATION_PROJECT_KIND,
 };
 use std::net::TcpStream;
 use tungstenite::client::connect_with_config;

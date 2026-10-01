@@ -1,14 +1,14 @@
 use conduit_core::{verify_plan, BaseImplementationId, BootId, HostId, SignId};
 use conduit_presentation::{
     plan_face_utterances, render_linear_presentation, FaceUtteranceProvenance, ManifestationError,
-    ManifestationFailure, ManifestationLifecycle,
+    ManifestationFailure, ManifestationLifecycle, RendererExecution, RendererExecutionError,
 };
 use patchbay_application::{EntranceLayer, EntranceRefusal, PatchbayEntranceState};
 
 use crate::{
-    compare_entrances, cross_host_renderer_plan, portable_demonstration, EntranceEquivalenceError,
-    LocalFrontDoor, RendererAdapterIdentity, RendererAdapterKind, RendererExecution,
-    RendererExecutionError,
+    compare_entrances, cross_host_renderer_plan, portable_demonstration,
+    prepare_renderer_execution, EntranceEquivalenceError, LocalFrontDoor, RendererAdapterIdentity,
+    RendererAdapterKind,
 };
 
 fn identity(host: &str, boot: &str, target: &str) -> RendererAdapterIdentity {
@@ -22,14 +22,14 @@ fn identity(host: &str, boot: &str, target: &str) -> RendererAdapterIdentity {
 #[test]
 fn one_portable_presentation_plans_to_distinct_real_renderer_executions() {
     let presentation = portable_demonstration().unwrap();
-    let mut native = RendererExecution::prepare(
+    let mut native = prepare_renderer_execution(
         presentation.clone(),
         RendererAdapterKind::NativeWayland,
         identity("native-host", "native-boot", "native/display-0"),
         SignId::from("native/prepared"),
     )
     .unwrap();
-    let html = RendererExecution::prepare(
+    let html = prepare_renderer_execution(
         presentation.clone(),
         RendererAdapterKind::HtmlDomSvg,
         identity("html-host", "html-boot", "html/document-0"),
@@ -112,14 +112,14 @@ fn production_patchbay_face_preserves_meaning_across_graphical_aural_and_linear_
     let browser_entrance = PatchbayEntranceState::enter(&face).unwrap();
     let equivalence = compare_entrances(&face, &native_entrance, &browser_entrance).unwrap();
     assert!(equivalence.equivalent);
-    let native = RendererExecution::prepare(
+    let native = prepare_renderer_execution(
         face.clone(),
         RendererAdapterKind::NativeWayland,
         identity("native-host", "native-boot", "native/display-0"),
         SignId::from("native/prepared"),
     )
     .unwrap();
-    let browser = RendererExecution::prepare(
+    let browser = prepare_renderer_execution(
         face.clone(),
         RendererAdapterKind::HtmlDomSvg,
         identity("browser-host", "browser-boot", "browser/document-0"),
@@ -240,7 +240,7 @@ fn renderer_failure_is_typed_and_cannot_mutate_source_play_identity() {
     let presentation = portable_demonstration().unwrap();
     let source_play = presentation.basis.active_play_id.clone();
     let source_identity = presentation.identity.clone();
-    let mut execution = RendererExecution::prepare(
+    let mut execution = prepare_renderer_execution(
         presentation,
         RendererAdapterKind::NativeWayland,
         identity("native-host", "native-boot", "native/display-0"),
@@ -269,7 +269,7 @@ fn renderer_failure_is_typed_and_cannot_mutate_source_play_identity() {
 #[test]
 fn stale_manifestation_correlation_fails_closed() {
     let presentation = portable_demonstration().unwrap();
-    let mut execution = RendererExecution::prepare(
+    let mut execution = prepare_renderer_execution(
         presentation,
         RendererAdapterKind::HtmlDomSvg,
         identity("html-host", "html-boot", "html/document-0"),
@@ -288,7 +288,7 @@ fn stale_manifestation_correlation_fails_closed() {
 #[test]
 fn self_inspection_is_the_exact_renderer_plan_placement_and_sign_chain() {
     let presentation = portable_demonstration().unwrap();
-    let mut execution = RendererExecution::prepare(
+    let mut execution = prepare_renderer_execution(
         presentation,
         RendererAdapterKind::NativeWayland,
         identity("native-host", "native-boot", "native/display-0"),
@@ -313,7 +313,7 @@ fn self_inspection_is_the_exact_renderer_plan_placement_and_sign_chain() {
 #[test]
 fn self_inspection_rejects_tampered_plan_placement_and_manifestation_sign() {
     let presentation = portable_demonstration().unwrap();
-    let execution = RendererExecution::prepare(
+    let execution = prepare_renderer_execution(
         presentation.clone(),
         RendererAdapterKind::HtmlDomSvg,
         identity("html-host", "html-boot", "html/document-0"),

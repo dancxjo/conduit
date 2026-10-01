@@ -53,7 +53,7 @@ mod recursive_form_demonstration;
 #[cfg(test)]
 mod recursive_form_projection_tests;
 mod renderer_conformance;
-mod renderer_execution;
+mod renderer_preparation;
 mod renderer_projection;
 mod route_demo;
 mod route_presentation;
@@ -135,8 +135,9 @@ pub use renderer_conformance::{
     compare_entrances, EntranceEquivalenceError, EntranceEquivalenceReport,
     ENTRANCE_EQUIVALENCE_SCHEMA, ONE_FORM_TWO_FACES_BOOT_ID, ONE_FORM_TWO_FACES_HOST_ID,
 };
-pub use renderer_execution::{
-    RendererAdapterIdentity, RendererAdapterKind, RendererExecution, RendererExecutionError,
+pub use renderer_preparation::{
+    prepare_renderer_execution, prepare_renderer_execution_with_offer_generation,
+    RendererAdapterIdentity, RendererAdapterKind, RendererPreparationError,
 };
 pub use renderer_projection::{
     AttemptedEditPresentation, PatchbayPresentation, RendererIdentityProjection,
@@ -193,7 +194,7 @@ mod portable_vector_search_projection_tests;
 #[cfg(test)]
 mod prewake_tests;
 #[cfg(test)]
-mod renderer_execution_tests;
+mod renderer_preparation_tests;
 #[cfg(test)]
 mod text_lab_explanation_tests;
 #[cfg(test)]

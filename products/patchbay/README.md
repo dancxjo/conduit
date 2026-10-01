@@ -50,6 +50,9 @@ reconstructing a second current-truth registry.
   debt, not current architecture; they do not construct Hosts.
 - The heterogeneous capstone baseline lives with its planner proof and is
   compiled only with that proof's tests.
+- Planned renderer execution and Manifestation lifecycle now belong to
+  universal Presentation truth. The legacy model retains only temporary
+  adapter-offer preparation while native and HTML shells are retired.
 - Native binaries whose names contain `capstone` remain explicit proof
   entrances. They are not invoked by the installed `conduit` product entrance
   and make no physical claim unless their owning proof records one.

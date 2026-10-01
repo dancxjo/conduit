@@ -9,7 +9,7 @@ use conduit_core::{
 };
 use conduit_presentation::{
     NavigationOperation, NavigationRefusal, NavigationState, PresentationAspect, PresentationDepth,
-    PresentationPlace, PresentationPropertyValue, MAX_NAVIGATION_HISTORY,
+    PresentationPlace, PresentationPropertyValue, RendererExecution, MAX_NAVIGATION_HISTORY,
 };
 use conduit_std_host::browser_admission::{
     BrowserAdmissionEgress, BrowserAdmissionIngress, BrowserAdmissionListener,
@@ -17,8 +17,8 @@ use conduit_std_host::browser_admission::{
 };
 use patchbay_application::{EntranceUpdateDisposition, PatchbayEntranceState};
 use patchbay_model::{
-    compare_entrances, LocalFrontDoor, RendererAdapterIdentity, RendererAdapterKind,
-    RendererExecution,
+    compare_entrances, prepare_renderer_execution, LocalFrontDoor, RendererAdapterIdentity,
+    RendererAdapterKind,
 };
 use serde_json::json;
 
@@ -392,7 +392,7 @@ fn renderer(
     kind: RendererAdapterKind,
     name: &str,
 ) -> Result<RendererExecution, String> {
-    RendererExecution::prepare(
+    prepare_renderer_execution(
         presentation,
         kind,
         RendererAdapterIdentity {

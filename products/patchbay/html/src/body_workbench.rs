@@ -15,7 +15,7 @@ use conduit_presentation::{
 };
 use patchbay_application::PatchbayNavigationProjection;
 use patchbay_model::{
-    FormCandidate, RendererAdapterIdentity, RendererAdapterKind, RendererExecution,
+    prepare_renderer_execution, FormCandidate, RendererAdapterIdentity, RendererAdapterKind,
 };
 
 use crate::{
@@ -64,7 +64,7 @@ pub(crate) fn body_workbench_snapshot_with_reviewed(
         BodyEvidenceAttachment::open_serialized(encoded_evidence, model_entrance(&entrance))
             .map_err(BodyWorkbenchError::Entrance)?;
     let presentation = workbench_presentation(evidence_revision, &attachment, reviewed_forms)?;
-    let execution = RendererExecution::prepare(
+    let execution = prepare_renderer_execution(
         presentation,
         RendererAdapterKind::HtmlDomSvg,
         RendererAdapterIdentity {
