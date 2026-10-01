@@ -230,6 +230,31 @@ fn selected_serde_record_can_retain_deny_unknown_fields() {
 }
 
 #[test]
+fn selected_constrained_record_validates_direct_integer_bounds_without_structured_allocation() {
+    let checked = crate::check_syntax_document(
+        &crate::parse_syntax_document("type Bounded = {\n    value: U64 in 1..=8\n}\n"),
+        &crate::StartupCatalog::new(),
+    )
+    .unwrap();
+    let generated = generate_rust_bindings(
+        &checked.native_types,
+        &RustBindingOptions {
+            direct_checked_record_constructors: ["Bounded".into()].into(),
+            ..RustBindingOptions::default()
+        },
+    )
+    .unwrap();
+
+    assert!(generated.source.contains("value >= 1u64 && value <= 8u64"));
+    assert!(generated
+        .source
+        .contains("ValueConstraintRefusal::FixedIntegerRange"));
+    assert!(!generated
+        .source
+        .contains("let structured = candidate.clone().into_structured()?;"));
+}
+
+#[test]
 fn generated_contracts_preserve_semantic_openness() {
     let checked = crate::check_syntax_document(
         &crate::parse_syntax_document(

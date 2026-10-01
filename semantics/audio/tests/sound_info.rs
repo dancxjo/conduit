@@ -52,12 +52,12 @@ fn sustain_hold_and_release_are_distinct_ordered_events() {
 
     assert_eq!(MusicalNoteEvent::decode(&sequence[0]).unwrap().order, 0);
     assert_eq!(
-        MusicalControlEvent::decode(&sequence[1]).unwrap().control,
+        *MusicalControlEvent::decode(&sequence[1]).unwrap().control(),
         MusicalControl::sustain(true).unwrap()
     );
     assert_eq!(MusicalNoteEvent::decode(&sequence[2]).unwrap().order, 2);
     assert_eq!(
-        MusicalControlEvent::decode(&sequence[3]).unwrap().control,
+        *MusicalControlEvent::decode(&sequence[3]).unwrap().control(),
         MusicalControl::sustain(false).unwrap()
     );
 }

@@ -17,7 +17,7 @@ impl PendingMusicalEvent {
     fn frame(&self) -> u64 {
         let micros = match self {
             Self::Note(event) => event.event_time_micros,
-            Self::Control(event) => event.event_time_micros,
+            Self::Control(event) => *event.event_time_micros(),
         };
         micros.saturating_mul(u64::from(conduit_synth::REFERENCE_SAMPLE_RATE_HZ)) / 1_000_000
     }
@@ -88,7 +88,7 @@ pub(super) fn execute(
     };
     let key = match &event {
         PendingMusicalEvent::Note(event) => (event.event_time_micros, event.order),
-        PendingMusicalEvent::Control(event) => (event.event_time_micros, event.order),
+        PendingMusicalEvent::Control(event) => (*event.event_time_micros(), *event.order()),
     };
     if state.last_event.is_some_and(|last| key <= last) {
         return Err(
@@ -101,7 +101,14 @@ pub(super) fn execute(
         .ok_or_else(|| "reference synth event predates the admitted clock origin".to_string())?;
     match &mut event {
         PendingMusicalEvent::Note(event) => event.event_time_micros = relative_micros,
-        PendingMusicalEvent::Control(event) => event.event_time_micros = relative_micros,
+        PendingMusicalEvent::Control(event) => {
+            *event = conduit_audio::MusicalControlEvent::new(
+                event.control().clone(),
+                relative_micros,
+                *event.order(),
+            )
+            .expect("relative time remains within the admitted event bound");
+        }
     }
     if event.frame() < state.synth.frame_cursor() {
         return Err("reference synth event is stale".to_string());
