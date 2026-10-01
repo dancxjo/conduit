@@ -9,7 +9,8 @@ use conduit_alife::{
     REACTION_DIFFUSION_MAXIMUM_RETAINED_REGION_CELLS,
 };
 
-const FIELD_ID: ReactionDiffusionFieldId = ReactionDiffusionFieldId(*b"field-a1-proof01");
+const FIELD_ID: ReactionDiffusionFieldId =
+    ReactionDiffusionFieldId::from_bytes(*b"field-a1-proof01");
 
 #[test]
 fn unequal_region_layouts_match_the_direct_oracle_for_multiple_generations() {
@@ -158,7 +159,7 @@ fn every_missing_duplicate_stale_and_mismatched_boundary_refuses() {
     );
 
     let mut wrong_field = valid.clone();
-    wrong_field.boundaries[0].field_id = ReactionDiffusionFieldId(*b"field-wrong-0001");
+    wrong_field.boundaries[0].field_id = ReactionDiffusionFieldId::from_bytes(*b"field-wrong-0001");
     assert_eq!(
         wrong_field.validate(),
         Err(ReactionDiffusionPartitionRefusal::WrongBoundaryField)

@@ -20,12 +20,16 @@ fn main() {
                 "GardenState".into(),
                 "GrayScottParameters".into(),
                 "LeniaParameters".into(),
+                "ReactionDiffusionCell".into(),
+                "ReactionDiffusionEvolveRequest".into(),
                 "ReactionDiffusionRegion".into(),
             ]
             .into(),
             copy_record_value_getters: [
                 "GrayScottParameters".into(),
                 "LeniaParameters".into(),
+                "ReactionDiffusionCell".into(),
+                "ReactionDiffusionEvolveRequest".into(),
                 "ReactionDiffusionRegion".into(),
             ]
             .into(),
@@ -37,9 +41,22 @@ fn main() {
                 "GardenState".into(),
                 "GrayScottParameters".into(),
                 "LeniaParameters".into(),
+                "ReactionDiffusionCell".into(),
+                "ReactionDiffusionEvolveRequest".into(),
             ]
             .into(),
+            copy_nominal_types: ["LeniaFieldId".into(), "ReactionDiffusionFieldId".into()].into(),
+            hash_nominal_types: ["LeniaFieldId".into(), "ReactionDiffusionFieldId".into()].into(),
             record_constructor_orders: [
+                (
+                    "ReactionDiffusionEvolveRequest".into(),
+                    vec![
+                        "field-id".into(),
+                        "expected-generation".into(),
+                        "generations".into(),
+                        "admitted-cell-generations".into(),
+                    ],
+                ),
                 (
                     "ReactionDiffusionRegion".into(),
                     vec![
@@ -74,6 +91,8 @@ fn main() {
                 ),
             ]
             .into(),
+            record_constructor_names: [("ReactionDiffusionCell".into(), "new_native".into())]
+                .into(),
             ..RustBindingOptions::default()
         },
     )
