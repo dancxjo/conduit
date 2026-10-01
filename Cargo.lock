@@ -811,6 +811,7 @@ dependencies = [
  "conduit-core",
  "conduit-form",
  "conduit-host-make",
+ "conduit-patchbay-workbench-conformance",
  "conduit-planner",
  "conduit-presentation",
  "conduit-semantic-catalog",

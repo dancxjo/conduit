@@ -17,6 +17,7 @@ sha2 = "0.10"
 toml = "0.8"
 
 [dev-dependencies]
+conduit-patchbay-workbench-conformance = { path = "../../proof/conformance/patchbay-workbench" }
 conduit-semantic-catalog = { path = "../../semantics/catalog" }
 conduit-std-host = { path = "../../targets/std" }
 conduit-std-offers = { path = "../../targets/std/offers" }

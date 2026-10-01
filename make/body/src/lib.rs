@@ -27,3 +27,5 @@ pub use workload_session::*;
 
 #[cfg(test)]
 mod body_building_tests;
+#[cfg(test)]
+mod planning_session_tests;

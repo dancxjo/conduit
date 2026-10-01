@@ -11,7 +11,6 @@ use conduit_observatory::{
     ObservatorySnapshot, OfferFreshness, OperationalState, RetentionReport, SNAPSHOT_SCHEMA,
 };
 
-mod body_planning_session;
 mod build_birth;
 mod control;
 mod conversation_request_evidence;
