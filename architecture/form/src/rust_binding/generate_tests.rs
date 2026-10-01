@@ -179,6 +179,59 @@ fn selected_record_retains_copy_and_serde_binding_traits() {
 }
 
 #[test]
+fn selected_record_can_retain_established_constructor_argument_order() {
+    let checked = crate::check_syntax_document(
+        &crate::parse_syntax_document("type Pair = {\n    left: U32\n    right: U16\n}\n"),
+        &crate::StartupCatalog::new(),
+    )
+    .unwrap();
+    let generated = generate_rust_bindings(
+        &checked.native_types,
+        &RustBindingOptions {
+            record_constructor_orders: [("Pair".into(), vec!["right".into(), "left".into()])]
+                .into(),
+            copy_record_types: ["Pair".into()].into(),
+            copy_record_value_getters: ["Pair".into()].into(),
+            ..RustBindingOptions::default()
+        },
+    )
+    .unwrap();
+
+    assert!(generated
+        .source
+        .contains("pub fn new(right: u16, left: u32)"));
+    assert!(generated.source.contains("Ok(Self { left, right, })"));
+    assert!(generated
+        .source
+        .contains("pub const fn left(self) -> u32 { self.left }"));
+}
+
+#[test]
+fn record_constructor_order_must_name_every_field_exactly_once() {
+    let checked = crate::check_syntax_document(
+        &crate::parse_syntax_document("type Pair = {\n    left: U32\n    right: U16\n}\n"),
+        &crate::StartupCatalog::new(),
+    )
+    .unwrap();
+    for order in [
+        vec!["left".into()],
+        vec!["left".into(), "left".into()],
+        vec!["left".into(), "missing".into()],
+    ] {
+        assert_eq!(
+            generate_rust_bindings(
+                &checked.native_types,
+                &RustBindingOptions {
+                    record_constructor_orders: [("Pair".into(), order)].into(),
+                    ..RustBindingOptions::default()
+                },
+            ),
+            Err(RustBindingGenerationError::InvalidSemanticType)
+        );
+    }
+}
+
+#[test]
 fn constrained_copy_record_validation_does_not_clone_the_candidate() {
     let checked = crate::check_syntax_document(
         &crate::parse_syntax_document("type Bounded = {\n    value: U32 in 1..=8\n}\n"),

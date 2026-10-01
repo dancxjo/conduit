@@ -17,8 +17,15 @@ fn main() {
                 "AccelerationObservation".into(),
                 "ContactObservation".into(),
                 "ProximityObservation".into(),
+                "RangeObservation".into(),
                 "WheelDropObservation".into(),
             ]
+            .into(),
+            copy_record_value_getters: ["RangeObservation".into()].into(),
+            record_constructor_orders: [(
+                "RangeObservation".into(),
+                vec!["distance-mm".into(), "age-ms".into()],
+            )]
             .into(),
             ..RustBindingOptions::default()
         },

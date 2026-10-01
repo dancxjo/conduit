@@ -12,14 +12,20 @@ use super::generate::{
     unit_type, RustBindingGenerationError,
 };
 
+pub(super) struct RecordBindingOptions<'a> {
+    pub copy: bool,
+    pub value_getters: bool,
+    pub direct_checked: bool,
+    pub constructor_order: Option<&'a [String]>,
+}
+
 pub(super) fn emit_value_impl(
     out: &mut String,
     value_type: &CheckedNativeType,
     rust_name: &str,
     constant: &str,
     names: &BTreeMap<String, String>,
-    copy_record: bool,
-    direct_checked_record: bool,
+    record_options: RecordBindingOptions<'_>,
 ) -> Result<(), RustBindingGenerationError> {
     emit_contracts(out, rust_name, &value_type.value_contracts);
     match value_type.value_type.shape() {
@@ -32,12 +38,16 @@ pub(super) fn emit_value_impl(
                 rust_name,
                 fields,
                 names,
-                copy_record,
-                direct_checked_record,
+                &record_options,
                 &value_type.value_contracts,
             )?;
             super::generate_conversion::emit_record_binding(
-                out, rust_name, constant, fields, names,
+                out,
+                rust_name,
+                constant,
+                fields,
+                names,
+                record_options.constructor_order,
             )?
         }
         StructuredInfoTypeShape::Variant { cases, .. } => {
@@ -143,14 +153,34 @@ fn emit_record_constructor(
     rust_name: &str,
     fields: &[conduit_core::StructuredFieldType],
     names: &BTreeMap<String, String>,
-    copy_record: bool,
-    direct_checked_record: bool,
+    options: &RecordBindingOptions<'_>,
     contracts: &[NativeTypeValueContract],
 ) -> Result<(), RustBindingGenerationError> {
     let is_unconstrained = contracts.is_empty();
+    let ordered_fields = if let Some(order) = options.constructor_order {
+        if order.len() != fields.len() {
+            return Err(RustBindingGenerationError::InvalidSemanticType);
+        }
+        let mut seen = alloc::collections::BTreeSet::new();
+        let mut ordered = Vec::with_capacity(fields.len());
+        for name in order {
+            if !seen.insert(name) {
+                return Err(RustBindingGenerationError::InvalidSemanticType);
+            }
+            ordered.push(
+                fields
+                    .iter()
+                    .find(|field| field.name() == name)
+                    .ok_or(RustBindingGenerationError::InvalidSemanticType)?,
+            );
+        }
+        ordered
+    } else {
+        fields.iter().collect::<Vec<_>>()
+    };
     writeln!(out, "impl {rust_name} {{").expect("String writing is infallible");
     write!(out, "    pub fn new(").expect("String writing is infallible");
-    for (index, field) in fields.iter().enumerate() {
+    for (index, field) in ordered_fields.iter().enumerate() {
         if index > 0 {
             out.push_str(", ");
         }
@@ -180,7 +210,7 @@ fn emit_record_constructor(
     }
     if is_unconstrained {
         writeln!(out, "}})\n    }}").expect("String writing is infallible");
-    } else if direct_checked_record {
+    } else if options.direct_checked {
         writeln!(out, "}};").expect("String writing is infallible");
         emit_direct_record_checks(out, fields, contracts)?;
         writeln!(out, "        Ok(candidate)\n    }}").expect("String writing is infallible");
@@ -189,7 +219,7 @@ fn emit_record_constructor(
         writeln!(
             out,
             "        let structured = candidate{}.into_structured()?;",
-            if copy_record { "" } else { ".clone()" }
+            if options.copy { "" } else { ".clone()" }
         )
         .expect("String writing is infallible");
         writeln!(out, "        conduit_form::rust_binding::validate_native_contracts(&structured, &Self::value_contracts())?;")
@@ -199,11 +229,19 @@ fn emit_record_constructor(
     for field in fields {
         let name = rust_snake_identifier(field.name())?;
         let value_type = rust_type(field.value_type(), names)?;
-        writeln!(
-            out,
-            "    pub fn {name}(&self) -> &{value_type} {{ &self.{name} }}"
-        )
-        .expect("String writing is infallible");
+        if options.value_getters {
+            writeln!(
+                out,
+                "    pub const fn {name}(self) -> {value_type} {{ self.{name} }}"
+            )
+            .expect("String writing is infallible");
+        } else {
+            writeln!(
+                out,
+                "    pub fn {name}(&self) -> &{value_type} {{ &self.{name} }}"
+            )
+            .expect("String writing is infallible");
+        }
     }
     writeln!(out, "}}\n").expect("String writing is infallible");
     Ok(())

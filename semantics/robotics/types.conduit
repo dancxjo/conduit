@@ -38,3 +38,8 @@ type ContactObservation = {
 type WheelDropObservation = {
     wheels: U8 in 0..=7
 }
+
+type RangeObservation = {
+    distance-mm: U32 in 0..=1000000
+    age-ms: U32 in 0..=60000
+}
