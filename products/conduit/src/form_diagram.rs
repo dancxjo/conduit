@@ -6,10 +6,10 @@ use std::fmt::Write as _;
 use std::path::Path;
 
 const BOX_WIDTH: i32 = 420;
-const BOX_HEIGHT: i32 = 78;
-const COLUMN_GAP: i32 = 70;
-const ROW_GAP: i32 = 70;
-const LEVEL_GAP: i32 = 90;
+const BOX_HEIGHT: i32 = 110;
+const COLUMN_GAP: i32 = 120;
+const ROW_GAP: i32 = 100;
+const LEVEL_GAP: i32 = 150;
 const MARGIN: i32 = 50;
 const COLUMNS: usize = 2;
 
@@ -89,7 +89,7 @@ fn render_svg(authoring: &ExpandedAuthoringForm) -> String {
         "<desc id=\"desc\">Checked Conduit Form with exact typed port connections.</desc>"
     )
     .unwrap();
-    svg.push_str(r#"<style>text{font-family:ui-monospace,SFMono-Regular,Consolas,monospace;fill:#17233c}.canvas{fill:#f5f1e8}.gear{fill:#fffdf8;stroke:#344766;stroke-width:2}.header{fill:#d9e8f2}.boundary{fill:#dfeee5;stroke:#39705a;stroke-width:2}.port{fill:#fffdf8;stroke:#176b87;stroke-width:3}.cord-shadow{fill:none;stroke:#f5f1e8;stroke-width:8}.cord{fill:none;stroke:#1677a6;stroke-width:3}.close{stroke:#657083;stroke-dasharray:8 5}.quiescence{stroke:#7656a8;stroke-dasharray:3 5}.abnormal{stroke:#c34f52;stroke-dasharray:5 5}.kind{fill:#52647d;font-size:13px}.boundary-port{fill:#284c3c;font-size:12px;font-weight:650}.cord-tag{fill:#fff0cf;stroke:#bd8127;stroke-width:1}.cord-label{fill:#49320f;font-size:11px;font-weight:650}.label{font-size:16px}.title{font-size:24px;font-weight:750}.legend{font-size:13px;fill:#52647d}</style>"#);
+    svg.push_str(r#"<style>text{font-family:ui-monospace,SFMono-Regular,Consolas,monospace;fill:#17233c}.canvas{fill:#f5f1e8}.gear{fill:#fffdf8;stroke:#344766;stroke-width:2}.header{fill:#d9e8f2}.boundary{fill:#dfeee5;stroke:#39705a;stroke-width:2}.port{fill:#fffdf8;stroke:#176b87;stroke-width:3}.port-name{fill:#344766;font-size:11px;font-weight:700}.cord-shadow{fill:none;stroke:#f5f1e8;stroke-width:8}.cord{fill:none;stroke:#1677a6;stroke-width:3}.close{stroke:#657083;stroke-dasharray:8 5}.quiescence{stroke:#7656a8;stroke-dasharray:3 5}.abnormal{stroke:#c34f52;stroke-dasharray:5 5}.kind{fill:#52647d;font-size:13px}.boundary-port{fill:#284c3c;font-size:12px;font-weight:650}.cord-tag{fill:#fff0cf;stroke:#bd8127;stroke-width:1}.cord-label{fill:#49320f;font-size:11px;font-weight:650}.label{font-size:16px}.title{font-size:24px;font-weight:750}.legend{font-size:13px;fill:#52647d}</style>"#);
     svg.push_str(r##"<defs><marker id="arrow" markerWidth="10" markerHeight="10" refX="9" refY="5" orient="auto"><path d="M0,0 L10,5 L0,10 z" fill="#1677a6"/></marker><marker id="arrow-abnormal" markerWidth="10" markerHeight="10" refX="9" refY="5" orient="auto"><path d="M0,0 L10,5 L0,10 z" fill="#c34f52"/></marker></defs>"##);
     writeln!(
         svg,
@@ -132,6 +132,7 @@ fn render_svg(authoring: &ExpandedAuthoringForm) -> String {
     let front_input_points = boundary_points(boundary_x, 95, front_inputs, true);
     let front_output_points = boundary_points(boundary_x, output_y, front_outputs, false);
 
+    let mut route_index = 0;
     for connection in &expanded.connections {
         if let (Some(from), Some(to)) = (
             outputs.get(&(
@@ -157,7 +158,9 @@ fn render_svg(authoring: &ExpandedAuthoringForm) -> String {
                     connection.sink_port_id.as_str(),
                     from.kind
                 ),
+                route_index,
             );
+            route_index += 1;
         }
     }
     for binding in &authoring.input_bindings {
@@ -178,7 +181,9 @@ fn render_svg(authoring: &ExpandedAuthoringForm) -> String {
                     binding.gear_port_id.as_str(),
                     from.kind
                 ),
+                route_index,
             );
+            route_index += 1;
         }
     }
     for binding in &authoring.output_bindings {
@@ -199,7 +204,9 @@ fn render_svg(authoring: &ExpandedAuthoringForm) -> String {
                     binding.front_port_id.as_str(),
                     from.kind
                 ),
+                route_index,
             );
+            route_index += 1;
         }
     }
     svg.push_str(&nodes);
@@ -265,7 +272,13 @@ fn draw_gear<'a>(
                 name: port.port_id.as_str().to_string(),
             },
         );
-        draw_socket(svg, point, port.port_id.as_str(), port.value_kind.as_str());
+        draw_gear_socket(
+            svg,
+            point,
+            port.port_id.as_str(),
+            port.value_kind.as_str(),
+            70,
+        );
     }
     for (index, port) in gear.outputs.iter().enumerate() {
         let point = Point {
@@ -280,7 +293,13 @@ fn draw_gear<'a>(
                 name: port.port_id.as_str().to_string(),
             },
         );
-        draw_socket(svg, point, port.port_id.as_str(), port.value_kind.as_str());
+        draw_gear_socket(
+            svg,
+            point,
+            port.port_id.as_str(),
+            port.value_kind.as_str(),
+            -14,
+        );
     }
     svg.push_str("</g>\n");
 }
@@ -307,6 +326,18 @@ fn draw_socket(svg: &mut String, point: Point, name: &str, kind: &str) {
         escape(kind),
         point.x,
         point.y
+    )
+    .unwrap();
+}
+
+fn draw_gear_socket(svg: &mut String, point: Point, name: &str, kind: &str, label_offset: i32) {
+    draw_socket(svg, point, name, kind);
+    writeln!(
+        svg,
+        "<text class=\"port-name\" text-anchor=\"middle\" x=\"{}\" y=\"{}\">{}</text>",
+        point.x,
+        point.y + label_offset,
+        escape(&shorten(name, 18))
     )
     .unwrap();
 }
@@ -374,6 +405,7 @@ fn draw_cord(
     track: ConnectionTrack,
     information: String,
     detail: &str,
+    route_index: usize,
 ) {
     let bend = ((to.y - from.y).abs() / 2).max(40);
     let (class, marker) = match track {
@@ -382,14 +414,24 @@ fn draw_cord(
         ConnectionTrack::AbnormalTerminal => ("cord abnormal", "arrow-abnormal"),
         ConnectionTrack::Quiescence => ("cord quiescence", "arrow"),
     };
+    let lane_offsets = [-96, -48, 0, 48, 96];
+    let label_offsets = [-24, 0, 24];
+    let label_y = (from.y + to.y) / 2 + label_offsets[route_index % label_offsets.len()];
+    let lane_x = (from.x + to.x) / 2 + lane_offsets[route_index % lane_offsets.len()];
     let path = format!(
-        "M{},{} C{},{} {},{} {},{}",
+        "M{},{} C{},{} {},{} {},{} C{},{} {},{} {},{}",
         from.x,
         from.y,
         from.x,
-        from.y + bend,
+        from.y + bend / 2,
+        lane_x,
+        label_y - bend / 2,
+        lane_x,
+        label_y,
+        lane_x,
+        label_y + bend / 2,
         to.x,
-        to.y - bend,
+        to.y - bend / 2,
         to.x,
         to.y
     );
@@ -398,9 +440,7 @@ fn draw_cord(
         _ => format!("{} · {}", information, track_name(track)),
     };
     let label_width = (label.chars().count() as i32 * 7 + 18).clamp(90, 360);
-    let label_x = (from.x + to.x) / 2;
-    let label_y = (from.y + to.y) / 2;
-    writeln!(svg, "<g><title>{} · {}</title><path class=\"cord-shadow\" d=\"{path}\"/><path class=\"{class}\" marker-end=\"url(#{marker})\" d=\"{path}\"/><rect class=\"cord-tag\" x=\"{}\" y=\"{}\" width=\"{label_width}\" height=\"22\" rx=\"6\"/><text class=\"cord-label\" text-anchor=\"middle\" x=\"{label_x}\" y=\"{}\">{}</text></g>", escape(detail), track_name(track), label_x - label_width / 2, label_y - 15, label_y, escape(&label)).unwrap();
+    writeln!(svg, "<g><title>{} · {}</title><path class=\"cord-shadow\" d=\"{path}\"/><path class=\"{class}\" marker-end=\"url(#{marker})\" d=\"{path}\"/><rect class=\"cord-tag\" x=\"{}\" y=\"{}\" width=\"{label_width}\" height=\"22\" rx=\"6\"/><text class=\"cord-label\" text-anchor=\"middle\" x=\"{lane_x}\" y=\"{}\">{}</text></g>", escape(detail), track_name(track), lane_x - label_width / 2, label_y - 15, label_y, escape(&label)).unwrap();
 }
 
 fn information_label(kind: &str, port_name: &str) -> String {
@@ -550,6 +590,7 @@ mod tests {
         assert!(svg.contains("text"));
         assert!(svg.contains("marker-end=\"url(#arrow)\""));
         assert!(svg.contains(">text/join</text>"));
+        assert!(svg.contains("class=\"port-name\""));
         assert!(!svg.contains("class=\"port-kind\""));
         assert!(svg.contains("Form.shown · value/text · payload"));
         assert!(svg.contains("class=\"cord-tag\""));
@@ -558,7 +599,7 @@ mod tests {
         assert!(svg.contains(".boundary{fill:#dfeee5"));
         assert!(svg.contains("fill=\"#1677a6\""));
         assert!(svg.contains("q0,-10 10,-10"));
-        assert!(svg.contains("width=\"1010\""));
+        assert!(svg.contains("width=\"1060\""));
         assert!(!svg.contains("text/join(\"&\")"));
     }
 
