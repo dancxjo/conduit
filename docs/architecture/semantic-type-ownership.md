@@ -316,8 +316,10 @@ handwritten P declaration. Two exact binding-generation gaps remain recorded:
 open generic Types such as AI retrieval candidates cannot yet produce generic
 Rust bindings, and a checked `Bytes <= 65536B` leaf still receives the fixed
 `BoundedBytes<4096>` storage type, which prevents the Job family from retaining
-its accepted output bound. Other remaining blockers must name the exact payload
-shape, bound, target constraint or unresolved Fore ownership question. As
+its accepted output bound. The Text `MorsePattern` also retains an accepted
+320-segment bound above the canonical structured-collection ceiling of 256; it
+cannot migrate until that ceiling grows without weakening its contract. Other
+remaining blockers must name the exact payload shape, bound, target constraint or unresolved Fore ownership question. As
 migrations land, add reviewed family receipts and keep the classification
 history rather than erasing it.
 
