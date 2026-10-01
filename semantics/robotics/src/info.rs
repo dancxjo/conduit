@@ -6,7 +6,7 @@
 use conduit_core::{semantic_digest, InfoDecodeError, Quantity, QuantityUnit};
 use core::{cmp::Ordering, hash::Hash};
 
-use crate::RangeObservation;
+use crate::{OdometryObservation, RangeObservation};
 
 pub const ROBOTICS_RANGE_INFO_ID: &str = "robotics/range-mm-sensor-forward@1";
 pub const ROBOTICS_RANGE_ENCODED_LEN: usize = 8;
@@ -97,59 +97,58 @@ impl Hash for RangeObservation {
     }
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
-pub struct OdometryObservation {
-    forward_mm: i32,
-    lateral_mm: i32,
-    yaw_microradians: i32,
-}
-
 impl OdometryObservation {
-    pub fn new(
-        forward_mm: i32,
-        lateral_mm: i32,
-        yaw_microradians: i32,
-    ) -> Result<Self, InfoDecodeError> {
+    pub const fn components(self) -> (i32, i32, i32) {
+        (
+            self.forward_mm(),
+            self.lateral_mm(),
+            self.yaw_microradians(),
+        )
+    }
+
+    pub fn encode(self) -> [u8; ROBOTICS_ODOMETRY_ENCODED_LEN] {
+        let (forward, lateral, yaw) = self.components();
+        encode_three_i32(forward, lateral, yaw)
+    }
+
+    pub fn decode(encoded: &[u8]) -> Result<Self, InfoDecodeError> {
+        let [forward, lateral, yaw] = decode_three_i32(encoded, ROBOTICS_ODOMETRY_ENCODED_LEN)?;
         bounded_i32(
             "forward-mm",
-            forward_mm,
+            forward,
             -MAXIMUM_ODOMETRY_MM,
             MAXIMUM_ODOMETRY_MM,
         )?;
         bounded_i32(
             "lateral-mm",
-            lateral_mm,
+            lateral,
             -MAXIMUM_ODOMETRY_MM,
             MAXIMUM_ODOMETRY_MM,
         )?;
-        bounded_i32(
-            "yaw-microradians",
-            yaw_microradians,
-            -PI_MICRORADIANS,
-            PI_MICRORADIANS,
-        )?;
-        Ok(Self {
-            forward_mm,
-            lateral_mm,
-            yaw_microradians,
-        })
-    }
-
-    pub const fn components(self) -> (i32, i32, i32) {
-        (self.forward_mm, self.lateral_mm, self.yaw_microradians)
-    }
-
-    pub fn encode(self) -> [u8; ROBOTICS_ODOMETRY_ENCODED_LEN] {
-        encode_three_i32(self.forward_mm, self.lateral_mm, self.yaw_microradians)
-    }
-
-    pub fn decode(encoded: &[u8]) -> Result<Self, InfoDecodeError> {
-        let [forward, lateral, yaw] = decode_three_i32(encoded, ROBOTICS_ODOMETRY_ENCODED_LEN)?;
-        Self::new(forward, lateral, yaw)
+        bounded_i32("yaw-microradians", yaw, -PI_MICRORADIANS, PI_MICRORADIANS)?;
+        Ok(Self::new(forward, lateral, yaw).expect("codec bounds match generated contracts"))
     }
 
     pub fn semantic_digest(self) -> [u8; 32] {
         semantic_digest(ROBOTICS_ODOMETRY_INFO_ID, &self.encode())
+    }
+}
+
+impl PartialOrd for OdometryObservation {
+    fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
+        Some(self.cmp(other))
+    }
+}
+
+impl Ord for OdometryObservation {
+    fn cmp(&self, other: &Self) -> Ordering {
+        self.components().cmp(&other.components())
+    }
+}
+
+impl Hash for OdometryObservation {
+    fn hash<H: core::hash::Hasher>(&self, state: &mut H) {
+        self.components().hash(state);
     }
 }
 
