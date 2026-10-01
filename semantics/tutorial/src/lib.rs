@@ -3,6 +3,13 @@
 
 extern crate alloc;
 
+#[allow(dead_code)]
+mod generated {
+    include!(concat!(env!("OUT_DIR"), "/semantic_types.rs"));
+}
+
+pub use generated::TutorialPlayback;
+
 pub mod presenter;
 mod purpose;
 
@@ -22,22 +29,6 @@ use conduit_presentation::{
     project_orifina_purpose_presentation,
 };
 pub use purpose::{purpose_state, purpose_state_from_evidence};
-use serde::{Deserialize, Serialize};
-
-#[derive(Clone, Copy, Debug, Eq, PartialEq, Serialize, Deserialize)]
-pub enum TutorialPlayback {
-    Lulled,
-    Preparing,
-    Playing,
-    Idle,
-    Completed,
-    Cancelled,
-    Failed,
-    Refused,
-    Stopped,
-    Fulfilled,
-}
-
 struct Guidance {
     phase: &'static str,
     title: &'static str,
