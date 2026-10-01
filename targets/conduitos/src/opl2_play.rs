@@ -387,7 +387,7 @@ pub fn run<B: Opl2Base>(
                     admitted_pitch_millihertz,
                 ));
             event_writes = event_writes
-                .checked_add(match event.gate {
+                .checked_add(match event.gate() {
                     Gate::On => 2,
                     Gate::Off => 1,
                 })

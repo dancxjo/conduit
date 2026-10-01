@@ -195,12 +195,26 @@ fn prepare(
     let pitch =
         MusicalPitch::from_equal_tempered(0, crate::hosted_midi::A4_REFERENCE_MILLIHERTZ, 0)
             .map_err(|error| format!("prepare test MIDI pitch: {error:?}"))?;
-    let on = MusicalNoteEvent::new(NoteOccurrenceId(41), pitch, Gate::On, u16::MAX, 10, 0)
-        .map_err(|error| format!("prepare test MIDI note-on: {error:?}"))?;
+    let on = MusicalNoteEvent::new(
+        NoteOccurrenceId::new(41).unwrap(),
+        pitch,
+        Gate::On,
+        u16::MAX,
+        10,
+        0,
+    )
+    .map_err(|error| format!("prepare test MIDI note-on: {error:?}"))?;
     let sustain = MusicalControlEvent::new(MusicalControl::sustain(true).unwrap(), 11, 1)
         .map_err(|error| format!("prepare test MIDI sustain: {error:?}"))?;
-    let off = MusicalNoteEvent::new(NoteOccurrenceId(41), pitch, Gate::Off, 0, 12, 2)
-        .map_err(|error| format!("prepare test MIDI note-off: {error:?}"))?;
+    let off = MusicalNoteEvent::new(
+        NoteOccurrenceId::new(41).unwrap(),
+        pitch,
+        Gate::Off,
+        0,
+        12,
+        2,
+    )
+    .map_err(|error| format!("prepare test MIDI note-off: {error:?}"))?;
     let encoded = [
         on.encode().to_vec(),
         sustain.encode().to_vec(),

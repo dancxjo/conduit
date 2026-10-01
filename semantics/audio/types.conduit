@@ -37,6 +37,17 @@ type MusicalPitch = {
     detune-microcents: I32 in -24000000..=24000000
 }
 
+type NoteOccurrenceId = U64 in 1..=18446744073709551615
+
+type MusicalNoteEvent = {
+    occurrence: NoteOccurrenceId
+    pitch: MusicalPitch
+    gate: Gate
+    velocity: U16
+    event-time-micros: U64 in 0..=18446744073709551614
+    order: U32
+}
+
 type ToneIntent = {
     correlation: U64 in 1..=18446744073709551615
     pitch: MusicalPitch

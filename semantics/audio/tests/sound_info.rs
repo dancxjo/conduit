@@ -22,15 +22,31 @@ fn render_demand_round_trips_one_exact_nonempty_clock_interval() {
 #[test]
 fn overlapping_equal_pitches_retain_occurrence_identity() {
     let pitch = MusicalPitch::new(440_000, 440_000, 0).unwrap();
-    let a = MusicalNoteEvent::new(NoteOccurrenceId(1), pitch, Gate::On, 32_768, 10, 0).unwrap();
-    let b = MusicalNoteEvent::new(NoteOccurrenceId(2), pitch, Gate::On, 32_768, 10, 1).unwrap();
+    let a = MusicalNoteEvent::new(
+        NoteOccurrenceId::new(1).unwrap(),
+        pitch,
+        Gate::On,
+        32_768,
+        10,
+        0,
+    )
+    .unwrap();
+    let b = MusicalNoteEvent::new(
+        NoteOccurrenceId::new(2).unwrap(),
+        pitch,
+        Gate::On,
+        32_768,
+        10,
+        1,
+    )
+    .unwrap();
     assert_ne!(a.semantic_digest(), b.semantic_digest());
 }
 
 #[test]
 fn sustain_hold_and_release_are_distinct_ordered_events() {
     let pitch = MusicalPitch::new(261_626, 440_000, 0).unwrap();
-    let occurrence = NoteOccurrenceId(7);
+    let occurrence = NoteOccurrenceId::new(7).unwrap();
     let sequence = [
         MusicalNoteEvent::new(occurrence, pitch, Gate::On, 32_768, 1_000, 0)
             .unwrap()
@@ -50,12 +66,12 @@ fn sustain_hold_and_release_are_distinct_ordered_events() {
             .to_vec(),
     ];
 
-    assert_eq!(MusicalNoteEvent::decode(&sequence[0]).unwrap().order, 0);
+    assert_eq!(MusicalNoteEvent::decode(&sequence[0]).unwrap().order(), 0);
     assert_eq!(
         *MusicalControlEvent::decode(&sequence[1]).unwrap().control(),
         MusicalControl::sustain(true).unwrap()
     );
-    assert_eq!(MusicalNoteEvent::decode(&sequence[2]).unwrap().order, 2);
+    assert_eq!(MusicalNoteEvent::decode(&sequence[2]).unwrap().order(), 2);
     assert_eq!(
         *MusicalControlEvent::decode(&sequence[3]).unwrap().control(),
         MusicalControl::sustain(false).unwrap()
@@ -111,8 +127,15 @@ fn every_portable_event_round_trips_and_reserved_bytes_refuse() {
     let pitch = MusicalPitch::new(261_626, 440_000, -7_500).unwrap();
     let tone = ToneIntent::new(9, pitch, Gate::On, 12, 3).unwrap();
     assert_eq!(ToneIntent::decode(&tone.encode()), Ok(tone));
-    let note =
-        MusicalNoteEvent::new(NoteOccurrenceId(11), pitch, Gate::Off, 65_535, 13, 4).unwrap();
+    let note = MusicalNoteEvent::new(
+        NoteOccurrenceId::new(11).unwrap(),
+        pitch,
+        Gate::Off,
+        65_535,
+        13,
+        4,
+    )
+    .unwrap();
     assert_eq!(MusicalNoteEvent::decode(&note.encode()), Ok(note));
     for control in [
         MusicalControl::sustain(true).unwrap(),
@@ -142,7 +165,7 @@ fn velocity_and_pitch_bend_cover_their_exact_extrema() {
     let pitch = MusicalPitch::new(440_000, 440_000, 0).unwrap();
     for velocity in [0, u16::MAX / 2, u16::MAX] {
         let note = MusicalNoteEvent::new(
-            NoteOccurrenceId(u64::from(velocity) + 1),
+            NoteOccurrenceId::new(u64::from(velocity) + 1).unwrap(),
             pitch,
             Gate::On,
             velocity,

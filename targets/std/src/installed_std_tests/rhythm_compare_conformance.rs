@@ -236,7 +236,7 @@ fn install_raw_fixture(
 
 fn note(time: u64) -> Vec<u8> {
     MusicalNoteEvent::new(
-        NoteOccurrenceId(1),
+        NoteOccurrenceId::new(1).unwrap(),
         MusicalPitch::new(440_000, 440_000, 0).unwrap(),
         Gate::On,
         u16::MAX,

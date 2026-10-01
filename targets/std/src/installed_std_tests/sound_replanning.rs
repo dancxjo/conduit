@@ -95,8 +95,12 @@ fn provider_loss_requires_a_fresh_plan_and_play_for_the_new_exact_endpoint() {
         plan_a.plan_id.clone(),
         play_a.active_play_id.clone(),
     );
-    musical_state.note_on(NoteOccurrenceId(41)).unwrap();
-    musical_state.note_on(NoteOccurrenceId(42)).unwrap();
+    musical_state
+        .note_on(NoteOccurrenceId::new(41).unwrap())
+        .unwrap();
+    musical_state
+        .note_on(NoteOccurrenceId::new(42).unwrap())
+        .unwrap();
     musical_state.set_sustain(true).unwrap();
     musical_state.set_pitch_bend(0, 9_000).unwrap();
     musical_state.set_controller(0, 1, 64).unwrap();

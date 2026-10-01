@@ -284,8 +284,8 @@ mod tests {
     fn loss_cancels_notes_and_sustain_without_claiming_device_cleanup() {
         let mut state =
             ActiveSoundState::<2>::new(PlanId::from("plan-a"), ActivePlayId::from("play-a"));
-        state.note_on(NoteOccurrenceId(1)).unwrap();
-        state.note_on(NoteOccurrenceId(2)).unwrap();
+        state.note_on(NoteOccurrenceId::new(1).unwrap()).unwrap();
+        state.note_on(NoteOccurrenceId::new(2).unwrap()).unwrap();
         state.set_sustain(true).unwrap();
         state.set_pitch_bend(0, 9_000).unwrap();
         state.set_controller(0, 1, 64).unwrap();
@@ -301,7 +301,7 @@ mod tests {
         assert_eq!(state.changed_pitch_channel_count(), 0);
         assert_eq!(state.controller_value_count(), 0);
         assert_eq!(
-            state.note_on(NoteOccurrenceId(3)),
+            state.note_on(NoteOccurrenceId::new(3).unwrap()),
             Err(SoundRecoveryError::AlreadyInterrupted)
         );
     }

@@ -11,7 +11,7 @@ use core::{
 
 use crate::{
     Gate, GateCode, ModulationDestination, ModulationDestinationCode, MusicalControl,
-    MusicalControlEvent, MusicalPitch, ToneIntent,
+    MusicalControlEvent, MusicalNoteEvent, MusicalPitch, NoteOccurrenceId, ToneIntent,
 };
 
 pub const SOUND_TONE_INFO_ID: &str = "sound/tone-intent@1";
@@ -168,56 +168,19 @@ impl Hash for MusicalPitch {
     }
 }
 
-#[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
-pub struct NoteOccurrenceId(pub u64);
-
-#[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
-pub struct MusicalNoteEvent {
-    pub occurrence: NoteOccurrenceId,
-    pub pitch: MusicalPitch,
-    pub gate: Gate,
-    pub velocity: u16,
-    pub event_time_micros: u64,
-    pub order: u32,
-}
-
 impl MusicalNoteEvent {
-    pub fn new(
-        occurrence: NoteOccurrenceId,
-        pitch: MusicalPitch,
-        gate: Gate,
-        velocity: u16,
-        event_time_micros: u64,
-        order: u32,
-    ) -> Result<Self, SoundInfoError> {
-        if occurrence.0 == 0 {
-            return Err(SoundInfoError::OutOfRange("occurrence"));
-        }
-        if event_time_micros > MAXIMUM_EVENT_TIME_MICROS {
-            return Err(SoundInfoError::OutOfRange("event-time-micros"));
-        }
-        Ok(Self {
-            occurrence,
-            pitch,
-            gate,
-            velocity,
-            event_time_micros,
-            order,
-        })
-    }
-
     pub fn semantic_digest(self) -> [u8; 32] {
         semantic_digest(MUSIC_NOTE_INFO_ID, &self.encode())
     }
 
     pub fn encode(self) -> [u8; NOTE_EVENT_ENCODED_LEN] {
         let mut out = [0; NOTE_EVENT_ENCODED_LEN];
-        out[0..8].copy_from_slice(&self.occurrence.0.to_le_bytes());
-        out[8..28].copy_from_slice(&self.pitch.encode());
-        out[28] = GateCode::encode(self.gate)[0];
-        out[29..31].copy_from_slice(&self.velocity.to_le_bytes());
-        out[31..39].copy_from_slice(&self.event_time_micros.to_le_bytes());
-        out[39..43].copy_from_slice(&self.order.to_le_bytes());
+        out[0..8].copy_from_slice(&self.occurrence().get().to_le_bytes());
+        out[8..28].copy_from_slice(&self.pitch().encode());
+        out[28] = GateCode::encode(self.gate())[0];
+        out[29..31].copy_from_slice(&self.velocity().to_le_bytes());
+        out[31..39].copy_from_slice(&self.event_time_micros().to_le_bytes());
+        out[39..43].copy_from_slice(&self.order().to_le_bytes());
         out
     }
 
@@ -225,13 +188,21 @@ impl MusicalNoteEvent {
         exact_length(encoded, NOTE_EVENT_ENCODED_LEN)?;
         let gate = Gate::decode(encoded[28])?;
         Self::new(
-            NoteOccurrenceId(u64::from_le_bytes(array(encoded, 0)?)),
+            NoteOccurrenceId::new(u64::from_le_bytes(array(encoded, 0)?))
+                .map_err(|_| SoundInfoError::OutOfRange("occurrence"))?,
             MusicalPitch::decode(&encoded[8..28])?,
             gate,
             u16::from_le_bytes(array(encoded, 29)?),
             u64::from_le_bytes(array(encoded, 31)?),
             u32::from_le_bytes(array(encoded, 39)?),
         )
+        .map_err(|_| SoundInfoError::OutOfRange("musical-note-event"))
+    }
+}
+
+impl Hash for MusicalNoteEvent {
+    fn hash<H: Hasher>(&self, state: &mut H) {
+        self.encode().hash(state);
     }
 }
 

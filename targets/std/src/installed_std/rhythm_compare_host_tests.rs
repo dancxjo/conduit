@@ -21,7 +21,7 @@ fn host(target: i64, tolerance: u64) -> RhythmCompareHost {
 
 fn note(time: u64, gate: Gate) -> Vec<u8> {
     MusicalNoteEvent::new(
-        NoteOccurrenceId(1),
+        NoteOccurrenceId::new(1).unwrap(),
         MusicalPitch::new(440_000, 440_000, 0).unwrap(),
         gate,
         u16::MAX,
