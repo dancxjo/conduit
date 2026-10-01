@@ -89,8 +89,9 @@ fn deterministic_fixture_produces_exact_late_assessment_without_executing() {
     let StructuredInfoValueShape::Variant { payload, .. } = outcome.shape() else {
         panic!("assessment outcome must be a variant")
     };
-    let StructuredInfoValueShape::Leaf(bytes) = payload.shape() else {
-        panic!("late outcome must retain exact quantity")
+    let lateness = record_field(payload, "lateness");
+    let StructuredInfoValueShape::Leaf(bytes) = lateness.shape() else {
+        panic!("late outcome must retain exact duration")
     };
     assert_eq!(
         Quantity::decode(bytes).unwrap(),

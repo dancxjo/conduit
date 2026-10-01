@@ -15,14 +15,22 @@ fn main() {
         &RustBindingOptions {
             derive_serde_for_variants: true,
             serde_variant_exclusions: ["ReplayCommand".into()].into(),
-            serde_record_types: ["CandidateConflict".into(), "TemporalInstant".into()].into(),
+            serde_record_types: [
+                "CandidateConflict".into(),
+                "NamedPatternTemplate".into(),
+                "NamedPatternTemplateSlot".into(),
+                "NormalizedDurationSequence".into(),
+                "ReminderOccurrence".into(),
+                "TemporalInstant".into(),
+            ]
+            .into(),
             copy_record_types: [
                 "CivilResolutionPolicy".into(),
                 "PulseObservation".into(),
                 "RhythmState".into(),
             ]
             .into(),
-            public_record_fields: ["RhythmState".into()].into(),
+            public_record_fields: ["ReminderOccurrence".into(), "RhythmState".into()].into(),
             ..RustBindingOptions::default()
         },
     )

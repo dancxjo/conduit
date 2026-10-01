@@ -301,6 +301,20 @@ type TabularQueryOutcomeFour =
     inline TabularQueryResultFour
     | materialized ResourceRef
 
+type FileCopyOutcome =
+    cancelled Quantity
+    | cleanup_failed Quantity
+    | denied
+    | destination_exists
+    | oversized Quantity
+    | partial Quantity
+    | stale
+    | success Quantity
+
+type FileCopyResult = {
+    outcome: FileCopyOutcome
+}
+
 code data/save-text-terminal = DataSaveTextTerminal as u8
 
 code data/load-text-terminal = DataLoadTextTerminal as u8

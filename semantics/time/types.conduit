@@ -205,6 +205,53 @@ type PatternComparisonRefusal =
     | algorithm-mismatch
     | length-mismatch
 
+type PatternComparison = {
+    matched: Boolean
+    metric: Text
+    score_millionths: Count
+    tolerance_millionths: Count
+}
+
+type NormalizedDurationSequence = {
+    algorithm: Text
+    values: Text
+}
+
+type TimedEventSequence = {
+    clock_basis: Text
+    event_times: Text
+}
+
+type IntervalSequence = {
+    clock_basis: Text
+    intervals: Text
+}
+
+type NamedPatternTemplateSlot = {
+    active: Boolean
+    name: Text
+    pattern: NormalizedDurationSequence
+}
+
+type NamedPatternTemplateSlots = collection NamedPatternTemplateSlot = 8
+
+type NamedPatternTemplate = {
+    name: Text
+    pattern: NormalizedDurationSequence
+}
+
+type NamedPatternTemplateCommand =
+    delete Text
+    | get Text
+    | put NamedPatternTemplate
+    | put-and-get NamedPatternTemplate
+
+type NamedPatternTemplateResult =
+    deleted Text
+    | found NamedPatternTemplate
+    | missing Text
+    | stored Text
+
 type TimedPatternRefusal =
     malformed
     | too-few-events
@@ -239,6 +286,23 @@ type WorkflowTimingOutcome =
     | cancelled
     | expired
 
+type ScheduleEffectIntent =
+    observation Text
+    | proposed_effect Text
+
+type ScheduleWorkflowLifecycle =
+    cancelled
+    | completed
+    | expired
+    | failed Text
+    | pending
+    | running
+
+type ScheduleAssessment = {
+    intent_identity: Text
+    outcome: WorkflowTimingOutcome
+}
+
 type TemplateCollectionRefusal =
     malformed
     | name-empty
@@ -247,3 +311,10 @@ type TemplateCollectionRefusal =
     | collection-full
     | not-found
     | corrupt-template
+
+type ReminderOccurrence = {
+    delivery_kind: Text
+    event_identity: Text
+    identity: Text
+    reminder_identity: Text
+}
