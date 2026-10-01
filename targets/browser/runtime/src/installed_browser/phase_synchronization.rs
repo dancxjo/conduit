@@ -125,10 +125,7 @@ mod tests {
         assert_eq!(updated.period_ms, 250);
         assert_eq!(
             operation.last_outcome(),
-            Some(conduit_time::SynchronizationOutcome::Adjusted {
-                phase_ms: 60,
-                period_ms: 10,
-            })
+            Some(conduit_time::SynchronizationOutcome::adjusted(60, 10).unwrap())
         );
     }
 }
