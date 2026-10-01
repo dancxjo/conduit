@@ -20,3 +20,9 @@ type RoboticsSimulationAvailability =
     fresh
     | missing
     | stale
+
+type AccelerationObservation = {
+    x-forward-mm-s2: I32 in -200000..=200000
+    y-left-mm-s2: I32 in -200000..=200000
+    z-up-mm-s2: I32 in -200000..=200000
+}
