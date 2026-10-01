@@ -3,7 +3,7 @@
 use alloc::string::String;
 use alloc::vec;
 use alloc::vec::Vec;
-pub use conduit_audio::SoundSeam;
+pub use conduit_audio::{IncompatibilityReason, PcmCompatibilityProfile, SoundSeam};
 use conduit_audio::{PcmChannelLayout, PcmSampleRepresentation};
 use conduit_core::{
     stable_realization_boolean, stable_realization_category, stable_realization_quantity,
@@ -45,15 +45,6 @@ pub const AUDIO_DRAIN_POLICY_CHARACTERISTIC: &str = "audio/drain-policy@1";
 pub const AUDIO_TIMING_CLASS_CHARACTERISTIC: &str = "audio/timing-class@1";
 pub const AUDIO_CONTROLLED_STAGING_BYTES_CHARACTERISTIC: &str = "audio/controlled-staging-bytes@1";
 
-#[derive(Debug, Copy, Clone, PartialEq, Eq, Serialize, Deserialize)]
-pub struct PcmCompatibilityProfile {
-    pub representation: PcmSampleRepresentation,
-    pub sample_rate_hz: u32,
-    pub layout: PcmChannelLayout,
-    pub maximum_frames_per_block: u16,
-    pub maximum_frame_bytes: u32,
-}
-
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct SoundCompatibilityProfile {
     pub profile_id: String,
@@ -70,26 +61,6 @@ pub struct SoundCompatibilityProfile {
     pub accepts_microtonal_pitch: bool,
     pub supports_subtractive_filter: bool,
     pub pcm: Option<PcmCompatibilityProfile>,
-}
-
-#[derive(Debug, Copy, Clone, PartialEq, Eq, Serialize, Deserialize)]
-pub enum IncompatibilityReason {
-    WrongSemanticSeam,
-    PitchRangeUnsupported,
-    PolyphonyExceedsOffer,
-    EventRateExceedsOffer,
-    VelocityUnsupported,
-    SustainUnsupported,
-    PitchBendUnsupported,
-    PitchBendRangeExceedsOffer,
-    ModulationUnsupported,
-    MicrotonalPitchUnsupported,
-    SubtractiveFilterUnsupported,
-    PcmProfileMissing,
-    PcmRepresentationMismatch,
-    PcmSampleRateMismatch,
-    PcmLayoutMismatch,
-    PcmBlockExceedsOffer,
 }
 
 pub fn compatibility(

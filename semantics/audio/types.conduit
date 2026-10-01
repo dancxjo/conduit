@@ -138,6 +138,32 @@ type SoundSeam =
     | synthesis
     | pcm_playback
 
+type PcmCompatibilityProfile = {
+    representation: PcmSampleRepresentation
+    sample-rate-hz: U32
+    layout: PcmChannelLayout
+    maximum-frames-per-block: U16
+    maximum-frame-bytes: U32
+}
+
+type IncompatibilityReason =
+    wrong-semantic-seam
+    | pitch-range-unsupported
+    | polyphony-exceeds-offer
+    | event-rate-exceeds-offer
+    | velocity-unsupported
+    | sustain-unsupported
+    | pitch-bend-unsupported
+    | pitch-bend-range-exceeds-offer
+    | modulation-unsupported
+    | microtonal-pitch-unsupported
+    | subtractive-filter-unsupported
+    | pcm-profile-missing
+    | pcm-representation-mismatch
+    | pcm-sample-rate-mismatch
+    | pcm-layout-mismatch
+    | pcm-block-exceeds-offer
+
 type SoundStreamState =
     open
     | draining

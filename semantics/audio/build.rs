@@ -20,6 +20,7 @@ fn main() {
                 "MusicalPitch".into(),
                 "MusicalNoteEvent".into(),
                 "PcmClipProfile".into(),
+                "PcmCompatibilityProfile".into(),
                 "PcmFrameHeader".into(),
                 "ToneIntent".into(),
                 "TimingFeedback".into(),
@@ -35,7 +36,13 @@ fn main() {
                 "TimingFeedback".into(),
             ]
             .into(),
-            public_record_fields: ["AudioRenderDemand".into(), "PcmFrameHeader".into()].into(),
+            public_record_fields: [
+                "AudioRenderDemand".into(),
+                "PcmCompatibilityProfile".into(),
+                "PcmFrameHeader".into(),
+            ]
+            .into(),
+            serde_record_types: ["PcmCompatibilityProfile".into()].into(),
             direct_checked_record_constructors: [
                 "MusicalControlEvent".into(),
                 "MusicalPitch".into(),
