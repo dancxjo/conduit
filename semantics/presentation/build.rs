@@ -13,6 +13,14 @@ fn main() {
             ),
         )
         .expect("Quantity is one exact portable leaf");
+    catalog
+        .insert_value_kind_alias(
+            "ResourceRef",
+            conduit_form::rust_binding::semantic_core::kind_id(
+                conduit_form::rust_binding::semantic_core::RESOURCE_REFERENCE_INFO_ID,
+            ),
+        )
+        .expect("resource references are one exact portable leaf");
     let checked = check_syntax_document(
         &parse_syntax_document(include_str!("types.conduit")),
         &catalog,
@@ -26,6 +34,9 @@ fn main() {
             serde_variant_exclusions: [
                 "FaceUtteranceProvenance".into(),
                 "PresentationCompositionKind".into(),
+                "VisionColorSample".into(),
+                "VisionDetectionSlot".into(),
+                "VisionLandmarkSlot".into(),
             ]
             .into(),
             serde_record_types: ["GeneratedActionAffordance".into()].into(),
