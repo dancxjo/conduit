@@ -2,47 +2,10 @@
 
 use alloc::vec::Vec;
 use conduit_core::{
-    Quantity, QuantityUnit, StructuredFieldValue, StructuredInfoType, StructuredInfoTypeShape,
-    StructuredInfoValue, StructuredInfoValueShape,
+    StructuredFieldValue, StructuredInfoType, StructuredInfoValue, StructuredInfoValueShape,
 };
 
 use super::education_realization::EducationInfoRefusal;
-
-pub(super) fn ratio_value(value: i64) -> Result<StructuredInfoValue, EducationInfoRefusal> {
-    leaf_value(
-        conduit_core::QUANTITY_INFO_ID,
-        Quantity::new(value, QuantityUnit::Millionth)
-            .encode()
-            .to_vec(),
-    )
-}
-
-pub(super) fn unit_value() -> Result<StructuredInfoValue, EducationInfoRefusal> {
-    leaf_value("value/unit", Vec::new())
-}
-
-pub(super) fn text_value(value: &str) -> StructuredInfoValue {
-    StructuredInfoValue::leaf(
-        StructuredInfoType::leaf(conduit_core::kind_id("value/text")).unwrap(),
-        value.as_bytes().to_vec(),
-    )
-    .expect("bounded deterministic education text")
-}
-
-pub(super) fn count_value(value: u64) -> StructuredInfoValue {
-    StructuredInfoValue::leaf(
-        StructuredInfoType::leaf(conduit_core::kind_id("value/count")).unwrap(),
-        conduit_core::encode_count(value).to_vec(),
-    )
-    .expect("bounded deterministic education count")
-}
-
-fn leaf_value(kind: &str, bytes: Vec<u8>) -> Result<StructuredInfoValue, EducationInfoRefusal> {
-    Ok(StructuredInfoValue::leaf(
-        StructuredInfoType::leaf(conduit_core::kind_id(kind))?,
-        bytes,
-    )?)
-}
 
 pub(super) fn record_value(
     value_type: StructuredInfoType,
@@ -83,18 +46,4 @@ pub(super) fn leaf_count(value: &StructuredInfoValue) -> Result<u64, EducationIn
         return Err(EducationInfoRefusal::MalformedInfo);
     };
     conduit_core::decode_count(bytes).map_err(|_| EducationInfoRefusal::MalformedInfo)
-}
-
-pub(super) fn variant_payload_type(
-    value_type: &StructuredInfoType,
-    tag: &str,
-) -> Result<StructuredInfoType, EducationInfoRefusal> {
-    let StructuredInfoTypeShape::Variant { cases, .. } = value_type.shape() else {
-        return Err(EducationInfoRefusal::MalformedInfo);
-    };
-    cases
-        .iter()
-        .find(|case| case.tag() == tag)
-        .map(|case| case.payload_type().clone())
-        .ok_or(EducationInfoRefusal::MalformedInfo)
 }

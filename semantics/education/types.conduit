@@ -1,0 +1,99 @@
+# Authoritative portable education question, response, assessment, feedback,
+# and progress meaning.
+#
+# Each Text retains the full structured-Info byte ceiling. The containing
+# record remains subject to that same finite ceiling, matching the preceding
+# value/text representation rather than introducing a narrower domain limit.
+
+type EducationHint = {
+    content: Text <= 64KiB
+    hint_identity: Text <= 64KiB
+    question_identity: Text <= 64KiB
+    sequence: Count
+}
+
+type EducationQuestion = {
+    evaluation_profile: Text <= 64KiB
+    hints: sequence EducationHint in 0..=3
+    prompt: Text <= 64KiB
+    question_identity: Text <= 64KiB
+    response_profile: Text <= 64KiB
+}
+
+type EducationAnswer = {
+    content: Text <= 64KiB
+    event_identity: Text <= 64KiB
+    question_identity: Text <= 64KiB
+    response_identity: Text <= 64KiB
+    time_identity: Text <= 64KiB
+}
+
+type EducationResponseEvent = {
+    event_identity: Text <= 64KiB
+    question_identity: Text <= 64KiB
+    response_identity: Text <= 64KiB
+    time_identity: Text <= 64KiB
+}
+
+type EducationRefusedResponse = {
+    question_identity: Text <= 64KiB
+    reason: Text <= 64KiB
+    response_identity: Text <= 64KiB
+}
+
+type EducationResponse =
+    answer EducationAnswer
+    | hint_request EducationResponseEvent
+    | timeout EducationResponseEvent
+    | refused EducationRefusedResponse
+
+type EducationAssessmentOutcome =
+    correct
+    | hint_requested Text <= 64KiB
+    | incorrect
+    | partial Quantity
+    | refused Text <= 64KiB
+    | timeout Text <= 64KiB
+
+type EducationAssessment = {
+    evaluation_profile: Text <= 64KiB
+    outcome: EducationAssessmentOutcome
+    question_identity: Text <= 64KiB
+    response_identity: Text <= 64KiB
+    score: Quantity
+}
+
+type EducationOptionalHint =
+    absent
+    | provided EducationHint
+
+type EducationEvidenceClass =
+    deterministic
+    | model_derived
+
+type EducationFeedbackProvenance = {
+    evidence_class: EducationEvidenceClass
+    profile: Text <= 64KiB
+    revision: Text <= 64KiB
+    source: Text <= 64KiB
+}
+
+type EducationLessonFeedback = {
+    assessment: EducationAssessment
+    hint: EducationOptionalHint
+    message: Text <= 64KiB
+    provenance: EducationFeedbackProvenance
+}
+
+type EducationProgressState =
+    awaiting_response
+    | completed
+    | hinting
+    | refused
+    | timed_out
+
+type EducationProgress = {
+    attempt_count: Count
+    question_identity: Text <= 64KiB
+    state: EducationProgressState
+}

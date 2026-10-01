@@ -20,6 +20,7 @@ members = [
 	"semantics/catalog",
 	"semantics/chat",
 	"semantics/data",
+	"semantics/education",
 	"semantics/finance",
 	"semantics/human",
 	"semantics/language",
