@@ -18,6 +18,11 @@ pub const EDIT_CURRENT_ACTION_ID: &str = "patchbay.edit.current";
 pub const SELECT_FORM_ACTION_PREFIX: &str = "patchbay.form.";
 mod mask;
 pub use mask::{PatchbayMaskMode, PatchbayMaskStage, PatchbayMaskTopology, CHANGE_MASKS_ACTION_ID};
+mod inspection;
+pub use inspection::{
+    project_mask_inspection, MaskInspectionError, MaskInspectionProjection, MaskInspectionRoute,
+    MaskInspectionShow,
+};
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub enum PatchbayApplicationRequest {
