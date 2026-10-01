@@ -6,7 +6,7 @@
 use conduit_core::{semantic_digest, InfoDecodeError, Quantity, QuantityUnit};
 use core::{cmp::Ordering, hash::Hash};
 
-use crate::{OdometryObservation, RangeObservation};
+use crate::{BatteryObservation, OdometryObservation, RangeObservation};
 
 pub const ROBOTICS_RANGE_INFO_ID: &str = "robotics/range-mm-sensor-forward@1";
 pub const ROBOTICS_RANGE_ENCODED_LEN: usize = 8;
@@ -152,26 +152,40 @@ impl Hash for OdometryObservation {
     }
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
-pub struct BatteryObservation {
-    charge_permille: u16,
-    millivolts: u16,
-}
-
 impl BatteryObservation {
     pub fn from_quantities(charge: Quantity, voltage: Quantity) -> Result<Self, InfoDecodeError> {
-        Self::new(
-            quantity_u16("charge-permille", charge, QuantityUnit::Permille, 1_000)?,
-            quantity_u16(
-                "millivolts",
-                voltage,
-                QuantityUnit::Millivolt,
-                MAXIMUM_BATTERY_MILLIVOLTS,
-            )?,
-        )
+        let charge_permille =
+            quantity_u16("charge-permille", charge, QuantityUnit::Permille, 1_000)?;
+        let millivolts = quantity_u16(
+            "millivolts",
+            voltage,
+            QuantityUnit::Millivolt,
+            MAXIMUM_BATTERY_MILLIVOLTS,
+        )?;
+        Ok(Self::new(charge_permille, millivolts)
+            .expect("quantity bounds match generated contracts"))
     }
 
-    pub fn new(charge_permille: u16, millivolts: u16) -> Result<Self, InfoDecodeError> {
+    pub const fn charge(self) -> Quantity {
+        Quantity::new(self.charge_permille() as i64, QuantityUnit::Permille)
+    }
+
+    pub const fn voltage(self) -> Quantity {
+        Quantity::new(self.millivolts() as i64, QuantityUnit::Millivolt)
+    }
+
+    pub const fn encode(self) -> [u8; ROBOTICS_BATTERY_ENCODED_LEN] {
+        let charge = self.charge_permille().to_le_bytes();
+        let voltage = self.millivolts().to_le_bytes();
+        [charge[0], charge[1], voltage[0], voltage[1]]
+    }
+
+    pub fn decode(encoded: &[u8]) -> Result<Self, InfoDecodeError> {
+        exact_len(encoded, ROBOTICS_BATTERY_ENCODED_LEN)?;
+        let charge_permille =
+            u16::from_le_bytes(encoded[0..2].try_into().expect("checked battery length"));
+        let millivolts =
+            u16::from_le_bytes(encoded[2..4].try_into().expect("checked battery length"));
         bounded_i64("charge-permille", i64::from(charge_permille), 0, 1_000)?;
         bounded_i64(
             "millivolts",
@@ -179,40 +193,7 @@ impl BatteryObservation {
             0,
             i64::from(MAXIMUM_BATTERY_MILLIVOLTS),
         )?;
-        Ok(Self {
-            charge_permille,
-            millivolts,
-        })
-    }
-
-    pub const fn charge_permille(self) -> u16 {
-        self.charge_permille
-    }
-
-    pub const fn millivolts(self) -> u16 {
-        self.millivolts
-    }
-
-    pub const fn charge(self) -> Quantity {
-        Quantity::new(self.charge_permille as i64, QuantityUnit::Permille)
-    }
-
-    pub const fn voltage(self) -> Quantity {
-        Quantity::new(self.millivolts as i64, QuantityUnit::Millivolt)
-    }
-
-    pub const fn encode(self) -> [u8; ROBOTICS_BATTERY_ENCODED_LEN] {
-        let charge = self.charge_permille.to_le_bytes();
-        let voltage = self.millivolts.to_le_bytes();
-        [charge[0], charge[1], voltage[0], voltage[1]]
-    }
-
-    pub fn decode(encoded: &[u8]) -> Result<Self, InfoDecodeError> {
-        exact_len(encoded, ROBOTICS_BATTERY_ENCODED_LEN)?;
-        Self::new(
-            u16::from_le_bytes(encoded[0..2].try_into().expect("checked battery length")),
-            u16::from_le_bytes(encoded[2..4].try_into().expect("checked battery length")),
-        )
+        Ok(Self::new(charge_permille, millivolts).expect("codec bounds match generated contracts"))
     }
 
     pub fn semantic_digest(self) -> [u8; 32] {
