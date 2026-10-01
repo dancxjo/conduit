@@ -201,7 +201,7 @@ pub fn project_body_biography(
         });
     }
     Ok(BodyBiographyProjection {
-        schema: "conduit.patchbay/body-biography-projection@1",
+        schema: "conduit.body/body-biography-projection@1",
         body_id: evidence.body_id.clone(),
         friendly_name: evidence.friendly_name.clone(),
         entries,
@@ -268,6 +268,10 @@ mod tests {
             serde_json::from_str(&serde_json::to_string(&evidence).unwrap()).unwrap();
 
         let projection = project_body_biography(&reopened).unwrap();
+        assert_eq!(
+            projection.schema,
+            "conduit.body/body-biography-projection@1"
+        );
         assert_eq!(projection.body_id, body.body_id);
         assert_eq!(projection.entries.len(), 1);
         assert_eq!(projection.entries[0].heading, "Born");
