@@ -45,6 +45,21 @@ type FiniteF32 = F32 finite
 
 type Probability = F32 finite in 0.0..=1.0
 
+type Holder<T> = {
+    value: T
+    history: sequence T <= 2
+}
+
+type TextHolder = Holder<Text <= 16B>
+
+type Nested<T> = {
+    value: T
+}
+
+type UsesNested = {
+    nested: Nested<U16>
+}
+
 type FloatEnvelope = {
     value: F32
     finite: FiniteF32
@@ -679,6 +694,13 @@ mod generated_round_trip {
         ).unwrap();
         let encoded = observation.clone().encode().unwrap();
         assert_eq!(Observation::decode(&encoded).unwrap(), observation);
+
+        let mut history = BoundedSequence::<String, 2>::new();
+        history.push("prior".into()).unwrap();
+        let holder = TextHolder::new(history, "current".into()).unwrap();
+        let encoded = holder.clone().encode().unwrap();
+        assert_eq!(TextHolder::decode(&encoded).unwrap(), holder);
+
     }
 }
 
@@ -833,7 +855,7 @@ fn locked_dependency_types_come_only_from_their_exact_source_bundle() {
     let root_manifest = &root_document.packages[0];
     let root_members = [crate::PackageMemberSource {
         path: "types",
-        source: "type Event = {\n    pitch: example/base/Note\n    history: sequence example/base/Note <= 4\n    previous: example/base/Note?\n}\n\ntype Choice =\n    selected example/base/Note\n    | absent\n",
+        source: "type Envelope<T> = {\n    value: T\n    history: sequence T <= 2\n}\n\ntype NoteEnvelope = Envelope<example/base/Note>\n\ntype Event = {\n    pitch: example/base/Note\n    history: sequence example/base/Note <= 4\n    previous: example/base/Note?\n}\n\ntype Choice =\n    selected example/base/Note\n    | absent\n",
     }];
     let root_bundle = crate::CheckedPackageBundle::from_sources(
         root_manifest_source,
@@ -988,6 +1010,11 @@ fn locked_dependency_types_come_only_from_their_exact_source_bundle() {
         .contains("BoundedSequence<dependency::Note, 4>"));
     assert!(generated.source.contains("Option<dependency::Note>"));
     assert!(generated.source.contains("Selected(dependency::Note)"));
+    assert!(generated.source.contains("pub struct NoteEnvelope"));
+    assert!(generated.source.contains("value: dependency::Note"));
+    assert!(generated
+        .source
+        .contains("BoundedSequence<dependency::Note, 2>"));
     let renamed_path = generate_locked_package_rust_bindings(
         LockedPackageRustBindingInput {
             root,
