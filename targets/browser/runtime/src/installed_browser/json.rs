@@ -168,6 +168,6 @@ fn collection_detail(error: conduit_web::JsonCollectionRefusal) -> u16 {
         MissingField => 106,
         NotBoolean => 107,
         CollectionFull => 108,
-        InvalidValue(error) => error as u16,
+        InvalidValue(error) => error.detail(),
     }
 }
