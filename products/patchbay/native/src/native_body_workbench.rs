@@ -3,9 +3,12 @@
 //! of the same bounded evidence document.
 
 use crate::arguments::NativeBodyEntrance;
-use conduit_body_make::{BodyEvidenceAttachment, BodyEvidenceEntrance};
+use conduit_body_make::{
+    BodyEvidenceAttachment, BodyEvidenceEntrance, CurrentBodyFrame, CurrentBodyLifecycle,
+    CurrentBodyLifecycleAction,
+};
 use patchbay_graph::PatchbayGraph;
-use patchbay_model::{CurrentBodyFrame, ReadableBodyHistory};
+use patchbay_model::ReadableBodyHistory;
 use winit::keyboard::{Key, NamedKey};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -107,19 +110,15 @@ impl NativeBodyWorkbench {
         use crate::lifecycle_flow::{LifecycleFlow, LifecycleFlowAction};
         use patchbay_model::PatchbayAction;
         let action = match self.current.salient_action {
-            patchbay_model::CurrentBodyLifecycleAction::Wake => {
-                Some((PatchbayAction::Wake, "WAKE", "F5"))
-            }
-            patchbay_model::CurrentBodyLifecycleAction::Lull => {
-                Some((PatchbayAction::Lull, "LULL", "F9"))
-            }
-            patchbay_model::CurrentBodyLifecycleAction::None => None,
+            CurrentBodyLifecycleAction::Wake => Some((PatchbayAction::Wake, "WAKE", "F5")),
+            CurrentBodyLifecycleAction::Lull => Some((PatchbayAction::Lull, "LULL", "F9")),
+            CurrentBodyLifecycleAction::None => None,
         };
         LifecycleFlow {
             state_code: match self.current.lifecycle {
-                patchbay_model::CurrentBodyLifecycle::Lulled => "ATTACHED_LULLED",
-                patchbay_model::CurrentBodyLifecycle::Awake { .. } => "ATTACHED_AWAKE",
-                patchbay_model::CurrentBodyLifecycle::Fulfilled { .. } => "ATTACHED_FULFILLED",
+                CurrentBodyLifecycle::Lulled => "ATTACHED_LULLED",
+                CurrentBodyLifecycle::Awake { .. } => "ATTACHED_AWAKE",
+                CurrentBodyLifecycle::Fulfilled { .. } => "ATTACHED_FULFILLED",
             },
             state_text: self.current.status_line.clone(),
             detail: self.current.placement_line.into(),

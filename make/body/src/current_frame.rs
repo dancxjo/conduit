@@ -1,4 +1,4 @@
-//! Human-first current-Body facts for an attached ordinary Patchbay.
+//! Human-first current-Body facts for an attached evidence reader.
 //!
 //! This frame is a bounded projection of already-validated biography evidence.
 //! It does not discover Hosts, classify hardware, plan placement, or retain a
@@ -13,7 +13,7 @@ use conduit_core::{
 };
 use serde::Serialize;
 
-use conduit_body_make::{BodyEvidenceAttachment, BodyEvidenceEntrance, BodyEvidenceEntranceError};
+use crate::{BodyEvidenceAttachment, BodyEvidenceEntrance, BodyEvidenceEntranceError};
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize)]
 pub struct CurrentBodyFrame {
@@ -27,7 +27,7 @@ pub struct CurrentBodyFrame {
     pub admitted_parts: usize,
     pub current_hosts: Vec<CurrentBodyHost>,
     pub physical_hosts: CurrentBodyPhysicalHostSummary,
-    pub patchbay_reader: CurrentBodyPatchbayReader,
+    pub reader_placement: CurrentBodyReaderPlacement,
     pub latest_evidence: CurrentBodyTransition,
     pub salient_action: CurrentBodyLifecycleAction,
     pub status_line: String,
@@ -64,17 +64,17 @@ pub enum CurrentBodyPhysicalHostSummary {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize)]
-pub enum CurrentBodyPatchbayReader {
-    HostedByBody {
+pub enum CurrentBodyReaderPlacement {
+    Hosted {
         plan_id: PlanId,
         implementation_id: ImplementationId,
     },
-    ExternalReadingHostedBody {
+    ExternalReadingHosted {
         hosted_plan_id: PlanId,
         hosted_implementation_id: ImplementationId,
     },
     ExternalReadingUnhostedBody,
-    ExternalReadingWorkspaceBody,
+    ExternalReadingUngraduatedBody,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize)]
@@ -129,19 +129,19 @@ impl CurrentBodyFrame {
             .iter()
             .filter(|part| part.state == MembershipState::Admitted)
             .count();
-        let patchbay_reader = reader(attachment);
-        let placement_line = match patchbay_reader {
-            CurrentBodyPatchbayReader::HostedByBody { .. } => {
-                "Patchbay is hosted by this body through its exact graduation placement."
+        let reader_placement = reader(attachment);
+        let placement_line = match reader_placement {
+            CurrentBodyReaderPlacement::Hosted { .. } => {
+                "This reader is hosted by the body through its exact graduation placement."
             }
-            CurrentBodyPatchbayReader::ExternalReadingHostedBody { .. } => {
-                "This external Patchbay is reading a body that also retained a hosted Patchbay placement."
+            CurrentBodyReaderPlacement::ExternalReadingHosted { .. } => {
+                "This external reader is reading a body that retained a hosted reader placement."
             }
-            CurrentBodyPatchbayReader::ExternalReadingUnhostedBody => {
-                "This external Patchbay is reading a body that graduated without a hosted Patchbay."
+            CurrentBodyReaderPlacement::ExternalReadingUnhostedBody => {
+                "This external reader is reading a body that graduated without a hosted reader."
             }
-            CurrentBodyPatchbayReader::ExternalReadingWorkspaceBody => {
-                "This external Patchbay is reading a body born through Workspace; no Crèche graduation is required."
+            CurrentBodyReaderPlacement::ExternalReadingUngraduatedBody => {
+                "This external reader is reading a body without graduation placement."
             }
         };
         let lifecycle_label = match lifecycle {
@@ -163,7 +163,7 @@ impl CurrentBodyFrame {
             .expect("validated biography evidence always has a record");
 
         Self {
-            schema: "conduit.patchbay/current-body-frame@1",
+            schema: "conduit.body/current-body-frame@1",
             evidence_revision,
             body_id: evidence.body_id.clone(),
             friendly_name: evidence.friendly_name.clone(),
@@ -182,7 +182,7 @@ impl CurrentBodyFrame {
             admitted_parts,
             current_hosts,
             physical_hosts: CurrentBodyPhysicalHostSummary::NotEvidenced,
-            patchbay_reader,
+            reader_placement,
             latest_evidence: CurrentBodyTransition {
                 sequence: latest.sequence,
                 sign_id: latest.sign_id.clone(),
@@ -195,22 +195,22 @@ impl CurrentBodyFrame {
     }
 }
 
-fn reader(attachment: &BodyEvidenceAttachment) -> CurrentBodyPatchbayReader {
+fn reader(attachment: &BodyEvidenceAttachment) -> CurrentBodyReaderPlacement {
     match attachment.entrance() {
         BodyEvidenceEntrance::Hosted {
             plan_id,
             implementation_id,
-        } => CurrentBodyPatchbayReader::HostedByBody {
+        } => CurrentBodyReaderPlacement::Hosted {
             plan_id: plan_id.clone(),
             implementation_id: implementation_id.clone(),
         },
         BodyEvidenceEntrance::ExternalReader => {
             let Some(graduation) = attachment.evidence().graduation.as_ref() else {
-                return CurrentBodyPatchbayReader::ExternalReadingWorkspaceBody;
+                return CurrentBodyReaderPlacement::ExternalReadingUngraduatedBody;
             };
             match graduation.choice {
                 BodyGraduationChoice::HostedPatchbay => {
-                    CurrentBodyPatchbayReader::ExternalReadingHostedBody {
+                    CurrentBodyReaderPlacement::ExternalReadingHosted {
                         hosted_plan_id: graduation
                             .patchbay_plan_id
                             .clone()
@@ -222,7 +222,7 @@ fn reader(attachment: &BodyEvidenceAttachment) -> CurrentBodyPatchbayReader {
                     }
                 }
                 BodyGraduationChoice::ExternalReader => {
-                    CurrentBodyPatchbayReader::ExternalReadingUnhostedBody
+                    CurrentBodyReaderPlacement::ExternalReadingUnhostedBody
                 }
             }
         }

@@ -98,11 +98,11 @@ impl PatchbayApplication {
                         .map(|wake| wake.wake_id.as_str().to_owned())
                 },
                 |workbench| match &workbench.current().lifecycle {
-                    patchbay_model::CurrentBodyLifecycle::Awake { wake_id } => {
+                    conduit_body_make::CurrentBodyLifecycle::Awake { wake_id } => {
                         Some(wake_id.as_str().to_owned())
                     }
-                    patchbay_model::CurrentBodyLifecycle::Lulled => None,
-                    patchbay_model::CurrentBodyLifecycle::Fulfilled { .. } => None,
+                    conduit_body_make::CurrentBodyLifecycle::Lulled => None,
+                    conduit_body_make::CurrentBodyLifecycle::Fulfilled { .. } => None,
                 },
             ),
             plan_id: self

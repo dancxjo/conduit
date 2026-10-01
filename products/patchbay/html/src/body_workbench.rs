@@ -2,7 +2,9 @@
 //! readable `BODY / SIGNS` history. This module adds no Body truth: it retains
 //! the validated evidence bytes and serializes the shared model projections.
 
-use conduit_body_make::{BodyEvidenceAttachment, BodyEvidenceEntrance, BodyEvidenceEntranceError};
+use conduit_body_make::{
+    BodyEvidenceAttachment, BodyEvidenceEntrance, BodyEvidenceEntranceError, CurrentBodyFrame,
+};
 use conduit_core::{BootId, HostId, ImplementationId, PlanId, SignId};
 use conduit_presentation::{
     Presentation, PresentationAction, PresentationActionAvailability, PresentationBasis,
@@ -11,8 +13,8 @@ use conduit_presentation::{
     PresentationRole, PresentationSubject, PresentationText,
 };
 use patchbay_model::{
-    CurrentBodyFrame, FormCandidate, PatchbayNavigationProjection, ReadableBodyHistory,
-    RendererAdapterIdentity, RendererAdapterKind, RendererExecution,
+    FormCandidate, PatchbayNavigationProjection, ReadableBodyHistory, RendererAdapterIdentity,
+    RendererAdapterKind, RendererExecution,
 };
 
 use crate::{
