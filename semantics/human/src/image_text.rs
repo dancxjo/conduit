@@ -3,18 +3,12 @@
 use alloc::{string::String, vec::Vec};
 use conduit_core::{semantic_digest, KindId};
 
-use crate::{ImageObservationReference, ImageObservationRefusal};
+use crate::{ImageObservationReference, ImageObservationRefusal, ImageTextMetadata};
 
 pub const MAXIMUM_IMAGE_TEXT_CAPTION_BYTES: usize = 512;
 pub const MAXIMUM_IMAGE_TEXT_METADATA_ENTRIES: usize = 8;
 pub const MAXIMUM_IMAGE_TEXT_METADATA_KEY_BYTES: usize = 64;
 pub const MAXIMUM_IMAGE_TEXT_METADATA_VALUE_BYTES: usize = 256;
-
-#[derive(Debug, Clone, PartialEq, Eq)]
-pub struct ImageTextMetadata {
-    pub key: String,
-    pub value: String,
-}
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct ImageTextRecord {
@@ -64,16 +58,19 @@ pub fn compose_image_text(
         return Err(ImageTextRefusal::TooManyMetadataEntries);
     }
     for (index, entry) in metadata.iter().enumerate() {
-        if entry.key.is_empty() {
+        if entry.key().is_empty() {
             return Err(ImageTextRefusal::EmptyMetadataKey);
         }
-        if entry.key.len() > MAXIMUM_IMAGE_TEXT_METADATA_KEY_BYTES {
+        if entry.key().len() > MAXIMUM_IMAGE_TEXT_METADATA_KEY_BYTES {
             return Err(ImageTextRefusal::MetadataKeyTooLarge);
         }
-        if entry.value.len() > MAXIMUM_IMAGE_TEXT_METADATA_VALUE_BYTES {
+        if entry.value().len() > MAXIMUM_IMAGE_TEXT_METADATA_VALUE_BYTES {
             return Err(ImageTextRefusal::MetadataValueTooLarge);
         }
-        if metadata[..index].iter().any(|prior| prior.key == entry.key) {
+        if metadata[..index]
+            .iter()
+            .any(|prior| prior.key() == entry.key())
+        {
             return Err(ImageTextRefusal::DuplicateMetadataKey);
         }
     }
@@ -116,10 +113,10 @@ fn digest(
     bytes.extend_from_slice(caption.as_bytes());
     bytes.extend_from_slice(&(metadata.len() as u64).to_le_bytes());
     for entry in metadata {
-        bytes.extend_from_slice(&(entry.key.len() as u64).to_le_bytes());
-        bytes.extend_from_slice(entry.key.as_bytes());
-        bytes.extend_from_slice(&(entry.value.len() as u64).to_le_bytes());
-        bytes.extend_from_slice(entry.value.as_bytes());
+        bytes.extend_from_slice(&(entry.key().len() as u64).to_le_bytes());
+        bytes.extend_from_slice(entry.key().as_bytes());
+        bytes.extend_from_slice(&(entry.value().len() as u64).to_le_bytes());
+        bytes.extend_from_slice(entry.value().as_bytes());
     }
     semantic_digest("human/image-text-record@1", &bytes)
 }

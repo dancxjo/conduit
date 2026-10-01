@@ -9,8 +9,8 @@ mod generated {
 pub use generated::{
     ChordPhase, ChordPhaseCode, CoreChordId, CoreChordIdCode, ExperienceAvailability,
     ExperienceCertainty, ExperienceDomain, ExperienceOrigin, ExperienceRelationKind,
-    ExperienceTemporalRole, HumanMediaKind, KeyTransition, KeyTransitionCode, KeymapRefusal,
-    SourceAvailability, VisualEvidenceClass, VisualExperienceRelationKind,
+    ExperienceTemporalRole, HumanMediaKind, ImageTextMetadata, KeyTransition, KeyTransitionCode,
+    KeymapRefusal, SourceAvailability, VisualEvidenceClass, VisualExperienceRelationKind,
     VisualImpressionDisposition, VisualImpressionDispositionTruncated,
 };
 

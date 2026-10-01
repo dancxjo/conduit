@@ -49,10 +49,7 @@ fn composed() -> (conduit_core::KindId, ImageTextRecord) {
             height: 480,
         },
         "Inspection point A".into(),
-        vec![ImageTextMetadata {
-            key: "operator".into(),
-            value: "Ada".into(),
-        }],
+        vec![ImageTextMetadata::new("operator".into(), "Ada".into()).unwrap()],
     )
     .unwrap();
     (image_profile, record)

@@ -33,10 +33,7 @@ fn composed_record() -> (conduit_core::KindId, conduit_human::ImageTextRecord) {
         &profile,
         image,
         "north wall".into(),
-        vec![conduit_human::ImageTextMetadata {
-            key: "operator".into(),
-            value: "Ada".into(),
-        }],
+        vec![conduit_human::ImageTextMetadata::new("operator".into(), "Ada".into()).unwrap()],
     )
     .unwrap();
     (profile, record)
