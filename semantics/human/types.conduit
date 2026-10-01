@@ -124,6 +124,23 @@ type CoreChordId =
 
 code human/core-chord-id = CoreChordId as u8 from 1
 
+type ControlChordModifier =
+    left
+    | right
+    | both
+
+# The eight exact chord meanings. Usage, phase and compact-code fields are
+# derived compatibility facts rather than redundant authored payload.
+type ChordInfo =
+    cancel_or_escape ControlChordModifier
+    | clear_or_refresh ControlChordModifier
+    | repeat_or_replan ControlChordModifier
+    | palette
+    | inspect
+    | plan
+    | command
+    | activate
+
 type ExperienceDomain =
     visual
     | auditory

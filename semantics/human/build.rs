@@ -23,7 +23,12 @@ fn main() {
         &checked.codes,
         &RustBindingOptions {
             derive_serde_for_variants: true,
-            serde_variant_exclusions: ["KeymapDisposition".into()].into(),
+            serde_variant_exclusions: [
+                "ChordInfo".into(),
+                "ControlChordModifier".into(),
+                "KeymapDisposition".into(),
+            ]
+            .into(),
             copy_record_types: [
                 "ExperienceTemporalPolicy".into(),
                 "ImageRegion".into(),
@@ -59,12 +64,33 @@ fn main() {
                 ("KeyEvent".into(), "new_native".into()),
                 ("ImageObservationReference".into(), "new_native".into()),
             ]),
-            serde_variant_orders: BTreeMap::from([(
-                "KeymapDisposition".into(),
-                ["no_text", "text", "cancelled", "refused"]
+            serde_variant_orders: BTreeMap::from([
+                (
+                    "ControlChordModifier".into(),
+                    ["left", "right", "both"].map(String::from).into(),
+                ),
+                (
+                    "ChordInfo".into(),
+                    [
+                        "cancel_or_escape",
+                        "clear_or_refresh",
+                        "repeat_or_replan",
+                        "palette",
+                        "inspect",
+                        "plan",
+                        "command",
+                        "activate",
+                    ]
                     .map(String::from)
                     .into(),
-            )]),
+                ),
+                (
+                    "KeymapDisposition".into(),
+                    ["no_text", "text", "cancelled", "refused"]
+                        .map(String::from)
+                        .into(),
+                ),
+            ]),
             ..RustBindingOptions::default()
         },
     )
