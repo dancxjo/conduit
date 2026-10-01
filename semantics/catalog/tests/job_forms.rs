@@ -8,8 +8,8 @@ use conduit_form::{
     ProfileCatalog, StartupCatalog,
 };
 use conduit_semantic_catalog::{
-    install_job_catalogs, job_lifecycle_type, job_request_type, JOB_ARGUMENT_SLOTS,
-    JOB_ENVIRONMENT_SLOTS, JOB_EXECUTABLE_AUTHORITY, JOB_RUN_KIND,
+    install_job_catalogs, job_lifecycle_type, job_request_type, JobTerminalOutcome,
+    JOB_ARGUMENT_SLOTS, JOB_ENVIRONMENT_SLOTS, JOB_EXECUTABLE_AUTHORITY, JOB_RUN_KIND,
 };
 
 const SOURCE: &str = include_str!("../../../forms/bounded-job/main.conduit");
@@ -100,23 +100,24 @@ fn schemas_make_all_collections_and_terminal_outcomes_finite() {
         .iter()
         .find(|field| field.name() == "environment")
         .unwrap();
-    assert!(matches!(
-        arguments.value_type().shape(),
-        StructuredInfoTypeShape::Collection { length, .. } if usize::from(length) == JOB_ARGUMENT_SLOTS
-    ));
-    assert!(matches!(
-        environment.value_type().shape(),
-        StructuredInfoTypeShape::Collection { length, .. } if usize::from(length) == JOB_ENVIRONMENT_SLOTS
-    ));
+    assert_nominal_sequence_bound(arguments.value_type(), JOB_ARGUMENT_SLOTS);
+    assert_nominal_sequence_bound(environment.value_type(), JOB_ENVIRONMENT_SLOTS);
 
     let lifecycle_type = job_lifecycle_type();
     let StructuredInfoTypeShape::Variant { cases, .. } = lifecycle_type.shape() else {
         panic!("expected lifecycle variant")
     };
     let tags: Vec<_> = cases.iter().map(|case| case.tag()).collect();
+    for expected in ["started", "running", "terminal"] {
+        assert!(tags.contains(&expected));
+    }
+
+    let terminal = JobTerminalOutcome::semantic_type().unwrap();
+    let StructuredInfoTypeShape::Variant { cases, .. } = terminal.shape() else {
+        panic!("expected terminal outcome variant")
+    };
+    let tags: Vec<_> = cases.iter().map(|case| case.tag()).collect();
     for expected in [
-        "started",
-        "running",
         "completed",
         "failed",
         "cancelled",
@@ -125,6 +126,17 @@ fn schemas_make_all_collections_and_terminal_outcomes_finite() {
     ] {
         assert!(tags.contains(&expected));
     }
+}
+
+fn assert_nominal_sequence_bound(value_type: &conduit_core::StructuredInfoType, maximum: usize) {
+    let StructuredInfoTypeShape::Nominal { representation, .. } = value_type.shape() else {
+        panic!("expected nominal bounded sequence")
+    };
+    assert!(matches!(
+        representation.shape(),
+        StructuredInfoTypeShape::Sequence { maximum_items, .. }
+            if usize::from(maximum_items) == maximum
+    ));
 }
 
 fn host(capabilities: Vec<conduit_core::CapabilityOffer>) -> HostAdvertisement {

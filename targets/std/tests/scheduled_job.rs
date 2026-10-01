@@ -1,24 +1,22 @@
 #![cfg(unix)]
 
 use conduit_core::{
-    kind_id, AuthorityContractId, AuthorityGrantId, BootId, BoundedResourceRef, HostId,
-    ResourceClassId, ResourceExtent, ResourceHandleId, ResourceLifetime,
-    ResourceReferenceAvailability, ResourceReferenceBinding, ResourceSemanticIdentity,
-    ResourceVersionIdentity,
+    kind_id, AuthorityContractId, BootId, BoundedResourceRef, HostId, ResourceClassId,
+    ResourceExtent, ResourceLifetime, ResourceSemanticIdentity, ResourceVersionIdentity,
 };
 use conduit_semantic_catalog::{
-    ready_job_request, JobLifecycleEvent, JobOutputProfile, JobRequest, JobTerminalOutcome,
-    JOB_EXECUTABLE_ACCESS_CLASS, JOB_EXECUTABLE_AUTHORITY, JOB_EXECUTABLE_CONTENT_PROFILE,
+    ready_job_request, JobArguments, JobEnvironment, JobExecutable, JobLifecycleEvent,
+    JobOutputProfile, JobRequest, JobTerminalOutcome, JobText, JOB_EXECUTABLE_ACCESS_CLASS,
+    JOB_EXECUTABLE_CONTENT_PROFILE,
 };
-use conduit_std_host::hosted_job::{
-    run_bounded_job, AdmittedExecutable, HostedJobRefusal, JobCancellation,
-};
+use conduit_std_host::hosted_job::{HostedJobRefusal, JobCancellation};
 use conduit_time::{
     MissedOccurrencePolicy, MonotonicClockIdentity, MonotonicDuration, MonotonicInstant,
     OccurrenceInstant, RecurrenceOccurrence, ScheduledIntent, ScheduledOccurrenceDecision,
     SuspendBehavior, TemporalScale, TriggerObservation, TriggerProfile,
 };
-use std::path::PathBuf;
+
+mod job_support;
 
 #[test]
 fn ready_elapsed_occurrence_executes_only_through_separate_job_authority() {
@@ -67,28 +65,40 @@ fn ready_elapsed_occurrence_executes_only_through_separate_job_authority() {
     );
     let request = ready_job_request(&scheduled, decision).unwrap();
 
-    let mut denied = executable(request);
-    denied.binding.authority_contract = AuthorityContractId::from("authority/not-job");
+    let placement = job_support::planned_job(request);
+    let provider = job_support::provider(request, &placement, "/usr/bin/printf");
+    let mut denied = placement.clone();
+    denied.authority[0].contract_id = AuthorityContractId::from("authority/not-job");
     assert!(matches!(
-        run_bounded_job(request, &denied, &JobCancellation::default()),
-        Err(HostedJobRefusal::Resource(_))
+        provider.run_bounded_job(&denied, request, &JobCancellation::default()),
+        Err(HostedJobRefusal::WrongPlannedAuthority)
     ));
 
-    let report =
-        run_bounded_job(request, &executable(request), &JobCancellation::default()).unwrap();
-    assert_eq!(report.stdout.bytes, b"scheduled-job");
+    let report = provider
+        .run_bounded_job(&placement, request, &JobCancellation::default())
+        .unwrap();
+    assert_eq!(report.stdout.bytes().get().as_slice(), b"scheduled-job");
     assert!(matches!(
         report.lifecycle.last(),
-        Some(JobLifecycleEvent::Terminal(
-            JobTerminalOutcome::Completed { .. }
-        ))
+        Some(JobLifecycleEvent::Terminal(JobTerminalOutcome::Completed(
+            ..
+        )))
     ));
 }
 
 fn request() -> JobRequest {
     let digest = digest("/usr/bin/printf");
-    JobRequest {
-        executable: BoundedResourceRef {
+    JobRequest::new(
+        JobArguments::new(
+            conduit_form::rust_binding::BoundedSequence::try_from_iter([JobText::new(
+                "scheduled-job".into(),
+            )
+            .unwrap()])
+            .unwrap(),
+        )
+        .unwrap(),
+        JobEnvironment::new(Default::default()).unwrap(),
+        JobExecutable::new(BoundedResourceRef {
             identity: ResourceSemanticIdentity::from_digest(digest),
             content_profile: kind_id(JOB_EXECUTABLE_CONTENT_PROFILE),
             access_class: ResourceClassId::from(JOB_EXECUTABLE_ACCESS_CLASS),
@@ -100,33 +110,15 @@ fn request() -> JobRequest {
                 version: ResourceVersionIdentity::from_digest(digest),
                 expires_at: None,
             },
-        },
-        arguments: vec!["scheduled-job".into()],
-        environment: vec![],
-        stdout_profile: JobOutputProfile::Utf8,
-        stderr_profile: JobOutputProfile::Utf8,
-        maximum_stdout_bytes: 32,
-        maximum_stderr_bytes: 32,
-        timeout_millis: 1_000,
-    }
-}
-
-fn executable(request: &JobRequest) -> AdmittedExecutable {
-    AdmittedExecutable {
-        binding: ResourceReferenceBinding {
-            identity: request.executable.identity,
-            version: request.executable.lifetime.version,
-            content_profile: request.executable.content_profile.clone(),
-            access_class: request.executable.access_class.clone(),
-            handle: ResourceHandleId::from("handle:/usr/bin/printf"),
-            authority_contract: AuthorityContractId::from(JOB_EXECUTABLE_AUTHORITY),
-            authority_grant: AuthorityGrantId::from("grant/scheduled-job"),
-            maximum_bytes: 1,
-            maximum_items: Some(1),
-            availability: ResourceReferenceAvailability::Available,
-        },
-        program: PathBuf::from("/usr/bin/printf"),
-    }
+        })
+        .unwrap(),
+        32,
+        32,
+        JobOutputProfile::Utf8,
+        JobOutputProfile::Utf8,
+        1_000,
+    )
+    .unwrap()
 }
 
 fn digest(value: &str) -> [u8; 32] {

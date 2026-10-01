@@ -105,7 +105,7 @@ fn meeting_job_and_model_follow_up_share_time_without_sharing_domain_meaning() {
         job.occurrence.recurrence_identity,
         follow_up.proposed.occurrence.recurrence_identity
     );
-    assert_eq!(job.payload.timeout_millis, 1_000);
+    assert_eq!(*job.payload.timeout_millis(), 1_000);
     assert_eq!(follow_up.provenance, ModelResultProvenance::ModelDerived);
 }
 
@@ -128,8 +128,10 @@ fn local(hour: u8, minute: u8) -> LocalDateTime {
 
 fn job_request() -> JobRequest {
     let digest = [7_u8; 32];
-    JobRequest {
-        executable: BoundedResourceRef {
+    JobRequest::new(
+        conduit_semantic_catalog::JobArguments::new(Default::default()).unwrap(),
+        conduit_semantic_catalog::JobEnvironment::new(Default::default()).unwrap(),
+        conduit_semantic_catalog::JobExecutable::new(BoundedResourceRef {
             identity: ResourceSemanticIdentity::from_digest(digest),
             content_profile: kind_id(JOB_EXECUTABLE_CONTENT_PROFILE),
             access_class: ResourceClassId::from(JOB_EXECUTABLE_ACCESS_CLASS),
@@ -141,13 +143,13 @@ fn job_request() -> JobRequest {
                 version: ResourceVersionIdentity::from_digest(digest),
                 expires_at: None,
             },
-        },
-        arguments: vec![],
-        environment: vec![],
-        stdout_profile: JobOutputProfile::Utf8,
-        stderr_profile: JobOutputProfile::Utf8,
-        maximum_stdout_bytes: 32,
-        maximum_stderr_bytes: 32,
-        timeout_millis: 1_000,
-    }
+        })
+        .unwrap(),
+        32,
+        32,
+        JobOutputProfile::Utf8,
+        JobOutputProfile::Utf8,
+        1_000,
+    )
+    .unwrap()
 }

@@ -1186,6 +1186,14 @@ dependencies = [
 ]
 
 [[package]]
+name = "conduit-process"
+version = "0.1.0"
+dependencies = [
+ "conduit-core",
+ "conduit-form",
+]
+
+[[package]]
 name = "conduit-protected-line"
 version = "0.1.0"
 dependencies = [
@@ -1260,6 +1268,7 @@ dependencies = [
  "conduit-net",
  "conduit-planner",
  "conduit-presentation",
+ "conduit-process",
  "conduit-purpose",
  "conduit-robotics",
  "conduit-text",

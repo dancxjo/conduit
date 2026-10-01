@@ -106,6 +106,7 @@ families are explicit exceptions.
 | `semantics/language/**` | spans, tokens, segments, provenance/evidence, annotations and dependencies | private tokenizer scratch state and parser/recognizer machinery are M; construction/Host errors that never cross a typed Fore are M/C | none; the portable family is native and generated |
 | `semantics/net/**` | addresses, endpoints, DNS, attachment info, record-delivery observations and transcript entries | sockets/connections/queues/trackers are M; protocol frames and typed-record codecs are W | records and bounded network values |
 | `semantics/presentation/**` | Face subjects, roles, relationships, properties, content, actions, interaction arguments, navigation, composition, temporal facts, graphics commands and Show-visible semantic values | mask plans/admission/lifecycle/sign correlation are R; renderers, queues, ledgers and generators are M; bitmap/graphics encodings are W; migration-era `ApplicationView` scaffolding is C until removed | staged Face-family grammar and migration |
+| `semantics/process/**` | executable Job request, argument/environment, output, pressure, usage, lifecycle, exit and terminal-outcome values | planned resource/authority selection and current capability possession are R; OS paths, handles, processes, pipe readers and clocks are M | none; the portable Job family is native and generated |
 | `semantics/purpose/**` | finite portable purpose-state and fulfillment-readiness projections | Body purpose, lifecycle and fulfillment objects remain R in `architecture/body/**`; catalog installation is C | none; the portable projection is native and generated |
 | `semantics/robotics/**` | acceleration, battery, beacon, button, charging, cliff, contact, odometry, orientation, proximity, range and wheel-drop observations | `RoboticsStructuredFixture` and its structured-value refusal are C; fixture/catalog builders are C | none; the portable family is native and generated |
 | `semantics/signal/**` | Signal, Trigger and finite pulse/toggle/trigger configurations | encoders are M/W according to the exact carrier | none; the portable family is native and generated for fixed no-std carriers |
@@ -123,7 +124,7 @@ stated separately rather than treating the entire crate as portable data.
 |---|---|
 | `semantics/ai/**` | Request/result, finite probability, retrieval, grounding, model-description, training-description, relation, citation and typed terminal families that cross Fores are P. Provider sessions, caches, mutable model state, compute offers/runtime identities, vector-index handles/authority, prepared search, lifecycle controllers and host integration are M or R. Provider protocol payloads and model artifact formats are W. Candidate-Form/checker records and fixtures are C. Remaining portable families and their exact blockers are enumerated below; no unclassified AI family remains. |
 | `semantics/alife/**` | Field/cell/parameter/boundary/partition/work/result values are P. Engines, workers, assemblers and distributed realization state are M. Chunk/line transfer frames are W. Remaining migration depends on bounded-array generation and exact payload review. |
-| `semantics/catalog/**` | Catalog installers, `*KindContract`, `*Back`, `Prepared*`, fixtures and conformance helpers are C or M. Domain values still declared here—image/text records, jobs, education/schedule/vision values, garden observations/state, button attempts, palette/pixel regions and typed terminal outcomes—are P and must move to domain-owned `.conduit` source. Navigation goals, poses, routes and trajectories now belong to Robotics Conduitese. |
+| `semantics/catalog/**` | Catalog installers, `*KindContract`, `*Back`, `Prepared*`, fixtures and conformance helpers are C or M. Domain values still declared here—image/text records, education/schedule/vision values, garden observations/state, button attempts, palette/pixel regions and typed terminal outcomes—are P and must move to domain-owned `.conduit` source. Job values now belong to Process Conduitese; navigation goals, poses, routes and trajectories belong to Robotics Conduitese. |
 | `semantics/system-continuity/**` | Reboot request/decision/denial and transition causes exposed through reviewed Fores are P. Host instances, assignments, grants, replacement observations, progress state and acceptance receipts are R. Persistence/wire records are W. |
 
 ### AI ownership completion
@@ -331,20 +332,18 @@ are satisfied.
 | Human generalized-input family | `semantics/human/types.conduit` | generated at build time | yes | yes | button transitions/state, axes, fixed slots, pointer position/delta, touch contacts, rotary steps, gamepad state and pressure evidence are native; catalog fixtures retain only range validation and deterministic sample construction |
 | Tongues speech-message boundaries | `semantics/tongues/types.conduit` | generated at build time with the established JSON adapters | yes | yes | native source owns speakable segments and committed user messages with bounded identities/text and exact commit reason; streaming segmentation and commit evidence remain realization truth |
 | Presentation vision family | `semantics/presentation/types.conduit` | generated at build time | yes | yes | image resources, pixel extent and format, color profiles, evidence and provenance, keypoints, landmarks, color samples, detections, motion, objects, visible text, tracks, impressions, observations, relations and complete experiences are native; the family reuses Human image references and Time instants, while catalog Rust retains only contextual validation and deterministic fixture construction |
+| Process bounded-Job family | `semantics/process/types.conduit` | generated at build time | yes | yes | exact request, argument/environment, output, pressure, usage, lifecycle, refusal, exit and terminal-outcome round trips; exact eight-slot and 65,536-byte bounds; planned host/boot/generation/resource/authority enforcement and adversarial std effect-boundary proof |
 | Remaining P families in `semantics/**` | family-owned `.conduit` source required | binding machinery available | in progress | in progress | exact std/browser/ConduitOS/embedded applicability per family |
 
 The completed foundations remove any general “language support” excuse for a
-handwritten P declaration. Two exact binding-generation gaps remain recorded:
-open generic Types such as AI retrieval candidates cannot yet produce generic
-Rust bindings. A checked `Bytes <= 65536B` leaf both receives the fixed
-`BoundedBytes<4096>` storage type and exceeds the canonical structured leaf
-ceiling of 4,096 bytes, which prevents the Job family from retaining and
-round-tripping its accepted output bound. The Text `MorsePattern` also retains an accepted
-320-segment bound above the canonical structured-collection ceiling of 256; it
-cannot migrate until that ceiling grows without weakening its contract. Other
-remaining blockers must name the exact payload shape, bound, target constraint or unresolved Fore ownership question. As
-migrations land, add reviewed family receipts and keep the classification
-history rather than erasing it.
+handwritten P declaration. Generated generic bindings, payload-rich variants,
+record refinements and full-size bounded byte carriers are available. Checked
+`Bytes <= 65536B` values now retain that exact bound without stack-sized native
+frames, and the canonical structured envelope has finite room for the payload
+and its framing. Remaining blockers must name the exact payload shape, target
+constraint or unresolved Fore ownership question. As migrations land, add
+reviewed family receipts and keep the classification history rather than
+erasing it.
 
 ## Enforcement rules
 

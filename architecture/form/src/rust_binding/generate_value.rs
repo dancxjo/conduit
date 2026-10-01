@@ -148,9 +148,10 @@ fn emit_nominal(
     )
     .expect("String writing is infallible");
     writeln!(out, "        let candidate = Self(value);").expect("String writing is infallible");
-    let directly_checked_integer =
-        contracts.iter().all(|contract| {
+    let directly_checked_integer = !contracts.is_empty()
+        && contracts.iter().all(|contract| {
             contract.representation_path.is_empty()
+                && !contract.contract.constraints.is_empty()
                 && contract.contract.constraints.iter().all(|constraint| {
                     matches!(constraint, ValueConstraint::FixedIntegerRange { .. })
                 })
