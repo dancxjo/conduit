@@ -1,9 +1,7 @@
 //! Finite host-neutral linguistic Info.
 
-use alloc::{vec, vec::Vec};
-use conduit_core::{
-    kind_id, StructuredFieldType, StructuredInfoRefusal, StructuredInfoType, StructuredVariantCase,
-};
+use conduit_core::{StructuredInfoRefusal, StructuredInfoType};
+use conduit_form::rust_binding::record_field_type;
 
 pub const TEXT_SPAN_TYPE: &str = "TextSpan";
 pub const LINGUISTIC_TOKEN_TYPE: &str = "LinguisticToken";
@@ -25,6 +23,7 @@ pub enum LinguisticRefusal {
     WrongTokenCount { expected: u16, actual: usize },
     MalformedInfo,
     Structured(StructuredInfoRefusal),
+    NativeBinding(conduit_form::rust_binding::NativeBindingRefusal),
 }
 
 impl From<StructuredInfoRefusal> for LinguisticRefusal {
@@ -33,216 +32,102 @@ impl From<StructuredInfoRefusal> for LinguisticRefusal {
     }
 }
 
-pub(crate) fn leaf(kind: &str) -> StructuredInfoType {
-    StructuredInfoType::leaf(kind_id(kind)).expect("reviewed linguistic leaf")
+impl From<conduit_form::rust_binding::NativeBindingRefusal> for LinguisticRefusal {
+    fn from(value: conduit_form::rust_binding::NativeBindingRefusal) -> Self {
+        Self::NativeBinding(value)
+    }
 }
 
-fn field(name: &str, value_type: StructuredInfoType) -> StructuredFieldType {
-    StructuredFieldType::new(name, value_type).expect("reviewed linguistic field")
-}
-
-fn case(name: &str, payload_type: StructuredInfoType) -> StructuredVariantCase {
-    StructuredVariantCase::new(name, payload_type).expect("reviewed linguistic case")
-}
-
-fn record(kind: &str, fields: Vec<StructuredFieldType>) -> StructuredInfoType {
-    StructuredInfoType::record(kind_id(kind), fields).expect("reviewed linguistic record")
-}
-
-pub(crate) fn bounded(value_type: StructuredInfoType, length: u16) -> StructuredInfoType {
-    StructuredInfoType::collection(value_type, Some(length))
-        .expect("reviewed linguistic collection")
-}
-
-fn unit_type() -> StructuredInfoType {
-    leaf("value/unit")
-}
-
-fn text_type() -> StructuredInfoType {
-    leaf("value/text")
-}
-
-fn count_type() -> StructuredInfoType {
-    leaf("value/count")
-}
-
-pub fn offset_basis_type() -> StructuredInfoType {
-    crate::LinguisticOffsetBasis::semantic_type()
-        .expect("checked native linguistic offset-basis Type")
-}
-
-pub fn text_span_type() -> StructuredInfoType {
-    record(
-        "language/text-span@1",
-        vec![
-            field("basis", offset_basis_type()),
-            field("end", count_type()),
-            field("start", count_type()),
-            field("text_identity", text_type()),
-        ],
-    )
-}
-
-pub fn token_identity_type() -> StructuredInfoType {
-    record(
-        "language/token-identity@1",
-        vec![
-            field("ordinal", count_type()),
-            field("text_identity", text_type()),
-        ],
-    )
-}
-
-pub(crate) fn optional_text_type() -> StructuredInfoType {
-    StructuredInfoType::variant(
-        kind_id("language/optional-text@1"),
-        vec![case("absent", unit_type()), case("present", text_type())],
-    )
-    .expect("reviewed optional text")
-}
-
-pub(crate) fn token_category_type() -> StructuredInfoType {
-    StructuredInfoType::variant(
-        kind_id("language/token-category@1"),
-        vec![case("punctuation", unit_type()), case("word", unit_type())],
-    )
-    .expect("reviewed token categories")
-}
-
-fn feature_type() -> StructuredInfoType {
-    record(
-        "language/token-feature@1",
-        vec![field("name", text_type()), field("value", text_type())],
-    )
-}
-
-pub(crate) fn feature_slot_type() -> StructuredInfoType {
-    StructuredInfoType::variant(
-        kind_id("language/token-feature-slot@1"),
-        vec![case("feature", feature_type()), case("unused", unit_type())],
-    )
-    .expect("reviewed feature slot")
-}
-
-pub fn linguistic_token_type() -> StructuredInfoType {
-    record(
-        "language/token@1",
-        vec![
-            field("category", token_category_type()),
-            field(
-                "features",
-                bounded(feature_slot_type(), LINGUISTIC_FEATURE_SLOTS),
-            ),
-            field("identity", token_identity_type()),
-            field("lemma", optional_text_type()),
-            field("span", text_span_type()),
-            field("surface", text_type()),
-        ],
-    )
-}
-
-pub(crate) fn segment_kind_type() -> StructuredInfoType {
-    StructuredInfoType::variant(
-        kind_id("language/segment-kind@1"),
-        vec![case("sentence", unit_type())],
-    )
-    .expect("reviewed segment kinds")
-}
-
-pub fn linguistic_segment_type() -> StructuredInfoType {
-    record(
-        "language/segment@1",
-        vec![
-            field("identity", text_type()),
-            field("kind", segment_kind_type()),
-            field("span", text_span_type()),
-        ],
-    )
-}
-
-pub fn provenance_type() -> StructuredInfoType {
-    let evidence = |kind| {
-        record(
-            kind,
-            vec![
-                field("implementation", text_type()),
-                field("revision", text_type()),
-            ],
-        )
+macro_rules! semantic_type {
+    ($function:ident, $native:ty, $description:literal) => {
+        pub fn $function() -> StructuredInfoType {
+            <$native>::semantic_type().expect($description)
+        }
     };
-    StructuredInfoType::variant(
-        kind_id("language/derivation-provenance@1"),
-        vec![
-            case("deterministic_rule", evidence("language/rule-evidence@1")),
-            case("library", evidence("language/library-evidence@1")),
-            case("model", evidence("language/model-evidence@1")),
-        ],
-    )
-    .expect("reviewed provenance cases")
 }
 
-pub fn linguistic_tokens_four_type() -> StructuredInfoType {
-    record(
-        "language/token-sequence-four@1",
-        vec![
-            field("provenance", provenance_type()),
-            field("segments", bounded(linguistic_segment_type(), 1)),
-            field(
-                "tokens",
-                bounded(linguistic_token_type(), LINGUISTIC_TOKEN_COUNT),
-            ),
-        ],
-    )
-}
-
-pub fn linguistic_annotation_type() -> StructuredInfoType {
-    record(
-        "language/span-annotation@1",
-        vec![field("label", text_type()), field("span", text_span_type())],
-    )
-}
+semantic_type!(
+    offset_basis_type,
+    crate::LinguisticOffsetBasis,
+    "checked native linguistic offset-basis Type"
+);
+semantic_type!(
+    text_span_type,
+    crate::TextSpan,
+    "checked native linguistic text-span Type"
+);
+semantic_type!(
+    token_identity_type,
+    crate::LinguisticTokenIdentity,
+    "checked native linguistic token-identity Type"
+);
+semantic_type!(
+    optional_text_type,
+    crate::LinguisticOptionalText,
+    "checked native linguistic optional-text Type"
+);
+semantic_type!(
+    token_category_type,
+    crate::LinguisticTokenCategory,
+    "checked native linguistic token-category Type"
+);
+semantic_type!(
+    feature_slot_type,
+    crate::LinguisticTokenFeatureSlot,
+    "checked native linguistic feature-slot Type"
+);
+semantic_type!(
+    linguistic_token_type,
+    crate::LinguisticToken,
+    "checked native linguistic token Type"
+);
+semantic_type!(
+    segment_kind_type,
+    crate::LinguisticSegmentKind,
+    "checked native linguistic segment-kind Type"
+);
+semantic_type!(
+    linguistic_segment_type,
+    crate::LinguisticSegment,
+    "checked native linguistic segment Type"
+);
+semantic_type!(
+    provenance_type,
+    crate::LinguisticDerivationProvenance,
+    "checked native linguistic provenance Type"
+);
+semantic_type!(
+    linguistic_tokens_four_type,
+    crate::LinguisticTokensFour,
+    "checked native linguistic token bundle Type"
+);
+semantic_type!(
+    linguistic_annotation_type,
+    crate::LinguisticAnnotation,
+    "checked native linguistic annotation Type"
+);
+semantic_type!(
+    dependency_relation_type,
+    crate::LinguisticDependencyRelation,
+    "checked native linguistic dependency-relation Type"
+);
+semantic_type!(
+    dependency_edge_type,
+    crate::LinguisticDependencyEdge,
+    "checked native linguistic dependency-edge Type"
+);
+semantic_type!(
+    annotation_bundle_four_type,
+    crate::AnnotationBundleFour,
+    "checked native linguistic annotation bundle Type"
+);
 
 pub fn linguistic_label_type() -> StructuredInfoType {
-    text_type()
-}
-
-pub(crate) fn dependency_relation_type() -> StructuredInfoType {
-    StructuredInfoType::variant(
-        kind_id("language/dependency-relation@1"),
-        vec![
-            case("modifier", unit_type()),
-            case("punctuation", unit_type()),
-            case("subject", unit_type()),
-        ],
-    )
-    .expect("reviewed dependency relations")
-}
-
-pub fn dependency_edge_type() -> StructuredInfoType {
-    record(
-        "language/dependency-edge@1",
-        vec![
-            field("dependent", token_identity_type()),
-            field("governor", token_identity_type()),
-            field("relation", dependency_relation_type()),
-        ],
-    )
+    record_field_type(&linguistic_annotation_type(), "label")
+        .expect("checked linguistic label field")
 }
 
 pub fn linguistic_annotations_four_type() -> StructuredInfoType {
-    bounded(linguistic_annotation_type(), LINGUISTIC_TOKEN_COUNT)
-}
-
-pub fn annotation_bundle_four_type() -> StructuredInfoType {
-    record(
-        "language/annotation-bundle-four@1",
-        vec![
-            field("annotations", linguistic_annotations_four_type()),
-            field(
-                "dependencies",
-                bounded(dependency_edge_type(), LINGUISTIC_DEPENDENCY_COUNT),
-            ),
-            field("provenance", provenance_type()),
-        ],
-    )
+    record_field_type(&annotation_bundle_four_type(), "annotations")
+        .expect("checked annotation collection field")
 }
