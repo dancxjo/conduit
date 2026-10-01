@@ -203,7 +203,7 @@ fn clean_and_finite_in_flight_checkpoints_reconcile_on_a_new_attachment() {
                     identity: original.identity(),
                     checkpoint: SessionCheckpoint {
                         next_sequence: 0,
-                        transfer: SessionTransferCheckpoint::Offered(0),
+                        transfer: SessionTransferCheckpoint::offered(0).unwrap(),
                         input_closed: false,
                         input_abnormal: false,
                         abnormal_terminal_digest: None,
@@ -278,7 +278,7 @@ fn contradictory_stale_or_different_logical_checkpoints_fail_closed() {
                 identity: original.identity(),
                 checkpoint: SessionCheckpoint {
                     next_sequence: 8,
-                    transfer: SessionTransferCheckpoint::Accepted(7),
+                    transfer: SessionTransferCheckpoint::accepted(7).unwrap(),
                     input_closed: false,
                     input_abnormal: false,
                     abnormal_terminal_digest: None,

@@ -7,7 +7,7 @@ use conduit_core::{
     PortId, SharedPoolId, PROTOCOL_VERSION,
 };
 
-use crate::{WireError, MAX_ID_BYTES};
+use crate::{SessionTerminalDisposition, SessionTerminalDispositionCode, WireError, MAX_ID_BYTES};
 
 const SESSION_MAGIC: [u8; 4] = *b"CNDS";
 const SESSION_WIRE_VERSION: u8 = 5;
@@ -509,13 +509,6 @@ pub struct SessionHello<'a> {
     pub limits: LinkLimits,
 }
 
-#[derive(Debug, Copy, Clone, PartialEq, Eq)]
-pub enum SessionTerminalDisposition {
-    Completed,
-    Cancelled,
-    Failed,
-}
-
 mod reconstruction;
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
@@ -789,11 +782,7 @@ fn message_kind(message: SessionMessage<'_>) -> u8 {
 }
 
 fn terminal_code(disposition: SessionTerminalDisposition) -> u8 {
-    match disposition {
-        SessionTerminalDisposition::Completed => 0,
-        SessionTerminalDisposition::Cancelled => 1,
-        SessionTerminalDisposition::Failed => 2,
-    }
+    SessionTerminalDispositionCode::encode(disposition)[0]
 }
 
 fn supports_session_contract(contract: LineContract) -> bool {
@@ -874,12 +863,7 @@ fn decode_line_contract(cursor: &mut Cursor<'_>) -> Result<LineContract, WireErr
 }
 
 fn decode_terminal(code: u8) -> Result<SessionTerminalDisposition, WireError> {
-    match code {
-        0 => Ok(SessionTerminalDisposition::Completed),
-        1 => Ok(SessionTerminalDisposition::Cancelled),
-        2 => Ok(SessionTerminalDisposition::Failed),
-        _ => Err(WireError::InvalidState),
-    }
+    SessionTerminalDispositionCode::decode(&[code]).map_err(|_| WireError::InvalidState)
 }
 
 fn hello_encoded_len(binding: &SessionBinding) -> Result<usize, WireError> {

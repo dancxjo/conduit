@@ -1,0 +1,21 @@
+# Authoritative portable wire-session meaning. Rust owns byte carriers.
+
+type SessionRole =
+    source
+    | sink
+
+type SessionTerminalDisposition =
+    completed
+    | cancelled
+    | failed
+
+code wire/session-terminal-disposition = SessionTerminalDisposition as u8
+
+type SessionTransferCheckpoint =
+    none
+    | offered {
+        sequence: U64
+    }
+    | accepted {
+        sequence: U64
+    }
