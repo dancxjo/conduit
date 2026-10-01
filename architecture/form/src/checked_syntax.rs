@@ -171,6 +171,19 @@ impl StartupCatalog {
         Ok(())
     }
 
+    /// Returns the authored semantic Type name for an exact structured value Kind.
+    ///
+    /// Presentation surfaces use this to keep the stable human-facing Type name
+    /// while preserving the profile identity as the executable contract.
+    pub fn structured_type_name(&self, value_kind: &conduit_core::KindId) -> Option<&str> {
+        self.structured_types.iter().find_map(|(name, value_type)| {
+            (value_type
+                .profile()
+                .is_ok_and(|profile| profile.value_kind() == value_kind))
+            .then_some(name.as_str())
+        })
+    }
+
     pub(crate) fn insert_native_type(
         &mut self,
         name: impl Into<String>,

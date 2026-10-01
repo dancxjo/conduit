@@ -46,7 +46,7 @@ pub fn json_decode_semantics() -> PortableKindContract {
 pub fn json_semantic_contract(contract: PortableKindContract) -> Kind {
     Kind {
         startup_parameters: Vec::new(),
-        shorthand: Some((port_id("value"), port_id("value"))),
+        shorthand: Some((port_id("source"), port_id("value"))),
         kind_id: contract.kind_id,
         kind_contract_revision: contract.kind_contract_revision,
         inputs: contract.inputs,
@@ -97,7 +97,11 @@ fn contract(kind: &str, revision: &str, input: &str, output: &str) -> PortableKi
 
 fn port(value: &str, direction: PortDirection) -> PortDescriptor {
     PortDescriptor {
-        port_id: port_id("value"),
+        port_id: port_id(if direction == PortDirection::Input {
+            "source"
+        } else {
+            "value"
+        }),
         value_kind: kind_id(value),
         direction,
         temporal: PortTemporal::Value,

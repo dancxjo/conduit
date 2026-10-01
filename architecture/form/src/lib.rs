@@ -416,6 +416,7 @@ impl ProfileCatalog {
     }
 
     pub fn insert(&mut self, definition: KindProjection) -> Result<(), FormError> {
+        validate_unique_port_symbols(&definition)?;
         if self.kinds.contains_key(&definition.kind_id) {
             return Err(FormError::DuplicateKind(
                 definition.kind_id.as_str().to_string(),
@@ -475,9 +476,10 @@ impl ProfileCatalog {
 
     /// Installs canonical Kind truth while retaining the smaller checker view.
     pub fn insert_kind(&mut self, kind: conduit_core::Kind) -> Result<(), FormError> {
+        let projection = KindProjection::from(&kind);
+        validate_unique_port_symbols(&projection)?;
         kind.validate()
             .map_err(|error| FormError::InvalidKind(format!("{error:?}")))?;
-        let projection = KindProjection::from(&kind);
         self.insert(projection)?;
         self.canonical_kinds.insert(kind.kind_id.clone(), kind);
         Ok(())
@@ -632,6 +634,22 @@ impl ProfileCatalog {
         self.insert(boundary.kind_projection())?;
         Ok(boundary)
     }
+}
+
+fn validate_unique_port_symbols(definition: &KindProjection) -> Result<(), FormError> {
+    let mut port_symbols = BTreeSet::new();
+    if definition
+        .inputs
+        .iter()
+        .chain(&definition.outputs)
+        .any(|port| !port_symbols.insert(port.port_id.as_str()))
+    {
+        return Err(FormError::InvalidKind(format!(
+            "duplicate port symbol across the Fore of '{}'",
+            definition.kind_id.as_str()
+        )));
+    }
+    Ok(())
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]

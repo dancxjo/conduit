@@ -14,7 +14,7 @@ form todo/snapshot (
     tasks: value/json@1 >> snapshot: text/json-utf8@1
 ) {
     encode: json/encode
-    tasks >> encode.value
+    tasks >> encode.source
     encode.value >> snapshot
 }
 
@@ -53,7 +53,7 @@ form todo/restore (
     snapshot: text/json-utf8@1 >> tasks: value/json@1
 ) {
     decode: json/decode
-    snapshot >> decode.value
+    snapshot >> decode.source
     decode.value >> tasks
 }
 

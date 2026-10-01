@@ -77,8 +77,8 @@ pub fn vision_experience_kind_contracts() -> Vec<(KindId, Vec<PortDescriptor>, V
     vec![
         contract(
             VISION_NORMALIZE_KIND,
-            vec![port("image", &image, PortDirection::Input)],
-            vec![port("image", &image, PortDirection::Output)],
+            vec![port("source", &image, PortDirection::Input)],
+            vec![port("normalized", &image, PortDirection::Output)],
         ),
         contract(
             VISION_MOTION_KIND,

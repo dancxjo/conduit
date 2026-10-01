@@ -66,16 +66,31 @@ fn lower_form(
     }
 
     let mut local_forms = core::mem::take(&mut form.local_forms);
+    let fore_bindings = form
+        .front
+        .startup_parameters
+        .iter()
+        .map(|parameter| parameter.name.text.clone())
+        .chain(
+            form.front
+                .runtime_ports
+                .iter()
+                .map(|port| port.name.text.clone()),
+        )
+        .collect::<BTreeSet<_>>();
     let mut visible_values = inherited_values.clone();
     visible_values.extend(form_value_bindings(&form));
     let mut visible = inherited.clone();
     let mut declared = BTreeSet::new();
     for child in &mut local_forms {
-        if !declared.insert(child.name.text.clone()) || visible.contains_key(&child.name.text) {
+        if !declared.insert(child.name.text.clone())
+            || visible.contains_key(&child.name.text)
+            || fore_bindings.contains(&child.name.text)
+        {
             return Err(diagnostic(
                 child.name.span,
                 format!(
-                    "local Form '{}' duplicates or shadows a lexical Form binding",
+                    "local Form '{}' duplicates or shadows a visible binding",
                     child.name.text
                 ),
             ));

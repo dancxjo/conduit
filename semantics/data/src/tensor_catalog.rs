@@ -38,7 +38,7 @@ pub fn install_tensor_catalogs(
         .insert(KindProjection {
             kind_id: kind_id(TENSOR_IDENTITY_KIND),
             kind_contract_revision: KindIdentity::from(TENSOR_CONTRACT_REVISION),
-            inputs: vec![port("tensor", PortDirection::Input)],
+            inputs: vec![port("source", PortDirection::Input)],
             outputs: vec![port("tensor", PortDirection::Output)],
             configuration: vec![],
         })

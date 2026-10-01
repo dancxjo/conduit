@@ -13,7 +13,7 @@ form pocket-theremin (
     pitch-distance >> pitch.distance
     pitch.frequency >> tone.frequency
     cadence >> tone.cadence
-    tone.audio >> gain.audio
+    tone.audio >> gain.source-audio
     volume >> gain.amplitude
     gain.audio >> audio
 }.

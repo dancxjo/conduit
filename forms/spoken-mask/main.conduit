@@ -8,7 +8,7 @@ form spoken (
     render: presentation/renderer
     human: face/interaction
 
-    face >> spread.presentation
+    face >> spread.source
     spread.presentation >> render.presentation
     spread.presentation >> human.presentation
     render.show >> human.show

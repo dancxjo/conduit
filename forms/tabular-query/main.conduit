@@ -3,6 +3,6 @@ form tabular-query (
 ) {
     query: tabular/person-query-four
     filter: tabular/filter-active-four
-    query.result >> filter.result
+    query.result >> filter.source
     filter.result >> project(TabularQueryResultFour.rows) >> index(TabularPersonRowsFour[0]) >> select(TabularPersonRowSlot.row, unmatched=refuse) >> project(TabularPersonRow.name) >> name
 }

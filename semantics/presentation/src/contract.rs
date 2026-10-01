@@ -114,7 +114,13 @@ pub fn interaction_outputs() -> alloc::vec::Vec<PortDescriptor> {
 }
 
 pub fn presentation_tee_inputs() -> alloc::vec::Vec<PortDescriptor> {
-    renderer_inputs()
+    vec![PortDescriptor {
+        port_id: port_id("source"),
+        value_kind: kind_id(PRESENTATION_VALUE_KIND),
+        direction: PortDirection::Input,
+        temporal: PortTemporal::Value,
+        abnormal_kind: None,
+    }]
 }
 
 pub fn presentation_tee_outputs() -> alloc::vec::Vec<PortDescriptor> {
@@ -131,7 +137,13 @@ pub fn presentation_tee_outputs() -> alloc::vec::Vec<PortDescriptor> {
 /// another. A terminal `presentation/renderer` consumes the final value and
 /// produces the Manifestation. The ordinary plan Cords define ordering.
 pub fn presenter_stage_inputs() -> alloc::vec::Vec<PortDescriptor> {
-    renderer_inputs()
+    vec![PortDescriptor {
+        port_id: port_id("source"),
+        value_kind: kind_id(PRESENTATION_VALUE_KIND),
+        direction: PortDirection::Input,
+        temporal: PortTemporal::Value,
+        abnormal_kind: None,
+    }]
 }
 
 pub fn presenter_stage_outputs() -> alloc::vec::Vec<PortDescriptor> {
