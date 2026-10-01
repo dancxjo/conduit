@@ -1,9 +1,8 @@
 use conduit_core::{PlanId, SignId};
 use conduit_planner::proof::voyager::{
-    VoyagerCapstoneEvidence, VoyagerProofClass, VoyagerScarKind, VoyagerStageEvidence,
-    VoyagerStageMetrics,
+    explain_voyager_capstone, VoyagerCapstoneEvidence, VoyagerProofClass, VoyagerScarKind,
+    VoyagerStageEvidence, VoyagerStageMetrics,
 };
-use patchbay_model::proof::explain_voyager_capstone;
 
 fn metrics(index: u16) -> VoyagerStageMetrics {
     VoyagerStageMetrics {
@@ -26,7 +25,7 @@ fn metrics(index: u16) -> VoyagerStageMetrics {
 }
 
 #[test]
-fn patchbay_explains_each_scar_without_flattening_the_timeline_to_healed() {
+fn planner_explains_each_scar_without_flattening_the_timeline_to_healed() {
     let scars = [
         VoyagerScarKind::HealthyPreferred,
         VoyagerScarKind::ExactRedundancy,

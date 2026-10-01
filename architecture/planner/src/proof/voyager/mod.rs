@@ -12,6 +12,12 @@ use conduit_core::{verify_plan, Plan, PlanId, SignId};
 mod validation;
 use validation::{validate_inventory, validate_metrics, validate_phenomenon};
 
+mod explanation;
+pub use explanation::{
+    explain_voyager_capstone, VoyagerCapstoneExplanation, VoyagerCapstoneExplanationError,
+    VoyagerScarStageExplanation, MAX_VOYAGER_CAPSTONE_EXPLANATION_BYTES,
+};
+
 pub const MAXIMUM_VOYAGER_DAMAGE_STAGES: usize = 16;
 pub const MAXIMUM_VOYAGER_STAGE_SIGNS: usize = 64;
 pub const MAXIMUM_VOYAGER_ID_BYTES: usize = 256;

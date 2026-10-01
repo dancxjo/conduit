@@ -1,8 +1,7 @@
 //! Renderer-neutral scar-tissue timeline for the Voyager capstone.
 
-use conduit_planner::proof::voyager::{
-    VoyagerCapstoneEvidence, VoyagerProofClass, VoyagerScarKind,
-};
+use super::{VoyagerCapstoneEvidence, VoyagerProofClass, VoyagerScarKind};
+use crate::prelude::*;
 use serde::{Deserialize, Serialize};
 
 pub const MAX_VOYAGER_CAPSTONE_EXPLANATION_BYTES: usize = 32_768;
