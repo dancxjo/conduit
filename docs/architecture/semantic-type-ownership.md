@@ -105,7 +105,7 @@ families are explicit exceptions.
 | `semantics/text/**` | addresses, Morse patterns/segments/transitions and text configuration values | interpreters are M; Kind contracts are C; provider errors remain M unless exported as a typed terminal | bounded text records, payload variants and terminal review |
 | `semantics/time/**` | instants, intervals, civil recurrence, calendar/reminder/meeting values, replay commands/results, temporal windows and policies | stores/controllers and `*Back` executors are M; codec forms are W; Kind configuration/checker contracts are C | recurrence, calendar and replay family migration |
 | `semantics/tongues/**` | acoustic/utterance/speech values, recognition results, language evidence and finite research result values when they cross reviewed Fores | recognizers, committers and training machinery are M; dataset/model file representations are W; research harness reports are C unless intentionally exported | Fore-by-Fore ownership review and bounded payload generation |
-| `semantics/web/**` | HTTP method/target/header/request/response/body and bounded JSON meaning | server transaction machinery is M; HTTP/JSON byte codecs are W; Kind contracts are C | request/response/body records and JSON payloads |
+| `semantics/web/**` | HTTP method/target/header/request/response/body and bounded JSON meaning | server transaction machinery is M; HTTP/JSON byte codecs are W; Kind contracts are C | recursive JSON values with aggregate depth/node/string budgets |
 
 ### Mixed research and catalog crates
 
@@ -282,9 +282,12 @@ are satisfied.
 | AI result, contract-offer, temporal-context and vector-proof validation vocabularies | `semantics/ai/types.conduit` | generated at build time | yes | yes | exact native round trips plus AI behavior and contract suites |
 | Form Library availability and refusal vocabularies | `semantics/form-library/types.conduit` | generated at build time | yes | yes | exact native round trips and capability-reason bounds plus library behavior suite |
 | Body invitation presentation refusal | `semantics/body-invitation/types.conduit` | generated at build time | yes | yes | exact native round trips plus invitation presentation and Body lifecycle suites |
+| Tutorial playback phase vocabulary | `semantics/tutorial/types.conduit` | generated at build time | yes | yes | exact native and Serde round trips plus Tutorial behavior suites |
+| Home destination vocabulary | `semantics/home/types.conduit` | generated at build time | yes | yes | exact native round trips plus finite launcher navigation and Home behavior suites |
 | System-continuity reboot denial | `semantics/system-continuity/types.conduit` | generated at build time | yes | yes | exact native round trip plus continuity and no-std suites |
 | System-continuity reboot progress, pending-state and line-loss vocabularies | `semantics/system-continuity/types.conduit` | generated at build time | yes | yes | exact native round trips plus delegated-reboot behavior suite |
 | HTTP exchange target, headers, body and request/response family | `semantics/web/types.conduit` | generated at build time | yes | yes | exact native bounds and round trips plus HTTP, provider, hosted and ConduitOS consumer suites |
+| JSON parse, collection and summary refusal families | `semantics/web/types.conduit` | generated at build time | yes | yes | exact native payload round trips plus preserved detail-code adapters and std/browser consumer proof |
 | Replay terminal state and civil-resolution policy | `semantics/time/types.conduit` | generated at build time | yes | yes | exact native round trips plus replay, recurrence and std Host consumer suites |
 | Rhythm state and synchronization outcome | `semantics/time/types.conduit` | generated at build time | yes | yes | exact full-domain native round trips plus retained 14-byte codec, synchronization behavior and browser consumer proof |
 | PCM compatibility profile and incompatibility-reason family | `semantics/audio/types.conduit` | generated at build time | yes | yes | exact primitive-domain native round trips plus Audio/Catalog compatibility behavior and Serde proof |
