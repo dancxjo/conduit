@@ -1,0 +1,23 @@
+form durable-note (
+    >> write: Text <= 4KiB
+    >> save-request: SaveRequest...
+    current: $Text <= 4KiB >>
+    saved: &Text... >>
+    loaded: Text >>
+    save-failed: data/save-text-terminal@2e710b62054501d8eb8210a36d4e0f635c5b2ac4a057d37454babcaed109f85a >>
+    load-failed: data/load-text-terminal@6c99fbff6f4b3cb49c2594b9ec9c31cbb605617d2f327483af17a51dd8eae236 >>
+) {
+    note: keep Text("") <= 4KiB for life
+    save: data/save/text
+    load: data/load/text
+
+    write >> note
+    note >> current
+
+    note @ save-request >> save.value
+    save.data >> saved
+    save.data! >> save-failed
+    save.data >> load.data
+    load.value >> loaded
+    load.value! >> load-failed
+}

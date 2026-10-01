@@ -129,5 +129,25 @@ pub(super) fn catalogs(
     conduit_presentation::install_spoken_mask_catalog(&mut startup, &mut profile)?;
     conduit_pete::install_pete_situation_catalog(&mut startup, &mut profile)?;
     conduit_pete::install_pete_memory_catalog(&mut startup, &mut profile)?;
+    conduit_data::install_data_text_catalogs(&mut startup, &mut profile)?;
+    startup.insert_value_kind_alias("SaveRequest", conduit_core::kind_id("data/save-request@1"))?;
+    let text = conduit_core::CheckedValueContract::new(
+        conduit_core::kind_id("value/text"),
+        conduit_data::MAXIMUM_DATA_TEXT_BYTES,
+        Vec::new(),
+    )
+    .map_err(|error| format!("invalid reviewed Text contract: {error:?}"))?;
+    let save_request = conduit_core::CheckedValueContract::new(
+        conduit_core::kind_id("data/save-request@1"),
+        0,
+        Vec::new(),
+    )
+    .map_err(|error| format!("invalid reviewed save request contract: {error:?}"))?;
+    conduit_semantic_catalog::install_current_sample_kind(
+        &text,
+        &save_request,
+        &mut startup,
+        &mut profile,
+    )?;
     Ok((startup, profile))
 }

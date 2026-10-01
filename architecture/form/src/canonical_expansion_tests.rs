@@ -1348,6 +1348,24 @@ fn exact_recovery_discharges_the_containing_form_abnormal_export() {
 }
 
 #[test]
+fn exact_abnormal_terminal_can_bind_a_typed_form_output_without_becoming_payload() {
+    let (startup, profile) = terminal_catalogs();
+    let source = "form child (\n failure: test/fault >>\n) {\n work: test/closing-source\n work! >> failure\n}\n";
+    let checked = check_syntax_document(&parse_syntax_document(source), &startup).unwrap();
+    let child = expand_canonical_form_for_authoring(&checked, "child", &profile).unwrap();
+    assert!(child.abnormal_export.is_none());
+    assert_eq!(child.output_bindings.len(), 1);
+    assert_eq!(
+        child.output_bindings[0].track,
+        conduit_core::ConnectionTrack::AbnormalTerminal
+    );
+    assert_eq!(
+        child.front.outputs().first().unwrap().value_kind.as_str(),
+        "test/fault"
+    );
+}
+
+#[test]
 fn multiple_unresolved_child_abnormals_refuse_implicit_fanin() {
     let (startup, profile) = terminal_catalogs();
     let source = "form child {\n first: test/closing-source\n second: test/closing-source\n}\n";

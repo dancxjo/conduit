@@ -339,7 +339,6 @@ pub(super) fn resolve_reference(
                     descriptor.value_kind.clone(),
                     crate::value_type::canonical_port_temporal(port.temporal),
                     descriptor.abnormal_kind.clone(),
-                    conduit_core::ConnectionTrack::Payload,
                 )]),
                 output: None,
             },
@@ -386,6 +385,7 @@ pub(super) fn resolve_terminal_reference(
 pub(super) fn infer_abnormal_export(
     gears: &[CheckedGear],
     connections: &[CheckedConnection],
+    outputs: &BTreeMap<String, TrackedEndpoint>,
 ) -> Result<Option<TrackedEndpoint>, CanonicalExpansionDiagnostic> {
     let recovery_edges = connections
         .iter()
@@ -423,10 +423,16 @@ pub(super) fn infer_abnormal_export(
             ));
         }
     }
-    let recovered = recovery_edges
+    let mut recovered = recovery_edges
         .iter()
         .map(|connection| (&connection.source_gear_id, &connection.source_port_id))
         .collect::<BTreeSet<_>>();
+    recovered.extend(
+        outputs
+            .values()
+            .filter(|endpoint| endpoint.track == conduit_core::ConnectionTrack::AbnormalTerminal)
+            .map(|endpoint| (&endpoint.gear_id, &endpoint.port.port_id)),
+    );
 
     let mut unresolved = gears
         .iter()
@@ -727,11 +733,10 @@ pub(super) fn connect(
             endpoints.push(sink);
         }
         (
-            StageSource::Internal(mut source),
-            StageSink::FaceOutput(name, value_type, temporal, abnormal_kind, track),
+            StageSource::Internal(source),
+            StageSink::FaceOutput(name, value_type, temporal, abnormal_kind),
         ) => {
-            source.track = track;
-            if track == conduit_core::ConnectionTrack::Payload {
+            if source.track == conduit_core::ConnectionTrack::Payload {
                 require_front_contract(&name, &value_type, temporal, &source.port, false)?;
             } else {
                 let sink = conduit_core::PortDescriptor {
@@ -741,11 +746,11 @@ pub(super) fn connect(
                     temporal,
                     abnormal_kind,
                 };
-                validate_connection_contract(&source.port, &sink, track)?;
+                validate_connection_contract(&source.port, &sink, source.track)?;
             }
             insert_boundary(outputs, name, source)?;
         }
-        (StageSource::FaceInput(_, _, _, _, _), StageSink::FaceOutput(_, _, _, _, _)) => {
+        (StageSource::FaceInput(_, _, _, _, _), StageSink::FaceOutput(_, _, _, _)) => {
             return Err(CanonicalExpansionDiagnostic::new(
                 "CND-FRM-046",
                 "runtime front passthrough must cross an admitted gear".into(),
