@@ -30,3 +30,7 @@ type AccelerationObservation = {
 type ProximityObservation = {
     active-body-sectors: U8 in 0..=31
 }
+
+type ContactObservation = {
+    sectors: U8 in 0..=31
+}
