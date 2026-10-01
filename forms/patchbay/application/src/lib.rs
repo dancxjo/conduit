@@ -32,6 +32,7 @@ mod learned_watch;
 #[cfg(test)]
 mod learned_watch_tests;
 mod mask;
+mod navigation_projection;
 mod presentation_layout;
 pub use mask::{PatchbayMaskMode, PatchbayMaskStage, PatchbayMaskTopology, CHANGE_MASKS_ACTION_ID};
 mod inspection;
@@ -73,6 +74,7 @@ pub use learned_watch::{
     MAX_OBJECTIVE_COMPONENTS, MAX_PROBABILISTIC_ALTERNATIVES, MAX_SIGNAL_POINTS, MAX_TENSOR_AXES,
     MAX_TENSOR_SLICE_VALUES,
 };
+pub use navigation_projection::PatchbayNavigationProjection;
 pub use presentation_layout::{
     fit_measured_text, LayoutCollision, MeasuredTextFit, PresentationLayoutError,
     PresentationOverflow, PresentationPriority, PresentationRegion, PresentationRegionId,

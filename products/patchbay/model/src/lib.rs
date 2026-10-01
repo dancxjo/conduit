@@ -51,7 +51,6 @@ mod portable_demo;
 mod portable_graph_projection;
 mod portable_graphics;
 mod portable_layout;
-mod portable_navigation;
 mod portable_parts_projection;
 mod portable_projection;
 mod portable_resource_projection;
@@ -166,7 +165,6 @@ pub use portable_demo::{
 };
 pub use portable_graphics::{NativeGraphicsMask, NativeGraphicsObligation};
 pub use portable_layout::{DirectLayoutEvaluator, DirectLayoutOperation};
-pub use portable_navigation::PatchbayNavigationProjection;
 pub use portable_projection::PortableProjectionError;
 pub use prewake::*;
 pub use recursive_form_demonstration::recursive_form_demonstration;

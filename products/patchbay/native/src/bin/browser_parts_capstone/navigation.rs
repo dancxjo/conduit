@@ -11,10 +11,10 @@ use conduit_presentation::{
     NavigationOperation, NavigationState, PresentationAspect, PresentationDepth, PresentationPlace,
     PresentationRelationshipKind, PresentationRole, MAX_NAVIGATION_HISTORY,
 };
+use patchbay_application::PatchbayNavigationProjection;
 use patchbay_graph::PatchbayGraph;
 use patchbay_model::{
-    FormEditor, PartsView, PatchbayNavigationProjection, PatchbayPresentation, PatchbayRequestId,
-    PlanDocument,
+    FormEditor, PartsView, PatchbayPresentation, PatchbayRequestId, PlanDocument,
 };
 use serde_json::{json, Value};
 

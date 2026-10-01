@@ -6,9 +6,8 @@ use conduit_presentation::{
     observe_navigation, render_linear_navigation, render_linear_presentation, Presentation,
     PresentationAction, PresentationActionAvailability, RendererSelfInspection,
 };
-use patchbay_model::{
-    GraphItemKind, PatchbayAction, PatchbayNavigationProjection, PatchbayPresentation,
-};
+use patchbay_application::PatchbayNavigationProjection;
+use patchbay_model::{GraphItemKind, PatchbayAction, PatchbayPresentation};
 
 const MAX_FORM_PRESENTATION_LINES: usize = 256;
 

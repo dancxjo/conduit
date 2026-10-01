@@ -13,9 +13,9 @@ use conduit_presentation::{
     PresentationPropertyValue, PresentationRelationship, PresentationRelationshipKind,
     PresentationRole, PresentationSubject, PresentationText,
 };
+use patchbay_application::PatchbayNavigationProjection;
 use patchbay_model::{
-    FormCandidate, PatchbayNavigationProjection, RendererAdapterIdentity, RendererAdapterKind,
-    RendererExecution,
+    FormCandidate, RendererAdapterIdentity, RendererAdapterKind, RendererExecution,
 };
 
 use crate::{
