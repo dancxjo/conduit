@@ -69,6 +69,9 @@ mod degradation;
 #[cfg(test)]
 mod degradation_explanation_tests;
 mod degraded_profile;
+mod degraded_profile_explanation;
+#[cfg(test)]
+mod degraded_profile_explanation_tests;
 mod diagnostic;
 mod diversity;
 mod dormant_readmission;
@@ -161,6 +164,11 @@ pub use degraded_profile::{
     ServiceProfileAdmission, ServiceProfileDisposition, SurvivalPolicy,
     MAXIMUM_DEGRADED_PROFILE_DIMENSIONS, MAXIMUM_DEGRADED_PROFILE_ID_BYTES,
     MAXIMUM_DEGRADED_PROFILE_LABEL_BYTES,
+};
+pub use degraded_profile_explanation::{
+    explain_degraded_profile, explain_degraded_profile_refusal, DegradedProfileExplanation,
+    DegradedProfileExplanationError, DegradedProfileState, ProfileDimensionExplanation,
+    MAXIMUM_DEGRADED_PROFILE_EXPLANATION_BYTES,
 };
 pub use diagnostic::structured_planner_diagnostic;
 pub use diversity::{
