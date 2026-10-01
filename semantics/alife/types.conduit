@@ -42,3 +42,22 @@ type GardenEvolutionRefusal =
     | malformed-enriched-observation
     | step-capacity-exceeded
     | arithmetic-overflow
+
+type GardenState = {
+    vitality: Scalar in 0.000000..=1.000000
+    activity: Scalar in 0.000000..=1.000000
+    step: U16 in 0..=16
+}
+
+type GardenClockObservation = {
+    phase: Scalar in 0.000000..=1.000000
+}
+
+type GardenContactObservation = {
+    intensity: Scalar in 0.000000..=1.000000
+}
+
+type GardenEnrichedObservation = {
+    clock: GardenClockObservation
+    contact: GardenContactObservation
+}
