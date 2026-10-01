@@ -245,8 +245,8 @@ pub fn compatibility_profile() -> conduit_semantic_catalog::SoundCompatibilityPr
     conduit_semantic_catalog::SoundCompatibilityProfile {
         profile_id: SPEAKER_PROFILE.into(),
         seam: conduit_semantic_catalog::SoundSeam::MusicalEvents,
-        minimum_pitch_millihertz: minimum.frequency_millihertz,
-        maximum_pitch_millihertz: maximum.frequency_millihertz,
+        minimum_pitch_millihertz: minimum.frequency_millihertz(),
+        maximum_pitch_millihertz: maximum.frequency_millihertz(),
         maximum_polyphony: 1,
         maximum_events_per_second: DURATION_TICKS_PER_SECOND as u32,
         preserves_velocity: false,

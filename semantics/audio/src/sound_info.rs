@@ -4,10 +4,14 @@
 //! PCM handles, OPL registers, and host callback facts belong to realizations.
 
 use conduit_core::{semantic_digest, Quantity, QuantityConversionRefusal, QuantityUnit};
+use core::{
+    cmp::Ordering,
+    hash::{Hash, Hasher},
+};
 
 use crate::{
     Gate, GateCode, ModulationDestination, ModulationDestinationCode, MusicalControl,
-    MusicalControlEvent,
+    MusicalControlEvent, MusicalPitch,
 };
 
 pub const SOUND_TONE_INFO_ID: &str = "sound/tone-intent@1";
@@ -41,13 +45,6 @@ pub enum SoundInfoError {
 /// Frequency is milliHertz, so microtonal pitches are not forced through MIDI
 /// key numbers. `detune_microcents` records transpose/fine detune relative to
 /// the declared A4 reference without making equal temperament compulsory.
-#[derive(Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
-pub struct MusicalPitch {
-    pub frequency_millihertz: u64,
-    pub a4_reference_millihertz: u64,
-    pub detune_microcents: i32,
-}
-
 impl MusicalPitch {
     pub fn from_quantities(
         frequency: Quantity,
@@ -69,27 +66,7 @@ impl MusicalPitch {
             a4_reference_millihertz,
             detune_microcents,
         )
-    }
-
-    pub fn new(
-        frequency_millihertz: u64,
-        a4_reference_millihertz: u64,
-        detune_microcents: i32,
-    ) -> Result<Self, SoundInfoError> {
-        if !(MINIMUM_PITCH_MILLIHERTZ..=MAXIMUM_PITCH_MILLIHERTZ).contains(&frequency_millihertz) {
-            return Err(SoundInfoError::OutOfRange("frequency-millihertz"));
-        }
-        if !(MINIMUM_A4_MILLIHERTZ..=MAXIMUM_A4_MILLIHERTZ).contains(&a4_reference_millihertz) {
-            return Err(SoundInfoError::OutOfRange("a4-reference-millihertz"));
-        }
-        if detune_microcents.unsigned_abs() > MAXIMUM_ABSOLUTE_DETUNE_MICROCENTS as u32 {
-            return Err(SoundInfoError::OutOfRange("detune-microcents"));
-        }
-        Ok(Self {
-            frequency_millihertz,
-            a4_reference_millihertz,
-            detune_microcents,
-        })
+        .map_err(|_| SoundInfoError::OutOfRange("musical-pitch"))
     }
 
     /// Constructs a twelve-tone equal-tempered pitch without exposing MIDI
@@ -118,24 +95,25 @@ impl MusicalPitch {
             return Err(SoundInfoError::OutOfRange("frequency-millihertz"));
         }
         Self::new(frequency as u64, a4_reference_millihertz, detune_microcents)
+            .map_err(|_| SoundInfoError::OutOfRange("musical-pitch"))
     }
 
     pub const fn frequency(self) -> Quantity {
-        Quantity::new(self.frequency_millihertz as i64, QuantityUnit::Millihertz)
+        Quantity::new(self.frequency_millihertz() as i64, QuantityUnit::Millihertz)
     }
 
     pub const fn a4_reference(self) -> Quantity {
         Quantity::new(
-            self.a4_reference_millihertz as i64,
+            self.a4_reference_millihertz() as i64,
             QuantityUnit::Millihertz,
         )
     }
 
     pub const fn encode(self) -> [u8; 20] {
         let mut out = [0; 20];
-        let frequency = self.frequency_millihertz.to_le_bytes();
-        let reference = self.a4_reference_millihertz.to_le_bytes();
-        let detune = self.detune_microcents.to_le_bytes();
+        let frequency = self.frequency_millihertz().to_le_bytes();
+        let reference = self.a4_reference_millihertz().to_le_bytes();
+        let detune = self.detune_microcents().to_le_bytes();
         let mut i = 0;
         while i < 8 {
             out[i] = frequency[i];
@@ -157,6 +135,36 @@ impl MusicalPitch {
             u64::from_le_bytes(array(encoded, 8)?),
             i32::from_le_bytes(array(encoded, 16)?),
         )
+        .map_err(|_| SoundInfoError::OutOfRange("musical-pitch"))
+    }
+}
+
+impl PartialOrd for MusicalPitch {
+    fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
+        Some(self.cmp(other))
+    }
+}
+
+impl Ord for MusicalPitch {
+    fn cmp(&self, other: &Self) -> Ordering {
+        (
+            self.frequency_millihertz(),
+            self.a4_reference_millihertz(),
+            self.detune_microcents(),
+        )
+            .cmp(&(
+                other.frequency_millihertz(),
+                other.a4_reference_millihertz(),
+                other.detune_microcents(),
+            ))
+    }
+}
+
+impl Hash for MusicalPitch {
+    fn hash<H: Hasher>(&self, state: &mut H) {
+        self.frequency_millihertz().hash(state);
+        self.a4_reference_millihertz().hash(state);
+        self.detune_microcents().hash(state);
     }
 }
 

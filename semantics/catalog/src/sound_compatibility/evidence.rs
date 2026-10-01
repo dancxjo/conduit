@@ -20,7 +20,7 @@ pub struct NormalizedNoteEvidence {
 
 impl NormalizedNoteEvidence {
     pub fn exact(event: MusicalNoteEvent) -> Self {
-        Self::admitted(event, event.pitch.frequency_millihertz)
+        Self::admitted(event, event.pitch.frequency_millihertz())
     }
 
     pub fn admitted(event: MusicalNoteEvent, admitted_pitch_millihertz: u64) -> Self {
@@ -28,7 +28,7 @@ impl NormalizedNoteEvidence {
             occurrence: event.occurrence.0,
             gate: event.gate,
             order: event.order,
-            requested_pitch_millihertz: event.pitch.frequency_millihertz,
+            requested_pitch_millihertz: event.pitch.frequency_millihertz(),
             admitted_pitch_millihertz,
         }
     }

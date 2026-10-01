@@ -31,6 +31,12 @@ type MusicalControlEvent = {
     order: U32
 }
 
+type MusicalPitch = {
+    frequency-millihertz: U64 in 8000..=40000000
+    a4-reference-millihertz: U64 in 400000..=480000
+    detune-microcents: I32 in -24000000..=24000000
+}
+
 type PcmSampleRepresentation =
     signed16-little-endian
     | signed24-little-endian

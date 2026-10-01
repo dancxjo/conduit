@@ -245,7 +245,7 @@ impl ReferenceSynth {
         for voice in self.voices.iter_mut().flatten() {
             let envelope = voice.envelope.next_level(self.profile);
             let increment = phase_increment(
-                voice.pitch.frequency_millihertz,
+                voice.pitch.frequency_millihertz(),
                 self.pitch_bend_amount_millionths,
                 self.pitch_bend_range_microcents,
                 lfo,

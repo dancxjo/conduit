@@ -14,8 +14,22 @@ fn main() {
         &checked.codes,
         &RustBindingOptions {
             derive_serde_for_variants: true,
-            copy_record_types: ["PcmClipProfile".into()].into(),
-            direct_checked_record_constructors: ["MusicalControlEvent".into()].into(),
+            copy_record_types: ["MusicalPitch".into(), "PcmClipProfile".into()].into(),
+            copy_record_value_getters: ["MusicalPitch".into()].into(),
+            direct_checked_record_constructors: [
+                "MusicalControlEvent".into(),
+                "MusicalPitch".into(),
+            ]
+            .into(),
+            record_constructor_orders: [(
+                "MusicalPitch".into(),
+                vec![
+                    "frequency-millihertz".into(),
+                    "a4-reference-millihertz".into(),
+                    "detune-microcents".into(),
+                ],
+            )]
+            .into(),
             ..RustBindingOptions::default()
         },
     )

@@ -13,9 +13,9 @@ impl ToneBase for FakeBase {
         self.transitions += 1;
         Ok(RealizedTone {
             correlation: intent.correlation,
-            requested_millihertz: intent.pitch.frequency_millihertz,
+            requested_millihertz: intent.pitch.frequency_millihertz(),
             realized_millihertz: if self.active {
-                intent.pitch.frequency_millihertz
+                intent.pitch.frequency_millihertz()
             } else {
                 0
             },
