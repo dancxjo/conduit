@@ -20,12 +20,13 @@ use conduit_semantic_catalog::TextLabLineLossReceipt;
 use conduit_semantic_catalog::{
     exact_text_lab_split_plan, TEXT_LAB_BROWSER_HOST, TEXT_LAB_RETURN_LINE,
 };
+use patchbay_application::PatchbayNavigationProjection;
 use serde::{Deserialize, Serialize};
 
 use crate::text_lab_explanation_loss::validate_loss;
 use crate::{
-    portable_content::ContentBuilder, FormEditor, PartsView, PatchbayGraph,
-    PatchbayNavigationProjection, PatchbayPresentation, PatchbayRequestId, PlanDocument,
+    portable_content::ContentBuilder, FormEditor, PartsView, PatchbayGraph, PatchbayPresentation,
+    PatchbayRequestId, PlanDocument,
 };
 
 const SOURCE: &str = include_str!("../../../../forms/text-lab/main.conduit");

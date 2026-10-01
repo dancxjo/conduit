@@ -188,7 +188,7 @@ pub fn cross_host_demonstration_snapshot() -> Result<RendererSnapshot, CrossHost
     let mut snapshot = result?;
     snapshot.attach_parts(parts)?;
     let navigation =
-        patchbay_model::PatchbayNavigationProjection::for_embodied(&snapshot.presentation)
+        patchbay_application::PatchbayNavigationProjection::for_embodied(&snapshot.presentation)
             .map_err(CrossHostRendererError::Presentation)?;
     snapshot.attach_navigation(navigation)?;
     Ok(snapshot)

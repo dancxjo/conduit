@@ -1,8 +1,7 @@
 use crate::RendererSnapshot;
 use conduit_core::{BootId, HostId, SignId};
-use patchbay_model::{
-    PatchbayNavigationProjection, RendererAdapterIdentity, RendererAdapterKind, RendererExecution,
-};
+use patchbay_application::PatchbayNavigationProjection;
+use patchbay_model::{RendererAdapterIdentity, RendererAdapterKind, RendererExecution};
 
 pub fn demonstration_snapshot() -> Result<RendererSnapshot, String> {
     let (presentation, parts) = patchbay_model::portable_demonstration_with_parts_and_adapter(
@@ -46,7 +45,7 @@ pub fn recursive_form_demonstration_snapshot() -> Result<RendererSnapshot, Strin
     )
     .map_err(|error| error.to_string())?;
     execution.validate().map_err(|error| error.to_string())?;
-    patchbay_model::PatchbayEntranceState::enter(&execution.presentation)
+    patchbay_application::PatchbayEntranceState::enter(&execution.presentation)
         .map_err(|error| format!("recursive Form entrance: {error:?}"))?;
     let mut snapshot =
         RendererSnapshot::from_execution(execution).map_err(|error| error.to_string())?;

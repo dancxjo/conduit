@@ -20,7 +20,7 @@ use crate::{
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct LocalFrontDoorProjection {
     pub presentation: Presentation,
-    pub navigation: crate::PatchbayNavigationProjection,
+    pub navigation: patchbay_application::PatchbayNavigationProjection,
     pub parts: PartsView,
 }
 

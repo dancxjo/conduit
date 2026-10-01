@@ -19,7 +19,6 @@ mod form_editor_catalogs;
 mod form_editor_error;
 mod form_edits;
 mod front_configuration;
-mod front_door;
 mod front_door_projection;
 mod front_door_session;
 mod front_door_topology;
@@ -27,7 +26,6 @@ mod front_door_transition;
 mod gear_realization;
 mod host_adapter;
 mod interaction;
-mod layout;
 mod live_conversation_flow;
 mod llm_documentary;
 mod llm_embodiment_presentation;
@@ -44,14 +42,10 @@ mod mask_product_tests;
 mod parts_truth_explanation_tests;
 mod parts_view;
 mod patchbay_backs;
-mod portable_composition;
 mod portable_content;
 mod portable_correlations;
 mod portable_demo;
 mod portable_graph_projection;
-mod portable_graphics;
-mod portable_layout;
-mod portable_navigation;
 mod portable_parts_projection;
 mod portable_projection;
 mod portable_resource_projection;
@@ -99,10 +93,6 @@ pub use form_editor::{
     CheckedRevision, EditorDiagnostic, FormDocumentView, FormEditor, FormEditorError, GraphCord,
     GraphCordStage, GraphForm, GraphItem, GraphItemKind, SourceSelection,
 };
-pub use front_door::{
-    EntranceAction, EntranceLayer, EntranceRefusal, EntranceUpdateDisposition,
-    PatchbayEntranceState, MAX_ENTRANCE_ACTIONS,
-};
 pub use front_door_session::{LocalFrontDoor, LocalFrontDoorProjection};
 pub use front_door_topology::MAX_FRONT_DOOR_LINES;
 pub use gear_realization::{
@@ -115,10 +105,6 @@ pub use interaction::{
     PatchbayEditBasis, PatchbayInteraction, PatchbayInteractionRequest,
     PatchbayInteractionRequestId, PatchbayInvocation, PatchbayInvocationOutcome, PatchbayRefusal,
     MAX_INTERACTION_HISTORY, MAX_INTERACTION_ID_BYTES, MAX_INTERACTION_VALUE_BYTES,
-};
-pub use layout::{
-    CordRoute, GearPlacement, PatchbayLayout, PatchbayLayoutError, MAX_GROUP_NAME_BYTES,
-    MAX_LAYOUT_COORDINATE, PATCHBAY_LAYOUT_VERSION,
 };
 pub use live_conversation_flow::*;
 #[cfg(test)]
@@ -156,17 +142,11 @@ pub use patchbay_workbench_host_contract::{
     ControlReceiptProjection, PatchbayHostAdapter, PatchbayHostExecution, PatchbayHostProfile,
     PlayExecutionProjection,
 };
-pub use portable_composition::{
-    constrained_frame_layout, constrained_graphics_scene, DirectObligation, DirectPresentation,
-};
 #[cfg(test)]
 pub use portable_demo::{portable_demonstration, portable_demonstration_with_parts};
 pub use portable_demo::{
     portable_demonstration_with_adapter, portable_demonstration_with_parts_and_adapter,
 };
-pub use portable_graphics::{NativeGraphicsMask, NativeGraphicsObligation};
-pub use portable_layout::{DirectLayoutEvaluator, DirectLayoutOperation};
-pub use portable_navigation::PatchbayNavigationProjection;
 pub use portable_projection::PortableProjectionError;
 pub use prewake::*;
 pub use recursive_form_demonstration::recursive_form_demonstration;
@@ -215,6 +195,8 @@ mod gear_realization_tests;
 mod graphical_patchbay_tests;
 #[cfg(test)]
 mod interaction_tests;
+#[cfg(test)]
+mod layout_tests;
 #[cfg(test)]
 mod maker_environment_tests;
 #[cfg(test)]
