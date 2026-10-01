@@ -5,16 +5,7 @@ pub const MAXIMUM_REPLAY_COMMAND_BYTES: usize = 8;
 const MAGIC: [u8; 4] = *b"RCTL";
 const VERSION: u8 = 1;
 
-#[derive(Debug, Copy, Clone, PartialEq, Eq)]
-pub enum ReplayCommand {
-    Start,
-    Stop,
-    Pause,
-    Resume,
-    Restart,
-    Step,
-    Fail { code: u16 },
-}
+use crate::ReplayCommand;
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
 pub enum ReplayCommandCodecRefusal {
@@ -30,7 +21,7 @@ pub fn encode_replay_command_into(
     command: ReplayCommand,
     output: &mut [u8],
 ) -> Result<usize, ReplayCommandCodecRefusal> {
-    let length = if matches!(command, ReplayCommand::Fail { .. }) {
+    let length = if matches!(&command, ReplayCommand::Fail(_)) {
         8
     } else {
         6
@@ -40,17 +31,17 @@ pub fn encode_replay_command_into(
     }
     output[..4].copy_from_slice(&MAGIC);
     output[4] = VERSION;
-    output[5] = match command {
+    output[5] = match &command {
         ReplayCommand::Start => 0,
         ReplayCommand::Stop => 1,
         ReplayCommand::Pause => 2,
         ReplayCommand::Resume => 3,
         ReplayCommand::Restart => 4,
         ReplayCommand::Step => 5,
-        ReplayCommand::Fail { .. } => 6,
+        ReplayCommand::Fail(_) => 6,
     };
-    if let ReplayCommand::Fail { code } = command {
-        output[6..8].copy_from_slice(&code.to_le_bytes());
+    if let ReplayCommand::Fail(failure) = command {
+        output[6..8].copy_from_slice(&failure.code().to_le_bytes());
     }
     Ok(length)
 }
@@ -77,9 +68,8 @@ pub fn decode_replay_command(encoded: &[u8]) -> Result<ReplayCommand, ReplayComm
                 return Err(ReplayCommandCodecRefusal::Truncated);
             }
             (
-                ReplayCommand::Fail {
-                    code: u16::from_le_bytes([encoded[6], encoded[7]]),
-                },
+                ReplayCommand::fail(u16::from_le_bytes([encoded[6], encoded[7]]))
+                    .expect("every U16 is a valid replay failure code"),
                 8,
             )
         }
