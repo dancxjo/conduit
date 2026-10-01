@@ -171,7 +171,7 @@ pub fn image_text_record_value(
         .map_err(ImageTextValueRefusal::InvalidRecord)?;
     let text = |value: &str| leaf_value("value/text", value.as_bytes().to_vec());
     let mut slots = Vec::with_capacity(conduit_human::MAXIMUM_IMAGE_TEXT_METADATA_ENTRIES);
-    for entry in &record.metadata {
+    for entry in record.metadata.get().iter() {
         let metadata = StructuredInfoValue::record(
             metadata_type(),
             vec![
@@ -203,7 +203,7 @@ pub fn image_text_record_value(
             field_value("caption", text(&record.caption)?),
             field_value(
                 "content_digest",
-                leaf_value("value/bytes", record.content_digest.to_vec())?,
+                leaf_value("value/bytes", record.content_digest.get().to_vec())?,
             ),
             field_value("image", image_observation_value(&record.image)?),
             field_value("metadata", metadata),
@@ -249,11 +249,15 @@ pub fn image_text_record_from_value(
             _ => return Err(ImageTextValueRefusal::Malformed),
         }
     }
+    let metadata = conduit_form::rust_binding::BoundedSequence::try_from_iter(metadata)
+        .map_err(|_| ImageTextValueRefusal::Malformed)?;
     let record = conduit_human::ImageTextRecord {
         image,
         caption,
-        metadata,
-        content_digest: digest,
+        metadata: conduit_human::ImageTextMetadataEntries::new(metadata)
+            .map_err(|_| ImageTextValueRefusal::Malformed)?,
+        content_digest: conduit_human::ImageTextContentDigest::new(digest)
+            .map_err(|_| ImageTextValueRefusal::Malformed)?,
     };
     record
         .validate(expected_image_profile)

@@ -31,7 +31,8 @@ fn main() {
             .into(),
             copy_record_value_getters: ["KeyEvent".into()].into(),
             direct_checked_record_constructors: ["ImageObservationReference".into()].into(),
-            public_record_fields: ["ImageObservationReference".into()].into(),
+            public_record_fields: ["ImageObservationReference".into(), "ImageTextRecord".into()]
+                .into(),
             record_constructor_orders: BTreeMap::from([
                 (
                     "KeyEvent".into(),

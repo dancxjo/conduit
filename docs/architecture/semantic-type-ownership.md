@@ -179,6 +179,7 @@ are satisfied.
 | Calendar, proposal, recurrence, schedule and temporal-window refusal vocabularies | `semantics/time/types.conduit` | generated at build time | yes | yes | exact native round trips plus temporal behavior suites |
 | Linguistic offset basis | `semantics/language/types.conduit` | generated at build time | yes | yes | native binding and linguistic suites |
 | Human image-text metadata record | `semantics/human/types.conduit` | generated at build time | yes | yes | exact native text boundaries and round trip plus preserved image-text digest and codec suites |
+| Human image-text record, digest shape and refusal vocabulary | `semantics/human/types.conduit` | generated at build time | yes | yes | exact native nested-record round trip plus preserved contextual duplicate-key/integrity validation, bounded codec and Catalog structured-value suites |
 | Human image-region record | `semantics/human/types.conduit` | generated at build time | yes | yes | exact native U16 boundary round trips, retained image-relative validation and unchanged vision structured codec suites |
 | Audio tone terminal | `semantics/audio/types.conduit` | generated at build time | yes | yes | exact terminal round trip and audio suites |
 | Data measurement plot point | `semantics/data/types.conduit` | generated at build time | yes | yes | exact native scalar bounds and round trip plus preserved bounded-series wire codec and projection proof |

@@ -62,6 +62,31 @@ type ImageObservationReference = {
     height: U16 in 1..=4096
 }
 
+type ImageTextMetadataEntries = sequence ImageTextMetadata <= 8
+
+type ImageTextContentDigest = collection U8 = 32
+
+type ImageTextRecord = {
+    image: ImageObservationReference
+    caption: Text <= 512B not in [""]
+    metadata: ImageTextMetadataEntries
+    content_digest: ImageTextContentDigest
+}
+
+type ImageTextRefusal =
+    invalid_image
+    | wrong_image_profile
+    | invalid_image_dimensions
+    | image_too_large
+    | empty_caption
+    | caption_too_large
+    | too_many_metadata_entries
+    | empty_metadata_key
+    | metadata_key_too_large
+    | metadata_value_too_large
+    | duplicate_metadata_key
+    | integrity_mismatch
+
 code human/key-transition = KeyTransition as u8
 
 type ChordPhase =

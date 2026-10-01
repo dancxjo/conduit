@@ -31,7 +31,7 @@ fn record() -> (conduit_core::KindId, ImageTextRecord) {
     )
     .unwrap();
     assert_eq!(
-        record.content_digest,
+        *record.content_digest.get(),
         [
             230, 35, 97, 179, 53, 152, 137, 190, 104, 187, 56, 23, 64, 169, 10, 23, 97, 188, 88,
             152, 215, 44, 179, 188, 206, 155, 20, 152, 254, 71, 14, 222,
