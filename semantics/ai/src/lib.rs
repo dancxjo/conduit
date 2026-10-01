@@ -2,7 +2,9 @@
 
 extern crate alloc;
 
-#[allow(dead_code)]
+// Native bounded-sequence payloads intentionally retain their admitted inline
+// capacity rather than hiding a play-time allocation behind enum indirection.
+#[allow(dead_code, clippy::large_enum_variant)]
 mod generated {
     include!(concat!(env!("OUT_DIR"), "/semantic_types.rs"));
 }
@@ -20,8 +22,9 @@ pub use generated::{
     LearnedLifecycleRefusal, LlmDeterminismProfile, LlmImplementationControl,
     LlmInterruptionReason, LlmPlanningRefusal, LlmTerminalOutcome, LocalModelCachePolicy,
     LocalModelFailure, LocalModelKindProfile, LocalModelLifecycleState, LocalModelOfferInvalidity,
-    LocalModelRefusal, LocalModelTerminal, LogScoreKind, MechanismScore, Metering,
-    ModelCachePolicy, ModelCachePolicyBounded, ModelCompatibilityRefusal, ModelComputeLifecycle,
+    LocalModelRefusal, LocalModelTerminal, LogScoreKind, MechanismScore, Metering, MissingModality,
+    MissingModalityPolicy, MissingModalityPolicyPermitDeclared, ModelCachePolicy,
+    ModelCachePolicyBounded, ModelCompatibilityRefusal, ModelComputeLifecycle,
     ModelComputeOperation, ModelComputeRefusal, ModelEvidenceRefusal, ModelFailure,
     ModelInvocationTerminal, ModelOperation, ModelOperationCode, ModelPortPresence,
     ModelPortPresenceCode, ModelRefusal, ModelResultDisposition, ModelResultInvalidity,

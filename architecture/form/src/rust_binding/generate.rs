@@ -13,6 +13,9 @@ pub struct RustBindingOptions {
     /// This never participates in semantic identity and requires the consuming
     /// crate to provide `serde` with derive support.
     pub derive_serde_for_variants: bool,
+    /// Authored Type names whose generated Rust variants must retain a
+    /// pre-existing non-Serde API even when other variants opt into Serde.
+    pub serde_variant_exclusions: BTreeSet<String>,
     /// Optional Rust enum declaration order for preserving an established
     /// Serde variant-index ABI. Keys are authored Type names and values are an
     /// exhaustive, unique list of authored variant tags. This is binding-only
@@ -244,6 +247,8 @@ fn emit_type(
             writeln!(out, "}}\n").expect("String writing is infallible");
         }
         StructuredInfoTypeShape::Variant { cases, .. } => {
+            let derive_serde = options.derive_serde_for_variants
+                && !options.serde_variant_exclusions.contains(&value_type.name);
             let ordered_cases =
                 if let Some(order) = options.serde_variant_orders.get(&value_type.name) {
                     if order.len() != cases.len() {
@@ -275,13 +280,7 @@ fn emit_type(
                     StructuredInfoTypeShape::Record { .. }
                 ) {
                     let payload = format!("{rust_name}{}", rust_pascal_identifier(case.tag())?);
-                    emit_payload_struct(
-                        out,
-                        &payload,
-                        case.payload_type(),
-                        names,
-                        options.derive_serde_for_variants,
-                    )?;
+                    emit_payload_struct(out, &payload, case.payload_type(), names, derive_serde)?;
                 }
             }
             let copy_payloads = ordered_cases.iter().all(|case| {
@@ -290,15 +289,15 @@ fn emit_type(
                     StructuredInfoTypeShape::Record { .. }
                 ) && copy_type(case.payload_type())
             });
-            let derives = if unit_only && options.derive_serde_for_variants {
+            let derives = if unit_only && derive_serde {
                 "Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, serde::Serialize, serde::Deserialize"
             } else if unit_only {
                 "Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash"
-            } else if copy_payloads && options.derive_serde_for_variants {
+            } else if copy_payloads && derive_serde {
                 "Debug, Clone, Copy, PartialEq, Eq, serde::Serialize, serde::Deserialize"
             } else if copy_payloads {
                 "Debug, Clone, Copy, PartialEq, Eq"
-            } else if options.derive_serde_for_variants {
+            } else if derive_serde {
                 "Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize"
             } else {
                 "Debug, Clone, PartialEq, Eq"

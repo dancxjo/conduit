@@ -14,6 +14,7 @@ fn main() {
         &checked.codes,
         &RustBindingOptions {
             derive_serde_for_variants: true,
+            serde_variant_exclusions: ["MissingModalityPolicy".into()].into(),
             serde_variant_orders: [(
                 "SourceExtractionProfile".into(),
                 ["text_utf8", "structured_items", "resource_metadata"]

@@ -134,6 +134,30 @@ fn rust_only_variant_order_preserves_serde_abi_without_changing_type_identity() 
 }
 
 #[test]
+fn serde_variant_exclusion_preserves_a_non_serde_binding() {
+    let types = checked_types();
+    let generated = generate_rust_bindings(
+        &types,
+        &RustBindingOptions {
+            derive_serde_for_variants: true,
+            serde_variant_exclusions: [("MusicEvent").into()].into(),
+            ..RustBindingOptions::default()
+        },
+    )
+    .unwrap();
+
+    assert!(generated
+        .source
+        .contains("#[derive(Debug, Clone, PartialEq, Eq)]\npub struct MusicEventNote"));
+    assert!(generated
+        .source
+        .contains("#[derive(Debug, Clone, PartialEq, Eq)]\npub enum MusicEvent"));
+    assert!(generated.source.contains(
+        "#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, serde::Serialize, serde::Deserialize)]\npub enum Direction"
+    ));
+}
+
+#[test]
 fn generated_contracts_preserve_semantic_openness() {
     let checked = crate::check_syntax_document(
         &crate::parse_syntax_document(
