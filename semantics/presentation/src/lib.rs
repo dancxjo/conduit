@@ -21,11 +21,12 @@ pub use generated::{
     FaceUtteranceClauseKind, FaceUtteranceProvenance, FaceUtteranceProvenanceAction,
     FaceUtteranceProvenanceActionArgument, FaceUtteranceProvenanceComposition,
     FaceUtteranceProvenanceProperty, FaceUtteranceProvenanceRelationship,
-    FaceUtteranceProvenanceSubject, FaceUtteranceProvenanceText, GeneratedContentRole,
-    GeneratedManifestationDisposition, GraphicsClipClass, GraphicsCommandKind,
-    GraphicsCommandKindCode, GraphicsPaintRole, GraphicsPaintRoleCode, GraphicsShapeStyle,
-    GraphicsShapeStyleCode, GraphicsTextRole, GraphicsTextRoleCode, LayoutAlignment, LayoutAxis,
-    PresentationDisclosureLevel, PresentationMechanismKind, PresentationTemporalRole, StatusKind,
+    FaceUtteranceProvenanceSubject, FaceUtteranceProvenanceText, GeneratedActionAffordance,
+    GeneratedContentRole, GeneratedManifestationDisposition, GraphicsClipClass,
+    GraphicsCommandKind, GraphicsCommandKindCode, GraphicsPaintRole, GraphicsPaintRoleCode,
+    GraphicsShapeStyle, GraphicsShapeStyleCode, GraphicsTextRole, GraphicsTextRoleCode,
+    LayoutAlignment, LayoutAxis, PresentationDisclosureLevel, PresentationMechanismKind,
+    PresentationTemporalRole, StatusKind,
 };
 
 mod application_event;

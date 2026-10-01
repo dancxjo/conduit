@@ -202,6 +202,34 @@ fn constrained_copy_record_validation_does_not_clone_the_candidate() {
 }
 
 #[test]
+fn selected_serde_record_can_retain_deny_unknown_fields() {
+    let types = checked_types();
+    let generated = generate_rust_bindings(
+        &types,
+        &RustBindingOptions {
+            serde_record_types: ["Toggle".into()].into(),
+            serde_deny_unknown_record_types: ["Toggle".into()].into(),
+            ..RustBindingOptions::default()
+        },
+    )
+    .unwrap();
+    assert!(generated.source.contains(
+        "#[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]\n#[serde(deny_unknown_fields)]\npub struct Toggle"
+    ));
+
+    assert!(matches!(
+        generate_rust_bindings(
+            &types,
+            &RustBindingOptions {
+                serde_deny_unknown_record_types: ["Toggle".into()].into(),
+                ..RustBindingOptions::default()
+            }
+        ),
+        Err(RustBindingGenerationError::InvalidSemanticType)
+    ));
+}
+
+#[test]
 fn generated_contracts_preserve_semantic_openness() {
     let checked = crate::check_syntax_document(
         &crate::parse_syntax_document(

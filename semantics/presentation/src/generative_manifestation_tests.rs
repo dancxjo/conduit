@@ -141,10 +141,7 @@ fn candidate(request: &GenerativePresenterRequest) -> GeneratedManifestationCand
             source_text_index: 0,
             bytes: b"The diagram emphasizes the mitochondrion. You may answer.".to_vec(),
         }],
-        affordances: vec![GeneratedActionAffordance {
-            action_identity: "lesson/answer".into(),
-            source_presentation_revision: 4,
-        }],
+        affordances: vec![GeneratedActionAffordance::new("lesson/answer".into(), 4).unwrap()],
         correlations: vec![
             GeneratedSemanticCorrelation::Relationship {
                 index: 0,

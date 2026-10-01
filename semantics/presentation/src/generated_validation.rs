@@ -231,7 +231,7 @@ impl GeneratedValidationSession {
         }
         if accepted {
             for affordance in &candidate.affordances {
-                if !assessment.accepted_correlations.iter().any(|item| matches!(item, GeneratedSemanticCorrelation::Action { identity, .. } if identity == &affordance.action_identity)) {
+                if !assessment.accepted_correlations.iter().any(|item| matches!(item, GeneratedSemanticCorrelation::Action { identity, .. } if identity == affordance.action_identity())) {
                     return Err(GeneratedValidationError::InvalidAcceptedCorrelations);
                 }
             }
@@ -351,7 +351,7 @@ fn exact_action_correlations(envelope: &GeneratedValidationEnvelope) -> bool {
                 .candidate
                 .affordances
                 .iter()
-                .any(|affordance| &affordance.action_identity == identity),
+                .any(|affordance| affordance.action_identity() == identity),
             _ => false,
         })
 }
