@@ -32,6 +32,7 @@ mod learned_watch;
 #[cfg(test)]
 mod learned_watch_tests;
 mod mask;
+mod presentation_layout;
 pub use mask::{PatchbayMaskMode, PatchbayMaskStage, PatchbayMaskTopology, CHANGE_MASKS_ACTION_ID};
 mod inspection;
 pub use inspection::{
@@ -71,6 +72,11 @@ pub use learned_watch::{
     TensorWatch, TrainingPhase, TrainingWatch, MAX_LEARNED_WATCH_PROJECTIONS,
     MAX_OBJECTIVE_COMPONENTS, MAX_PROBABILISTIC_ALTERNATIVES, MAX_SIGNAL_POINTS, MAX_TENSOR_AXES,
     MAX_TENSOR_SLICE_VALUES,
+};
+pub use presentation_layout::{
+    fit_measured_text, LayoutCollision, MeasuredTextFit, PresentationLayoutError,
+    PresentationOverflow, PresentationPriority, PresentationRegion, PresentationRegionId,
+    PresentationRegionMode, ResponsivePatchbayLayout, MAX_PRESENTATION_REGIONS,
 };
 pub use topology::*;
 pub use topology_projection::project_mask_topology;

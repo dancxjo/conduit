@@ -155,7 +155,7 @@ pub fn draw_patchbay_with_debugger(
         .ok()
         .zip(u16::try_from(height).ok())
         .and_then(|(width, height)| {
-            patchbay_model::ResponsivePatchbayLayout::allocate(
+            patchbay_application::ResponsivePatchbayLayout::allocate(
                 width,
                 height,
                 100,
@@ -164,13 +164,13 @@ pub fn draw_patchbay_with_debugger(
             .ok()
         });
     let shell_region = |id| shell.as_ref().and_then(|layout| layout.region(id));
-    let header_height = shell_region(patchbay_model::PresentationRegionId::HeaderMeaning)
+    let header_height = shell_region(patchbay_application::PresentationRegionId::HeaderMeaning)
         .map_or(HEADER_HEIGHT, |region| i32::from(region.bounds.height));
-    let footer_height = shell_region(patchbay_model::PresentationRegionId::FooterMeaning)
+    let footer_height = shell_region(patchbay_application::PresentationRegionId::FooterMeaning)
         .map_or(FOOTER_HEIGHT, |region| i32::from(region.bounds.height));
-    let nav_width = shell_region(patchbay_model::PresentationRegionId::Navigator)
+    let nav_width = shell_region(patchbay_application::PresentationRegionId::Navigator)
         .map_or(NAV_WIDTH, |region| i32::from(region.bounds.width));
-    let inspector_width = shell_region(patchbay_model::PresentationRegionId::Inspector)
+    let inspector_width = shell_region(patchbay_application::PresentationRegionId::Inspector)
         .map_or(0, |region| i32::from(region.bounds.width));
     let mut targets = Vec::with_capacity(MAX_HIT_TARGETS);
     draw_regions(

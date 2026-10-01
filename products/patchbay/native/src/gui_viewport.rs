@@ -25,13 +25,14 @@ pub(super) fn canvas_rect(width: u32, height: u32) -> PixelRect {
 
 pub(super) fn canvas_rect_for(width: u32, height: u32, inspector_requested: bool) -> PixelRect {
     if let (Ok(width16), Ok(height16)) = (u16::try_from(width), u16::try_from(height)) {
-        if let Ok(layout) = patchbay_model::ResponsivePatchbayLayout::allocate(
+        if let Ok(layout) = patchbay_application::ResponsivePatchbayLayout::allocate(
             width16,
             height16,
             100,
             inspector_requested,
         ) {
-            if let Some(region) = layout.region(patchbay_model::PresentationRegionId::Canvas) {
+            if let Some(region) = layout.region(patchbay_application::PresentationRegionId::Canvas)
+            {
                 return PixelRect {
                     x: i32::from(region.bounds.x),
                     y: i32::from(region.bounds.y),

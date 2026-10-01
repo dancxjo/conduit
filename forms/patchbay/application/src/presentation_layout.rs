@@ -1,5 +1,6 @@
-//! Finite renderer-consumable allocation for Patchbay's ordinary shell.
+//! Finite renderer-consumable allocation for the Patchbay workbench Mask.
 
+use alloc::vec::Vec;
 use conduit_presentation::LayoutRect;
 
 pub const MAX_PRESENTATION_REGIONS: usize = 7;

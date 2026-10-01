@@ -59,7 +59,6 @@ mod portable_resource_projection;
 mod portable_route_projection;
 mod portable_vector_search_projection;
 mod portable_world_projection;
-mod presentation_layout;
 mod prewake;
 pub mod proof;
 mod recursive_form_demonstration;
@@ -174,11 +173,6 @@ pub use portable_graphics::{NativeGraphicsMask, NativeGraphicsObligation};
 pub use portable_layout::{DirectLayoutEvaluator, DirectLayoutOperation};
 pub use portable_navigation::PatchbayNavigationProjection;
 pub use portable_projection::PortableProjectionError;
-pub use presentation_layout::{
-    fit_measured_text, LayoutCollision, MeasuredTextFit, PresentationLayoutError,
-    PresentationOverflow, PresentationPriority, PresentationRegion, PresentationRegionId,
-    PresentationRegionMode, ResponsivePatchbayLayout, MAX_PRESENTATION_REGIONS,
-};
 pub use prewake::*;
 pub use recursive_form_demonstration::recursive_form_demonstration;
 pub use renderer_conformance::{
