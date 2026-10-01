@@ -21,7 +21,7 @@ pub use generate::{
     RustBindingModule, RustBindingOptions,
 };
 pub use generate_package::{
-    generate_locked_package_rust_bindings, LockedPackageBindingSource,
+    generate_locked_package_rust_bindings, ExternalNativeRustBinding, LockedPackageBindingSource,
     LockedPackageRustBindingInput, LockedRustBindingGenerationError,
 };
 pub use primitive::{primitive_from_structured, primitive_into_structured, NativePrimitive};
