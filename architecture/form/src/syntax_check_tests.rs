@@ -1232,13 +1232,21 @@ fn pure_expressions_admit_only_explicit_integer_widening_and_variant_tags() {
         );
     }
 
-    for expression in ["value/u16(.width) == 1", "value/i64(.width) == 1"] {
+    let mixed = "type Mixed = {\n    width: U32\n    origin: I32\n    where value/i64(.origin) + value/i64(.width) * 4 <= 2147483647\n}\n";
+    check_syntax_document(&parse_syntax_document(mixed), &StartupCatalog::new())
+        .expect("U32 widens safely to I64 because I64 represents its entire domain");
+
+    for expression in [
+        "value/u16(.width) == 1",
+        "value/i32(.width) == 1",
+        "value/i64(value/u64(.width)) == 1",
+    ] {
         let source = format!("type Bad = {{\n    width: U32\n    where {expression}\n}}\n");
         let error = check_syntax_document(&parse_syntax_document(&source), &StartupCatalog::new())
             .expect_err("narrowing and signedness changes refuse");
         assert!(error
             .message
-            .contains("must widen without changing signedness"));
+            .contains("must widen while representing the entire source domain"));
     }
 }
 

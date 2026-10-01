@@ -202,6 +202,16 @@ fn intrinsic_call(
                     .signed()
                     .map_err(|_| PortableExpressionEvaluationRefusal::InvalidProgram)?,
             )
+        } else if signed_integer(target) {
+            FixedInteger::from_signed(
+                target,
+                i128::try_from(
+                    source
+                        .unsigned()
+                        .map_err(|_| PortableExpressionEvaluationRefusal::InvalidProgram)?,
+                )
+                .map_err(|_| PortableExpressionEvaluationRefusal::InvalidProgram)?,
+            )
         } else {
             FixedInteger::from_unsigned(
                 target,
