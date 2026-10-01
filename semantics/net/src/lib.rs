@@ -8,7 +8,7 @@ mod generated {
 }
 
 pub use generated::{
-    ApplicationNetworkRefusal, DnsRecordKind, DnsTtl, NetworkJoinError, NetworkTransport,
+    ApplicationNetworkRefusal, DnsQuery, DnsRecordKind, DnsTtl, NetworkJoinError, NetworkTransport,
     RecordTranscriptDirection, RecordTranscriptTerminal, RecordTranscriptTerminalFailed,
     RecordTranscriptTerminalRefused,
 };

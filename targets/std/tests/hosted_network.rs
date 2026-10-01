@@ -12,12 +12,15 @@ use std::time::Duration;
 
 #[test]
 fn std_resolver_emits_typed_candidates_without_inventing_ttl() {
-    let result = resolve_dns(&DnsQuery {
-        name: "localhost".to_string(),
-        port: 80,
-        record_kind: DnsRecordKind::Address,
-        transport: NetworkTransport::Tcp,
-    });
+    let result = resolve_dns(
+        &DnsQuery::new(
+            "localhost".to_string(),
+            80,
+            DnsRecordKind::Address,
+            NetworkTransport::Tcp,
+        )
+        .unwrap(),
+    );
     let DnsResult::Current(resolution) = result else {
         panic!("localhost should resolve")
     };
@@ -101,12 +104,13 @@ fn stale_lost_and_refused_remain_distinct() {
     ));
     assert!(matches!(
         resolve_dns_with_provider(
-            &DnsQuery {
-                name: "localhost".to_string(),
-                port: 80,
-                record_kind: DnsRecordKind::Address,
-                transport: NetworkTransport::Tcp,
-            },
+            &DnsQuery::new(
+                "localhost".to_string(),
+                80,
+                DnsRecordKind::Address,
+                NetworkTransport::Tcp,
+            )
+            .unwrap(),
             NetworkProviderAvailability::Lost,
         ),
         DnsResult::ProviderLost { .. }
