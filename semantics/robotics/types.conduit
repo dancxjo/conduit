@@ -49,3 +49,7 @@ type OdometryObservation = {
     lateral-mm: I32 in -10000000..=10000000
     yaw-microradians: I32 in -3141593..=3141593
 }
+
+type ButtonSetObservation = {
+    bits: U32
+}

@@ -3,7 +3,8 @@
 use conduit_core::{semantic_digest, InfoDecodeError};
 
 use crate::{
-    AccelerationObservation, BeaconKind, BeaconKindCode, ProximityObservation, BODY_SECTOR_MASK,
+    AccelerationObservation, BeaconKind, BeaconKindCode, ButtonSetObservation,
+    ProximityObservation, BODY_SECTOR_MASK,
 };
 use core::{cmp::Ordering, hash::Hash};
 
@@ -92,31 +93,43 @@ impl BeaconObservation {
 
 /// A finite set of semantic button positions. The meaning assigned to each
 /// position belongs to the exact producing implementation/Presentation.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
-pub struct ButtonSetObservation(u32);
-
 impl ButtonSetObservation {
-    pub const fn new(pressed: u32) -> Self {
-        Self(pressed)
+    pub fn pressed(self) -> u32 {
+        *self.bits()
     }
 
-    pub const fn pressed(self) -> u32 {
-        self.0
-    }
-
-    pub const fn encode(self) -> [u8; ROBOTICS_BUTTONS_ENCODED_LEN] {
-        self.0.to_le_bytes()
+    pub fn encode(self) -> [u8; ROBOTICS_BUTTONS_ENCODED_LEN] {
+        self.pressed().to_le_bytes()
     }
 
     pub fn decode(encoded: &[u8]) -> Result<Self, InfoDecodeError> {
         exact_len(encoded, ROBOTICS_BUTTONS_ENCODED_LEN)?;
         Ok(Self::new(u32::from_le_bytes(
             encoded.try_into().expect("checked button-set length"),
-        )))
+        ))
+        .expect("U32 has no additional generated constraint"))
     }
 
     pub fn semantic_digest(self) -> [u8; 32] {
         semantic_digest(ROBOTICS_BUTTONS_INFO_ID, &self.encode())
+    }
+}
+
+impl PartialOrd for ButtonSetObservation {
+    fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
+        Some(self.cmp(other))
+    }
+}
+
+impl Ord for ButtonSetObservation {
+    fn cmp(&self, other: &Self) -> Ordering {
+        self.pressed().cmp(&other.pressed())
+    }
+}
+
+impl Hash for ButtonSetObservation {
+    fn hash<H: core::hash::Hasher>(&self, state: &mut H) {
+        self.pressed().hash(state);
     }
 }
 
@@ -246,7 +259,7 @@ mod tests {
 
     #[test]
     fn buttons_and_body_frame_acceleration_are_exact_and_bounded() {
-        let buttons = ButtonSetObservation::new(0x8000_0001);
+        let buttons = ButtonSetObservation::new(0x8000_0001).unwrap();
         assert_eq!(ButtonSetObservation::decode(&buttons.encode()), Ok(buttons));
         let acceleration = AccelerationObservation::new(9_810, -20, 0).unwrap();
         assert_eq!(
