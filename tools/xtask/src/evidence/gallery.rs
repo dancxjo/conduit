@@ -14,11 +14,13 @@ mod conduitos;
 mod little_life;
 mod retention;
 mod two_fronts;
+mod verticals;
 
 use conduitos::{write_conduitos_commit, write_conduitos_current};
 use little_life::{write_little_life_commit, write_little_life_current};
 use retention::{trim_indexed_history_to_bounds, validate_existing_tree};
 use two_fronts::{write_two_fronts_commit, write_two_fronts_current};
+use verticals::write_vertical_catalogue;
 
 const GALLERY_SCHEMA: &str = "conduit.visual-evidence-gallery/v1";
 const RETAINED_COMMITS: usize = 32;
@@ -187,6 +189,7 @@ pub fn publish_gallery(request: &GalleryRequest) -> Result<(), String> {
     }
     fs::write(site_root.join(".nojekyll"), b"")
         .map_err(|error| format!("cannot write gallery marker: {error}"))?;
+    write_vertical_catalogue(&site_root, &request.commit)?;
     write_gallery_index(&site_root, &index, conduitos.is_some())?;
     trim_indexed_history_to_bounds(&site_root, &mut index, conduitos.is_some())?;
     println!(
@@ -426,7 +429,7 @@ fn write_root_index(root: &Path, index: &GalleryIndex, has_conduitos: bool) -> R
             .collect::<String>()
     );
     let body = format!(
-        "<header class=\"gallery-hero\"><p class=\"eyebrow\">Conduit's flagship proof</p><h1>One Journey.<br><em>Three Bodies.</em></h1><p class=\"lede\">One portable meaning, lived independently through radically different machinery. Follow a Body from birth to fulfillment—or turn the view sideways and compare the same semantic moment across all three.</p><div class=\"thesis\" aria-label=\"The Conduit thesis\"><span>Meaning stays</span><i aria-hidden=\"true\">→</i><span>machinery changes</span><i aria-hidden=\"true\">→</i><span>truth remains exact</span></div></header><main><!-- conduit-three-body-flagship@2 --><section class=\"flagship awaiting\" aria-labelledby=\"flagship-title\"><div><p class=\"eyebrow\">The shared semantic spine</p><h2 id=\"flagship-title\">Birth to fulfillment, three times honestly</h2><p class=\"lede\">The publication appears here only when three independently verified biographies belong to this exact accepted commit.</p></div><div class=\"body-lanes\"><article><b>A</b><h3>ConduitOS</h3><p>Native, freestanding, graphical</p></article><article><b>B</b><h3>Browser</h3><p>DOM, WASM, interactive</p></article><article><b>C</b><h3>Screen-free</h3><p>Spoken, multi-Host, generative</p></article></div>{semantic_spine}<p class=\"boundary\"><strong>Evidence not yet admitted for this commit.</strong> No neighboring proof is promoted to fill an empty track.</p></section><!-- conduit-three-body-flagship:end --><section class=\"evidence-library\" aria-labelledby=\"library-title\"><p class=\"eyebrow\">The evidence library</p><h2 id=\"library-title\">Other true stories</h2><p class=\"section-intro\">Smaller proofs of particular boundaries. Each says exactly what happened—and what did not.</p><section class=\"cards\">{two_fronts_card}{little_life_card}{conduitos_card}</section></section><details class=\"history\"><summary>Provenance, accepted evidence, and history</summary><p>Current accepted main: <code>{}</code></p>{patchbay}{conduitos}{two_fronts}{little_life}<ul>{history}</ul><p>History retains the latest {RETAINED_COMMITS} published main commits. Semantic proof remains authoritative; media are documentary evidence.</p></details></main>",
+        "<header class=\"gallery-hero\"><p class=\"eyebrow\">Conduit's flagship proof</p><h1>One Journey.<br><em>Three Bodies.</em></h1><p class=\"lede\">One portable meaning, lived independently through radically different machinery. Follow a Body from birth to fulfillment—or turn the view sideways and compare the same semantic moment across all three.</p><div class=\"thesis\" aria-label=\"The Conduit thesis\"><span>Meaning stays</span><i aria-hidden=\"true\">→</i><span>machinery changes</span><i aria-hidden=\"true\">→</i><span>truth remains exact</span></div></header><main><p><a class=\"primary\" href=\"verticals/\">Browse every closed and upcoming vertical</a></p><!-- conduit-three-body-flagship@2 --><section class=\"flagship awaiting\" aria-labelledby=\"flagship-title\"><div><p class=\"eyebrow\">The shared semantic spine</p><h2 id=\"flagship-title\">Birth to fulfillment, three times honestly</h2><p class=\"lede\">The publication appears here only when three independently verified biographies belong to this exact accepted commit.</p></div><div class=\"body-lanes\"><article><b>A</b><h3>ConduitOS</h3><p>Native, freestanding, graphical</p></article><article><b>B</b><h3>Browser</h3><p>DOM, WASM, interactive</p></article><article><b>C</b><h3>Screen-free</h3><p>Spoken, multi-Host, generative</p></article></div>{semantic_spine}<p class=\"boundary\"><strong>Evidence not yet admitted for this commit.</strong> No neighboring proof is promoted to fill an empty track.</p></section><!-- conduit-three-body-flagship:end --><section class=\"evidence-library\" aria-labelledby=\"library-title\"><p class=\"eyebrow\">The evidence library</p><h2 id=\"library-title\">Other true stories</h2><p class=\"section-intro\">Smaller proofs of particular boundaries. Each says exactly what happened—and what did not.</p><section class=\"cards\">{two_fronts_card}{little_life_card}{conduitos_card}</section></section><details class=\"history\"><summary>Provenance, accepted evidence, and history</summary><p>Current accepted main: <code>{}</code></p>{patchbay}{conduitos}{two_fronts}{little_life}<ul>{history}</ul><p>History retains the latest {RETAINED_COMMITS} published main commits. Semantic proof remains authoritative; media are documentary evidence.</p></details></main>",
         escape_html(&index.current_commit)
     );
     write_html(&root.join("index.html"), "Conduit evidence gallery", &body)

@@ -237,10 +237,9 @@ test("Pages execute explicitly selects the carrier even for metadata-only change
   assert.match(consumer, /CARRIER_RUN_ID: \$\{\{ github\.run_id \}\}/);
   assert.match(consumer, /--arg schema conduit\.release-publication-context\/v2/);
   assert.match(consumer, /carrier_run_id:\$carrier_run_id/);
-  assert.match(
-    consumer,
-    /needs\.resolve\.outputs\.direct_main == 'true' && 'target\/pages-carrier\/site' \|\| 'target\/pages-carrier-with-truth\/site'/,
-  );
+  assert.match(consumer, /name: Upload the already-proven Pages carrier\n        if: needs\.resolve\.outputs\.direct_main == 'true'/);
+  assert.match(consumer, /path: target\/pages-carrier\/site/);
+  assert.doesNotMatch(consumer, /path: target\/pages-carrier-with-truth\/site/);
 });
 
 test("permanent Pages automation contains no completed deploy-first rescue", () => {
