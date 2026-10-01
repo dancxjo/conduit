@@ -3,8 +3,9 @@ import { existsSync, readFileSync, readdirSync } from "node:fs";
 import { resolve } from "node:path";
 import test from "node:test";
 
-test("browser Host has no Tour or Creche product source", () => {
+test("retired Tour and Creche products have no source trees", () => {
   assert.deepEqual(readdirSync("targets/browser/host/assets").filter((name) => /^(book|tour|creche)[.-]/.test(name)), []);
+  assert.equal(existsSync("products/creche"), false);
   assert.ok(existsSync("products/patchbay/html/assets/patchbay.application.template.json"));
 });
 
@@ -36,23 +37,11 @@ test("generic browser membership is owned by the browser Host", () => {
   assert.equal(existsSync("products/patchbay/html/assets/browser-membership.js"), false);
 });
 
-test("Crèche compatibility entrance cannot run parallel product state", () => {
-  const source = readFileSync("products/creche/browser/creche.mjs", "utf8");
-  assert.match(source, /location\.replace\(workspace\.href\)/);
-  assert.doesNotMatch(source, /conduit_creche_|createBodyBirthRunner|createGraduationRunner|durable/);
-  const descriptor = JSON.parse(
-    readFileSync("products/creche/browser/creche.application.template.json", "utf8"),
-  );
-  const application = descriptor.resources.find(({ role }) => role === "application-module");
-  assert.deepEqual(application.dependencies, []);
-});
-
-for (const product of ["creche", "workspace"]) {
-  test(`${product} package dependencies name real source owners`, () => {
-    const root = resolve(`products/${product}/browser`);
-    const descriptor = JSON.parse(readFileSync(`${root}/${product}.application.template.json`, "utf8"));
+test("Workspace package dependencies name real source owners", () => {
+    const root = resolve("products/workspace/browser");
+    const descriptor = JSON.parse(readFileSync(`${root}/workspace.application.template.json`, "utf8"));
     const resources = new Map(descriptor.resources.map((resource) => [resource.role, resource]));
-    assert.equal(descriptor.application_id, `conduit.application/${product}`);
+    assert.equal(descriptor.application_id, "conduit.application/workspace");
     for (const resource of descriptor.resources) {
       const source = resource.source ? resolve(resource.source) : resolve(root, resource.path);
       if (!existsSync(source) || resource.kind !== "module") continue;
@@ -64,15 +53,14 @@ for (const product of ["creche", "workspace"]) {
         assert.ok(existsSync(dependencySource), `${resource.role}: missing source owner ${dependency.specifier}`);
       }
     }
-  });
-}
+});
 
 test("target source moves preserve declared browser resource URLs and relative dependencies", () => {
-  const root = resolve("products/creche/browser");
-  const descriptor = JSON.parse(readFileSync(`${root}/creche.application.template.json`, "utf8"));
+  const root = resolve("products/workspace/browser");
+  const descriptor = JSON.parse(readFileSync(`${root}/workspace.application.template.json`, "utf8"));
   const resources = new Map(descriptor.resources.map((resource) => [resource.role, resource]));
   const entry = descriptor.resources.find((resource) => resource.path === "creche-installed-targets.mjs");
-  const packageRoot = new URL("https://conduit.invalid/creche/");
+  const packageRoot = new URL("https://conduit.invalid/workspace/");
   const adapters = [];
   for (const dependency of entry.dependencies.filter((dependency) => dependency.role.endsWith("-adapter"))) {
     const source = resolve(root, dependency.specifier);

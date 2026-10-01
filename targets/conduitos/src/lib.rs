@@ -171,6 +171,26 @@ mod native_mask_journey;
     feature = "aarch64-orange-pi-5"
 ))]
 mod native_mask_play;
+#[cfg(any(
+    test,
+    target_arch = "x86_64",
+    feature = "ia32-product",
+    feature = "aarch64-product",
+    feature = "riscv64-product",
+    feature = "loongarch64-product",
+    feature = "aarch64-orange-pi-5"
+))]
+mod native_surface_possession;
+#[cfg(any(
+    test,
+    target_arch = "x86_64",
+    feature = "ia32-product",
+    feature = "aarch64-product",
+    feature = "riscv64-product",
+    feature = "loongarch64-product",
+    feature = "aarch64-orange-pi-5"
+))]
+mod native_surface_provider;
 #[cfg(any(test, target_arch = "x86_64", feature = "hosted-tools"))]
 pub mod presentation_nucleus;
 #[cfg(any(test, target_arch = "x86_64"))]

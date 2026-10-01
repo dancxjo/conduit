@@ -17,6 +17,34 @@ fn bounds() -> MediaFlowBounds {
     }
 }
 
+#[test]
+fn human_media_kind_keeps_its_existing_json_and_binary_shape() {
+    assert_eq!(
+        serde_json::to_string(&HumanMediaKind::Camera).unwrap(),
+        "\"Camera\""
+    );
+    assert_eq!(
+        serde_json::to_string(&HumanMediaKind::Microphone).unwrap(),
+        "\"Microphone\""
+    );
+    assert_eq!(
+        postcard::to_allocvec(&HumanMediaKind::Camera).unwrap(),
+        vec![0]
+    );
+    assert_eq!(
+        postcard::to_allocvec(&HumanMediaKind::Microphone).unwrap(),
+        vec![1]
+    );
+    assert_eq!(
+        serde_json::from_str::<HumanMediaKind>("\"Camera\"").unwrap(),
+        HumanMediaKind::Camera
+    );
+    assert_eq!(
+        postcard::from_bytes::<HumanMediaKind>(&[1]).unwrap(),
+        HumanMediaKind::Microphone
+    );
+}
+
 fn camera_constraints() -> MediaConstraints {
     MediaConstraints::Camera {
         minimum_width: 320,

@@ -2,16 +2,18 @@ use conduit_body::{
     AuthenticatedHostObservation, Body, BodyBiographyEvidence, BodyBiographyRecordKind,
     BodyGraduationChoice, BodyGraduationEvidence, BodyMembership, MembershipProofId, PartId,
 };
+use conduit_body_make::{
+    BodyEvidenceAttachment, BodyEvidenceEntrance, BodyEvidenceEntranceError,
+    MAX_BODY_ATTACHMENT_EVIDENCE_BYTES, MAX_BODY_BIOGRAPHY_EXPLANATION_BYTES,
+};
 use conduit_core::{
     bind_sign, BootId, CheckedFormId, HostId, ImplementationId, OfferGeneration, PlanId, SignId,
     SourceDocumentId,
 };
 use conduit_presentation::{PresentationAspect, PresentationDepth, PresentationPlace};
 use patchbay_model::{
-    BodyHistoryManifestation, BodyHistoryMoment, PatchbayBodyApplicationEntrance,
-    PatchbayBodyAttachment, PatchbayBodyEntranceError, ReadableBodyHistory,
-    ReadableBodyHistoryError, ReadableBodyHistorySlot, MAX_BODY_BIOGRAPHY_EXPLANATION_BYTES,
-    MAX_BODY_HISTORY_LINEAR_BYTES, MAX_BODY_HISTORY_TITLE_BYTES, MAX_PATCHBAY_BODY_EVIDENCE_BYTES,
+    BodyHistoryManifestation, BodyHistoryMoment, ReadableBodyHistory, ReadableBodyHistoryError,
+    ReadableBodyHistorySlot, MAX_BODY_HISTORY_LINEAR_BYTES, MAX_BODY_HISTORY_TITLE_BYTES,
 };
 
 const HOSTED_PLAN: &str = "plan/roseau-patchbay";
@@ -87,10 +89,10 @@ fn encoded(choice: BodyGraduationChoice) -> Vec<u8> {
     serde_json::to_vec(&evidence(choice)).unwrap()
 }
 
-fn hosted_attachment() -> PatchbayBodyAttachment {
-    PatchbayBodyAttachment::open_serialized(
+fn hosted_attachment() -> BodyEvidenceAttachment {
+    BodyEvidenceAttachment::open_serialized(
         &encoded(BodyGraduationChoice::HostedPatchbay),
-        PatchbayBodyApplicationEntrance::Hosted {
+        BodyEvidenceEntrance::Hosted {
             plan_id: PlanId::from(HOSTED_PLAN),
             implementation_id: ImplementationId::from(HOSTED_IMPLEMENTATION),
         },
@@ -164,9 +166,9 @@ fn sequence_is_the_only_time_claim_in_the_serialized_contract() {
 
 #[test]
 fn external_graduation_is_exactly_unhosted_and_inspects_its_sign() {
-    let attachment = PatchbayBodyAttachment::open_serialized(
+    let attachment = BodyEvidenceAttachment::open_serialized(
         &encoded(BodyGraduationChoice::ExternalReader),
-        PatchbayBodyApplicationEntrance::ExternalReader,
+        BodyEvidenceEntrance::ExternalReader,
     )
     .unwrap();
     let history = ReadableBodyHistory::from_attachment(2, &attachment).unwrap();
@@ -201,7 +203,7 @@ fn every_rejected_replacement_clears_the_prior_friendly_biography() {
         duplicate(),
         mismatched_body(),
         unknown_record_kind(),
-        vec![b'x'; MAX_PATCHBAY_BODY_EVIDENCE_BYTES + 1],
+        vec![b'x'; MAX_BODY_ATTACHMENT_EVIDENCE_BYTES + 1],
     ];
     for (offset, invalid) in cases.into_iter().enumerate() {
         assert!(slot
@@ -263,7 +265,7 @@ fn entrance_errors_remain_machine_readable_through_the_history_slot() {
     assert_eq!(
         slot.replace_attachment(1, opened(b"{bad")),
         Err(ReadableBodyHistoryError::Entrance(
-            PatchbayBodyEntranceError::MalformedEvidence
+            BodyEvidenceEntranceError::MalformedEvidence
         ))
     );
     assert_eq!(
@@ -273,9 +275,6 @@ fn entrance_errors_remain_machine_readable_through_the_history_slot() {
     assert!(slot.current().is_none());
 }
 
-fn opened(encoded: &[u8]) -> Result<PatchbayBodyAttachment, PatchbayBodyEntranceError> {
-    PatchbayBodyAttachment::open_serialized(
-        encoded,
-        PatchbayBodyApplicationEntrance::ExternalReader,
-    )
+fn opened(encoded: &[u8]) -> Result<BodyEvidenceAttachment, BodyEvidenceEntranceError> {
+    BodyEvidenceAttachment::open_serialized(encoded, BodyEvidenceEntrance::ExternalReader)
 }

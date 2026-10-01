@@ -66,10 +66,10 @@ conduit-synth = { path = "../../mechanisms/implementations/synth" }
 conduit-planner = { path = "../../architecture/planner" }
 conduit-presentation = { path = "../../semantics/presentation", features = ["form-catalog"] }
 conduit-plan-lowering = { path = "../../architecture/plan-lowering", default-features = false }
+conduit-patchbay-workbench-conformance = { path = "../../proof/conformance/patchbay-workbench" }
 conduit-std-host = { path = "../../targets/std", features = ["local-model-proof", "pete-create"] }
 conduit-human = { path = "../../semantics/human" }
 conduit-wire = { path = "../../architecture/wire" }
-patchbay-model = { path = "../../products/patchbay/model" }
 
 [dev-dependencies]
 libc = "0.2"

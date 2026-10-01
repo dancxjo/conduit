@@ -21,9 +21,11 @@ pub(super) fn advertisement(host: CatalogHost) -> Result<HostAdvertisement, Cata
         CatalogHost::Browser => browser_advertisement(),
         CatalogHost::Pico => Ok(conduit_signal_conformance::pico_local_advertisement()),
         CatalogHost::Conduitos => conduitos_advertisement(),
-        CatalogHost::PatchbayConstrained => patchbay_model::patchbay_mask_plans()
-            .map(|proof| proof.recursive_host)
-            .map_err(|error| CatalogError::new("patchbay-recursive-profile-invalid", error)),
+        CatalogHost::PatchbayConstrained => {
+            conduit_patchbay_workbench_conformance::patchbay_mask_plans()
+                .map(|proof| proof.recursive_host)
+                .map_err(|error| CatalogError::new("patchbay-recursive-profile-invalid", error))
+        }
     }
 }
 
@@ -32,15 +34,14 @@ fn browser_advertisement() -> Result<HostAdvertisement, CatalogError> {
     browser
         .capabilities
         .extend(conduit_browser_runtime::presentation_nucleus::offers());
-    let proof = patchbay_model::patchbay_mask_plans()
+    let proof = conduit_patchbay_workbench_conformance::patchbay_mask_plans()
         .map_err(|error| CatalogError::new("patchbay-direct-profile-invalid", error))?;
-    browser.capabilities.extend(
-        proof
-            .direct_host
-            .capabilities
-            .into_iter()
-            .filter(|offer| offer.kind_id.as_str() == patchbay_model::PATCHBAY_PRESENTATION_KIND),
-    );
+    browser
+        .capabilities
+        .extend(proof.direct_host.capabilities.into_iter().filter(|offer| {
+            offer.kind_id.as_str()
+                == conduit_patchbay_workbench_conformance::PATCHBAY_PRESENTATION_KIND
+        }));
     browser.resources.extend(proof.direct_host.resources);
     browser.resources.sort();
     browser

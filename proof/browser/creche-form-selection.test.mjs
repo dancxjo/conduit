@@ -25,12 +25,12 @@ const inventory = Object.freeze({
 
 test("Body Workspace owns bootstrap without Crèche source facades", async () => {
   const workspace = await readFile(new URL("../../products/workspace/browser/workspace.mjs", import.meta.url), "utf8");
-  const descriptor = JSON.parse(await readFile(new URL("../../products/creche/browser/creche.application.template.json", import.meta.url), "utf8"));
+  const descriptor = JSON.parse(await readFile(new URL("../../products/workspace/browser/workspace.application.template.json", import.meta.url), "utf8"));
   assert.match(workspace, /\.\/body-bootstrap\.mjs/);
   assert.match(workspace, /\.\/reviewed-form-selection\.mjs/);
   assert.doesNotMatch(workspace, /products\/creche\/(?:browser\/)?(?:creche\.mjs|creche-lifecycle\.mjs|creche-form-selection\.mjs)|\.\.\/\.\.\/creche\/browser\/(?:creche\.mjs|creche-lifecycle\.mjs|creche-form-selection\.mjs)/);
-  assert.equal(descriptor.resources.find(({ role }) => role === "creche-lifecycle").source, "products/workspace/browser/body-bootstrap.mjs");
-  assert.equal(descriptor.resources.find(({ role }) => role === "creche-form-selection").source, "products/workspace/browser/reviewed-form-selection.mjs");
+  assert.equal(descriptor.resources.find(({ role }) => role === "creche-lifecycle").path, "body-bootstrap.mjs");
+  assert.equal(descriptor.resources.find(({ role }) => role === "creche-form-selection").path, "reviewed-form-selection.mjs");
 });
 
 test("native checkbox values set selection idempotently", () => {

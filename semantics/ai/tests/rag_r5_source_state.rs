@@ -65,7 +65,7 @@ fn extract(
         source,
         &requirement(source),
         binding,
-        SourceExtractionProfile::TextUtf8 { overlap_bytes: 0 },
+        SourceExtractionProfile::text_utf8(0).unwrap(),
         SourceExtractionLimits {
             maximum_source_bytes: 32,
             maximum_source_items: 1,
@@ -128,11 +128,7 @@ fn index_state() -> VectorIndexState {
                 provider_identity: "provider/reviewed-fixture".into(),
                 dimensions: 3,
                 normalization: EmbeddingNormalization::None,
-                compatible_metrics: CompatibleMetrics {
-                    cosine_similarity: true,
-                    dot_product_similarity: false,
-                    squared_euclidean_distance: false,
-                },
+                compatible_metrics: CompatibleMetrics::new(true, false, false).unwrap(),
             },
             pool_id: conduit_core::ResourcePoolId::from("pool/rag-index"),
             class_id: conduit_core::ResourceClassId::from(VECTOR_INDEX_RESOURCE_CLASS),

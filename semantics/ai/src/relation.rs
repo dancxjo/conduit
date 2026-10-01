@@ -5,7 +5,7 @@ use conduit_data::{SampledSignal, TensorValue};
 
 use crate::{
     ModelValueConstraint, ProbabilisticDisposition, RandomnessProfile, RelationQueryMode,
-    RelationRefusal, RelationTerminal,
+    RelationRefusal, RelationResultProfile, RelationTerminal,
 };
 
 #[path = "relation_digest.rs"]
@@ -22,12 +22,6 @@ pub struct RelationVariable {
     pub identity: String,
     pub semantic_role: String,
     pub value: ModelValueConstraint,
-}
-
-#[derive(Debug, Copy, Clone, PartialEq, Eq)]
-pub enum RelationResultProfile {
-    Deterministic,
-    Probabilistic { maximum_samples: u32 },
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]

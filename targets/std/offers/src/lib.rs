@@ -50,6 +50,8 @@ mod combine_latest;
 pub use combine_latest::*;
 mod flow_zip;
 pub use flow_zip::*;
+mod flow_collect;
+pub use flow_collect::*;
 mod flow_join_by_key;
 pub use flow_join_by_key::*;
 mod image_text;

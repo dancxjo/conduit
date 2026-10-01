@@ -1,10 +1,13 @@
+#[cfg_attr(not(feature = "fixture-registry-preparation"), allow(unused_imports))]
 use crate::{
-    KernelCompositeDefinition, KernelCompositeError, KernelCompositeHost,
-    KernelCompositeHostRequest, KernelCompositeStatus, KernelCompositeTerminal,
-    KernelOperationRegistry,
+    AdmittedKernelCompositeHostRequest, KernelCompositeDefinition, KernelCompositeError,
+    KernelCompositeHost, KernelCompositeHostRequest, KernelCompositeStatus,
+    KernelCompositeTerminal, KernelOperationRegistry,
 };
+#[cfg_attr(not(feature = "fixture-registry-preparation"), allow(unused_imports))]
 use conduit_core::{
-    semantic_digest, KindId, PlanId, PortDirection, PortId, PortTemporal, ValuePayload,
+    semantic_digest, verify_plan, KindId, PlanId, PlannedActivation, PortDirection, PortId,
+    PortTemporal, ValuePayload,
 };
 use conduit_kernel::scheduler::RemoteIngressOutcome;
 use conduit_kernel::{HostCallOutcome, KernelEvent};
@@ -27,6 +30,7 @@ pub struct BoundedActivationContract {
     pub maximum_active: u16,
     pub maximum_queue_items: u16,
     pub maximum_queue_bytes: u32,
+    pub maximum_items: u16,
     pub identity: [u8; 32],
 }
 
@@ -35,6 +39,7 @@ impl BoundedActivationContract {
         definition: &KernelCompositeDefinition,
         input_port: PortId,
         output_port: PortId,
+        maximum_items: u16,
     ) -> Result<Self, BoundedActivationError> {
         let input = definition
             .boundary
@@ -62,6 +67,9 @@ impl BoundedActivationContract {
         let maximum_active = 1u16;
         let maximum_queue_items = 1u16;
         let maximum_queue_bytes = definition.external_capability.limits.max_queue_bytes;
+        if maximum_items == 0 {
+            return Err(BoundedActivationError::PlannedContractMismatch);
+        }
         let mut encoded = Vec::new();
         encode_string(&mut encoded, definition.internal_plan.plan_id.as_str());
         encode_string(&mut encoded, input.external_port.port_id.as_str());
@@ -73,6 +81,7 @@ impl BoundedActivationContract {
         encoded.extend_from_slice(&maximum_active.to_le_bytes());
         encoded.extend_from_slice(&maximum_queue_items.to_le_bytes());
         encoded.extend_from_slice(&maximum_queue_bytes.to_le_bytes());
+        encoded.extend_from_slice(&maximum_items.to_le_bytes());
         Ok(Self {
             selected_plan_id: definition.internal_plan.plan_id.clone(),
             input_port: input.external_port.port_id.clone(),
@@ -84,6 +93,7 @@ impl BoundedActivationContract {
             maximum_active,
             maximum_queue_items,
             maximum_queue_bytes,
+            maximum_items,
             identity: semantic_digest(ACTIVATION_CONTRACT_INFO_ID, &encoded),
         })
     }
@@ -104,6 +114,7 @@ pub enum BoundedActivationError {
         input: KindId,
         output: Option<KindId>,
     },
+    PlannedContractMismatch,
     InvalidLifecycle,
 }
 
@@ -111,6 +122,7 @@ pub enum BoundedActivationError {
 pub enum BoundedActivationAdmission {
     Accepted { sequence: u64 },
     Full { sequence: u64 },
+    MaximumItemsExceeded { sequence: u64, maximum_items: u16 },
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -153,42 +165,153 @@ pub enum BoundedActivationFault {
 /// value receives a fresh ordinary kernel execution; no callback, Kind lookup,
 /// iterator, retry, or hidden scheduler participates.
 pub struct BoundedActivationHost {
-    definition: KernelCompositeDefinition,
-    registry: KernelOperationRegistry,
     contract: BoundedActivationContract,
-    ready: Option<KernelCompositeHost>,
+    ready: Vec<KernelCompositeHost>,
+    receipts: Vec<KernelCompositeHost>,
     active: Option<KernelCompositeHost>,
     input_close_pending: bool,
     output_completed: bool,
-    pending_input_terminal: Option<KernelCompositeTerminal>,
+    output_sequence: Option<u64>,
+    output_buffer: ValuePayload,
+    abnormal_buffer: Option<ValuePayload>,
+    pending_input_terminal: Option<PendingInputTerminal>,
     state: BoundedActivationState,
-    last_signs: BTreeMap<conduit_core::HostId, Vec<KernelEvent>>,
+}
+
+enum PendingInputTerminal {
+    Normal,
+    Abnormal(ValuePayload),
 }
 
 impl BoundedActivationHost {
+    #[cfg(feature = "fixture-registry-preparation")]
     pub fn prepare(
         definition: KernelCompositeDefinition,
         registry: &KernelOperationRegistry,
         input_port: PortId,
         output_port: PortId,
+        maximum_items: u16,
     ) -> Result<Self, BoundedActivationError> {
-        let contract =
-            BoundedActivationContract::for_definition(&definition, input_port, output_port)?;
+        let contract = BoundedActivationContract::for_definition(
+            &definition,
+            input_port,
+            output_port,
+            maximum_items,
+        )?;
+        Self::prepare_with_contract(definition, registry, contract)
+    }
+
+    /// Fixture-only registry preparation from exact Plan truth. Production
+    /// enters through `PreparedActivationChildPool`, which consumes subordinate
+    /// preparation receipts. The selected
+    /// subplan, Value fronts, and finite activation limits must be identical
+    /// to the executable composite definition; no runtime lookup or widening
+    /// may repair a disagreement.
+    #[cfg(feature = "fixture-registry-preparation")]
+    pub fn prepare_planned(
+        planned: &PlannedActivation,
+        definition: KernelCompositeDefinition,
+        registry: &KernelOperationRegistry,
+    ) -> Result<Self, BoundedActivationError> {
+        if planned.selected_plan_id != planned.selected_plan.plan_id
+            || planned.selected_plan.as_ref() != &definition.internal_plan
+            || !verify_plan(&planned.selected_plan)
+        {
+            return Err(BoundedActivationError::PlannedContractMismatch);
+        }
+        let contract = BoundedActivationContract::for_definition(
+            &definition,
+            planned.input.front_port_id.clone(),
+            planned.output.front_port_id.clone(),
+            planned.limits.maximum_items,
+        )?;
+        if contract.selected_plan_id != planned.selected_plan_id
+            || contract.input_value_kind != planned.input.value_kind
+            || contract.input_abnormal_kind != planned.input.abnormal_kind
+            || contract.output_value_kind != planned.output.value_kind
+            || contract.output_abnormal_kind != planned.output.abnormal_kind
+            || contract.maximum_active != planned.limits.maximum_active
+            || contract.maximum_queue_items != planned.limits.maximum_queue_items
+            || contract.maximum_queue_bytes != planned.limits.maximum_queue_bytes
+            || contract.maximum_items != planned.limits.maximum_items
+        {
+            return Err(BoundedActivationError::PlannedContractMismatch);
+        }
+        Self::prepare_with_contract(definition, registry, contract)
+    }
+
+    #[cfg(feature = "fixture-registry-preparation")]
+    fn prepare_with_contract(
+        definition: KernelCompositeDefinition,
+        registry: &KernelOperationRegistry,
+        contract: BoundedActivationContract,
+    ) -> Result<Self, BoundedActivationError> {
         // Refuse an unavailable or over-budget exact subgraph before any input
         // can become owed work. Each activation is prepared afresh below.
-        let ready = KernelCompositeHost::prepare(definition.clone(), registry)
-            .map_err(BoundedActivationError::Refused)?;
-        Ok(Self {
+        let maximum_items = usize::from(contract.maximum_items);
+        let mut ready = Vec::with_capacity(maximum_items);
+        for _ in 0..maximum_items {
+            ready.push(
+                KernelCompositeHost::prepare(definition.clone(), registry)
+                    .map_err(BoundedActivationError::Refused)?,
+            );
+        }
+        Self::prepare_with_ready(contract, ready)
+    }
+
+    pub(crate) fn prepare_planned_with_ready(
+        planned: &PlannedActivation,
+        definition: &KernelCompositeDefinition,
+        ready: Vec<KernelCompositeHost>,
+    ) -> Result<Self, BoundedActivationError> {
+        let contract = BoundedActivationContract::for_definition(
             definition,
-            registry: registry.clone(),
+            planned.input.front_port_id.clone(),
+            planned.output.front_port_id.clone(),
+            planned.limits.maximum_items,
+        )?;
+        if planned.selected_plan.as_ref() != &definition.internal_plan
+            || contract.selected_plan_id != planned.selected_plan_id
+            || contract.input_value_kind != planned.input.value_kind
+            || contract.output_value_kind != planned.output.value_kind
+        {
+            return Err(BoundedActivationError::PlannedContractMismatch);
+        }
+        Self::prepare_with_ready(contract, ready)
+    }
+
+    fn prepare_with_ready(
+        contract: BoundedActivationContract,
+        ready: Vec<KernelCompositeHost>,
+    ) -> Result<Self, BoundedActivationError> {
+        let maximum_items = usize::from(contract.maximum_items);
+        if ready.len() != maximum_items || ready.capacity() != maximum_items {
+            return Err(BoundedActivationError::PlannedContractMismatch);
+        }
+        let output_buffer = ValuePayload {
+            value_kind: contract.output_value_kind.clone(),
+            encoded: Vec::with_capacity(contract.maximum_queue_bytes as usize),
+        };
+        let abnormal_buffer =
+            contract
+                .output_abnormal_kind
+                .clone()
+                .map(|value_kind| ValuePayload {
+                    value_kind,
+                    encoded: Vec::with_capacity(contract.maximum_queue_bytes as usize),
+                });
+        Ok(Self {
             contract,
-            ready: Some(ready),
+            ready,
+            receipts: Vec::with_capacity(maximum_items),
             active: None,
             input_close_pending: false,
             output_completed: false,
+            output_sequence: None,
+            output_buffer,
+            abnormal_buffer,
             pending_input_terminal: None,
             state: BoundedActivationState::Idle,
-            last_signs: BTreeMap::new(),
         })
     }
 
@@ -218,10 +341,11 @@ impl BoundedActivationHost {
         if self.active.is_some() {
             return Ok(BoundedActivationAdmission::Full { sequence });
         }
-        let mut activation = match self.ready.take() {
-            Some(ready) => ready,
-            None => KernelCompositeHost::prepare(self.definition.clone(), &self.registry)
-                .map_err(BoundedActivationError::Refused)?,
+        let Some(mut activation) = self.ready.pop() else {
+            return Ok(BoundedActivationAdmission::MaximumItemsExceeded {
+                sequence,
+                maximum_items: self.contract.maximum_items,
+            });
         };
         activation
             .start()
@@ -242,18 +366,22 @@ impl BoundedActivationHost {
         Ok(BoundedActivationAdmission::Accepted { sequence })
     }
 
-    pub fn output(&mut self) -> Result<Option<(u64, ValuePayload)>, BoundedActivationError> {
+    pub fn output(&mut self) -> Result<Option<(u64, &ValuePayload)>, BoundedActivationError> {
         let sequence = match self.state {
             BoundedActivationState::Active { sequence } => sequence,
             _ => return Err(BoundedActivationError::InvalidLifecycle),
         };
-        let output = self
-            .active
-            .as_mut()
-            .ok_or(BoundedActivationError::InvalidLifecycle)?
-            .output(&self.contract.output_port)
-            .map_err(BoundedActivationError::Refused)?;
-        Ok(output.map(|(_, value)| (sequence, value)))
+        if self.output_sequence.is_none() {
+            self.output_sequence = self
+                .active
+                .as_mut()
+                .ok_or(BoundedActivationError::InvalidLifecycle)?
+                .output_into(&self.contract.output_port, &mut self.output_buffer)
+                .map_err(BoundedActivationError::Refused)?;
+        }
+        Ok(self
+            .output_sequence
+            .map(|_| (sequence, &self.output_buffer)))
     }
 
     pub fn complete_output(&mut self, sequence: u64) -> Result<(), BoundedActivationError> {
@@ -266,6 +394,7 @@ impl BoundedActivationHost {
             .complete_output(&self.contract.output_port, 0)
             .map_err(BoundedActivationError::Refused)?;
         self.output_completed = true;
+        self.output_sequence = None;
         Ok(())
     }
 
@@ -286,8 +415,8 @@ impl BoundedActivationHost {
             Ok(KernelCompositeStatus::Active) => {
                 if self.input_close_pending {
                     if let Err(fault) = activation.close_input(&self.contract.input_port) {
-                        self.last_signs = activation.signs();
-                        self.active = None;
+                        let completed = self.active.take().expect("active child was borrowed");
+                        self.receipts.push(completed);
                         self.input_close_pending = false;
                         self.state = BoundedActivationState::Faulted {
                             sequence,
@@ -299,33 +428,39 @@ impl BoundedActivationHost {
                 }
             }
             Ok(KernelCompositeStatus::Complete) => {
+                let terminal_buffer = self
+                    .abnormal_buffer
+                    .as_mut()
+                    .unwrap_or(&mut self.output_buffer);
                 let terminal = activation
-                    .output_terminal(&self.contract.output_port)
+                    .output_terminal_into(&self.contract.output_port, terminal_buffer)
                     .map_err(BoundedActivationError::Refused)?;
-                self.last_signs = activation.signs();
-                self.active = None;
+                let abnormal =
+                    matches!(terminal, Some(KernelCompositeTerminal::Abnormal)).then(|| {
+                        self.abnormal_buffer
+                            .take()
+                            .expect("planned abnormal buffer")
+                    });
+                let completed = self.active.take().expect("active child was borrowed");
+                self.receipts.push(completed);
                 self.input_close_pending = false;
-                self.state = activation_terminal_state(
-                    sequence,
-                    terminal,
-                    self.contract.output_abnormal_kind.as_ref(),
-                    self.output_completed,
-                );
+                self.state =
+                    activation_terminal_state(sequence, terminal, abnormal, self.output_completed);
                 if !matches!(self.state, BoundedActivationState::Succeeded { .. }) {
                     self.pending_input_terminal = None;
                 }
             }
             Ok(KernelCompositeStatus::Cancelled) => {
-                self.last_signs = activation.signs();
-                self.active = None;
+                let completed = self.active.take().expect("active child was borrowed");
+                self.receipts.push(completed);
                 self.input_close_pending = false;
                 self.state = BoundedActivationState::Cancelled {
                     sequence: Some(sequence),
                 };
             }
             Err(fault) => {
-                self.last_signs = activation.signs();
-                self.active = None;
+                let completed = self.active.take().expect("active child was borrowed");
+                self.receipts.push(completed);
                 self.input_close_pending = false;
                 self.state = BoundedActivationState::Faulted {
                     sequence,
@@ -342,25 +477,67 @@ impl BoundedActivationHost {
             BoundedActivationState::Idle => None,
             _ => return Err(BoundedActivationError::InvalidLifecycle),
         };
-        if let Some(active) = &mut self.active {
-            active.cancel().map_err(BoundedActivationError::Refused)?;
-            self.last_signs = active.signs();
+        self.state = BoundedActivationState::Cancelled { sequence };
+        let cancellation = self
+            .active
+            .as_mut()
+            .map(KernelCompositeHost::cancel)
+            .transpose();
+        if let Some(cancelled) = self.active.take() {
+            self.receipts.push(cancelled);
         }
-        self.active = None;
         self.input_close_pending = false;
         self.output_completed = false;
+        self.output_sequence = None;
         self.pending_input_terminal = None;
-        self.state = BoundedActivationState::Cancelled { sequence };
-        Ok(())
+        cancellation
+            .map(|_| ())
+            .map_err(BoundedActivationError::Refused)
     }
 
     pub fn next_host_request(&mut self) -> Option<KernelCompositeHostRequest> {
         self.active.as_mut()?.next_host_request()
     }
 
+    pub fn host_request_obligation(
+        &self,
+        request: &KernelCompositeHostRequest,
+    ) -> Result<&crate::KernelCompositeHostCallObligation, BoundedActivationError> {
+        self.active
+            .as_ref()
+            .ok_or(BoundedActivationError::InvalidLifecycle)?
+            .host_request_obligation(request)
+            .map_err(BoundedActivationError::Refused)
+    }
+
+    pub fn host_request_view(
+        &self,
+        request: &KernelCompositeHostRequest,
+    ) -> Result<crate::KernelCompositeHostRequestView<'_>, BoundedActivationError> {
+        self.active
+            .as_ref()
+            .ok_or(BoundedActivationError::InvalidLifecycle)?
+            .host_request_view(request)
+            .map_err(BoundedActivationError::Refused)
+    }
+
+    pub fn admit_host_request(
+        &self,
+        request: &KernelCompositeHostRequest,
+        host: &conduit_core::PreparationHostIdentity,
+        resources: &[conduit_core::ResourceBinding],
+        authorities: &[conduit_core::AuthorityBinding],
+    ) -> Result<AdmittedKernelCompositeHostRequest, BoundedActivationError> {
+        self.active
+            .as_ref()
+            .ok_or(BoundedActivationError::InvalidLifecycle)?
+            .admit_host_request(request, host, resources, authorities)
+            .map_err(BoundedActivationError::Refused)
+    }
+
     pub fn complete_host_call(
         &mut self,
-        request: &KernelCompositeHostRequest,
+        request: &AdmittedKernelCompositeHostRequest,
         outcome: HostCallOutcome,
     ) -> Result<(), BoundedActivationError> {
         self.active
@@ -370,17 +547,58 @@ impl BoundedActivationHost {
             .map_err(BoundedActivationError::Refused)
     }
 
-    pub fn signs(&self) -> BTreeMap<conduit_core::HostId, Vec<KernelEvent>> {
+    pub fn host_request_input(
+        &self,
+        request: &AdmittedKernelCompositeHostRequest,
+    ) -> Result<&[u8], BoundedActivationError> {
         self.active
             .as_ref()
-            .map_or_else(|| self.last_signs.clone(), KernelCompositeHost::signs)
+            .ok_or(BoundedActivationError::InvalidLifecycle)?
+            .host_request_input(request)
+            .map_err(BoundedActivationError::Refused)
+    }
+
+    pub fn complete_host_call_bytes(
+        &mut self,
+        request: &AdmittedKernelCompositeHostRequest,
+        bytes: &[u8],
+    ) -> Result<(), BoundedActivationError> {
+        self.active
+            .as_mut()
+            .ok_or(BoundedActivationError::InvalidLifecycle)?
+            .complete_host_call_bytes(request, bytes)
+            .map_err(BoundedActivationError::Refused)
+    }
+
+    pub fn signs(&self) -> BTreeMap<conduit_core::HostId, Vec<KernelEvent>> {
+        let mut signs = BTreeMap::new();
+        for receipt in self.receipts.iter().chain(self.active.iter()) {
+            for (host, events) in receipt.signs() {
+                signs.entry(host).or_insert_with(Vec::new).extend(events);
+            }
+        }
+        signs
+    }
+
+    pub fn allocation_capacities(&self) -> (usize, usize) {
+        (self.ready.capacity(), self.receipts.capacity())
+    }
+
+    pub fn last_cancellation_failures(&self) -> &[(conduit_core::HostId, String)] {
+        self.receipts
+            .last()
+            .map_or(&[], KernelCompositeHost::cancellation_failures)
+    }
+
+    pub fn remaining_items(&self) -> usize {
+        self.ready.len()
     }
 
     /// Admit normal closure of the lifted input flow. If one activation is
     /// active, closure remains one finite owed terminal until that activation
     /// succeeds; no later value can be admitted.
     pub fn close_input(&mut self) -> Result<(), BoundedActivationError> {
-        self.admit_input_terminal(KernelCompositeTerminal::Normal)
+        self.admit_input_terminal(PendingInputTerminal::Normal)
     }
 
     /// Admit one exact typed abnormal input terminal for propagation after the
@@ -396,12 +614,12 @@ impl BoundedActivationHost {
             self.contract.output_abnormal_kind.as_ref(),
             &terminal.value_kind,
         )?;
-        self.admit_input_terminal(KernelCompositeTerminal::Abnormal(terminal))
+        self.admit_input_terminal(PendingInputTerminal::Abnormal(terminal))
     }
 
     fn admit_input_terminal(
         &mut self,
-        terminal: KernelCompositeTerminal,
+        terminal: PendingInputTerminal,
     ) -> Result<(), BoundedActivationError> {
         if self.pending_input_terminal.is_some()
             || matches!(
@@ -427,8 +645,8 @@ impl BoundedActivationHost {
             .take()
             .ok_or(BoundedActivationError::InvalidLifecycle)?
         {
-            KernelCompositeTerminal::Normal => Ok(BoundedActivationState::Drained),
-            KernelCompositeTerminal::Abnormal(terminal) => {
+            PendingInputTerminal::Normal => Ok(BoundedActivationState::Drained),
+            PendingInputTerminal::Abnormal(terminal) => {
                 Ok(BoundedActivationState::InputAbnormal { terminal })
             }
         }
@@ -453,21 +671,17 @@ fn encode_optional_kind(encoded: &mut Vec<u8>, value: Option<&KindId>) {
 fn activation_terminal_state(
     sequence: u64,
     terminal: Option<KernelCompositeTerminal>,
-    expected_abnormal_kind: Option<&KindId>,
+    abnormal: Option<ValuePayload>,
     output_completed: bool,
 ) -> BoundedActivationState {
     match terminal {
-        Some(KernelCompositeTerminal::Abnormal(terminal))
-            if expected_abnormal_kind == Some(&terminal.value_kind) =>
-        {
+        Some(KernelCompositeTerminal::Abnormal) if abnormal.is_some() => {
+            let terminal = abnormal.expect("matched prepared abnormal terminal");
             BoundedActivationState::Abnormal { sequence, terminal }
         }
-        Some(KernelCompositeTerminal::Abnormal(terminal)) => BoundedActivationState::Faulted {
+        Some(KernelCompositeTerminal::Abnormal) => BoundedActivationState::Faulted {
             sequence,
-            fault: BoundedActivationFault::MalformedAbnormalTerminal {
-                expected: expected_abnormal_kind.cloned(),
-                actual: terminal.value_kind,
-            },
+            fault: BoundedActivationFault::MissingOutput,
         },
         Some(KernelCompositeTerminal::Normal) if output_completed => {
             BoundedActivationState::Succeeded { sequence }
@@ -513,8 +727,8 @@ mod tests {
         assert_eq!(
             activation_terminal_state(
                 4,
-                Some(KernelCompositeTerminal::Abnormal(terminal.clone())),
-                Some(&kind_id("test/transform-terminal")),
+                Some(KernelCompositeTerminal::Abnormal),
+                Some(terminal.clone()),
                 false,
             ),
             BoundedActivationState::Abnormal {
@@ -525,27 +739,14 @@ mod tests {
     }
 
     #[test]
-    fn wrong_or_unpromised_abnormal_kind_is_a_malformed_execution_terminal() {
-        for expected in [None, Some(kind_id("test/expected-terminal"))] {
-            assert_eq!(
-                activation_terminal_state(
-                    5,
-                    Some(KernelCompositeTerminal::Abnormal(ValuePayload {
-                        value_kind: kind_id("test/wrong-terminal"),
-                        encoded: vec![9],
-                    })),
-                    expected.as_ref(),
-                    false,
-                ),
-                BoundedActivationState::Faulted {
-                    sequence: 5,
-                    fault: BoundedActivationFault::MalformedAbnormalTerminal {
-                        expected,
-                        actual: kind_id("test/wrong-terminal"),
-                    },
-                }
-            );
-        }
+    fn absent_prepared_abnormal_buffer_is_a_malformed_execution_terminal() {
+        assert_eq!(
+            activation_terminal_state(5, Some(KernelCompositeTerminal::Abnormal), None, false),
+            BoundedActivationState::Faulted {
+                sequence: 5,
+                fault: BoundedActivationFault::MissingOutput,
+            }
+        );
     }
 
     #[test]

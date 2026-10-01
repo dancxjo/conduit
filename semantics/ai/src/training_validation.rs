@@ -99,10 +99,12 @@ impl TrainingBatch {
                 MissingModalityPolicy::Reject => {
                     return Err(TrainingRefusal::MissingRequiredModality)
                 }
-                MissingModalityPolicy::PermitDeclared {
-                    optional_modalities,
-                } if optional_modalities.contains(modality) => {}
-                MissingModalityPolicy::PermitDeclared { .. } => {
+                MissingModalityPolicy::PermitDeclared(policy)
+                    if policy
+                        .optional_modalities()
+                        .iter()
+                        .any(|candidate| candidate.get() == modality) => {}
+                MissingModalityPolicy::PermitDeclared(_) => {
                     return Err(TrainingRefusal::MissingRequiredModality)
                 }
             }

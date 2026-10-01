@@ -224,7 +224,7 @@ test("target-owned make returns exact attributable bytes through two local strat
       profileId: "pico-local",
       buildId: "conduit-pico-w-signal:4ccd179a7ddf32c17ba8b7f948a1f528e6cf8d78:thumbv6m-none-eabi:release:pico-local",
       imageId: "conduit-image/pico-w-signal-b7@1",
-      manifestPath: "/creche/artifacts/pico-w-signal-pico-local.json",
+      manifestPath: "/workspace/artifacts/pico-w-signal-pico-local.json",
     };
     const packaged = await adapter.make({ strategy: "packaged-exact", selection, configuration: {} });
     const specialized = await adapter.make({
@@ -287,7 +287,7 @@ test("one reviewed IMAGE yields distinct directly plantable body-bound UF2 spore
         profileId: "pico-local",
         buildId: "conduit-pico-w-signal:4ccd179a7ddf32c17ba8b7f948a1f528e6cf8d78:thumbv6m-none-eabi:release:pico-local",
         imageId: "conduit-image/pico-w-signal-b7@1",
-        manifestPath: "/creche/artifacts/pico-w-signal-pico-local.json",
+        manifestPath: "/workspace/artifacts/pico-w-signal-pico-local.json",
       },
       configuration: {},
     });

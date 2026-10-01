@@ -14,6 +14,26 @@ fn main() {
         &checked.codes,
         &RustBindingOptions {
             derive_serde_for_variants: true,
+            serde_variant_orders: [
+                (
+                    "GeneratedManifestationDisposition".into(),
+                    [
+                        "produced",
+                        "truncated",
+                        "refused",
+                        "failed",
+                        "cancelled",
+                        "provider_lost",
+                    ]
+                    .map(String::from)
+                    .into(),
+                ),
+                (
+                    "GeneratedContentRole".into(),
+                    ["speech", "presented_thought"].map(String::from).into(),
+                ),
+            ]
+            .into(),
             ..RustBindingOptions::default()
         },
     )

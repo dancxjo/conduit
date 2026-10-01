@@ -619,8 +619,18 @@ mod tests {
         for _ in 0..128 {
             host.step().unwrap();
             while let Some(request) = host.next_host_request() {
+                let call = host.host_request_view(&request).unwrap().request.request;
+                let obligation = host.host_request_obligation(&request).unwrap().clone();
+                let request = host
+                    .admit_host_request(
+                        &request,
+                        &obligation.host,
+                        &obligation.resources,
+                        &obligation.authorities,
+                    )
+                    .unwrap();
                 let input = host.host_request_input(&request).unwrap().to_vec();
-                match adapter.handle(request.request.request, &input).unwrap() {
+                match adapter.handle(call, &input).unwrap() {
                     Some(output) => host.complete_host_call_bytes(&request, &output).unwrap(),
                     None => host
                         .complete_host_call(

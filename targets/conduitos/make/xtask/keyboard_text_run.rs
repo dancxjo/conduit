@@ -117,29 +117,23 @@ fn validate_observatory(
             "K6 semantic topology, realization, or identity chain disagreed",
         ));
     }
-    let mut patchbay = patchbay_model::PatchbayTopology::new(1).map_err(|error| {
-        ConduitosError::refusal("keyboard-text-patchbay-refused", error.to_string())
+    let report = conduit_observatory::build_report(snapshot).map_err(|error| {
+        ConduitosError::refusal("keyboard-text-observatory-report-refused", error)
     })?;
-    patchbay.ingest(snapshot).map_err(|error| {
-        ConduitosError::refusal("keyboard-text-patchbay-refused", error.to_string())
-    })?;
-    let document = patchbay.document(None).map_err(|error| {
-        ConduitosError::refusal("keyboard-text-patchbay-refused", error.to_string())
-    })?;
-    let rendered = document.lines().join("\n");
+    let rendered = conduit_observatory::render_text_report(&report);
     for fact in [
         "kind=input/keyboard",
         "kind=input/keymap",
         "kind=text/upper",
         "kind=presentation/text",
         "implementation=conduitos/usb-hid-keyboard@1",
-        "info=input/key-event@1",
+        "value_kind=input/key-event@1",
         "conduitos.base/xhci@1",
     ] {
         if !rendered.contains(fact) {
             return Err(ConduitosError::refusal(
-                "keyboard-text-patchbay-incomplete",
-                format!("ordinary Patchbay projection omitted {fact}"),
+                "keyboard-text-observatory-report-incomplete",
+                format!("ordinary Observatory report omitted {fact}"),
             ));
         }
     }

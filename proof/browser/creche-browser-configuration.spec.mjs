@@ -1,6 +1,6 @@
 import { mkdir, readFile, writeFile } from "node:fs/promises";
 import { expect, test } from "@playwright/test";
-import { EXISTING_COMPUTER_BOUNDS } from "../../products/creche/browser/creche-existing-computer.mjs";
+import { EXISTING_COMPUTER_BOUNDS } from "../../products/workspace/browser/creche-existing-computer.mjs";
 import { startWorkspaceMachineProduct } from "./workspace-machine-test-actions.mjs";
 
 let entrance;
@@ -161,8 +161,8 @@ test("stale restored browser choices are refused before lifecycle change", async
 });
 
 async function installBrowserRelease(page) {
-  const root = process.env.CONDUIT_CRECHE_PRODUCT_ROOT
-    ? new URL(`../../${process.env.CONDUIT_CRECHE_PRODUCT_ROOT}/artifacts/`, import.meta.url)
+  const root = process.env.CONDUIT_WORKSPACE_PRODUCT_ROOT
+    ? new URL(`../../${process.env.CONDUIT_WORKSPACE_PRODUCT_ROOT}/artifacts/`, import.meta.url)
     : new URL("../../target/workspace-product/artifacts/", import.meta.url);
   const manifest = JSON.parse(await readFile(new URL("browser-page.json", root), "utf8"));
   for (const file of manifest.files) {

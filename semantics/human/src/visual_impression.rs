@@ -4,18 +4,12 @@ use alloc::{string::String, vec::Vec};
 use conduit_core::{KindId, SignId};
 
 use crate::{
-    ImageObservationReference, VisualEvidenceClass, VisualObservationProvenance,
-    VisualObservationRefusal, MAXIMUM_VISUAL_IDENTITY_BYTES,
+    ImageObservationReference, VisualEvidenceClass, VisualImpressionDisposition,
+    VisualObservationProvenance, VisualObservationRefusal, MAXIMUM_VISUAL_IDENTITY_BYTES,
 };
 
 pub const MAXIMUM_VISUAL_IMPRESSION_BYTES: usize = 1_024;
 pub const MAXIMUM_IMPRESSION_OBSERVATION_REFS: usize = 24;
-
-#[derive(Clone, Copy, Debug, Eq, PartialEq)]
-pub enum VisualImpressionDisposition {
-    Complete,
-    Truncated { original_bytes: u32 },
-}
 
 /// One model interpretation, kept distinct from deterministic and detector observations.
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -46,11 +40,12 @@ impl VisualImpression {
                 return Err(VisualImpressionRefusal::DuplicateObservationRef);
             }
         }
-        match self.disposition {
+        match &self.disposition {
             VisualImpressionDisposition::Complete => {}
-            VisualImpressionDisposition::Truncated { original_bytes }
-                if usize::try_from(original_bytes).unwrap_or(usize::MAX) > self.text.len() => {}
-            VisualImpressionDisposition::Truncated { .. } => {
+            VisualImpressionDisposition::Truncated(truncated)
+                if usize::try_from(*truncated.original_bytes()).unwrap_or(usize::MAX)
+                    > self.text.len() => {}
+            VisualImpressionDisposition::Truncated(_) => {
                 return Err(VisualImpressionRefusal::InvalidTruncation)
             }
         }

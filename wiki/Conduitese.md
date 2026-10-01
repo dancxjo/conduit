@@ -56,9 +56,13 @@ back   one concrete realization behind that fore
 gear   one configured occurrence of a kind in a form
 ```
 
-A gear invokes a kind through its fore. A host offers a back. A plan selects the back.
+A gear invokes a kind through its **fore**. A host offers a compatible back. A plan selects the exact back.
 
-Some older repository prose and internal Rust names still say **front**. The current language/architecture noun is **fore**. The human-facing noun is **face**.
+A fore is basically Conduit's function signature: the callable surface an author sees and writes against. For a plot, the parenthesized declaration is its fore; for a kind, the fore records the same callable shape in the catalog.
+
+A checked fore includes the public calling facts that affect compatibility, such as startup parameters, runtime ports, their names and directions, value types, temporal shapes, and any declared shorthand input-to-output path.
+
+Some older repository prose and internal Rust names still say **front**. That is historical/internal vocabulary for this callable signature. **Face is unrelated**: face belongs to human interaction and presentation, not callability.
 
 ## Plots are live unless completed
 
@@ -319,6 +323,6 @@ Instead, bounds, effects, state, terminal behavior, and temporal relationships a
 
 ## Current v1 growth
 
-The live v1 self-authoring epic is [#4375](https://github.com/dancxjo/conduit/issues/4375). Current work includes bounded collection algebra and migration of portable semantic types into native Conduitese.
+The remaining v1 self-authoring work is tracked by [#4375](https://github.com/dancxjo/conduit/issues/4375). Authored payload-rich Types, checked behavioral parameters, generated bindings, concise expansion, and bounded activation are present. Current work is the audited migration of remaining portable semantic families plus bounded collection target integration under [#4378](https://github.com/dancxjo/conduit/issues/4378).
 
 Proposed syntax in open issues is **not automatically canon**. The exact current language surface lives in [[Current language surface|Current-language-surface]].

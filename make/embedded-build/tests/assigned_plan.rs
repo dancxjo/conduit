@@ -5,7 +5,7 @@ use conduit_core::{
 };
 use conduit_embedded_build::{
     encode_assigned_plan, generate_embedded_plan, EmbeddedImageBounds, GeneratedEmbeddedPlan,
-    GenerationError,
+    GeneratedStaticResourceCord, GenerationError,
 };
 use conduit_plan_lowering::lowering::lower_plan_fragment;
 use conduit_r1_network_conformance::{exact_r1_signal_plan, R1SignalRouteSet};
@@ -32,8 +32,8 @@ fn local_assigned_plan_has_a_deterministic_golden_round_trip() {
     assert_eq!(
         assigned_plan_payload_digest(&first),
         [
-            84, 150, 187, 76, 210, 119, 198, 167, 134, 241, 38, 215, 111, 197, 240, 108, 31, 234,
-            30, 146, 99, 199, 141, 15, 97, 234, 40, 31, 123, 17, 209, 185,
+            144, 134, 53, 174, 23, 170, 14, 3, 57, 54, 157, 89, 166, 50, 153, 108, 68, 84, 87, 165,
+            110, 166, 63, 167, 117, 129, 167, 69, 70, 31, 148, 7,
         ],
         "local assigned-plan golden changed"
     );
@@ -57,12 +57,44 @@ fn one_remote_assigned_plan_has_a_deterministic_golden_round_trip() {
     assert_eq!(
         assigned_plan_payload_digest(&bytes),
         [
-            199, 249, 147, 238, 199, 241, 69, 185, 235, 107, 157, 97, 177, 96, 111, 244, 71, 222,
-            55, 4, 38, 67, 106, 184, 166, 244, 198, 167, 246, 184, 27, 55,
+            224, 171, 73, 109, 240, 174, 233, 181, 14, 193, 34, 3, 172, 201, 36, 10, 85, 226, 214,
+            241, 176, 113, 103, 168, 200, 107, 33, 74, 195, 218, 164, 253,
         ],
         "remote assigned-plan golden changed"
     );
     assert_excludes_global_truth(&bytes, &generated);
+}
+
+#[test]
+fn resource_cord_is_carried_without_serializing_bearer_authority() {
+    let mut generated = local_signal_plan();
+    let resource = generated.resources[0].resource;
+    generated.resource_cords.push(GeneratedStaticResourceCord {
+        source_node: 0,
+        source_port: 0,
+        sink_node: 1,
+        sink_port: 0,
+        resource,
+        ownership: conduit_core::ResourcePortOwnership::Move,
+        lifecycle: conduit_core::ResourcePortLifecycle::Play,
+    });
+    let bytes = encode_assigned_plan(&generated, AssignedPlanMaxima::TINY_HOST).unwrap();
+    let operations = operation_requirements(&generated);
+    let resources = resource_requirements(&generated);
+    decode_assigned_plan(
+        &bytes,
+        AssignedPlanMaxima::TINY_HOST,
+        requirements(&generated, &operations, &resources, &[]),
+    )
+    .unwrap();
+    assert_eq!(
+        bytes
+            .windows("resource".len())
+            .filter(|window| *window == b"resource")
+            .count(),
+        0,
+        "the assigned carrier must not serialize descriptive or bearer resource identity"
+    );
 }
 
 #[test]
@@ -144,7 +176,8 @@ fn assigned_plan_refuses_identity_inventory_capacity_and_global_mutations() {
     let new_len = u16::try_from(global_record.len()).unwrap();
     global_record[10..12].copy_from_slice(&new_len.to_le_bytes());
     let digest = assigned_plan_payload_digest(&global_record[ASSIGNED_PLAN_HEADER_BYTES..]);
-    global_record[92..124].copy_from_slice(&digest);
+    let digest_start = 80 + conduit_core::ASSIGNED_PLAN_COUNT_KINDS;
+    global_record[digest_start..digest_start + 32].copy_from_slice(&digest);
     assert_eq!(
         decode_assigned_plan(&global_record, AssignedPlanMaxima::TINY_HOST, valid),
         Err(AssignedPlanRefusal::UnknownRecord(250))
@@ -265,7 +298,8 @@ fn remove_first_record(bytes: &[u8], wanted: u8) -> Vec<u8> {
             let new_len = u16::try_from(output.len()).unwrap();
             output[10..12].copy_from_slice(&new_len.to_le_bytes());
             let digest = assigned_plan_payload_digest(&output[ASSIGNED_PLAN_HEADER_BYTES..]);
-            output[92..124].copy_from_slice(&digest);
+            let digest_start = 80 + conduit_core::ASSIGNED_PLAN_COUNT_KINDS;
+            output[digest_start..digest_start + 32].copy_from_slice(&digest);
             return output;
         }
         cursor = end;

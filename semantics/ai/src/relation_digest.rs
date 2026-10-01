@@ -35,7 +35,7 @@ impl ModelRelationSignature {
             push_sorted_text(&mut bytes, &pattern.evidence_variables);
             push_sorted_text(&mut bytes, &pattern.target_variables);
             bytes.push(mode_tag(pattern.mode));
-            push_profile(&mut bytes, pattern.result_profile);
+            push_profile(&mut bytes, &pattern.result_profile);
             bytes.extend_from_slice(&pattern.maximum_work_units.to_le_bytes());
             bytes.extend_from_slice(&pattern.maximum_output_bytes.to_le_bytes());
         }
@@ -64,7 +64,7 @@ impl RelationQuery {
         }
         push_sorted_text(&mut bytes, &self.targets);
         bytes.push(mode_tag(self.mode));
-        push_profile(&mut bytes, self.requested_result);
+        push_profile(&mut bytes, &self.requested_result);
         match &self.randomness {
             RandomnessProfile::Deterministic => bytes.push(0),
             RandomnessProfile::ExplicitSeed(payload) => {
@@ -108,12 +108,29 @@ fn mode_tag(value: RelationQueryMode) -> u8 {
     }
 }
 
-fn push_profile(output: &mut Vec<u8>, value: RelationResultProfile) {
+fn push_profile(output: &mut Vec<u8>, value: &RelationResultProfile) {
     match value {
         RelationResultProfile::Deterministic => output.push(0),
-        RelationResultProfile::Probabilistic { maximum_samples } => {
+        RelationResultProfile::Probabilistic(profile) => {
             output.push(1);
-            output.extend_from_slice(&maximum_samples.to_le_bytes());
+            output.extend_from_slice(&profile.maximum_samples().to_le_bytes());
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn result_profile_digest_bytes_remain_exact() {
+        let mut bytes = Vec::new();
+        push_profile(&mut bytes, &RelationResultProfile::Deterministic);
+        assert_eq!(bytes, [0]);
+
+        bytes.clear();
+        let probabilistic = RelationResultProfile::probabilistic(0x0102_0304).unwrap();
+        push_profile(&mut bytes, &probabilistic);
+        assert_eq!(bytes, [1, 4, 3, 2, 1]);
     }
 }

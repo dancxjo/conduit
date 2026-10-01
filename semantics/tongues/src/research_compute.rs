@@ -85,10 +85,8 @@ fn std_compute_offer() -> ModelComputeOffer {
                 service: ComputeServiceGuarantee::Shared,
             },
         },
-        cache_policy: ModelCachePolicy::Bounded {
-            maximum_loaded_models: 1,
-            maximum_loaded_bytes: 65_536,
-        },
+        cache_policy: ModelCachePolicy::bounded(65_536, 1)
+            .expect("the research model cache has positive finite bounds"),
     }
 }
 

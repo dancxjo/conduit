@@ -102,6 +102,7 @@ pub(crate) fn check_document(
     checked_forms.sort_by(|left, right| left.name.cmp(&right.name));
     let source_sugar_expansions = pending_source_sugar_expansions
         .into_iter()
+        .chain(forms.iter().filter_map(expression_body_expansion))
         .map(|expansion| SourceSugarExpansion {
             checked_form_id: checked_forms
                 .iter()
@@ -205,6 +206,38 @@ pub(crate) fn check_document(
         forms: checked_forms,
         source_sugar_expansions,
         structured_types,
+    })
+}
+
+fn expression_body_expansion(form: &FormSyntax) -> Option<PendingSourceSugarExpansion> {
+    let body = form.expression_body.as_ref()?;
+    let input = form
+        .front
+        .runtime_ports
+        .iter()
+        .find(|port| port.direction == crate::RuntimePortDirection::Input)?;
+    let output = form
+        .front
+        .runtime_ports
+        .iter()
+        .find(|port| port.direction == crate::RuntimePortDirection::Output)?;
+    Some(PendingSourceSugarExpansion {
+        form: form.name.text.clone(),
+        authored: alloc::format!("= {}", body.expression.text),
+        source_span: body.span,
+        ordinary_kind: "conduitese/pure-expression-operation@1".into(),
+        input_ports: alloc::vec![input.name.text.clone()],
+        output_ports: alloc::vec![output.name.text.clone()],
+        operand_bindings: alloc::vec![SourceSugarOperandBinding {
+            source: input.name.text.clone(),
+            input_port: "value".into(),
+        }],
+        canonical_replacement: Some(alloc::format!(
+            "{{\n    {} >> {} >> {}\n}}",
+            input.name.text,
+            body.expression.text,
+            output.name.text
+        )),
     })
 }
 
@@ -399,7 +432,7 @@ fn resolve_stage_aliases(
                                         "glyph '{}' requires the exact checked Fore for '{}'",
                                         glyph.text, canonical
                                     ),
-                                ))
+                                ));
                             }
                             Err(message) => return Err(use_diagnostic(glyph.span, message)),
                         }
@@ -746,6 +779,8 @@ fn check_form(
                     &gear.invocation,
                     catalog,
                     form_signatures,
+                    Some(form_fronts),
+                    gear.activation.clone(),
                     &mut resolver,
                 )?;
                 checked.retained = gear
@@ -1001,7 +1036,15 @@ fn check_cord_stages(
                 output_port,
                 ..
             } => {
-                let gear = check_invocation(None, invocation, catalog, form_signatures, resolver)?;
+                let gear = check_invocation(
+                    None,
+                    invocation,
+                    catalog,
+                    form_signatures,
+                    None,
+                    None,
+                    resolver,
+                )?;
                 stages.push(CheckedCordStage::RelationalGear {
                     operands: operands
                         .iter()
@@ -1033,7 +1076,15 @@ fn check_cord_stages(
                 source_span: expression.span,
             }),
             CordStage::InlineGear(invocation) => {
-                let gear = check_invocation(None, invocation, catalog, form_signatures, resolver)?;
+                let gear = check_invocation(
+                    None,
+                    invocation,
+                    catalog,
+                    form_signatures,
+                    None,
+                    None,
+                    resolver,
+                )?;
                 stages.push(CheckedCordStage::InlineGear(gear.clone()));
                 gears.push(gear);
             }
@@ -1270,6 +1321,8 @@ fn check_invocation(
     invocation: &Invocation,
     catalog: &StartupCatalog,
     form_signatures: &BTreeMap<String, KindSignature>,
+    form_fronts: Option<&BTreeMap<String, CheckedFront>>,
+    activation: Option<crate::ActivationSyntax>,
     resolver: &mut Resolver<'_>,
 ) -> Result<CheckedCanonicalGear, SyntaxCheckDiagnostic> {
     let signature = form_signatures
@@ -1341,6 +1394,17 @@ fn check_invocation(
             value,
         });
     }
+    let activation = activation
+        .map(|mode| {
+            checked_activation(
+                invocation,
+                mode,
+                form_fronts.expect("activation checking receives source Form fronts"),
+                catalog,
+                resolver,
+            )
+        })
+        .transpose()?;
     Ok(CheckedCanonicalGear {
         name,
         kind: signature.kind.clone(),
@@ -1353,7 +1417,182 @@ fn check_invocation(
             })?,
         startup_bindings,
         retained: None,
+        activation,
         source_span: invocation.span,
+    })
+}
+
+fn checked_activation(
+    invocation: &Invocation,
+    mode: crate::ActivationSyntax,
+    form_fronts: &BTreeMap<String, CheckedFront>,
+    catalog: &StartupCatalog,
+    resolver: &mut Resolver<'_>,
+) -> Result<crate::CheckedActivation, SyntaxCheckDiagnostic> {
+    let front = form_fronts
+        .get(&invocation.kind.text)
+        .ok_or_else(|| SyntaxCheckDiagnostic {
+            code: "CND-FRM-062",
+            span: invocation.span,
+            message: "activate requires one exact checked source Form".into(),
+        })?;
+    let contract = |location: conduit_core::FrontValueLocation| {
+        front
+            .value_contracts()
+            .iter()
+            .find(|value| value.location == location)
+            .map(|value| value.contract.clone())
+    };
+    if let crate::ActivationSyntax::Fold { initial, .. }
+    | crate::ActivationSyntax::Scan { initial, .. } = &mode
+    {
+        let (name, code) = if matches!(mode, crate::ActivationSyntax::Fold { .. }) {
+            ("fold", "CND-FRM-064")
+        } else {
+            ("scan", "CND-FRM-065")
+        };
+        let accumulator = front
+            .inputs()
+            .iter()
+            .find(|port| port.port_id.as_str() == "accumulator");
+        let item = front
+            .inputs()
+            .iter()
+            .find(|port| port.port_id.as_str() == "item");
+        let combined = front
+            .outputs()
+            .iter()
+            .find(|port| port.port_id.as_str() == "combined");
+        let (Some(accumulator), Some(item), Some(combined)) = (accumulator, item, combined) else {
+            return Err(SyntaxCheckDiagnostic {
+                code,
+                span: invocation.span,
+                message: format!("{name} requires exact Value inputs 'accumulator' and 'item' and Value output 'combined'"),
+            });
+        };
+        if front.inputs().len() != 2
+            || front.outputs().len() != 1
+            || accumulator.temporal != conduit_core::PortTemporal::Value
+            || item.temporal != conduit_core::PortTemporal::Value
+            || combined.temporal != conduit_core::PortTemporal::Value
+            || accumulator.value_kind != combined.value_kind
+            || accumulator.abnormal_kind != item.abnormal_kind
+            || accumulator.abnormal_kind != combined.abnormal_kind
+            || !front.startup_parameters().is_empty()
+        {
+            return Err(SyntaxCheckDiagnostic {
+                code,
+                span: invocation.span,
+                message: format!("{name} combine must be startup-free and preserve one exact accumulator Value and abnormal terminal"),
+            });
+        }
+        let initial = resolver
+            .resolve_expression(
+                initial,
+                catalog.structured_type(accumulator.value_kind.as_str()),
+            )
+            .and_then(|value| {
+                canonicalize_integer_value(value, accumulator.value_kind.as_str(), catalog)
+            })
+            .map_err(|error| error.diagnostic(initial.span))?;
+        return Ok(crate::CheckedActivation {
+            mode,
+            selected_form: invocation.kind.text.clone(),
+            input: item.clone(),
+            accumulator_input: Some(accumulator.clone()),
+            output: combined.clone(),
+            initial_accumulator: Some(initial),
+            initial_accumulator_bytes: None,
+            input_contract: contract(conduit_core::FrontValueLocation::Input(
+                item.port_id.clone(),
+            ))
+            .ok_or_else(|| SyntaxCheckDiagnostic {
+                code,
+                span: invocation.span,
+                message: format!("{name} item requires one exact finite value contract"),
+            })?,
+            output_contract: contract(conduit_core::FrontValueLocation::Output(
+                combined.port_id.clone(),
+            ))
+            .ok_or_else(|| SyntaxCheckDiagnostic {
+                code,
+                span: invocation.span,
+                message: format!("{name} output requires one exact finite value contract"),
+            })?,
+            abnormal_contract: item.abnormal_kind.as_ref().and_then(|_| {
+                contract(conduit_core::FrontValueLocation::InputAbnormal(
+                    item.port_id.clone(),
+                ))
+            }),
+            accumulator_contract: Some(
+                contract(conduit_core::FrontValueLocation::Input(
+                    accumulator.port_id.clone(),
+                ))
+                .ok_or_else(|| SyntaxCheckDiagnostic {
+                    code,
+                    span: invocation.span,
+                    message: format!("{name} accumulator requires one exact finite value contract"),
+                })?,
+            ),
+        });
+    }
+    let ([input], [output]) = (front.inputs(), front.outputs()) else {
+        return Err(SyntaxCheckDiagnostic {
+            code: "CND-FRM-062",
+            span: invocation.span,
+            message: "activate requires an exact unary Value-to-Value Form".into(),
+        });
+    };
+    if input.temporal != conduit_core::PortTemporal::Value
+        || output.temporal != conduit_core::PortTemporal::Value
+        || input.abnormal_kind != output.abnormal_kind
+        || !front.startup_parameters().is_empty()
+    {
+        return Err(SyntaxCheckDiagnostic {
+            code: "CND-FRM-062",
+            span: invocation.span,
+            message: "activate requires startup-free Value fronts with one exact propagated abnormal terminal".into(),
+        });
+    }
+    if matches!(mode, crate::ActivationSyntax::Select { .. })
+        && output.value_kind.as_str() != conduit_core::BOOL_INFO_ID
+    {
+        return Err(SyntaxCheckDiagnostic {
+            code: "CND-FRM-063",
+            span: invocation.span,
+            message: "select requires an exact Value-to-Boolean predicate; truthiness coercion is not permitted".into(),
+        });
+    }
+    Ok(crate::CheckedActivation {
+        mode,
+        selected_form: invocation.kind.text.clone(),
+        input: input.clone(),
+        accumulator_input: None,
+        output: output.clone(),
+        initial_accumulator: None,
+        initial_accumulator_bytes: None,
+        input_contract: contract(conduit_core::FrontValueLocation::Input(
+            input.port_id.clone(),
+        ))
+        .ok_or_else(|| SyntaxCheckDiagnostic {
+            code: "CND-FRM-062",
+            span: invocation.span,
+            message: "activation input requires one exact finite value contract".into(),
+        })?,
+        output_contract: contract(conduit_core::FrontValueLocation::Output(
+            output.port_id.clone(),
+        ))
+        .ok_or_else(|| SyntaxCheckDiagnostic {
+            code: "CND-FRM-062",
+            span: invocation.span,
+            message: "activation output requires one exact finite value contract".into(),
+        })?,
+        abnormal_contract: input.abnormal_kind.as_ref().and_then(|_| {
+            contract(conduit_core::FrontValueLocation::InputAbnormal(
+                input.port_id.clone(),
+            ))
+        }),
+        accumulator_contract: None,
     })
 }
 
@@ -1448,7 +1687,7 @@ fn resolve_bound_value(
             Err(conduit_core::QuantityLiteralRefusal::NonCanonicalUnit { canonical }) => {
                 return Err(SyntaxCheckError::QuantityLiteral(format!(
                     "non-canonical quantity unit in '{default}'; use '{canonical}'"
-                )))
+                )));
             }
             Err(_) => CanonicalStartupValue::Literal(default.to_string()),
         }

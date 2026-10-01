@@ -91,18 +91,21 @@ impl PatchbayHtmlServer {
 
         let encoded = serde_json::to_vec(&candidate)
             .map_err(|error| ServerError::Interaction(error.to_string()))?;
-        let session = patchbay_model::PatchbayBodyWorkloadSession::open_serialized(
-            &encoded,
-            crate::body_workbench::model_entrance(
-                &self
-                    .snapshot
-                    .body_workbench
-                    .as_ref()
-                    .ok_or_else(|| ServerError::Interaction("Body workbench is absent".into()))?
-                    .entrance,
-            ),
-        )
-        .map_err(|error| ServerError::Interaction(format!("open updated biography: {error:?}")))?;
+        let entrance = crate::body_workbench::model_entrance(
+            &self
+                .snapshot
+                .body_workbench
+                .as_ref()
+                .ok_or_else(|| ServerError::Interaction("Body workbench is absent".into()))?
+                .entrance,
+        );
+        conduit_body_make::BodyEvidenceAttachment::open_serialized(&encoded, entrance).map_err(
+            |error| ServerError::Interaction(format!("open updated attachment: {error:?}")),
+        )?;
+        let session =
+            conduit_body_make::BodyWorkloadSession::open_serialized(&encoded).map_err(|error| {
+                ServerError::Interaction(format!("open updated biography: {error:?}"))
+            })?;
         let prior = self
             .snapshot
             .body_workbench

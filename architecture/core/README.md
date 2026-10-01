@@ -23,12 +23,15 @@ depends on semantic, application, target, or proof packages.
 | `front.rs` | universal architecture | Checked generic capability front and typed port surface. |
 | `implementation.rs` | universal architecture | Exact implementation and realization offers, distinct from availability and active instances. |
 | `interop.rs` | universal architecture | Exact directional bridge identity, bounded mapping, reflection fencing, and machine-readable refusal without granting sibling authority. |
+| `activation_contract.rs` | universal architecture | Exact bounded each, select, and fold coordinator contracts, including finite total item bounds and terminal laws. |
 | `plan_fingerprint.rs` | universal architecture | Canonical fragment and plan commitment encoding; preserves immutable realization identity. |
 | `plan_realization.rs` | universal architecture | Exact reusable back identity retained in an expanded form and plan. |
+| `planned_activation.rs` | universal architecture | Exact bounded activation of one recursively verified selected Plan, including owner, Value fronts, finite pressure, effect multiplicity, terminal and cancellation laws, and per-activation Sign storage. |
 | `planned_gear.rs` | universal architecture | Checked named-field construction and minimum identity validation for one fully selected Gear in a Plan. |
 | `port.rs` | universal architecture | Typed port direction and temporal shape. |
 | `preparation.rs` | universal architecture | Finite cross-host admission before one exact plan starts. |
 | `resource_content.rs`, `resource_canonical.rs`, `resource.rs`, `resource_port.rs` | universal architecture | Generic resource requirements, offers, observations, bindings, compute topology, and the checked distinction between serializable info ports and unforgeable resource-authority ports. |
+| `resource_cord.rs` | universal architecture | Exact local Plan Cord transfer of opaque move-only resource possession, including sink acceptance, finite operation use, and lifecycle-bound revocation. |
 | `resource_admission.rs` | universal architecture | Atomic admission of finite current host resources before play. |
 | `route.rs` | universal architecture | Exact planned/admitted line, base, endpoint, authority, and route truth. |
 | `shared_pool.rs` | universal architecture | Generic finite shared-pool identity, admission, and placement records. |

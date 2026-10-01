@@ -6,11 +6,13 @@ const response = (value, status = 200) => new Response(JSON.stringify(value), { 
 
 test("Face snapshot uses one bounded same-origin SDK request", async () => {
   const calls = [];
+  let receiver;
   const client = new BrowserFaceClient({
     base: "https://conduit.test/workbench/",
-    fetch: async (url, options) => { calls.push([url, options]); return response({ schema: "face" }); },
+    fetch: async function (url, options) { receiver = this; calls.push([url, options]); return response({ schema: "face" }); },
   });
   assert.deepEqual(await client.snapshot(), { schema: "face" });
+  assert.equal(receiver, globalThis);
   assert.equal(calls[0][0].href, "https://conduit.test/workbench/api/snapshot");
   assert.deepEqual(calls[0][1], {
     method: "GET", cache: "no-store", credentials: "same-origin", redirect: "error",

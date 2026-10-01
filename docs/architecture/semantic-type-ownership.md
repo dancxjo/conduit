@@ -1,6 +1,6 @@
 # Semantic type ownership inventory
 
-**Status:** ownership audit for [#4382](https://github.com/dancxjo/conduit/issues/4382)
+**Status:** completed ownership audit from [#4382](https://github.com/dancxjo/conduit/issues/4382); reviewed migrations continue under [#4375](https://github.com/dancxjo/conduit/issues/4375)
 
 **Language owner:** [Conduitese canon #4109](https://github.com/dancxjo/conduit/issues/4109)
 
@@ -134,7 +134,7 @@ authority.
 | Float-bearing probability, vector and dynamics values | P | explicit finite/non-finite scalar law and generated equality behavior matching the current semantic contract |
 | Boxed relation, training and dynamics outcome trees | P/R boundary | reviewed finite indirection for portable payloads; Host candidates, receipts and realization facts remain R/M |
 | Source-extraction receipt proof text | R evidence | current `&'static str` proof-class representation must become a bounded semantic vocabulary before any portable projection |
-| Local-model and model-compute offers, sessions, runtime identities and cache policy | M/R | Host offer, admission and active realization truth |
+| Local-model and model-compute offers, sessions and runtime identities | M/R | Host offer, admission and active realization truth; the portable bounded model-cache policy is P and is recorded in the migration ledger |
 | Vector-index handles, authorization, mutable state, mutations and maintenance receipts | R | resource authority, generation and execution evidence |
 | Cross-host lifecycle, training lifecycle, Host step/candidate/receipt, integration realization and proposal-gate authority families | R/M | Plan, play, authority, active-instance or Host execution truth |
 | Form composition candidate and refusal families | C | contain checked/expanded Form compiler representations |
@@ -175,7 +175,14 @@ are satisfied.
 | Artificial-life Lenia and reaction-diffusion boundary vocabularies and field-bitmap refusal | `semantics/alife/types.conduit` | generated at build time | yes | yes | exact native round trips plus field projection, artificial-life behavior and conformance suites |
 | Signal Garden evolution refusal extracted from the catalog | `semantics/alife/types.conduit` | generated at build time | yes | yes | exact native round trips plus garden catalog and browser consumer suites |
 | AI randomness, draw relationship, probability disposition, log-score and refusal vocabularies | `semantics/ai/types.conduit` | generated at build time | yes | yes | exact native round trips plus probability, relation, dynamics and training suites |
+| AI source-extraction profile and overlap payloads | `semantics/ai/types.conduit` | generated at build time | yes | yes | exact native payload round trips plus Serde/postcard compatibility and source-extraction suites |
+| AI hybrid-retrieval fusion strategy and bounded rank payload | `semantics/ai/types.conduit` | generated at build time | yes | yes | exact native payload round trips, invalid-boundary refusal and hybrid retrieval/RAG suites |
+| AI relation result profile and positive sample-bound payload | `semantics/ai/types.conduit` | generated at build time | yes | yes | exact native payload round trips, invalid-boundary refusal, preserved manual digest bytes and relation/Tongues suites |
+| AI model-cache policy and positive model/byte bounds | `semantics/ai/types.conduit` | generated at build time | yes | yes | exact native payload round trips, invalid-boundary refusal and model-compute/Tongues/std Host suites; offer-relative byte adequacy remains Rust validation over portable policy and Host offer truth |
 | Presentation mechanism, status, evidence, choice, navigation, utterance, disclosure and temporal vocabularies | `semantics/presentation/types.conduit` | generated at build time | yes | yes | exact native round trips plus presentation and consumer suites |
+| Presentation layout axis and alignment vocabularies | `semantics/presentation/types.conduit` | generated at build time | yes | yes | exact native round trips plus layout and renderer consumer suites |
+| Presentation graphics clip-class vocabulary | `semantics/presentation/types.conduit` | generated at build time | yes | yes | exhaustive native round trips plus graphics classification, Patchbay and ConduitOS consumer suites |
+| Generated manifestation disposition and content-role vocabularies | `semantics/presentation/types.conduit` | generated at build time | yes | yes | exhaustive native round trips plus exact Serde/postcard compatibility and generative manifestation consumer suites |
 | Robotics beacon/charging, chat connection/presence, HTTP method/failures | domain `types.conduit` sources | generated at build time | yes | yes | exact native round trips plus std/no-std domain suites |
 | Robotics simulation availability extracted from the catalog | `semantics/robotics/types.conduit` | generated at build time | yes | yes | exact native round trips plus robotics catalog and std/ConduitOS consumers |
 | HTTP contract refusal vocabulary | `semantics/web/types.conduit` | generated at build time | yes | yes | exact native round trips plus HTTP codec and hosted-HTTP suites |
@@ -191,6 +198,9 @@ are satisfied.
 | Address-detection typed terminal | `semantics/text/types.conduit` | generated at build time | yes | yes | exact native round trip plus address-detection behavior suite |
 | Address-detection result and bounded addressed payload | `semantics/text/types.conduit` | generated at build time | yes | yes | exact native round trips and index/text bounds plus text, speech and std Host suites |
 | Human experience, source-availability, visual-evidence and relation vocabularies | `semantics/human/types.conduit` | generated at build time | yes | yes | exact native round trips plus human experience and visual behavior suites |
+| Human keymap refusal vocabulary | `semantics/human/types.conduit` | generated at build time | yes | yes | exact native round trips plus keymap and std/browser/ConduitOS consumer suites |
+| Human camera/microphone media-kind vocabulary | `semantics/human/types.conduit` | generated at build time | yes | yes | exact native and stable JSON/postcard round trips plus human-media planning and target consumer suites |
+| Human visual-impression disposition vocabulary | `semantics/human/types.conduit` | generated at build time | yes | yes | exact native round trips, invalid-truncation validation, catalog codec/digest and std hosted-vision suites |
 | Measurement window/plot policies and threshold state/transitions | `semantics/data/types.conduit` | generated at build time | yes | yes | exact native round trips plus data and wire suites |
 | Measurement window, plot, summary and threshold refusal vocabularies | `semantics/data/types.conduit` | generated at build time | yes | yes | exact native round trips plus measurement behavior suites |
 | Sampled-signal continuity and typed terminal | `semantics/data/types.conduit` | generated at build time | yes | yes | exact native round trips and identity bounds plus sampled-signal behavior suite |
@@ -216,7 +226,10 @@ are satisfied.
 | AI planning, interruption, candidate and training lifecycle vocabularies | `semantics/ai/types.conduit` | generated at build time | yes | yes | exact native round trips plus cross-host, composition and training lifecycle suites |
 | Reranking strategy and its bounded observed-score payload | `semantics/ai/types.conduit` | generated at build time | yes | yes | exact native payload round trip plus retrieval and context-selection suites |
 | Model operation and port-presence vocabularies | `semantics/ai/types.conduit` | generated at build time | yes | yes | exact native round trips plus AI model-signature suite |
+| Missing-modality training policy and bounded declared modalities | `semantics/ai/types.conduit` | generated at build time | yes | yes | exact native bounds and round trips, retained relational validation, exact legacy training digest, and training lifecycle suites |
+| Positive fixed and bounded model-dimension constraints | `semantics/ai/types.conduit` | generated at build time | yes | yes | exact native bounds, retained range/product validation, legacy digest goldens, and model-signature consumers |
 | Vector similarity and embedding-normalization vocabularies | `semantics/ai/types.conduit` | generated at build time | yes | yes | exact native round trips plus vector retrieval and canonical serialization suites |
+| Finite compatible-vector-metrics record | `semantics/ai/types.conduit` | generated at build time with retained Rust Copy/Serde binding traits | yes | yes | exhaustive Boolean combinations, exact JSON/postcard compatibility, and vector/RAG/std consumer suites |
 | AI temporal source, boundary, direction, validity, and window vocabularies | `semantics/ai/types.conduit` | generated at build time | yes | yes | exact native round trips plus temporal context, retrieval, and serialization suites |
 | Context selection redundancy, ordering, rationale, and omission vocabularies | `semantics/ai/types.conduit` | generated at build time | yes | yes | exact native round trips plus context selection and planning suites |
 | RAG span, selection, truncation, and grounding vocabularies | `semantics/ai/types.conduit` | generated at build time | yes | yes | exact native round trips plus RAG semantics and grounded-answer suites |

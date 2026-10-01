@@ -153,7 +153,7 @@ fn tracked_repository_structure_has_explicit_owners() {
     validate_owners(&paths).unwrap();
     for owner in [
         "products/conduit",
-        "products/creche",
+        "products/workspace",
         "products/patchbay",
         "bodies/pete",
         "proof/fixtures/forms",

@@ -3,6 +3,17 @@ name = "conduit-composite"
 version = "0.1.0"
 edition = "2021"
 
+[features]
+fixture-registry-preparation = []
+
+[[test]]
+name = "kernel_execution"
+required-features = ["fixture-registry-preparation"]
+
+[[test]]
+name = "flow_select"
+required-features = ["fixture-registry-preparation"]
+
 [dependencies]
 conduit-core = { path = "../core" }
 conduit-form = { path = "../form" }

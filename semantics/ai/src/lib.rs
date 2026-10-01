@@ -2,16 +2,19 @@
 
 extern crate alloc;
 
-#[allow(dead_code)]
+// Native bounded-sequence payloads intentionally retain their admitted inline
+// capacity rather than hiding a play-time allocation behind enum indirection.
+#[allow(dead_code, clippy::large_enum_variant)]
 mod generated {
     include!(concat!(env!("OUT_DIR"), "/semantic_types.rs"));
 }
 pub use generated::{
-    BaseProofClass, BatchOrder, CandidateLifecycle, CheckpointPolicy, ContextOmissionReason,
-    ContextOrderingPolicy, ContextRedundancyPolicy, ContextSelectionRationale,
-    ContextSelectionRefusal, ContextTruncationReason, DataHandling, DrawRelationship,
-    DrawRelationshipCorrelated, DynamicsRefusal, EmbeddingNormalization, EmbodimentStage,
-    EntityBoundary, EvaluationDisposition, EvaluationPolicy, ExactVectorSearchRefusal,
+    BaseProofClass, BatchOrder, CandidateLifecycle, CheckpointPolicy, CompatibleMetrics,
+    ContextOmissionReason, ContextOrderingPolicy, ContextRedundancyPolicy,
+    ContextSelectionRationale, ContextSelectionRefusal, ContextTruncationReason, DataHandling,
+    DrawRelationship, DrawRelationshipCorrelated, DynamicsRefusal, EmbeddingNormalization,
+    EmbodimentStage, EntityBoundary, EvaluationDisposition, EvaluationPolicy,
+    ExactVectorSearchRefusal, FusionStrategy, FusionStrategyReciprocalRank,
     GeneratedTextFlowRefusal, GeneratedTextFlowTerminal, GroundedAnswerDisposition,
     GroundedAnswerRefusal, GroundingDisposition, HouseContextProvenanceClass, HouseContextRefusal,
     HumanAssessmentDisposition, HybridRetrievalOfferInvalidity, IntegrationTerminal,
@@ -19,19 +22,24 @@ pub use generated::{
     LearnedLifecycleRefusal, LlmDeterminismProfile, LlmImplementationControl,
     LlmInterruptionReason, LlmPlanningRefusal, LlmTerminalOutcome, LocalModelCachePolicy,
     LocalModelFailure, LocalModelKindProfile, LocalModelLifecycleState, LocalModelOfferInvalidity,
-    LocalModelRefusal, LocalModelTerminal, LogScoreKind, MechanismScore, Metering,
-    ModelCompatibilityRefusal, ModelComputeLifecycle, ModelComputeOperation, ModelComputeRefusal,
-    ModelEvidenceRefusal, ModelFailure, ModelInvocationTerminal, ModelOperation,
-    ModelOperationCode, ModelPortPresence, ModelPortPresenceCode, ModelRefusal,
-    ModelResultDisposition, ModelResultInvalidity, ModelResultProvenance, ModelSignatureRefusal,
-    ModelTextRefusal, ObjectiveParticipation, PortableComputeClass, ProbabilisticDisposition,
-    ProbabilisticDispositionApproximate, ProbabilisticDispositionTruncated, ProbabilityRefusal,
-    PromotionDecision, PromotionTerminal, R3OfferInvalidity, RagAnswerOfferInvalidity,
-    RandomnessProfile, RandomnessProfileExplicitSeed, RandomnessProfileProviderChosen,
-    RelationQueryMode, RelationRefusal, RelationTerminal, RerankScore, RerankingProofClass,
+    LocalModelRefusal, LocalModelTerminal, LogScoreKind, MechanismScore, Metering, MissingModality,
+    MissingModalityPolicy, MissingModalityPolicyPermitDeclared, ModelCachePolicy,
+    ModelCachePolicyBounded, ModelCompatibilityRefusal, ModelComputeLifecycle,
+    ModelComputeOperation, ModelComputeRefusal, ModelDimensionConstraint,
+    ModelDimensionConstraintBounded, ModelDimensionConstraintFixed, ModelEvidenceRefusal,
+    ModelFailure, ModelInvocationTerminal, ModelOperation, ModelOperationCode, ModelPortPresence,
+    ModelPortPresenceCode, ModelRefusal, ModelResultDisposition, ModelResultInvalidity,
+    ModelResultProvenance, ModelSignatureRefusal, ModelTextRefusal, ObjectiveParticipation,
+    PortableComputeClass, ProbabilisticDisposition, ProbabilisticDispositionApproximate,
+    ProbabilisticDispositionTruncated, ProbabilityRefusal, PromotionDecision, PromotionTerminal,
+    R3OfferInvalidity, RagAnswerOfferInvalidity, RandomnessProfile, RandomnessProfileExplicitSeed,
+    RandomnessProfileProviderChosen, RelationQueryMode, RelationRefusal, RelationResultProfile,
+    RelationResultProfileProbabilistic, RelationTerminal, RerankScore, RerankingProofClass,
     RerankingRefusal, RerankingStrategy, RerankingStrategyObservedScores, RetrievalMechanism,
     RetrievalMechanismCode, RollbackTerminal, SelectedContextRationale, ShadowTerminal,
-    SimilarityMetric, SourceExtractionOfferInvalidity, SourceSpanUnit, StructuredResultInvalidity,
+    SimilarityMetric, SourceExtractionOfferInvalidity, SourceExtractionProfile,
+    SourceExtractionProfileResourceMetadata, SourceExtractionProfileStructuredItems,
+    SourceExtractionProfileTextUtf8, SourceSpanUnit, StructuredResultInvalidity,
     TemporalContextRefusal, TemporalEvidenceSelectionRefusal, TemporalInterpretationRefusal,
     TemporalSource, TemporalValidity, TemporalWindowRelation, TrainStepFailure,
     TrainingLifecyclePhase, TrainingLifecyclePhaseActiveStep, TrainingRefusal, TransitionDirection,

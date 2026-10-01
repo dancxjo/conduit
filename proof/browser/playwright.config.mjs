@@ -59,7 +59,7 @@ export default defineConfig({
     "workspace-membership.spec.mjs",
     "workspace-library.spec.mjs",
     "workspace-resident-applications.spec.mjs",
-    "creche-workspace-continuity.spec.mjs",
+    "workspace-continuity.spec.mjs",
     "browser-media-host.spec.mjs",
     "browser-device-base.spec.mjs",
     "browser-usb-device-base.spec.mjs",

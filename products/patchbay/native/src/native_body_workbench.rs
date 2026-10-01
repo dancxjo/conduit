@@ -3,10 +3,12 @@
 //! of the same bounded evidence document.
 
 use crate::arguments::NativeBodyEntrance;
-use patchbay_graph::PatchbayGraph;
-use patchbay_model::{
-    CurrentBodyFrame, PatchbayBodyApplicationEntrance, PatchbayBodyAttachment, ReadableBodyHistory,
+use conduit_body_make::{
+    BodyEvidenceAttachment, BodyEvidenceEntrance, CurrentBodyFrame, CurrentBodyLifecycle,
+    CurrentBodyLifecycleAction,
 };
+use patchbay_graph::PatchbayGraph;
+use patchbay_model::ReadableBodyHistory;
 use winit::keyboard::{Key, NamedKey};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -61,7 +63,7 @@ impl NativeBodyWorkbench {
             return Err(NativeBodyWorkbenchError::InvalidRevision);
         }
         let attachment =
-            PatchbayBodyAttachment::open_serialized(&encoded_evidence, model_entrance(entrance))
+            BodyEvidenceAttachment::open_serialized(&encoded_evidence, model_entrance(entrance))
                 .map_err(NativeBodyWorkbenchError::Entrance)?;
         if !attachment
             .evidence()
@@ -108,19 +110,15 @@ impl NativeBodyWorkbench {
         use crate::lifecycle_flow::{LifecycleFlow, LifecycleFlowAction};
         use patchbay_model::PatchbayAction;
         let action = match self.current.salient_action {
-            patchbay_model::CurrentBodyLifecycleAction::Wake => {
-                Some((PatchbayAction::Wake, "WAKE", "F5"))
-            }
-            patchbay_model::CurrentBodyLifecycleAction::Lull => {
-                Some((PatchbayAction::Lull, "LULL", "F9"))
-            }
-            patchbay_model::CurrentBodyLifecycleAction::None => None,
+            CurrentBodyLifecycleAction::Wake => Some((PatchbayAction::Wake, "WAKE", "F5")),
+            CurrentBodyLifecycleAction::Lull => Some((PatchbayAction::Lull, "LULL", "F9")),
+            CurrentBodyLifecycleAction::None => None,
         };
         LifecycleFlow {
             state_code: match self.current.lifecycle {
-                patchbay_model::CurrentBodyLifecycle::Lulled => "ATTACHED_LULLED",
-                patchbay_model::CurrentBodyLifecycle::Awake { .. } => "ATTACHED_AWAKE",
-                patchbay_model::CurrentBodyLifecycle::Fulfilled { .. } => "ATTACHED_FULFILLED",
+                CurrentBodyLifecycle::Lulled => "ATTACHED_LULLED",
+                CurrentBodyLifecycle::Awake { .. } => "ATTACHED_AWAKE",
+                CurrentBodyLifecycle::Fulfilled { .. } => "ATTACHED_FULFILLED",
             },
             state_text: self.current.status_line.clone(),
             detail: self.current.placement_line.into(),
@@ -330,7 +328,7 @@ impl NativeBodyWorkbenchSlot {
 pub enum NativeBodyWorkbenchError {
     InvalidRevision,
     StaleRevision { current: u64, offered: u64 },
-    Entrance(patchbay_model::PatchbayBodyEntranceError),
+    Entrance(conduit_body_make::BodyEvidenceEntranceError),
     History(patchbay_model::ReadableBodyHistoryError),
     ProgramIdentityMismatch,
 }
@@ -352,16 +350,16 @@ impl core::fmt::Display for NativeBodyWorkbenchError {
     }
 }
 
-fn model_entrance(entrance: NativeBodyEntrance) -> PatchbayBodyApplicationEntrance {
+fn model_entrance(entrance: NativeBodyEntrance) -> BodyEvidenceEntrance {
     match entrance {
         NativeBodyEntrance::Hosted {
             plan_id,
             implementation_id,
-        } => PatchbayBodyApplicationEntrance::Hosted {
+        } => BodyEvidenceEntrance::Hosted {
             plan_id: conduit_core::PlanId::from(plan_id),
             implementation_id: conduit_core::ImplementationId::from(implementation_id),
         },
-        NativeBodyEntrance::ExternalReader => PatchbayBodyApplicationEntrance::ExternalReader,
+        NativeBodyEntrance::ExternalReader => BodyEvidenceEntrance::ExternalReader,
     }
 }
 

@@ -13,6 +13,20 @@ pub struct RustBindingOptions {
     /// This never participates in semantic identity and requires the consuming
     /// crate to provide `serde` with derive support.
     pub derive_serde_for_variants: bool,
+    /// Authored Type names whose generated Rust variants must retain a
+    /// pre-existing non-Serde API even when other variants opt into Serde.
+    pub serde_variant_exclusions: BTreeSet<String>,
+    /// Authored record Type names whose Rust bindings retain a pre-existing
+    /// Serde wire contract. This binding choice is not semantic Type truth.
+    pub serde_record_types: BTreeSet<String>,
+    /// Authored record Type names whose entirely-copyable Rust bindings retain
+    /// a pre-existing `Copy` API.
+    pub copy_record_types: BTreeSet<String>,
+    /// Optional Rust enum declaration order for preserving an established
+    /// Serde variant-index ABI. Keys are authored Type names and values are an
+    /// exhaustive, unique list of authored variant tags. This is binding-only
+    /// compatibility truth and never changes native Type identity.
+    pub serde_variant_orders: BTreeMap<String, Vec<String>>,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -222,11 +236,23 @@ fn emit_type(
             writeln!(out, "}}\n").expect("String writing is infallible");
         }
         StructuredInfoTypeShape::Record { fields, .. } => {
-            writeln!(
-                out,
-                "#[derive(Debug, Clone, PartialEq, Eq)]\npub struct {rust_name} {{"
-            )
-            .expect("String writing is infallible");
+            let derive_copy = options.copy_record_types.contains(&value_type.name);
+            let derive_serde = options.serde_record_types.contains(&value_type.name);
+            if derive_copy && !copy_type(&value_type.value_type) {
+                return Err(RustBindingGenerationError::InvalidSemanticType);
+            }
+            let derives = match (derive_copy, derive_serde) {
+                (true, true) => {
+                    "Debug, Clone, Copy, PartialEq, Eq, serde::Serialize, serde::Deserialize"
+                }
+                (true, false) => "Debug, Clone, Copy, PartialEq, Eq",
+                (false, true) => {
+                    "Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize"
+                }
+                (false, false) => "Debug, Clone, PartialEq, Eq",
+            };
+            writeln!(out, "#[derive({derives})]\npub struct {rust_name} {{")
+                .expect("String writing is infallible");
             for field in fields {
                 writeln!(
                     out,
@@ -239,44 +265,64 @@ fn emit_type(
             writeln!(out, "}}\n").expect("String writing is infallible");
         }
         StructuredInfoTypeShape::Variant { cases, .. } => {
-            let unit_only = cases.iter().all(|case| unit_type(case.payload_type()));
-            for case in cases {
+            let derive_serde = options.derive_serde_for_variants
+                && !options.serde_variant_exclusions.contains(&value_type.name);
+            let ordered_cases =
+                if let Some(order) = options.serde_variant_orders.get(&value_type.name) {
+                    if order.len() != cases.len() {
+                        return Err(RustBindingGenerationError::InvalidSemanticType);
+                    }
+                    let mut seen = BTreeSet::new();
+                    let mut ordered = Vec::with_capacity(cases.len());
+                    for tag in order {
+                        if !seen.insert(tag) {
+                            return Err(RustBindingGenerationError::InvalidSemanticType);
+                        }
+                        ordered.push(
+                            cases
+                                .iter()
+                                .find(|case| case.tag() == tag)
+                                .ok_or(RustBindingGenerationError::InvalidSemanticType)?,
+                        );
+                    }
+                    ordered
+                } else {
+                    cases.iter().collect::<Vec<_>>()
+                };
+            let unit_only = ordered_cases
+                .iter()
+                .all(|case| unit_type(case.payload_type()));
+            for case in &ordered_cases {
                 if matches!(
                     case.payload_type().shape(),
                     StructuredInfoTypeShape::Record { .. }
                 ) {
                     let payload = format!("{rust_name}{}", rust_pascal_identifier(case.tag())?);
-                    emit_payload_struct(
-                        out,
-                        &payload,
-                        case.payload_type(),
-                        names,
-                        options.derive_serde_for_variants,
-                    )?;
+                    emit_payload_struct(out, &payload, case.payload_type(), names, derive_serde)?;
                 }
             }
-            let copy_payloads = cases.iter().all(|case| {
+            let copy_payloads = ordered_cases.iter().all(|case| {
                 !matches!(
                     case.payload_type().shape(),
                     StructuredInfoTypeShape::Record { .. }
                 ) && copy_type(case.payload_type())
             });
-            let derives = if unit_only && options.derive_serde_for_variants {
+            let derives = if unit_only && derive_serde {
                 "Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, serde::Serialize, serde::Deserialize"
             } else if unit_only {
                 "Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash"
-            } else if copy_payloads && options.derive_serde_for_variants {
+            } else if copy_payloads && derive_serde {
                 "Debug, Clone, Copy, PartialEq, Eq, serde::Serialize, serde::Deserialize"
             } else if copy_payloads {
                 "Debug, Clone, Copy, PartialEq, Eq"
-            } else if options.derive_serde_for_variants {
+            } else if derive_serde {
                 "Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize"
             } else {
                 "Debug, Clone, PartialEq, Eq"
             };
             writeln!(out, "#[derive({derives})]\npub enum {rust_name} {{")
                 .expect("String writing is infallible");
-            for case in cases {
+            for case in &ordered_cases {
                 let variant = rust_pascal_identifier(case.tag())?;
                 if unit_type(case.payload_type()) {
                     writeln!(out, "    {variant},").expect("String writing is infallible");

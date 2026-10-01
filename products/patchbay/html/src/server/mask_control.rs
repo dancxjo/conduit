@@ -1,8 +1,9 @@
 //! Typed Mask-topology requests through the ordinary body planning owner.
 
 use super::{PatchbayHtmlServer, ServerError};
+use conduit_body::BodyPlanningTransition;
 use conduit_core::{PlanId, SignId};
-use patchbay_model::{BodyPlanningTransition, MaskTopologyMode};
+use patchbay_model::MaskTopologyMode;
 use serde::Deserialize;
 use std::net::TcpStream;
 

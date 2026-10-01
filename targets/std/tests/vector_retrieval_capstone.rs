@@ -41,11 +41,7 @@ fn embedding_profile(revision: &str) -> EmbeddingProfile {
         provider_identity: "provider/reviewed-fixture".into(),
         dimensions: 3,
         normalization: EmbeddingNormalization::None,
-        compatible_metrics: CompatibleMetrics {
-            cosine_similarity: true,
-            dot_product_similarity: true,
-            squared_euclidean_distance: true,
-        },
+        compatible_metrics: CompatibleMetrics::new(true, true, true).unwrap(),
     }
 }
 

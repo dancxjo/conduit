@@ -14,14 +14,11 @@ fn constraint() -> ModelValueConstraint {
         axes: vec![
             ModelAxisConstraint {
                 role: TensorAxisRole::Time,
-                dimension: ModelDimensionConstraint::Bounded {
-                    minimum: 1,
-                    maximum: 8,
-                },
+                dimension: ModelDimensionConstraint::bounded(8, 1).unwrap(),
             },
             ModelAxisConstraint {
                 role: TensorAxisRole::Feature,
-                dimension: ModelDimensionConstraint::Fixed(2),
+                dimension: ModelDimensionConstraint::fixed(2).unwrap(),
             },
         ],
         maximum_bytes: 64,
@@ -79,7 +76,7 @@ fn artifact(signature: &ModelSignature) -> ModelArtifact {
 }
 
 fn relation(signature: &ModelSignature) -> ModelRelationSignature {
-    let probabilistic = RelationResultProfile::Probabilistic { maximum_samples: 4 };
+    let probabilistic = RelationResultProfile::probabilistic(4).unwrap();
     ModelRelationSignature {
         identity: "tongues/joint-relation".into(),
         compatibility_version: 1,
@@ -102,7 +99,7 @@ fn relation(signature: &ModelSignature) -> ModelRelationSignature {
                 evidence_variables: vec!["acoustic-observation".into()],
                 target_variables: vec!["articulatory-observation".into()],
                 mode: RelationQueryMode::InferPosterior,
-                result_profile: probabilistic,
+                result_profile: probabilistic.clone(),
                 maximum_work_units: 100,
                 maximum_output_bytes: 256,
             },
@@ -110,7 +107,7 @@ fn relation(signature: &ModelSignature) -> ModelRelationSignature {
                 evidence_variables: vec!["articulatory-observation".into()],
                 target_variables: vec!["acoustic-observation".into()],
                 mode: RelationQueryMode::DecodeGenerate,
-                result_profile: probabilistic,
+                result_profile: probabilistic.clone(),
                 maximum_work_units: 100,
                 maximum_output_bytes: 256,
             },
@@ -180,7 +177,7 @@ fn query(
         }],
         targets: vec![target.into()],
         mode,
-        requested_result: RelationResultProfile::Probabilistic { maximum_samples: 4 },
+        requested_result: RelationResultProfile::probabilistic(4).unwrap(),
         randomness: RandomnessProfile::explicit_seed(42).unwrap(),
         admitted_work_units: 80,
         maximum_output_bytes: 200,
@@ -257,7 +254,7 @@ fn one_artifact_answers_both_non_bijective_conditional_directions() {
     );
     assert_eq!(
         first.requested_result,
-        RelationResultProfile::Probabilistic { maximum_samples: 4 }
+        RelationResultProfile::probabilistic(4).unwrap()
     );
 }
 

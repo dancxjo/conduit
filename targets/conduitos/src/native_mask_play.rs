@@ -18,7 +18,7 @@ use sha2::{Digest, Sha256};
 
 pub const MAX_MASK_VALUE_BYTES: usize = 4 * 1024;
 const PORTS: usize = FIXED_KERNEL_STORAGE_PORTS_PER_NODE;
-const NODES: usize = 3;
+const NODES: usize = 4;
 const CORDS: usize = 6;
 const ROUTES: usize = NODES * PORTS;
 const HOST_BINDINGS: usize = 4;
@@ -66,6 +66,7 @@ pub enum NativeMaskPlayError {
 }
 
 enum MaskBack {
+    ResourceSource,
     Tee,
     Renderer { pending: bool, emitted: bool },
     Interaction { seen: u8 },
@@ -78,6 +79,7 @@ impl StepBack<PORTS> for MaskBack {
         _input_bytes: &StepInputBytes<'_, PORTS>,
     ) -> StepOutcome {
         match self {
+            Self::ResourceSource => StepOutcome::Complete,
             Self::Tee => pass_one(io),
             Self::Renderer { pending, emitted } => render(pending, emitted, io),
             Self::Interaction { seen } => correlate(seen, io),
@@ -350,11 +352,17 @@ fn scheduler(
     fragment: &conduit_core::PlanFragment,
     lowered: &LoweredPlanFragment,
 ) -> Result<Scheduler, NativeMaskPlayError> {
-    if lowered.nodes.len() != NODES || lowered.cords.len() != CORDS {
+    if !matches!(lowered.nodes.len(), 3 | NODES) || lowered.cords.len() != CORDS {
         return Err(NativeMaskPlayError::Shape);
     }
-    let nodes = lowered
-        .node_specs
+    let mut node_specs = lowered.node_specs.clone();
+    if node_specs.len() == 3 {
+        node_specs.push(conduit_kernel::scheduler::NodeSpec {
+            input_cords: [None; PORTS],
+            maximum_step_fuel: 1,
+        });
+    }
+    let nodes = node_specs
         .as_slice()
         .try_into()
         .map_err(|_| NativeMaskPlayError::Shape)?;
@@ -377,28 +385,33 @@ fn scheduler(
             .map_err(|_| NativeMaskPlayError::Kernel)?;
     }
     routes.seal().map_err(|_| NativeMaskPlayError::Kernel)?;
-    let mut bindings = FixedHostCallBindings::<HOST_BINDINGS>::new(NODES as u16);
+    let mut bindings = FixedHostCallBindings::<HOST_BINDINGS>::new(1);
     for call in &lowered.host_calls {
         bindings
             .install(call.node, call.binding)
             .map_err(|_| NativeMaskPlayError::Kernel)?;
     }
     bindings.seal().map_err(|_| NativeMaskPlayError::Kernel)?;
-    let drivers = fragment
+    let mut drivers = fragment
         .placements
         .iter()
         .map(|placement| match placement.kind_id.as_str() {
+            conduit_presentation::SHOW_RESOURCE_SOURCE_KIND => Ok(MaskBack::ResourceSource),
             conduit_presentation::PRESENTATION_TEE_KIND => Ok(MaskBack::Tee),
-            conduit_presentation::RENDERER_KIND => Ok(MaskBack::Renderer {
-                pending: false,
-                emitted: false,
-            }),
+            conduit_presentation::RENDERER_KIND | conduit_presentation::RESOURCE_RENDERER_KIND => {
+                Ok(MaskBack::Renderer {
+                    pending: false,
+                    emitted: false,
+                })
+            }
             conduit_presentation::FACE_INTERACTION_KIND => Ok(MaskBack::Interaction { seen: 0 }),
             _ => Err(NativeMaskPlayError::Shape),
         })
-        .collect::<Result<Vec<_>, _>>()?
-        .try_into()
-        .map_err(|_| NativeMaskPlayError::Shape)?;
+        .collect::<Result<Vec<_>, _>>()?;
+    if drivers.len() == 3 {
+        drivers.push(MaskBack::ResourceSource);
+    }
+    let drivers = drivers.try_into().map_err(|_| NativeMaskPlayError::Shape)?;
     let values = FixedValueStore::<VALUES, MAX_MASK_VALUE_BYTES>::new(VALUE_BYTES as u32)
         .map_err(|_| NativeMaskPlayError::Value)?;
     let signs = FixedSignLog::<SIGNS>::new_with_remote_storage(

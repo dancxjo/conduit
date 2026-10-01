@@ -21,24 +21,13 @@ mod source_expansion;
 mod std_websocket_line;
 #[cfg(test)]
 mod two_std_line_tests;
+#[cfg(test)]
+mod v1_history;
 
 use clap::Parser;
 use std::io;
 use std::io::{BufRead, Write};
 use std::path::{Path, PathBuf};
-
-fn enter_current_body() -> Result<(), String> {
-    let executable = "patchbay-native";
-    let mut command = std::process::Command::new(executable);
-    command.arg("--front-door");
-    let status = command
-        .status()
-        .map_err(|error| patchbay_unavailable_message(executable, &error))?;
-    status
-        .success()
-        .then_some(())
-        .ok_or_else(|| format!("{executable} exited with {status}"))
-}
 
 fn current_state_dir() -> Result<PathBuf, String> {
     let value = std::env::var_os("CONDUIT_STATE_DIR")
@@ -54,50 +43,51 @@ fn enter_conduit() -> Result<(), String> {
         Some(value) if value.is_empty() => Err("CONDUIT_STATE_DIR must not be empty".into()),
         Some(value) => {
             let state_dir = PathBuf::from(value);
-            if durable_host::has_current_body(&state_dir)? {
-                enter_current_body()
-            } else {
-                enter_birth()
-            }
+            durable_host::has_current_body(&state_dir)?;
+            enter_workspace()
         }
-        None => enter_birth(),
+        None => enter_workspace(),
     }
 }
 
-fn patchbay_unavailable_message(executable: &str, error: &io::Error) -> String {
-    format!(
-        "{executable} is unavailable ({error}); install the selected Patchbay renderer alongside the `conduit` product entrance"
-    )
+fn enter_birth() -> Result<(), String> {
+    enter_workspace()
 }
 
-fn enter_birth() -> Result<(), String> {
-    let executable = "conduit-browser-host";
+fn enter_workspace() -> Result<(), String> {
     let conduit = std::env::current_exe()
         .map_err(|error| format!("cannot locate the installed Conduit entrance ({error})"))?;
+    let mut command = workspace_command(&conduit)?;
+    let executable = command.get_program().to_string_lossy().into_owned();
+    let status = command.status().map_err(|error| {
+        format!(
+            "{executable} is unavailable ({error}); install the Conduit browser Host alongside the `conduit` product entrance"
+        )
+    })?;
+    status
+        .success()
+        .then_some(())
+        .ok_or_else(|| format!("{executable} exited with {status}"))
+}
+
+fn workspace_command(conduit: &Path) -> Result<std::process::Command, String> {
+    let executable = "conduit-browser-host";
     let application = conduit
         .parent()
         .ok_or("the installed Conduit entrance has no parent directory")?
-        .join("conduit-creche");
+        .join("conduit-workspace");
     if !application.join("index.html").is_file() {
         return Err(format!(
             "the admitted birth encounter is unavailable at {}; install it alongside the Conduit executables",
             application.display()
         ));
     }
-    let status = std::process::Command::new(executable)
+    let mut command = std::process::Command::new(executable);
+    command
         .arg("--application")
         .arg(application)
-        .args(["--mount", "/creche/"])
-        .status()
-        .map_err(|error| {
-            format!(
-                "{executable} is unavailable ({error}); install the Conduit browser Host alongside the `conduit` product entrance"
-            )
-        })?;
-    status
-        .success()
-        .then_some(())
-        .ok_or_else(|| format!("{executable} exited with {status}"))
+        .args(["--mount", "/workspace/"]);
+    Ok(command)
 }
 
 use crate::report_artifact::{snapshot_from_execution, write_execution_artifacts, write_report};
@@ -351,5 +341,39 @@ fn main() {
     if let Err(err) = result {
         eprintln!("error: {err}");
         std::process::exit(1);
+    }
+}
+
+#[cfg(test)]
+mod product_entrance_tests {
+    use super::*;
+
+    #[test]
+    fn resident_entrance_uses_the_workspace_browser_application() {
+        let root = std::env::temp_dir().join(format!(
+            "conduit-workspace-entrance-{}-{}",
+            std::process::id(),
+            std::time::SystemTime::now()
+                .duration_since(std::time::UNIX_EPOCH)
+                .unwrap()
+                .as_nanos()
+        ));
+        let application = root.join("conduit-workspace");
+        std::fs::create_dir_all(&application).unwrap();
+        std::fs::write(application.join("index.html"), b"workspace").unwrap();
+
+        let command = workspace_command(&root.join("conduit")).unwrap();
+        assert_eq!(command.get_program(), "conduit-browser-host");
+        assert_eq!(
+            command.get_args().collect::<Vec<_>>(),
+            [
+                std::ffi::OsStr::new("--application"),
+                application.as_os_str(),
+                std::ffi::OsStr::new("--mount"),
+                std::ffi::OsStr::new("/workspace/"),
+            ]
+        );
+
+        std::fs::remove_dir_all(root).unwrap();
     }
 }

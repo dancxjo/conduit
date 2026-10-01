@@ -138,6 +138,15 @@ type ModelPortPresence =
 
 code ai/model-port-presence = ModelPortPresence as u8
 
+type ModelDimensionConstraint =
+    fixed {
+        value: U64 in 1..=18446744073709551615
+    }
+    | bounded {
+        minimum: U64 in 1..=18446744073709551615
+        maximum: U64 in 1..=18446744073709551615
+    }
+
 type SimilarityMetric =
     cosine_similarity
     | dot_product_similarity
@@ -146,6 +155,12 @@ type SimilarityMetric =
 type EmbeddingNormalization =
     none
     | unit_length
+
+type CompatibleMetrics = {
+    cosine_similarity: Boolean
+    dot_product_similarity: Boolean
+    squared_euclidean_distance: Boolean
+}
 
 type TemporalSource =
     event
@@ -204,6 +219,43 @@ type ContextOmissionReason =
 type SourceSpanUnit =
     bytes
     | items
+
+type SourceExtractionProfile =
+    text_utf8 {
+        overlap_bytes: U32
+    }
+    | structured_items {
+        overlap_items: U32
+    }
+    | resource_metadata {
+        overlap_items: U32
+    }
+
+type FusionStrategy =
+    reciprocal_rank {
+        rank_constant: U16 in 1..=65535
+    }
+
+type RelationResultProfile =
+    deterministic
+    | probabilistic {
+        maximum_samples: U32 in 1..=4294967295
+    }
+
+type ModelCachePolicy =
+    no_cache
+    | bounded {
+        maximum_loaded_models: U16 in 1..=65535
+        maximum_loaded_bytes: U64 in 1..=18446744073709551615
+    }
+
+type MissingModality = Text <= 128B not in [""]
+
+type MissingModalityPolicy =
+    reject
+    | permit_declared {
+        optional_modalities: sequence MissingModality <= 32
+    }
 
 type ContextSelectionRationale =
     exact_match

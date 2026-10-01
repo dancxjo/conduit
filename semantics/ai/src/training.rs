@@ -5,8 +5,9 @@ use conduit_core::{PlannedStateBoundary, StateContinuation};
 use conduit_data::{DatasetDescriptor, DatasetSplitMembership};
 
 use crate::{
-    BatchOrder, CheckpointPolicy, EvaluationPolicy, ModelArtifact, MutableModelState,
-    ObjectiveParticipation, RandomnessProfile, TrainStepFailure, TrainingRefusal,
+    BatchOrder, CheckpointPolicy, EvaluationPolicy, MissingModalityPolicy, ModelArtifact,
+    MutableModelState, ObjectiveParticipation, RandomnessProfile, TrainStepFailure,
+    TrainingRefusal,
 };
 
 #[path = "training_request.rs"]
@@ -21,8 +22,8 @@ pub use lifecycle::*;
 mod receipt;
 pub use receipt::*;
 use validation::{
-    has_duplicate_text, nonzero, text, validate_evaluation_policy, validate_interval_policy,
-    validate_metrics, validate_objectives,
+    nonzero, text, validate_evaluation_policy, validate_interval_policy, validate_metrics,
+    validate_objectives,
 };
 
 pub const MAXIMUM_TRAINING_OBJECTIVES: usize = 32;
@@ -38,12 +39,6 @@ pub struct TrainingObjective {
     pub configuration_identity: String,
     pub output_identity: String,
     pub participation: ObjectiveParticipation,
-}
-
-#[derive(Debug, Clone, PartialEq, Eq)]
-pub enum MissingModalityPolicy {
-    Reject,
-    PermitDeclared { optional_modalities: Vec<String> },
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -202,18 +197,29 @@ impl TrainingSession {
         validate_evaluation_policy(self.evaluation_policy)?;
         match &self.missing_modality_policy {
             MissingModalityPolicy::Reject => {}
-            MissingModalityPolicy::PermitDeclared {
-                optional_modalities,
-            } => {
+            MissingModalityPolicy::PermitDeclared(policy) => {
+                let optional_modalities = policy.optional_modalities();
                 if optional_modalities.is_empty()
                     || optional_modalities.len() > MAXIMUM_BATCH_MODALITIES
-                    || has_duplicate_text(optional_modalities)
+                    || optional_modalities
+                        .iter()
+                        .enumerate()
+                        .any(|(index, value)| {
+                            optional_modalities
+                                .iter()
+                                .skip(index + 1)
+                                .any(|candidate| candidate == value)
+                        })
                 {
                     return Err(TrainingRefusal::InvalidSession);
                 }
-                for modality in optional_modalities {
-                    text(modality)?;
-                    if !self.model_modalities.contains(modality) {
+                for modality in optional_modalities.iter() {
+                    text(modality.get())?;
+                    if !self
+                        .model_modalities
+                        .iter()
+                        .any(|candidate| candidate == modality.get())
+                    {
                         return Err(TrainingRefusal::InvalidSession);
                     }
                 }

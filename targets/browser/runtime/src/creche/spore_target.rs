@@ -119,6 +119,8 @@ fn prepare_with_checked_configuration(
                     }
                 }),
             }],
+            mask_imports: Vec::new(),
+            wardrobe: conduit_body_make::BodyWardrobeDescription::default(),
         },
         &configurations,
         &catalog,
