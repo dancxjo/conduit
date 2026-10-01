@@ -1,32 +1,11 @@
 //! Renderer-neutral application theme roles and their finite transport.
 
-use crate::ApplicationViewRefusal;
+use crate::{ApplicationViewRefusal, ThemeColor};
 use alloc::vec::Vec;
 
 pub const MAX_APPLICATION_THEME_BYTES: usize = 128;
 pub const APPLICATION_THEME_VERSION: u8 = 2;
 pub const RETIRED_APPLICATION_THEME_VERSION: u8 = 1;
-
-#[derive(Clone, Copy, Debug, Eq, PartialEq)]
-pub struct ThemeColor(pub u8, pub u8, pub u8);
-
-impl ThemeColor {
-    pub const fn from_rgb(red: u8, green: u8, blue: u8) -> Self {
-        Self(red, green, blue)
-    }
-    pub const fn red(self) -> u8 {
-        self.0
-    }
-    pub const fn green(self) -> u8 {
-        self.1
-    }
-    pub const fn blue(self) -> u8 {
-        self.2
-    }
-    pub const fn packed_rgb(self) -> u32 {
-        ((self.0 as u32) << 16) | ((self.1 as u32) << 8) | self.2 as u32
-    }
-}
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub struct ApplicationTheme {
@@ -62,21 +41,21 @@ pub struct ApplicationTheme {
 
 pub const CONDUIT_APPLICATION_THEME: ApplicationTheme = ApplicationTheme {
     identity: "conduit.presentation/phosphor@1",
-    background: ThemeColor(0x05, 0x07, 0x0b),
-    reading_paper: ThemeColor(0x0c, 0x12, 0x1c),
-    workbench_canvas: ThemeColor(0x05, 0x07, 0x0b),
-    bootstrap_surface: ThemeColor(0x09, 0x0d, 0x16),
-    surface: ThemeColor(0x09, 0x0d, 0x16),
-    structure_primary: ThemeColor(0x0d, 0xd8, 0xf6),
-    structure_secondary: ThemeColor(0x0a, 0x1f, 0x87),
-    text_primary: ThemeColor(0x93, 0xd2, 0xf7),
-    text_secondary: ThemeColor(0x57, 0x8e, 0xc9),
-    emphasis: ThemeColor(0xe9, 0xa3, 0x25),
-    focus: ThemeColor(0xf4, 0xc4, 0x00),
-    warning: ThemeColor(0xf2, 0xbd, 0x71),
-    failure: ThemeColor(0xff, 0x72, 0x72),
-    success: ThemeColor(0x63, 0xd6, 0x9b),
-    muted: ThemeColor(0x8c, 0x4c, 0x19),
+    background: ThemeColor::from_rgb(0x05, 0x07, 0x0b),
+    reading_paper: ThemeColor::from_rgb(0x0c, 0x12, 0x1c),
+    workbench_canvas: ThemeColor::from_rgb(0x05, 0x07, 0x0b),
+    bootstrap_surface: ThemeColor::from_rgb(0x09, 0x0d, 0x16),
+    surface: ThemeColor::from_rgb(0x09, 0x0d, 0x16),
+    structure_primary: ThemeColor::from_rgb(0x0d, 0xd8, 0xf6),
+    structure_secondary: ThemeColor::from_rgb(0x0a, 0x1f, 0x87),
+    text_primary: ThemeColor::from_rgb(0x93, 0xd2, 0xf7),
+    text_secondary: ThemeColor::from_rgb(0x57, 0x8e, 0xc9),
+    emphasis: ThemeColor::from_rgb(0xe9, 0xa3, 0x25),
+    focus: ThemeColor::from_rgb(0xf4, 0xc4, 0x00),
+    warning: ThemeColor::from_rgb(0xf2, 0xbd, 0x71),
+    failure: ThemeColor::from_rgb(0xff, 0x72, 0x72),
+    success: ThemeColor::from_rgb(0x63, 0xd6, 0x9b),
+    muted: ThemeColor::from_rgb(0x8c, 0x4c, 0x19),
     type_body_px: 16,
     type_small_px: 14,
     line_height_percent: 150,
@@ -132,8 +111,8 @@ impl ApplicationTheme {
         encoded.push(APPLICATION_THEME_VERSION);
         encoded.push(self.identity.len() as u8);
         encoded.extend_from_slice(self.identity.as_bytes());
-        for ThemeColor(red, green, blue) in colors {
-            encoded.extend_from_slice(&[red, green, blue]);
+        for color in colors {
+            encoded.extend_from_slice(&[color.red(), color.green(), color.blue()]);
         }
         for metric in metrics {
             encoded.extend_from_slice(&metric.to_le_bytes());
