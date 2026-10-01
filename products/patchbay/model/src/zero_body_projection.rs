@@ -323,8 +323,10 @@ impl ZeroBodyFrontDoor {
         )
         .map_err(|error| error.to_string())?;
         let selected_form = selected_form.is_some();
-        let navigation =
-            crate::PatchbayNavigationProjection::for_zero_body(&presentation, selected_form)?;
+        let navigation = patchbay_application::PatchbayNavigationProjection::for_zero_body(
+            &presentation,
+            selected_form,
+        )?;
         Ok(ZeroBodyFrontDoorProjection {
             presentation,
             navigation,

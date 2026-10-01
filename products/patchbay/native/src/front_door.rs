@@ -4,9 +4,9 @@ use super::PatchbayApplication;
 use crate::front_door_follow::{exact_current_follow, NativeFollowRefusal};
 use conduit_core::SignId;
 use conduit_presentation::{NavigationOperation, NavigationState, Presentation};
+use patchbay_application::PatchbayNavigationProjection;
 use patchbay_model::{
-    PatchbayNavigationProjection, RendererAdapterIdentity, RendererAdapterKind, RendererExecution,
-    ZeroBodyFrontDoor,
+    RendererAdapterIdentity, RendererAdapterKind, RendererExecution, ZeroBodyFrontDoor,
 };
 
 pub(super) struct NativeFrontDoorPresentation {

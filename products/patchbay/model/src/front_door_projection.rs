@@ -59,7 +59,8 @@ impl LocalFrontDoor {
                 .to_portable_lulled_front_door(&self.body, &parts)
                 .map_err(|error| error.to_string())?,
         };
-        let navigation = crate::PatchbayNavigationProjection::for_embodied(&presentation)?;
+        let navigation =
+            patchbay_application::PatchbayNavigationProjection::for_embodied(&presentation)?;
         Ok(LocalFrontDoorProjection {
             presentation,
             navigation,
@@ -123,7 +124,8 @@ fn idle_body_projection(
         }],
     )
     .map_err(|error| error.to_string())?;
-    let navigation = crate::PatchbayNavigationProjection::for_embodied(&presentation)?;
+    let navigation =
+        patchbay_application::PatchbayNavigationProjection::for_embodied(&presentation)?;
     Ok(LocalFrontDoorProjection {
         presentation,
         navigation,

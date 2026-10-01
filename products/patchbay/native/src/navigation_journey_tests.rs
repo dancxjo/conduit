@@ -11,7 +11,7 @@ fn native_and_linear_consume_one_bounded_portable_navigation_journey() {
     )
     .unwrap();
     let mut navigation =
-        patchbay_model::PatchbayNavigationProjection::for_embodied(&presentation).unwrap();
+        patchbay_application::PatchbayNavigationProjection::for_embodied(&presentation).unwrap();
     let mut places = navigation.navigation.places.clone();
     places
         .iter_mut()

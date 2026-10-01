@@ -116,7 +116,7 @@ impl RendererSnapshot {
 
     pub fn attach_navigation(
         &mut self,
-        navigation: patchbay_model::PatchbayNavigationProjection,
+        navigation: patchbay_application::PatchbayNavigationProjection,
     ) -> Result<(), SnapshotError> {
         navigation
             .navigation

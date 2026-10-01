@@ -1,7 +1,7 @@
 //! Native consumption of a shared portable navigation journey.
 
 use conduit_presentation::{NavigationJourneyDisposition, NavigationJourneyReceipt, Presentation};
-use patchbay_model::PatchbayNavigationProjection;
+use patchbay_application::PatchbayNavigationProjection;
 
 /// Manifest successful receipt cursors without replaying them or acquiring
 /// mutation authority. Refusals remain visible in the receipt itself.

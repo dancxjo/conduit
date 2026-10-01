@@ -75,10 +75,10 @@ fn install_mutated_presentation(
         .focus
         .clone();
     let navigation = if presentation.basis.body_id.is_some() {
-        patchbay_model::PatchbayNavigationProjection::for_embodied(&presentation)
+        patchbay_application::PatchbayNavigationProjection::for_embodied(&presentation)
             .map_err(|error| format!("front-door mutated projection: {error}"))?
     } else {
-        patchbay_model::PatchbayNavigationProjection::for_zero_body(&presentation, false)
+        patchbay_application::PatchbayNavigationProjection::for_zero_body(&presentation, false)
             .map_err(|error| format!("front-door mutated projection: {error}"))?
     };
     let entrance =
@@ -344,7 +344,7 @@ fn native_follow_crosses_exact_documentary_correlation_and_returns() {
     )
     .unwrap();
     let navigation =
-        patchbay_model::PatchbayNavigationProjection::for_embodied(&presentation).unwrap();
+        patchbay_application::PatchbayNavigationProjection::for_embodied(&presentation).unwrap();
     application.entrance = Some(
         crate::front_door::NativeFrontDoorPresentation::new(presentation.clone(), navigation)
             .unwrap(),
@@ -488,7 +488,7 @@ fn native_follow_refuses_zero_or_ambiguous_correlations_without_motion() {
     )
     .unwrap();
     let navigation =
-        patchbay_model::PatchbayNavigationProjection::for_embodied(&presentation).unwrap();
+        patchbay_application::PatchbayNavigationProjection::for_embodied(&presentation).unwrap();
     let forward = &navigation.navigation.follows[0];
     let focus = &forward.target_subject;
     let mut cursor = navigation.cursor.clone();

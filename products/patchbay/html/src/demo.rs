@@ -1,8 +1,7 @@
 use crate::RendererSnapshot;
 use conduit_core::{BootId, HostId, SignId};
-use patchbay_model::{
-    PatchbayNavigationProjection, RendererAdapterIdentity, RendererAdapterKind, RendererExecution,
-};
+use patchbay_application::PatchbayNavigationProjection;
+use patchbay_model::{RendererAdapterIdentity, RendererAdapterKind, RendererExecution};
 
 pub fn demonstration_snapshot() -> Result<RendererSnapshot, String> {
     let (presentation, parts) = patchbay_model::portable_demonstration_with_parts_and_adapter(

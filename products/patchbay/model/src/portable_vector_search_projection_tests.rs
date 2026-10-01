@@ -19,7 +19,8 @@ use conduit_std_host::hosted_vector_index::{
 };
 
 use crate::portable_projection::ContentBuilder;
-use crate::{PatchbayGraph, PatchbayNavigationProjection};
+use crate::PatchbayGraph;
+use patchbay_application::PatchbayNavigationProjection;
 
 const SOURCE: &str = "form retrieval {\n search: retrieval/vector-search(4096, 8192, 1024, 8)\n}\n";
 const VECTOR_WORK_UNITS: u32 = 65_536;

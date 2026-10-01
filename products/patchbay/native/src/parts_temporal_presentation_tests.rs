@@ -94,7 +94,7 @@ fn live_parts_linear_presentation_orders_age_before_exact_provenance() {
     assert!(relative < exact);
 
     let mut navigation =
-        patchbay_model::PatchbayNavigationProjection::for_embodied(&later).unwrap();
+        patchbay_application::PatchbayNavigationProjection::for_embodied(&later).unwrap();
     let body_place = navigation
         .navigation
         .places
