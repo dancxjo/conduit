@@ -1,7 +1,9 @@
-use conduit_form::rust_binding::NativeRustBinding;
+use conduit_form::rust_binding::{BoundedSequence, NativeRustBinding};
 use conduit_net::{
-    ApplicationNetworkRefusal, DnsQuery, DnsRecordKind, DnsTtl, NetworkAttachmentId,
-    NetworkJoinError, NetworkTransport, RecordTranscriptDirection, RecordTranscriptTerminal,
+    ApplicationNetworkRefusal, DnsQuery, DnsRecordKind, DnsResult, DnsTtl, NetworkAddress,
+    NetworkAttachmentId, NetworkConnectionState, NetworkEndpoint, NetworkJoinError, NetworkReason,
+    NetworkTransport, RecordTranscriptDirection, RecordTranscriptTerminal, ResolvedNetworkAddress,
+    ResolvedNetworkEndpoint,
 };
 
 fn round_trip<T>(value: T)
@@ -148,4 +150,60 @@ fn dns_query_round_trips_and_owns_its_exact_bounds() {
         NetworkTransport::Tcp,
     )
     .is_err());
+}
+
+#[test]
+fn application_network_graph_owns_address_result_and_observation_bounds() {
+    assert!(NetworkAddress::dns_name(String::new()).is_err());
+    assert!(NetworkAddress::dns_name("x".repeat(253)).is_ok());
+    assert!(NetworkAddress::dns_name("x".repeat(254)).is_err());
+
+    let endpoint = NetworkEndpoint::new(
+        NetworkAddress::Ipv4([127, 0, 0, 1]),
+        443,
+        NetworkTransport::Tcp,
+    )
+    .unwrap();
+    assert!(NetworkEndpoint::new(
+        NetworkAddress::Ipv4([127, 0, 0, 1]),
+        0,
+        NetworkTransport::Tcp,
+    )
+    .is_err());
+    round_trip_owned(endpoint.clone());
+
+    let resolved = ResolvedNetworkEndpoint::new(
+        ResolvedNetworkAddress::Ipv4([127, 0, 0, 1]),
+        443,
+        NetworkTransport::Tcp,
+    )
+    .unwrap();
+    let candidates = BoundedSequence::try_from_iter([resolved]).unwrap();
+    round_trip_owned(
+        DnsResult::current(candidates, "fixture.local".into(), DnsTtl::Unavailable).unwrap(),
+    );
+    assert!(BoundedSequence::<_, 4>::try_from_iter([
+        endpoint.clone(),
+        endpoint.clone(),
+        endpoint.clone(),
+        endpoint.clone(),
+        endpoint.clone(),
+    ])
+    .is_err());
+
+    round_trip_owned(
+        NetworkConnectionState::requested(
+            endpoint.address().clone(),
+            *endpoint.port(),
+            *endpoint.transport(),
+        )
+        .unwrap(),
+    );
+    round_trip_owned(
+        NetworkConnectionState::refused(NetworkReason::new("policy".into()).unwrap()).unwrap(),
+    );
+    assert!(NetworkReason::new("x".repeat(4097))
+        .unwrap()
+        .into_structured()
+        .is_err());
 }

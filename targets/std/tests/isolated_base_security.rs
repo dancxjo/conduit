@@ -111,11 +111,12 @@ fn isolated_file_base_cannot_reach_network_and_network_work_survives_its_loss() 
 
     let network_sentinel = TcpListener::bind((Ipv4Addr::LOCALHOST, 0)).unwrap();
     network_sentinel.set_nonblocking(true).unwrap();
-    let endpoint = NetworkEndpoint {
-        address: NetworkAddress::Ipv4(Ipv4Addr::LOCALHOST.octets()),
-        port: network_sentinel.local_addr().unwrap().port(),
-        transport: NetworkTransport::Tcp,
-    };
+    let endpoint = NetworkEndpoint::new(
+        NetworkAddress::Ipv4(Ipv4Addr::LOCALHOST.octets()),
+        network_sentinel.local_addr().unwrap().port(),
+        NetworkTransport::Tcp,
+    )
+    .unwrap();
 
     let executable = PathBuf::from(env!("CARGO_BIN_EXE_conduit-isolated-file-base"));
     let mut child = spawn_provider(&executable).unwrap();
@@ -167,7 +168,7 @@ fn isolated_file_base_cannot_reach_network_and_network_work_survives_its_loss() 
     let _ = accept.join().unwrap();
     assert!(lifecycle
         .iter()
-        .any(|state| matches!(state, NetworkConnectionState::Connected { .. })));
+        .any(|state| matches!(state, NetworkConnectionState::Connected(..))));
 
     write_frame(&mut input, &SupervisorFrame::Shutdown).unwrap();
     assert_eq!(
@@ -184,11 +185,12 @@ fn isolated_file_base_cannot_reach_network_and_network_work_survives_its_loss() 
     let survivor = TcpListener::bind((Ipv4Addr::LOCALHOST, 0)).unwrap();
     let survivor_address = survivor.local_addr().unwrap();
     let survivor_accept = std::thread::spawn(move || survivor.accept().unwrap());
-    let survivor_endpoint = NetworkEndpoint {
-        address: NetworkAddress::Ipv4(Ipv4Addr::LOCALHOST.octets()),
-        port: survivor_address.port(),
-        transport: NetworkTransport::Tcp,
-    };
+    let survivor_endpoint = NetworkEndpoint::new(
+        NetworkAddress::Ipv4(Ipv4Addr::LOCALHOST.octets()),
+        survivor_address.port(),
+        NetworkTransport::Tcp,
+    )
+    .unwrap();
     let survivor_lifecycle = connect_tcp(
         &survivor_endpoint,
         EndpointFreshness::Current,
@@ -198,7 +200,7 @@ fn isolated_file_base_cannot_reach_network_and_network_work_survives_its_loss() 
     let _ = survivor_accept.join().unwrap();
     assert!(survivor_lifecycle
         .iter()
-        .any(|state| matches!(state, NetworkConnectionState::Connected { .. })));
+        .any(|state| matches!(state, NetworkConnectionState::Connected(..))));
     fs::remove_dir_all(root).unwrap();
 }
 
