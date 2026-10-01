@@ -3,15 +3,17 @@
 use alloc::{
     string::{String, ToString},
     vec,
-    vec::Vec,
 };
-use conduit_audio::{BeatReference, TimingFeedback, MUSIC_CONTROL_INFO_ID, MUSIC_NOTE_INFO_ID};
+use conduit_audio::{
+    BeatReference, InstrumentControl, InstrumentMapping, InstrumentPitchMillihertz, TimingFeedback,
+    MUSIC_CONTROL_INFO_ID, MUSIC_NOTE_INFO_ID,
+};
 use conduit_core::{
     kind_id, port_id, CapabilityLimits, ConfigurationValue, FrontStartupParameter, Kind, KindId,
     KindIdentity, PortDescriptor, PortDirection, PortTemporal, StructuredConfigurationValue,
-    StructuredFieldType, StructuredFieldValue, StructuredInfoType, StructuredInfoValue,
-    StructuredVariantCase, MAXIMUM_STRUCTURED_CANONICAL_BYTES,
+    StructuredInfoType, MAXIMUM_STRUCTURED_CANONICAL_BYTES,
 };
+use conduit_form::rust_binding::NativeRustBinding;
 use conduit_form::{
     KindConfigurationField, KindConfigurationRule, KindProjection, KindSignature,
     StartupParameterSignature,
@@ -92,52 +94,11 @@ pub fn timing_feedback_type() -> StructuredInfoType {
 }
 
 pub fn instrument_mapping_type() -> StructuredInfoType {
-    let count = leaf("value/count");
-    StructuredInfoType::record(
-        kind_id("music/instrument-mapping@1"),
-        vec![
-            field("expression_control", count.clone()),
-            field("modulation_control", count.clone()),
-            field(
-                "pitch_millihertz",
-                StructuredInfoType::collection(count.clone(), Some(8)).unwrap(),
-            ),
-            field("sustain_button", count),
-        ],
-    )
-    .unwrap()
+    InstrumentMapping::semantic_type().expect("generated instrument mapping Type is checked")
 }
 
 pub fn instrument_control_type() -> StructuredInfoType {
-    let count = leaf("value/count");
-    let boolean = leaf("value/bool");
-    let button = StructuredInfoType::record(
-        kind_id("input/button-event@1"),
-        vec![
-            field("down", boolean),
-            field("event_time_micros", count.clone()),
-            field("index", count.clone()),
-            field("occurrence", count.clone()),
-        ],
-    )
-    .unwrap();
-    let analog = StructuredInfoType::record(
-        kind_id("input/analog-event@1"),
-        vec![
-            field("event_time_micros", count.clone()),
-            field("index", count.clone()),
-            field("value", count),
-        ],
-    )
-    .unwrap();
-    StructuredInfoType::variant(
-        kind_id("input/instrument-control@1"),
-        vec![
-            StructuredVariantCase::new("analog", analog).unwrap(),
-            StructuredVariantCase::new("button", button).unwrap(),
-        ],
-    )
-    .unwrap()
+    InstrumentControl::semantic_type().expect("generated instrument control Type is checked")
 }
 
 pub fn install_structured_music_form_catalogs(
@@ -267,41 +228,25 @@ pub fn instrument_map_definition() -> Result<KindProjection, String> {
 }
 
 pub fn default_instrument_mapping_configuration() -> Result<StructuredConfigurationValue, String> {
-    let mapping = instrument_mapping_type();
-    let profile = mapping
+    let profile = instrument_mapping_type()
         .profile()
         .map_err(|error| alloc::format!("{error:?}"))?
         .value_kind()
         .clone();
-    let count = leaf("value/count");
-    let pitches_type = StructuredInfoType::collection(count.clone(), Some(8)).unwrap();
-    let pitches = StructuredInfoValue::collection(
-        pitches_type,
-        [
-            261_626_u64,
-            293_665,
-            329_628,
-            349_228,
-            391_995,
-            440_000,
-            493_883,
-            523_251,
-        ]
-        .into_iter()
-        .map(|value| count_value(&count, value))
-        .collect::<Result<Vec<_>, _>>()?,
-    )
+    let pitches = InstrumentPitchMillihertz::new([
+        261_626_u64,
+        293_665,
+        329_628,
+        349_228,
+        391_995,
+        440_000,
+        493_883,
+        523_251,
+    ])
     .map_err(|error| alloc::format!("{error:?}"))?;
-    let value = StructuredInfoValue::record(
-        mapping,
-        vec![
-            value_field("expression_control", count_value(&count, 1)?),
-            value_field("modulation_control", count_value(&count, 0)?),
-            value_field("pitch_millihertz", pitches),
-            value_field("sustain_button", count_value(&count, 8)?),
-        ],
-    )
-    .map_err(|error| alloc::format!("{error:?}"))?;
+    let value = InstrumentMapping::new(1, 0, pitches, 8)
+        .and_then(NativeRustBinding::into_structured)
+        .map_err(|error| alloc::format!("{error:?}"))?;
     StructuredConfigurationValue::new(
         profile,
         value
@@ -309,26 +254,6 @@ pub fn default_instrument_mapping_configuration() -> Result<StructuredConfigurat
             .map_err(|error| alloc::format!("{error:?}"))?,
     )
     .ok_or_else(|| "default instrument mapping exceeds configuration bounds".into())
-}
-
-fn count_value(value_type: &StructuredInfoType, value: u64) -> Result<StructuredInfoValue, String> {
-    StructuredInfoValue::leaf(
-        value_type.clone(),
-        conduit_core::encode_count(value).to_vec(),
-    )
-    .map_err(|error| alloc::format!("{error:?}"))
-}
-
-fn leaf(kind: &str) -> StructuredInfoType {
-    StructuredInfoType::leaf(kind_id(kind)).unwrap()
-}
-
-fn field(name: &str, value_type: StructuredInfoType) -> StructuredFieldType {
-    StructuredFieldType::new(name, value_type).unwrap()
-}
-
-fn value_field(name: &str, value: StructuredInfoValue) -> StructuredFieldValue {
-    StructuredFieldValue::new(name, value).unwrap()
 }
 
 fn flow_port(name: &str, value_kind: &str, direction: PortDirection) -> PortDescriptor {
