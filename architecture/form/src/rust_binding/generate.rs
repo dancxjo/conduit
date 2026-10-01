@@ -16,6 +16,12 @@ pub struct RustBindingOptions {
     /// Authored Type names whose generated Rust variants must retain a
     /// pre-existing non-Serde API even when other variants opt into Serde.
     pub serde_variant_exclusions: BTreeSet<String>,
+    /// Authored record Type names whose Rust bindings retain a pre-existing
+    /// Serde wire contract. This binding choice is not semantic Type truth.
+    pub serde_record_types: BTreeSet<String>,
+    /// Authored record Type names whose entirely-copyable Rust bindings retain
+    /// a pre-existing `Copy` API.
+    pub copy_record_types: BTreeSet<String>,
     /// Optional Rust enum declaration order for preserving an established
     /// Serde variant-index ABI. Keys are authored Type names and values are an
     /// exhaustive, unique list of authored variant tags. This is binding-only
@@ -230,11 +236,23 @@ fn emit_type(
             writeln!(out, "}}\n").expect("String writing is infallible");
         }
         StructuredInfoTypeShape::Record { fields, .. } => {
-            writeln!(
-                out,
-                "#[derive(Debug, Clone, PartialEq, Eq)]\npub struct {rust_name} {{"
-            )
-            .expect("String writing is infallible");
+            let derive_copy = options.copy_record_types.contains(&value_type.name);
+            let derive_serde = options.serde_record_types.contains(&value_type.name);
+            if derive_copy && !copy_type(&value_type.value_type) {
+                return Err(RustBindingGenerationError::InvalidSemanticType);
+            }
+            let derives = match (derive_copy, derive_serde) {
+                (true, true) => {
+                    "Debug, Clone, Copy, PartialEq, Eq, serde::Serialize, serde::Deserialize"
+                }
+                (true, false) => "Debug, Clone, Copy, PartialEq, Eq",
+                (false, true) => {
+                    "Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize"
+                }
+                (false, false) => "Debug, Clone, PartialEq, Eq",
+            };
+            writeln!(out, "#[derive({derives})]\npub struct {rust_name} {{")
+                .expect("String writing is infallible");
             for field in fields {
                 writeln!(
                     out,

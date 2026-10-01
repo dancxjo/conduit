@@ -2,8 +2,9 @@ use alloc::{string::String, vec::Vec};
 use serde::{Deserialize, Serialize};
 
 use crate::{
-    EmbeddingNormalization, FiniteEmbedding, SimilarityMetric, StructuredResultInvalidity,
-    TemporalProvenance, TemporalRetrievalIntent, VectorRefusal, MAXIMUM_EMBEDDING_DIMENSIONS,
+    CompatibleMetrics, EmbeddingNormalization, FiniteEmbedding, SimilarityMetric,
+    StructuredResultInvalidity, TemporalProvenance, TemporalRetrievalIntent, VectorRefusal,
+    MAXIMUM_EMBEDDING_DIMENSIONS,
 };
 
 pub const MAXIMUM_VECTOR_IDENTITY_BYTES: usize = 256;
@@ -13,12 +14,6 @@ pub const MAXIMUM_VECTOR_METADATA_KEY_BYTES: usize = 64;
 pub const MAXIMUM_VECTOR_METADATA_VALUE_BYTES: usize = 1_024;
 pub const MAXIMUM_SIMILARITY_TOP_K: u32 = 1_024;
 const UNIT_NORM_TOLERANCE: f32 = 0.000_01;
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
-pub struct CompatibleMetrics {
-    pub cosine_similarity: bool,
-    pub dot_product_similarity: bool,
-    pub squared_euclidean_distance: bool,
-}
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct EmbeddingProfile {
     pub identity: String,
@@ -94,14 +89,16 @@ pub struct SimilarityHit<T> {
 impl CompatibleMetrics {
     pub fn admits(self, metric: SimilarityMetric) -> bool {
         match metric {
-            SimilarityMetric::CosineSimilarity => self.cosine_similarity,
-            SimilarityMetric::DotProductSimilarity => self.dot_product_similarity,
-            SimilarityMetric::SquaredEuclideanDistance => self.squared_euclidean_distance,
+            SimilarityMetric::CosineSimilarity => *self.cosine_similarity(),
+            SimilarityMetric::DotProductSimilarity => *self.dot_product_similarity(),
+            SimilarityMetric::SquaredEuclideanDistance => *self.squared_euclidean_distance(),
         }
     }
 
     fn any(self) -> bool {
-        self.cosine_similarity || self.dot_product_similarity || self.squared_euclidean_distance
+        *self.cosine_similarity()
+            || *self.dot_product_similarity()
+            || *self.squared_euclidean_distance()
     }
 }
 

@@ -156,6 +156,12 @@ type EmbeddingNormalization =
     none
     | unit_length
 
+type CompatibleMetrics = {
+    cosine_similarity: Boolean
+    dot_product_similarity: Boolean
+    squared_euclidean_distance: Boolean
+}
+
 type TemporalSource =
     event
     | valid_from
